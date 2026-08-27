@@ -28,7 +28,7 @@ def _status_url(request: Request, operation_id: UUID) -> str:
     return str(request.url_for("workflow_v2_operation_status", operation_id=str(operation_id)))
 
 
-@router.post("", response_model=OperationResponse)
+@router.post("", response_model=OperationResponse, response_model_exclude_none=True)
 async def submit_operation(
     envelope: AxWiseOperationEnvelope,
     request: Request,
@@ -57,6 +57,7 @@ async def submit_operation(
 @router.get(
     "/{operation_id}",
     response_model=OperationResponse,
+    response_model_exclude_none=True,
     name="workflow_v2_operation_status",
 )
 async def operation_status(

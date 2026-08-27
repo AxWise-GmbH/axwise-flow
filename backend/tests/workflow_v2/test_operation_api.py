@@ -112,6 +112,7 @@ async def test_operation_api_requires_exact_idempotency_key_and_adopts_result():
         )
         assert completed.status_code == 200
         assert completed.json()["status"] == "completed"
+        assert set(completed.json()["result"]) == {"artifact"}
 
         status_response = await client.get(f"/v2/operations/{payload['operationId']}")
         assert status_response.status_code == 200
