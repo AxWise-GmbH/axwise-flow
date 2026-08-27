@@ -11,9 +11,16 @@ from typing import Any, Iterable, TypeVar
 import pycountry
 from pydantic import BaseModel, ValidationError
 
-from backend.domain.market_scope import MARKET_GROUPS, resolve_market_expression
+from backend.domain.market_scope import (
+    MARKET_GROUPS,
+    MarketScopeV2,
+    resolve_market_expression,
+)
 from backend.domain.orchestration.models import (
+    BusinessEvidenceProfileV1,
+    CriticalClaimPolicyV1,
     DecisionCreateRequestV1,
+    ResearchBriefV1,
     ResearchPolicyV1,
 )
 from backend.domain.orchestration.scope_models import (
@@ -69,6 +76,29 @@ COMMERCIAL_MARKET_LAUNCH_EXECUTION_ROLES = (
     "GDPR Legal Compliance Specialist",
     "Business Development Sales Specialist",
     "Commercial Risk Analyst",
+)
+
+_COMMERCIAL_MARKET_LAUNCH_CLAIM_CLASSES = (
+    "statutory_current",
+    "official_statistic",
+    "observed_primary_market",
+)
+
+_COMMERCIAL_PHYSICAL_FLOW_PATTERNS = (
+    r"\bsupplier[-\s]+to[-\s]+last[-\s]+mile\b",
+    r"\b(?:physical\s+products?|physical\s+goods|consumer\s+goods)\b",
+    r"\b(?:supplier|procurement|supply\s+chain|inventory|warehous(?:e|ing)|"
+    r"wholesale)\b[^.;]{0,100}"
+    r"\b(?:delivery|distribution|last[-\s]+mile|shipping|"
+    r"fulfil(?:l)?ment|retail)\b",
+)
+
+_COMMERCIAL_PHYSICAL_EVIDENCE_ROLE_SLOTS = (
+    "customer_market",
+    "pricing_finance",
+    "legal_compliance",
+    "sales_distribution",
+    "risk_operations",
 )
 
 BUSINESS_EVIDENCE_ROLE_LABELS = {
@@ -1055,6 +1085,109 @@ def scope_contract_binding(packet: ScopePacketV1) -> ScopeContractBindingV1:
     return ScopeContractBindingV1.from_packet(packet)
 
 
+def _effective_research_policy(
+    policy: ResearchPolicyV1,
+    contract: ScopeResearchContractV1,
+) -> ResearchPolicyV1:
+    """Project the policy authorized by the accepted acquisition contract."""
+
+    if contract.evidence.mode != "grounded":
+        return policy
+    return policy.model_copy(
+        update={
+            "allow_hybrid_research": True,
+            "required": True,
+            "grounding_required": True,
+            "fail_closed": True,
+        }
+    )
+
+
+def _effective_critical_claim_policy(
+    policy: CriticalClaimPolicyV1,
+    contract: ScopeResearchContractV1,
+) -> CriticalClaimPolicyV1:
+    """Require the full evidence boundary for grounded commercial launches."""
+
+    if not (
+        contract.document_intent == "commercial_market_launch"
+        and contract.evidence.mode == "grounded"
+    ):
+        return policy
+    required_classes = list(policy.mandatory_claim_classes)
+    seen_classes = set(required_classes)
+    for claim_class in _COMMERCIAL_MARKET_LAUNCH_CLAIM_CLASSES:
+        if claim_class not in seen_classes:
+            required_classes.append(claim_class)
+            seen_classes.add(claim_class)
+    return policy.model_copy(
+        update={
+            "required": True,
+            "fail_closed": True,
+            "mandatory_claim_classes": required_classes,
+        }
+    )
+
+
+def _effective_business_evidence_profile(
+    brief: ResearchBriefV1 | None,
+    packet: ScopePacketV1,
+    market_scope: MarketScopeV2 | None,
+) -> BusinessEvidenceProfileV1 | None:
+    """Select the reviewed physical-offer adapter from accepted semantics."""
+
+    if brief is None:
+        return None
+    if brief.business_evidence_profile is not None:
+        return brief.business_evidence_profile
+    contract = packet.research_contract
+    if (
+        contract is None
+        or contract.document_intent != "commercial_market_launch"
+        or contract.evidence.mode != "grounded"
+        or len(contract.geographies) != 1
+        or "procurement_logistics" not in contract.work_types
+        or market_scope is None
+    ):
+        return None
+    accepted_texts = [
+        packet.intent.objective,
+        packet.intent.problem,
+        packet.intent.desired_outcome,
+        *(item.text for item in packet.ledger.requirements),
+        *(item.text for item in packet.ledger.constraints),
+    ]
+    if not _has_positive_pattern(
+        accepted_texts,
+        _COMMERCIAL_PHYSICAL_FLOW_PATTERNS,
+    ):
+        return None
+    return BusinessEvidenceProfileV1.model_validate(
+        {
+            "intent": "commercial_market_launch",
+            "economic_model": "physical_product",
+            "market_scope_hash": market_scope.resolution_hash,
+            "fact_requirements": [
+                {
+                    "kind": "physical_product_offer",
+                    "minimum_verified": 2,
+                    "applicability": "required",
+                }
+            ],
+            "calculation_requirements": [
+                {
+                    "kind": "physical_offer_price_difference",
+                    "minimum_verified": 1,
+                    "applicability": "required",
+                }
+            ],
+            "required_role_slots": list(
+                _COMMERCIAL_PHYSICAL_EVIDENCE_ROLE_SLOTS
+            ),
+        }
+    )
+
+
 def research_execution_inputs_payload(
     request: DecisionCreateRequestV1,
     packet: ScopePacketV1,
@@ -1073,7 +1206,12 @@ def research_execution_inputs_payload(
         if contract.geographies
         else None
     )
-    policy = request.research_policy
+    policy = _effective_research_policy(request.research_policy, contract)
+    business_evidence_profile = _effective_business_evidence_profile(
+        brief,
+        packet,
+        market_scope,
+    )
     return {
         "version": "axwise_research_execution_inputs_v1",
         "scope_contract_binding": scope_contract_binding(packet).model_dump(
@@ -1147,12 +1285,13 @@ def research_execution_inputs_payload(
                 "customer_role_contract": brief.customer_role_contract.model_dump(
                     mode="json"
                 ),
-                "critical_claim_policy": brief.critical_claim_policy.model_dump(
-                    mode="json"
-                ),
+                "critical_claim_policy": _effective_critical_claim_policy(
+                    brief.critical_claim_policy,
+                    contract,
+                ).model_dump(mode="json"),
                 "business_evidence_profile": (
-                    brief.business_evidence_profile.model_dump(mode="json")
-                    if brief.business_evidence_profile
+                    business_evidence_profile.model_dump(mode="json")
+                    if business_evidence_profile
                     else None
                 ),
                 "industry": brief.industry,

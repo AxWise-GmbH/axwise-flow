@@ -19,6 +19,7 @@ from backend.domain.orchestration.models import (
     DecisionCreateRequestV1,
     EvidenceItemV1,
     ResearchJobV1,
+    ResearchPolicyV1,
     ResearchResultV1,
 )
 from backend.domain.market_scope import resolve_market_expression
@@ -107,6 +108,7 @@ class HybridResearchAdapter:
             )
         projection = research_execution_inputs_payload(request, packet)
         projected_task = projection["task"]
+        projected_brief = projection["research_brief"] or {}
         return OrqalyTaskContext(
             task_id=task.task_id,
             title=task.objective,
@@ -129,13 +131,9 @@ class HybridResearchAdapter:
             customer_role_contract=(
                 brief.customer_role_contract.model_dump(mode="json") if brief else {}
             ),
-            critical_claim_policy=(
-                brief.critical_claim_policy.model_dump(mode="json") if brief else {}
-            ),
-            business_evidence_profile=(
-                brief.business_evidence_profile.model_copy()
-                if brief and brief.business_evidence_profile
-                else None
+            critical_claim_policy=projected_brief.get("critical_claim_policy") or {},
+            business_evidence_profile=projected_brief.get(
+                "business_evidence_profile"
             ),
             scope_contract_binding=scope_contract_binding(packet),
             scope_runtime_binding=packet.runtime,
@@ -165,7 +163,10 @@ class HybridResearchAdapter:
         ]
 
     @staticmethod
-    def _questions_data(request: DecisionCreateRequestV1) -> QuestionsData:
+    def _questions_data(
+        request: DecisionCreateRequestV1,
+        policy: ResearchPolicyV1 | None = None,
+    ) -> QuestionsData:
         """Build a domain-neutral, typed questionnaire without invoking the parser."""
         brief = request.research_brief
         if not brief:
@@ -242,7 +243,7 @@ class HybridResearchAdapter:
         # legacy direct-adapter topology, but make explicit grounded bundles
         # customer-centric: fast covers experiencer + buyer; deep also covers
         # a distinct beneficiary.
-        policy = request.research_policy
+        policy = policy or request.research_policy
         if policy.required and policy.minimum_mode in {"grounded_fast", "grounded_deep"}:
             primary_count = 2 if policy.minimum_mode == "grounded_fast" else 3
             stakeholders = {"primary": stakeholders["primary"][:primary_count]}
@@ -270,10 +271,13 @@ class HybridResearchAdapter:
             raise ValueError("research requires a typed scope contract")
         validate_scope_research_acceptance(request, packet)
         contract = packet.research_contract
+        projection = research_execution_inputs_payload(request, packet)
+        policy = ResearchPolicyV1.model_validate(
+            projection["research_policy"]
+        )
         raw_questions = "\n".join(
             f"- {question}" for question in brief.research_questions
         ) or f"- What evidence would resolve: {request.task.objective}?"
-        policy = request.research_policy
         grounded = contract.evidence.mode == "grounded"
         market_scope = (
             resolve_market_expression(" + ".join(contract.geographies))
@@ -304,7 +308,7 @@ class HybridResearchAdapter:
                 market_scope=market_scope,
             ),
             raw_questionnaire_content=raw_questions,
-            questions_data=self._questions_data(request),
+            questions_data=self._questions_data(request, policy),
             config=SimulationConfig(
                 depth=brief.depth,
                 people_per_stakeholder=brief.sample_size,
@@ -567,8 +571,8 @@ class HybridResearchAdapter:
 
     def _evidence_items(
         self,
-        request: DecisionCreateRequestV1,
         run,
+        maximum_evidence_items: int,
     ) -> list[EvidenceItemV1]:
         dataset = run.dataset if isinstance(run.dataset, dict) else {}
         capabilities = self._capability_hints(dataset)
@@ -594,7 +598,7 @@ class HybridResearchAdapter:
                 ),
                 capability_hints=capabilities,
             )
-            if len(unique) >= request.research_policy.maximum_evidence_items:
+            if len(unique) >= maximum_evidence_items:
                 break
         audited = int((run.result_summary or {}).get("evidence_item_count") or 0)
         if not unique and audited > 0:
@@ -644,6 +648,12 @@ class HybridResearchAdapter:
         if request.scope_packet is None:
             raise ValueError("research collection requires a typed scope packet")
         validate_scope_research_acceptance(request, request.scope_packet)
+        policy = ResearchPolicyV1.model_validate(
+            research_execution_inputs_payload(
+                request,
+                request.scope_packet,
+            )["research_policy"]
+        )
         if (
             job.scope_contract_binding
             != scope_contract_binding(request.scope_packet)
@@ -684,7 +694,7 @@ class HybridResearchAdapter:
                 "durable research run does not match the accepted research job"
             )
         if run.status in {"queued", "running"}:
-            maximum = request.research_policy.maximum_research_latency_ms
+            maximum = policy.maximum_research_latency_ms
             created_at = run.created_at
             if created_at and maximum:
                 normalized = (
@@ -710,15 +720,18 @@ class HybridResearchAdapter:
 
         scope_facts, authoritative_evidence = self._authoritative_scope_contracts(
             run,
-            request.research_policy.maximum_evidence_items,
+            policy.maximum_evidence_items,
         )
-        generic_evidence = self._evidence_items(request, run)
+        generic_evidence = self._evidence_items(
+            run,
+            policy.maximum_evidence_items,
+        )
         evidence_by_reference = {
             item.reference_id: item
             for item in [*authoritative_evidence, *generic_evidence]
         }
         evidence = list(evidence_by_reference.values())[
-            : request.research_policy.maximum_evidence_items
+            : policy.maximum_evidence_items
         ]
         retained_references = {item.reference_id for item in evidence}
         scope_facts = [
@@ -729,7 +742,7 @@ class HybridResearchAdapter:
         if not evidence:
             return self._result(job, "no_result", reason="research produced no usable evidence")
         mean_quality = sum(item.quality for item in evidence) / len(evidence)
-        if mean_quality < request.research_policy.minimum_evidence_quality:
+        if mean_quality < policy.minimum_evidence_quality:
             return self._result(
                 job,
                 "low_quality",
