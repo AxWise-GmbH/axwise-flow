@@ -5,10 +5,19 @@ set +x
 PROJECT_ID="axwise-73425"
 SQL_INSTANCE="orqaly-v2-preview-001-pg"
 DATABASE_NAME="axwise_v2_preview_001"
-MIGRATION="backend/database/workflow_v2/001_cognitive_operations.sql"
-BINDINGS="deploy/workflow-v2/preview-role-bindings.sql"
+MIGRATION_PATH="backend/database/workflow_v2/001_cognitive_operations.sql"
+BINDINGS_PATH="deploy/workflow-v2/preview-role-bindings.sql"
 EXPECTED_CHECKSUM="baa58ebfabbe3037a24f452125d07ea6d3d6620804eafa2d01e62bba74e72d9a"
+EXPECTED_BINDINGS_CHECKSUM="2b885c6089b0b3c45030fc2e88e950cb582ecd617d2af293066041f277f0f48b"
 ADMIN_DB_SECRET_VERSION="${ADMIN_DB_SECRET_VERSION:?numeric Preview 001 admin-password version is required}"
+REPOSITORY_ROOT="$(git -C "$(dirname "$0")/../.." rev-parse --show-toplevel)"
+MIGRATION="${REPOSITORY_ROOT}/${MIGRATION_PATH}"
+BINDINGS="${REPOSITORY_ROOT}/${BINDINGS_PATH}"
+
+if test -n "$(git -C "${REPOSITORY_ROOT}" status --porcelain=v1 --untracked-files=all)"; then
+  echo "Refusing Preview migration: AxWise repository is not clean." >&2
+  exit 65
+fi
 
 if [[ ! "${ADMIN_DB_SECRET_VERSION}" =~ ^[1-9][0-9]*$ ]]; then
   echo "ADMIN_DB_SECRET_VERSION must be a positive numeric version." >&2
@@ -18,6 +27,11 @@ fi
 actual_checksum="$(shasum -a 256 "${MIGRATION}" | awk '{print $1}')"
 if test "${actual_checksum}" != "${EXPECTED_CHECKSUM}"; then
   echo "Refusing Preview migration: AxWise schema checksum changed." >&2
+  exit 1
+fi
+actual_bindings_checksum="$(shasum -a 256 "${BINDINGS}" | awk '{print $1}')"
+if test "${actual_bindings_checksum}" != "${EXPECTED_BINDINGS_CHECKSUM}"; then
+  echo "Refusing Preview migration: AxWise role-bindings checksum changed." >&2
   exit 1
 fi
 
@@ -51,11 +65,14 @@ if ! pg_isready --host=127.0.0.1 --port="${proxy_port}" >/dev/null 2>&1; then
   exit 1
 fi
 
-source_commit="$(git rev-parse --verify HEAD)"
+source_commit="$(git -C "${REPOSITORY_ROOT}" rev-parse --verify HEAD)"
 psql --host=127.0.0.1 --port="${proxy_port}" \
   --username=postgres --dbname="${DATABASE_NAME}" \
   --no-password --set=ON_ERROR_STOP=1 --single-transaction \
   --set=schema_checksum="${EXPECTED_CHECKSUM}" \
+  --set=migration_path="${MIGRATION_PATH}" \
+  --set=bindings_checksum="${EXPECTED_BINDINGS_CHECKSUM}" \
+  --set=bindings_path="${BINDINGS_PATH}" \
   --set=source_commit="${source_commit}" \
   --set=database_name="${DATABASE_NAME}" \
   --file=<(sed -e '1{/^BEGIN;$/d;}' -e '${/^COMMIT;$/d;}' "${MIGRATION}") \
