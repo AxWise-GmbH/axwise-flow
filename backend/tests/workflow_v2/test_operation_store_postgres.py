@@ -254,6 +254,54 @@ def test_schema_treats_exact_lease_boundary_as_expired(stores) -> None:
     assert "lease_expires_at <= clock_timestamp()" in claim_definition
 
 
+def test_security_definer_ownership_drops_temporary_migration_privileges(stores) -> None:
+    admin, _api, _worker = stores
+    signatures = (
+        "axwise.claim_cognitive_operation(uuid,integer)",
+        "axwise.renew_cognitive_operation(uuid,uuid,uuid,integer)",
+        "axwise.complete_cognitive_operation(uuid,uuid,uuid,jsonb)",
+        "axwise.fail_cognitive_operation(uuid,uuid,uuid,boolean,text)",
+    )
+    with admin.connect() as connection:
+        for signature in signatures:
+            assert connection.execute(
+                text(
+                    "SELECT pg_get_userbyid(proowner) "
+                    "FROM pg_proc WHERE oid = CAST(:signature AS regprocedure)"
+                ),
+                {"signature": signature},
+            ).scalar_one() == "axwise_v2_owner"
+            assert not connection.execute(
+                text(
+                    "SELECT has_function_privilege("
+                    "'public', CAST(:signature AS regprocedure), 'EXECUTE')"
+                ),
+                {"signature": signature},
+            ).scalar_one()
+            assert connection.execute(
+                text(
+                    "SELECT has_function_privilege("
+                    "'axwise_v2_worker', CAST(:signature AS regprocedure), 'EXECUTE')"
+                ),
+                {"signature": signature},
+            ).scalar_one()
+
+        assert not connection.execute(
+            text("SELECT has_schema_privilege('axwise_v2_owner', 'axwise', 'CREATE')")
+        ).scalar_one()
+        assert not connection.execute(
+            text(
+                "SELECT EXISTS ("
+                "SELECT 1 FROM pg_auth_members membership "
+                "JOIN pg_roles granted ON granted.oid = membership.roleid "
+                "JOIN pg_roles member ON member.oid = membership.member "
+                "WHERE granted.rolname = 'axwise_v2_owner' "
+                "AND member.rolname = current_user "
+                "AND membership.set_option)"
+            )
+        ).scalar_one()
+
+
 def test_terminal_row_and_result_are_immutable(stores) -> None:
     admin, api, worker = stores
     operation = envelope()
