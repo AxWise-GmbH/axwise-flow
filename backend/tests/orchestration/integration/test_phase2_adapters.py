@@ -12,6 +12,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base
+from backend.domain.market_scope import resolve_market_expression
 from backend.domain.orchestration.models import (
     ContextReference,
     DecisionCreateRequestV1,
@@ -404,10 +405,41 @@ def test_estonia_cat_food_scope_projects_strict_commercial_policy_through_adapte
         },
         "mandatory_claim_classes": COMMERCIAL_CLAIM_CLASSES,
     }
+    profile = projection["research_brief"]["business_evidence_profile"]
+    assert profile == {
+        "version": "business_evidence_profile_v1",
+        "intent": "commercial_market_launch",
+        "economic_model": "physical_product",
+        "market_scope_hash": projection["research_brief"]["market_scope"][
+            "resolution_hash"
+        ],
+        "fact_requirements": [
+            {
+                "kind": "physical_product_offer",
+                "minimum_verified": 2,
+                "applicability": "required",
+            }
+        ],
+        "calculation_requirements": [
+            {
+                "kind": "physical_offer_price_difference",
+                "minimum_verified": 1,
+                "applicability": "required",
+            }
+        ],
+        "required_role_slots": [
+            "customer_market",
+            "pricing_finance",
+            "legal_compliance",
+            "sales_distribution",
+            "risk_operations",
+        ],
+    }
     task_context = service.enqueue_kwargs["task_context"]
     assert task_context.critical_claim_policy == projection["research_brief"][
         "critical_claim_policy"
     ]
+    assert task_context.business_evidence_profile.model_dump(mode="json") == profile
     assert task_context.research_execution_inputs_hash == (
         research_execution_inputs_hash(request, packet)
     )
@@ -444,15 +476,42 @@ def test_grounded_noncommercial_scope_does_not_gain_commercial_claim_policy():
     assert projection["research_brief"]["critical_claim_policy"][
         "mandatory_claim_classes"
     ] == []
+    assert projection["research_brief"]["business_evidence_profile"] is None
     task_context = service.enqueue_kwargs["task_context"]
     assert task_context.critical_claim_policy == projection["research_brief"][
         "critical_claim_policy"
     ]
+    assert task_context.business_evidence_profile is None
     assert task_context.research_prd_type is None
     assert service.enqueue_kwargs["research_mode"].value == "grounded_hybrid"
     outputs = service.enqueue_kwargs["outputs"]
     assert outputs.prd.enabled is False
     assert outputs.prd.required is False
+
+
+def test_commercial_software_inventory_scope_does_not_select_physical_adapter():
+    objective = (
+        "Build an application for inventory management and prepare a "
+        "launch-ready, evidence-grounded PRD for its subscription in Estonia, "
+        "including pricing, UX, API, and rollout requirements"
+    )
+    request = _approve(
+        DecisionCreateRequestV1.model_validate(_scope_payload(objective))
+    )
+    assert request.scope_packet is not None
+
+    projection = research_execution_inputs_payload(
+        request,
+        request.scope_packet,
+    )
+
+    assert request.scope_packet.research_contract.document_intent == (
+        "commercial_market_launch"
+    )
+    assert "software_development" in (
+        request.scope_packet.research_contract.work_types
+    )
+    assert projection["research_brief"]["business_evidence_profile"] is None
 
 
 def test_commercial_projection_preserves_explicitly_stricter_policy_values():
@@ -479,6 +538,37 @@ def test_commercial_projection_preserves_explicitly_stricter_policy_values():
         },
         "mandatory_claim_classes": ["observed_primary_market"],
     }
+    explicit_profile = {
+        "version": "business_evidence_profile_v1",
+        "intent": "commercial_market_launch",
+        "economic_model": "physical_product",
+        "market_scope_hash": resolve_market_expression(
+            "Estonia"
+        ).resolution_hash,
+        "fact_requirements": [
+            {
+                "kind": "physical_product_offer",
+                "minimum_verified": 3,
+                "applicability": "required",
+            }
+        ],
+        "calculation_requirements": [
+            {
+                "kind": "physical_offer_price_difference",
+                "minimum_verified": 1,
+                "applicability": "required",
+            }
+        ],
+        "required_role_slots": [
+            "customer_market",
+            "pricing_finance",
+            "legal_compliance",
+            "sales_distribution",
+            "risk_operations",
+            "domain_delivery",
+        ],
+    }
+    payload["research_brief"]["business_evidence_profile"] = explicit_profile
     accepted = _approve(DecisionCreateRequestV1.model_validate(payload))
     assert accepted.scope_packet is not None
 
@@ -509,6 +599,9 @@ def test_commercial_projection_preserves_explicitly_stricter_policy_values():
         "statutory_current",
         "official_statistic",
     ]
+    assert projection["research_brief"]["business_evidence_profile"] == (
+        explicit_profile
+    )
 
 
 def test_grounded_research_contract_requires_a_country_resolved_market():
