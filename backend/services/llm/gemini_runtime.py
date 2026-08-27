@@ -37,6 +37,7 @@ class _SharedResearchRuntime:
 
 
 _SHARED_RESEARCH_MODELS: dict[str, _SharedResearchRuntime] = {}
+_SHARED_WORKFLOW_MODELS: dict[str, _SharedResearchRuntime] = {}
 
 
 class BoundedRetryAsyncClient(httpx.AsyncClient):
@@ -272,6 +273,35 @@ def get_shared_research_model(api_key: str) -> GoogleModel:
     return runtime.model
 
 
+def get_shared_workflow_model(api_key: str) -> GoogleModel:
+    """Exact Gemini 3.7 Flash/HIGH model without an application output cap."""
+
+    configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
+    if normalized_research_model(configured) != RESEARCH_MODEL:
+        raise RuntimeError(
+            "Workflow cognition requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"received {configured!r}. Provider/model fallback is disabled."
+        )
+    credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    runtime = _SHARED_WORKFLOW_MODELS.get(credential_fingerprint)
+    if runtime is None:
+        research_runtime = _build_research_runtime(api_key)
+        model = GoogleModel(
+            RESEARCH_MODEL_RESOURCE,
+            provider=GoogleProvider(client=research_runtime.sdk_client),
+            settings=GoogleModelSettings(
+                google_thinking_config={"thinking_level": RESEARCH_THINKING_LEVEL},
+            ),
+        )
+        runtime = _SharedResearchRuntime(
+            model=model,
+            sdk_client=research_runtime.sdk_client,
+            http_client=research_runtime.http_client,
+        )
+        _SHARED_WORKFLOW_MODELS[credential_fingerprint] = runtime
+    return runtime.model
+
+
 async def _close_shared_research_runtime(runtime: _SharedResearchRuntime) -> None:
     # google-genai deliberately does not own or close a caller-supplied
     # HttpOptions.httpx_async_client. Close that exact transport explicitly,
@@ -292,8 +322,11 @@ async def close_shared_research_model(api_key: str) -> None:
 async def close_shared_research_models() -> None:
     """Close caller-owned google-genai transports during application shutdown."""
 
-    runtimes = list(_SHARED_RESEARCH_MODELS.values())
+    runtimes = list(_SHARED_RESEARCH_MODELS.values()) + list(
+        _SHARED_WORKFLOW_MODELS.values()
+    )
     _SHARED_RESEARCH_MODELS.clear()
+    _SHARED_WORKFLOW_MODELS.clear()
     closed_transports: set[int] = set()
     for runtime in runtimes:
         if id(runtime.http_client) in closed_transports:
