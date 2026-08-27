@@ -96,6 +96,7 @@ from backend.api.endpoints.priority_insights import router as priority_insights_
 from backend.api.export_routes import router as export_router
 from backend.api.routes.prd import router as prd_router
 from backend.api.routes.perpetual_personas import router as perpetual_personas_router
+from backend.api.routes.workflow_v2_operations import router as workflow_v2_operations_router
 
 
 DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
@@ -363,6 +364,7 @@ from backend.api.routes.orchestration import router as orchestration_router
 app.include_router(analysis_router)
 app.include_router(orqaly_integration_router)
 app.include_router(orchestration_router)
+app.include_router(workflow_v2_operations_router)
 
 # Initialize database tables (optional for conversation routines)
 try:
