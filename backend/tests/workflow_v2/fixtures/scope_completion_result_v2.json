@@ -1,0 +1,57 @@
+{
+  "resultType": "scope_compiled",
+  "artifact": {
+    "artifactId": "00000000-0000-4000-8000-000000000201",
+    "artifactHash": "99b26d313068086ad91bd54c7dc5e9e5861623dbf19da027ec2cb6acecd21027",
+    "kind": "scope",
+    "contentType": "application/json",
+    "payload": {
+      "schemaVersion": "axwise.scope.v2",
+      "objective": "Create an Estonia cat-food launch PRD.",
+      "objectiveSourceSpans": [
+        {
+          "start": 0,
+          "end": 38,
+          "text": "Create an Estonia cat-food launch PRD.",
+          "sha256": "befce77ea8c7bc5df57a0e394b6bf132200a0db92987521a0bb32b813dd19683",
+          "offsetUnit": "utf16_code_units"
+        }
+      ],
+      "topicAnchors": [
+        {
+          "value": "cat-food",
+          "sourceSpans": [
+            {
+              "start": 18,
+              "end": 26,
+              "text": "cat-food",
+              "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+              "offsetUnit": "utf16_code_units"
+            }
+          ]
+        }
+      ],
+      "geography": [
+        "Estonia"
+      ],
+      "evidenceRequirements": [],
+      "deliverables": [
+        "Product requirements document"
+      ],
+      "personas": [],
+      "interviewRequirements": [],
+      "prdRequirements": [],
+      "limits": [],
+      "policies": [],
+      "assumptions": [],
+      "materialClarification": null,
+      "researchInputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "authority": {
+        "canonicalInputHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "seal": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    "markdown": null,
+    "sourceArtifactIds": []
+  }
+}

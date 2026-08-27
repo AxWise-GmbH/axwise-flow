@@ -3,11 +3,11 @@ set -euo pipefail
 set +x
 
 PROJECT_ID="${PROJECT_ID:-axwise-73425}"
-SQL_INSTANCE="orqaly-v2-preview-pg"
-DATABASE_NAME="axwise_v2"
+SQL_INSTANCE="orqaly-v2-preview-001-pg"
+DATABASE_NAME="${AXWISE_DATABASE:-axwise_v2_preview_001}"
 MIGRATION="backend/database/workflow_v2/001_cognitive_operations.sql"
 BINDINGS="deploy/workflow-v2/preview-role-bindings.sql"
-EXPECTED_CHECKSUM="2559e88a33613debfcee7d72810965f179cc1214068dfcad9fa6f4b851f738df"
+EXPECTED_CHECKSUM="baa58ebfabbe3037a24f452125d07ea6d3d6620804eafa2d01e62bba74e72d9a"
 
 actual_checksum="$(shasum -a 256 "${MIGRATION}" | awk '{print $1}')"
 if test "${actual_checksum}" != "${EXPECTED_CHECKSUM}"; then
