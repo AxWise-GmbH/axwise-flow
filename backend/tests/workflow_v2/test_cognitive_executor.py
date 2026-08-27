@@ -627,6 +627,13 @@ async def test_optional_gap_repairs_once_and_delivers_non_launch_ready_result() 
     assert len(runner.queries) == 2
     assert all(REQUEST not in query for query in runner.queries)
     assert all("cat-food" in query and "Estonia" in query for query in runner.queries)
+    assert all(
+        "canonical source URL whose source class is one of: government, primary_law"
+        in query
+        for query in runner.queries
+    )
+    assert "Verify the exact requirement" in runner.queries[0]
+    assert "One targeted repair pass" in runner.queries[1]
     finding = result.artifact.payload["findings"][0]
     assert str(result.artifact.artifact_id) in finding["sourceArtifactIds"]
     assert result.metrics.search_calls == 2
