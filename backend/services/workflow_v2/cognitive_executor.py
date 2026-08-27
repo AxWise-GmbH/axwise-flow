@@ -1373,13 +1373,32 @@ class GeminiCognitiveExecutor:
             int,
             int,
         ]:
+            accepted_source_classes = utf16_ordinal_sorted(
+                {
+                    _normalized_source_type(value)
+                    for value in requirement.accepted_source_types
+                }
+            )
+            accepted_source_instruction = (
+                "Ground every accepted claim in a canonical source URL whose source "
+                "class is one of: "
+                f"{', '.join(accepted_source_classes)}. Prefer direct government, "
+                "primary-law, standards-body, academic, official-statistics, or "
+                "recognized trade-body sources when those classes are accepted. "
+                "Do not substitute a general web article when grounded_web is not "
+                "an accepted class."
+            )
             instruction = (
                 "Verify the exact requirement against the accepted scope. Return grounded, "
                 "attributable facts. If two accepted authoritative sources materially "
                 "disagree, emit the grounded disagreement as a line beginning [CONFLICT]; "
-                "otherwise emit no conflict marker."
+                f"otherwise emit no conflict marker. {accepted_source_instruction}"
                 if pass_number == 0
-                else "One targeted repair pass: find the missing accepted evidence class only."
+                else (
+                    "One targeted repair pass: the initial acquisition produced no accepted "
+                    "claim. Search only for the missing accepted evidence class. "
+                    f"{accepted_source_instruction}"
+                )
             )
             query = instruction + "\n" + canonical_json(
                 {
