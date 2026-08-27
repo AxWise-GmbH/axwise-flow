@@ -3,11 +3,15 @@ from uuid import UUID
 
 import pytest
 
+import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 from backend.domain.workflow_v2.contracts import AxWiseOperationEnvelope, canonical_hash
 from backend.services.workflow_v2.cognitive_executor import (
     DraftSpan,
     DraftTopicAnchor,
     GeminiCognitiveExecutor,
+    PydanticAIScopeDrafter,
+    PydanticAIScopeReviser,
+    PydanticAISynthesisWriter,
     ScopeDraft,
     ScopeRevisionDraft,
     SynthesisDraft,
@@ -16,6 +20,24 @@ from backend.services.workflow_v2.cognitive_executor import (
 
 REQUEST = "Create an Estonia cat-food launch PRD."
 pytestmark = pytest.mark.contract
+
+
+def test_complex_workflow_outputs_use_provider_compatible_prompted_transport(monkeypatch):
+    captured = []
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            captured.append(type(kwargs["output_type"]).__name__)
+
+        def output_validator(self, function):
+            return function
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    PydanticAIScopeDrafter(object())
+    PydanticAIScopeReviser(object())
+    PydanticAISynthesisWriter(object())
+
+    assert captured == ["PromptedOutput", "PromptedOutput", "PromptedOutput"]
 
 
 class FakeDrafter:

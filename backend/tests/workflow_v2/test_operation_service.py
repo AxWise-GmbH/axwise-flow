@@ -2,6 +2,7 @@ from dataclasses import replace
 from uuid import UUID
 
 import pytest
+from pydantic_ai.exceptions import ModelHTTPError
 
 from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
@@ -116,3 +117,18 @@ async def test_lost_post_response_adopts_same_immutable_result():
     assert first == second
     assert first.status == "completed"
     assert executor.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_invalid_model_request_is_terminal_and_not_provider_retried():
+    class InvalidRequestExecutor:
+        async def execute(self, _envelope):
+            raise ModelHTTPError(400, "models/gemini-3.7-flash", {"status": "INVALID_ARGUMENT"})
+
+    store = MemoryStore()
+    service = OperationService(store, InvalidRequestExecutor())
+    result = await service.submit(envelope(), "https://axwise.test/v2/operations/11")
+
+    assert result.status == "failed"
+    assert result.retryable is False
+    assert result.error_class == "AXWISE_MODEL_HTTP_400"
