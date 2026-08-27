@@ -4,6 +4,8 @@ import asyncio
 from typing import Protocol
 from uuid import UUID, uuid4
 
+from pydantic_ai.exceptions import ModelHTTPError
+
 from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
     CompletionResult,
@@ -112,6 +114,15 @@ class OperationService:
                 lease_token,
                 retryable=error.retryable,
                 error_class=error.error_class,
+            )
+        except ModelHTTPError as error:
+            status = error.status_code
+            await asyncio.to_thread(
+                self.store.fail,
+                envelope.operation_id,
+                lease_token,
+                retryable=status in {408, 429} or status >= 500,
+                error_class=f"AXWISE_MODEL_HTTP_{status}",
             )
         except Exception:
             await asyncio.to_thread(

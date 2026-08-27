@@ -9,7 +9,7 @@ from typing import Any, Protocol
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field
-from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
+from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext
 
 from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
@@ -160,7 +160,7 @@ class PydanticAIScopeDrafter:
         self.agent = Agent(
             model=model,
             deps_type=ScopeDraftContext,
-            output_type=NativeOutput(ScopeDraft),
+            output_type=PromptedOutput(ScopeDraft),
             system_prompt=SCOPE_SYSTEM_PROMPT,
             retries={"output": 2},
         )
@@ -233,7 +233,7 @@ class PydanticAIScopeReviser:
         self.agent = Agent(
             model=model,
             deps_type=ScopeRevisionContext,
-            output_type=NativeOutput(ScopeRevisionDraft),
+            output_type=PromptedOutput(ScopeRevisionDraft),
             system_prompt=SCOPE_REVISION_SYSTEM_PROMPT,
             retries={"output": 2},
         )
@@ -294,7 +294,7 @@ class PydanticAISynthesisWriter:
         self.agent = Agent(
             model=model,
             deps_type=SynthesisContext,
-            output_type=NativeOutput(SynthesisDraft),
+            output_type=PromptedOutput(SynthesisDraft),
             system_prompt=SYNTHESIS_SYSTEM_PROMPT,
             retries={"output": 2},
         )
