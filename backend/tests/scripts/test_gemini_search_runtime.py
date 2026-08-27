@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from typing import Any
 
@@ -26,6 +27,9 @@ class FakeClock:
         self.sleeps.append(seconds)
         self.now += seconds
 
+    async def async_sleep(self, seconds: float) -> None:
+        self.sleep(seconds)
+
 
 class SequenceModels:
     def __init__(self, outcomes: list[Any]) -> None:
@@ -38,6 +42,35 @@ class SequenceModels:
         if isinstance(outcome, BaseException):
             raise outcome
         return outcome
+
+
+class AsyncSequenceModels:
+    def __init__(self, outcomes: list[Any]) -> None:
+        self.outcomes = list(outcomes)
+        self.calls: list[dict[str, Any]] = []
+
+    async def generate_content(self, **kwargs: Any) -> Any:
+        self.calls.append(kwargs)
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+
+class BlockingAsyncModels:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+        self.started = asyncio.Event()
+        self.cancelled = asyncio.Event()
+
+    async def generate_content(self, **kwargs: Any) -> Any:
+        self.calls.append(kwargs)
+        self.started.set()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            self.cancelled.set()
+            raise
 
 
 def _response(text: str = "Grounded answer") -> SimpleNamespace:
@@ -70,6 +103,21 @@ def _service(models: SequenceModels, clock: FakeClock) -> GeminiSearchService:
     service._client = SimpleNamespace(models=models)
     service._search_clock = clock.monotonic
     service._search_sleep = clock.sleep
+    service._search_operation_seconds = 10.0
+    service._search_attempt_seconds = 5.0
+    service._search_max_attempts = 3
+    return service
+
+
+def _async_service(
+    models: AsyncSequenceModels | BlockingAsyncModels,
+    clock: FakeClock,
+) -> GeminiSearchService:
+    service = GeminiSearchService.__new__(GeminiSearchService)
+    service._client = SimpleNamespace()
+    service._async_client = SimpleNamespace(models=models)
+    service._search_clock = clock.monotonic
+    service._search_async_sleep = clock.async_sleep
     service._search_operation_seconds = 10.0
     service._search_attempt_seconds = 5.0
     service._search_max_attempts = 3
@@ -126,6 +174,76 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
         "total_tokens": 41,
     }
     assert result["provider_queries"] == ["query one", "query two", "query three"]
+
+
+@pytest.mark.asyncio
+async def test_async_search_uses_exact_model_and_same_bounded_sdk_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.7-flash")
+    clock = FakeClock()
+    models = AsyncSequenceModels([_response()])
+    service = _async_service(models, clock)
+
+    result = await service.search_web_general_async(
+        "current Estonian cat-food market"
+    )
+
+    assert result["search_performed"] is True
+    assert len(models.calls) == 1
+    call = models.calls[0]
+    assert call["model"] == "gemini-3.7-flash"
+    config = call["config"]
+    assert config.temperature is None
+    assert config.max_output_tokens is None
+    assert str(config.thinking_config.thinking_level).upper().endswith("HIGH")
+    assert config.http_options.timeout == 5000
+    assert config.http_options.retry_options.attempts == 1
+    assert result["runtime_diagnostics"]["status"] == "ok"
+    assert result["runtime_diagnostics"]["call_count"] == 1
+    assert result["usage_metadata"] == {
+        "input_tokens": 21,
+        "output_tokens": 20,
+        "total_tokens": 41,
+    }
+
+
+@pytest.mark.asyncio
+async def test_async_transient_retry_uses_cancellable_sleep(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    clock = FakeClock()
+    models = AsyncSequenceModels(
+        [httpx.RemoteProtocolError("Server disconnected"), _response()]
+    )
+    service = _async_service(models, clock)
+
+    result = await service.search_web_general_async("Estonian authority sources")
+
+    assert clock.sleeps == [1.0]
+    assert len(models.calls) == 2
+    assert result["runtime_diagnostics"]["status"] == "ok"
+    assert result["runtime_diagnostics"]["call_count"] == 2
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_cancelling_async_search_cancels_provider_without_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    models = BlockingAsyncModels()
+    service = _async_service(models, FakeClock())
+    task = asyncio.create_task(service.search_web_general_async("blocking query"))
+    await models.started.wait()
+
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert models.cancelled.is_set()
+    assert len(models.calls) == 1
 
 
 def test_transient_disconnect_retries_same_model_with_bounded_call_count(

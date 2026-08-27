@@ -8,6 +8,7 @@ Note: Google Search grounding does NOT support response_mime_type='application/j
 We must parse the markdown response manually into structured data.
 """
 
+import asyncio
 import os
 import re
 import logging
@@ -346,6 +347,7 @@ class GeminiSearchService:
         self._client = None
         self._search_clock = time.monotonic
         self._search_sleep = time.sleep
+        self._search_async_sleep = asyncio.sleep
         self._search_operation_seconds = GEMINI_SEARCH_OPERATION_SECONDS
         self._search_attempt_seconds = GEMINI_SEARCH_ATTEMPT_SECONDS
         self._search_max_attempts = GEMINI_SEARCH_MAX_ATTEMPTS
@@ -354,6 +356,7 @@ class GeminiSearchService:
             from google import genai
             if self.api_key:
                 self._client = genai.Client(api_key=self.api_key)
+                self._async_client = self._client.aio
         except Exception as e:
             logger.warning(f"Failed to initialize Gemini client: {e}")
             self._client = None
@@ -371,6 +374,15 @@ class GeminiSearchService:
         close_provider = getattr(provider_client, "close", None)
         if callable(close_provider):
             close_provider()
+
+    async def aclose(self) -> None:
+        """Close both async and sync transports used by grounded search."""
+
+        async_provider = getattr(self, "_async_client", None)
+        close_async_provider = getattr(async_provider, "aclose", None)
+        if callable(close_async_provider):
+            await close_async_provider()
+        self.close()
 
     def _resolve_grounding_redirect(self, provider_url: str) -> str | None:
         """Resolve one trusted Google redirect hop without fetching its target."""
@@ -560,6 +572,177 @@ class GeminiSearchService:
                             type(error).__name__,
                         )
                         sleep(delay)
+                        continue
+                    status = "deadline_exceeded"
+
+                diagnostics = self._search_runtime_diagnostics(
+                    status=status,
+                    started_at=started_at,
+                    call_count=call_count,
+                    model=model,
+                )
+                raise _GroundedSearchRuntimeError(
+                    status=status,
+                    diagnostics=diagnostics,
+                    cause=error,
+                ) from error
+
+            diagnostics = self._search_runtime_diagnostics(
+                status="ok",
+                started_at=started_at,
+                call_count=call_count,
+                model=model,
+            )
+            return response, diagnostics
+
+        raise AssertionError("bounded Gemini grounded-search loop exhausted")
+
+    async def _generate_grounded_content_async(
+        self, query: str
+    ) -> tuple[Any, Dict[str, Any]]:
+        """Call Gemini asynchronously so cancellation reaches the HTTP request."""
+        from google.genai import types
+
+        clock = getattr(self, "_search_clock", time.monotonic)
+        sleep = getattr(self, "_search_async_sleep", asyncio.sleep)
+        operation_seconds = max(
+            0.001,
+            min(
+                float(
+                    getattr(
+                        self,
+                        "_search_operation_seconds",
+                        GEMINI_SEARCH_OPERATION_SECONDS,
+                    )
+                ),
+                GEMINI_SEARCH_OPERATION_SECONDS,
+            ),
+        )
+        attempt_seconds = max(
+            0.001,
+            min(
+                float(
+                    getattr(
+                        self,
+                        "_search_attempt_seconds",
+                        GEMINI_SEARCH_ATTEMPT_SECONDS,
+                    )
+                ),
+                GEMINI_SEARCH_ATTEMPT_SECONDS,
+            ),
+        )
+        max_attempts = max(
+            1,
+            min(
+                int(
+                    getattr(
+                        self,
+                        "_search_max_attempts",
+                        GEMINI_SEARCH_MAX_ATTEMPTS,
+                    )
+                ),
+                GEMINI_SEARCH_MAX_ATTEMPTS,
+            ),
+        )
+        started_at = clock()
+        deadline = started_at + operation_seconds
+        call_count = 0
+
+        try:
+            model = require_search_model()
+        except Exception as error:
+            diagnostics = self._search_runtime_diagnostics(
+                status="configuration_error",
+                started_at=started_at,
+                call_count=0,
+            )
+            raise _GroundedSearchRuntimeError(
+                status="configuration_error",
+                diagnostics=diagnostics,
+                cause=error,
+            ) from error
+
+        async_client = getattr(self, "_async_client", None)
+        if async_client is None:
+            error = RuntimeError("Gemini async client is unavailable")
+            diagnostics = self._search_runtime_diagnostics(
+                status="configuration_error",
+                started_at=started_at,
+                call_count=0,
+                model=model,
+            )
+            raise _GroundedSearchRuntimeError(
+                status="configuration_error",
+                diagnostics=diagnostics,
+                cause=error,
+            ) from error
+
+        while call_count < max_attempts:
+            remaining = deadline - clock()
+            if remaining <= 0:
+                error = TimeoutError("Gemini grounded search deadline exceeded")
+                diagnostics = self._search_runtime_diagnostics(
+                    status="deadline_exceeded",
+                    started_at=started_at,
+                    call_count=call_count,
+                    model=model,
+                )
+                raise _GroundedSearchRuntimeError(
+                    status="deadline_exceeded",
+                    diagnostics=diagnostics,
+                    cause=error,
+                ) from error
+
+            # The SDK defaults to five attempts. Disable that layer so this
+            # bounded loop remains the only retry owner and call_count is exact.
+            config = types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
+                http_options=types.HttpOptions(
+                    timeout=max(1, int(min(attempt_seconds, remaining) * 1000)),
+                    retry_options=types.HttpRetryOptions(
+                        attempts=1,
+                        http_status_codes=sorted(
+                            GEMINI_SEARCH_TRANSIENT_STATUS_CODES
+                        ),
+                    ),
+                ),
+            )
+            call_count += 1
+            try:
+                response = await async_client.models.generate_content(
+                    model=model,
+                    contents=query,
+                    config=config,
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                transient = _is_transient_search_error(error)
+                remaining = deadline - clock()
+                if not transient:
+                    status = "non_retryable_error"
+                elif remaining <= 0:
+                    status = "deadline_exceeded"
+                elif call_count >= max_attempts:
+                    status = "retry_exhausted"
+                else:
+                    retry_after = _retry_after_seconds(error) or 0.0
+                    delay = min(
+                        GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS,
+                        max(float(2 ** (call_count - 1)), retry_after),
+                    )
+                    if delay < remaining:
+                        logger.warning(
+                            "Gemini grounded search transient failure; "
+                            "route=gemini_google_search model=%s call_count=%s "
+                            "retry_in_seconds=%.3f error_type=%s",
+                            model,
+                            call_count,
+                            delay,
+                            type(error).__name__,
+                        )
+                        await sleep(delay)
                         continue
                     status = "deadline_exceeded"
 
@@ -907,7 +1090,13 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "error": str(e)
             }
 
-    def search_web_general(self, query: str) -> Dict[str, Any]:
+    def search_web_general(
+        self,
+        query: str,
+        *,
+        _precomputed_response: tuple[Any, Dict[str, Any]] | None = None,
+        _started_at: float | None = None,
+    ) -> Dict[str, Any]:
         """
         Perform a general Google search using Gemini's search grounding.
         
@@ -918,7 +1107,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
             Dict containing the raw text response, source titles/URLs, and search metadata.
         """
         clock = getattr(self, "_search_clock", time.monotonic)
-        started_at = clock()
+        started_at = clock() if _started_at is None else _started_at
         if not self._client:
             logger.warning("Gemini client not available for search_web_general")
             return {
@@ -937,9 +1126,12 @@ Do NOT use vague language. Include actual facts from search results about {indus
 
         runtime_diagnostics: Optional[Dict[str, Any]] = None
         try:
-            response, runtime_diagnostics = self._generate_grounded_content(
-                query
-            )
+            if _precomputed_response is None:
+                response, runtime_diagnostics = self._generate_grounded_content(
+                    query
+                )
+            else:
+                response, runtime_diagnostics = _precomputed_response
 
             grounding_sources = []
             grounded_claims = []
@@ -1183,3 +1375,72 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "error": type(root_error).__name__,
                 "runtime_diagnostics": runtime_diagnostics,
             }
+
+    async def search_web_general_async(self, query: str) -> Dict[str, Any]:
+        """Perform cancellable Gemini-grounded search for async workflows."""
+
+        clock = getattr(self, "_search_clock", time.monotonic)
+        started_at = clock()
+        if not self._client:
+            logger.warning("Gemini client not available for search_web_general_async")
+            return {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "provider": "gemini_google_search",
+                "search_performed": False,
+                "error": "ClientUnavailable",
+                "runtime_diagnostics": self._search_runtime_diagnostics(
+                    status="unavailable",
+                    started_at=started_at,
+                    call_count=0,
+                ),
+            }
+
+        try:
+            response_and_diagnostics = await self._generate_grounded_content_async(
+                query
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            if isinstance(error, _GroundedSearchRuntimeError):
+                runtime_diagnostics = error.diagnostics
+                root_error = error.cause
+            else:
+                root_error = error
+                runtime_diagnostics = self._search_runtime_diagnostics(
+                    status="response_processing_error",
+                    started_at=started_at,
+                    call_count=0,
+                )
+            logger.error(
+                "Gemini grounded search failed; route=%s model=%s status=%s "
+                "elapsed_ms=%s call_count=%s error_type=%s",
+                runtime_diagnostics["route"],
+                runtime_diagnostics["model"],
+                runtime_diagnostics["status"],
+                runtime_diagnostics["elapsed_ms"],
+                runtime_diagnostics["call_count"],
+                type(root_error).__name__,
+            )
+            return {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "provider": "gemini_google_search",
+                "search_performed": False,
+                "error": type(root_error).__name__,
+                "runtime_diagnostics": runtime_diagnostics,
+            }
+
+        # Response normalization may perform bounded redirect resolution with
+        # the existing synchronous HTTP client. Keep that local post-processing
+        # off the event loop; the cancellable Gemini provider call above is
+        # never delegated to this thread.
+        return await asyncio.to_thread(
+            self.search_web_general,
+            query,
+            _precomputed_response=response_and_diagnostics,
+            _started_at=started_at,
+        )

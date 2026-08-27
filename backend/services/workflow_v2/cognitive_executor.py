@@ -703,10 +703,10 @@ class GeminiGroundedResearchRunner:
         self.service = GeminiSearchService(api_key=api_key)
 
     async def search(self, query: str) -> dict[str, Any]:
-        return await asyncio.to_thread(self.service.search_web_general, query)
+        return await self.service.search_web_general_async(query)
 
     async def close(self) -> None:
-        await asyncio.to_thread(self.service.close)
+        await self.service.aclose()
 
 
 def _scope_semantics_payload(
@@ -1366,7 +1366,8 @@ class GeminiCognitiveExecutor:
         ) -> tuple[
             list[EvidenceClaimV1],
             list[str],
-            EvidenceAcquisitionPassV1,
+            EvidenceAcquisitionPassV1 | None,
+            str | None,
             int,
             int,
             int,
@@ -1391,6 +1392,8 @@ class GeminiCognitiveExecutor:
             diagnostics = raw.get("runtime_diagnostics") or {}
             if not raw.get("search_performed"):
                 status_value = str(diagnostics.get("status") or "acquisition_failed")
+                if status_value in {"deadline_exceeded", "retry_exhausted"}:
+                    return [], [], None, status_value, 0, 0, 0, 0
                 retryable = status_value not in {"configuration_error", "non_retryable_error"}
                 raise CognitiveExecutionFailure(
                     f"AXWISE_RESEARCH_{status_value.upper()}", retryable=retryable
@@ -1459,6 +1462,7 @@ class GeminiCognitiveExecutor:
                 claims,
                 conflicts,
                 entry,
+                None,
                 usage_input,
                 usage_output,
                 usage_total,
@@ -1467,7 +1471,7 @@ class GeminiCognitiveExecutor:
 
         async def run_round(
             requirements: list[EvidenceRequirement], pass_number: Literal[0, 1]
-        ) -> dict[str, tuple[list[EvidenceClaimV1], list[str]]]:
+        ) -> dict[str, tuple[list[EvidenceClaimV1], list[str], str | None]]:
             nonlocal input_tokens, output_tokens, total_tokens, search_calls
             tasks = {
                 asyncio.create_task(acquire(requirement, pass_number)): requirement
@@ -1475,40 +1479,68 @@ class GeminiCognitiveExecutor:
             }
             if not tasks:
                 return {}
-            remaining = max(0.001, deadline - asyncio.get_running_loop().time())
-            done, pending = await asyncio.wait(tasks, timeout=remaining)
-            for task in pending:
-                task.cancel()
-            if pending:
-                await asyncio.gather(*pending, return_exceptions=True)
-                raise CognitiveExecutionFailure(
-                    "AXWISE_RESEARCH_DEADLINE", retryable=True
-                )
-            acquired: dict[str, tuple[list[EvidenceClaimV1], list[str]]] = {}
-            for task in done:
-                requirement = tasks[task]
-                (
-                    claims,
-                    conflicts,
-                    entry,
-                    used_input,
-                    used_output,
-                    used_total,
-                    used_calls,
-                ) = task.result()
-                ledger.append(entry)
-                input_tokens += used_input
-                output_tokens += used_output
-                total_tokens += used_total
-                search_calls += used_calls
-                acquired[requirement.id] = (claims, conflicts)
-            return acquired
+            pending = set(tasks)
+            completed: set[asyncio.Task] = set()
+            try:
+                while pending:
+                    remaining = max(
+                        0.001, deadline - asyncio.get_running_loop().time()
+                    )
+                    done, pending = await asyncio.wait(
+                        pending,
+                        timeout=remaining,
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    if not done:
+                        raise CognitiveExecutionFailure(
+                            "AXWISE_RESEARCH_DEADLINE", retryable=True
+                        )
+                    completed.update(done)
+                    # Surface the first child failure now. The finally block
+                    # cancels and awaits every sibling before it can escape.
+                    for task in done:
+                        task.result()
+
+                acquired: dict[
+                    str, tuple[list[EvidenceClaimV1], list[str], str | None]
+                ] = {}
+                for task in completed:
+                    requirement = tasks[task]
+                    (
+                        claims,
+                        conflicts,
+                        entry,
+                        failure_status,
+                        used_input,
+                        used_output,
+                        used_total,
+                        used_calls,
+                    ) = task.result()
+                    if entry is not None:
+                        ledger.append(entry)
+                    input_tokens += used_input
+                    output_tokens += used_output
+                    total_tokens += used_total
+                    search_calls += used_calls
+                    acquired[requirement.id] = (claims, conflicts, failure_status)
+                return acquired
+            finally:
+                unfinished = [task for task in tasks if not task.done()]
+                for task in unfinished:
+                    task.cancel()
+                if tasks:
+                    await asyncio.gather(*tasks, return_exceptions=True)
 
         initial = await run_round(to_acquire, 0)
         missing_for_repair: list[EvidenceRequirement] = []
+        initial_failure_statuses: dict[str, str] = {}
         for requirement in to_acquire:
             blocking = requirement.criticality == "blocking"
-            claims, conflicts = initial.get(requirement.id, ([], []))
+            claims, conflicts, failure_status = initial.get(
+                requirement.id, ([], [], None)
+            )
+            if failure_status is not None:
+                initial_failure_statuses[requirement.id] = failure_status
             if conflicts:
                 findings_by_id[requirement.id] = EvidenceFinding(
                     requirement_id=requirement.id,
@@ -1536,13 +1568,30 @@ class GeminiCognitiveExecutor:
         repair_performed = bool(missing_for_repair)
         repaired = await run_round(missing_for_repair, 1)
         for requirement in missing_for_repair:
-            claims, conflicts = repaired.get(requirement.id, ([], []))
+            claims, conflicts, repair_failure_status = repaired.get(
+                requirement.id, ([], [], None)
+            )
             status_value = "conflicting" if conflicts else "verified" if claims else "missing"
+            failure_statuses = [
+                value
+                for value in (
+                    initial_failure_statuses.get(requirement.id),
+                    repair_failure_status,
+                )
+                if value is not None
+            ]
             note = (
                 "Grounded repair returned conflicting evidence."
                 if conflicts
                 else f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
                 if claims
+                else (
+                    "Grounded acquisition remained unavailable after the single "
+                    "targeted repair pass "
+                    f"({', '.join(failure_statuses)}); no accepted grounded claim "
+                    "was recorded."
+                )
+                if failure_statuses
                 else "No accepted grounded claim was available after the single repair pass."
             )
             findings_by_id[requirement.id] = EvidenceFinding(
