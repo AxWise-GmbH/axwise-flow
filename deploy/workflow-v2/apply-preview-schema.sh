@@ -2,7 +2,7 @@
 set -euo pipefail
 set +x
 
-PROJECT_ID="axwise-73425"
+PROJECT_ID="axwise-v2-preview-001"
 SQL_INSTANCE="orqaly-v2-preview-001-pg"
 DATABASE_NAME="axwise_v2_preview_001"
 MIGRATION_PATH="backend/database/workflow_v2/001_cognitive_operations.sql"
@@ -66,6 +66,36 @@ if ! pg_isready --host=127.0.0.1 --port="${proxy_port}" >/dev/null 2>&1; then
 fi
 
 source_commit="$(git -C "${REPOSITORY_ROOT}" rev-parse --verify HEAD)"
+database_query() {
+  psql --host=127.0.0.1 --port="${proxy_port}" --username=postgres \
+    --dbname="${DATABASE_NAME}" --no-password --tuples-only --no-align \
+    --set=ON_ERROR_STOP=1 --command="$1"
+}
+
+# Baseline 001 is permitted only on a genuinely empty database or as an exact
+# no-op adoption of the already-marked baseline. A marker never excuses extra
+# schemas/tables, and an unmarked partial/legacy schema is never repaired.
+user_schemas="$(database_query "SELECT string_agg(nspname, ',' ORDER BY nspname) FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname NOT IN ('information_schema', 'cloudsqladmin')")"
+user_relations="$(database_query "SELECT string_agg(name, ',' ORDER BY name) FROM (SELECT DISTINCT n.nspname || '.' || c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace LEFT JOIN pg_depend d ON d.classid = 'pg_class'::regclass AND d.objid = c.oid AND d.deptype = 'e' WHERE c.relkind IN ('r','p','v','m','S','f') AND n.nspname !~ '^pg_' AND n.nspname NOT IN ('information_schema', 'cloudsqladmin') AND NOT (n.nspname = 'public' AND d.objid IS NOT NULL)) inventory")"
+marker_exists="$(database_query "SELECT (to_regclass('workflow_v2_release.applied_baseline') IS NOT NULL)::text")"
+expected_relations="axwise.cognitive_operations,workflow_v2_release.applied_baseline"
+expected_marker="${MIGRATION_PATH}:${EXPECTED_CHECKSUM}:${BINDINGS_PATH}:${EXPECTED_BINDINGS_CHECKSUM}:${source_commit}"
+if test "${marker_exists}" = true; then
+  applied_marker="$(database_query "SELECT migration_path || ':' || sha256 || ':' || bindings_path || ':' || bindings_sha256 || ':' || source_commit FROM workflow_v2_release.applied_baseline WHERE component = 'axwise' AND migration_number = 1")"
+  if test "${user_schemas}" = "axwise,public,workflow_v2_release" \
+    && test "${user_relations}" = "${expected_relations}" \
+    && test "${applied_marker}" = "${expected_marker}"; then
+    echo "Exact AxWise Preview baseline is already applied; no database mutation was needed."
+    exit 0
+  fi
+  echo "Refusing Preview migration: marked database is not the exact current baseline." >&2
+  exit 77
+fi
+if test "${user_schemas}" != public || test -n "${user_relations}"; then
+  echo "Refusing Preview migration: target database is neither fresh nor exactly marked." >&2
+  exit 77
+fi
+
 psql --host=127.0.0.1 --port="${proxy_port}" \
   --username=postgres --dbname="${DATABASE_NAME}" \
   --no-password --set=ON_ERROR_STOP=1 --single-transaction \
