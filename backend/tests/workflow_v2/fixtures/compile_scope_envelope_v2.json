@@ -1,0 +1,28 @@
+{
+  "operationId": "11111111-1111-4111-8111-111111111111",
+  "operationType": "CompileScopeV2",
+  "owner": {
+    "tenantId": "22222222-2222-4222-8222-222222222222",
+    "organizationId": null,
+    "userId": "user_contractfixture123"
+  },
+  "workflow": {
+    "runId": "33333333-3333-4333-8333-333333333333",
+    "stageId": "44444444-4444-4444-8444-444444444444",
+    "stageAttemptId": "55555555-5555-4555-8555-555555555555"
+  },
+  "contractVersion": "axwise.operation.v2",
+  "canonicalInputHash": "93d549ffa3576a503d39ae090e2b177a8dceb36ef77c40d8e56b09fd35babdaf",
+  "input": {
+    "type": "CompileScopeV2",
+    "request": "Create an Estonia cat-food launch PRD.",
+    "objectiveOnlyContext": [],
+    "safeDefaults": {
+      "geography": [],
+      "acceptedSourceTypes": [],
+      "assumptions": [],
+      "limits": [],
+      "policies": []
+    }
+  }
+}

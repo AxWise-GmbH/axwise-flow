@@ -41,7 +41,15 @@ class SequenceModels:
 
 
 def _response(text: str = "Grounded answer") -> SimpleNamespace:
-    return SimpleNamespace(text=text, candidates=[])
+    return SimpleNamespace(
+        text=text,
+        candidates=[],
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=17,
+            candidates_token_count=9,
+            total_token_count=26,
+        ),
+    )
 
 
 def _service(models: SequenceModels, clock: FakeClock) -> GeminiSearchService:
@@ -84,6 +92,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     assert config.temperature is None
     assert config.top_p is None
     assert config.top_k is None
+    assert str(config.thinking_config.thinking_level).upper().endswith("HIGH")
     assert config.http_options.timeout == 5000
     assert config.http_options.retry_options.attempts == 1
     assert result["runtime_diagnostics"] == {
@@ -95,6 +104,11 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
         "retry_count": 0,
         "deadline_ms": 10000,
         "fallback_used": False,
+    }
+    assert result["usage_metadata"] == {
+        "input_tokens": 17,
+        "output_tokens": 9,
+        "total_tokens": 26,
     }
 
 
@@ -196,3 +210,119 @@ def test_wrong_search_model_fails_closed_before_provider_call(
     assert result["runtime_diagnostics"]["status"] == "configuration_error"
     assert result["runtime_diagnostics"]["call_count"] == 0
     assert result["runtime_diagnostics"]["fallback_used"] is False
+
+
+def test_trusted_google_redirect_is_resolved_once_without_fetching_final_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    text = "EU feed law applies."
+    provider_url = (
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/source123"
+    )
+    final_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=example"
+    metadata = SimpleNamespace(
+        web_search_queries=["EU feed law"],
+        search_entry_point=None,
+        grounding_chunks=[
+            SimpleNamespace(
+                web=SimpleNamespace(title="EU feed law", uri=provider_url)
+            )
+        ],
+        grounding_supports=[
+            SimpleNamespace(
+                segment=SimpleNamespace(
+                    text=text,
+                    start_index=0,
+                    end_index=len(text.encode("utf-8")),
+                    part_index=0,
+                ),
+                grounding_chunk_indices=[0],
+                confidence_scores=[0.99],
+            )
+        ],
+    )
+    response = SimpleNamespace(
+        text=text,
+        candidates=[
+            SimpleNamespace(
+                content=SimpleNamespace(parts=[SimpleNamespace(text=text)]),
+                grounding_metadata=metadata,
+            )
+        ],
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=2,
+            candidates_token_count=3,
+            total_token_count=5,
+        ),
+    )
+    clock = FakeClock()
+    service = _service(SequenceModels([response]), clock)
+    observed = []
+
+    def resolve(url: str) -> str:
+        observed.append(url)
+        return final_url
+
+    service._grounding_redirect_resolver = resolve
+    result = service.search_web_general("EU feed law")
+
+    assert observed == [provider_url]
+    assert result["sources"][0]["url"] == final_url
+    assert result["sources"][0]["provider_url"] == provider_url
+    assert result["sources"][0]["resolved_url"] == final_url
+    assert result["sources"][0]["provider_redirect"] is True
+    assert result["claims"][0]["source_urls"] == [final_url]
+
+
+def test_grounding_redirect_rejects_untrusted_and_private_destinations() -> None:
+    clock = FakeClock()
+    service = _service(SequenceModels([]), clock)
+    called = []
+    service._grounding_redirect_resolver = lambda url: called.append(url) or "https://127.0.0.1/x"
+
+    assert service._resolve_grounding_redirect("https://blog.example/redirect") is None
+    assert called == []
+    assert service._resolve_grounding_redirect(
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/private"
+    ) is None
+
+
+def test_direct_grounding_chunks_reject_unsafe_urls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    metadata = SimpleNamespace(
+        web_search_queries=[],
+        search_entry_point=None,
+        grounding_chunks=[
+            SimpleNamespace(web=SimpleNamespace(title="HTTP", uri="http://example.com/x")),
+            SimpleNamespace(
+                web=SimpleNamespace(title="User info", uri="https://user@example.com/x")
+            ),
+            SimpleNamespace(
+                web=SimpleNamespace(title="Private IP", uri="https://127.0.0.1/x")
+            ),
+            SimpleNamespace(
+                web=SimpleNamespace(title="Valid", uri="https://authority.example/x")
+            ),
+        ],
+        grounding_supports=[],
+    )
+    response = SimpleNamespace(
+        text="Grounded answer",
+        candidates=[
+            SimpleNamespace(
+                content=SimpleNamespace(parts=[SimpleNamespace(text="Grounded answer")]),
+                grounding_metadata=metadata,
+            )
+        ],
+        usage_metadata=None,
+    )
+    service = _service(SequenceModels([response]), FakeClock())
+
+    result = service.search_web_general("safe sources")
+
+    assert [source["url"] for source in result["sources"]] == [
+        "https://authority.example/x"
+    ]

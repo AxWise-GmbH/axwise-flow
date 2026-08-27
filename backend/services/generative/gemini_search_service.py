@@ -12,13 +12,16 @@ import os
 import re
 import logging
 import hashlib
+import threading
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Optional, Dict, Any, List
+from urllib.parse import urlparse
 
 import httpx
 
+from backend.domain.workflow_v2.contracts import is_canonical_public_https_url
 from backend.services.llm.gemini_runtime import (
     RESEARCH_MODEL,
     require_search_model,
@@ -31,9 +34,48 @@ GEMINI_SEARCH_MAX_ATTEMPTS = 3
 GEMINI_SEARCH_OPERATION_SECONDS = 120.0
 GEMINI_SEARCH_ATTEMPT_SECONDS = 60.0
 GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS = 20.0
+GEMINI_GROUNDING_REDIRECT_SECONDS = 2.0
+TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS = frozenset(
+    {
+        "vertexaisearch.cloud.google.com",
+        "grounding-api-redirect.googleusercontent.com",
+    }
+)
 GEMINI_SEARCH_TRANSIENT_STATUS_CODES = frozenset(
     {408, 429, 500, 502, 503, 504}
 )
+
+
+def _trusted_grounding_redirect(value: str) -> bool:
+    if not is_canonical_public_https_url(value):
+        return False
+    try:
+        parsed = urlparse(value)
+    except ValueError:
+        return False
+    return bool(
+        parsed.hostname in TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS
+    )
+
+
+def _safe_resolved_https_url(value: str) -> str | None:
+    """Validate a redirect Location without connecting to the destination."""
+
+    if not is_canonical_public_https_url(value):
+        return None
+    host = (urlparse(value).hostname or "").casefold()
+    if host in TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS:
+        return None
+    return value
+
+
+def _new_grounding_redirect_client() -> httpx.Client:
+    return httpx.Client(
+        follow_redirects=False,
+        timeout=httpx.Timeout(GEMINI_GROUNDING_REDIRECT_SECONDS),
+        limits=httpx.Limits(max_connections=4, max_keepalive_connections=2),
+        trust_env=False,
+    )
 
 
 class _GroundedSearchRuntimeError(RuntimeError):
@@ -108,6 +150,46 @@ def _retry_after_seconds(error: BaseException) -> Optional[float]:
         return None
 
 
+def _normalized_usage_metadata(response: Any) -> Dict[str, int]:
+    """Return only non-sensitive Gemini usage counters in the shared wire shape."""
+
+    metadata = getattr(response, "usage_metadata", None)
+    if metadata is None:
+        return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+
+    def counter(*names: str) -> int:
+        for name in names:
+            value = (
+                metadata.get(name)
+                if isinstance(metadata, dict)
+                else getattr(metadata, name, None)
+            )
+            if value is not None:
+                try:
+                    return max(0, int(value))
+                except (TypeError, ValueError):
+                    return 0
+        return 0
+
+    input_tokens = counter(
+        "prompt_token_count", "promptTokenCount", "input_tokens", "inputTokens"
+    )
+    candidate_tokens = counter(
+        "candidates_token_count",
+        "candidatesTokenCount",
+        "output_tokens",
+        "outputTokens",
+    )
+    thinking_tokens = counter("thoughts_token_count", "thoughtsTokenCount")
+    output_tokens = candidate_tokens + thinking_tokens
+    total_tokens = counter(
+        "total_token_count", "totalTokenCount", "total_tokens", "totalTokens"
+    )
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens or input_tokens + output_tokens,
+    }
 def parse_news_markdown(text: str) -> List[Dict[str, Any]]:
     """
     Parse Gemini's markdown-formatted news response into structured news items.
@@ -263,6 +345,7 @@ class GeminiSearchService:
         self._search_operation_seconds = GEMINI_SEARCH_OPERATION_SECONDS
         self._search_attempt_seconds = GEMINI_SEARCH_ATTEMPT_SECONDS
         self._search_max_attempts = GEMINI_SEARCH_MAX_ATTEMPTS
+        self._grounding_redirect_lock = threading.Lock()
         try:
             from google import genai
             if self.api_key:
@@ -274,6 +357,50 @@ class GeminiSearchService:
     def is_available(self) -> bool:
         """Check if the service is available."""
         return bool(self._client)
+
+    def close(self) -> None:
+        redirect_client = getattr(self, "_grounding_redirect_client", None)
+        if redirect_client is not None:
+            redirect_client.close()
+            self._grounding_redirect_client = None
+        provider_client = getattr(self, "_client", None)
+        close_provider = getattr(provider_client, "close", None)
+        if callable(close_provider):
+            close_provider()
+
+    def _resolve_grounding_redirect(self, provider_url: str) -> str | None:
+        """Resolve one trusted Google redirect hop without fetching its target."""
+
+        if not _trusted_grounding_redirect(provider_url):
+            return None
+        injected = getattr(self, "_grounding_redirect_resolver", None)
+        if callable(injected):
+            return _safe_resolved_https_url(str(injected(provider_url) or ""))
+        client = getattr(self, "_grounding_redirect_client", None)
+        if client is None:
+            lock = getattr(self, "_grounding_redirect_lock", None)
+            if lock is None:
+                lock = threading.Lock()
+                self._grounding_redirect_lock = lock
+            with lock:
+                client = getattr(self, "_grounding_redirect_client", None)
+                if client is None:
+                    client = _new_grounding_redirect_client()
+                    self._grounding_redirect_client = client
+        try:
+            with client.stream(
+                "GET",
+                provider_url,
+                headers={"User-Agent": "AxWise-Grounding-Resolver/2"},
+                follow_redirects=False,
+            ) as response:
+                status_code = response.status_code
+                location = response.headers.get("Location", "")
+        except httpx.HTTPError:
+            return None
+        if status_code not in {301, 302, 303, 307, 308}:
+            return None
+        return _safe_resolved_https_url(location)
 
     def _search_runtime_diagnostics(
         self,
@@ -385,6 +512,7 @@ class GeminiSearchService:
             # bounded loop remains the only retry owner and call_count is exact.
             config = types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
+                thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
                 http_options=types.HttpOptions(
                     timeout=max(1, int(min(attempt_seconds, remaining) * 1000)),
                     retry_options=types.HttpRetryOptions(
@@ -510,6 +638,7 @@ Do NOT use vague language. Include actual facts from search results."""
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
+                    thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
                 ),
             )
 
@@ -615,6 +744,7 @@ Do NOT use vague language. Include actual historical facts about {location} duri
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
+                    thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
                 ),
             )
 
@@ -726,6 +856,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
+                    thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
                 ),
             )
 
@@ -855,12 +986,39 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 if metadata.grounding_chunks:
                     for chunk_index, chunk in enumerate(metadata.grounding_chunks):
                         if hasattr(chunk, 'web') and chunk.web:
-                            url = chunk.web.uri if hasattr(chunk.web, 'uri') else None
+                            raw_provider_url = (
+                                chunk.web.uri if hasattr(chunk.web, 'uri') else None
+                            )
+                            raw_provider_url = (
+                                str(raw_provider_url) if raw_provider_url else None
+                            )
+                            provider_url = (
+                                raw_provider_url
+                                if raw_provider_url
+                                and is_canonical_public_https_url(raw_provider_url)
+                                else None
+                            )
+                            if provider_url is None:
+                                continue
+                            resolved_url = (
+                                self._resolve_grounding_redirect(provider_url)
+                                if _trusted_grounding_redirect(provider_url)
+                                else None
+                            )
+                            url = resolved_url or provider_url
                             source = {
-                                "title": chunk.web.title if hasattr(chunk.web, 'title') else "Unknown",
+                                "title": (
+                                    chunk.web.title
+                                    if hasattr(chunk.web, 'title')
+                                    else "Unknown"
+                                ),
                                 "url": url,
+                                "provider_url": provider_url,
+                                "resolved_url": resolved_url,
                                 "provider": "gemini_google_search",
-                                "provider_source_id": f"gemini-chunk-{response_hash[:16]}-{chunk_index}",
+                                "provider_source_id": (
+                                    f"gemini-chunk-{response_hash[:16]}-{chunk_index}"
+                                ),
                                 "grounding_chunk_index": chunk_index,
                                 "provider_response_hash": response_hash,
                                 "provider_query_ids": provider_query_ids,
@@ -869,8 +1027,13 @@ Do NOT use vague language. Include actual facts from search results about {indus
                                 "citation_metadata": {
                                     "grounding_chunk_index": chunk_index,
                                     "search_entry_point": search_entry_point,
+                                    "provider_url": provider_url,
+                                    "resolved_url": resolved_url,
                                 },
-                                "provider_redirect": True,
+                                "provider_redirect": bool(
+                                    provider_url
+                                    and _trusted_grounding_redirect(provider_url)
+                                ),
                             }
                             grounding_sources.append(source)
                             chunk_url_by_index[chunk_index] = url
@@ -968,6 +1131,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "provider_queries": provider_queries,
                 "search_entry_point": search_entry_point,
                 "search_performed": True,
+                "usage_metadata": _normalized_usage_metadata(response),
                 "runtime_diagnostics": runtime_diagnostics,
             }
             logger.info(
