@@ -137,7 +137,7 @@ class OperationService:
                 self.store.complete,
                 envelope.operation_id,
                 lease_token,
-                result.model_dump(mode="json", by_alias=True),
+                result.model_dump(mode="json", by_alias=True, exclude_none=True),
             )
 
         terminal = await asyncio.to_thread(self.store.get, envelope.operation_id)

@@ -117,6 +117,7 @@ async def test_lost_post_response_adopts_same_immutable_result():
     assert first == second
     assert first.status == "completed"
     assert executor.calls == 1
+    assert set(store.record.result_payload) == {"artifact"}
 
 
 @pytest.mark.asyncio
