@@ -10,7 +10,11 @@ Preview and Production each require distinct Cloud SQL databases, login roles,
 service accounts, Secret Manager values, services, and data. Apply
 `001_cognitive_operations.sql` only after its SHA-256 equals `SCHEMA_SHA256`.
 The login roles are provisioned outside the baseline, then
-`preview-role-bindings.sql` grants the narrow API and worker roles.
+`preview-role-bindings.sql` grants the narrow API and worker roles. Preview uses
+the literal `orqaly-v2-preview-001-pg` / `axwise_v2_preview_001` target and
+release-specific `axwise_v2_001_*` logins. The apply helper requires an exact
+numeric admin-secret version, installs the baseline and immutable checksum marker
+in one transaction, and revokes public database CONNECT.
 
 Required API configuration:
 
