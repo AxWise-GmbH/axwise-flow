@@ -132,10 +132,8 @@ class HybridResearchAdapter:
                 brief.customer_role_contract.model_dump(mode="json") if brief else {}
             ),
             critical_claim_policy=projected_brief.get("critical_claim_policy") or {},
-            business_evidence_profile=(
-                brief.business_evidence_profile.model_copy()
-                if brief and brief.business_evidence_profile
-                else None
+            business_evidence_profile=projected_brief.get(
+                "business_evidence_profile"
             ),
             scope_contract_binding=scope_contract_binding(packet),
             scope_runtime_binding=packet.runtime,
