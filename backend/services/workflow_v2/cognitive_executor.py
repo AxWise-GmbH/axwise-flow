@@ -21,6 +21,7 @@ from backend.domain.workflow_v2.contracts import (
     ExecuteResearchInputV2,
     FinalArtifactV1,
     ResearchResultV2,
+    ReviseScopeInputV2,
     ScopeArtifactV2,
     ScopeAuthority,
     SourceSpan,
@@ -70,6 +71,34 @@ class ScopeDraftContext(_DraftModel):
 
 class ScopeDrafter(Protocol):
     async def draft(self, input_value: CompileScopeInputV2) -> ScopeDraft: ...
+
+
+class ScopeRevisionDraft(_DraftModel):
+    objective_changed: bool
+    objective: str | None = Field(default=None, min_length=1, max_length=6000)
+    objective_source_spans: list[DraftSpan] = Field(default_factory=list, max_length=24)
+    topic_changed: bool
+    topic_anchors: list[DraftTopicAnchor] = Field(default_factory=list, max_length=24)
+    geography: list[str] = Field(default_factory=list, max_length=24)
+    evidence_requirements: list[EvidenceRequirement] = Field(max_length=80)
+    deliverables: list[str] = Field(min_length=1, max_length=24)
+    personas: list[str] = Field(default_factory=list, max_length=24)
+    interview_requirements: list[str] = Field(default_factory=list, max_length=24)
+    prd_requirements: list[str] = Field(default_factory=list, max_length=40)
+    limits: list[str] = Field(default_factory=list, max_length=40)
+    policies: list[str] = Field(default_factory=list, max_length=40)
+    assumptions: list[str] = Field(default_factory=list, max_length=24)
+    material_clarification: str | None = Field(default=None, min_length=1, max_length=1000)
+
+
+class ScopeRevisionContext(_DraftModel):
+    correction: str
+
+
+class ScopeReviser(Protocol):
+    async def revise(
+        self, input_value: ReviseScopeInputV2, accepted_scope: ScopeArtifactV2
+    ) -> ScopeRevisionDraft: ...
 
 
 class ResearchRunner(Protocol):
@@ -159,6 +188,84 @@ class PydanticAIScopeDrafter:
             deps=ScopeDraftContext(request=input_value.request, mode=input_value.mode),
         )
         _validate_draft(input_value.request, result.output)
+        return result.output
+
+
+SCOPE_REVISION_SYSTEM_PROMPT = """
+Revise the exact ACCEPTED_SCOPE using only OWNER_CORRECTION. The correction is
+authoritative over conflicting prior fields; preserve every non-conflicting field.
+Set topic_changed only when the correction changes the research topic. When true,
+return a complete replacement topic-anchor list, cite every topic with exact zero-based
+Python offsets into OWNER_CORRECTION, and do not retain stale topic anchors. When false,
+return no topic anchors; the server preserves the accepted anchors. Apply the same rule
+to objective_changed and objective offsets. Return all other semantic lists as their
+complete revised values. Never use chat history or unrelated context. Evidence
+requirements remain claim-specific; only essential legal/safety evidence may block.
+""".strip()
+
+
+def _validate_revision_draft(correction: str, draft: ScopeRevisionDraft) -> None:
+    if draft.objective_changed:
+        if not draft.objective or not draft.objective_source_spans:
+            raise ValueError("changed objective requires correction-backed objective spans")
+    elif draft.objective is not None or draft.objective_source_spans:
+        raise ValueError("unchanged objective must not be regenerated")
+    if draft.topic_changed:
+        if not draft.topic_anchors:
+            raise ValueError("changed topic requires replacement topic anchors")
+    elif draft.topic_anchors:
+        raise ValueError("unchanged topic must not be regenerated")
+    spans = [*draft.objective_source_spans]
+    for topic in draft.topic_anchors:
+        spans.extend(topic.source_spans)
+        cited = " ".join(correction[span.start : span.end] for span in topic.source_spans)
+        if topic.value.casefold() not in cited.casefold():
+            raise ValueError(f"topic anchor {topic.value!r} is not literal cited correction")
+    for span in spans:
+        if span.end > len(correction) or span.end <= span.start:
+            raise ValueError("revision span is outside correction text")
+        if not correction[span.start : span.end]:
+            raise ValueError("revision span is empty")
+
+
+class PydanticAIScopeReviser:
+    def __init__(self, model: Any) -> None:
+        self.agent = Agent(
+            model=model,
+            deps_type=ScopeRevisionContext,
+            output_type=NativeOutput(ScopeRevisionDraft),
+            system_prompt=SCOPE_REVISION_SYSTEM_PROMPT,
+            retries={"output": 2},
+        )
+
+        @self.agent.output_validator
+        async def validate_output(
+            ctx: RunContext[ScopeRevisionContext], output: ScopeRevisionDraft
+        ) -> ScopeRevisionDraft:
+            try:
+                _validate_revision_draft(ctx.deps.correction, output)
+            except ValueError as error:
+                raise ModelRetry(str(error)) from error
+            return output
+
+    async def revise(
+        self, input_value: ReviseScopeInputV2, accepted_scope: ScopeArtifactV2
+    ) -> ScopeRevisionDraft:
+        prompt = canonical_json(
+            {
+                "ACCEPTED_SCOPE": accepted_scope.model_dump(mode="json", by_alias=True),
+                "OWNER_CORRECTION": input_value.correction,
+                "CORRECTION_SOURCE_SPANS": [
+                    item.model_dump(mode="json", by_alias=True)
+                    for item in input_value.correction_source_spans
+                ],
+            }
+        )
+        result = await self.agent.run(
+            prompt,
+            deps=ScopeRevisionContext(correction=input_value.correction),
+        )
+        _validate_revision_draft(input_value.correction, result.output)
         return result.output
 
 
@@ -288,6 +395,7 @@ class GeminiCognitiveExecutor:
         research_runner: ResearchRunner | None = None,
         artifact_resolver: ArtifactResolver | None = None,
         synthesis_writer: SynthesisWriter | None = None,
+        scope_reviser: ScopeReviser | None = None,
     ) -> None:
         if len(authority_key) < 32:
             raise RuntimeError("AXWISE_AUTHORITY_SEAL_KEY must contain at least 32 bytes")
@@ -296,8 +404,13 @@ class GeminiCognitiveExecutor:
         self.research_runner = research_runner
         self.artifact_resolver = artifact_resolver
         self.synthesis_writer = synthesis_writer
+        self.scope_reviser = scope_reviser
 
     async def execute(self, envelope: AxWiseOperationEnvelope) -> CompletionResult:
+        if envelope.operation_type == "ReviseScopeV2":
+            if not isinstance(envelope.input, ReviseScopeInputV2):
+                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+            return await self._revise_scope(envelope, envelope.input)
         if envelope.operation_type == "ExecuteResearchV2":
             if not isinstance(envelope.input, ExecuteResearchInputV2):
                 raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
@@ -375,6 +488,103 @@ class GeminiCognitiveExecutor:
                 payload=payload,
                 markdown=None,
                 source_artifact_ids=[],
+            )
+        )
+
+    async def _revise_scope(
+        self,
+        envelope: AxWiseOperationEnvelope,
+        input_value: ReviseScopeInputV2,
+    ) -> CompletionResult:
+        if self.artifact_resolver is None or self.scope_reviser is None:
+            raise CognitiveExecutionFailure("AXWISE_SCOPE_REVISION_UNAVAILABLE", retryable=True)
+        payload = await asyncio.to_thread(
+            self.artifact_resolver.artifact_payload,
+            input_value.accepted_scope.artifact_id,
+        )
+        if payload is None:
+            raise CognitiveExecutionFailure("AXWISE_SOURCE_ARTIFACT_NOT_FOUND", retryable=False)
+        if canonical_hash(payload) != input_value.accepted_scope.artifact_hash:
+            raise CognitiveExecutionFailure("AXWISE_SCOPE_ARTIFACT_HASH_CHANGED", retryable=False)
+        try:
+            accepted_scope = ScopeArtifactV2.model_validate(payload)
+        except ValueError as error:
+            raise CognitiveExecutionFailure("AXWISE_SCOPE_ARTIFACT_INVALID", retryable=False) from error
+        self._verify_scope_authority(accepted_scope)
+        draft = await self.scope_reviser.revise(input_value, accepted_scope)
+        _validate_revision_draft(input_value.correction, draft)
+        objective = draft.objective if draft.objective_changed else accepted_scope.objective
+        objective_spans = (
+            [_source_span(input_value.correction, span) for span in draft.objective_source_spans]
+            if draft.objective_changed
+            else accepted_scope.objective_source_spans
+        )
+        topic_anchors = (
+            [
+                TopicAnchor(
+                    value=topic.value,
+                    source_spans=[
+                        _source_span(input_value.correction, span)
+                        for span in topic.source_spans
+                    ],
+                )
+                for topic in draft.topic_anchors
+            ]
+            if draft.topic_changed
+            else accepted_scope.topic_anchors
+        )
+        semantic_payload = _scope_semantics_payload(
+            topic_anchors=topic_anchors,
+            geography=draft.geography,
+            evidence_requirements=draft.evidence_requirements,
+            deliverables=draft.deliverables,
+            personas=draft.personas,
+            interview_requirements=draft.interview_requirements,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=draft.policies,
+        )
+        research_input_hash = canonical_hash(semantic_payload)
+        seal_payload = canonical_json(
+            {
+                "canonicalInputHash": envelope.canonical_input_hash,
+                "researchInputHash": research_input_hash,
+            }
+        )
+        seal = hmac.new(
+            self.authority_key, seal_payload.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+        revised_scope = ScopeArtifactV2(
+            objective=objective,
+            objective_source_spans=objective_spans,
+            topic_anchors=topic_anchors,
+            geography=draft.geography,
+            evidence_requirements=draft.evidence_requirements,
+            deliverables=draft.deliverables,
+            personas=draft.personas,
+            interview_requirements=draft.interview_requirements,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=draft.policies,
+            assumptions=draft.assumptions,
+            material_clarification=draft.material_clarification,
+            research_input_hash=research_input_hash,
+            authority=ScopeAuthority(
+                canonical_input_hash=envelope.canonical_input_hash,
+                seal=seal,
+            ),
+        )
+        revised_payload = revised_scope.model_dump(mode="json", by_alias=True)
+        artifact_id = uuid5(NAMESPACE_URL, f"axwise:{envelope.operation_id}:scope")
+        return CompletionResult(
+            artifact=ArtifactFact(
+                artifact_id=artifact_id,
+                artifact_hash=canonical_hash(revised_payload),
+                kind="scope",
+                content_type="application/json",
+                payload=revised_payload,
+                markdown=None,
+                source_artifact_ids=[input_value.accepted_scope.artifact_id],
             )
         )
 
@@ -574,4 +784,5 @@ def build_cognitive_executor(artifact_resolver: ArtifactResolver) -> GeminiCogni
         GeminiGroundedResearchRunner(api_key),
         artifact_resolver,
         PydanticAISynthesisWriter(model),
+        PydanticAIScopeReviser(model),
     )

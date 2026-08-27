@@ -161,6 +161,18 @@ class ReviseScopeInputV2(ContractModel):
     correction: str = Field(min_length=1, max_length=6000)
     correction_source_spans: list[SourceSpan] = Field(min_length=1, max_length=24)
 
+    @model_validator(mode="after")
+    def exact_correction_spans(self) -> "ReviseScopeInputV2":
+        for span in self.correction_source_spans:
+            if span.end > len(self.correction):
+                raise ValueError("correction source span is outside correction text")
+            exact_text = self.correction[span.start : span.end]
+            if exact_text != span.text:
+                raise ValueError("correction source span text does not match correction")
+            if hashlib.sha256(exact_text.encode("utf-8")).hexdigest() != span.sha256:
+                raise ValueError("correction source span hash does not match correction")
+        return self
+
 
 class ExecuteResearchInputV2(ContractModel):
     type: Literal["ExecuteResearchV2"]
