@@ -6,6 +6,7 @@ import hmac
 import os
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 from typing import Any, Generic, Literal, Protocol, TypeVar
 from urllib.parse import urlparse
@@ -394,6 +395,125 @@ heading. Return typed title and Markdown only.
 """.strip()
 
 
+_POSITIVE_LAUNCH_CLAIM_PATTERNS = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\b(?:launch|production|market|go[- ]live)[- ]ready\b",
+        r"\bready\s+(?:for|to)\s+(?:a\s+)?(?:launch|production|market(?:\s+entry)?|go[- ]live)\b",
+        r"\b(?:cleared|approved|certified|validated|safe|fit|suitable|authorized|authorised)\s+(?:for|to)\s+(?:a\s+)?(?:launch|production|market(?:\s+entry)?|go[- ]live)\b",
+        r"\b(?:launch|production(?:\s+deployment)?|market(?:\s+entry)?|go[- ]live)\s+(?:(?:is|are|was|were|has|have)(?:\s+been)?\s+)?(?:approved|authorized|authorised|cleared|certified|validated|safe|ready)\b",
+        r"\b(?:can|may|should)\s+(?:now\s+)?(?:launch|go[- ]live|enter\s+(?:the\s+)?market|deploy\s+to\s+production|release\s+to\s+production)\b",
+        r"\b(?:launch|production|market)\s+readiness\s*(?::|is|was|has\s+been|have\s+been)\s*(?:confirmed|established|demonstrated|validated|achieved|approved|authorized|authorised)\b",
+        r"\b(?:launch|production|market)\s+requirements\s+(?:are|were|have\s+been)\s+(?:met|satisfied|validated|fulfilled)\b",
+        r"\b(?:launch|go[- ]live|market\s+entry|production\s+deployment)\s+(?:can|may|should)\s+(?:now\s+)?proceed\b",
+        r"\b(?:no|zero)\s+(?:remaining\s+)?(?:blockers?|barriers?|obstacles?|impediments?)\s+to\s+(?:launch|production|go[- ]live|market\s+entry)\b",
+        r"\b(?:no|zero)\s+(?:remaining\s+)?(?:launch|production|go[- ]live|market[- ]entry)\s+(?:blockers?|barriers?|obstacles?|impediments?)\s+(?:remain|exist)\b",
+        r"\bnothing\s+(?:materially\s+|currently\s+)?(?:prevent(?:s|ing)?|block(?:s|ing)?|impede(?:s|d|ing)?|bar(?:s|red|ring)?)\s+(?:a\s+)?(?:launch|production|go[- ]live|market\s+entry)\b",
+        r"\b(?:fully|completely)\s+validated\b",
+        r"\blegally\s+(?:cleared|compliant|approved|authorized|authorised)\b",
+        r"\b(?:launch|production|market\s+entry|go[- ]live)\s+(?:clearance|authorization|authorisation|approval)\s+(?:(?:has|have)\s+been\s+)?(?:granted|confirmed|obtained|secured)\b",
+        r"\b(?:has|have|received|obtained|secured)\s+(?:the\s+)?(?:final\s+)?(?:clearance|authorization|authorisation|approval)\s+(?:for|to)\s+(?:launch|production|go[- ]live|market\s+entry)\b",
+        r"\b(?:has|have|received|obtained|secured)\s+(?:the\s+)?(?:final\s+)?(?:launch|production|go[- ]live|market[- ]entry)\s+(?:clearance|authorization|authorisation|approval)\b",
+        r"\b(?:has|have|received|obtained|got|secured)\s+(?:the\s+)?green\s+light\s+(?:for|to)\s+(?:launch|production|go[- ]live|market\s+entry)\b",
+        r"\bgreen\s+light\s+(?:given|granted|received|confirmed)\s+(?:for|to)\s+(?:launch|production|go[- ]live|market\s+entry)\b",
+        r"\b(?:can|may|should|is|are|was|were|has\s+been|have\s+been)\s+(?:now\s+)?(?:be\s+)?(?:released|deployed|promoted|shipped)\s+(?:to|into)\s+production\b",
+        r"\b(?:release|deployment|promotion)\s+(?:to|into)\s+production\s+(?:is|was|has\s+been|have\s+been)\s+(?:approved|authorized|authorised|cleared)\b",
+    )
+)
+_LAUNCH_CLAUSE_BREAK = re.compile(
+    r"(?:[.!?;\n]+|\b(?:but|however|yet|nevertheless|nonetheless|although|though|whereas|while)\b)",
+    re.IGNORECASE,
+)
+_UNICODE_DASHES = re.compile(r"[\u2010-\u2015\u2212\u2e3a\u2e3b\ufe58\ufe63\uff0d]")
+
+
+def _normalized_launch_claim_text(markdown: str) -> str:
+    value = unicodedata.normalize("NFKC", str(markdown or ""))
+    value = _UNICODE_DASHES.sub("-", value).replace("\u2018", "'").replace("\u2019", "'")
+    value = re.sub(r"[*_~`]+", " ", value)
+    return re.sub(r"[\t\r ]+", " ", value)
+
+
+def _local_prefix_for_negation(prefix: str) -> str:
+    local = prefix[max(prefix.rfind(","), prefix.rfind(":")) + 1 :]
+    coordinator = re.search(
+        r"\b(?:and|or)\s+(?:(?:this|that|it|we)\s+|the\s+\S+\s+)?(?:is|are|was|were|can|may|has|have)\b[\s\S]*$",
+        local,
+        re.IGNORECASE,
+    )
+    return coordinator.group(0) if coordinator else local
+
+
+def _launch_claim_is_negated_or_conditional(
+    clause: str, match: re.Match[str]
+) -> bool:
+    prefix = clause[: match.start()]
+    suffix = clause[match.end() :]
+    local_prefix = _local_prefix_for_negation(prefix)
+    directly_negated = any(
+        re.search(pattern, local_prefix, re.IGNORECASE)
+        for pattern in (
+            r"\bno\s*$",
+            r"\b(?:not|never|cannot|can't|isn't|aren't|wasn't|weren't|doesn't|don't|didn't|shouldn't|mustn't|won't|hasn't|haven't)\b(?:[\s\"'()[\]-]+\w+){0,6}[\s\"'()[\]-]*$",
+            r"\bwithout\s+(?:claiming|asserting|establishing|demonstrating|confirming|being|having)(?:[\s\"'()[\]-]+\w+){0,5}[\s\"'()[\]-]*$",
+            r"\bno\s+(?:basis|evidence|finding|determination|claim|conclusion|approval|clearance|authorization|authorisation|green\s+light)(?:[\s\"'()[\]-]+\w+){0,6}[\s\"'()[\]-]*$",
+        )
+    )
+    if directly_negated:
+        return True
+
+    conditional_before = bool(
+        re.search(
+            r"\b(?:if|unless|until|once|when|whenever|provided(?:\s+that)?|assuming)\b",
+            prefix,
+            re.IGNORECASE,
+        )
+        or re.search(
+            r"^\s*(?:pending|subject\s+to|contingent\s+on)\b",
+            prefix,
+            re.IGNORECASE,
+        )
+        or re.search(
+            r"\b(?:pending|subject\s+to|contingent\s+on)\b",
+            local_prefix,
+            re.IGNORECASE,
+        )
+        or re.search(
+            r"\b(?:could|might|would)\b(?:[\s\"'()[\]-]+\w+){0,8}[\s\"'()[\]-]*$",
+            local_prefix,
+            re.IGNORECASE,
+        )
+        or re.search(
+            r"\b(?:whether|before|become|becoming|achieve|achieving|reach|reaching)\b(?:[\s\"'()[\]-]+\w+){0,5}[\s\"'()[\]-]*$",
+            local_prefix,
+            re.IGNORECASE,
+        )
+    )
+    conditional_after = bool(
+        re.search(
+            r"^\s*(?:only\s+)?(?:if|unless|until|once|when|whenever|after|provided(?:\s+that)?|assuming|pending|subject\s+to|contingent\s+on)\b",
+            suffix,
+            re.IGNORECASE,
+        )
+        or re.search(
+            r"\b(?:only\s+if|unless|until|once|when|after|provided(?:\s+that)?|subject\s+to|contingent\s+on|pending)\b",
+            suffix,
+            re.IGNORECASE,
+        )
+    )
+    return conditional_before or conditional_after
+
+
+def has_positive_launch_readiness_claim(markdown: str) -> bool:
+    normalized = _normalized_launch_claim_text(markdown)
+    for clause in _LAUNCH_CLAUSE_BREAK.split(normalized):
+        for pattern in _POSITIVE_LAUNCH_CLAIM_PATTERNS:
+            for match in pattern.finditer(clause):
+                if not _launch_claim_is_negated_or_conditional(clause, match):
+                    return True
+    return False
+
+
 def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> None:
     folded = draft.markdown.casefold()
     headings = [
@@ -407,10 +527,9 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
     ]
     if missing:
         raise ValueError("required Markdown sections are missing: " + ", ".join(missing))
-    if context.evidence_readiness != "ready" and re.search(
-        r"\b(?:launch[- ]ready|ready for launch|fully validated|production[- ]ready|"
-        r"market[- ]ready|cleared for launch|safe to launch|legally cleared)\b",
-        folded,
+    if (
+        context.evidence_readiness != "ready"
+        and has_positive_launch_readiness_claim(draft.markdown)
     ):
         raise ValueError("evidence-gapped artifact contains a launch-ready claim")
     citations = set(re.findall(r"\[evidence:([a-f0-9]{64})\]", draft.markdown))
