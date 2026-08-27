@@ -12,6 +12,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base
+from backend.domain.market_scope import resolve_market_expression
 from backend.domain.orchestration.models import (
     ContextReference,
     DecisionCreateRequestV1,
@@ -23,6 +24,10 @@ from backend.services.orchestration.adapters.evidence_adapter import (
 from backend.services.orchestration.adapters.hybrid_research_adapter import (
     HybridResearchAdapter,
 )
+from backend.services.orchestration.scope_contract_service import (
+    research_execution_inputs_hash,
+    research_execution_inputs_payload,
+)
 from backend.tests.orchestration.scope_acceptance_helpers import accept_scope
 from backend.tests.orchestration.unit.test_uncertainty_router import (
     _ambiguous_research_payload,
@@ -30,6 +35,37 @@ from backend.tests.orchestration.unit.test_uncertainty_router import (
 
 
 pytestmark = [pytest.mark.contract, pytest.mark.integration]
+
+
+ESTONIA_CAT_FOOD_LAUNCH_PROMPT = (
+    "Create a launch-ready, evidence-grounded PRD and operating plan for "
+    "distributing subscription cat food in Estonia. Define customer and "
+    "executor personas; supplier-to-last-mile workflow; pricing and "
+    "unit-economics assumptions; legal and food-safety risks; KPIs; "
+    "measurable acceptance criteria; and a phased rollout. Use current "
+    "public evidence where required. Deliver exactly one complete Markdown "
+    "file named estonia-cat-food-distribution-plan.md. Do not purchase, "
+    "order, message third parties, or perform external business actions. "
+    "Exclude credentials, payment data, authentication/session tokens, and "
+    "unrelated goals."
+)
+
+ALL_RESEARCH_OUTPUTS = [
+    "market_sources",
+    "market_claims",
+    "synthetic_participants",
+    "interviews",
+    "customer_personas",
+    "persona_resolution",
+    "research_prd",
+    "research_bundle",
+]
+
+COMMERCIAL_CLAIM_CLASSES = [
+    "statutory_current",
+    "official_statistic",
+    "observed_primary_market",
+]
 
 
 @compiles(JSONB, "sqlite")
@@ -78,6 +114,61 @@ def _request() -> DecisionCreateRequestV1:
     return _approve(
         DecisionCreateRequestV1.model_validate(_ambiguous_research_payload())
     )
+
+
+def _scope_payload(objective: str) -> dict:
+    payload = _ambiguous_research_payload()
+    payload["task"].update(
+        {
+            "domain": "general_operations",
+            "objective": objective,
+            "desired_outcome": objective,
+            "required_capabilities": [],
+            "preferred_capabilities": [],
+            "required_tools": [],
+            "requested_actions": [],
+            "stakeholders": [],
+            "constraints": [],
+        }
+    )
+    payload["research_policy"].update(
+        {
+            "allow_hybrid_research": True,
+            "required": False,
+            "minimum_mode": "auto",
+            "grounding_required": False,
+            "fail_closed": True,
+            "required_outputs": ALL_RESEARCH_OUTPUTS,
+        }
+    )
+    payload["research_brief"] = {
+        "business_idea": objective,
+        "target_stakeholders": (
+            "Unknown — identify the person, team, organisation, community, "
+            "buyer, user, or beneficiary affected by this goal"
+        ),
+        "problem": objective,
+        "research_questions": [
+            "Who directly experiences the problem?",
+            "Which observable outcome would count as success?",
+        ],
+        "required_execution_roles": [],
+        "industry": "general_operations",
+        "location": "Estonia",
+        "depth": "detailed",
+        "sample_size": 1,
+    }
+    payload["scope_state"] = {
+        "requirements": [
+            {
+                "text": objective,
+                "priority": "P0",
+                "authority": "user",
+                "source_refs": ["goal.parsed_requirements"],
+            }
+        ]
+    }
+    return payload
 
 
 def _adapter(service: FakeHybridService) -> HybridResearchAdapter:
@@ -284,6 +375,233 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
     ]
     assert task_context.critical_claim_policy["required"] is True
     assert task_context.critical_claim_policy["freshness_days"] == 120
+
+
+def test_estonia_cat_food_scope_projects_strict_commercial_policy_through_adapter():
+    source = DecisionCreateRequestV1.model_validate(
+        _scope_payload(ESTONIA_CAT_FOOD_LAUNCH_PROMPT)
+    )
+    request = _approve(source)
+    service = FakeHybridService()
+
+    _adapter(service).start(request, "decision-estonia-launch", "launch-key")
+
+    packet = request.scope_packet
+    assert packet is not None and packet.research_contract is not None
+    contract = packet.research_contract
+    assert contract.document_intent == "commercial_market_launch"
+    assert contract.geographies == ("EE",)
+    projection = research_execution_inputs_payload(request, packet)
+    assert projection["research_policy"]["required"] is True
+    assert projection["research_policy"]["grounding_required"] is True
+    assert projection["research_policy"]["fail_closed"] is True
+    assert projection["research_brief"]["critical_claim_policy"] == {
+        "required": True,
+        "fail_closed": True,
+        "freshness_days": 120,
+        "freshness_by_class": {
+            "official_statistic": 730,
+            "observed_primary_market": 120,
+        },
+        "mandatory_claim_classes": COMMERCIAL_CLAIM_CLASSES,
+    }
+    profile = projection["research_brief"]["business_evidence_profile"]
+    assert profile == {
+        "version": "business_evidence_profile_v1",
+        "intent": "commercial_market_launch",
+        "economic_model": "physical_product",
+        "market_scope_hash": projection["research_brief"]["market_scope"][
+            "resolution_hash"
+        ],
+        "fact_requirements": [
+            {
+                "kind": "physical_product_offer",
+                "minimum_verified": 2,
+                "applicability": "required",
+            }
+        ],
+        "calculation_requirements": [
+            {
+                "kind": "physical_offer_price_difference",
+                "minimum_verified": 1,
+                "applicability": "required",
+            }
+        ],
+        "required_role_slots": [
+            "customer_market",
+            "pricing_finance",
+            "legal_compliance",
+            "sales_distribution",
+            "risk_operations",
+        ],
+    }
+    task_context = service.enqueue_kwargs["task_context"]
+    assert task_context.critical_claim_policy == projection["research_brief"][
+        "critical_claim_policy"
+    ]
+    assert task_context.business_evidence_profile.model_dump(mode="json") == profile
+    assert task_context.research_execution_inputs_hash == (
+        research_execution_inputs_hash(request, packet)
+    )
+    assert service.enqueue_kwargs["research_mode"].value == "grounded_hybrid"
+    assert service.enqueue_kwargs["grounding_policy"].research_required is True
+    outputs = service.enqueue_kwargs["outputs"]
+    assert outputs.prd.enabled is True
+    assert outputs.prd.required is True
+    assert outputs.prd.type == "commercial_market_launch"
+    market_scope = service.enqueue_kwargs["request"].business_context.market_scope
+    assert market_scope.resolved_scope.countries[0].country_code == "EE"
+
+
+def test_grounded_noncommercial_scope_does_not_gain_commercial_claim_policy():
+    objective = (
+        "Prepare an evidence-grounded briefing on municipal cat-shelter feeding "
+        "practices in Estonia using current public evidence"
+    )
+    request = _approve(
+        DecisionCreateRequestV1.model_validate(_scope_payload(objective))
+    )
+    service = FakeHybridService()
+
+    _adapter(service).start(request, "decision-estonia-briefing", "briefing-key")
+
+    packet = request.scope_packet
+    assert packet is not None and packet.research_contract is not None
+    assert packet.research_contract.document_intent == "custom"
+    assert packet.research_contract.geographies == ("EE",)
+    projection = research_execution_inputs_payload(request, packet)
+    assert projection["research_policy"]["required"] is True
+    assert projection["research_policy"]["grounding_required"] is True
+    assert projection["research_brief"]["critical_claim_policy"]["required"] is False
+    assert projection["research_brief"]["critical_claim_policy"][
+        "mandatory_claim_classes"
+    ] == []
+    assert projection["research_brief"]["business_evidence_profile"] is None
+    task_context = service.enqueue_kwargs["task_context"]
+    assert task_context.critical_claim_policy == projection["research_brief"][
+        "critical_claim_policy"
+    ]
+    assert task_context.business_evidence_profile is None
+    assert task_context.research_prd_type is None
+    assert service.enqueue_kwargs["research_mode"].value == "grounded_hybrid"
+    outputs = service.enqueue_kwargs["outputs"]
+    assert outputs.prd.enabled is False
+    assert outputs.prd.required is False
+
+
+def test_commercial_software_inventory_scope_does_not_select_physical_adapter():
+    objective = (
+        "Build an application for inventory management and prepare a "
+        "launch-ready, evidence-grounded PRD for its subscription in Estonia, "
+        "including pricing, UX, API, and rollout requirements"
+    )
+    request = _approve(
+        DecisionCreateRequestV1.model_validate(_scope_payload(objective))
+    )
+    assert request.scope_packet is not None
+
+    projection = research_execution_inputs_payload(
+        request,
+        request.scope_packet,
+    )
+
+    assert request.scope_packet.research_contract.document_intent == (
+        "commercial_market_launch"
+    )
+    assert "software_development" in (
+        request.scope_packet.research_contract.work_types
+    )
+    assert projection["research_brief"]["business_evidence_profile"] is None
+
+
+def test_commercial_projection_preserves_explicitly_stricter_policy_values():
+    payload = _scope_payload(ESTONIA_CAT_FOOD_LAUNCH_PROMPT)
+    payload["research_policy"].update(
+        {
+            "minimum_mode": "grounded_deep",
+            "minimum_evidence_sufficiency": 0.95,
+            "minimum_evidence_quality": 0.9,
+            "maximum_research_cost": 10,
+            "maximum_research_latency_ms": 240000,
+            "maximum_research_iterations": 3,
+            "maximum_evidence_items": 12,
+        }
+    )
+    payload["research_brief"]["critical_claim_policy"] = {
+        "required": True,
+        "fail_closed": True,
+        "freshness_days": 30,
+        "freshness_by_class": {
+            "statutory_current": 7,
+            "official_statistic": 60,
+            "observed_primary_market": 14,
+        },
+        "mandatory_claim_classes": ["observed_primary_market"],
+    }
+    explicit_profile = {
+        "version": "business_evidence_profile_v1",
+        "intent": "commercial_market_launch",
+        "economic_model": "physical_product",
+        "market_scope_hash": resolve_market_expression(
+            "Estonia"
+        ).resolution_hash,
+        "fact_requirements": [
+            {
+                "kind": "physical_product_offer",
+                "minimum_verified": 3,
+                "applicability": "required",
+            }
+        ],
+        "calculation_requirements": [
+            {
+                "kind": "physical_offer_price_difference",
+                "minimum_verified": 1,
+                "applicability": "required",
+            }
+        ],
+        "required_role_slots": [
+            "customer_market",
+            "pricing_finance",
+            "legal_compliance",
+            "sales_distribution",
+            "risk_operations",
+            "domain_delivery",
+        ],
+    }
+    payload["research_brief"]["business_evidence_profile"] = explicit_profile
+    accepted = _approve(DecisionCreateRequestV1.model_validate(payload))
+    assert accepted.scope_packet is not None
+
+    projection = research_execution_inputs_payload(
+        accepted,
+        accepted.scope_packet,
+    )
+
+    assert projection["research_policy"]["required"] is True
+    assert projection["research_policy"]["grounding_required"] is True
+    assert projection["research_policy"]["fail_closed"] is True
+    assert projection["research_policy"]["minimum_mode"] == "grounded_deep"
+    assert projection["research_policy"]["minimum_evidence_sufficiency"] == 0.95
+    assert projection["research_policy"]["minimum_evidence_quality"] == 0.9
+    assert projection["research_policy"]["maximum_research_cost"] == 10
+    assert projection["research_policy"]["maximum_research_latency_ms"] == 240000
+    assert projection["research_policy"]["maximum_research_iterations"] == 3
+    assert projection["research_policy"]["maximum_evidence_items"] == 12
+    critical = projection["research_brief"]["critical_claim_policy"]
+    assert critical["freshness_days"] == 30
+    assert critical["freshness_by_class"] == {
+        "statutory_current": 7,
+        "official_statistic": 60,
+        "observed_primary_market": 14,
+    }
+    assert critical["mandatory_claim_classes"] == [
+        "observed_primary_market",
+        "statutory_current",
+        "official_statistic",
+    ]
+    assert projection["research_brief"]["business_evidence_profile"] == (
+        explicit_profile
+    )
 
 
 def test_grounded_research_contract_requires_a_country_resolved_market():

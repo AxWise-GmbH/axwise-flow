@@ -1696,7 +1696,14 @@ async def test_process_blocks_omitted_or_replaced_topic_contract(
 
 
 async def fake_grounding(_request, _policy):
-    return {
+    acquisition = (
+        ((_request.business_context.grounding_context or {}).get(
+            "critical_claim_acquisition", {}
+        ) or {})
+        if _request.business_context
+        else {}
+    )
+    result = {
         "market_sources": [
             {
                 "source_id": "source-bremen-registry",
@@ -1725,6 +1732,14 @@ async def fake_grounding(_request, _policy):
         "company_count": 1,
         "composer_version": "regional_google_registry_v1",
     }
+    for field in (
+        "topic_seed_contract",
+        "topic_market_scope_contract",
+        "topic_alias_expansion",
+    ):
+        if field in acquisition:
+            result[field] = acquisition[field]
+    return result
 
 
 def _commercial_prd_content() -> dict:
@@ -2924,9 +2939,21 @@ async def test_worker_revalidates_persisted_physical_grounding_contract(
 
 @pytest.mark.asyncio
 async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_factory):
+    async def persisted_commercial_grounding(request, policy):
+        basic = await fake_grounding(request, policy)
+        verified = await commercial_grounding(request, policy)
+        basic["market_sources"].extend(verified["market_sources"])
+        basic["market_claims"].extend(verified["market_claims"])
+        basic["structured_source_count"] = len(basic["market_sources"])
+        basic["claim_count"] = len(basic["market_claims"])
+        return basic
+
     orchestrator = FakeOrchestrator(session_factory)
     service = HybridRunService(
-        orchestrator, session_factory, fake_enrichment, fake_grounding
+        orchestrator,
+        session_factory,
+        fake_enrichment,
+        persisted_commercial_grounding,
     )
     session = session_factory()
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
@@ -3008,7 +3035,7 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     } == dict(zip(BREMEN_EXECUTION_ROLES, BREMEN_AGENT_NAMES))
     assert all(
         item["persona"]["profile_type"] == "synthetic_professional_profile"
-        and item["source_ids"] == ["source-bremen-registry"]
+        and "source-bremen-registry" in item["source_ids"]
         and "source-bremen-registry" in item["evidence_refs"]
         and "claim-company-presence" in item["evidence_refs"]
         and item["persona"]["customer_persona_ids"]
@@ -3033,8 +3060,8 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
         == "Alex Researcher"
         and "traceable local evidence"
         in profile["customer_adaptation"]["selected_customer"]["pain_signals"][0]
-        and profile["research_context"]["source_ids"]
-        == ["source-bremen-registry"]
+        and "source-bremen-registry"
+        in profile["research_context"]["source_ids"]
         and profile["research_context"]["claim_refs"][0]["claim_id"]
         == "claim-company-presence"
         and profile["research_context"]["pattern_refs"][0]["pattern_id"]
