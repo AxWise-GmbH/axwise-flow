@@ -13,5 +13,5 @@ steps:
 images:
   - "$_IMAGE_NAME"
 options:
-  logging: GCS_ONLY
+  logging: CLOUD_LOGGING_ONLY
   machineType: "E2_HIGHCPU_8"
