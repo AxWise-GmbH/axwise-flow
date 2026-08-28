@@ -175,13 +175,14 @@ def test_research_agents_use_the_pinned_pydanticai_retry_api() -> None:
         assert "retries=" in source
 
 
-def test_grounded_search_uses_one_exact_model_guard_without_sampling_controls() -> None:
+def test_grounded_search_uses_exact_model_guards_without_sampling_controls() -> None:
     source = GEMINI_SEARCH_SERVICE.read_text(encoding="utf-8")
 
-    # Three single-shot helpers resolve at the call site. The bounded general
-    # search resolves once before its retry loop, then reuses that exact model.
+    # Three single-shot helpers resolve at the call site. The bounded sync and
+    # async searches each resolve once before their retry loop, then reuse that
+    # exact model.
     assert source.count("model=require_search_model()") == 3
-    assert source.count("model = require_search_model()") == 1
+    assert source.count("model = require_search_model()") == 2
     assert 'os.getenv("GEMINI_SEARCH_MODEL"' not in source
     assert "temperature=" not in source
     assert "top_p=" not in source

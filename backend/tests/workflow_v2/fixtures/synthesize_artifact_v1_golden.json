@@ -1,0 +1,2025 @@
+{
+  "schemaVersion": "axwise-orqaly.synthesize-artifact-v1.golden.v1",
+  "cases": [
+    {
+      "name": "execute_task",
+      "purpose": "execute_task",
+      "canonicalInputHash": "6461868775c71f5b3efc8852ec5b47f90da966d63a8f83ea87998761d5c4b1f8",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "purpose": "execute_task",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+            "kind": "plan"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": []
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "materialClarification": null,
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "authority": {
+                "canonicalInputHash": "bfa6cab2eda397677b5b043a0e51fab492816f8f0d485847eb88ef016982f935",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": [],
+              "launchReady": true
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              "workShape": "software_prd",
+              "requirements": [
+                {
+                  "id": "deliverable-001",
+                  "category": "deliverable",
+                  "description": "Product requirements document"
+                },
+                {
+                  "id": "deliverable-002",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "requiredSections": [
+                  "Product requirements document",
+                  "Ärianalüüs"
+                ],
+                "requirementIds": [
+                  "deliverable-001",
+                  "deliverable-002"
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": true,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract draft",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product specification author",
+                  "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "deliverable-001",
+                    "deliverable-002"
+                  ],
+                  "producesFullContract": true,
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ],
+                  "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+                }
+              ],
+              "planHash": "7b33db5f79c9c21ac861ff424b4bb5b758abcc1371961ab202e685c38a44b914"
+            },
+            "markdown": null
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "requiredSections": [
+            "Product requirements document",
+            "Ärianalüüs"
+          ],
+          "requirementIds": [
+            "deliverable-001",
+            "deliverable-002"
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": true,
+          "sourceAppendixRequired": false
+        },
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+          "kind": "plan"
+        },
+        "task": {
+          "stageId": "00000000-0000-4000-8000-000000000400",
+          "stageKey": "core-draft",
+          "title": "Coherent full-contract draft",
+          "taskKind": "core_draft",
+          "requiredRole": "product specification author",
+          "lens": "Produce one coherent artifact satisfying the complete output contract.",
+          "requiredCapabilities": [
+            "prd"
+          ],
+          "acceptanceRequirementIds": [
+            "deliverable-001",
+            "deliverable-002"
+          ],
+          "producesFullContract": true,
+          "dependsOnStageKeys": [],
+          "agent": {
+            "id": "00000000-0000-4000-8000-000000000300",
+            "name": "Golden Product Researcher",
+            "capabilities": [
+              "evidence_synthesis",
+              "prd",
+              "product_strategy"
+            ],
+            "toolIds": [],
+            "qualityScoreMicros": 950000,
+            "costPerRunCents": 20
+          },
+          "agentId": "00000000-0000-4000-8000-000000000300",
+          "toolIds": [],
+          "budgetCents": 20,
+          "dataBoundary": [
+            "No payment data"
+          ],
+          "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+        },
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "task_completed",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000103",
+          "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+          "kind": "task_result",
+          "contentType": "text/markdown",
+          "payload": {
+            "schemaVersion": "orqaly.task-result.v2",
+            "task": {
+              "stageId": "00000000-0000-4000-8000-000000000400",
+              "stageKey": "core-draft",
+              "title": "Coherent full-contract draft",
+              "taskKind": "core_draft",
+              "requiredRole": "product specification author",
+              "lens": "Produce one coherent artifact satisfying the complete output contract.",
+              "requiredCapabilities": [
+                "prd"
+              ],
+              "acceptanceRequirementIds": [
+                "deliverable-001",
+                "deliverable-002"
+              ],
+              "producesFullContract": true,
+              "dependsOnStageKeys": [],
+              "agent": {
+                "id": "00000000-0000-4000-8000-000000000300",
+                "name": "Golden Product Researcher",
+                "capabilities": [
+                  "evidence_synthesis",
+                  "prd",
+                  "product_strategy"
+                ],
+                "toolIds": [],
+                "qualityScoreMicros": 950000,
+                "costPerRunCents": 20
+              },
+              "agentId": "00000000-0000-4000-8000-000000000300",
+              "toolIds": [],
+              "budgetCents": 20,
+              "dataBoundary": [
+                "No payment data"
+              ],
+              "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+            },
+            "acceptedScope": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "kind": "scope"
+            },
+            "research": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+              "kind": "research"
+            },
+            "acceptedPlan": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+              "kind": "plan"
+            },
+            "title": "Coherent full-contract draft",
+            "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+            "evidenceReadiness": "ready",
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                "kind": "plan"
+              }
+            ],
+            "requirementCoverage": [
+              {
+                "requirementId": "deliverable-001",
+                "status": "satisfied",
+                "note": "The coherent core covers this exact requirement."
+              },
+              {
+                "requirementId": "deliverable-002",
+                "status": "satisfied",
+                "note": "The coherent core covers this exact requirement."
+              }
+            ],
+            "sourceAppendix": [],
+            "executionReceipt": {
+              "agent": {
+                "id": "00000000-0000-4000-8000-000000000300",
+                "name": "Golden Product Researcher",
+                "capabilities": [
+                  "evidence_synthesis",
+                  "prd",
+                  "product_strategy"
+                ],
+                "toolIds": [],
+                "qualityScoreMicros": 950000,
+                "costPerRunCents": 20
+              },
+              "toolIds": [],
+              "budgetCents": 20,
+              "dataBoundary": [
+                "No payment data"
+              ]
+            },
+            "conclusions": [
+              "Prepared a coherent bounded draft."
+            ],
+            "unknowns": []
+          },
+          "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102"
+          ]
+        },
+        "evidenceReadiness": "ready"
+      }
+    },
+    {
+      "name": "evaluate_output_repair",
+      "purpose": "evaluate_output",
+      "canonicalInputHash": "a85f08329bfc34433d3318ad0ee063165d3e0e01d4f27c0a3d8c1072ce59f898",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "purpose": "evaluate_output",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+            "kind": "task_result"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": []
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "materialClarification": null,
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "authority": {
+                "canonicalInputHash": "bfa6cab2eda397677b5b043a0e51fab492816f8f0d485847eb88ef016982f935",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": [],
+              "launchReady": true
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              "workShape": "software_prd",
+              "requirements": [
+                {
+                  "id": "deliverable-001",
+                  "category": "deliverable",
+                  "description": "Product requirements document"
+                },
+                {
+                  "id": "deliverable-002",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "requiredSections": [
+                  "Product requirements document",
+                  "Ärianalüüs"
+                ],
+                "requirementIds": [
+                  "deliverable-001",
+                  "deliverable-002"
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": true,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract draft",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product specification author",
+                  "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "deliverable-001",
+                    "deliverable-002"
+                  ],
+                  "producesFullContract": true,
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ],
+                  "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+                }
+              ],
+              "planHash": "7b33db5f79c9c21ac861ff424b4bb5b758abcc1371961ab202e685c38a44b914"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000103",
+              "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000400",
+                "stageKey": "core-draft",
+                "title": "Coherent full-contract draft",
+                "taskKind": "core_draft",
+                "requiredRole": "product specification author",
+                "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                "requiredCapabilities": [
+                  "prd"
+                ],
+                "acceptanceRequirementIds": [
+                  "deliverable-001",
+                  "deliverable-002"
+                ],
+                "producesFullContract": true,
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ],
+                "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                "kind": "plan"
+              },
+              "title": "Coherent full-contract draft",
+              "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "deliverable-001",
+                  "status": "satisfied",
+                  "note": "The coherent core covers this exact requirement."
+                },
+                {
+                  "requirementId": "deliverable-002",
+                  "status": "satisfied",
+                  "note": "The coherent core covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared a coherent bounded draft."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved."
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "requiredSections": [
+            "Product requirements document",
+            "Ärianalüüs"
+          ],
+          "requirementIds": [
+            "deliverable-001",
+            "deliverable-002"
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": true,
+          "sourceAppendixRequired": false
+        },
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+          "kind": "plan"
+        },
+        "taskArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+            "kind": "task_result"
+          }
+        ],
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "evaluation_completed",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000104",
+          "artifactHash": "9217e488e21422d32179bad277bee40e76369ff9e36343252428b9469358569c",
+          "kind": "evaluation",
+          "contentType": "application/json",
+          "payload": {
+            "schemaVersion": "orqaly.evaluation.v1",
+            "taskArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+                "kind": "task_result"
+              }
+            ],
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+                "kind": "task_result"
+              }
+            ],
+            "evidenceReadiness": "ready",
+            "outputContractHash": "3093824aed31f1129c500a0b480f30ac27535913eced7481aa43840b6edbee8d",
+            "repairPass": 0,
+            "outputContractSatisfied": false,
+            "promotedArtifact": null,
+            "unmetRequirementIds": [
+              "deliverable-002"
+            ],
+            "unresolvedSourceMarkers": [],
+            "unsupportedPrecision": [],
+            "contradictions": [],
+            "staleTopicReferences": [],
+            "readinessViolations": [],
+            "substantiveContentDefects": [
+              "The non-ASCII analysis section needs one bounded repair."
+            ],
+            "practicalityDefects": [],
+            "repairRequired": true,
+            "repairInstructions": [
+              "Repair only the incomplete Ärianalüüs section."
+            ],
+            "note": "One bounded repair is authorized."
+          },
+          "markdown": null,
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000103"
+          ]
+        },
+        "executionOutputContractSatisfied": false,
+        "directPromotionArtifact": null
+      }
+    },
+    {
+      "name": "evaluate_output_direct_promotion",
+      "purpose": "evaluate_output",
+      "canonicalInputHash": "9d51f2731dab9ef12dc9c6cbd07eeea000c111d3a2c0978c6259b64df6743766",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "purpose": "evaluate_output",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000105",
+            "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+            "kind": "final_markdown"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": []
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "materialClarification": null,
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "authority": {
+                "canonicalInputHash": "bfa6cab2eda397677b5b043a0e51fab492816f8f0d485847eb88ef016982f935",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": [],
+              "launchReady": true
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              "workShape": "software_prd",
+              "requirements": [
+                {
+                  "id": "deliverable-001",
+                  "category": "deliverable",
+                  "description": "Product requirements document"
+                },
+                {
+                  "id": "deliverable-002",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "requiredSections": [
+                  "Product requirements document",
+                  "Ärianalüüs"
+                ],
+                "requirementIds": [
+                  "deliverable-001",
+                  "deliverable-002"
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": true,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract draft",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product specification author",
+                  "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "deliverable-001",
+                    "deliverable-002"
+                  ],
+                  "producesFullContract": true,
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ],
+                  "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+                }
+              ],
+              "planHash": "7b33db5f79c9c21ac861ff424b4bb5b758abcc1371961ab202e685c38a44b914"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000105",
+              "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+              "kind": "final_markdown"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "axwise.final-markdown.v1",
+              "title": "Direct final candidate",
+              "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                  "kind": "plan"
+                }
+              ],
+              "sourceAppendix": [],
+              "candidateAttestation": {
+                "task": {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract draft",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product specification author",
+                  "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "deliverable-001",
+                    "deliverable-002"
+                  ],
+                  "producesFullContract": true,
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ],
+                  "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+                },
+                "requirementCoverage": [
+                  {
+                    "requirementId": "deliverable-001",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  },
+                  {
+                    "requirementId": "deliverable-002",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  }
+                ],
+                "executionReceipt": {
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                }
+              },
+              "evidenceReadiness": "ready",
+              "launchReady": true
+            },
+            "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved."
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "requiredSections": [
+            "Product requirements document",
+            "Ärianalüüs"
+          ],
+          "requirementIds": [
+            "deliverable-001",
+            "deliverable-002"
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": true,
+          "sourceAppendixRequired": false
+        },
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+          "kind": "plan"
+        },
+        "taskArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000105",
+            "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+            "kind": "final_markdown"
+          }
+        ],
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "evaluation_completed",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000107",
+          "artifactHash": "3f340ba3d7f4405d0d37189c64ca006defe069dcf3c417922071a7ba6cb7dbcb",
+          "kind": "evaluation",
+          "contentType": "application/json",
+          "payload": {
+            "schemaVersion": "orqaly.evaluation.v1",
+            "taskArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000105",
+                "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+                "kind": "final_markdown"
+              }
+            ],
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000105",
+                "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+                "kind": "final_markdown"
+              }
+            ],
+            "evidenceReadiness": "ready",
+            "outputContractHash": "3093824aed31f1129c500a0b480f30ac27535913eced7481aa43840b6edbee8d",
+            "repairPass": 0,
+            "outputContractSatisfied": true,
+            "promotedArtifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000105",
+              "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+              "kind": "final_markdown"
+            },
+            "unmetRequirementIds": [],
+            "unresolvedSourceMarkers": [],
+            "unsupportedPrecision": [],
+            "contradictions": [],
+            "staleTopicReferences": [],
+            "readinessViolations": [],
+            "substantiveContentDefects": [],
+            "practicalityDefects": [],
+            "repairRequired": false,
+            "repairInstructions": [],
+            "note": "The sole exact full-contract artifact is directly promotable."
+          },
+          "markdown": null,
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000105"
+          ]
+        },
+        "executionOutputContractSatisfied": true,
+        "directPromotionArtifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000105",
+          "artifactHash": "d72dea25e045fa6c116c4cba9ca702ad1230842a0dadcc5a1908dc80a7e2e0e0",
+          "kind": "final_markdown"
+        }
+      }
+    },
+    {
+      "name": "final_synthesis",
+      "purpose": "final_synthesis",
+      "canonicalInputHash": "904c64fe0a68b1cb68b361dcce779548d69a735c24f5a89cae4d52defd44016f",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "purpose": "final_synthesis",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "9217e488e21422d32179bad277bee40e76369ff9e36343252428b9469358569c",
+            "kind": "evaluation"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": []
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "materialClarification": null,
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "authority": {
+                "canonicalInputHash": "bfa6cab2eda397677b5b043a0e51fab492816f8f0d485847eb88ef016982f935",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": [],
+              "launchReady": true
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              "workShape": "software_prd",
+              "requirements": [
+                {
+                  "id": "deliverable-001",
+                  "category": "deliverable",
+                  "description": "Product requirements document"
+                },
+                {
+                  "id": "deliverable-002",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "requiredSections": [
+                  "Product requirements document",
+                  "Ärianalüüs"
+                ],
+                "requirementIds": [
+                  "deliverable-001",
+                  "deliverable-002"
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": true,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract draft",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product specification author",
+                  "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "deliverable-001",
+                    "deliverable-002"
+                  ],
+                  "producesFullContract": true,
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ],
+                  "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+                }
+              ],
+              "planHash": "7b33db5f79c9c21ac861ff424b4bb5b758abcc1371961ab202e685c38a44b914"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000103",
+              "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000400",
+                "stageKey": "core-draft",
+                "title": "Coherent full-contract draft",
+                "taskKind": "core_draft",
+                "requiredRole": "product specification author",
+                "lens": "Produce one coherent artifact satisfying the complete output contract.",
+                "requiredCapabilities": [
+                  "prd"
+                ],
+                "acceptanceRequirementIds": [
+                  "deliverable-001",
+                  "deliverable-002"
+                ],
+                "producesFullContract": true,
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ],
+                "inputHash": "5db6d5802a157f224fd9eedc7879cd7769bc788e06e9b612f25b89082b1f2560"
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                "kind": "plan"
+              },
+              "title": "Coherent full-contract draft",
+              "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "deliverable-001",
+                  "status": "satisfied",
+                  "note": "The coherent core covers this exact requirement."
+                },
+                {
+                  "requirementId": "deliverable-002",
+                  "status": "satisfied",
+                  "note": "The coherent core covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared a coherent bounded draft."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product requirements document\n\nComplete core draft.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000104",
+              "artifactHash": "9217e488e21422d32179bad277bee40e76369ff9e36343252428b9469358569c",
+              "kind": "evaluation"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.evaluation.v1",
+              "taskArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+                  "kind": "task_result"
+                }
+              ],
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                  "kind": "plan"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+                  "kind": "task_result"
+                }
+              ],
+              "evidenceReadiness": "ready",
+              "outputContractHash": "3093824aed31f1129c500a0b480f30ac27535913eced7481aa43840b6edbee8d",
+              "repairPass": 0,
+              "outputContractSatisfied": false,
+              "promotedArtifact": null,
+              "unmetRequirementIds": [
+                "deliverable-002"
+              ],
+              "unresolvedSourceMarkers": [],
+              "unsupportedPrecision": [],
+              "contradictions": [],
+              "staleTopicReferences": [],
+              "readinessViolations": [],
+              "substantiveContentDefects": [
+                "The non-ASCII analysis section needs one bounded repair."
+              ],
+              "practicalityDefects": [],
+              "repairRequired": true,
+              "repairInstructions": [
+                "Repair only the incomplete Ärianalüüs section."
+              ],
+              "note": "One bounded repair is authorized."
+            },
+            "markdown": null
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "requiredSections": [
+            "Product requirements document",
+            "Ärianalüüs"
+          ],
+          "requirementIds": [
+            "deliverable-001",
+            "deliverable-002"
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": true,
+          "sourceAppendixRequired": false
+        },
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+          "kind": "plan"
+        },
+        "taskArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+            "kind": "task_result"
+          }
+        ],
+        "evaluation": {
+          "artifactId": "00000000-0000-4000-8000-000000000104",
+          "artifactHash": "9217e488e21422d32179bad277bee40e76369ff9e36343252428b9469358569c",
+          "kind": "evaluation"
+        },
+        "repairPass": 1
+      },
+      "result": {
+        "resultType": "artifact_synthesized",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000108",
+          "artifactHash": "59a8aefd47a15a28b5f9aef0f9937dfb7ee887d31e2498119fc7e888093af3b1",
+          "kind": "final_markdown",
+          "contentType": "text/markdown",
+          "payload": {
+            "schemaVersion": "axwise.final-markdown.v1",
+            "title": "Repaired final artifact",
+            "markdown": "# Product requirements document\n\nComplete repaired artifact.\n\n## Ärianalüüs\n\nThe bounded repair is complete.",
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "3a2f2ee186633a479ac91ed8a3affb98234a51fcc0875477293e9b94e2f08a20",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "a96a362aab740260c74bc2b1cd0e99cf27d815b1859a3550d004ac10b1283793",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "73c571f653f3b615168a81ffbf85c912578fb9fd84188f7bc42172760e253bca",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "9217e488e21422d32179bad277bee40e76369ff9e36343252428b9469358569c",
+                "kind": "evaluation"
+              }
+            ],
+            "sourceAppendix": [],
+            "candidateAttestation": null,
+            "evidenceReadiness": "ready",
+            "launchReady": true
+          },
+          "markdown": "# Product requirements document\n\nComplete repaired artifact.\n\n## Ärianalüüs\n\nThe bounded repair is complete.",
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000103",
+            "00000000-0000-4000-8000-000000000104"
+          ]
+        },
+        "evidenceReadiness": "ready"
+      }
+    },
+    {
+      "name": "blocked_report",
+      "purpose": "blocked_report",
+      "canonicalInputHash": "51f0c37d92fbfa78296aadfa9cbc579a912a71bbd2f990df00d668049945a83e",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "purpose": "blocked_report",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000106",
+          "artifactHash": "6c8f99affead225355cbe5c513b7191686d5753736210eca8bfbf360a5dec49c",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000106",
+            "artifactHash": "6c8f99affead225355cbe5c513b7191686d5753736210eca8bfbf360a5dec49c",
+            "kind": "research"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": []
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "materialClarification": null,
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "authority": {
+                "canonicalInputHash": "bfa6cab2eda397677b5b043a0e51fab492816f8f0d485847eb88ef016982f935",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000106",
+              "artifactHash": "6c8f99affead225355cbe5c513b7191686d5753736210eca8bfbf360a5dec49c",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+              "researchInputHash": "d5009206c64bb4130ff620a35e87db1bafa338b6d95a37e1b24a401dffe14db2",
+              "readiness": "blocked",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "missing",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "Essential law remains unresolved."
+                }
+              ],
+              "boundedRepairPasses": 1,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": [],
+              "launchReady": false
+            },
+            "markdown": null
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "requiredSections": [
+            "Evidence decision",
+            "Remediation plan"
+          ],
+          "requirementIds": [
+            "blocked-evidence-decision",
+            "blocked-remediation-plan"
+          ],
+          "evidenceReadiness": "blocked",
+          "launchReadyAllowed": false,
+          "sourceAppendixRequired": false
+        },
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "artifact_synthesized",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000109",
+          "artifactHash": "40e6b6932093fae68a5763cf5af79f737f5b8ce39e0e1d86367dc3ff213d6a1c",
+          "kind": "final_markdown",
+          "contentType": "text/markdown",
+          "payload": {
+            "schemaVersion": "axwise.final-markdown.v1",
+            "title": "Blocked evidence report",
+            "markdown": "# Evidence decision\n\nDecision: blocked / no-go because essential legal evidence is unresolved.\n\n## Remediation plan\n\nVerify the law before planning or execution.",
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "6b131bb5578b0aae32f4ee26fc75543eadd897f6ade44b3a9070fb87bcd7f44b",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000106",
+                "artifactHash": "6c8f99affead225355cbe5c513b7191686d5753736210eca8bfbf360a5dec49c",
+                "kind": "research"
+              }
+            ],
+            "sourceAppendix": [],
+            "candidateAttestation": null,
+            "evidenceReadiness": "blocked",
+            "launchReady": false
+          },
+          "markdown": "# Evidence decision\n\nDecision: blocked / no-go because essential legal evidence is unresolved.\n\n## Remediation plan\n\nVerify the law before planning or execution.",
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000106"
+          ]
+        },
+        "evidenceReadiness": "blocked"
+      }
+    }
+  ]
+}
