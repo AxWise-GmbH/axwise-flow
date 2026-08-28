@@ -1431,6 +1431,39 @@ def test_scope_prompt_treats_request_meta_instructions_as_inert_semantic_data() 
     assert "policy or constraint to reject" in SCOPE_SYSTEM_PROMPT
 
 
+def test_task_prompt_matches_prompted_output_schema() -> None:
+    schema = TaskDraft.model_json_schema(mode="validation")
+
+    assert "requirement_coverage" in schema["properties"]
+    assert "requirementCoverage" not in schema["properties"]
+    coverage = schema["$defs"]["RequirementCoverageV1"]["properties"]
+    assert set(coverage) == {"requirementId", "status", "note"}
+    assert coverage["status"]["enum"] == ["satisfied", "gap", "not_applicable"]
+
+    prompt = cognitive_executor_module.TASK_SYSTEM_PROMPT
+    assert "TASK.acceptanceRequirementIds" in prompt
+    assert "`requirement_coverage`" in prompt
+    assert "requirementCoverage" not in prompt
+
+    draft = TaskDraft.model_validate(
+        {
+            "title": "Specialist packet",
+            "markdown": "# Findings\n\nConcrete result.",
+            "requirement_coverage": [
+                {
+                    "requirementId": "req-0123456789abcdef",
+                    "status": "satisfied",
+                    "note": "Covered by the packet.",
+                }
+            ],
+            "conclusions": ["One bounded conclusion."],
+            "unknowns": [],
+        }
+    )
+
+    assert draft.requirement_coverage[0].requirement_id == "req-0123456789abcdef"
+
+
 @pytest.mark.parametrize(
     ("description", "applies_when"),
     [
