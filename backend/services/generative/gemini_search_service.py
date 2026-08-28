@@ -636,6 +636,7 @@ class GeminiSearchService:
         started_at = clock()
         deadline = started_at + operation_seconds
         call_count = 0
+        transient_failure_seen = False
 
         try:
             model = require_search_model()
@@ -691,9 +692,18 @@ class GeminiSearchService:
                 )
             except Exception as error:
                 transient = _is_transient_search_error(error)
+                transient_failure_seen = transient_failure_seen or transient
                 remaining = deadline - clock()
                 if not transient:
-                    status = "non_retryable_error"
+                    # A later 4xx must not erase a transient availability
+                    # failure that already occurred in this logical grounded
+                    # call. Preserve the aggregate as fallback-eligible while
+                    # keeping a first-call 4xx non-retryable.
+                    status = (
+                        "retry_exhausted"
+                        if transient_failure_seen
+                        else "non_retryable_error"
+                    )
                 elif remaining <= 0:
                     status = "deadline_exceeded"
                 elif call_count >= max_attempts:
@@ -792,6 +802,7 @@ class GeminiSearchService:
         loop = asyncio.get_running_loop()
         wall_clock_deadline = loop.time() + operation_seconds
         call_count = 0
+        transient_failure_seen = False
 
         try:
             model = require_search_model()
@@ -872,12 +883,21 @@ class GeminiSearchService:
                 raise
             except Exception as error:
                 transient = _is_transient_search_error(error)
+                transient_failure_seen = transient_failure_seen or transient
                 remaining = min(
                     deadline - clock(),
                     wall_clock_deadline - loop.time(),
                 )
                 if not transient:
-                    status = "non_retryable_error"
+                    # A later 4xx must not erase a transient availability
+                    # failure that already occurred in this logical grounded
+                    # call. Preserve the aggregate as fallback-eligible while
+                    # keeping a first-call 4xx non-retryable.
+                    status = (
+                        "retry_exhausted"
+                        if transient_failure_seen
+                        else "non_retryable_error"
+                    )
                 elif remaining <= 0:
                     status = "deadline_exceeded"
                 elif call_count >= max_attempts:

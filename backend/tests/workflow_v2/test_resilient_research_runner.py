@@ -167,6 +167,45 @@ async def test_nonretryable_primary_failure_never_invokes_fallback(status: str) 
 
 
 @pytest.mark.asyncio
+async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> None:
+    mixed_failure = {
+        "search_performed": False,
+        "runtime_diagnostics": {
+            "route": "gemini_google_search",
+            "status": "retry_exhausted",
+            "elapsed_ms": 41_669,
+            "call_count": 3,
+            "retry_count": 2,
+        },
+    }
+    primary = FakePrimary(mixed_failure)
+    searx = FakeSearx(discovery(status="empty", search_performed=False))
+    runner = ResilientResearchRunner(primary, searxng=searx)
+
+    first = await runner.search(server_query())
+    second = await runner.search(server_query())
+
+    assert len(primary.queries) == 1
+    assert len(searx.queries) == 2
+    assert first["runtime_diagnostics"]["primary"] == {
+        "route": "gemini_google_search",
+        "status": "retry_exhausted",
+        "elapsed_ms": 41_669,
+        "call_count": 3,
+        "retry_count": 2,
+    }
+    assert second["runtime_diagnostics"]["primary"] == {
+        "route": "gemini_google_search",
+        "status": "retry_exhausted",
+        "elapsed_ms": 0,
+        "call_count": 0,
+        "retry_count": 0,
+        "primary_skipped": True,
+        "circuit_state": "open",
+    }
+
+
+@pytest.mark.asyncio
 async def test_sync_only_discovery_is_rejected_without_starting_background_work() -> None:
     class SyncOnlySearx:
         def __init__(self) -> None:
