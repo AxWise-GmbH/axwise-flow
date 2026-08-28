@@ -66,6 +66,7 @@ from backend.services.workflow_v2.operation_service import CognitiveExecutionFai
 
 
 _MAX_EVIDENCE_REQUIREMENTS = 12
+_MAX_REUSABLE_SOURCE_CANDIDATES = 3
 _DEFAULT_RESEARCH_CONCURRENCY = 4
 _MIN_RESEARCH_CONCURRENCY = 4
 _MAX_RESEARCH_CONCURRENCY = 8
@@ -329,14 +330,30 @@ PLANNING_NON_CLEARANCE_ASSUMPTION = (
 )
 
 _FUTURE_PRODUCT_OUTCOME = re.compile(
-    r"\b(?:product\s+readiness|product\s+clearance|legal\s+release\s+criteria"
-    r"|readiness\s+for\s+(?:final\s+)?(?:production|launch|release|market\s+entry|go[- ]live)"
+    r"^\s*(?:(?:validating|determining|establishing|confirming|declaring|assessing)\b"
+    r"[^.!?\n]{0,240}\b(?:product\s+readiness|product\s+clearance"
+    r"|legal\s+release\s+criteria|readiness\s+for\s+(?:final\s+)?"
+    r"(?:production|launch|release|market\s+entry|go[- ]live))\b[^.!?\n]{0,240}"
     r"|(?:before|prior\s+to)\b[^.!?\n]{0,100}\b"
-    r"(?:launch|go[- ]live|placing\s+on\s+the\s+market))\b",
+    r"(?:launch|go[- ]live|placing\s+on\s+the\s+market)\b"
+    r"[^.!?\n]{0,240})[.!?]?\s*$",
     re.IGNORECASE,
 )
-
-
+_TERMINAL_PRODUCT_OUTCOME = (
+    r"(?:(?:commercial\s+)?product\s+launch|(?:final\s+)?production\s+release"
+    r"|market\s+authorization)"
+)
+_TERMINAL_PRODUCT_OUTCOME_LIST = re.compile(
+    rf"^\s*{_TERMINAL_PRODUCT_OUTCOME}(?:\s*(?:,\s*(?:and\s+)?|and\s+)"
+    rf"{_TERMINAL_PRODUCT_OUTCOME})+[.!?]?\s*$",
+    re.IGNORECASE,
+)
+_CURRENT_ARTIFACT_TARGET = re.compile(
+    r"\b(?:(?:current|this|requested|the)\s+"
+    r"(?:prd|artifact|document|deliverable)s?"
+    r"|these\s+(?:prds|artifacts|documents|deliverables))\b",
+    re.IGNORECASE,
+)
 def _without_quoted_text(value: str) -> str:
     for pattern in (
         r'"[^"\n]*"',
@@ -360,7 +377,13 @@ def _explicitly_changes_to_decision_deliverable(correction: str) -> bool:
 
 
 def _applies_only_to_future_product_outcome(requirement: EvidenceRequirement) -> bool:
-    return bool(_FUTURE_PRODUCT_OUTCOME.search(requirement.applies_when))
+    applies_when = requirement.applies_when
+    if _CURRENT_ARTIFACT_TARGET.search(applies_when):
+        return False
+    return bool(
+        _FUTURE_PRODUCT_OUTCOME.search(applies_when)
+        or _TERMINAL_PRODUCT_OUTCOME_LIST.fullmatch(applies_when)
+    )
 
 
 def _effective_requirement_blocking(
@@ -1928,6 +1951,83 @@ def _merge_source_catalogue(
     return [by_id[source_id] for source_id in utf16_ordinal_sorted(by_id)]
 
 
+def _repair_source_candidates(
+    requirement: EvidenceRequirement,
+    catalogues: list[list[ResearchSourceV1]],
+) -> list[dict[str, str]]:
+    """Reuse only authoritative public locators acquired in this operation.
+
+    These rows remain locators, never evidence: the resilient runner must fetch
+    each publisher document again and the exact-span extractor must select a
+    byte-verifiable passage.  Broad ``grounded_web`` overlap cannot crowd out a
+    more specific source class during a targeted repair pass.
+    """
+
+    accepted_types = {
+        _normalized_source_type(value) for value in requirement.accepted_source_types
+    }
+    specific_types = accepted_types.difference({"grounded_web"})
+    required_overlap = specific_types or accepted_types
+    allowed_hosts = set(requirement.allowed_source_hosts)
+    by_url: dict[str, dict[str, Any]] = {}
+    for source in (item for catalogue in catalogues for item in catalogue):
+        if len(source.canonical_url) > 1_000:
+            continue
+        source_types = {
+            _normalized_source_type(value) for value in source.source_classes
+        }
+        if not source_types.intersection(required_overlap):
+            continue
+        if allowed_hosts and not _url_matches_allowed_hosts(
+            source.canonical_url, allowed_hosts
+        ):
+            continue
+        row = by_url.setdefault(
+            source.canonical_url,
+            {"titles": set(), "supported_claim_ids": set()},
+        )
+        row["titles"].add(source.source_title[:500])
+        row["supported_claim_ids"].update(source.supported_claim_ids)
+
+    def direct_text_rank(url: str) -> int:
+        path = urlparse(url).path.casefold()
+        if path.endswith((".html", ".htm")) or "/html/" in path:
+            return 0
+        if "/eli/" in path or path.endswith((".txt", ".xml", ".json")):
+            return 1
+        return 2
+
+    def document_number_tokens(url: str) -> set[int]:
+        values = {int(value) for value in re.findall(r"\d+", url)}
+        return {value for value in values if value >= 100 and not 1900 <= value <= 2100}
+
+    ranked = sorted(
+        by_url.items(),
+        key=lambda item: (
+            direct_text_rank(item[0]),
+            -len(item[1]["supported_claim_ids"]),
+            item[0].encode("utf-16-be"),
+        ),
+    )
+    selected = ranked[:1]
+    if selected:
+        preferred_numbers = document_number_tokens(selected[0][0])
+        selected.extend(
+            item
+            for item in ranked[1:]
+            if preferred_numbers.intersection(document_number_tokens(item[0]))
+        )
+    selected_urls = {url for url, _row in selected}
+    selected.extend(item for item in ranked if item[0] not in selected_urls)
+    return [
+        {
+            "url": url,
+            "title": utf16_ordinal_sorted(row["titles"])[0],
+        }
+        for url, row in selected[:_MAX_REUSABLE_SOURCE_CANDIDATES]
+    ]
+
+
 def _claim_from_grounding(
     raw_claim: dict[str, Any],
     source_by_url: dict[str, dict[str, Any]],
@@ -2659,12 +2759,17 @@ class GeminiCognitiveExecutor:
                     f"{accepted_source_instruction}"
                 )
             )
-            query = instruction + "\n" + canonical_json(
-                {
-                    "acceptedScopeSemantics": semantics,
-                    "requirement": requirement.model_dump(mode="json", by_alias=True),
-                }
-            )
+            query_payload: dict[str, Any] = {
+                "acceptedScopeSemantics": semantics,
+                "requirement": requirement.model_dump(mode="json", by_alias=True),
+            }
+            if pass_number == 1:
+                reusable_sources = _repair_source_candidates(
+                    requirement, acquired_source_catalogues
+                )
+                if reusable_sources:
+                    query_payload["fallbackCandidateSources"] = reusable_sources
+            query = instruction + "\n" + canonical_json(query_payload)
             async with semaphore:
                 raw = await self.research_runner.search(query)
             diagnostics = raw.get("runtime_diagnostics") or {}

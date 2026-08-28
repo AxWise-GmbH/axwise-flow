@@ -24,31 +24,39 @@ from backend.services.workflow_v2.resilient_research_runner import (
 pytestmark = pytest.mark.contract
 
 
-def server_query(*, allowed_hosts: list[str] | None = None) -> str:
-    return "server-owned instruction\n" + canonical_json(
-        {
-            "acceptedScopeSemantics": {
-                "topicAnchors": [
-                    {"value": "cat food", "sourceSpans": [{"start": 0, "end": 8}]},
-                    {"value": "pet nutrition", "sourceSpans": [{"start": 10, "end": 23}]},
-                ],
-                "geography": ["Estonia", "European Union"],
-                # These fields must never enter the discovery query.
-                "objective": "UNRELATED OBJECTIVE",
-                "deliverables": ["UNRELATED DELIVERABLE"],
-            },
-            "requirement": {
-                "id": "food-law",
-                "claimType": "regulatory_requirement",
-                "description": "Verify applicable pet food labelling rules.",
-                "criticality": "blocking",
-                "verificationBasis": "grounded_claims",
-                "appliesWhen": "When assessing Estonia pet-food market entry.",
-                "acceptedSourceTypes": ["government", "primary_law"],
-                "allowedSourceHosts": allowed_hosts or [],
-            },
-        }
-    )
+def server_query(
+    *,
+    allowed_hosts: list[str] | None = None,
+    fallback_candidates: list[dict[str, str]] | None = None,
+) -> str:
+    payload = {
+        "acceptedScopeSemantics": {
+            "topicAnchors": [
+                {"value": "cat food", "sourceSpans": [{"start": 0, "end": 8}]},
+                {
+                    "value": "pet nutrition",
+                    "sourceSpans": [{"start": 10, "end": 23}],
+                },
+            ],
+            "geography": ["Estonia", "European Union"],
+            # These fields must never enter the discovery query.
+            "objective": "UNRELATED OBJECTIVE",
+            "deliverables": ["UNRELATED DELIVERABLE"],
+        },
+        "requirement": {
+            "id": "food-law",
+            "claimType": "regulatory_requirement",
+            "description": "Verify applicable pet food labelling rules.",
+            "criticality": "blocking",
+            "verificationBasis": "grounded_claims",
+            "appliesWhen": "When assessing Estonia pet-food market entry.",
+            "acceptedSourceTypes": ["government", "primary_law"],
+            "allowedSourceHosts": allowed_hosts or [],
+        },
+    }
+    if fallback_candidates is not None:
+        payload["fallbackCandidateSources"] = fallback_candidates
+    return "server-owned instruction\n" + canonical_json(payload)
 
 
 class FakePrimary:
@@ -1241,6 +1249,257 @@ async def test_untrusted_snippet_only_locates_a_bounded_fetched_document_window(
     assert len(result["text"]) == 100
     assert exact in result["text"]
     assert not result["text"].startswith("irrelevant preface")
+
+
+@pytest.mark.asyncio
+async def test_operation_local_source_precedes_irrelevant_discovery_and_is_refetched() -> None:
+    reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+    irrelevant_urls = [
+        "https://irrelevant.example/a",
+        "https://irrelevant.example/b",
+        "https://irrelevant.example/c",
+    ]
+    exact = "The mandatory label shall declare the analytical constituents."
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        if url == reused_url:
+            return document(url, f"Preamble. {exact} Annex.")
+        return document(url, "Unrelated publisher text.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient("retry_exhausted")),
+        searxng=FakeSearx(
+            discovery(
+                sources=[
+                    {"url": url, "title": "Irrelevant"} for url in irrelevant_urls
+                ]
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    ).search(
+        server_query(
+            fallback_candidates=[{"url": reused_url, "title": "EUR-Lex"}]
+        )
+    )
+
+    assert fetched == [reused_url, *irrelevant_urls[:2]]
+    assert result["provider"] == "searxng_direct_fetch"
+    assert result["sources"][0]["url"] == reused_url
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["candidate_count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_operation_local_duplicate_keeps_title_and_merges_fresh_snippet() -> None:
+    reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+    exact = "The exact authoritative provision appears only in the later section."
+    raw_text = "Unrelated publisher preface. " * 80 + exact + " Annex."
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, raw_text)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(
+                sources=[{"url": reused_url, "title": "Fresh search title"}],
+                claims=[{"text": exact, "source_urls": [reused_url]}],
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        maximum_document_characters=180,
+    ).search(
+        server_query(
+            fallback_candidates=[{"url": reused_url, "title": "Accepted title"}]
+        )
+    )
+
+    assert fetched == [reused_url]
+    assert result["sources"][0]["title"] == "Accepted title"
+    assert result["claims"][0]["text"] == exact
+    assert result["text"].encode("utf-8")[
+        result["claims"][0]["segment_start"] : result["claims"][0]["segment_end"]
+    ].decode("utf-8") == exact
+    assert result["provider_response_hash"] == hashlib.sha256(
+        result["text"].encode("utf-8")
+    ).hexdigest()
+
+
+@pytest.mark.asyncio
+async def test_fresh_discovery_keeps_a_slot_when_three_reused_locators_exist() -> None:
+    reused_urls = [f"https://reused-{index}.example.ee/law" for index in range(3)]
+    fresh_url = "https://fresh.example.ee/exact-provision"
+    exact = "The fresh requirement-specific source contains the exact provision."
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        if url == fresh_url:
+            return document(url, exact)
+        return document(url, "Authoritative but unrelated publisher text.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(
+                sources=[
+                    *[
+                        {"url": url, "title": f"Repeated reused {index}"}
+                        for index, url in enumerate(reused_urls)
+                    ],
+                    {"url": fresh_url, "title": "Fresh exact source"},
+                ],
+                claims=[{"text": exact, "source_urls": [fresh_url]}],
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    ).search(
+        server_query(
+            fallback_candidates=[
+                {"url": url, "title": f"Reused {index}"}
+                for index, url in enumerate(reused_urls)
+            ]
+        )
+    )
+
+    assert fetched == [*reused_urls[:2], fresh_url]
+    assert result["sources"][0]["url"] == fresh_url
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["candidate_count"] == 3
+    assert result["runtime_diagnostics"]["omitted_candidate_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_operation_local_source_survives_unavailable_searx() -> None:
+    reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+    exact = "The label shall declare analytical constituents."
+
+    async def fetch(url: str) -> dict:
+        return document(url, f"Preamble. {exact} Annex.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient("retry_exhausted")),
+        searxng=FakeSearx(
+            discovery(status="unavailable", search_performed=False)
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    ).search(
+        server_query(
+            fallback_candidates=[{"url": reused_url, "title": "EUR-Lex"}]
+        )
+    )
+
+    assert result["search_performed"] is True
+    assert result["sources"][0]["url"] == reused_url
+    diagnostics = result["runtime_diagnostics"]
+    assert diagnostics["status"] == "ok"
+    assert diagnostics["discovery"]["status"] == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_requirement_terms_locate_reused_evidence_beyond_prefix() -> None:
+    reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+    exact = "Mandatory labeling includes declarations of analytical constituents."
+    raw_text = "Unrelated preface. " * 100 + exact + " Final annex."
+    extractor = ExactExtractor(exact)
+
+    async def fetch(url: str) -> dict:
+        assert url == reused_url
+        return document(url, raw_text)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(discovery(status="empty", search_performed=False)),
+        fetcher=fetch,
+        extractor=extractor,
+        maximum_document_characters=180,
+    ).search(
+        server_query(
+            fallback_candidates=[{"url": reused_url, "title": "EUR-Lex"}]
+        )
+    )
+
+    assert result["claims"][0]["text"] == exact
+    assert exact in result["text"]
+    assert not result["text"].startswith("Unrelated preface")
+    selected_text = extractor.requests[0].documents[0].text
+    assert len(selected_text) == 180
+
+
+@pytest.mark.asyncio
+async def test_requirement_window_avoids_repetitive_early_locator_decoy() -> None:
+    reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+    locator_terms = "labeling rules assessing Estonia market entry "
+    exact = (
+        "When assessing Estonia pet-food market entry, applicable labeling rules "
+        "require disclosure."
+    )
+    raw_text = (
+        "Table of contents. "
+        + locator_terms * 40
+        + "x" * 500
+        + exact
+        + "y" * 500
+        + "Appendix index. "
+        + locator_terms * 40
+    )
+    outcomes: list[tuple[str, str, list[dict]]] = []
+
+    async def fetch(url: str) -> dict:
+        assert url == reused_url
+        return document(url, raw_text)
+
+    for _ in range(2):
+        result = await ResilientResearchRunner(
+            FakePrimary(transient()),
+            searxng=FakeSearx(discovery(status="empty", search_performed=False)),
+            fetcher=fetch,
+            extractor=ExactExtractor(exact),
+            maximum_document_characters=220,
+            monotonic_clock=lambda: 0.0,
+        ).search(
+            server_query(
+                fallback_candidates=[{"url": reused_url, "title": "EUR-Lex"}]
+            )
+        )
+        outcomes.append(
+            (result["text"], result["provider_response_hash"], result["claims"])
+        )
+
+    assert outcomes[0] == outcomes[1]
+    selected_text, selected_hash, claims = outcomes[0]
+    assert exact in selected_text
+    assert claims[0]["text"] == exact
+    assert selected_hash == hashlib.sha256(selected_text.encode("utf-8")).hexdigest()
+
+
+@pytest.mark.asyncio
+async def test_invalid_operation_local_source_fails_canonical_input_closed() -> None:
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(discovery()),
+        fetcher=None,  # type: ignore[arg-type]
+    ).search(
+        server_query(
+            fallback_candidates=[
+                {"url": "https://evil.example/source", "title": "Wrong host"}
+            ],
+            allowed_hosts=["eur-lex.europa.eu"],
+        )
+    )
+
+    assert result["search_performed"] is False
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "invalid_canonical_input"
+    )
 
 
 @pytest.mark.asyncio
