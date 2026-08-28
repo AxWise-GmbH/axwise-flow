@@ -1049,7 +1049,7 @@ def _markdown_with_source_appendix(
     def clean(value: str) -> str:
         return re.sub(r"\s+", " ", value).strip()
 
-    rows = ["## Sources"]
+    rows = ["## Sources", ""]
     if not appendix:
         rows.append("_No immutable evidence sources were cited for this artifact._")
     for entry in appendix:

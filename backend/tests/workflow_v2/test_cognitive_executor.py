@@ -15,6 +15,7 @@ from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
     ArtifactRef,
     AxWiseOperationEnvelope,
+    SourceAppendixEntryV1,
     artifact_content_hash,
     canonical_hash,
 )
@@ -2462,8 +2463,10 @@ def test_server_owns_requested_sources_heading_and_renders_safe_empty_state() ->
     rendered = _markdown_with_source_appendix(
         draft.markdown, [], source_section_required=True
     )
-    assert rendered.endswith(
-        "## Sources\n_No immutable evidence sources were cited for this artifact._\n"
+    assert rendered == (
+        "# PRD\n\nUseful bounded content.\n\n"
+        "## Sources\n\n"
+        "_No immutable evidence sources were cited for this artifact._\n"
     )
 
     authored = SynthesisDraft(
@@ -2472,6 +2475,29 @@ def test_server_owns_requested_sources_heading_and_renders_safe_empty_state() ->
     )
     with pytest.raises(ValueError, match="must not provide"):
         _validate_synthesis(context, authored)
+
+
+def test_source_appendix_renderer_matches_cross_contract_grounded_bytes() -> None:
+    claim_id = "a" * 64
+    entry = SourceAppendixEntryV1(
+        claimId=claim_id,
+        sourceTitle="  Official   source  ",
+        canonicalUrl="https://example.test/legal/source",
+        sourceClass="primary_law",
+        retrievalDate="2026-08-28T00:00:00Z",
+        supportedClaim="  Exact   supported claim.  ",
+        supportedSection="  Evidence   decision  ",
+    )
+    base = f"# Evidence decision\n\nGrounded fact [evidence:{claim_id}]."
+
+    assert _markdown_with_source_appendix(base, [entry]) == (
+        f"{base}\n\n"
+        "## Sources\n\n"
+        f"- `[evidence:{claim_id}]` — Official source — "
+        "https://example.test/legal/source — class: `primary_law` — retrieved: "
+        "`2026-08-28T00:00:00Z` — section: Evidence decision — "
+        "supported claim: Exact supported claim.\n"
+    )
 
 
 @pytest.mark.parametrize(
@@ -2526,7 +2552,7 @@ async def test_scope_requested_sources_gets_server_rendered_empty_section() -> N
     assert result.artifact.kind == "final_markdown"
     assert result.artifact.payload["sourceAppendix"] == []
     assert result.artifact.markdown.endswith(
-        "## Sources\n_No immutable evidence sources were cited for this artifact._\n"
+        "## Sources\n\n_No immutable evidence sources were cited for this artifact._\n"
     )
 
 
