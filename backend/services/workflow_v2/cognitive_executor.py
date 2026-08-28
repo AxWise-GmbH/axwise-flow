@@ -1068,14 +1068,21 @@ def _appendix_matches_research(
     markdown: str,
     appendix: list[SourceAppendixEntryV1],
     research: ResearchResultV2,
+    *,
+    rendered: bool,
 ) -> bool:
     marker = "\n\n## Sources\n"
     has_rendered_sources = markdown.count(marker) == 1
-    if appendix or has_rendered_sources:
-        if not has_rendered_sources:
-            return False
-        base_markdown = markdown.split(marker, 1)[0]
+    if rendered:
+        if appendix or has_rendered_sources:
+            if not has_rendered_sources:
+                return False
+            base_markdown = markdown.split(marker, 1)[0]
+        else:
+            base_markdown = markdown
     else:
+        if has_rendered_sources or markdown != markdown.rstrip():
+            return False
         base_markdown = markdown
     try:
         expected = _source_appendix_entries(base_markdown, research)
@@ -1083,6 +1090,8 @@ def _appendix_matches_research(
         return False
     if appendix != expected:
         return False
+    if not rendered:
+        return True
     return markdown in {
         _markdown_with_source_appendix(base_markdown, appendix),
         _markdown_with_source_appendix(
@@ -2857,7 +2866,10 @@ class GeminiCognitiveExecutor:
                     or task_result.evidence_readiness != research.readiness
                     or task_result.markdown != content.markdown
                     or not _appendix_matches_research(
-                        task_result.markdown, task_result.source_appendix, research
+                        task_result.markdown,
+                        task_result.source_appendix,
+                        research,
+                        rendered=False,
                     )
                 ):
                     raise CognitiveExecutionFailure(
@@ -2894,7 +2906,10 @@ class GeminiCognitiveExecutor:
                 != input_value.output_contract.launch_ready_allowed
                 or candidate.source_artifacts != expected_candidate_sources
                 or not _appendix_matches_research(
-                    candidate.markdown, candidate.source_appendix, research
+                    candidate.markdown,
+                    candidate.source_appendix,
+                    research,
+                    rendered=True,
                 )
             ):
                 raise CognitiveExecutionFailure(
@@ -3006,7 +3021,10 @@ class GeminiCognitiveExecutor:
                     or result.evidence_readiness != research.readiness
                     or result.markdown != content.markdown
                     or not _appendix_matches_research(
-                        result.markdown, result.source_appendix, research
+                        result.markdown,
+                        result.source_appendix,
+                        research,
+                        rendered=False,
                     )
                 ):
                     raise CognitiveExecutionFailure(
@@ -3040,18 +3058,8 @@ class GeminiCognitiveExecutor:
             )
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
             _validate_task_draft(context, draft)
-            appendix = _source_appendix_entries(draft.markdown, research)
-            markdown = _markdown_with_source_appendix(
-                draft.markdown,
-                appendix,
-                source_section_required=(
-                    input_value.task.produces_full_contract
-                    and any(
-                        _is_server_owned_source_heading(section)
-                        for section in scope.deliverables
-                    )
-                ),
-            )
+            task_markdown = draft.markdown.rstrip()
+            appendix = _source_appendix_entries(task_markdown, research)
             receipt = {
                 "agent": input_value.task.agent,
                 "toolIds": input_value.task.tool_ids,
@@ -3075,6 +3083,14 @@ class GeminiCognitiveExecutor:
                 and not local_substantive
                 and not local_practicality
             ):
+                markdown = _markdown_with_source_appendix(
+                    task_markdown,
+                    appendix,
+                    source_section_required=any(
+                        _is_server_owned_source_heading(section)
+                        for section in scope.deliverables
+                    ),
+                )
                 final_candidate = FinalArtifactV1(
                     title=draft.title,
                     markdown=markdown,
@@ -3115,7 +3131,7 @@ class GeminiCognitiveExecutor:
                 research=input_value.research,
                 accepted_plan=input_value.accepted_plan,
                 title=draft.title,
-                markdown=markdown,
+                markdown=task_markdown,
                 evidence_readiness=research.readiness,
                 source_artifacts=input_value.source_artifacts,
                 requirement_coverage=draft.requirement_coverage,
@@ -3132,7 +3148,7 @@ class GeminiCognitiveExecutor:
                     artifact_id=artifact_id,
                     kind="task_result",
                     payload=payload,
-                    markdown=markdown,
+                    markdown=task_markdown,
                     source_artifact_ids=[
                         item.artifact_id for item in input_value.source_artifacts
                     ],
