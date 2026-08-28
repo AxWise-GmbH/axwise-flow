@@ -17,6 +17,7 @@ from backend.services.workflow_v2.exact_span_extractor import (
 )
 from backend.services.workflow_v2.resilient_research_runner import (
     ResilientResearchRunner,
+    WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
 )
 
 
@@ -163,6 +164,818 @@ async def test_nonretryable_primary_failure_never_invokes_fallback(status: str) 
 
     assert result is failed
     assert searx.queries == []
+
+
+@pytest.mark.asyncio
+async def test_sync_only_discovery_is_rejected_without_starting_background_work() -> None:
+    class SyncOnlySearx:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def search_web_general(self, _query: str) -> dict:
+            self.calls += 1
+            return discovery()
+
+    searx = SyncOnlySearx()
+    runner = ResilientResearchRunner(FakePrimary(transient()), searxng=searx)
+
+    result = await runner.search(server_query())
+
+    assert searx.calls == 0
+    assert result["runtime_diagnostics"]["fallback"]["status"] == "error"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_transient_uses_one_primary_probe_and_zero_call_skips() -> None:
+    class BlockingTransientPrimary(FakePrimary):
+        def __init__(self) -> None:
+            result = metered_transient()
+            result["error"] = "sensitive provider detail"
+            result["runtime_diagnostics"]["raw_error"] = "sensitive diagnostic"
+            super().__init__(result)
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            await self.release.wait()
+            return self.result
+
+    primary = BlockingTransientPrimary()
+    searx = FakeSearx(discovery(status="empty", search_performed=False))
+    runner = ResilientResearchRunner(primary, searxng=searx)
+
+    searches = [
+        asyncio.create_task(runner.search(server_query())) for _ in range(4)
+    ]
+    await primary.started.wait()
+    await asyncio.sleep(0)
+    assert len(primary.queries) == 1
+    primary.release.set()
+    results = await asyncio.gather(*searches)
+
+    assert len(primary.queries) == 1
+    assert len(searx.queries) == 4
+    skipped = [
+        result
+        for result in results
+        if result["runtime_diagnostics"]["primary"].get("primary_skipped") is True
+    ]
+    assert len(skipped) == 3
+    for result in skipped:
+        diagnostics = result["runtime_diagnostics"]
+        assert diagnostics["primary"] == {
+            "route": "gemini_google_search",
+            "status": "deadline_exceeded",
+            "elapsed_ms": 0,
+            "call_count": 0,
+            "retry_count": 0,
+            "primary_skipped": True,
+            "circuit_state": "open",
+        }
+        assert diagnostics["primary_provider_query_count"] == 0
+        assert result["usage_metadata"] == {
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "totalTokens": 0,
+        }
+        assert "provider_queries" not in result
+    actual = next(result for result in results if result not in skipped)
+    assert actual["usage_metadata"] == {
+        "inputTokens": 31,
+        "outputTokens": 11,
+        "totalTokens": 42,
+    }
+    assert actual["provider_queries"] == [
+        "primary query one",
+        "primary query two",
+    ]
+    serialized_skips = canonical_json(skipped)
+    assert "sensitive provider detail" not in serialized_skips
+    assert "sensitive diagnostic" not in serialized_skips
+
+
+@pytest.mark.asyncio
+async def test_cooldown_skips_then_reprobes_primary_at_exact_expiry() -> None:
+    successful = {
+        "search_performed": True,
+        "text": "grounded after cooldown",
+        "claims": [],
+        "sources": [],
+    }
+
+    class SequencedPrimary(FakePrimary):
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            return transient() if len(self.queries) == 1 else successful
+
+    now = [100.0]
+    primary = SequencedPrimary(transient())
+    searx = FakeSearx(discovery(status="empty", search_performed=False))
+    runner = ResilientResearchRunner(
+        primary,
+        searxng=searx,
+        primary_cooldown_seconds=10,
+        monotonic_clock=lambda: now[0],
+    )
+
+    await runner.search(server_query())
+    skipped = await runner.search(server_query())
+    assert len(primary.queries) == 1
+    assert skipped["runtime_diagnostics"]["primary"]["primary_skipped"] is True
+
+    now[0] = 110.0
+    reprobed = await runner.search(server_query())
+    assert reprobed is successful
+    assert len(primary.queries) == 2
+
+    still_primary = await runner.search(server_query())
+    assert still_primary is successful
+    assert len(primary.queries) == 3
+
+
+@pytest.mark.asyncio
+async def test_successful_probe_never_shares_query_content_between_callers() -> None:
+    class QueryPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__({})
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            if len(self.queries) == 1:
+                self.started.set()
+                await self.release.wait()
+            return {
+                "search_performed": True,
+                "text": query,
+                "claims": [],
+                "sources": [],
+            }
+
+    primary = QueryPrimary()
+    searx = FakeSearx(discovery())
+    runner = ResilientResearchRunner(primary, searxng=searx)
+    queries = ["canonical query a", "canonical query b", "canonical query c"]
+    searches = [asyncio.create_task(runner.search(query)) for query in queries]
+    await primary.started.wait()
+    await asyncio.sleep(0)
+    primary.release.set()
+
+    results = await asyncio.gather(*searches)
+
+    assert [result["text"] for result in results] == queries
+    assert sorted(primary.queries) == sorted(queries)
+    assert searx.queries == []
+
+
+@pytest.mark.asyncio
+async def test_nonretryable_failure_does_not_open_cooldown() -> None:
+    primary = FakePrimary(transient("configuration_error"))
+    searx = FakeSearx(discovery())
+    runner = ResilientResearchRunner(primary, searxng=searx)
+
+    first = await runner.search("first")
+    second = await runner.search("second")
+
+    assert first is primary.result
+    assert second is primary.result
+    assert primary.queries == ["first", "second"]
+    assert searx.queries == []
+    assert "primary_skipped" not in canonical_json([first, second])
+
+
+@pytest.mark.asyncio
+async def test_cancelled_gate_owner_cancels_call_and_waiter_reprobes() -> None:
+    class CancellablePrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(transient())
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+            self.cancelled = 0
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            try:
+                await self.release.wait()
+            except asyncio.CancelledError:
+                self.cancelled += 1
+                raise
+            return self.result
+
+    primary = CancellablePrimary()
+    searx = FakeSearx(discovery(status="empty", search_performed=False))
+    runner = ResilientResearchRunner(primary, searxng=searx)
+    owner = asyncio.create_task(runner.search(server_query()))
+    await primary.started.wait()
+    waiter = asyncio.create_task(runner.search(server_query()))
+    await asyncio.sleep(0)
+
+    owner.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await owner
+    assert primary.cancelled == 1
+    primary.release.set()
+    result = await waiter
+
+    assert len(primary.queries) == 2
+    assert "primary_skipped" not in result["runtime_diagnostics"]["primary"]
+    await runner.search(server_query())
+    assert len(primary.queries) == 2
+
+
+@pytest.mark.asyncio
+async def test_cancelled_gate_owner_without_waiter_leaves_no_orphan() -> None:
+    class CancellablePrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(transient())
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+            self.cancelled = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            try:
+                await self.release.wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+            return self.result
+
+    primary = CancellablePrimary()
+    searx = FakeSearx(discovery(status="empty", search_performed=False))
+    runner = ResilientResearchRunner(primary, searxng=searx)
+    search = asyncio.create_task(runner.search(server_query()))
+    await primary.started.wait()
+
+    search.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await search
+    await primary.cancelled.wait()
+    assert runner._active_searches == 0
+    assert runner._primary_gate_in_flight is False
+
+    primary.release.set()
+    await runner.search(server_query())
+    assert len(primary.queries) == 2
+
+
+@pytest.mark.asyncio
+async def test_double_cancellation_while_releasing_probe_gate_restores_invariants() -> None:
+    class ReturningPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(transient())
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            await self.release.wait()
+            return self.result
+
+    primary = ReturningPrimary()
+    runner = ResilientResearchRunner(
+        primary,
+        searxng=FakeSearx(discovery(status="empty", search_performed=False)),
+    )
+    release_started = asyncio.Event()
+    original_release = runner._release_primary_gate
+
+    async def observed_release() -> None:
+        release_started.set()
+        await original_release()
+
+    runner._release_primary_gate = observed_release
+    search = asyncio.create_task(runner.search(server_query()))
+    await primary.started.wait()
+
+    async with runner._primary_condition:
+        primary.release.set()
+        await asyncio.sleep(0)
+        search.cancel()
+        await release_started.wait()
+        search.cancel()
+        await asyncio.sleep(0)
+
+    with pytest.raises(asyncio.CancelledError):
+        await search
+    assert runner._primary_gate_in_flight is False
+    assert runner._active_searches == 0
+
+    await runner.search(server_query())
+    assert len(primary.queries) == 2
+    await asyncio.wait_for(runner.close(), timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_double_cancellation_while_leaving_search_restores_active_count() -> None:
+    success = {
+        "search_performed": True,
+        "text": "grounded",
+        "claims": [],
+        "sources": [],
+    }
+
+    class ReturningPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(success)
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            await self.release.wait()
+            return self.result
+
+    primary = ReturningPrimary()
+    runner = ResilientResearchRunner(primary)
+    leave_started = asyncio.Event()
+    original_leave = runner._leave_search
+
+    async def observed_leave() -> None:
+        leave_started.set()
+        await original_leave()
+
+    runner._leave_search = observed_leave
+    search = asyncio.create_task(runner.search(server_query()))
+    await primary.started.wait()
+
+    async with runner._lifecycle_condition:
+        primary.release.set()
+        await leave_started.wait()
+        search.cancel()
+        await asyncio.sleep(0)
+        search.cancel()
+        await asyncio.sleep(0)
+
+    with pytest.raises(asyncio.CancelledError):
+        await search
+    assert runner._active_searches == 0
+    assert runner._primary_gate_in_flight is False
+    await asyncio.wait_for(runner.close(), timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_close_waits_for_query_specific_followup_once() -> None:
+    class FollowupPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__({})
+            self.followup_started = asyncio.Event()
+            self.followup_release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            if len(self.queries) > 1:
+                self.followup_started.set()
+                await self.followup_release.wait()
+            return {
+                "search_performed": True,
+                "text": query,
+                "claims": [],
+                "sources": [],
+            }
+
+    primary = FollowupPrimary()
+    searx = FakeSearx(discovery())
+    runner = ResilientResearchRunner(primary, searxng=searx)
+    await runner.search("availability gate")
+    followup = asyncio.create_task(runner.search("query-specific followup"))
+    await primary.followup_started.wait()
+
+    first_close = asyncio.create_task(runner.close())
+    second_close = asyncio.create_task(runner.close())
+    await asyncio.sleep(0)
+    assert not first_close.done()
+    assert not second_close.done()
+    with pytest.raises(RuntimeError, match="closed"):
+        await runner.search("late query")
+
+    primary.followup_release.set()
+    assert (await followup)["text"] == "query-specific followup"
+    await asyncio.gather(first_close, second_close)
+
+    assert primary.closed == 1
+    assert searx.closed == 1
+    with pytest.raises(RuntimeError, match="closed"):
+        await runner.search("after close")
+
+
+@pytest.mark.asyncio
+async def test_close_waits_for_fallback_before_closing_components() -> None:
+    class BlockingSearx(FakeSearx):
+        def __init__(self) -> None:
+            super().__init__(discovery(status="empty", search_performed=False))
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def search_web_general(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            await self.release.wait()
+            return self.result
+
+    primary = FakePrimary(transient())
+    searx = BlockingSearx()
+    runner = ResilientResearchRunner(primary, searxng=searx)
+    search = asyncio.create_task(runner.search(server_query()))
+    await searx.started.wait()
+
+    close = asyncio.create_task(runner.close())
+    await asyncio.sleep(0)
+    assert not close.done()
+    assert primary.closed == 0
+    assert searx.closed == 0
+
+    searx.release.set()
+    assert (await search)["search_performed"] is True
+    await close
+    assert primary.closed == 1
+    assert searx.closed == 1
+
+
+@pytest.mark.asyncio
+async def test_double_cancelled_close_while_waiting_restores_open_state() -> None:
+    success = {
+        "search_performed": True,
+        "text": "grounded",
+        "claims": [],
+        "sources": [],
+    }
+
+    class BlockingPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(success)
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            self.started.set()
+            await self.release.wait()
+            return self.result
+
+    primary = BlockingPrimary()
+    runner = ResilientResearchRunner(primary)
+    search = asyncio.create_task(runner.search(server_query()))
+    await primary.started.wait()
+    close = asyncio.create_task(runner.close())
+    while not runner._closing:
+        await asyncio.sleep(0)
+
+    async with runner._lifecycle_condition:
+        close.cancel()
+        await asyncio.sleep(0)
+        close.cancel()
+        await asyncio.sleep(0)
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(close, timeout=1)
+    assert runner._closing is False
+    assert runner._closed is False
+
+    primary.release.set()
+    assert (await search)["text"] == "grounded"
+    await asyncio.wait_for(runner.close(), timeout=1)
+    assert runner._closed is True
+    assert primary.closed == 1
+
+
+@pytest.mark.asyncio
+async def test_double_cancelled_close_during_finalization_marks_runner_closed() -> None:
+    class BlockingClosePrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__({"search_performed": True})
+            self.close_started = asyncio.Event()
+            self.close_cancelled = 0
+
+        async def close(self) -> None:
+            self.close_started.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.close_cancelled += 1
+                raise
+
+    primary = BlockingClosePrimary()
+    runner = ResilientResearchRunner(primary)
+    mark_started = asyncio.Event()
+    original_mark_closed = runner._mark_closed_after_shutdown
+
+    async def observed_mark_closed() -> None:
+        mark_started.set()
+        await original_mark_closed()
+
+    runner._mark_closed_after_shutdown = observed_mark_closed
+    close = asyncio.create_task(runner.close())
+    await primary.close_started.wait()
+
+    async with runner._lifecycle_condition:
+        close.cancel()
+        await mark_started.wait()
+        close.cancel()
+        await asyncio.sleep(0)
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(close, timeout=1)
+    assert primary.close_cancelled == 1
+    assert runner._closing is False
+    assert runner._closed is True
+    with pytest.raises(RuntimeError, match="closed"):
+        await runner.search(server_query())
+    await asyncio.wait_for(runner.close(), timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_query_transient_latches_cooldown_despite_concurrent_success() -> None:
+    success = {
+        "search_performed": True,
+        "text": "grounded",
+        "claims": [],
+        "sources": [],
+    }
+
+    class OutOfOrderPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(success)
+            self.older_started = asyncio.Event()
+            self.older_release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            call = len(self.queries)
+            if call == 2:
+                self.older_started.set()
+                await self.older_release.wait()
+                return transient()
+            return {**success, "text": query}
+
+    primary = OutOfOrderPrimary()
+    searx = FakeSearx(discovery(status="empty", search_performed=False))
+    now = [0.0]
+    runner = ResilientResearchRunner(
+        primary,
+        searxng=searx,
+        primary_cooldown_seconds=10,
+        monotonic_clock=lambda: now[0],
+    )
+    await runner.search("availability gate")
+    older = asyncio.create_task(runner.search(server_query()))
+    await primary.older_started.wait()
+
+    newer = await runner.search("newer query")
+    assert newer["text"] == "newer query"
+    primary.older_release.set()
+    older_result = await older
+    assert older_result["provider"] == "searxng_direct_fetch"
+
+    after = await runner.search(server_query())
+    assert after["provider"] == "searxng_direct_fetch"
+    assert after["runtime_diagnostics"]["primary"]["primary_skipped"] is True
+    assert len(primary.queries) == 3
+
+    now[0] = 10.0
+    recovered = await runner.search("post-cooldown gate")
+    assert recovered["text"] == "post-cooldown gate"
+    assert len(primary.queries) == 4
+    assert "primary_skipped" not in canonical_json(recovered)
+
+
+@pytest.mark.asyncio
+async def test_pre_transient_success_cannot_reopen_after_cooldown_expiry() -> None:
+    success = {
+        "search_performed": True,
+        "text": "grounded",
+        "claims": [],
+        "sources": [],
+    }
+
+    class CompletionOrderPrimary(FakePrimary):
+        def __init__(self) -> None:
+            super().__init__(success)
+            self.stale_started = asyncio.Event()
+            self.stale_release = asyncio.Event()
+            self.recovery_started = asyncio.Event()
+            self.recovery_release = asyncio.Event()
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            call = len(self.queries)
+            if call == 2:
+                self.stale_started.set()
+                await self.stale_release.wait()
+                return {**success, "text": query}
+            if call == 3:
+                return transient()
+            if call == 4:
+                self.recovery_started.set()
+                await self.recovery_release.wait()
+            return {**success, "text": query}
+
+    primary = CompletionOrderPrimary()
+    now = [0.0]
+    runner = ResilientResearchRunner(
+        primary,
+        searxng=FakeSearx(discovery(status="empty", search_performed=False)),
+        primary_cooldown_seconds=10,
+        primary_healthy_seconds=5,
+        monotonic_clock=lambda: now[0],
+    )
+    await runner.search("availability gate")
+    stale = asyncio.create_task(runner.search("pre-transient success"))
+    await primary.stale_started.wait()
+
+    transient_result = await runner.search("transient query")
+    assert transient_result["runtime_diagnostics"]["fallback"]["status"] == (
+        "invalid_canonical_input"
+    )
+    now[0] = 10.0
+    primary.stale_release.set()
+    assert (await stale)["text"] == "pre-transient success"
+
+    recovery = asyncio.create_task(runner.search("recovery gate"))
+    await primary.recovery_started.wait()
+    follower = asyncio.create_task(runner.search("post-recovery query"))
+    await asyncio.sleep(0)
+    assert primary.queries == [
+        "availability gate",
+        "pre-transient success",
+        "transient query",
+        "recovery gate",
+    ]
+
+    primary.recovery_release.set()
+    recovered, followed = await asyncio.gather(recovery, follower)
+    assert recovered["text"] == "recovery gate"
+    assert followed["text"] == "post-recovery query"
+    assert len(primary.queries) == 5
+
+
+@pytest.mark.parametrize("cooldown", [0, -1, float("nan"), float("inf"), 901])
+def test_primary_cooldown_is_bounded(cooldown: float) -> None:
+    with pytest.raises(ValueError, match="primary_cooldown_seconds"):
+        ResilientResearchRunner(
+            FakePrimary(transient()),
+            primary_cooldown_seconds=cooldown,
+        )
+
+
+@pytest.mark.parametrize(
+    ("argument", "value"),
+    [
+        ("primary_healthy_seconds", 0),
+        ("primary_healthy_seconds", 31),
+        ("fallback_phase_seconds", 0),
+        ("fallback_phase_seconds", 61),
+    ],
+)
+def test_primary_and_fallback_phase_limits_are_bounded(
+    argument: str, value: float
+) -> None:
+    with pytest.raises(ValueError, match=argument):
+        ResilientResearchRunner(
+            FakePrimary(transient()),
+            **{argument: value},
+        )
+
+
+def test_virtual_max_cardinality_fallback_fits_research_deadline() -> None:
+    research_deadline = 510.0
+    primary_failure_at = 45.0
+    cooldown_until = primary_failure_at + 450.0
+    virtual_seconds = primary_failure_at
+    maximum_requirements = 12
+    concurrency = 4
+    waves_per_pass = -(-maximum_requirements // concurrency)
+    for _pass_number in range(2):
+        for _wave in range(waves_per_pass):
+            virtual_seconds += WORKFLOW_V2_FALLBACK_PHASE_SECONDS
+
+    assert virtual_seconds == 405.0
+    assert virtual_seconds <= 450.0
+    assert virtual_seconds < research_deadline
+    assert virtual_seconds < cooldown_until
+
+    all_success_virtual_seconds = 0.0
+    for _pass_number in range(2):
+        for _wave in range(waves_per_pass):
+            all_success_virtual_seconds += 70.0
+    assert all_success_virtual_seconds == 420.0
+    assert all_success_virtual_seconds < 450.0
+
+    # A healthy gate may be followed by one query-specific transient before
+    # the circuit latches. Provider failure at 45s plus the 60s fallback leaves
+    # five bounded fallback waves: 70 + 105 + 5*60 = 475.
+    mixed_transient_seconds = 70.0 + (45.0 + 60.0) + (5 * 60.0)
+    assert mixed_transient_seconds == 475.0
+    assert mixed_transient_seconds < research_deadline
+
+    # Conservatively allow the transient to surface only after the complete
+    # 70s primary envelope; the 510s research cap still leaves ten seconds.
+    mixed_postprocessing_transient_seconds = 70.0 + (70.0 + 60.0) + (5 * 60.0)
+    assert mixed_postprocessing_transient_seconds == 500.0
+    assert mixed_postprocessing_transient_seconds < research_deadline
+
+
+@pytest.mark.asyncio
+async def test_discovery_is_cancelled_by_aggregate_fallback_deadline() -> None:
+    class BlockingSearx(FakeSearx):
+        def __init__(self) -> None:
+            super().__init__(discovery())
+            self.cancelled = asyncio.Event()
+
+        async def search_web_general(self, query: str) -> dict:
+            self.queries.append(query)
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+
+    searx = BlockingSearx()
+    runner = ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=searx,
+        fallback_phase_seconds=0.01,
+    )
+
+    result = await asyncio.wait_for(runner.search(server_query()), timeout=1)
+
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "fallback_deadline_exceeded"
+    )
+    await searx.cancelled.wait()
+
+
+@pytest.mark.asyncio
+async def test_parallel_fetches_are_cancelled_by_aggregate_fallback_deadline() -> None:
+    url = "https://example.gov.ee/rules"
+    cancelled = asyncio.Event()
+
+    async def blocking_fetch(_url: str) -> dict:
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+
+    runner = ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(sources=[{"url": url, "title": "Official rules"}])
+        ),
+        fetcher=blocking_fetch,
+        fallback_phase_seconds=0.01,
+    )
+
+    result = await asyncio.wait_for(runner.search(server_query()), timeout=1)
+
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "fallback_deadline_exceeded"
+    )
+    await cancelled.wait()
+
+
+@pytest.mark.asyncio
+async def test_extractor_is_cancelled_by_aggregate_fallback_deadline() -> None:
+    url = "https://example.gov.ee/rules"
+
+    class BlockingExtractor:
+        def __init__(self) -> None:
+            self.cancelled = asyncio.Event()
+
+        async def extract(self, _request: ExactSpanExtractionRequest):
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled.set()
+                raise
+
+    async def fetch(_url: str) -> dict:
+        return document(url, "A direct authoritative requirement is present.")
+
+    extractor = BlockingExtractor()
+    runner = ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(sources=[{"url": url, "title": "Official rules"}])
+        ),
+        fetcher=fetch,
+        extractor=extractor,
+        fallback_phase_seconds=0.01,
+    )
+
+    result = await asyncio.wait_for(runner.search(server_query()), timeout=1)
+
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "fallback_deadline_exceeded"
+    )
+    await extractor.cancelled.wait()
 
 
 @pytest.mark.asyncio
@@ -637,12 +1450,14 @@ async def test_ranked_candidate_order_dedupe_and_one_document_hash_are_determini
         searxng=searx_with_sources(rows),
         fetcher=fetch,
         extractor=ExactExtractor(exact),
+        monotonic_clock=lambda: 0.0,
     ).search(server_query())
     result_two = await ResilientResearchRunner(
         FakePrimary(transient()),
         searxng=searx_with_sources(rows),
         fetcher=fetch,
         extractor=ExactExtractor(exact),
+        monotonic_clock=lambda: 0.0,
     ).search(server_query())
 
     expected_text = f"Header {exact} Footer"
@@ -993,21 +1808,32 @@ async def test_empty_sums_primary_and_extractor_usage_without_counting_searx() -
 @pytest.mark.asyncio
 async def test_extractor_exception_retains_only_observable_primary_metering() -> None:
     url = "https://example.gov.ee/rules"
+    now = [50.0]
 
     class FailedExtractor:
         async def extract(self, _request: ExactSpanExtractionRequest):
+            now[0] += 0.3
             raise RuntimeError("raw provider failure must not escape")
 
+    class TimedSearx(FakeSearx):
+        async def search_web_general(self, query: str) -> dict:
+            now[0] += 0.1
+            return await super().search_web_general(query)
+
     async def fetch(_url: str) -> dict:
+        now[0] += 0.2
         return document(url, "A fetched source document.")
 
+    primary_result = metered_transient()
+    primary_result["runtime_diagnostics"]["elapsed_ms"] = 17
     result = await ResilientResearchRunner(
-        FakePrimary(metered_transient()),
-        searxng=FakeSearx(
+        FakePrimary(primary_result),
+        searxng=TimedSearx(
             discovery(sources=[{"url": url, "title": "Official rules"}])
         ),
         fetcher=fetch,
         extractor=FailedExtractor(),
+        monotonic_clock=lambda: now[0],
     ).search(server_query())
 
     assert result["search_performed"] is False
@@ -1019,6 +1845,8 @@ async def test_extractor_exception_retains_only_observable_primary_metering() ->
     assert len(result["provider_queries"]) == 2
     fallback = result["runtime_diagnostics"]["fallback"]
     assert fallback["status"] == "extraction_error"
+    assert fallback["elapsed_ms"] == 600
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 617
     assert fallback["extractor"] == {"input_tokens": 0, "output_tokens": 0}
     assert "raw provider failure" not in canonical_json(result)
 
@@ -1026,12 +1854,13 @@ async def test_extractor_exception_retains_only_observable_primary_metering() ->
 @pytest.mark.asyncio
 async def test_empty_extraction_preserves_usage_and_only_finite_diagnostics() -> None:
     url = "https://example.gov.ee/rules"
+    now = [100.0]
     primary_result = transient()
     primary_result["runtime_diagnostics"].update(
         {
             "call_count": 10**100,
             "retry_count": -12,
-            "elapsed_ms": 10**100,
+            "elapsed_ms": 17,
             "secret_error": "must not propagate",
         }
     )
@@ -1045,14 +1874,26 @@ async def test_empty_extraction_preserves_usage_and_only_finite_diagnostics() ->
         }
     )
 
+    class TimedSearx(FakeSearx):
+        async def search_web_general(self, query: str) -> dict:
+            now[0] += 0.1
+            return await super().search_web_general(query)
+
+    class TimedEmptyExtractor(EmptyExtractor):
+        async def extract(self, request: ExactSpanExtractionRequest):
+            now[0] += 0.3
+            return await super().extract(request)
+
     async def fetch(_url: str) -> dict:
+        now[0] += 0.2
         return document(url, "The source contains no applicable supporting passage.")
 
     result = await ResilientResearchRunner(
         FakePrimary(primary_result),
-        searxng=FakeSearx(discovery_result),
+        searxng=TimedSearx(discovery_result),
         fetcher=fetch,
-        extractor=EmptyExtractor(input_tokens=29, output_tokens=7),
+        extractor=TimedEmptyExtractor(input_tokens=29, output_tokens=7),
+        monotonic_clock=lambda: now[0],
     ).search(server_query())
 
     assert result["search_performed"] is True
@@ -1065,7 +1906,9 @@ async def test_empty_extraction_preserves_usage_and_only_finite_diagnostics() ->
     diagnostics = result["runtime_diagnostics"]
     assert diagnostics["call_count"] == 100
     assert diagnostics["retry_count"] == 0
-    assert diagnostics["elapsed_ms"] == 900_000
+    assert diagnostics["primary"]["elapsed_ms"] == 17
+    assert diagnostics["fallback_elapsed_ms"] == 600
+    assert diagnostics["elapsed_ms"] == 617
     assert diagnostics["primary"]["call_count"] == 100
     assert diagnostics["discovery"]["call_count"] == 1
     assert diagnostics["discovery"]["status"] == "ok"

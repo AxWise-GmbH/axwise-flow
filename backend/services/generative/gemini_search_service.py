@@ -13,10 +13,12 @@ import os
 import re
 import logging
 import hashlib
+import math
 import threading
 import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from itertools import islice
 from typing import Optional, Dict, Any, List
 from urllib.parse import urlparse
 
@@ -36,6 +38,15 @@ GEMINI_SEARCH_OPERATION_SECONDS = 120.0
 GEMINI_SEARCH_ATTEMPT_SECONDS = 60.0
 GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS = 20.0
 GEMINI_GROUNDING_REDIRECT_SECONDS = 2.0
+GEMINI_SEARCH_REDIRECT_PHASE_SECONDS = 20.0
+GEMINI_SEARCH_PARSE_SECONDS = 5.0
+GEMINI_SEARCH_NORMALIZATION_SECONDS = (
+    GEMINI_SEARCH_REDIRECT_PHASE_SECONDS + GEMINI_SEARCH_PARSE_SECONDS
+)
+GEMINI_SEARCH_MAX_GROUNDING_CHUNKS = 10
+GEMINI_SEARCH_MAX_GROUNDING_SUPPORTS = 50
+GEMINI_SEARCH_MAX_PROVIDER_QUERIES = 20
+GEMINI_SEARCH_MAX_RESPONSE_PARTS = 50
 TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS = frozenset(
     {
         "vertexaisearch.cloud.google.com",
@@ -342,15 +353,47 @@ class GeminiSearchService:
     information retrieval - no external search APIs needed.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        *,
+        search_operation_seconds: float = GEMINI_SEARCH_OPERATION_SECONDS,
+        search_attempt_seconds: float = GEMINI_SEARCH_ATTEMPT_SECONDS,
+    ):
+        try:
+            operation_seconds = float(search_operation_seconds)
+            attempt_seconds = float(search_attempt_seconds)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError("Gemini Search time limits must be finite") from error
+        if (
+            not math.isfinite(operation_seconds)
+            or operation_seconds <= 0
+            or operation_seconds > GEMINI_SEARCH_OPERATION_SECONDS
+        ):
+            raise ValueError(
+                "search_operation_seconds must be greater than 0 and at most "
+                f"{GEMINI_SEARCH_OPERATION_SECONDS:g}"
+            )
+        if (
+            not math.isfinite(attempt_seconds)
+            or attempt_seconds <= 0
+            or attempt_seconds > GEMINI_SEARCH_ATTEMPT_SECONDS
+            or attempt_seconds > operation_seconds
+        ):
+            raise ValueError(
+                "search_attempt_seconds must be greater than 0 and no greater "
+                "than the operation limit or generic attempt maximum"
+            )
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self._client = None
         self._search_clock = time.monotonic
         self._search_sleep = time.sleep
         self._search_async_sleep = asyncio.sleep
-        self._search_operation_seconds = GEMINI_SEARCH_OPERATION_SECONDS
-        self._search_attempt_seconds = GEMINI_SEARCH_ATTEMPT_SECONDS
+        self._search_operation_seconds = operation_seconds
+        self._search_attempt_seconds = attempt_seconds
         self._search_max_attempts = GEMINI_SEARCH_MAX_ATTEMPTS
+        self._search_redirect_seconds = GEMINI_SEARCH_REDIRECT_PHASE_SECONDS
+        self._search_parse_seconds = GEMINI_SEARCH_PARSE_SECONDS
         self._grounding_redirect_lock = threading.Lock()
         try:
             from google import genai
@@ -418,6 +461,101 @@ class GeminiSearchService:
             return None
         return _safe_resolved_https_url(location)
 
+    @staticmethod
+    def _grounding_redirect_urls(response: Any) -> list[str]:
+        """Collect the bounded trusted redirects required by normalization."""
+
+        candidates = getattr(response, "candidates", None) or []
+        if not candidates:
+            return []
+        metadata = getattr(candidates[0], "grounding_metadata", None)
+        if metadata is None:
+            return []
+        urls: list[str] = []
+        seen: set[str] = set()
+        chunks = getattr(metadata, "grounding_chunks", None) or []
+        for chunk in islice(chunks, GEMINI_SEARCH_MAX_GROUNDING_CHUNKS):
+            web = getattr(chunk, "web", None)
+            raw_url = getattr(web, "uri", None) if web is not None else None
+            provider_url = str(raw_url) if raw_url else ""
+            if (
+                provider_url
+                and provider_url not in seen
+                and _trusted_grounding_redirect(provider_url)
+            ):
+                seen.add(provider_url)
+                urls.append(provider_url)
+        return urls
+
+    async def _resolve_grounding_redirects_async(
+        self,
+        provider_urls: list[str],
+        *,
+        timeout_seconds: float,
+    ) -> dict[str, str | None]:
+        """Resolve redirects concurrently under one cancellable wall-clock cap."""
+
+        resolved: dict[str, str | None] = {
+            provider_url: None for provider_url in provider_urls
+        }
+        if not provider_urls:
+            return resolved
+
+        injected = getattr(self, "_grounding_redirect_async_resolver", None)
+
+        async def resolve_one(
+            provider_url: str,
+            client: httpx.AsyncClient | None,
+        ) -> None:
+            try:
+                if callable(injected):
+                    location = await injected(provider_url)
+                else:
+                    assert client is not None
+                    async with client.stream(
+                        "GET",
+                        provider_url,
+                        headers={"User-Agent": "AxWise-Grounding-Resolver/2"},
+                        follow_redirects=False,
+                    ) as response:
+                        if response.status_code not in {301, 302, 303, 307, 308}:
+                            return
+                        location = response.headers.get("Location", "")
+                resolved[provider_url] = _safe_resolved_https_url(
+                    str(location or "")
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                return
+
+        try:
+            async with asyncio.timeout(timeout_seconds):
+                if callable(injected):
+                    async with asyncio.TaskGroup() as task_group:
+                        for provider_url in provider_urls:
+                            task_group.create_task(resolve_one(provider_url, None))
+                else:
+                    async with httpx.AsyncClient(
+                        follow_redirects=False,
+                        timeout=httpx.Timeout(GEMINI_GROUNDING_REDIRECT_SECONDS),
+                        limits=httpx.Limits(
+                            max_connections=4,
+                            max_keepalive_connections=2,
+                        ),
+                        trust_env=False,
+                    ) as client:
+                        async with asyncio.TaskGroup() as task_group:
+                            for provider_url in provider_urls:
+                                task_group.create_task(
+                                    resolve_one(provider_url, client)
+                                )
+        except TimeoutError:
+            # The map is deliberately complete. Unresolved entries remain None,
+            # so the parser retains the provider URL without starting sync I/O.
+            pass
+        return resolved
+
     def _search_runtime_diagnostics(
         self,
         *,
@@ -425,13 +563,18 @@ class GeminiSearchService:
         started_at: float,
         call_count: int,
         model: str = RESEARCH_MODEL,
+        deadline_seconds: float | None = None,
     ) -> Dict[str, Any]:
         clock = getattr(self, "_search_clock", time.monotonic)
-        operation_seconds = float(
-            getattr(
-                self,
-                "_search_operation_seconds",
-                GEMINI_SEARCH_OPERATION_SECONDS,
+        operation_seconds = (
+            float(deadline_seconds)
+            if deadline_seconds is not None
+            else float(
+                getattr(
+                    self,
+                    "_search_operation_seconds",
+                    GEMINI_SEARCH_OPERATION_SECONDS,
+                )
             )
         )
         return {
@@ -646,6 +789,8 @@ class GeminiSearchService:
         )
         started_at = clock()
         deadline = started_at + operation_seconds
+        loop = asyncio.get_running_loop()
+        wall_clock_deadline = loop.time() + operation_seconds
         call_count = 0
 
         try:
@@ -678,7 +823,10 @@ class GeminiSearchService:
             ) from error
 
         while call_count < max_attempts:
-            remaining = deadline - clock()
+            remaining = min(
+                deadline - clock(),
+                wall_clock_deadline - loop.time(),
+            )
             if remaining <= 0:
                 error = TimeoutError("Gemini grounded search deadline exceeded")
                 diagnostics = self._search_runtime_diagnostics(
@@ -710,16 +858,24 @@ class GeminiSearchService:
             )
             call_count += 1
             try:
-                response = await async_client.models.generate_content(
-                    model=model,
-                    contents=query,
-                    config=config,
+                attempt_deadline = min(
+                    wall_clock_deadline,
+                    loop.time() + min(attempt_seconds, remaining),
                 )
+                async with asyncio.timeout_at(attempt_deadline):
+                    response = await async_client.models.generate_content(
+                        model=model,
+                        contents=query,
+                        config=config,
+                    )
             except asyncio.CancelledError:
                 raise
             except Exception as error:
                 transient = _is_transient_search_error(error)
-                remaining = deadline - clock()
+                remaining = min(
+                    deadline - clock(),
+                    wall_clock_deadline - loop.time(),
+                )
                 if not transient:
                     status = "non_retryable_error"
                 elif remaining <= 0:
@@ -1096,6 +1252,9 @@ Do NOT use vague language. Include actual facts from search results about {indus
         *,
         _precomputed_response: tuple[Any, Dict[str, Any]] | None = None,
         _started_at: float | None = None,
+        _diagnostic_deadline_seconds: float | None = None,
+        _resolved_grounding_redirects: dict[str, str | None] | None = None,
+        _normalization_deadline: float | None = None,
     ) -> Dict[str, Any]:
         """
         Perform a general Google search using Gemini's search grounding.
@@ -1126,6 +1285,15 @@ Do NOT use vague language. Include actual facts from search results about {indus
 
         runtime_diagnostics: Optional[Dict[str, Any]] = None
         try:
+            def require_normalization_time() -> None:
+                if (
+                    _normalization_deadline is not None
+                    and clock() >= _normalization_deadline
+                ):
+                    raise TimeoutError(
+                        "Gemini grounded response normalization exceeded its deadline"
+                    )
+
             if _precomputed_response is None:
                 response, runtime_diagnostics = self._generate_grounded_content(
                     query
@@ -1133,10 +1301,12 @@ Do NOT use vague language. Include actual facts from search results about {indus
             else:
                 response, runtime_diagnostics = _precomputed_response
 
+            require_normalization_time()
             grounding_sources = []
             grounded_claims = []
             raw_text = response.text or ""
             response_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+            require_normalization_time()
             retrieved_at = datetime.now(timezone.utc).isoformat()
             provider_queries = []
             provider_query_ids = []
@@ -1146,7 +1316,10 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 content = getattr(response.candidates[0], "content", None)
                 response_parts = [
                     str(getattr(part, "text", None) or "")
-                    for part in (getattr(content, "parts", None) or [])
+                    for part in islice(
+                        getattr(content, "parts", None) or [],
+                        GEMINI_SEARCH_MAX_RESPONSE_PARTS,
+                    )
                 ]
             if not response_parts:
                 response_parts = [raw_text]
@@ -1157,11 +1330,15 @@ Do NOT use vague language. Include actual facts from search results about {indus
             response_parts_manifest = hashlib.sha256(
                 "\n".join(response_part_hashes).encode("ascii")
             ).hexdigest()
+            require_normalization_time()
             if response.candidates and response.candidates[0].grounding_metadata:
                 metadata = response.candidates[0].grounding_metadata
                 provider_queries = [
                     str(value)[:1000]
-                    for value in (getattr(metadata, "web_search_queries", None) or [])
+                    for value in islice(
+                        getattr(metadata, "web_search_queries", None) or [],
+                        GEMINI_SEARCH_MAX_PROVIDER_QUERIES,
+                    )
                 ]
                 provider_query_ids = [
                     hashlib.sha256(value.encode("utf-8")).hexdigest()[:20]
@@ -1180,7 +1357,13 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     }
                 chunk_url_by_index = {}
                 if metadata.grounding_chunks:
-                    for chunk_index, chunk in enumerate(metadata.grounding_chunks):
+                    for chunk_index, chunk in enumerate(
+                        islice(
+                            metadata.grounding_chunks,
+                            GEMINI_SEARCH_MAX_GROUNDING_CHUNKS,
+                        )
+                    ):
+                        require_normalization_time()
                         if hasattr(chunk, 'web') and chunk.web:
                             raw_provider_url = (
                                 chunk.web.uri if hasattr(chunk.web, 'uri') else None
@@ -1197,7 +1380,10 @@ Do NOT use vague language. Include actual facts from search results about {indus
                             if provider_url is None:
                                 continue
                             resolved_url = (
-                                self._resolve_grounding_redirect(provider_url)
+                                _resolved_grounding_redirects.get(provider_url)
+                                if _resolved_grounding_redirects is not None
+                                and _trusted_grounding_redirect(provider_url)
+                                else self._resolve_grounding_redirect(provider_url)
                                 if _trusted_grounding_redirect(provider_url)
                                 else None
                             )
@@ -1236,7 +1422,11 @@ Do NOT use vague language. Include actual facts from search results about {indus
 
                 # Preserve Gemini's claim-to-source relationship instead of
                 # treating the whole generated answer as equally grounded.
-                for support in getattr(metadata, "grounding_supports", None) or []:
+                for support in islice(
+                    getattr(metadata, "grounding_supports", None) or [],
+                    GEMINI_SEARCH_MAX_GROUNDING_SUPPORTS,
+                ):
+                    require_normalization_time()
                     segment = getattr(support, "segment", None)
                     claim_text = getattr(segment, "text", None) if segment else None
                     if not claim_text:
@@ -1274,7 +1464,15 @@ Do NOT use vague language. Include actual facts from search results about {indus
                         continue
                     source_urls = []
                     chunk_indices = list(
-                        getattr(support, "grounding_chunk_indices", None) or []
+                        islice(
+                            getattr(
+                                support,
+                                "grounding_chunk_indices",
+                                None,
+                            )
+                            or [],
+                            GEMINI_SEARCH_MAX_GROUNDING_CHUNKS,
+                        )
                     )
                     for index in chunk_indices:
                         if not isinstance(index, int):
@@ -1313,10 +1511,23 @@ Do NOT use vague language. Include actual facts from search results about {indus
                             "provider_response_sha256": response_hash,
                         },
                         "confidence_scores": list(
-                            getattr(support, "confidence_scores", None) or []
-                        )[:10],
+                            islice(
+                                getattr(support, "confidence_scores", None) or [],
+                                10,
+                            )
+                        ),
                     })
 
+            require_normalization_time()
+            prior_call_count = int(runtime_diagnostics.get("call_count", 0))
+            prior_model = str(runtime_diagnostics.get("model") or RESEARCH_MODEL)
+            runtime_diagnostics = self._search_runtime_diagnostics(
+                status="ok",
+                started_at=started_at,
+                call_count=prior_call_count,
+                model=prior_model,
+                deadline_seconds=_diagnostic_deadline_seconds,
+            )
             result = {
                 "text": raw_text,
                 "sources": grounding_sources[:10],
@@ -1355,6 +1566,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     status="response_processing_error",
                     started_at=started_at,
                     call_count=prior_calls,
+                    deadline_seconds=_diagnostic_deadline_seconds,
                 )
             logger.error(
                 "Gemini grounded search failed; route=%s model=%s status=%s "
@@ -1434,13 +1646,45 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "runtime_diagnostics": runtime_diagnostics,
             }
 
-        # Response normalization may perform bounded redirect resolution with
-        # the existing synchronous HTTP client. Keep that local post-processing
-        # off the event loop; the cancellable Gemini provider call above is
-        # never delegated to this thread.
-        return await asyncio.to_thread(
-            self.search_web_general,
+        # Resolve at most ten redirect hops concurrently under one strict,
+        # cancellable aggregate deadline. The subsequent parser is CPU-only and
+        # bounded to ten chunks/fifty supports; it must never start sync network
+        # work on the workflow path.
+        provider_seconds = float(
+            getattr(
+                self,
+                "_search_operation_seconds",
+                GEMINI_SEARCH_OPERATION_SECONDS,
+            )
+        )
+        redirect_seconds = float(
+            getattr(
+                self,
+                "_search_redirect_seconds",
+                GEMINI_SEARCH_REDIRECT_PHASE_SECONDS,
+            )
+        )
+        parse_seconds = float(
+            getattr(
+                self,
+                "_search_parse_seconds",
+                GEMINI_SEARCH_PARSE_SECONDS,
+            )
+        )
+        response, _runtime_diagnostics = response_and_diagnostics
+        redirects = self._grounding_redirect_urls(response)
+        resolved_redirects = await self._resolve_grounding_redirects_async(
+            redirects,
+            timeout_seconds=redirect_seconds,
+        )
+        parse_started_at = clock()
+        return self.search_web_general(
             query,
             _precomputed_response=response_and_diagnostics,
             _started_at=started_at,
+            _diagnostic_deadline_seconds=(
+                provider_seconds + redirect_seconds + parse_seconds
+            ),
+            _resolved_grounding_redirects=resolved_redirects,
+            _normalization_deadline=parse_started_at + parse_seconds,
         )

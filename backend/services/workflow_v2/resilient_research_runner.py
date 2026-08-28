@@ -14,7 +14,9 @@ import hashlib
 import inspect
 import json
 import logging
+import math
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Mapping, Protocol
@@ -52,6 +54,14 @@ _MAX_DOCUMENT_CHARACTERS = MAX_DOCUMENT_CODE_POINTS
 _MAX_DISCOVERY_QUERY_CHARACTERS = 2_000
 _MAX_DIAGNOSTIC_CALLS = 100
 _MAX_DIAGNOSTIC_ELAPSED_MS = 900_000
+_DEFAULT_PRIMARY_COOLDOWN_SECONDS = 450.0
+_MAX_PRIMARY_COOLDOWN_SECONDS = 900.0
+_DEFAULT_PRIMARY_HEALTHY_SECONDS = 5.0
+_MAX_PRIMARY_HEALTHY_SECONDS = 30.0
+WORKFLOW_V2_FALLBACK_PHASE_SECONDS = 60.0
+_FALLBACK_DISCOVERY_SECONDS = 10.0
+_FALLBACK_FETCH_SECONDS = 15.0
+_FALLBACK_EXTRACTION_SECONDS = 45.0
 _DISCOVERY_SECTION_BUDGETS = {
     "requirement": 560,
     "applicability": 300,
@@ -106,6 +116,23 @@ class _VerifiedSpan:
     text: str
     segment_start: int
     segment_end: int
+
+
+async def _await_cancellation_safe(cleanup: Awaitable[None]) -> None:
+    """Finish one invariant-restoring cleanup while retaining cancellation."""
+
+    cleanup_task = asyncio.ensure_future(cleanup)
+    cancellation: asyncio.CancelledError | None = None
+    while True:
+        try:
+            await asyncio.shield(cleanup_task)
+            break
+        except asyncio.CancelledError as error:
+            if cleanup_task.cancelled():
+                raise
+            cancellation = error
+    if cancellation is not None:
+        raise cancellation
 
 
 async def _default_fetch_direct_text(url: str) -> Mapping[str, Any]:
@@ -171,7 +198,7 @@ def _finite_phase_diagnostics(
 ) -> dict[str, Any]:
     """Copy only finite, content-free fields across the provider boundary."""
 
-    return {
+    result = {
         "route": route,
         "status": status,
         "elapsed_ms": _finite_diagnostic_int(
@@ -193,6 +220,58 @@ def _finite_phase_diagnostics(
             maximum=_MAX_DIAGNOSTIC_CALLS,
         ),
     }
+    if diagnostics.get("primary_skipped") is True:
+        result["primary_skipped"] = True
+        result["circuit_state"] = "open"
+    return result
+
+
+def _finite_elapsed_ms(started_at: float, completed_at: float) -> int:
+    try:
+        elapsed = round((completed_at - started_at) * 1000)
+    except (TypeError, ValueError, OverflowError):
+        return 0
+    if not math.isfinite(elapsed):
+        return 0
+    return min(_MAX_DIAGNOSTIC_ELAPSED_MS, max(0, int(elapsed)))
+
+
+def _with_fallback_elapsed(
+    result: dict[str, Any], *, elapsed_ms: int
+) -> dict[str, Any]:
+    diagnostics = result.get("runtime_diagnostics")
+    if not isinstance(diagnostics, dict):
+        return result
+    if diagnostics.get("route") == "searxng_direct_fetch":
+        primary = diagnostics.get("primary")
+        primary_elapsed_ms = (
+            _finite_diagnostic_int(
+                primary,
+                "elapsed_ms",
+                maximum=_MAX_DIAGNOSTIC_ELAPSED_MS,
+            )
+            if isinstance(primary, Mapping)
+            else 0
+        )
+        diagnostics["fallback_elapsed_ms"] = elapsed_ms
+        diagnostics["elapsed_ms"] = min(
+            _MAX_DIAGNOSTIC_ELAPSED_MS,
+            primary_elapsed_ms + elapsed_ms,
+        )
+        return result
+    fallback = diagnostics.get("fallback")
+    if isinstance(fallback, dict):
+        fallback["elapsed_ms"] = elapsed_ms
+        primary_elapsed_ms = _finite_diagnostic_int(
+            diagnostics,
+            "elapsed_ms",
+            maximum=_MAX_DIAGNOSTIC_ELAPSED_MS,
+        )
+        diagnostics["elapsed_ms"] = min(
+            _MAX_DIAGNOSTIC_ELAPSED_MS,
+            primary_elapsed_ms + elapsed_ms,
+        )
+    return result
 
 
 def _usage_metadata(input_tokens: int, output_tokens: int) -> dict[str, int]:
@@ -353,10 +432,9 @@ def _fallback_runtime_diagnostics(
         "primary_status": primary_status,
         "fallback_attempted": True,
         "fallback_used": True,
-        "elapsed_ms": min(
-            _MAX_DIAGNOSTIC_ELAPSED_MS,
-            primary_summary["elapsed_ms"] + discovery_summary["elapsed_ms"],
-        ),
+        # The runner replaces this placeholder with measured fallback wall
+        # time after discovery, fetch and extraction have all terminated.
+        "elapsed_ms": 0,
         "call_count": min(
             _MAX_DIAGNOSTIC_CALLS,
             primary_summary["call_count"] + discovery_summary["call_count"],
@@ -891,6 +969,36 @@ def _all_discovery_engines_unresponsive(diagnostics: Mapping[str, Any]) -> bool:
     return _CONFIGURED_DISCOVERY_ENGINES.issubset(engines)
 
 
+def _fallback_eligible_primary_status(primary: Mapping[str, Any]) -> str | None:
+    if primary.get("search_performed") is True:
+        return None
+    raw_diagnostics = primary.get("runtime_diagnostics")
+    diagnostics = raw_diagnostics if isinstance(raw_diagnostics, Mapping) else {}
+    status = str(diagnostics.get("status") or "")
+    return status if status in _FALLBACK_PRIMARY_STATUSES else None
+
+
+def _cooldown_primary_result(status: str) -> dict[str, Any]:
+    """Describe an intentional no-call without inventing provider activity."""
+
+    return {
+        "text": "",
+        "sources": [],
+        "claims": [],
+        "provider": "gemini_google_search",
+        "search_performed": False,
+        "usage_metadata": _usage_metadata(0, 0),
+        "runtime_diagnostics": {
+            "route": "gemini_google_search",
+            "status": status,
+            "elapsed_ms": 0,
+            "call_count": 0,
+            "retry_count": 0,
+            "primary_skipped": True,
+        },
+    }
+
+
 class ResilientResearchRunner:
     """Use bounded direct-source acquisition after selected Gemini transients."""
 
@@ -903,6 +1011,10 @@ class ResilientResearchRunner:
         extractor: DirectDocumentExtractor | None = None,
         maximum_candidates: int = 3,
         maximum_document_characters: int = _MAX_DOCUMENT_CHARACTERS,
+        primary_cooldown_seconds: float = _DEFAULT_PRIMARY_COOLDOWN_SECONDS,
+        primary_healthy_seconds: float = _DEFAULT_PRIMARY_HEALTHY_SECONDS,
+        fallback_phase_seconds: float = WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+        monotonic_clock: Callable[[], float] = time.monotonic,
     ) -> None:
         if maximum_candidates < 1 or maximum_candidates > 10:
             raise ValueError("maximum_candidates must be between 1 and 10")
@@ -913,26 +1025,212 @@ class ResilientResearchRunner:
             raise ValueError(
                 f"maximum_document_characters must be between 1 and {MAX_DOCUMENT_CODE_POINTS}"
             )
+        try:
+            normalized_cooldown = float(primary_cooldown_seconds)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError("primary_cooldown_seconds must be finite") from error
+        if (
+            not math.isfinite(normalized_cooldown)
+            or normalized_cooldown <= 0
+            or normalized_cooldown > _MAX_PRIMARY_COOLDOWN_SECONDS
+        ):
+            raise ValueError(
+                "primary_cooldown_seconds must be greater than 0 and at most "
+                f"{_MAX_PRIMARY_COOLDOWN_SECONDS:g}"
+            )
+        try:
+            normalized_healthy = float(primary_healthy_seconds)
+            normalized_fallback_phase = float(fallback_phase_seconds)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError("research runner phase limits must be finite") from error
+        if (
+            not math.isfinite(normalized_healthy)
+            or normalized_healthy <= 0
+            or normalized_healthy > _MAX_PRIMARY_HEALTHY_SECONDS
+        ):
+            raise ValueError(
+                "primary_healthy_seconds must be greater than 0 and at most "
+                f"{_MAX_PRIMARY_HEALTHY_SECONDS:g}"
+            )
+        if (
+            not math.isfinite(normalized_fallback_phase)
+            or normalized_fallback_phase <= 0
+            or normalized_fallback_phase > WORKFLOW_V2_FALLBACK_PHASE_SECONDS
+        ):
+            raise ValueError(
+                "fallback_phase_seconds must be greater than 0 and at most "
+                f"{WORKFLOW_V2_FALLBACK_PHASE_SECONDS:g}"
+            )
         self.primary = primary
         self.searxng = searxng or SearxngSearchService()
         self.fetcher = fetcher
         self.extractor = extractor
         self.maximum_candidates = maximum_candidates
         self.maximum_document_characters = maximum_document_characters
+        self.primary_cooldown_seconds = normalized_cooldown
+        self.primary_healthy_seconds = normalized_healthy
+        self.fallback_phase_seconds = normalized_fallback_phase
+        self._monotonic_clock = monotonic_clock
+        self._primary_condition = asyncio.Condition()
+        self._primary_gate_in_flight = False
+        self._primary_started_version = 0
+        self._primary_completed_version = 0
+        self._primary_generation = 0
+        self._primary_cooldown_until = 0.0
+        self._primary_cooldown_status = "unavailable"
+        self._primary_healthy_until = 0.0
+        self._lifecycle_condition = asyncio.Condition()
+        self._close_lock = asyncio.Lock()
+        self._active_searches = 0
+        self._closing = False
         self._closed = False
 
+    def _cooldown_result_if_open(self) -> dict[str, Any] | None:
+        if self._monotonic_clock() >= self._primary_cooldown_until:
+            return None
+        return _cooldown_primary_result(self._primary_cooldown_status)
+
+    async def _enter_search(self) -> None:
+        async with self._lifecycle_condition:
+            if self._closing or self._closed:
+                raise RuntimeError("research runner is closed")
+            self._active_searches += 1
+
+    async def _leave_search(self) -> None:
+        async with self._lifecycle_condition:
+            self._active_searches -= 1
+            if self._active_searches == 0:
+                self._lifecycle_condition.notify_all()
+
+    async def _restore_open_after_close_cancel(self) -> None:
+        async with self._lifecycle_condition:
+            self._closing = False
+            self._lifecycle_condition.notify_all()
+
+    async def _mark_closed_after_shutdown(self) -> None:
+        async with self._lifecycle_condition:
+            self._closed = True
+            self._closing = False
+            self._lifecycle_condition.notify_all()
+
+    def _next_primary_version(self) -> int:
+        self._primary_started_version += 1
+        return self._primary_started_version
+
+    async def _release_primary_gate(self) -> None:
+        async with self._primary_condition:
+            self._primary_gate_in_flight = False
+            self._primary_condition.notify_all()
+
+    async def _complete_primary_call(
+        self,
+        *,
+        version: int,
+        generation: int,
+        primary: Mapping[str, Any],
+        owns_gate: bool,
+    ) -> None:
+        async with self._primary_condition:
+            self._primary_completed_version = max(
+                self._primary_completed_version, version
+            )
+            now = self._monotonic_clock()
+            status = _fallback_eligible_primary_status(primary)
+            if status is not None:
+                # Any in-flight query that observes a transient latches the
+                # cooldown. Concurrent successes cannot immediately re-enable
+                # a provider that just failed another requirement.
+                self._primary_cooldown_until = max(
+                    self._primary_cooldown_until,
+                    now + self.primary_cooldown_seconds,
+                )
+                self._primary_cooldown_status = status
+                self._primary_healthy_until = 0.0
+                # Every observed transient invalidates all successes that were
+                # already in flight. Only a call started in this new generation
+                # may later establish provider health.
+                self._primary_generation += 1
+            elif primary.get("search_performed") is True:
+                completion_is_current = generation == self._primary_generation
+                if owns_gate and completion_is_current:
+                    # A gate can run only after cooldown expiry. Its success is
+                    # the sole authority that closes the in-memory circuit.
+                    self._primary_cooldown_until = 0.0
+                    self._primary_healthy_until = now + self.primary_healthy_seconds
+                elif completion_is_current and now >= self._primary_cooldown_until:
+                    self._primary_healthy_until = max(
+                        self._primary_healthy_until,
+                        now + self.primary_healthy_seconds,
+                    )
+            elif owns_gate and generation == self._primary_generation:
+                # A configuration or non-retryable gate result fails closed and
+                # leaves availability unknown for the next caller. It never
+                # opens the transient circuit.
+                if now >= self._primary_cooldown_until:
+                    self._primary_cooldown_until = 0.0
+                self._primary_healthy_until = 0.0
+            if owns_gate:
+                self._primary_gate_in_flight = False
+            self._primary_condition.notify_all()
+
+    async def _search_primary(self, query: str) -> dict[str, Any]:
+        """Gate initial availability; never share query content or usage."""
+
+        while True:
+            async with self._primary_condition:
+                cooldown = self._cooldown_result_if_open()
+                if cooldown is not None:
+                    return cooldown
+                if self._monotonic_clock() < self._primary_healthy_until:
+                    version = self._next_primary_version()
+                    generation = self._primary_generation
+                    owns_gate = False
+                    break
+                if not self._primary_gate_in_flight:
+                    self._primary_gate_in_flight = True
+                    version = self._next_primary_version()
+                    generation = self._primary_generation
+                    owns_gate = True
+                    break
+                await self._primary_condition.wait()
+
+        try:
+            primary = await self.primary.search(query)
+        except BaseException:
+            if owns_gate:
+                await _await_cancellation_safe(self._release_primary_gate())
+            raise
+        try:
+            await self._complete_primary_call(
+                version=version,
+                generation=generation,
+                primary=primary,
+                owns_gate=owns_gate,
+            )
+        except BaseException:
+            if owns_gate:
+                await _await_cancellation_safe(self._release_primary_gate())
+            raise
+        return primary
+
     async def _discover(self, query: str) -> Mapping[str, Any]:
-        method = self.searxng.search_web_general
-        if inspect.iscoroutinefunction(method):
-            result = await method(query)
-        else:
-            result = await asyncio.to_thread(method, query)
+        method = getattr(self.searxng, "search_web_general_async", None)
+        if method is None:
+            method = getattr(self.searxng, "search_web_general", None)
+        if method is None or not inspect.iscoroutinefunction(method):
+            raise TypeError("workflow-v2 SearXNG discovery must be asynchronous")
+        result = await method(query)
         return result if isinstance(result, Mapping) else {}
 
     async def search(self, query: str) -> dict[str, Any]:
-        if self._closed:
-            raise RuntimeError("research runner is closed")
-        primary = await self.primary.search(query)
+        await self._enter_search()
+        try:
+            return await self._search_active(query)
+        finally:
+            await _await_cancellation_safe(self._leave_search())
+
+    async def _search_active(self, query: str) -> dict[str, Any]:
+        primary = await self._search_primary(query)
         if primary.get("search_performed") is True:
             return primary
         raw_primary_diagnostics = primary.get("runtime_diagnostics")
@@ -948,18 +1246,51 @@ class ResilientResearchRunner:
             "Workflow-v2 research fallback started; primary_status=%s",
             primary_status,
         )
+        fallback_started_at = self._monotonic_clock()
+
+        def finish_fallback(result: dict[str, Any]) -> dict[str, Any]:
+            return _with_fallback_elapsed(
+                result,
+                elapsed_ms=_finite_elapsed_ms(
+                    fallback_started_at,
+                    self._monotonic_clock(),
+                ),
+            )
+
+        fallback_deadline = (
+            asyncio.get_running_loop().time() + self.fallback_phase_seconds
+        )
 
         context = _fallback_context(query)
         if context is None:
-            return _primary_with_failed_fallback(primary, status="invalid_canonical_input")
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary, status="invalid_canonical_input"
+                )
+            )
 
         try:
-            discovery = await self._discover(context.discovery_query)
+            discovery_deadline = min(
+                fallback_deadline,
+                asyncio.get_running_loop().time() + _FALLBACK_DISCOVERY_SECONDS,
+            )
+            async with asyncio.timeout_at(discovery_deadline):
+                discovery = await self._discover(context.discovery_query)
+        except TimeoutError:
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status="fallback_deadline_exceeded",
+                    query_complete=context.query_complete,
+                )
+            )
         except Exception:
-            return _primary_with_failed_fallback(
-                primary,
-                status="error",
-                query_complete=context.query_complete,
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status="error",
+                    query_complete=context.query_complete,
+                )
             )
         raw_discovery_diagnostics = discovery.get("runtime_diagnostics")
         discovery_diagnostics = (
@@ -981,11 +1312,13 @@ class ResilientResearchRunner:
             discovery_healthy = False
             discovery_status = "all_engines_unresponsive"
         if not discovery_healthy:
-            return _primary_with_failed_fallback(
-                primary,
-                status=discovery_status or "unavailable",
-                discovery_diagnostics=discovery_diagnostics,
-                query_complete=context.query_complete,
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status=discovery_status or "unavailable",
+                    discovery_diagnostics=discovery_diagnostics,
+                    query_complete=context.query_complete,
+                )
             )
 
         candidates, rejected_count, malformed_count, omitted_count = _candidate_rows(
@@ -1003,37 +1336,43 @@ class ResilientResearchRunner:
         )
         if not candidates:
             if not context.query_complete:
-                return _primary_with_failed_fallback(
-                    primary,
-                    status="discovery_query_incomplete",
-                    discovery_diagnostics=discovery_diagnostics,
-                    query_complete=False,
-                    rejected_candidate_count=rejected_count,
-                    malformed_candidate_count=malformed_count,
-                    omitted_candidate_count=omitted_count,
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_query_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        query_complete=False,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
                 )
             if rejected_count or malformed_count or omitted_count:
-                return _primary_with_failed_fallback(
-                    primary,
-                    status="discovery_rows_incomplete",
-                    discovery_diagnostics=discovery_diagnostics,
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_rows_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        query_complete=True,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            return finish_fallback(
+                _empty_fallback_result(
+                    primary=primary,
+                    primary_status=primary_status,
+                    candidate_count=0,
+                    fetched_count=0,
                     query_complete=True,
+                    validation_incomplete_count=0,
                     rejected_candidate_count=rejected_count,
                     malformed_candidate_count=malformed_count,
                     omitted_candidate_count=omitted_count,
+                    primary_diagnostics=primary_diagnostics,
+                    discovery_diagnostics=discovery_diagnostics,
                 )
-            return _empty_fallback_result(
-                primary=primary,
-                primary_status=primary_status,
-                candidate_count=0,
-                fetched_count=0,
-                query_complete=True,
-                validation_incomplete_count=0,
-                rejected_candidate_count=rejected_count,
-                malformed_candidate_count=malformed_count,
-                omitted_candidate_count=omitted_count,
-                primary_diagnostics=primary_diagnostics,
-                discovery_diagnostics=discovery_diagnostics,
             )
 
         fetch_semaphore = asyncio.Semaphore(3)
@@ -1050,9 +1389,29 @@ class ResilientResearchRunner:
                 return candidate, None, True
             return candidate, raw_document, False
 
-        fetch_results = await asyncio.gather(
-            *(fetch_candidate(candidate) for candidate in candidates)
-        )
+        try:
+            fetch_deadline = min(
+                fallback_deadline,
+                asyncio.get_running_loop().time() + _FALLBACK_FETCH_SECONDS,
+            )
+            async with asyncio.timeout_at(fetch_deadline):
+                fetch_results = await asyncio.gather(
+                    *(fetch_candidate(candidate) for candidate in candidates)
+                )
+        except TimeoutError:
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status="fallback_deadline_exceeded",
+                    discovery_diagnostics=discovery_diagnostics,
+                    fetched_count=0,
+                    fetch_error_count=len(candidates),
+                    query_complete=context.query_complete,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                )
+            )
         raw_fetch_count = sum(
             1 for _candidate, raw_document, _failed in fetch_results if raw_document
         )
@@ -1115,34 +1474,38 @@ class ResilientResearchRunner:
         fetched_count = len(fetched_documents)
         incomplete_fetch_count = fetch_error_count + validation_incomplete_count
         if not fetched_documents and incomplete_fetch_count:
-            return _primary_with_failed_fallback(
-                primary,
-                status=(
-                    "direct_fetch_error"
-                    if raw_fetch_count == 0
-                    else "direct_fetch_incomplete"
-                ),
-                discovery_diagnostics=discovery_diagnostics,
-                fetched_count=fetched_count,
-                fetch_error_count=fetch_error_count,
-                validation_incomplete_count=validation_incomplete_count,
-                query_complete=context.query_complete,
-                rejected_candidate_count=rejected_count,
-                malformed_candidate_count=malformed_count,
-                omitted_candidate_count=omitted_count,
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status=(
+                        "direct_fetch_error"
+                        if raw_fetch_count == 0
+                        else "direct_fetch_incomplete"
+                    ),
+                    discovery_diagnostics=discovery_diagnostics,
+                    fetched_count=fetched_count,
+                    fetch_error_count=fetch_error_count,
+                    validation_incomplete_count=validation_incomplete_count,
+                    query_complete=context.query_complete,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                )
             )
         if fetched_documents and self.extractor is None:
-            return _primary_with_failed_fallback(
-                primary,
-                status="exact_span_extractor_unavailable",
-                discovery_diagnostics=discovery_diagnostics,
-                fetched_count=fetched_count,
-                fetch_error_count=fetch_error_count,
-                validation_incomplete_count=validation_incomplete_count,
-                query_complete=context.query_complete,
-                rejected_candidate_count=rejected_count,
-                malformed_candidate_count=malformed_count,
-                omitted_candidate_count=omitted_count,
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status="exact_span_extractor_unavailable",
+                    discovery_diagnostics=discovery_diagnostics,
+                    fetched_count=fetched_count,
+                    fetch_error_count=fetch_error_count,
+                    validation_incomplete_count=validation_incomplete_count,
+                    query_complete=context.query_complete,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                )
             )
         if fetched_documents and self.extractor is not None:
             extraction_request = ExactSpanExtractionRequest(
@@ -1155,24 +1518,49 @@ class ResilientResearchRunner:
                 documents=[item[2] for item in fetched_documents],
             )
             try:
-                proposed = await self.extractor.extract(extraction_request)
+                extraction_deadline = min(
+                    fallback_deadline,
+                    asyncio.get_running_loop().time()
+                    + _FALLBACK_EXTRACTION_SECONDS,
+                )
+                async with asyncio.timeout_at(extraction_deadline):
+                    proposed = await self.extractor.extract(extraction_request)
                 extraction = (
                     proposed
                     if isinstance(proposed, ExactSpanExtractionResult)
                     else ExactSpanExtractionResult.model_validate(proposed)
                 )
+            except TimeoutError:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="fallback_deadline_exceeded",
+                        discovery_diagnostics=discovery_diagnostics,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
             except Exception as error:
-                return _primary_with_failed_fallback(
-                    primary,
-                    status=str(getattr(error, "code", None) or "extraction_error"),
-                    discovery_diagnostics=discovery_diagnostics,
-                    fetched_count=fetched_count,
-                    fetch_error_count=fetch_error_count,
-                    validation_incomplete_count=validation_incomplete_count,
-                    query_complete=context.query_complete,
-                    rejected_candidate_count=rejected_count,
-                    malformed_candidate_count=malformed_count,
-                    omitted_candidate_count=omitted_count,
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status=str(
+                            getattr(error, "code", None) or "extraction_error"
+                        ),
+                        discovery_diagnostics=discovery_diagnostics,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
                 )
             if extraction.chosen_document is not None:
                 selected = next(
@@ -1186,19 +1574,21 @@ class ResilientResearchRunner:
                     None,
                 )
                 if selected is None:
-                    return _primary_with_failed_fallback(
-                        primary,
-                        status="extraction_document_mismatch",
-                        discovery_diagnostics=discovery_diagnostics,
-                        usage_input_tokens=extraction.input_tokens,
-                        usage_output_tokens=extraction.output_tokens,
-                        fetched_count=fetched_count,
-                        fetch_error_count=fetch_error_count,
-                        validation_incomplete_count=validation_incomplete_count,
-                        query_complete=context.query_complete,
-                        rejected_candidate_count=rejected_count,
-                        malformed_candidate_count=malformed_count,
-                        omitted_candidate_count=omitted_count,
+                    return finish_fallback(
+                        _primary_with_failed_fallback(
+                            primary,
+                            status="extraction_document_mismatch",
+                            discovery_diagnostics=discovery_diagnostics,
+                            usage_input_tokens=extraction.input_tokens,
+                            usage_output_tokens=extraction.output_tokens,
+                            fetched_count=fetched_count,
+                            fetch_error_count=fetch_error_count,
+                            validation_incomplete_count=validation_incomplete_count,
+                            query_complete=context.query_complete,
+                            rejected_candidate_count=rejected_count,
+                            malformed_candidate_count=malformed_count,
+                            omitted_candidate_count=omitted_count,
+                        )
                     )
                 candidate, snapshot, _bounded_document = selected
                 accepted_spans = _validated_extracted_spans(
@@ -1212,130 +1602,163 @@ class ResilientResearchRunner:
                         fetched_count,
                         len(accepted_spans),
                     )
-                    return _result_for_document(
-                        primary=primary,
-                        primary_status=primary_status,
-                        discovery_status="ok",
-                        candidate=candidate,
-                        document=snapshot,
-                        claims=accepted_spans,
-                        candidate_count=len(candidates),
-                        fetched_count=fetched_count,
-                        query_complete=context.query_complete,
-                        validation_incomplete_count=validation_incomplete_count,
-                        rejected_candidate_count=rejected_count,
-                        malformed_candidate_count=malformed_count,
-                        omitted_candidate_count=omitted_count,
-                        primary_diagnostics=primary_diagnostics,
+                    return finish_fallback(
+                        _result_for_document(
+                            primary=primary,
+                            primary_status=primary_status,
+                            discovery_status="ok",
+                            candidate=candidate,
+                            document=snapshot,
+                            claims=accepted_spans,
+                            candidate_count=len(candidates),
+                            fetched_count=fetched_count,
+                            query_complete=context.query_complete,
+                            validation_incomplete_count=validation_incomplete_count,
+                            rejected_candidate_count=rejected_count,
+                            malformed_candidate_count=malformed_count,
+                            omitted_candidate_count=omitted_count,
+                            primary_diagnostics=primary_diagnostics,
+                            discovery_diagnostics=discovery_diagnostics,
+                            usage_input_tokens=extraction.input_tokens,
+                            usage_output_tokens=extraction.output_tokens,
+                        )
+                    )
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="extraction_span_not_unique",
                         discovery_diagnostics=discovery_diagnostics,
                         usage_input_tokens=extraction.input_tokens,
                         usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
                     )
-                return _primary_with_failed_fallback(
-                    primary,
-                    status="extraction_span_not_unique",
-                    discovery_diagnostics=discovery_diagnostics,
-                    usage_input_tokens=extraction.input_tokens,
-                    usage_output_tokens=extraction.output_tokens,
-                    fetched_count=fetched_count,
-                    fetch_error_count=fetch_error_count,
-                    validation_incomplete_count=validation_incomplete_count,
-                    query_complete=context.query_complete,
-                    rejected_candidate_count=rejected_count,
-                    malformed_candidate_count=malformed_count,
-                    omitted_candidate_count=omitted_count,
                 )
             if incomplete_fetch_count:
-                return _primary_with_failed_fallback(
-                    primary,
-                    status="direct_fetch_incomplete",
-                    discovery_diagnostics=discovery_diagnostics,
-                    usage_input_tokens=extraction.input_tokens,
-                    usage_output_tokens=extraction.output_tokens,
-                    fetched_count=fetched_count,
-                    fetch_error_count=fetch_error_count,
-                    validation_incomplete_count=validation_incomplete_count,
-                    query_complete=context.query_complete,
-                    rejected_candidate_count=rejected_count,
-                    malformed_candidate_count=malformed_count,
-                    omitted_candidate_count=omitted_count,
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="direct_fetch_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
                 )
             if not context.query_complete:
-                return _primary_with_failed_fallback(
-                    primary,
-                    status="discovery_query_incomplete",
-                    discovery_diagnostics=discovery_diagnostics,
-                    usage_input_tokens=extraction.input_tokens,
-                    usage_output_tokens=extraction.output_tokens,
-                    fetched_count=fetched_count,
-                    fetch_error_count=fetch_error_count,
-                    validation_incomplete_count=validation_incomplete_count,
-                    query_complete=False,
-                    rejected_candidate_count=rejected_count,
-                    malformed_candidate_count=malformed_count,
-                    omitted_candidate_count=omitted_count,
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_query_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=False,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
                 )
             if rejected_count or malformed_count or omitted_count:
-                return _primary_with_failed_fallback(
-                    primary,
-                    status="discovery_rows_incomplete",
-                    discovery_diagnostics=discovery_diagnostics,
-                    usage_input_tokens=extraction.input_tokens,
-                    usage_output_tokens=extraction.output_tokens,
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_rows_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=True,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            return finish_fallback(
+                _empty_fallback_result(
+                    primary=primary,
+                    primary_status=primary_status,
+                    candidate_count=len(candidates),
                     fetched_count=fetched_count,
-                    fetch_error_count=fetch_error_count,
-                    validation_incomplete_count=validation_incomplete_count,
                     query_complete=True,
+                    validation_incomplete_count=validation_incomplete_count,
                     rejected_candidate_count=rejected_count,
                     malformed_candidate_count=malformed_count,
                     omitted_candidate_count=omitted_count,
+                    primary_diagnostics=primary_diagnostics,
+                    discovery_diagnostics=discovery_diagnostics,
+                    usage_input_tokens=extraction.input_tokens,
+                    usage_output_tokens=extraction.output_tokens,
                 )
-            return _empty_fallback_result(
+            )
+        return finish_fallback(
+            _empty_fallback_result(
                 primary=primary,
                 primary_status=primary_status,
                 candidate_count=len(candidates),
                 fetched_count=fetched_count,
-                query_complete=True,
+                query_complete=context.query_complete,
                 validation_incomplete_count=validation_incomplete_count,
                 rejected_candidate_count=rejected_count,
                 malformed_candidate_count=malformed_count,
                 omitted_candidate_count=omitted_count,
                 primary_diagnostics=primary_diagnostics,
                 discovery_diagnostics=discovery_diagnostics,
-                usage_input_tokens=extraction.input_tokens,
-                usage_output_tokens=extraction.output_tokens,
             )
-        return _empty_fallback_result(
-            primary=primary,
-            primary_status=primary_status,
-            candidate_count=len(candidates),
-            fetched_count=fetched_count,
-            query_complete=context.query_complete,
-            validation_incomplete_count=validation_incomplete_count,
-            rejected_candidate_count=rejected_count,
-            malformed_candidate_count=malformed_count,
-            omitted_candidate_count=omitted_count,
-            primary_diagnostics=primary_diagnostics,
-            discovery_diagnostics=discovery_diagnostics,
         )
 
     async def close(self) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        closers = []
-        for component in (self.primary, self.searxng, self.extractor):
-            close = getattr(component, "close", None)
-            if close is None:
-                continue
-            value = close()
-            if inspect.isawaitable(value):
-                closers.append(value)
-        if closers:
-            await asyncio.gather(*closers)
+        async with self._close_lock:
+            async with self._lifecycle_condition:
+                if self._closed:
+                    return
+                self._closing = True
+            try:
+                async with self._lifecycle_condition:
+                    await self._lifecycle_condition.wait_for(
+                        lambda: self._active_searches == 0
+                    )
+            except BaseException:
+                await _await_cancellation_safe(
+                    self._restore_open_after_close_cancel()
+                )
+                raise
+
+            try:
+                closers = []
+                for component in (self.primary, self.searxng, self.extractor):
+                    close = getattr(component, "close", None)
+                    if close is None:
+                        continue
+                    value = close()
+                    if inspect.isawaitable(value):
+                        closers.append(value)
+                if closers:
+                    await asyncio.gather(*closers)
+            finally:
+                # Once component shutdown begins, the runner cannot safely be
+                # reopened even if a closer fails or this close caller is cancelled.
+                await _await_cancellation_safe(self._mark_closed_after_shutdown())
 
 
 __all__ = [
     "DirectDocumentExtractor",
     "ResilientResearchRunner",
+    "WORKFLOW_V2_FALLBACK_PHASE_SECONDS",
 ]

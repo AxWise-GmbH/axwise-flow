@@ -65,6 +65,30 @@ from backend.services.llm.gemini_runtime import get_shared_workflow_model
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 
 
+_MAX_EVIDENCE_REQUIREMENTS = 12
+_DEFAULT_RESEARCH_CONCURRENCY = 4
+_MIN_RESEARCH_CONCURRENCY = 4
+_MAX_RESEARCH_CONCURRENCY = 8
+_DEFAULT_RESEARCH_DEADLINE_SECONDS = 510
+_MIN_RESEARCH_DEADLINE_SECONDS = 510
+_MAX_RESEARCH_DEADLINE_SECONDS = 510
+_WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS = 45
+_WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS = 20
+_WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS = 70
+_TRANSIENT_EVIDENCE_ACQUISITION_STATUSES = frozenset(
+    {
+        "deadline_exceeded",
+        "retry_exhausted",
+        "unavailable",
+        "response_processing_error",
+    }
+)
+
+
+def _research_time() -> float:
+    return asyncio.get_running_loop().time()
+
+
 class _DraftModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -84,7 +108,9 @@ class ScopeDraft(_DraftModel):
     objective_source_spans: list[DraftSpan] = Field(min_length=1, max_length=24)
     topic_anchors: list[DraftTopicAnchor] = Field(min_length=1, max_length=24)
     geography: list[str] = Field(default_factory=list, max_length=24)
-    evidence_requirements: list[EvidenceRequirement] = Field(max_length=12)
+    evidence_requirements: list[EvidenceRequirement] = Field(
+        max_length=_MAX_EVIDENCE_REQUIREMENTS
+    )
     deliverables: list[str] = Field(min_length=1, max_length=24)
     personas: list[str] = Field(default_factory=list, max_length=24)
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
@@ -122,7 +148,9 @@ class ScopeRevisionDraft(_DraftModel):
     topic_changed: bool
     topic_anchors: list[DraftTopicAnchor] = Field(default_factory=list, max_length=24)
     geography: list[str] = Field(default_factory=list, max_length=24)
-    evidence_requirements: list[EvidenceRequirement] = Field(max_length=12)
+    evidence_requirements: list[EvidenceRequirement] = Field(
+        max_length=_MAX_EVIDENCE_REQUIREMENTS
+    )
     deliverables: list[str] = Field(min_length=1, max_length=24)
     personas: list[str] = Field(default_factory=list, max_length=24)
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
@@ -1702,7 +1730,11 @@ class GeminiGroundedResearchRunner:
     def __init__(self, api_key: str) -> None:
         from backend.services.generative.gemini_search_service import GeminiSearchService
 
-        self.service = GeminiSearchService(api_key=api_key)
+        self.service = GeminiSearchService(
+            api_key=api_key,
+            search_operation_seconds=_WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS,
+            search_attempt_seconds=_WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+        )
 
     async def search(self, query: str) -> dict[str, Any]:
         return await self.service.search_web_general_async(query)
@@ -2547,12 +2579,32 @@ class GeminiCognitiveExecutor:
         )
         if to_acquire and self.research_runner is None:
             raise CognitiveExecutionFailure("AXWISE_RESEARCH_UNAVAILABLE", retryable=True)
-        concurrency = max(1, min(int(os.getenv("AXWISE_RESEARCH_CONCURRENCY", "4")), 8))
+        concurrency = max(
+            _MIN_RESEARCH_CONCURRENCY,
+            min(
+                int(
+                    os.getenv(
+                        "AXWISE_RESEARCH_CONCURRENCY",
+                        str(_DEFAULT_RESEARCH_CONCURRENCY),
+                    )
+                ),
+                _MAX_RESEARCH_CONCURRENCY,
+            ),
+        )
         deadline_seconds = max(
-            30, min(int(os.getenv("AXWISE_RESEARCH_DEADLINE_SECONDS", "300")), 900)
+            _MIN_RESEARCH_DEADLINE_SECONDS,
+            min(
+                int(
+                    os.getenv(
+                        "AXWISE_RESEARCH_DEADLINE_SECONDS",
+                        str(_DEFAULT_RESEARCH_DEADLINE_SECONDS),
+                    )
+                ),
+                _MAX_RESEARCH_DEADLINE_SECONDS,
+            ),
         )
         semaphore = asyncio.Semaphore(concurrency)
-        deadline = asyncio.get_running_loop().time() + deadline_seconds
+        deadline = _research_time() + deadline_seconds
         ledger: list[EvidenceAcquisitionPassV1] = []
         acquired_source_catalogues: list[list[ResearchSourceV1]] = []
         input_tokens = 0
@@ -2618,8 +2670,19 @@ class GeminiCognitiveExecutor:
             diagnostics = raw.get("runtime_diagnostics") or {}
             if not raw.get("search_performed"):
                 status_value = str(diagnostics.get("status") or "acquisition_failed")
-                if status_value in {"deadline_exceeded", "retry_exhausted"}:
-                    return [], [], [], None, status_value, 0, 0, 0, 0
+                if status_value in _TRANSIENT_EVIDENCE_ACQUISITION_STATUSES:
+                    usage_input, usage_output, usage_total, calls = _usage_from_search(raw)
+                    return (
+                        [],
+                        [],
+                        [],
+                        None,
+                        status_value,
+                        usage_input,
+                        usage_output,
+                        usage_total,
+                        calls,
+                    )
                 retryable = status_value not in {"configuration_error", "non_retryable_error"}
                 raise CognitiveExecutionFailure(
                     f"AXWISE_RESEARCH_{status_value.upper()}", retryable=retryable
@@ -2714,20 +2777,21 @@ class GeminiCognitiveExecutor:
                 return {}
             pending = set(tasks)
             completed: set[asyncio.Task] = set()
+            deadline_expired = False
             try:
                 while pending:
-                    remaining = max(
-                        0.001, deadline - asyncio.get_running_loop().time()
-                    )
+                    remaining = deadline - _research_time()
+                    if remaining <= 0:
+                        deadline_expired = True
+                        break
                     done, pending = await asyncio.wait(
                         pending,
                         timeout=remaining,
                         return_when=asyncio.FIRST_COMPLETED,
                     )
                     if not done:
-                        raise CognitiveExecutionFailure(
-                            "AXWISE_RESEARCH_DEADLINE", retryable=True
-                        )
+                        deadline_expired = True
+                        break
                     completed.update(done)
                     # Surface the first child failure now. The finally block
                     # cancels and awaits every sibling before it can escape.
@@ -2759,6 +2823,14 @@ class GeminiCognitiveExecutor:
                     total_tokens += used_total
                     search_calls += used_calls
                     acquired[requirement.id] = (claims, conflicts, failure_status)
+                if deadline_expired:
+                    for task in pending:
+                        requirement = tasks[task]
+                        acquired[requirement.id] = (
+                            [],
+                            [],
+                            "deadline_exceeded",
+                        )
                 return acquired
             finally:
                 unfinished = [task for task in tasks if not task.done()]
@@ -2799,28 +2871,20 @@ class GeminiCognitiveExecutor:
             else:
                 missing_for_repair.append(requirement)
 
-        if missing_for_repair and asyncio.get_running_loop().time() >= deadline:
-            raise CognitiveExecutionFailure("AXWISE_RESEARCH_DEADLINE", retryable=True)
-        repair_performed = bool(missing_for_repair)
-        repaired = await run_round(missing_for_repair, 1)
+        repair_performed = bool(missing_for_repair) and _research_time() < deadline
+        repaired = (
+            await run_round(missing_for_repair, 1)
+            if repair_performed
+            else {
+                requirement.id: ([], [], "deadline_exceeded")
+                for requirement in missing_for_repair
+            }
+        )
         for requirement in missing_for_repair:
             claims, conflicts, repair_failure_status = repaired.get(
                 requirement.id, ([], [], None)
             )
             initial_failure_status = initial_failure_statuses.get(requirement.id)
-            if (
-                not claims
-                and not conflicts
-                and initial_failure_status is not None
-                and repair_failure_status is not None
-            ):
-                error_class = (
-                    "AXWISE_RESEARCH_DEADLINE"
-                    if "deadline_exceeded"
-                    in {initial_failure_status, repair_failure_status}
-                    else "AXWISE_RESEARCH_RETRY_EXHAUSTED"
-                )
-                raise CognitiveExecutionFailure(error_class, retryable=True)
             status_value = "conflicting" if conflicts else "verified" if claims else "missing"
             failure_statuses = [
                 value
@@ -2835,6 +2899,11 @@ class GeminiCognitiveExecutor:
                 if conflicts
                 else f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
                 if claims
+                else (
+                    "Grounded acquisition reached the bounded research deadline before "
+                    "the targeted repair pass; no accepted grounded claim was recorded."
+                )
+                if not repair_performed
                 else (
                     "Grounded acquisition remained unavailable after the single "
                     "targeted repair pass "
