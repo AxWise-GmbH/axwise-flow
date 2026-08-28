@@ -3170,6 +3170,80 @@ class GapQualityWriter(QualityWriter):
         return TaskDraft.model_validate(payload)
 
 
+class BoundedSpecialistWriter(QualityWriter):
+    async def execute_task(self, input_value, scope, research_payload, contents):
+        if input_value.task.produces_full_contract:
+            return await super().execute_task(
+                input_value, scope, research_payload, contents
+            )
+        return TaskDraft(
+            title=input_value.task.title,
+            markdown=(
+                "# Specialist findings\n\n"
+                "Concrete merge-ready findings stay within this task's accepted lens.\n\n"
+                "## Evidence gaps\n\n"
+                "- The accepted research remains evidence-gapped; this bounded packet "
+                "does not claim launch, legal, or safety readiness."
+            ),
+            requirement_coverage=[
+                {
+                    "requirementId": item,
+                    "status": "satisfied",
+                    "note": "Covered within the specialist's accepted bounded lens.",
+                }
+                for item in input_value.task.acceptance_requirement_ids
+            ],
+            conclusions=["Produced a bounded specialist packet."],
+            unknowns=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_bounded_specialist_does_not_repeat_unrelated_global_gap_labels() -> None:
+    compiled = await compiled_scope(
+        criticality="nonblocking", claim_type="market_statistic"
+    )
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=BoundedSpecialistWriter(),
+    )
+    execute_input = cognitive_input(
+        purpose="execute_task",
+        compiled=compiled,
+        research=research,
+        output_contract=output_contract,
+        extra_refs=[plan_ref],
+        extra_contents=[plan_content],
+        repair_pass=0,
+        acceptedPlan=plan_ref,
+        task=tasks[0],
+    )
+
+    result = await executor.execute(
+        envelope_for(
+            execute_input,
+            operation_id="00000000-0000-4000-8000-000000000059",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+
+    assert result.result_type == "task_completed"
+    assert result.artifact.kind == "task_result"
+    assert "Evidence gaps" in result.artifact.markdown
+    assert all(
+        label not in result.artifact.markdown
+        for label in [
+            *research.artifact.payload["assumptions"],
+            *research.artifact.payload["gaps"],
+            *research.artifact.payload["conflicts"],
+        ]
+    )
+
+
 @pytest.mark.asyncio
 async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
     compiled = await compiled_scope(
