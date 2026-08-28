@@ -24,6 +24,30 @@ Text4000 = Annotated[str, StringConstraints(min_length=1, max_length=4000)]
 RequirementId = Annotated[
     str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9_-]{0,119}$")
 ]
+SemanticRequirementId = Annotated[
+    str, StringConstraints(pattern=r"^req-[a-f0-9]{16}$")
+]
+SemanticAcceptanceCriterionId = Annotated[
+    str, StringConstraints(pattern=r"^acc-[a-f0-9]{16}$")
+]
+DeliverableArtifactTypeV1 = Literal[
+    "product_prd",
+    "software_prd",
+    "research_strategy",
+    "content_artifact",
+    "operational_plan",
+    "launch_authorization",
+    "general_artifact",
+]
+PlanRequirementCategoryV2 = Literal[
+    "deliverable",
+    "persona",
+    "interview",
+    "prd",
+    "limit",
+    "policy",
+    "evidence",
+]
 Rfc3339Utc = Annotated[
     str,
     StringConstraints(
@@ -221,6 +245,11 @@ class EvidenceRequirement(ContractModel):
     claim_type: str = Field(min_length=1, max_length=120)
     description: str = Field(min_length=1, max_length=1000)
     criticality: Literal["blocking", "nonblocking"]
+    evidence_role: Literal[
+        "grounded_claim",
+        "selected_artifact_proof",
+        "future_authorization_proof",
+    ]
     verification_basis: Literal["grounded_claims", "selected_evidence"]
     applies_when: str = Field(min_length=1, max_length=1000)
     accepted_source_types: list[EvidenceSourceType] = Field(min_length=1, max_length=7)
@@ -228,6 +257,15 @@ class EvidenceRequirement(ContractModel):
 
     @model_validator(mode="after")
     def canonical_source_types(self) -> "EvidenceRequirement":
+        expected_basis = (
+            "grounded_claims"
+            if self.evidence_role == "grounded_claim"
+            else "selected_evidence"
+        )
+        if self.verification_basis != expected_basis:
+            raise ValueError(
+                "evidenceRole must use its exact typed verificationBasis"
+            )
         if self.accepted_source_types != utf16_ordinal_sorted(
             set(self.accepted_source_types)
         ):
@@ -275,6 +313,60 @@ class ScopeAuthority(ContractModel):
     seal: str = Field(min_length=32, max_length=512)
 
 
+class AcceptedDeliverableProfileV1(ContractModel):
+    schema_version: Literal["axwise.deliverable-profile.v1"]
+    artifact_type: DeliverableArtifactTypeV1
+    domain: Text500
+    problem: Text2000
+    desired_outcome: Text2000
+    audiences: list[Text500] = Field(min_length=1, max_length=24)
+    non_goals: list[Text1000] = Field(max_length=40)
+    required_sections: list[Text300] = Field(min_length=1, max_length=80)
+
+    @model_validator(mode="after")
+    def canonical_profile_lists(self) -> "AcceptedDeliverableProfileV1":
+        for name, values in (
+            ("audiences", self.audiences),
+            ("nonGoals", self.non_goals),
+            ("requiredSections", self.required_sections),
+        ):
+            if values != utf16_ordinal_sorted(set(values)):
+                raise ValueError(f"deliverable-profile {name} must be sorted and unique")
+        return self
+
+
+class AcceptedDeliverableRequirementV1(ContractModel):
+    id: SemanticRequirementId
+    category: PlanRequirementCategoryV2
+    description: Text2000
+    priority: Literal["P0", "P1", "P2"]
+    authority: Literal["owner", "safe_default", "axwise_derived"]
+
+    @model_validator(mode="after")
+    def exact_semantic_id(self) -> "AcceptedDeliverableRequirementV1":
+        semantic = self.model_dump(mode="json", by_alias=True, exclude={"id"})
+        if self.id != f"req-{canonical_hash(semantic)[:16]}":
+            raise ValueError("deliverable requirement ID does not match its semantics")
+        return self
+
+
+class DeliverableAcceptanceCriterionV1(ContractModel):
+    id: SemanticAcceptanceCriterionId
+    given: Text2000
+    when: Text2000
+    then: Text2000
+    supports: list[SemanticRequirementId] = Field(min_length=1, max_length=120)
+
+    @model_validator(mode="after")
+    def exact_semantic_id(self) -> "DeliverableAcceptanceCriterionV1":
+        if self.supports != utf16_ordinal_sorted(set(self.supports)):
+            raise ValueError("acceptance-criterion supports must be sorted and unique")
+        semantic = self.model_dump(mode="json", by_alias=True, exclude={"id"})
+        if self.id != f"acc-{canonical_hash(semantic)[:16]}":
+            raise ValueError("acceptance criterion ID does not match its semantics")
+        return self
+
+
 class ScopeArtifactV2(ContractModel):
     schema_version: Literal["axwise.scope.v2"] = "axwise.scope.v2"
     objective: str = Field(min_length=1, max_length=6000)
@@ -288,10 +380,61 @@ class ScopeArtifactV2(ContractModel):
     prd_requirements: list[Text1000] = Field(default_factory=list, max_length=40)
     limits: list[Text1000] = Field(default_factory=list, max_length=40)
     policies: list[Text1000] = Field(default_factory=list, max_length=40)
+    deliverable_profile: AcceptedDeliverableProfileV1
+    requirements: list[AcceptedDeliverableRequirementV1] = Field(
+        min_length=1, max_length=120
+    )
+    acceptance_criteria: list[DeliverableAcceptanceCriterionV1] = Field(
+        min_length=1, max_length=120
+    )
     assumptions: list[Text1000] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(default=None, min_length=1, max_length=1000)
     research_input_hash: Sha256
     authority: ScopeAuthority
+
+    @model_validator(mode="after")
+    def exact_deliverable_contract(self) -> "ScopeArtifactV2":
+        evidence_requirement_ids = [item.id for item in self.evidence_requirements]
+        if len(evidence_requirement_ids) != len(set(evidence_requirement_ids)):
+            raise ValueError("evidence requirements must have unique IDs")
+        requirement_ids = [item.id for item in self.requirements]
+        criterion_ids = [item.id for item in self.acceptance_criteria]
+        if requirement_ids != utf16_ordinal_sorted(set(requirement_ids)):
+            raise ValueError("deliverable requirements must be sorted by unique semantic ID")
+        if criterion_ids != utf16_ordinal_sorted(set(criterion_ids)):
+            raise ValueError(
+                "deliverable acceptance criteria must be sorted by unique semantic ID"
+            )
+        supported = {
+            requirement_id
+            for criterion in self.acceptance_criteria
+            for requirement_id in criterion.supports
+        }
+        if supported != set(requirement_ids):
+            raise ValueError(
+                "acceptance criteria must reference and cover every deliverable requirement"
+            )
+        expected_descriptions = sorted(
+            [
+                *(('deliverable', value) for value in self.deliverables),
+                *(('persona', value) for value in self.personas),
+                *(('interview', value) for value in self.interview_requirements),
+                *(('prd', value) for value in self.prd_requirements),
+                *(('limit', value) for value in self.limits),
+                *(('policy', value) for value in self.policies),
+                *(('evidence', value.description) for value in self.evidence_requirements),
+            ],
+            key=lambda item: (item[0].encode("utf-16-be"), item[1].encode("utf-16-be")),
+        )
+        actual_descriptions = sorted(
+            [(item.category, item.description) for item in self.requirements],
+            key=lambda item: (item[0].encode("utf-16-be"), item[1].encode("utf-16-be")),
+        )
+        if actual_descriptions != expected_descriptions:
+            raise ValueError(
+                "deliverable requirements must exactly project accepted scope semantic lists"
+            )
+        return self
 
 
 class EvidenceFinding(ContractModel):
@@ -485,7 +628,6 @@ class ResearchResultV2(ContractModel):
     claim_ledger: list[EvidenceAcquisitionPassV1] = Field(default_factory=list, max_length=160)
     selected_claims: list[EvidenceClaimV1] = Field(max_length=400)
     source_catalogue: list[ResearchSourceV1] = Field(max_length=400)
-    launch_ready: bool
 
     @model_validator(mode="after")
     def readiness_consistency(self) -> "ResearchResultV2":
@@ -510,18 +652,21 @@ class ResearchResultV2(ContractModel):
                 and self.claim_ledger_artifact_id not in finding.source_artifact_ids
             ):
                 raise ValueError("dynamically acquired finding must cite its claim ledger")
+        # A verified conflict is never an optional gap: it means two accepted
+        # evidence facts cannot simultaneously support the artifact.
         unresolved_blocking = any(
-            finding.blocking and finding.status in {"missing", "conflicting"}
+            finding.status == "conflicting"
+            or (finding.blocking and finding.status == "missing")
             for finding in self.findings
         )
         unresolved_nonblocking = any(
-            not finding.blocking and finding.status in {"missing", "conflicting"}
+            not finding.blocking and finding.status == "missing"
             for finding in self.findings
         )
         expected_gaps = [
             finding.note
             for finding in self.findings
-            if not finding.blocking and finding.status in {"missing", "conflicting"}
+            if not finding.blocking and finding.status == "missing"
         ]
         expected_conflicts = [
             finding.note
@@ -545,8 +690,6 @@ class ResearchResultV2(ContractModel):
         )
         if self.readiness != expected_readiness:
             raise ValueError("evidence readiness is not the deterministic finding result")
-        if self.launch_ready != (self.readiness == "ready"):
-            raise ValueError("launchReady must exactly follow evidence readiness")
         return self
 
 
@@ -616,6 +759,22 @@ class ExecuteResearchInputV2(ContractModel):
     scope: ScopeArtifactV2
     selected_evidence: list[ArtifactRef] = Field(default_factory=list, max_length=200)
 
+    @model_validator(mode="after")
+    def exact_research_artifact_roles(self) -> "ExecuteResearchInputV2":
+        if self.accepted_scope.kind != "scope":
+            raise ValueError("acceptedScope must reference a scope artifact")
+        if any(item.kind != "evidence" for item in self.selected_evidence):
+            raise ValueError("selectedEvidence must reference only evidence artifacts")
+        if self.selected_evidence != sorted(
+            self.selected_evidence, key=lambda item: str(item.artifact_id)
+        ):
+            raise ValueError("selectedEvidence must be sorted by artifactId")
+        if len({item.artifact_id for item in self.selected_evidence}) != len(
+            self.selected_evidence
+        ):
+            raise ValueError("selectedEvidence artifact IDs must be unique")
+        return self
+
 
 class SelectedAgentV2(ContractModel):
     id: UUID
@@ -636,22 +795,28 @@ class SelectedAgentV2(ContractModel):
 
 class PlanRequirementV2(ContractModel):
     id: RequirementId
-    category: Literal[
-        "deliverable",
-        "persona",
-        "interview",
-        "prd",
-        "limit",
-        "policy",
-        "evidence",
-    ]
+    category: PlanRequirementCategoryV2
     description: Text2000
+    priority: Literal["P0", "P1", "P2"]
+    authority: Literal["owner", "safe_default", "axwise_derived"]
+
+    @model_validator(mode="after")
+    def exact_typed_requirement(self) -> "PlanRequirementV2":
+        semantic = self.model_dump(mode="json", by_alias=True, exclude={"id"})
+        if self.id != f"req-{canonical_hash(semantic)[:16]}":
+            raise ValueError("plan requirement ID does not match its semantics")
+        return self
 
 
 class WorkflowOutputContractV1(ContractModel):
     format: Literal["text/markdown"]
+    artifact_type: DeliverableArtifactTypeV1
     required_sections: list[Text300] = Field(min_length=1, max_length=80)
     requirement_ids: list[RequirementId] = Field(min_length=1, max_length=120)
+    rubric: list[Text1000] = Field(min_length=1, max_length=20)
+    acceptance_criteria: list[DeliverableAcceptanceCriterionV1] = Field(
+        min_length=1, max_length=120
+    )
     evidence_readiness: Literal["ready", "ready_with_gaps", "blocked"]
     launch_ready_allowed: bool
     source_appendix_required: bool
@@ -662,8 +827,28 @@ class WorkflowOutputContractV1(ContractModel):
             raise ValueError("requiredSections must be sorted and unique")
         if self.requirement_ids != utf16_ordinal_sorted(set(self.requirement_ids)):
             raise ValueError("output-contract requirement IDs must be sorted and unique")
-        if self.launch_ready_allowed != (self.evidence_readiness == "ready"):
-            raise ValueError("launchReadyAllowed must exactly follow evidence readiness")
+        if self.rubric != utf16_ordinal_sorted(set(self.rubric)):
+            raise ValueError("output-contract rubric must be sorted and unique")
+        criterion_ids = [item.id for item in self.acceptance_criteria]
+        if criterion_ids != utf16_ordinal_sorted(set(criterion_ids)):
+            raise ValueError("output-contract acceptance criteria must be sorted and unique")
+        supported = {
+            requirement_id
+            for criterion in self.acceptance_criteria
+            for requirement_id in criterion.supports
+        }
+        if supported != set(self.requirement_ids):
+            raise ValueError(
+                "output-contract acceptance criteria must cover every requirement ID"
+            )
+        expected_launch_authority = (
+            self.artifact_type == "launch_authorization"
+            and self.evidence_readiness == "ready"
+        )
+        if self.launch_ready_allowed != expected_launch_authority:
+            raise ValueError(
+                "launchReadyAllowed requires ready launch_authorization evidence"
+            )
         return self
 
 
@@ -673,7 +858,7 @@ class ExecutionTaskV2(ContractModel):
         str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9_-]{0,119}$")
     ]
     title: Text500
-    task_kind: Literal["core_draft", "specialist_review"]
+    task_kind: Literal["core_draft", "specialist_analysis"]
     required_role: Text160
     lens: Text500
     required_capabilities: list[Text120] = Field(min_length=1, max_length=20)
@@ -726,10 +911,12 @@ class PlanningResultV2(ContractModel):
     accepted_scope_artifact: ArtifactRef
     research_artifact: ArtifactRef
     work_shape: Literal[
+        "product_prd",
         "software_prd",
         "research_strategy",
         "content_artifact",
         "operational_plan",
+        "launch_authorization",
         "general_artifact",
     ]
     requirements: list[PlanRequirementV2] = Field(min_length=1, max_length=120)
@@ -747,6 +934,8 @@ class PlanningResultV2(ContractModel):
             raise ValueError("plan requirements must be sorted by unique ID")
         if self.output_contract.requirement_ids != requirement_ids:
             raise ValueError("output contract must cover every plan requirement")
+        if self.output_contract.artifact_type != self.work_shape:
+            raise ValueError("output contract artifactType must equal plan workShape")
         if len({task.stage_id for task in self.tasks}) != len(self.tasks):
             raise ValueError("plan task stage IDs must be unique")
         if len({task.stage_key for task in self.tasks}) != len(self.tasks):
@@ -784,6 +973,24 @@ class PlanningResultV2(ContractModel):
             for task in self.tasks
         ):
             raise ValueError("task acceptance IDs must reference plan requirements")
+        specialists = [
+            task for task in self.tasks if task.task_kind == "specialist_analysis"
+        ]
+        expected_specialists = 3 if self.work_shape == "software_prd" else 2
+        if len(specialists) != expected_specialists:
+            raise ValueError(
+                f"{self.work_shape} plan requires exactly {expected_specialists} "
+                "independent specialist analyses"
+            )
+        core = core_tasks[0]
+        if any(task.depends_on_stage_keys for task in specialists):
+            raise ValueError("specialist analyses must be independent")
+        if set(core.depends_on_stage_keys) != {
+            task.stage_key for task in specialists
+        }:
+            raise ValueError(
+                "core draft must consume every independent specialist analysis"
+            )
         return self
 
 
@@ -930,6 +1137,12 @@ class EvaluationResultV1(ContractModel):
 
     @model_validator(mode="after")
     def exact_promotion_fact(self) -> "EvaluationResultV1":
+        if self.task_artifacts != sorted(
+            self.task_artifacts, key=lambda item: str(item.artifact_id)
+        ) or len({item.artifact_id for item in self.task_artifacts}) != len(
+            self.task_artifacts
+        ):
+            raise ValueError("evaluation taskArtifacts must be sorted and unique")
         expected_core = []
         for kind in ("scope", "research", "plan"):
             matching = [item for item in self.source_artifacts if item.kind == kind]
@@ -974,27 +1187,24 @@ class EvaluationResultV1(ContractModel):
                 self.practicality_defects,
             )
         )
-        if self.output_contract_satisfied != (
-            issue_count == 0
-            and len(self.task_artifacts) == 1
-            and self.task_artifacts[0].kind == "final_markdown"
-        ):
+        candidates = [
+            item for item in self.task_artifacts if item.kind == "final_markdown"
+        ]
+        if self.output_contract_satisfied != (issue_count == 0 and len(candidates) == 1):
             raise ValueError("output-contract satisfaction must equal the issue facts")
         if self.repair_required == self.output_contract_satisfied:
             raise ValueError("repairRequired must be the inverse of satisfaction")
         if self.repair_required != bool(self.repair_instructions):
             raise ValueError("repair instructions must exist exactly when repair is required")
-        if self.promoted_artifact is not None and (
-            not self.output_contract_satisfied or len(self.task_artifacts) != 1
-        ):
-            raise ValueError("direct promotion requires one fully satisfying task artifact")
+        if self.promoted_artifact is not None and not self.output_contract_satisfied:
+            raise ValueError("direct promotion requires a fully satisfying candidate")
         if self.output_contract_satisfied:
             if (
-                self.promoted_artifact != self.task_artifacts[0]
+                self.promoted_artifact != candidates[0]
                 or self.promoted_artifact.kind != "final_markdown"
             ):
                 raise ValueError(
-                    "satisfied output must promote its sole exact final Markdown candidate"
+                    "satisfied output must promote the sole exact final Markdown candidate"
                 )
         elif self.promoted_artifact is not None:
             raise ValueError("unsatisfied output cannot promote an artifact")

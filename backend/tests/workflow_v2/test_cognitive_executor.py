@@ -20,6 +20,7 @@ from backend.domain.workflow_v2.contracts import (
     EvidenceRequirement,
     ResearchResultV2,
     ResearchSourceV1,
+    ScopeArtifactV2,
     SourceAppendixEntryV1,
     artifact_content_hash,
     canonical_hash,
@@ -32,8 +33,6 @@ from backend.services.workflow_v2.cognitive_executor import (
     PydanticAIScopeDrafter,
     PydanticAIScopeReviser,
     PydanticAISynthesisWriter,
-    PLANNING_NON_CLEARANCE_ASSUMPTION,
-    PLANNING_NON_CLEARANCE_POLICY,
     SCOPE_REVISION_SYSTEM_PROMPT,
     SCOPE_SYSTEM_PROMPT,
     ScopeDraft,
@@ -43,6 +42,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     TaskDraft,
     EvaluationDraft,
     _appendix_matches_research,
+    _blocked_report_output_contract,
     _operation_metrics,
     _deterministic_quality_defects,
     _citation_sections,
@@ -132,6 +132,7 @@ class FakeDrafter:
         criticality: str = "blocking",
         claim_type: str = "legal_safety",
         verification_basis: str = "grounded_claims",
+        evidence_role: str | None = None,
         description: str = "Verify applicable pet-food safety obligations.",
         applies_when: str = "The deliverable recommends an Estonia launch.",
         topic_value: str = "cat-food",
@@ -142,10 +143,16 @@ class FakeDrafter:
         allowed_source_hosts: list[str] | None = None,
         accepted_source_types: list[str] | None = None,
         deliverables: list[str] | None = None,
+        artifact_type: str | None = None,
     ) -> None:
         self.criticality = criticality
         self.claim_type = claim_type
         self.verification_basis = verification_basis
+        self.evidence_role = evidence_role or (
+            "grounded_claim"
+            if verification_basis == "grounded_claims"
+            else "future_authorization_proof"
+        )
         self.description = description
         self.applies_when = applies_when
         self.topic_value = topic_value
@@ -159,10 +166,19 @@ class FakeDrafter:
             "primary_law",
         ]
         self.deliverables = deliverables or ["Product requirements document"]
+        self.artifact_type = artifact_type
 
     async def draft(self, input_value, objective_context):
         assert objective_context == []
         request = input_value.request
+        artifact_type = self.artifact_type or (
+            "launch_authorization"
+            if any(
+                marker in request.casefold()
+                for marker in ("go/no-go", "go-live recommendation", "launch plan")
+            )
+            else "product_prd"
+        )
         topic_start = request.index(self.topic_value)
         requirements = []
         if self.evidence:
@@ -175,8 +191,13 @@ class FakeDrafter:
                             else f"food-safety-law-{index}"
                         ),
                         "claimType": self.claim_type,
-                        "description": self.description,
+                        "description": (
+                            self.description
+                            if self.evidence_count == 1 or index == 0
+                            else f"{self.description} Requirement {index + 1}."
+                        ),
                         "criticality": self.criticality,
+                        "evidenceRole": self.evidence_role,
                         "verificationBasis": self.verification_basis,
                         "appliesWhen": self.applies_when,
                         "acceptedSourceTypes": self.accepted_source_types,
@@ -203,6 +224,28 @@ class FakeDrafter:
                 deliverables=self.deliverables,
                 prd_requirements=["Label evidence gaps at claim level"],
                 policies=self.policies,
+                deliverable_profile={
+                    "artifact_type": artifact_type,
+                    "domain": "Physical pet-food product planning in Estonia",
+                    "problem": "Define a useful evidence-aware cat-food product.",
+                    "desired_outcome": "A decision-useful physical product PRD.",
+                    "audiences": ["Product team"],
+                    "non_goals": ["Launch authorization"],
+                    "required_sections": self.deliverables,
+                },
+                acceptance_criteria=[
+                    {
+                        "given": "The accepted physical-product scope",
+                        "when": "The PRD is evaluated",
+                        "then": "Every accepted requirement is traceable and testable.",
+                        "supports": [
+                            "deliverable",
+                            "prd",
+                            *(["evidence"] if requirements else []),
+                            *(["policy"] if self.policies else []),
+                        ],
+                    }
+                ],
                 assumptions=self.assumptions,
             ),
             input_tokens=11,
@@ -613,7 +656,10 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
     }
 
     class Reviser:
-        async def revise(self, _input_value, accepted_scope):
+        async def revise(self, input_value, accepted_scope):
+            profile = accepted_scope.deliverable_profile.model_dump()
+            if "go/no-go" in input_value.correction:
+                profile["artifact_type"] = "launch_authorization"
             return ScopeRevisionDraft(
                 objective_changed=True,
                 objective="Create an Estonia dog-food launch PRD.",
@@ -637,6 +683,10 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
                 prd_requirements=list(accepted_scope.prd_requirements),
                 limits=list(accepted_scope.limits),
                 policies=list(accepted_scope.policies),
+                deliverable_profile=profile,
+                acceptance_criteria=[
+                    item.model_dump() for item in accepted_scope.acceptance_criteria
+                ],
                 assumptions=list(accepted_scope.assumptions),
             )
 
@@ -661,11 +711,12 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
 
 
 @pytest.mark.asyncio
-async def test_revision_preserves_then_revokes_planning_exemption() -> None:
+async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None:
     owner_policies = [f"Owner policy {index}" for index in range(39)]
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
+            evidence_role="future_authorization_proof",
             applies_when="Validating product readiness before release.",
             topic_value="NorthPaw",
             policies=owner_policies,
@@ -674,7 +725,10 @@ async def test_revision_preserves_then_revokes_planning_exemption() -> None:
     ).execute(envelope_for(compile_input(B01_REQUEST)))
 
     class Reviser:
-        async def revise(self, _input_value, accepted_scope):
+        async def revise(self, input_value, accepted_scope):
+            profile = accepted_scope.deliverable_profile.model_dump()
+            if "go/no-go" in input_value.correction:
+                profile["artifact_type"] = "launch_authorization"
             return ScopeRevisionDraft(
                 objective_changed=False,
                 topic_changed=False,
@@ -688,14 +742,16 @@ async def test_revision_preserves_then_revokes_planning_exemption() -> None:
                     )
                 ],
                 deliverables=list(accepted_scope.deliverables),
-                personas=[*accepted_scope.personas, "Retail distributors"],
+                personas=list(
+                    dict.fromkeys([*accepted_scope.personas, "Retail distributors"])
+                ),
                 interview_requirements=list(accepted_scope.interview_requirements),
                 prd_requirements=list(accepted_scope.prd_requirements),
                 limits=list(accepted_scope.limits),
-                policies=[
-                    policy
-                    for policy in accepted_scope.policies
-                    if policy != PLANNING_NON_CLEARANCE_POLICY
+                policies=list(accepted_scope.policies),
+                deliverable_profile=profile,
+                acceptance_criteria=[
+                    item.model_dump() for item in accepted_scope.acceptance_criteria
                 ],
                 assumptions=list(accepted_scope.assumptions),
             )
@@ -738,10 +794,7 @@ async def test_revision_preserves_then_revokes_planning_exemption() -> None:
         AUTHORITY_KEY,
         artifact_resolver=Resolver(revised.artifact),
     ).execute(research_operation(revised))
-    assert revised.artifact.payload["policies"] == [
-        *owner_policies,
-        PLANNING_NON_CLEARANCE_POLICY,
-    ]
+    assert revised.artifact.payload["policies"] == owner_policies
     assert revised.artifact.payload["evidenceRequirements"][0]["criticality"] == "blocking"
     assert research.artifact.payload["findings"][0]["blocking"] is False
     assert research.evidence_readiness == "ready_with_gaps"
@@ -1064,6 +1117,7 @@ async def compiled_scope(
     criticality: str = "blocking",
     claim_type: str = "legal_safety",
     verification_basis: str = "grounded_claims",
+    evidence_role: str | None = None,
     description: str = "Verify applicable pet-food safety obligations.",
     assumptions: list[str] | None = None,
     evidence: bool = True,
@@ -1076,6 +1130,7 @@ async def compiled_scope(
             criticality=criticality,
             claim_type=claim_type,
             verification_basis=verification_basis,
+            evidence_role=evidence_role,
             description=description,
             assumptions=assumptions,
             evidence=evidence,
@@ -1102,6 +1157,55 @@ def research_operation(compiled, *, selected_evidence: list[ArtifactFact] | None
     )
 
 
+@pytest.mark.asyncio
+async def test_execute_research_input_enforces_exact_artifact_roles_and_order() -> None:
+    compiled = await compiled_scope()
+    scope_ref = ref(compiled.artifact)
+    evidence_a = {
+        "artifactId": "00000000-0000-4000-8000-000000000010",
+        "artifactHash": "a" * 64,
+        "kind": "evidence",
+    }
+    evidence_b = {
+        "artifactId": "00000000-0000-4000-8000-000000000011",
+        "artifactHash": "b" * 64,
+        "kind": "evidence",
+    }
+
+    def payload(*, accepted=scope_ref, selected=None):
+        return {
+            "type": "ExecuteResearchV2",
+            "acceptedScope": accepted,
+            "scope": compiled.artifact.payload,
+            "selectedEvidence": selected or [],
+        }
+
+    envelope_for(
+        payload(selected=[evidence_a, evidence_b]),
+        operation_type="ExecuteResearchV2",
+    )
+    with pytest.raises(ValueError, match="scope artifact"):
+        envelope_for(
+            payload(accepted={**scope_ref, "kind": "evidence"}),
+            operation_type="ExecuteResearchV2",
+        )
+    with pytest.raises(ValueError, match="only evidence artifacts"):
+        envelope_for(
+            payload(selected=[{**evidence_a, "kind": "scope"}]),
+            operation_type="ExecuteResearchV2",
+        )
+    with pytest.raises(ValueError, match="sorted by artifactId"):
+        envelope_for(
+            payload(selected=[evidence_b, evidence_a]),
+            operation_type="ExecuteResearchV2",
+        )
+    with pytest.raises(ValueError, match="must be unique"):
+        envelope_for(
+            payload(selected=[evidence_a, evidence_a]),
+            operation_type="ExecuteResearchV2",
+        )
+
+
 async def execute_research(compiled, runner, *extra_facts):
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
@@ -1119,6 +1223,7 @@ def selected_evidence_fact(
     *,
     source_types: list[str] | None = None,
     text: str = "The exact product-specific assessment is complete and approved.",
+    conflicts: list[str] | None = None,
 ) -> ArtifactFact:
     urls = ["https://health.ec.europa.eu/exact-product-assessment"]
     typed_source_types = source_types or ["government"]
@@ -1150,7 +1255,7 @@ def selected_evidence_fact(
         "requirementId": requirement_id,
         "applicability": "applicable",
         "claims": [claim],
-        "conflicts": [],
+        "conflicts": conflicts or [],
         "sourceCatalogue": [
             {
                 "sourceId": canonical_hash(source_core),
@@ -1172,12 +1277,134 @@ def selected_evidence_fact(
     )
 
 
+@pytest.mark.asyncio
+async def test_typed_physical_and_software_prd_profiles_have_stable_semantic_ids() -> None:
+    first = await GeminiCognitiveExecutor(
+        FakeDrafter(artifact_type="product_prd"), AUTHORITY_KEY
+    ).execute(envelope_for())
+    repeated = await GeminiCognitiveExecutor(
+        FakeDrafter(artifact_type="product_prd"), AUTHORITY_KEY
+    ).execute(
+        envelope_for(operation_id="00000000-0000-4000-8000-000000000006")
+    )
+    software = await GeminiCognitiveExecutor(
+        FakeDrafter(artifact_type="software_prd"), AUTHORITY_KEY
+    ).execute(
+        envelope_for(operation_id="00000000-0000-4000-8000-000000000007")
+    )
+
+    physical_profile = first.artifact.payload["deliverableProfile"]
+    software_profile = software.artifact.payload["deliverableProfile"]
+    assert physical_profile["schemaVersion"] == "axwise.deliverable-profile.v1"
+    assert physical_profile["artifactType"] == "product_prd"
+    assert software_profile["artifactType"] == "software_prd"
+    assert "Technical boundaries" not in physical_profile["requiredSections"]
+    assert "Technical boundaries" in software_profile["requiredSections"]
+    assert first.artifact.payload["requirements"] == repeated.artifact.payload[
+        "requirements"
+    ]
+    assert first.artifact.payload["acceptanceCriteria"] == repeated.artifact.payload[
+        "acceptanceCriteria"
+    ]
+    assert first.artifact.payload["researchInputHash"] == repeated.artifact.payload[
+        "researchInputHash"
+    ]
+    assert first.artifact.payload["researchInputHash"] != software.artifact.payload[
+        "researchInputHash"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_accepted_scope_rejects_duplicate_evidence_requirement_ids() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(evidence_count=2),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    duplicate = json.loads(json.dumps(compiled.artifact.payload))
+    duplicate["evidenceRequirements"][1]["id"] = duplicate[
+        "evidenceRequirements"
+    ][0]["id"]
+
+    with pytest.raises(ValueError, match="evidence requirements must have unique IDs"):
+        ScopeArtifactV2.model_validate(duplicate)
+
+
+@pytest.mark.asyncio
+async def test_normal_prd_future_selected_evidence_gap_needs_no_magic_phrase() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            verification_basis="selected_evidence",
+            evidence_role="future_authorization_proof",
+            applies_when=(
+                "The current requested PRD discusses the exact safety assessment."
+            ),
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    result = await execute_research(compiled, ForbiddenGroundedResearchRunner())
+
+    assert (
+        compiled.artifact.payload["evidenceRequirements"][0]["evidenceRole"]
+        == "future_authorization_proof"
+    )
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["findings"][0]["blocking"] is False
+    assert "launchReady" not in result.artifact.payload
+
+
+@pytest.mark.asyncio
+async def test_current_artifact_selected_evidence_and_any_conflict_still_block() -> None:
+    current = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            verification_basis="selected_evidence",
+            evidence_role="selected_artifact_proof",
+            applies_when="The current requested PRD requires the exact safety assessment.",
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    missing = await execute_research(current, ForbiddenGroundedResearchRunner())
+    assert (
+        current.artifact.payload["evidenceRequirements"][0]["evidenceRole"]
+        == "selected_artifact_proof"
+    )
+    assert missing.evidence_readiness == "blocked"
+    assert missing.artifact.payload["findings"][0]["blocking"] is True
+
+    optional = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            criticality="nonblocking",
+            verification_basis="selected_evidence",
+            applies_when="Before commercial product launch.",
+        ),
+        AUTHORITY_KEY,
+    ).execute(
+        envelope_for(operation_id="00000000-0000-4000-8000-000000000008")
+    )
+    evidence = selected_evidence_fact(
+        "food-safety-law",
+        conflicts=["Two verified product records conflict on the safety decision."],
+    )
+    conflicted = await execute_research(
+        optional, ForbiddenGroundedResearchRunner(), evidence
+    )
+    assert conflicted.artifact.payload["findings"][0]["blocking"] is False
+    assert conflicted.evidence_readiness == "blocked"
+
+
 def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
     for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
         assert "verificationBasis" in prompt
+        assert "evidenceRole" in prompt
         assert "selected_evidence" in prompt
         assert "grounded_claims" in prompt
-        assert "not product clearance" in prompt
+        assert "selected_artifact_proof" in prompt
+        assert "future_authorization_proof" in prompt
+        assert "product_prd" in prompt
+        assert "software_prd" in prompt
+        assert "launch_authorization" in prompt
         assert "go/no-go" in prompt
         for exact_proof in (
             "certificate",
@@ -1244,6 +1471,7 @@ async def test_early_prd_future_clearance_proof_is_a_nonblocking_gap(
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
+            evidence_role="future_authorization_proof",
             description=description,
             applies_when=applies_when,
             topic_value="NorthPaw",
@@ -1253,9 +1481,8 @@ async def test_early_prd_future_clearance_proof_is_a_nonblocking_gap(
 
     requirement = compiled.artifact.payload["evidenceRequirements"][0]
     assert requirement["verificationBasis"] == "selected_evidence"
+    assert requirement["evidenceRole"] == "future_authorization_proof"
     assert requirement["criticality"] == "blocking"
-    assert PLANNING_NON_CLEARANCE_POLICY in compiled.artifact.payload["policies"]
-
     result = await GeminiCognitiveExecutor(
         FakeDrafter(),
         AUTHORITY_KEY,
@@ -1270,10 +1497,11 @@ async def test_early_prd_future_clearance_proof_is_a_nonblocking_gap(
 
 
 @pytest.mark.asyncio
-async def test_planning_only_scope_never_becomes_launch_ready() -> None:
+async def test_ready_prd_research_has_no_launch_authority_field() -> None:
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
+            evidence_role="future_authorization_proof",
             applies_when="Validating product readiness before release.",
             topic_value="NorthPaw",
         ),
@@ -1287,11 +1515,9 @@ async def test_planning_only_scope_never_becomes_launch_ready() -> None:
         evidence,
     )
 
-    assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
-    assert result.artifact.payload["assumptions"] == [
-        PLANNING_NON_CLEARANCE_ASSUMPTION
-    ]
+    assert result.evidence_readiness == "ready"
+    assert "launchReady" not in result.artifact.payload
+    assert result.artifact.payload["assumptions"] == []
     assert result.artifact.payload["findings"][0]["status"] == "verified"
 
 
@@ -1307,12 +1533,13 @@ async def test_planning_only_scope_never_becomes_launch_ready() -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_planning_policy_does_not_exempt_evidence_needed_for_current_artifact(
+async def test_selected_artifact_proof_remains_blocking_regardless_applies_when_text(
     applies_when: str,
 ) -> None:
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
+            evidence_role="selected_artifact_proof",
             applies_when=applies_when,
             topic_value="NorthPaw",
         ),
@@ -1355,6 +1582,7 @@ def test_repair_source_titles_are_canonical_across_catalogue_completion_order() 
         claim_type="labeling_compliance",
         description="Verify mandatory feed labeling rules.",
         criticality="blocking",
+        evidence_role="grounded_claim",
         verification_basis="grounded_claims",
         applies_when="Creating the Estonia product label.",
         accepted_source_types=["primary_law"],
@@ -1375,7 +1603,7 @@ def test_repair_source_titles_are_canonical_across_catalogue_completion_order() 
 
 
 @pytest.mark.asyncio
-async def test_terminal_outcome_list_requires_planning_policy() -> None:
+async def test_launch_authorization_keeps_future_proof_blocking() -> None:
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
@@ -1393,7 +1621,6 @@ async def test_terminal_outcome_list_requires_planning_policy() -> None:
         )
     )
 
-    assert PLANNING_NON_CLEARANCE_POLICY not in compiled.artifact.payload["policies"]
     result = await GeminiCognitiveExecutor(
         FakeDrafter(),
         AUTHORITY_KEY,
@@ -1425,15 +1652,15 @@ async def test_early_prd_keeps_general_legal_evidence_grounded_and_blocking() ->
     result = await execute_research(compiled, runner)
 
     assert len(runner.queries) == 1
-    assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
+    assert result.evidence_readiness == "ready"
+    assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["findings"][0]["status"] == "verified"
     assert result.artifact.payload["findings"][0]["blocking"] is True
 
 
 @pytest.mark.asyncio
-async def test_planning_policy_uses_reserved_slot_without_dropping_owner_policies() -> None:
-    owner_policies = [f"Owner policy {index}" for index in range(39)]
+async def test_owner_policies_are_preserved_without_hidden_planning_marker() -> None:
+    owner_policies = [f"Owner policy {index}" for index in range(40)]
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
@@ -1445,57 +1672,8 @@ async def test_planning_policy_uses_reserved_slot_without_dropping_owner_policie
     ).execute(envelope_for(compile_input(B01_REQUEST)))
 
     policies = compiled.artifact.payload["policies"]
-    assert policies[:-1] == owner_policies
-    assert policies[-1] == PLANNING_NON_CLEARANCE_POLICY
+    assert policies == owner_policies
     assert len(policies) == 40
-
-
-@pytest.mark.parametrize(
-    "request_text",
-    [
-        (
-            "Create a launch memo for NorthPaw. A stakeholder wrote, \"This is an early "
-            "PRD, not product clearance.\" Treat it only as a quoted example."
-        ),
-        (
-            "Create a launch memo for NorthPaw. This is not an early PRD; do not treat "
-            "it as product clearance."
-        ),
-        (
-            "Create a launch memo for NorthPaw. Optionally, create an early PRD but not "
-            "product clearance as an appendix."
-        ),
-        (
-            "Create a launch memo for NorthPaw. Include a future criterion labeled: This "
-            "is an early PRD, not product clearance."
-        ),
-        (
-            "Create a launch plan for NorthPaw. This is an early PRD, not product "
-            "clearance."
-        ),
-    ],
-    ids=["quoted", "negated", "optional", "future-criterion", "decision-veto"],
-)
-@pytest.mark.asyncio
-async def test_non_authoritative_planning_language_cannot_downgrade_evidence(
-    request_text: str,
-) -> None:
-    compiled = await GeminiCognitiveExecutor(
-        FakeDrafter(
-            verification_basis="selected_evidence",
-            description=(
-                "Product-specific laboratory test reports and safety clearance for "
-                "NorthPaw."
-            ),
-            applies_when="Validating product readiness before release.",
-            topic_value="NorthPaw",
-        ),
-        AUTHORITY_KEY,
-    ).execute(envelope_for(compile_input(request_text)))
-
-    requirement = compiled.artifact.payload["evidenceRequirements"][0]
-    assert requirement["criticality"] == "blocking"
-    assert PLANNING_NON_CLEARANCE_POLICY not in compiled.artifact.payload["policies"]
 
 
 @pytest.mark.parametrize(
@@ -1588,7 +1766,6 @@ async def test_launch_plan_does_not_upgrade_optional_selected_evidence() -> None
 
     requirement = compiled.artifact.payload["evidenceRequirements"][0]
     assert requirement["criticality"] == "nonblocking"
-    assert PLANNING_NON_CLEARANCE_POLICY not in compiled.artifact.payload["policies"]
 
 
 @pytest.mark.parametrize(
@@ -1619,6 +1796,7 @@ async def test_exact_product_proof_cannot_be_falsely_verified_by_grounded_web(
 ) -> None:
     compiled = await compiled_scope(
         verification_basis="selected_evidence",
+        evidence_role="selected_artifact_proof",
         claim_type=claim_type,
         description=description,
     )
@@ -1644,6 +1822,7 @@ async def test_exact_product_proof_cannot_be_falsely_verified_by_grounded_web(
 async def test_exact_product_proof_accepts_exact_immutable_selected_evidence() -> None:
     compiled = await compiled_scope(
         verification_basis="selected_evidence",
+        evidence_role="selected_artifact_proof",
         claim_type="product_conformity",
         description="A declaration of conformity for the exact product.",
     )
@@ -1666,6 +1845,7 @@ async def test_exact_product_proof_accepts_exact_immutable_selected_evidence() -
 async def test_selected_evidence_requires_a_claim_from_an_accepted_source_class() -> None:
     compiled = await compiled_scope(
         verification_basis="selected_evidence",
+        evidence_role="selected_artifact_proof",
         claim_type="product_conformity",
         description="A declaration of conformity for the exact product.",
     )
@@ -1792,7 +1972,7 @@ async def test_optional_gap_repairs_once_and_delivers_non_launch_ready_result() 
 
     assert result.result_type == "research_completed"
     assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
+    assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["boundedRepairPasses"] == 1
     assert len(runner.queries) == 2
     assert all(REQUEST not in query for query in runner.queries)
@@ -1817,7 +1997,7 @@ async def test_successful_zero_evidence_acquisition_blocks_essential_requirement
     compiled = await compiled_scope()
     blocked = await execute_research(compiled, MissingResearchRunner())
     assert blocked.evidence_readiness == "blocked"
-    assert blocked.artifact.payload["launchReady"] is False
+    assert "launchReady" not in blocked.artifact.payload
 
 
 @pytest.mark.parametrize(
@@ -1840,7 +2020,7 @@ async def test_exhausted_transient_acquisition_blocks_essential_requirement(
 
     assert result.result_type == "research_completed"
     assert result.evidence_readiness == "blocked"
-    assert result.artifact.payload["launchReady"] is False
+    assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["boundedRepairPasses"] == 1
     assert result.artifact.payload["gaps"] == []
     finding = result.artifact.payload["findings"][0]
@@ -1966,7 +2146,7 @@ async def test_optional_transient_acquisition_delivers_an_explicit_gap(
 
     assert result.result_type == "research_completed"
     assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
+    assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["boundedRepairPasses"] == 1
     finding = result.artifact.payload["findings"][0]
     assert finding["status"] == "missing"
@@ -2006,7 +2186,7 @@ async def test_unavailable_requirement_preserves_completed_sibling_evidence() ->
     result = await execute_research(compiled, runner)
 
     assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
+    assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["boundedRepairPasses"] == 1
     assert [finding["status"] for finding in result.artifact.payload["findings"]] == [
         "verified",
@@ -2442,6 +2622,10 @@ async def test_compile_and_revise_cannot_invent_publisher_restrictions() -> None
         "prd_requirements": accepted.prd_requirements,
         "limits": accepted.limits,
         "policies": accepted.policies,
+        "deliverable_profile": accepted.deliverable_profile.model_dump(),
+        "acceptance_criteria": [
+            item.model_dump() for item in accepted.acceptance_criteria
+        ],
         "assumptions": accepted.assumptions,
         "material_clarification": accepted.material_clarification,
     }
@@ -2499,7 +2683,7 @@ async def test_scope_assumption_never_yields_launch_ready() -> None:
     result = await execute_research(compiled, MissingResearchRunner())
 
     assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
+    assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["assumptions"] == [
         "Pricing is an unverified owner assumption."
     ]
@@ -2598,17 +2782,26 @@ def quality_markdown(research_payload: dict, *, specialist: bool = False) -> str
         else ""
     )
     return (
-        "# Product requirements document\n\n"
+        "# Product requirements document\n\nDecision-useful physical product requirements.\n\n"
+        "## Product thesis, scope, and non-goals\n\n"
         + body
         + citation
         + focus
+        + "\n\n## Problem and desired outcome\n\nDefine the user problem and the bounded product outcome."
+        + "\n\n## Users, jobs, and pains\n\nUsers need a trustworthy product decision with explicit risks."
+        + "\n\n## User journeys\n\nDiscover, assess, validate, decide, and record the outcome."
+        + "\n\n## Prioritized requirements\n\n- P0: preserve safety and evidence boundaries.\n- P1: validate usability and value."
+        + "\n\n## Acceptance criteria\n\n- Given the accepted scope, when the artifact is reviewed, then each requirement has a testable result."
+        + "\n\n## Metrics and validation\n\nMeasure acceptance completion, unresolved risks, and evidence coverage."
+        + "\n\n## Risks\n\n- Risk: unsupported claims. Control: immutable evidence checks."
+        + "\n\n## Next steps\n\n- Assign owners, run validation, and record the next decision."
+        + "\n\n## Evidence, assumptions, and gaps\n\n"
+        + (gaps or "- No unresolved evidence gaps were recorded.")
         + "\n\n## Decisions and acceptance checks\n\n"
         "- Decision: continue only within the accepted planning boundary.\n"
         "- Action: validate the named assumptions with accountable owners.\n"
         "- Acceptance test: every requirement has evidence or an explicit gap.\n"
-        "- Risk control: no launch claim is made while evidence remains incomplete.\n\n"
-        "## Evidence gaps\n\n"
-        + (gaps or "- No unresolved evidence gaps were recorded.")
+        "- Risk control: no launch claim is made while evidence remains incomplete."
     )
 
 
@@ -2616,37 +2809,22 @@ def plan_fixture(compiled, research, *, multi_task: bool = False):
     scope_ref = ref(compiled.artifact)
     research_ref = ref(research.artifact)
     scope = compiled.artifact.payload
-    requirements = []
-    for category, field in (
-        ("deliverable", "deliverables"),
-        ("evidence", "evidenceRequirements"),
-        ("interview", "interviewRequirements"),
-        ("limit", "limits"),
-        ("persona", "personas"),
-        ("policy", "policies"),
-        ("prd", "prdRequirements"),
-    ):
-        for index, value in enumerate(scope[field], 1):
-            description = (
-                f"{value['description']} ({value['criticality']}; {value['verificationBasis']})"
-                if category == "evidence"
-                else value
-            )
-            requirements.append(
-                {
-                    "id": f"{category}-{index:03d}",
-                    "category": category,
-                    "description": description,
-                }
-            )
-    requirements.sort(key=lambda item: item["id"])
+    requirements = scope["requirements"]
     requirement_ids = [item["id"] for item in requirements]
     output_contract = {
         "format": "text/markdown",
-        "requiredSections": _model_owned_required_sections(scope["deliverables"]),
+        "artifactType": scope["deliverableProfile"]["artifactType"],
+        "requiredSections": _model_owned_required_sections(
+            scope["deliverableProfile"]["requiredSections"]
+        ),
         "requirementIds": requirement_ids,
+        "rubric": ["Produce useful, traceable deliverable-specific decisions."],
+        "acceptanceCriteria": scope["acceptanceCriteria"],
         "evidenceReadiness": research.evidence_readiness,
-        "launchReadyAllowed": research.evidence_readiness == "ready",
+        "launchReadyAllowed": (
+            scope["deliverableProfile"]["artifactType"] == "launch_authorization"
+            and research.evidence_readiness == "ready"
+        ),
         "sourceAppendixRequired": bool(research.artifact.payload["sourceCatalogue"]),
     }
     agent = {
@@ -2680,7 +2858,37 @@ def plan_fixture(compiled, research, *, multi_task: bool = False):
         }
         return {**core, "inputHash": canonical_hash(core)}
 
+    evidence_ids = [
+        item["id"] for item in requirements if item["category"] == "evidence"
+    ] or [requirement_ids[0]]
+    product_ids = [
+        item["id"]
+        for item in requirements
+        if item["category"] in {"deliverable", "persona", "interview", "prd"}
+    ] or [requirement_ids[0]]
     tasks = [
+        task(
+            "00000000-0000-4000-8000-000000000053",
+            "evidence-analysis",
+            "Evidence and safety analysis",
+            "specialist_analysis",
+            "Evidence assurance specialist",
+            "Claim support, contradictions and readiness wording",
+            evidence_ids,
+            [],
+        ),
+        task(
+            "00000000-0000-4000-8000-000000000055",
+            "product-analysis",
+            "Product and user analysis",
+            "specialist_analysis",
+            "Physical product strategist",
+            "Users, product requirements, risks and validation",
+            sorted(set(product_ids)),
+            [],
+        ),
+    ]
+    tasks.append(
         task(
             "00000000-0000-4000-8000-000000000052",
             "core-draft",
@@ -2689,30 +2897,14 @@ def plan_fixture(compiled, research, *, multi_task: bool = False):
             "Product lead",
             "Coherent user, product and delivery contract",
             requirement_ids,
-            [],
+            ["evidence-analysis", "product-analysis"],
         )
-    ]
-    if multi_task:
-        evidence_ids = [
-            item["id"] for item in requirements if item["category"] == "evidence"
-        ] or [requirement_ids[0]]
-        tasks.append(
-            task(
-                "00000000-0000-4000-8000-000000000053",
-                "evidence-review",
-                "Evidence and safety review",
-                "specialist_review",
-                "Evidence assurance specialist",
-                "Claim support, contradictions and readiness wording",
-                evidence_ids,
-                ["core-draft"],
-            )
-        )
+    )
     plan_core = {
         "schemaVersion": "orqaly.plan.v2",
         "acceptedScopeArtifact": scope_ref,
         "researchArtifact": research_ref,
-        "workShape": "software_prd",
+        "workShape": scope["deliverableProfile"]["artifactType"],
         "requirements": requirements,
         "outputContract": output_contract,
         "tasks": tasks,
@@ -2759,13 +2951,56 @@ def cognitive_input(
     }
 
 
+async def execute_plan_tasks(
+    executor,
+    compiled,
+    research,
+    plan_ref,
+    plan_content,
+    output_contract,
+    tasks,
+    *,
+    operation_base: int,
+):
+    results = []
+    by_stage_key = {}
+    for index, task in enumerate(tasks):
+        dependencies = [by_stage_key[key] for key in task["dependsOnStageKeys"]]
+        value = cognitive_input(
+            purpose="execute_task",
+            compiled=compiled,
+            research=research,
+            output_contract=output_contract,
+            extra_refs=[plan_ref, *[ref(item.artifact) for item in dependencies]],
+            extra_contents=[
+                plan_content,
+                *[exact_content(item.artifact) for item in dependencies],
+            ],
+            repair_pass=0,
+            acceptedPlan=plan_ref,
+            task=task,
+        )
+        result = await executor.execute(
+            envelope_for(
+                value,
+                operation_id=(
+                    f"00000000-0000-4000-8000-{operation_base + index:012d}"
+                ),
+                operation_type="SynthesizeArtifactV1",
+            )
+        )
+        results.append(result)
+        by_stage_key[task["stageKey"]] = result
+    return results
+
+
 class QualityWriter:
     async def execute_task(self, input_value, _scope, research_payload, _contents):
         return TaskDraft(
             title=input_value.task.title,
             markdown=quality_markdown(
                 research_payload,
-                specialist=input_value.task.task_kind == "specialist_review",
+                specialist=input_value.task.task_kind == "specialist_analysis",
             ),
             requirement_coverage=[
                 {
@@ -2864,27 +3099,42 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
             operation_id="00000000-0000-4000-8000-000000000060",
             operation_type="SynthesizeArtifactV1",
         )
-    candidate = await executor.execute(
-        envelope_for(
-            execute_input,
-            operation_id="00000000-0000-4000-8000-000000000061",
-            operation_type="SynthesizeArtifactV1",
-        )
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=61,
     )
+    candidate = task_results[-1]
     assert candidate.result_type == "task_completed"
     assert candidate.artifact.kind == "final_markdown"
-    assert candidate.artifact.payload["candidateAttestation"]["task"] == tasks[0]
-    candidate_ref = ref(candidate.artifact)
+    assert candidate.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
+    assert candidate.artifact.payload["launchReady"] is False
+    assert "## Prioritized requirements" in candidate.artifact.markdown
+    assert "## Acceptance criteria" in candidate.artifact.markdown
+    assert "## Next steps" in candidate.artifact.markdown
+    assert candidate.artifact.payload["candidateAttestation"]["task"] == tasks[-1]
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
     evaluate_input = cognitive_input(
         purpose="evaluate_output",
         compiled=compiled,
         research=research,
         output_contract=output_contract,
-        extra_refs=[plan_ref, candidate_ref],
-        extra_contents=[plan_content, exact_content(candidate.artifact)],
+        extra_refs=[plan_ref, *task_refs],
+        extra_contents=[
+            plan_content,
+            *[exact_content(item.artifact) for item in task_results],
+        ],
         repair_pass=0,
         acceptedPlan=plan_ref,
-        taskArtifacts=[candidate_ref],
+        taskArtifacts=task_refs,
     )
     evaluation = await executor.execute(
         envelope_for(
@@ -2897,159 +3147,7 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
     assert evaluation.execution_output_contract_satisfied is True
     assert evaluation.direct_promotion_artifact.model_dump(
         mode="json", by_alias=True
-    ) == candidate_ref
-
-    multi_plan_ref, multi_plan_content, multi_contract, multi_tasks = plan_fixture(
-        compiled, research, multi_task=True
-    )
-    multi_results = []
-    for index, task in enumerate(multi_tasks):
-        dependency_refs = [ref(multi_results[0].artifact)] if index else []
-        dependency_contents = [exact_content(multi_results[0].artifact)] if index else []
-        if index:
-            duplicate_ref, duplicate_content = artifact_ref(
-                "00000000-0000-4000-8000-000000000080",
-                "task_result",
-                "text/markdown",
-                multi_results[0].artifact.payload,
-                multi_results[0].artifact.markdown,
-            )
-            duplicate_value = cognitive_input(
-                purpose="execute_task",
-                compiled=compiled,
-                research=research,
-                output_contract=multi_contract,
-                extra_refs=[multi_plan_ref, *dependency_refs, duplicate_ref],
-                extra_contents=[
-                    multi_plan_content,
-                    *dependency_contents,
-                    duplicate_content,
-                ],
-                repair_pass=0,
-                acceptedPlan=multi_plan_ref,
-                task=task,
-            )
-            with pytest.raises(CognitiveExecutionFailure) as raised:
-                await executor.execute(
-                    envelope_for(
-                        duplicate_value,
-                        operation_id="00000000-0000-4000-8000-000000000081",
-                        operation_type="SynthesizeArtifactV1",
-                    )
-                )
-            assert (
-                raised.value.error_class == "AXWISE_TASK_DEPENDENCY_SET_MISMATCH"
-            )
-            forged_payload = json.loads(
-                json.dumps(multi_results[0].artifact.payload)
-            )
-            forged_payload["acceptedScope"]["artifactHash"] = "f" * 64
-            forged_ref, forged_content = artifact_ref(
-                "00000000-0000-4000-8000-000000000082",
-                "task_result",
-                "text/markdown",
-                forged_payload,
-                multi_results[0].artifact.markdown,
-            )
-            forged_value = cognitive_input(
-                purpose="execute_task",
-                compiled=compiled,
-                research=research,
-                output_contract=multi_contract,
-                extra_refs=[multi_plan_ref, forged_ref],
-                extra_contents=[multi_plan_content, forged_content],
-                repair_pass=0,
-                acceptedPlan=multi_plan_ref,
-                task=task,
-            )
-            with pytest.raises(CognitiveExecutionFailure) as forged_error:
-                await executor.execute(
-                    envelope_for(
-                        forged_value,
-                        operation_id="00000000-0000-4000-8000-000000000083",
-                        operation_type="SynthesizeArtifactV1",
-                    )
-                )
-            assert (
-                forged_error.value.error_class
-                == "AXWISE_TASK_DEPENDENCY_INVALID"
-            )
-        value = cognitive_input(
-            purpose="execute_task",
-            compiled=compiled,
-            research=research,
-            output_contract=multi_contract,
-            extra_refs=[multi_plan_ref, *dependency_refs],
-            extra_contents=[multi_plan_content, *dependency_contents],
-            repair_pass=0,
-            acceptedPlan=multi_plan_ref,
-            task=task,
-        )
-        multi_results.append(
-            await executor.execute(
-                envelope_for(
-                    value,
-                    operation_id=f"00000000-0000-4000-8000-00000000006{3 + index}",
-                    operation_type="SynthesizeArtifactV1",
-                )
-            )
-        )
-    assert all(item.artifact.kind == "task_result" for item in multi_results)
-    assert all(
-        "\n\n## Sources\n" not in item.artifact.markdown
-        for item in multi_results
-    )
-    task_refs = sorted(
-        [ref(item.artifact) for item in multi_results],
-        key=lambda item: item["artifactId"],
-    )
-    task_contents = [exact_content(item.artifact) for item in multi_results]
-    multi_evaluate_input = cognitive_input(
-        purpose="evaluate_output",
-        compiled=compiled,
-        research=research,
-        output_contract=multi_contract,
-        extra_refs=[multi_plan_ref, *task_refs],
-        extra_contents=[multi_plan_content, *task_contents],
-        repair_pass=0,
-        acceptedPlan=multi_plan_ref,
-        taskArtifacts=task_refs,
-    )
-    multi_evaluation = await executor.execute(
-        envelope_for(
-            multi_evaluate_input,
-            operation_id="00000000-0000-4000-8000-000000000065",
-            operation_type="SynthesizeArtifactV1",
-        )
-    )
-    assert multi_evaluation.execution_output_contract_satisfied is False
-    assert multi_evaluation.artifact.payload["repairRequired"] is True
-    evaluation_ref = ref(multi_evaluation.artifact)
-    final_input = cognitive_input(
-        purpose="final_synthesis",
-        compiled=compiled,
-        research=research,
-        output_contract=multi_contract,
-        extra_refs=[multi_plan_ref, *task_refs, evaluation_ref],
-        extra_contents=[
-            multi_plan_content,
-            *task_contents,
-            exact_content(multi_evaluation.artifact),
-        ],
-        repair_pass=1,
-        acceptedPlan=multi_plan_ref,
-        taskArtifacts=task_refs,
-        evaluation=evaluation_ref,
-    )
-    final = await executor.execute(
-        envelope_for(
-            final_input,
-            operation_id="00000000-0000-4000-8000-000000000066",
-            operation_type="SynthesizeArtifactV1",
-        )
-    )
-    assert final.result_type == "artifact_synthesized"
-    assert final.artifact.payload["candidateAttestation"] is None
+    ) == ref(candidate.artifact)
 
 
 @pytest.mark.asyncio
@@ -3063,24 +3161,17 @@ async def test_incomplete_sole_core_task_cannot_directly_promote() -> None:
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
         synthesis_writer=GapQualityWriter(),
     )
-    execute_value = cognitive_input(
-        purpose="execute_task",
-        compiled=compiled,
-        research=research,
-        output_contract=output_contract,
-        extra_refs=[plan_ref],
-        extra_contents=[plan_content],
-        repair_pass=0,
-        acceptedPlan=plan_ref,
-        task=tasks[0],
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=68,
     )
-    task_result = await executor.execute(
-        envelope_for(
-            execute_value,
-            operation_id="00000000-0000-4000-8000-000000000068",
-            operation_type="SynthesizeArtifactV1",
-        )
-    )
+    task_result = results[-1]
     assert task_result.artifact.kind == "task_result"
     assert task_result.artifact.payload["sourceAppendix"]
     assert "\n\n## Sources\n" not in task_result.artifact.markdown
@@ -3102,7 +3193,9 @@ async def test_incomplete_sole_core_task_cannot_directly_promote() -> None:
         rendered=False,
     )
 
-    task_ref = ref(task_result.artifact)
+    task_refs = sorted(
+        [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
+    )
     evaluation = await executor.execute(
         envelope_for(
             cognitive_input(
@@ -3110,11 +3203,14 @@ async def test_incomplete_sole_core_task_cannot_directly_promote() -> None:
                 compiled=compiled,
                 research=research,
                 output_contract=output_contract,
-                extra_refs=[plan_ref, task_ref],
-                extra_contents=[plan_content, exact_content(task_result.artifact)],
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in results],
+                ],
                 repair_pass=0,
                 acceptedPlan=plan_ref,
-                taskArtifacts=[task_ref],
+                taskArtifacts=task_refs,
             ),
             operation_id="00000000-0000-4000-8000-000000000069",
             operation_type="SynthesizeArtifactV1",
@@ -3136,24 +3232,20 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
         synthesis_writer=QualityWriter(),
     )
-    candidate = await executor.execute(
-        envelope_for(
-            cognitive_input(
-                purpose="execute_task",
-                compiled=compiled,
-                research=research,
-                output_contract=output_contract,
-                extra_refs=[plan_ref],
-                extra_contents=[plan_content],
-                repair_pass=0,
-                acceptedPlan=plan_ref,
-                task=tasks[0],
-            ),
-            operation_id="00000000-0000-4000-8000-000000000070",
-            operation_type="SynthesizeArtifactV1",
-        )
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=70,
     )
+    candidate = results[-1]
     assert candidate.artifact.kind == "final_markdown"
+    assert output_contract["launchReadyAllowed"] is False
+    assert candidate.artifact.payload["launchReady"] is False
     claim = research.artifact.payload["claimLedger"][0]["claims"][0]
     source = research.artifact.payload["sourceCatalogue"][0]
     appendix = candidate.artifact.payload["sourceAppendix"]
@@ -3165,13 +3257,13 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
             "sourceClass": "primary_law",
             "retrievalDate": source["retrievalDate"],
             "supportedClaim": claim["text"],
-            "supportedSection": "Product requirements document",
+            "supportedSection": "Product thesis, scope, and non-goals",
         }
     ]
     expected_line = (
         f"- `[evidence:{claim['claimId']}]` — {source['sourceTitle']} — "
         f"{source['canonicalUrl']} — class: `primary_law` — retrieved: "
-        f"`{source['retrievalDate']}` — section: Product requirements document — "
+        f"`{source['retrievalDate']}` — section: Product thesis, scope, and non-goals — "
         f"supported claim: {claim['text']}"
     )
     assert expected_line in candidate.artifact.markdown
@@ -3226,26 +3318,73 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
             compiled=compiled,
             research=research,
             output_contract=output_contract,
-            extra_refs=[plan_ref, forged_ref],
-            extra_contents=[plan_content, forged_content],
+            extra_refs=[
+                plan_ref,
+                *[ref(item.artifact) for item in results[:-1]],
+                forged_ref,
+            ],
+            extra_contents=[
+                plan_content,
+                *[exact_content(item.artifact) for item in results[:-1]],
+                forged_content,
+            ],
             repair_pass=0,
             acceptedPlan=plan_ref,
-            taskArtifacts=[forged_ref],
+            taskArtifacts=sorted(
+                [*[ref(item.artifact) for item in results[:-1]], forged_ref],
+                key=lambda item: item["artifactId"],
+            ),
         )
         operation = envelope_for(
             evaluation_value,
             operation_id=f"00000000-0000-4000-8000-0000000001{index}",
             operation_type="SynthesizeArtifactV1",
         )
-        if mutate in {wrong_attestation, wrong_task}:
-            rejected = await executor.execute(operation)
-            assert rejected.execution_output_contract_satisfied is False
-            assert rejected.direct_promotion_artifact is None
-            assert rejected.artifact.payload["substantiveContentDefects"]
-        else:
-            with pytest.raises(CognitiveExecutionFailure) as raised:
-                await executor.execute(operation)
-            assert raised.value.error_class == "AXWISE_TASK_ARTIFACT_INVALID"
+        with pytest.raises(CognitiveExecutionFailure) as raised:
+            await executor.execute(operation)
+        assert raised.value.error_class == "AXWISE_TASK_ARTIFACT_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_ready_launch_authorization_can_produce_launch_ready_final_artifact() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="launch_authorization",
+            verification_basis="selected_evidence",
+            evidence_role="future_authorization_proof",
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    evidence = selected_evidence_fact("food-safety-law")
+    research = await execute_research(
+        compiled,
+        ForbiddenGroundedResearchRunner(),
+        evidence,
+    )
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=QualityWriter(),
+    )
+
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=170,
+    )
+
+    assert research.evidence_readiness == "ready"
+    assert "launchReady" not in research.artifact.payload
+    assert output_contract["artifactType"] == "launch_authorization"
+    assert output_contract["launchReadyAllowed"] is True
+    assert results[-1].artifact.payload["launchReady"] is True
 
 
 @pytest.mark.asyncio
@@ -3253,17 +3392,9 @@ async def test_blocked_report_is_safe_final_markdown_without_readiness_change() 
     compiled = await compiled_scope()
     research = await execute_research(compiled, MissingResearchRunner())
     assert research.evidence_readiness == "blocked"
-    output_contract = {
-        "format": "text/markdown",
-        "requiredSections": ["Evidence decision", "Remediation plan"],
-        "requirementIds": [
-            "blocked-evidence-decision",
-            "blocked-remediation-plan",
-        ],
-        "evidenceReadiness": "blocked",
-        "launchReadyAllowed": False,
-        "sourceAppendixRequired": False,
-    }
+    output_contract = _blocked_report_output_contract(
+        ResearchResultV2.model_validate(research.artifact.payload)
+    ).model_dump(mode="json", by_alias=True)
     value = cognitive_input(
         purpose="blocked_report",
         compiled=compiled,
@@ -3347,6 +3478,7 @@ async def test_deterministic_blocked_report_cites_immutable_context_and_appendix
         FakeDrafter(
             evidence_count=2,
             verification_basis="selected_evidence",
+            evidence_role="selected_artifact_proof",
         ),
         AUTHORITY_KEY,
     ).execute(envelope_for())
@@ -3362,17 +3494,9 @@ async def test_deterministic_blocked_report_cites_immutable_context_and_appendix
     )
     assert research.evidence_readiness == "blocked"
     assert research.artifact.payload["sourceCatalogue"]
-    output_contract = {
-        "format": "text/markdown",
-        "requiredSections": ["Evidence decision", "Remediation plan"],
-        "requirementIds": [
-            "blocked-evidence-decision",
-            "blocked-remediation-plan",
-        ],
-        "evidenceReadiness": "blocked",
-        "launchReadyAllowed": False,
-        "sourceAppendixRequired": True,
-    }
+    output_contract = _blocked_report_output_contract(
+        ResearchResultV2.model_validate(research.artifact.payload)
+    ).model_dump(mode="json", by_alias=True)
     value = cognitive_input(
         purpose="blocked_report",
         compiled=compiled,
@@ -3479,30 +3603,28 @@ async def test_scope_requested_sources_gets_server_rendered_empty_section() -> N
     research = await execute_research(compiled, MissingResearchRunner())
     assert research.artifact.payload["sourceCatalogue"] == []
     plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
-    assert output_contract["requiredSections"] == ["Product requirements document"]
+    assert output_contract["requiredSections"] == _model_owned_required_sections(
+        compiled.artifact.payload["deliverableProfile"]["requiredSections"]
+    )
     assert output_contract["sourceAppendixRequired"] is False
-    result = await GeminiCognitiveExecutor(
+    executor = GeminiCognitiveExecutor(
         FakeDrafter(),
         AUTHORITY_KEY,
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
         synthesis_writer=QualityWriter(),
-    ).execute(
-        envelope_for(
-            cognitive_input(
-                purpose="execute_task",
-                compiled=compiled,
-                research=research,
-                output_contract=output_contract,
-                extra_refs=[plan_ref],
-                extra_contents=[plan_content],
-                repair_pass=0,
-                acceptedPlan=plan_ref,
-                task=tasks[0],
-            ),
-            operation_id="00000000-0000-4000-8000-000000000079",
-            operation_type="SynthesizeArtifactV1",
-        )
     )
+    result = (
+        await execute_plan_tasks(
+            executor,
+            compiled,
+            research,
+            plan_ref,
+            plan_content,
+            output_contract,
+            tasks,
+            operation_base=790,
+        )
+    )[-1]
     assert result.artifact.kind == "final_markdown"
     assert result.artifact.payload["sourceAppendix"] == []
     assert result.artifact.markdown.endswith(
@@ -3651,6 +3773,27 @@ def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() 
     )
     with pytest.raises(ValueError, match="launch-ready"):
         _validate_synthesis(context, draft)
+
+
+def test_ready_prd_cannot_claim_launch_authority_but_authorization_can() -> None:
+    draft = SynthesisDraft(
+        title="Launch decision",
+        markdown="# Decision\n\nThe product is approved for launch.",
+    )
+    prd_context = SynthesisContext(
+        required_sections=["Decision"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    with pytest.raises(ValueError, match="non-authorizing"):
+        _validate_synthesis(prd_context, draft)
+
+    _validate_synthesis(
+        prd_context.model_copy(update={"artifact_type": "launch_authorization"}),
+        draft,
+    )
 
 
 @pytest.mark.parametrize(

@@ -20,6 +20,7 @@ from backend.domain.workflow_v2.contracts import (
     SelectedEvidenceArtifactV1,
     SynthesizeArtifactInputV1,
     SourceSpan,
+    WorkflowOutputContractV1,
     artifact_content_hash,
     canonical_hash,
     canonical_json,
@@ -256,28 +257,15 @@ def test_planning_result_rejects_dependency_cycles() -> None:
             if content["artifact"]["kind"] == "plan"
         )
     )
-    core = plan["tasks"][0]
-    specialist = deepcopy(core)
-    specialist.update(
-        {
-            "stageId": "00000000-0000-4000-8000-000000000401",
-            "stageKey": "specialist-review",
-            "title": "Bounded specialist review",
-            "taskKind": "specialist_review",
-            "requiredRole": "evidence specialist",
-            "lens": "Review only the immutable evidence boundary.",
-            "requiredCapabilities": ["evidence_synthesis"],
-            "acceptanceRequirementIds": ["deliverable-001"],
-            "producesFullContract": False,
-            "dependsOnStageKeys": ["core-draft"],
-        }
+    core = next(task for task in plan["tasks"] if task["taskKind"] == "core_draft")
+    specialist = next(
+        task for task in plan["tasks"] if task["taskKind"] == "specialist_analysis"
     )
-    core["dependsOnStageKeys"] = ["specialist-review"]
-    for task in (core, specialist):
+    specialist["dependsOnStageKeys"] = [core["stageKey"]]
+    for task in plan["tasks"]:
         task["inputHash"] = canonical_hash(
             {key: value for key, value in task.items() if key != "inputHash"}
         )
-    plan["tasks"] = [core, specialist]
     plan["planHash"] = canonical_hash(
         {key: value for key, value in plan.items() if key != "planHash"}
     )
@@ -352,6 +340,7 @@ def test_blocking_requirement_needs_an_authoritative_source_class() -> None:
                 "claimType": "commercial_offer",
                 "description": "A commercial detail cannot globally block delivery.",
                 "criticality": "blocking",
+                "evidenceRole": "grounded_claim",
                 "verificationBasis": "grounded_claims",
                 "appliesWhen": "always",
                 "acceptedSourceTypes": ["grounded_web", "industry"],
@@ -365,6 +354,7 @@ def test_evidence_requirement_requires_typed_verification_basis() -> None:
         "claimType": "product_certificate",
         "description": "An exact product certificate.",
         "criticality": "blocking",
+        "evidenceRole": "selected_artifact_proof",
         "appliesWhen": "before launch",
         "acceptedSourceTypes": ["government", "standard"],
     }
@@ -375,6 +365,88 @@ def test_evidence_requirement_requires_typed_verification_basis() -> None:
         {**base, "verificationBasis": "selected_evidence"}
     )
     assert parsed.verification_basis == "selected_evidence"
+
+
+@pytest.mark.parametrize(
+    ("evidence_role", "verification_basis"),
+    [
+        ("grounded_claim", "selected_evidence"),
+        ("selected_artifact_proof", "grounded_claims"),
+        ("future_authorization_proof", "grounded_claims"),
+    ],
+)
+def test_evidence_role_fail_closed_to_its_typed_verification_basis(
+    evidence_role: str,
+    verification_basis: str,
+) -> None:
+    with pytest.raises(ValidationError, match="exact typed verificationBasis"):
+        EvidenceRequirement.model_validate(
+            {
+                "id": "typed-evidence-role",
+                "claimType": "product_safety_record",
+                "description": "Verify the exact evidence using its typed authority.",
+                "criticality": "blocking",
+                "evidenceRole": evidence_role,
+                "verificationBasis": verification_basis,
+                "appliesWhen": "The accepted scope requires the fact.",
+                "acceptedSourceTypes": ["government", "standard"],
+            }
+        )
+
+
+def test_only_ready_launch_authorization_contract_can_allow_launch_readiness() -> None:
+    requirement_id = "req-0123456789abcdef"
+    criterion_core = {
+        "given": "The exact accepted evidence is available.",
+        "when": "The launch authorization is evaluated.",
+        "then": "The decision binds the exact evidence without overclaiming.",
+        "supports": [requirement_id],
+    }
+    base = {
+        "format": "text/markdown",
+        "requiredSections": ["Decision"],
+        "requirementIds": [requirement_id],
+        "rubric": ["Bind the exact evidence and decision."],
+        "acceptanceCriteria": [
+            {
+                "id": f"acc-{canonical_hash(criterion_core)[:16]}",
+                **criterion_core,
+            }
+        ],
+        "evidenceReadiness": "ready",
+        "sourceAppendixRequired": False,
+    }
+
+    WorkflowOutputContractV1.model_validate(
+        {
+            **base,
+            "artifactType": "product_prd",
+            "launchReadyAllowed": False,
+        }
+    )
+    WorkflowOutputContractV1.model_validate(
+        {
+            **base,
+            "artifactType": "launch_authorization",
+            "launchReadyAllowed": True,
+        }
+    )
+    with pytest.raises(ValidationError, match="ready launch_authorization"):
+        WorkflowOutputContractV1.model_validate(
+            {
+                **base,
+                "artifactType": "product_prd",
+                "launchReadyAllowed": True,
+            }
+        )
+    with pytest.raises(ValidationError, match="ready launch_authorization"):
+        WorkflowOutputContractV1.model_validate(
+            {
+                **base,
+                "artifactType": "launch_authorization",
+                "launchReadyAllowed": False,
+            }
+        )
 
 
 @pytest.mark.parametrize(
@@ -399,6 +471,7 @@ def test_evidence_requirement_rejects_nonpublic_or_noncanonical_allowed_hosts(
                 "claimType": "publisher_restricted_fact",
                 "description": "Use only the exact accepted publisher.",
                 "criticality": "nonblocking",
+                "evidenceRole": "grounded_claim",
                 "verificationBasis": "grounded_claims",
                 "appliesWhen": "the fact is included",
                 "acceptedSourceTypes": ["grounded_web"],
@@ -414,6 +487,7 @@ def test_evidence_requirement_accepts_sorted_public_publisher_hosts() -> None:
             "claimType": "publisher_restricted_fact",
             "description": "Use only the exact accepted publishers.",
             "criticality": "nonblocking",
+            "evidenceRole": "grounded_claim",
             "verificationBasis": "grounded_claims",
             "appliesWhen": "the fact is included",
             "acceptedSourceTypes": ["grounded_web"],
@@ -536,7 +610,6 @@ def test_research_gap_and_conflict_summaries_are_exact_finding_derivations() -> 
             "readiness": "ready_with_gaps",
             "gaps": [finding["note"]],
             "conflicts": [],
-            "launchReady": False,
         }
     )
     ResearchResultV2.model_validate(research)
@@ -558,7 +631,6 @@ def test_research_gap_and_conflict_summaries_are_exact_finding_derivations() -> 
             "readiness": "blocked",
             "gaps": [],
             "conflicts": [finding["note"]],
-            "launchReady": False,
         }
     )
     ResearchResultV2.model_validate(research)
