@@ -15,6 +15,7 @@ from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
     ArtifactRef,
     AxWiseOperationEnvelope,
+    ResearchResultV2,
     SourceAppendixEntryV1,
     artifact_content_hash,
     canonical_hash,
@@ -37,6 +38,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     SynthesisDraft,
     TaskDraft,
     EvaluationDraft,
+    _appendix_matches_research,
     _operation_metrics,
     _deterministic_quality_defects,
     _citation_sections,
@@ -2146,6 +2148,11 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
                 )
             )
         )
+    assert all(item.artifact.kind == "task_result" for item in multi_results)
+    assert all(
+        "\n\n## Sources\n" not in item.artifact.markdown
+        for item in multi_results
+    )
     task_refs = sorted(
         [ref(item.artifact) for item in multi_results],
         key=lambda item: item["artifactId"],
@@ -2201,10 +2208,8 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 @pytest.mark.asyncio
 async def test_incomplete_sole_core_task_cannot_directly_promote() -> None:
-    compiled = await compiled_scope(
-        criticality="nonblocking", claim_type="market_statistic"
-    )
-    research = await execute_research(compiled, MissingResearchRunner())
+    compiled = await compiled_scope()
+    research = await execute_research(compiled, VerifiedResearchRunner())
     plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
@@ -2231,6 +2236,25 @@ async def test_incomplete_sole_core_task_cannot_directly_promote() -> None:
         )
     )
     assert task_result.artifact.kind == "task_result"
+    assert task_result.artifact.payload["sourceAppendix"]
+    assert "\n\n## Sources\n" not in task_result.artifact.markdown
+    research_payload = ResearchResultV2.model_validate(research.artifact.payload)
+    appendix = [
+        SourceAppendixEntryV1.model_validate(item)
+        for item in task_result.artifact.payload["sourceAppendix"]
+    ]
+    assert _appendix_matches_research(
+        task_result.artifact.markdown,
+        appendix,
+        research_payload,
+        rendered=False,
+    )
+    assert not _appendix_matches_research(
+        _markdown_with_source_appendix(task_result.artifact.markdown, appendix),
+        appendix,
+        research_payload,
+        rendered=False,
+    )
 
     task_ref = ref(task_result.artifact)
     evaluation = await executor.execute(
