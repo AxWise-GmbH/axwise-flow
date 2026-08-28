@@ -9,6 +9,8 @@ import httpx
 import pytest
 from pydantic import BaseModel
 from pydantic_ai import Agent, ModelRetry, PromptedOutput
+from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
+from pydantic_ai.messages import RetryPromptPart
 
 import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 from backend.domain.workflow_v2.contracts import (
@@ -270,6 +272,74 @@ async def test_final_quality_failure_is_a_bounded_model_output_retry(monkeypatch
                 markdown="# Product requirements document\n\nAccepted scope only.",
             ),
         )
+
+
+@pytest.mark.asyncio
+async def test_terminal_synthesis_validator_failure_has_safe_finite_reason() -> None:
+    class ExhaustedAgent:
+        async def run(self, _prompt, *, deps):
+            assert deps.purpose == "final_synthesis"
+            try:
+                raise ModelRetry(
+                    "required Markdown sections are missing: user-controlled heading"
+                )
+            except ModelRetry as validation_error:
+                raise UnexpectedModelBehavior(
+                    "Exceeded maximum output retries (2)"
+                ) from validation_error
+
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["user-controlled heading"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+    )
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await PydanticAISynthesisWriter._run_validated_agent(
+            ExhaustedAgent(), "{}", context, phase="FINAL"
+        )
+
+    assert raised.value.error_class == (
+        "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_REQUIRED_SECTIONS_MISSING"
+    )
+    assert "user-controlled" not in raised.value.error_class
+    assert raised.value.retryable is True
+
+
+@pytest.mark.asyncio
+async def test_terminal_evaluation_schema_failure_has_safe_finite_reason() -> None:
+    class ExhaustedAgent:
+        async def run(self, _prompt, *, deps):
+            assert deps.purpose == "evaluate_output"
+            try:
+                raise ToolRetryError(
+                    RetryPromptPart(
+                        content="raw structured output and user content must not persist"
+                    )
+                )
+            except ToolRetryError as validation_error:
+                raise UnexpectedModelBehavior(
+                    "Exceeded maximum output retries (2)"
+                ) from validation_error
+
+    context = SynthesisContext(
+        purpose="evaluate_output",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+    )
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await PydanticAISynthesisWriter._run_validated_agent(
+            ExhaustedAgent(), "{}", context, phase="EVALUATION"
+        )
+
+    assert raised.value.error_class == (
+        "AXWISE_EVALUATION_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID"
+    )
+    assert "user content" not in raised.value.error_class
+    assert raised.value.retryable is True
 
 
 @pytest.mark.asyncio
@@ -620,14 +690,37 @@ class MissingResearchRunner:
 
 
 class TransientFailureRunner:
-    def __init__(self) -> None:
+    def __init__(self, status: str = "retry_exhausted") -> None:
         self.queries = []
+        self.status = status
 
     async def search(self, _query):
         self.queries.append(_query)
         return {
             "search_performed": False,
-            "runtime_diagnostics": {"status": "retry_exhausted", "call_count": 3},
+            "runtime_diagnostics": {"status": self.status, "call_count": 3},
+        }
+
+
+class TransientThenMissingRunner(MissingResearchRunner):
+    async def search(self, query):
+        self.queries.append(query)
+        if len(self.queries) == 1:
+            return {
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "deadline_exceeded",
+                    "call_count": 2,
+                },
+            }
+        return {
+            "search_performed": True,
+            "text": "",
+            "claims": [],
+            "sources": [],
+            "provider_queries": ["targeted repair query"],
+            "usage_metadata": {"inputTokens": 3, "outputTokens": 2},
+            "runtime_diagnostics": {"callCount": 1},
         }
 
 
@@ -853,8 +946,8 @@ def selected_evidence_fact(
     requirement_id: str,
     *,
     source_types: list[str] | None = None,
+    text: str = "The exact product-specific assessment is complete and approved.",
 ) -> ArtifactFact:
-    text = "The exact product-specific assessment is complete and approved."
     urls = ["https://health.ec.europa.eu/exact-product-assessment"]
     typed_source_types = source_types or ["government"]
     claim = {
@@ -1371,38 +1464,61 @@ async def test_optional_gap_repairs_once_and_delivers_non_launch_ready_result() 
 
 
 @pytest.mark.asyncio
-async def test_unresolved_essential_evidence_blocks_after_one_transient_repair() -> None:
+async def test_successful_zero_evidence_acquisition_blocks_essential_requirement() -> None:
     compiled = await compiled_scope()
     blocked = await execute_research(compiled, MissingResearchRunner())
     assert blocked.evidence_readiness == "blocked"
     assert blocked.artifact.payload["launchReady"] is False
 
-    runner = TransientFailureRunner()
-    transient = await execute_research(compiled, runner)
-    assert transient.evidence_readiness == "blocked"
-    assert transient.artifact.payload["boundedRepairPasses"] == 1
-    assert transient.artifact.payload["claimLedger"] == []
+
+@pytest.mark.parametrize(
+    ("status", "error_class"),
+    [
+        ("deadline_exceeded", "AXWISE_RESEARCH_DEADLINE"),
+        ("retry_exhausted", "AXWISE_RESEARCH_RETRY_EXHAUSTED"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_exhausted_transient_acquisition_is_retryable(
+    status: str,
+    error_class: str,
+) -> None:
+    compiled = await compiled_scope()
+    runner = TransientFailureRunner(status)
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await execute_research(compiled, runner)
+
+    assert raised.value.error_class == error_class
+    assert raised.value.retryable is True
     assert len(runner.queries) == 2
-    finding = transient.artifact.payload["findings"][0]
-    assert finding["status"] == "missing"
-    assert "retry_exhausted" in finding["note"]
-    assert "no accepted grounded claim was recorded" in finding["note"]
 
 
 @pytest.mark.asyncio
-async def test_optional_transient_acquisition_delivers_an_explicit_gap() -> None:
+async def test_successful_repair_with_zero_evidence_retains_missing_semantics() -> None:
+    compiled = await compiled_scope()
+    runner = TransientThenMissingRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert result.evidence_readiness == "blocked"
+    assert result.artifact.payload["findings"][0]["status"] == "missing"
+    assert len(runner.queries) == 2
+
+
+@pytest.mark.asyncio
+async def test_optional_transient_acquisition_is_retryable() -> None:
     compiled = await compiled_scope(
         criticality="nonblocking", claim_type="market_statistic"
     )
     runner = TransientFailureRunner()
 
-    result = await execute_research(compiled, runner)
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await execute_research(compiled, runner)
 
-    assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["launchReady"] is False
-    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert raised.value.error_class == "AXWISE_RESEARCH_RETRY_EXHAUSTED"
+    assert raised.value.retryable is True
     assert len(runner.queries) == 2
-    assert "retry_exhausted" in result.artifact.payload["gaps"][0]
 
 
 @pytest.mark.asyncio
@@ -2427,12 +2543,17 @@ async def test_blocked_report_is_safe_final_markdown_without_readiness_change() 
         extra_contents=[],
         repair_pass=0,
     )
-    result = await GeminiCognitiveExecutor(
+    class ForbiddenBlockedWriter(QualityWriter):
+        async def write_blocked(self, *_args, **_kwargs):
+            raise AssertionError("blocked reports must not call Gemini synthesis")
+
+    executor = GeminiCognitiveExecutor(
         FakeDrafter(),
         AUTHORITY_KEY,
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
-        synthesis_writer=QualityWriter(),
-    ).execute(
+        synthesis_writer=ForbiddenBlockedWriter(),
+    )
+    result = await executor.execute(
         envelope_for(
             value,
             operation_id="00000000-0000-4000-8000-000000000067",
@@ -2442,7 +2563,23 @@ async def test_blocked_report_is_safe_final_markdown_without_readiness_change() 
     assert result.evidence_readiness == "blocked"
     assert result.artifact.payload["launchReady"] is False
     assert result.artifact.payload["candidateAttestation"] is None
-    assert "No-go" in result.artifact.markdown
+    assert "no-go" in result.artifact.markdown
+    assert "# Evidence decision" in result.artifact.markdown
+    assert "# Remediation plan" in result.artifact.markdown
+    assert research.artifact.payload["findings"][0]["note"] in result.artifact.markdown
+    assert result.metrics.provider is None
+    assert result.metrics.total_tokens == 0
+    assert result.metrics.estimated_cost_micros == 0
+
+    repeated = await executor.execute(
+        envelope_for(
+            value,
+            operation_id="00000000-0000-4000-8000-000000000068",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert repeated.artifact.markdown == result.artifact.markdown
+    assert repeated.artifact.artifact_hash == result.artifact.artifact_hash
 
     impossible = json.loads(json.dumps(value))
     impossible["outputContract"]["sourceAppendixRequired"] = True
@@ -2472,6 +2609,69 @@ async def test_blocked_report_is_safe_final_markdown_without_readiness_change() 
             ),
             unsafe_draft,
         )
+
+
+@pytest.mark.asyncio
+async def test_deterministic_blocked_report_cites_immutable_context_and_appendix() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            evidence_count=2,
+            verification_basis="selected_evidence",
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    raw_forged_marker = "[evidence:" + "f" * 64 + "]"
+    evidence = selected_evidence_fact(
+        "food-safety-law",
+        text=f"The exact product-specific assessment is complete. {raw_forged_marker}",
+    )
+    research = await execute_research(
+        compiled,
+        ForbiddenGroundedResearchRunner(),
+        evidence,
+    )
+    assert research.evidence_readiness == "blocked"
+    assert research.artifact.payload["sourceCatalogue"]
+    output_contract = {
+        "format": "text/markdown",
+        "requiredSections": ["Evidence decision", "Remediation plan"],
+        "requirementIds": [
+            "blocked-evidence-decision",
+            "blocked-remediation-plan",
+        ],
+        "evidenceReadiness": "blocked",
+        "launchReadyAllowed": False,
+        "sourceAppendixRequired": True,
+    }
+    value = cognitive_input(
+        purpose="blocked_report",
+        compiled=compiled,
+        research=research,
+        output_contract=output_contract,
+        extra_refs=[],
+        extra_contents=[],
+        repair_pass=0,
+    )
+
+    result = await GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=None,
+    ).execute(
+        envelope_for(
+            value,
+            operation_id="00000000-0000-4000-8000-000000000069",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+
+    assert result.artifact.payload["sourceAppendix"]
+    assert result.artifact.markdown.count("[evidence:") == 2
+    assert raw_forged_marker not in result.artifact.markdown
+    assert "［evidence:" + "f" * 64 + "]" in result.artifact.markdown
+    assert result.artifact.markdown.count("\n\n## Sources\n\n") == 1
+    assert result.artifact.payload["launchReady"] is False
 
 
 def test_server_owns_requested_sources_heading_and_renders_safe_empty_state() -> None:
