@@ -863,7 +863,7 @@ Produce a substantive compact specialist packet for exactly TASK.requiredRole an
 The core_draft must consume its independent specialist_analysis dependencies and produce one
 coherent artifact satisfying the complete output contract; specialist_analysis must give
 concrete, merge-ready findings and corrections through its
-bounded lens. Cover every TASK.acceptanceRequirementId exactly once in requirementCoverage,
+bounded lens. Cover every ID in TASK.acceptanceRequirementIds exactly once in `requirement_coverage`,
 with status satisfied, gap, or not_applicable and a specific note. Include decision rules,
 acceptance checks, risks and open decisions where applicable. Do not emit a template or
 restatement of the scope. Return typed title, Markdown, coverage, conclusions and unknowns.
