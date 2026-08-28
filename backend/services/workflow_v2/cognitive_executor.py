@@ -81,7 +81,7 @@ class ScopeDraft(_DraftModel):
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
     prd_requirements: list[str] = Field(default_factory=list, max_length=40)
     limits: list[str] = Field(default_factory=list, max_length=40)
-    policies: list[str] = Field(default_factory=list, max_length=40)
+    policies: list[str] = Field(default_factory=list, max_length=39)
     assumptions: list[str] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(default=None, min_length=1, max_length=1000)
 
@@ -119,7 +119,7 @@ class ScopeRevisionDraft(_DraftModel):
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
     prd_requirements: list[str] = Field(default_factory=list, max_length=40)
     limits: list[str] = Field(default_factory=list, max_length=40)
-    policies: list[str] = Field(default_factory=list, max_length=40)
+    policies: list[str] = Field(default_factory=list, max_length=39)
     assumptions: list[str] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(default=None, min_length=1, max_length=1000)
 
@@ -180,11 +180,104 @@ product- or organization-specific certificate, declaration, test report, assessm
 validation, executed agreement, or safety record. Such proof cannot be established by
 grounded web research. Set verificationBasis to grounded_claims for general law,
 standards, government obligations, and statistics. Split mixed general-law and exact-proof
-requirements so each has one verification basis. Return at most one truly material clarification,
-never a questionnaire. Emit every acceptedSourceTypes array sorted and unique using only
-the closed source vocabulary. Use one identical quality contract. Do not expose unrelated
-context.
+requirements so each has one verification basis. When REQUEST_TEXT explicitly requests an
+early or preliminary planning artifact and says it is not product clearance, keep each
+requirement's criticality intrinsic to its appliesWhen gate. The server records future
+exact-product launch, release, production, readiness, or clearance proof as an effective
+nonblocking gap for that planning artifact without weakening the intrinsic gate. This planning
+exception does not apply when the requested deliverable itself is a go/no-go, launch, go-live,
+certification, clearance, or actual-readiness decision. Preserve proof the owner explicitly
+makes optional or nonblocking. Return at most one truly material clarification, never a
+questionnaire. Emit every acceptedSourceTypes array sorted and unique using only the closed
+source vocabulary. Use one identical quality contract. Do not expose unrelated context.
 """.strip()
+
+
+_EXPLICIT_PLANNING_NON_CLEARANCE = re.compile(
+    r"(?:^|[.!?]\s+)(?:"
+    r"(?:this|the\s+(?:requested\s+)?(?:deliverable|document|artifact|prd))\s+is\s+"
+    r"(?:an?\s+)?(?:early|preliminary)\s+(?:prd|planning\s+artifact)"
+    r"|(?:create|produce|prepare|write)\s+(?:an?\s+)?(?:early|preliminary)\s+"
+    r"(?:prd|planning\s+artifact))\s*[,;:\u2014-]?\s*(?:and\s+)?(?:it\s+is\s+)?"
+    r"not\s+(?:a\s+)?(?:formal\s+)?(?:product\s+)?"
+    r"(?:clearance|certification|approval|readiness|launch\s+decision)\b",
+    re.IGNORECASE,
+)
+
+_EXPLICIT_REVISION_DECISION_CHANGE = re.compile(
+    r"(?:^|[.!?]\s+)(?:change|convert|turn|make)\s+"
+    r"(?:this|it|the\s+(?:scope|deliverable|prd|document|artifact))\s+(?:into|to)\s+"
+    r"(?:an?\s+)?(?:go\s*/\s*no-go(?:\s+launch)?(?:\s+(?:memo|decision))?"
+    r"|go[- ]live\s+(?:decision|recommendation|plan|memo)"
+    r"|launch\s+(?:decision|recommendation|memo|plan|readiness)"
+    r"|(?:certification|clearance)\s+(?:decision|assessment|plan))\b",
+    re.IGNORECASE,
+)
+
+_EXPLICIT_DECISION_DELIVERABLE = re.compile(
+    r"(?:^|[.!?]\s+)(?:create|prepare|produce|write)\s+(?:an?\s+)?"
+    r"(?:go\s*/\s*no-go(?:\s+launch)?(?:\s+(?:memo|decision))?"
+    r"|go[- ]live\s+(?:decision|recommendation|plan|memo)"
+    r"|(?:eu\s+)?launch\s+(?:decision|recommendation|memo|plan|readiness)"
+    r"|(?:certification|clearance)\s+(?:decision|assessment|plan))\b",
+    re.IGNORECASE,
+)
+
+PLANNING_NON_CLEARANCE_POLICY = (
+    "This accepted scope is an early or preliminary planning artifact, not product "
+    "clearance; exact-product proof needed only for future launch, release, production, "
+    "readiness, or clearance is a nonblocking evidence gap."
+)
+PLANNING_NON_CLEARANCE_ASSUMPTION = (
+    "Planning-only boundary: this artifact is not product clearance or evidence of "
+    "launch readiness."
+)
+
+_FUTURE_PRODUCT_OUTCOME = re.compile(
+    r"\b(?:product\s+readiness|product\s+clearance|legal\s+release\s+criteria"
+    r"|readiness\s+for\s+(?:final\s+)?(?:production|launch|release|market\s+entry|go[- ]live)"
+    r"|(?:before|prior\s+to)\b[^.!?\n]{0,100}\b"
+    r"(?:launch|go[- ]live|placing\s+on\s+the\s+market))\b",
+    re.IGNORECASE,
+)
+
+
+def _without_quoted_text(value: str) -> str:
+    for pattern in (
+        r'"[^"\n]*"',
+        r"'[^'\n]*'",
+        r"\u201c[^\u201d\n]*\u201d",
+        r"\u2018[^\u2019\n]*\u2019",
+    ):
+        value = re.sub(pattern, "", value)
+    return value
+
+
+def _is_explicit_planning_non_clearance_request(authority_text: str) -> bool:
+    unquoted = _without_quoted_text(authority_text)
+    return bool(_EXPLICIT_PLANNING_NON_CLEARANCE.search(unquoted)) and not bool(
+        _EXPLICIT_DECISION_DELIVERABLE.search(unquoted)
+    )
+
+
+def _explicitly_changes_to_decision_deliverable(correction: str) -> bool:
+    return bool(_EXPLICIT_REVISION_DECISION_CHANGE.search(_without_quoted_text(correction)))
+
+
+def _applies_only_to_future_product_outcome(requirement: EvidenceRequirement) -> bool:
+    return bool(_FUTURE_PRODUCT_OUTCOME.search(requirement.applies_when))
+
+
+def _effective_requirement_blocking(
+    scope: ScopeArtifactV2,
+    requirement: EvidenceRequirement,
+) -> bool:
+    planning_exemption = (
+        PLANNING_NON_CLEARANCE_POLICY in scope.policies
+        and requirement.verification_basis == "selected_evidence"
+        and _applies_only_to_future_product_outcome(requirement)
+    )
+    return requirement.criticality == "blocking" and not planning_exemption
 
 
 def _validate_draft(request: str, draft: ScopeDraft) -> None:
@@ -326,9 +419,41 @@ completion, execution, or contents of an exact product- or organization-specific
 certificate, declaration, test report, assessment, validation, executed agreement, or
 safety record; grounded web research cannot establish those facts. Use grounded_claims
 for general law, standards, government obligations, and statistics, and split mixed
-general-law and exact-proof requirements so each has one verification basis.
+general-law and exact-proof requirements so each has one verification basis. Keep criticality
+intrinsic to each requirement's appliesWhen gate. The server preserves an effective
+nonblocking exact-product future-clearance gap for an accepted early or preliminary planning
+artifact when PLANNING_NON_CLEARANCE_POLICY_ACTIVE is true, unless OWNER_CORRECTION
+explicitly changes the deliverable into a go/no-go, launch, go-live, certification, clearance,
+or actual-readiness decision. An explicit early planning artifact that is not product clearance
+activates the same policy. Preserve proof the owner explicitly makes optional or nonblocking.
 Emit every acceptedSourceTypes array sorted and unique using the closed source vocabulary.
 """.strip()
+
+
+def _revised_planning_non_clearance(
+    correction: str,
+    accepted_scope: ScopeArtifactV2,
+) -> bool:
+    return (
+        _is_explicit_planning_non_clearance_request(correction)
+        or (
+            PLANNING_NON_CLEARANCE_POLICY in accepted_scope.policies
+            and not _explicitly_changes_to_decision_deliverable(correction)
+        )
+    )
+
+
+def _policies_with_planning_calibration(
+    policies: list[str],
+    *,
+    planning_non_clearance: bool,
+) -> list[str]:
+    without_marker = [
+        policy for policy in policies if policy != PLANNING_NON_CLEARANCE_POLICY
+    ]
+    if planning_non_clearance:
+        return [*without_marker, PLANNING_NON_CLEARANCE_POLICY]
+    return without_marker
 
 
 def _validate_revision_draft(correction: str, draft: ScopeRevisionDraft) -> None:
@@ -377,9 +502,20 @@ class PydanticAIScopeReviser:
     async def revise(
         self, input_value: ReviseScopeInputV2, accepted_scope: ScopeArtifactV2
     ) -> ModelOutput[ScopeRevisionDraft]:
+        planning_policy_active = PLANNING_NON_CLEARANCE_POLICY in accepted_scope.policies
+        prompt_scope = accepted_scope.model_copy(
+            update={
+                "policies": [
+                    policy
+                    for policy in accepted_scope.policies
+                    if policy != PLANNING_NON_CLEARANCE_POLICY
+                ]
+            }
+        )
         prompt = canonical_json(
             {
-                "ACCEPTED_SCOPE": accepted_scope.model_dump(mode="json", by_alias=True),
+                "ACCEPTED_SCOPE": prompt_scope.model_dump(mode="json", by_alias=True),
+                "PLANNING_NON_CLEARANCE_POLICY_ACTIVE": planning_policy_active,
                 "OWNER_CORRECTION": input_value.correction,
                 "CORRECTION_SOURCE_SPANS": [
                     item.model_dump(mode="json", by_alias=True)
@@ -1028,16 +1164,24 @@ class GeminiCognitiveExecutor:
             )
             for topic in draft.topic_anchors
         ]
+        planning_non_clearance = _is_explicit_planning_non_clearance_request(
+            input_value.request
+        )
+        evidence_requirements = draft.evidence_requirements
+        policies = _policies_with_planning_calibration(
+            draft.policies,
+            planning_non_clearance=planning_non_clearance,
+        )
         semantic_payload = _scope_semantics_payload(
             topic_anchors=topic_anchors,
             geography=draft.geography,
-            evidence_requirements=draft.evidence_requirements,
+            evidence_requirements=evidence_requirements,
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
             prd_requirements=draft.prd_requirements,
             limits=draft.limits,
-            policies=draft.policies,
+            policies=policies,
         )
         research_input_hash = canonical_hash(semantic_payload)
         artifact_id = uuid5(NAMESPACE_URL, f"axwise:{envelope.operation_id}:scope")
@@ -1055,13 +1199,13 @@ class GeminiCognitiveExecutor:
             objective_source_spans=objective_spans,
             topic_anchors=topic_anchors,
             geography=draft.geography,
-            evidence_requirements=draft.evidence_requirements,
+            evidence_requirements=evidence_requirements,
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
             prd_requirements=draft.prd_requirements,
             limits=draft.limits,
-            policies=draft.policies,
+            policies=policies,
             assumptions=draft.assumptions,
             material_clarification=draft.material_clarification,
             research_input_hash=research_input_hash,
@@ -1137,16 +1281,25 @@ class GeminiCognitiveExecutor:
             if draft.topic_changed
             else accepted_scope.topic_anchors
         )
+        evidence_requirements = draft.evidence_requirements
+        planning_non_clearance = _revised_planning_non_clearance(
+            input_value.correction,
+            accepted_scope,
+        )
+        policies = _policies_with_planning_calibration(
+            draft.policies,
+            planning_non_clearance=planning_non_clearance,
+        )
         semantic_payload = _scope_semantics_payload(
             topic_anchors=topic_anchors,
             geography=draft.geography,
-            evidence_requirements=draft.evidence_requirements,
+            evidence_requirements=evidence_requirements,
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
             prd_requirements=draft.prd_requirements,
             limits=draft.limits,
-            policies=draft.policies,
+            policies=policies,
         )
         research_input_hash = canonical_hash(semantic_payload)
         artifact_id = uuid5(NAMESPACE_URL, f"axwise:{envelope.operation_id}:scope")
@@ -1164,13 +1317,13 @@ class GeminiCognitiveExecutor:
             objective_source_spans=objective_spans,
             topic_anchors=topic_anchors,
             geography=draft.geography,
-            evidence_requirements=draft.evidence_requirements,
+            evidence_requirements=evidence_requirements,
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
             prd_requirements=draft.prd_requirements,
             limits=draft.limits,
-            policies=draft.policies,
+            policies=policies,
             assumptions=draft.assumptions,
             material_clarification=draft.material_clarification,
             research_input_hash=research_input_hash,
@@ -1257,6 +1410,10 @@ class GeminiCognitiveExecutor:
         artifact_id = uuid5(NAMESPACE_URL, f"axwise:{envelope.operation_id}:research")
 
         requirement_by_id = {item.id: item for item in scope.evidence_requirements}
+        blocking_by_requirement = {
+            item.id: _effective_requirement_blocking(scope, item)
+            for item in scope.evidence_requirements
+        }
         selected: dict[str, list[tuple[ArtifactRef, SelectedEvidenceArtifactV1]]] = {}
         for reference in input_value.selected_evidence:
             fact = await asyncio.to_thread(
@@ -1315,7 +1472,7 @@ class GeminiCognitiveExecutor:
                     _normalized_source_type(value) for value in claim.source_types
                 }.intersection(accepted_types)
             ]
-            blocking = requirement.criticality == "blocking"
+            blocking = blocking_by_requirement[requirement.id]
             if len(applicability) > 1 or explicit_conflicts:
                 findings_by_id[requirement.id] = EvidenceFinding(
                     requirement_id=requirement.id,
@@ -1579,7 +1736,7 @@ class GeminiCognitiveExecutor:
         missing_for_repair: list[EvidenceRequirement] = []
         initial_failure_statuses: dict[str, str] = {}
         for requirement in to_acquire:
-            blocking = requirement.criticality == "blocking"
+            blocking = blocking_by_requirement[requirement.id]
             claims, conflicts, failure_status = initial.get(
                 requirement.id, ([], [], None)
             )
@@ -1641,7 +1798,7 @@ class GeminiCognitiveExecutor:
             findings_by_id[requirement.id] = EvidenceFinding(
                 requirement_id=requirement.id,
                 status=status_value,
-                blocking=requirement.criticality == "blocking",
+                blocking=blocking_by_requirement[requirement.id],
                 source_artifact_ids=source_ids_by_requirement[requirement.id],
                 note=note,
             )
@@ -1667,11 +1824,17 @@ class GeminiCognitiveExecutor:
             for finding in findings
             if not finding.blocking and finding.status in {"missing", "conflicting"}
         ]
+        assumptions = list(scope.assumptions)
+        if (
+            PLANNING_NON_CLEARANCE_POLICY in scope.policies
+            and PLANNING_NON_CLEARANCE_ASSUMPTION not in assumptions
+        ):
+            assumptions.append(PLANNING_NON_CLEARANCE_ASSUMPTION)
         readiness = (
             "blocked"
             if unresolved_blocking
             else "ready_with_gaps"
-            if unresolved_optional or scope.assumptions
+            if unresolved_optional or assumptions
             else "ready"
         )
         result = ResearchResultV2(
@@ -1681,7 +1844,7 @@ class GeminiCognitiveExecutor:
             readiness=readiness,
             findings=findings,
             bounded_repair_passes=1 if repair_performed else 0,
-            assumptions=list(scope.assumptions),
+            assumptions=assumptions,
             gaps=[finding.note for finding in unresolved_optional],
             conflicts=[
                 finding.note for finding in findings if finding.status == "conflicting"
