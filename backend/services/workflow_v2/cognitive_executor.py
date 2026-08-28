@@ -366,6 +366,43 @@ def _effective_requirement_blocking(
     return requirement.criticality == "blocking" and not future_authorization_exemption
 
 
+def _permitted_nonblocking_evidence_gap_requirement_ids(
+    scope: ScopeArtifactV2,
+    research: ResearchResultV2,
+) -> set[str]:
+    """Map exact nonblocking research gaps onto their deliverable requirement IDs."""
+    missing_nonblocking_ids = {
+        finding.requirement_id
+        for finding in research.findings
+        if finding.status == "missing" and not finding.blocking
+    }
+    evidence_by_description: dict[str, list[EvidenceRequirement]] = {}
+    for requirement in scope.evidence_requirements:
+        evidence_by_description.setdefault(requirement.description, []).append(
+            requirement
+        )
+    deliverable_by_description: dict[str, list[AcceptedDeliverableRequirementV1]] = {}
+    for requirement in scope.requirements:
+        if requirement.category == "evidence":
+            deliverable_by_description.setdefault(requirement.description, []).append(
+                requirement
+            )
+
+    permitted: set[str] = set()
+    for description, evidence_requirements in evidence_by_description.items():
+        # Duplicate descriptions are only safe to map when every underlying evidence
+        # requirement is the same kind of unresolved nonblocking gap.
+        if evidence_requirements and all(
+            requirement.id in missing_nonblocking_ids
+            for requirement in evidence_requirements
+        ):
+            permitted.update(
+                requirement.id
+                for requirement in deliverable_by_description.get(description, [])
+            )
+    return permitted
+
+
 def _normalized_semantic_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip().casefold()
 
@@ -3703,6 +3740,9 @@ class GeminiCognitiveExecutor:
             ),
             artifact_type=input_value.output_contract.artifact_type,
         )
+        permitted_evidence_gap_ids = (
+            _permitted_nonblocking_evidence_gap_requirement_ids(scope, research)
+        )
 
         if input_value.purpose == "execute_task":
             assert plan is not None and input_value.task is not None
@@ -3796,14 +3836,16 @@ class GeminiCognitiveExecutor:
                 in {"product_prd", "software_prd", "research_strategy", "operational_plan"},
                 artifact_type=plan.work_shape,
             )
-            complete_coverage = not any(
-                item.status == "gap" for item in draft.requirement_coverage
+            acceptable_coverage = not any(
+                item.status == "gap"
+                and item.requirement_id not in permitted_evidence_gap_ids
+                for item in draft.requirement_coverage
             )
             artifact_id: UUID
             if (
                 input_value.task.task_kind == "core_draft"
                 and input_value.task.produces_full_contract
-                and complete_coverage
+                and acceptable_coverage
                 and not local_substantive
                 and not local_practicality
             ):
@@ -3915,6 +3957,7 @@ class GeminiCognitiveExecutor:
                     for coverages in (candidate_coverages or core_coverages)
                     for coverage in coverages
                     if coverage.status == "gap"
+                    and coverage.requirement_id not in permitted_evidence_gap_ids
                 }
             )
             unresolved: set[str] = set()

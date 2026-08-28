@@ -3170,6 +3170,27 @@ class GapQualityWriter(QualityWriter):
         return TaskDraft.model_validate(payload)
 
 
+class SelectedGapQualityWriter(QualityWriter):
+    def __init__(self, requirement_id: str) -> None:
+        self.requirement_id = requirement_id
+
+    async def execute_task(self, input_value, scope, research_payload, contents):
+        draft = await super().execute_task(
+            input_value, scope, research_payload, contents
+        )
+        payload = draft.model_dump(mode="json")
+        for coverage in payload["requirement_coverage"]:
+            if coverage["requirement_id"] == self.requirement_id:
+                coverage.update(
+                    status="gap",
+                    note=(
+                        "The future authorization proof remains an explicit "
+                        "nonblocking evidence gap for this PRD."
+                    ),
+                )
+        return TaskDraft.model_validate(payload)
+
+
 class BoundedSpecialistWriter(QualityWriter):
     async def execute_task(self, input_value, scope, research_payload, contents):
         if input_value.task.produces_full_contract:
@@ -3328,6 +3349,91 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
+async def test_nonblocking_future_authorization_gap_can_directly_promote_prd() -> None:
+    description = (
+        "Product-specific laboratory report and safety clearance for the accepted "
+        "formulation."
+    )
+    compiled = await compiled_scope(
+        verification_basis="selected_evidence",
+        evidence_role="future_authorization_proof",
+        description=description,
+    )
+    research = await execute_research(
+        compiled,
+        ForbiddenGroundedResearchRunner(),
+    )
+    evidence_requirement_id = next(
+        item["id"]
+        for item in compiled.artifact.payload["requirements"]
+        if item["category"] == "evidence" and item["description"] == description
+    )
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=SelectedGapQualityWriter(evidence_requirement_id),
+    )
+
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=260,
+    )
+    candidate = results[-1]
+    assert research.evidence_readiness == "ready_with_gaps"
+    assert candidate.artifact.kind == "final_markdown"
+    assert candidate.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
+    assert candidate.artifact.payload["launchReady"] is False
+    assert next(
+        coverage
+        for coverage in candidate.artifact.payload["candidateAttestation"][
+            "requirementCoverage"
+        ]
+        if coverage["requirementId"] == evidence_requirement_id
+    )["status"] == "gap"
+    assert all(
+        label in candidate.artifact.markdown
+        for label in research.artifact.payload["gaps"]
+    )
+
+    task_refs = sorted(
+        [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000264",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.artifact.payload["unmetRequirementIds"] == []
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(candidate.artifact)
+
+
+@pytest.mark.asyncio
 async def test_incomplete_sole_core_task_cannot_directly_promote() -> None:
     compiled = await compiled_scope()
     research = await execute_research(compiled, VerifiedResearchRunner())
@@ -3462,9 +3568,6 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
             key=lambda item: item["artifactId"],
         )
 
-    def wrong_coverage(payload):
-        payload["candidateAttestation"]["requirementCoverage"][0]["status"] = "gap"
-
     def fabricated_appendix(payload):
         payload["sourceAppendix"][0]["sourceTitle"] = "Fabricated source title"
         payload["markdown"] = payload["markdown"].replace(
@@ -3476,7 +3579,6 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
             wrong_attestation,
             wrong_task,
             wrong_sources,
-            wrong_coverage,
             fabricated_appendix,
         ),
         72,
@@ -3520,6 +3622,51 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
         with pytest.raises(CognitiveExecutionFailure) as raised:
             await executor.execute(operation)
         assert raised.value.error_class == "AXWISE_TASK_ARTIFACT_INVALID"
+
+    gap_payload = json.loads(json.dumps(candidate_payload))
+    gap_payload["candidateAttestation"]["requirementCoverage"][0]["status"] = "gap"
+    gap_ref, gap_content = artifact_ref(
+        "00000000-0000-4000-8000-000000000277",
+        "final_markdown",
+        "text/markdown",
+        gap_payload,
+        gap_payload["markdown"],
+    )
+    gap_evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[
+                    plan_ref,
+                    *[ref(item.artifact) for item in results[:-1]],
+                    gap_ref,
+                ],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in results[:-1]],
+                    gap_content,
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=sorted(
+                    [*[ref(item.artifact) for item in results[:-1]], gap_ref],
+                    key=lambda item: item["artifactId"],
+                ),
+            ),
+            operation_id="00000000-0000-4000-8000-000000000278",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert gap_evaluation.execution_output_contract_satisfied is False
+    assert gap_evaluation.direct_promotion_artifact is None
+    assert gap_evaluation.artifact.payload["unmetRequirementIds"] == [
+        gap_payload["candidateAttestation"]["requirementCoverage"][0][
+            "requirementId"
+        ]
+    ]
 
 
 @pytest.mark.asyncio

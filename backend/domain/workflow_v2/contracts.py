@@ -1019,8 +1019,6 @@ class TaskCandidateAttestationV1(ContractModel):
         coverage_ids = [item.requirement_id for item in self.requirement_coverage]
         if coverage_ids != self.task.acceptance_requirement_ids:
             raise ValueError("candidate coverage must equal task acceptance requirements")
-        if any(item.status == "gap" for item in self.requirement_coverage):
-            raise ValueError("direct candidate cannot attest an acceptance gap")
         if (
             self.execution_receipt.agent != self.task.agent
             or self.execution_receipt.tool_ids != self.task.tool_ids
