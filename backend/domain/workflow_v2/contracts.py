@@ -208,6 +208,7 @@ class EvidenceRequirement(ContractModel):
     claim_type: str = Field(min_length=1, max_length=120)
     description: str = Field(min_length=1, max_length=1000)
     criticality: Literal["blocking", "nonblocking"]
+    verification_basis: Literal["grounded_claims", "selected_evidence"]
     applies_when: str = Field(min_length=1, max_length=1000)
     accepted_source_types: list[EvidenceSourceType] = Field(min_length=1, max_length=7)
 

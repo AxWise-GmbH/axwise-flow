@@ -140,10 +140,29 @@ def test_blocking_requirement_needs_an_authoritative_source_class() -> None:
                 "claimType": "commercial_offer",
                 "description": "A commercial detail cannot globally block delivery.",
                 "criticality": "blocking",
+                "verificationBasis": "grounded_claims",
                 "appliesWhen": "always",
                 "acceptedSourceTypes": ["grounded_web", "industry"],
             }
         )
+
+
+def test_evidence_requirement_requires_typed_verification_basis() -> None:
+    base = {
+        "id": "exact-product-proof",
+        "claimType": "product_certificate",
+        "description": "An exact product certificate.",
+        "criticality": "blocking",
+        "appliesWhen": "before launch",
+        "acceptedSourceTypes": ["government", "standard"],
+    }
+    with pytest.raises(ValidationError, match="Field required"):
+        EvidenceRequirement.model_validate(base)
+
+    parsed = EvidenceRequirement.model_validate(
+        {**base, "verificationBasis": "selected_evidence"}
+    )
+    assert parsed.verification_basis == "selected_evidence"
 
 
 def test_artifact_hash_is_exact_content_envelope_not_payload_only() -> None:
