@@ -9,7 +9,10 @@ from uuid import UUID
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection, Engine
 
-from backend.domain.workflow_v2.contracts import AxWiseOperationEnvelope
+from backend.domain.workflow_v2.contracts import (
+    AxWiseOperationEnvelope,
+    SynthesizeArtifactInputV1,
+)
 
 
 class OperationConflict(ValueError):
@@ -57,6 +60,17 @@ def _tenant_context(connection: Connection, tenant_id: UUID) -> None:
     )
 
 
+def _stored_envelope_payload(envelope: AxWiseOperationEnvelope) -> dict[str, Any]:
+    """Normalize only the strict purpose-discriminated synthesis wire shape."""
+
+    payload = envelope.model_dump(mode="json", by_alias=True)
+    if isinstance(envelope.input, SynthesizeArtifactInputV1):
+        payload["input"] = {
+            key: value for key, value in payload["input"].items() if value is not None
+        }
+    return payload
+
+
 class PostgresOperationStore:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -84,7 +98,7 @@ class PostgresOperationStore:
             return connection.execute(text("SELECT 1")).scalar_one() == 1
 
     def adopt_or_create(self, envelope: AxWiseOperationEnvelope) -> OperationRecord:
-        payload = envelope.model_dump(mode="json", by_alias=True)
+        payload = _stored_envelope_payload(envelope)
         parameters = {
             "operation_id": envelope.operation_id,
             "operation_type": envelope.operation_type,
