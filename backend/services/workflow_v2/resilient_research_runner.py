@@ -17,6 +17,7 @@ import logging
 import math
 import re
 import time
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Mapping, Protocol
@@ -54,6 +55,8 @@ _MAX_DOCUMENT_CHARACTERS = MAX_DOCUMENT_CODE_POINTS
 _MAX_DISCOVERY_QUERY_CHARACTERS = 2_000
 _MAX_DIAGNOSTIC_CALLS = 100
 _MAX_DIAGNOSTIC_ELAPSED_MS = 900_000
+_MAX_REUSABLE_SOURCE_CANDIDATES = 3
+_MAX_LOCATOR_WINDOW_GRID_CANDIDATES = 256
 _DEFAULT_PRIMARY_COOLDOWN_SECONDS = 450.0
 _MAX_PRIMARY_COOLDOWN_SECONDS = 900.0
 _DEFAULT_PRIMARY_HEALTHY_SECONDS = 5.0
@@ -70,6 +73,32 @@ _DISCOVERY_SECTION_BUDGETS = {
     "topics": 200,
     "geography": 80,
 }
+_LOCATOR_STOP_WORDS = frozenset(
+    {
+        "about",
+        "after",
+        "against",
+        "applicable",
+        "before",
+        "between",
+        "creating",
+        "during",
+        "every",
+        "exact",
+        "their",
+        "these",
+        "those",
+        "through",
+        "under",
+        "using",
+        "verify",
+        "when",
+        "where",
+        "which",
+        "while",
+        "with",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -102,6 +131,7 @@ class _FallbackContext:
     applies_when: str
     accepted_source_types: tuple[str, ...]
     allowed_hosts: frozenset[str]
+    reusable_candidates: tuple[_Candidate, ...]
 
 
 @dataclass(frozen=True)
@@ -587,6 +617,21 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
         for host in allowed_hosts
     ):
         return None
+    raw_reusable_candidates = payload.get("fallbackCandidateSources", [])
+    if (
+        not isinstance(raw_reusable_candidates, list)
+        or len(raw_reusable_candidates) > _MAX_REUSABLE_SOURCE_CANDIDATES
+    ):
+        return None
+    reusable_candidates, reusable_rejected, reusable_malformed, reusable_omitted = (
+        _reusable_candidate_rows(
+            raw_reusable_candidates,
+            allowed_hosts=frozenset(allowed_hosts),
+            maximum=_MAX_REUSABLE_SOURCE_CANDIDATES,
+        )
+    )
+    if reusable_rejected or reusable_malformed or reusable_omitted:
+        return None
 
     # Material evidence semantics are rendered first and each field receives an
     # independent budget. A maximal topic list can therefore never erase the
@@ -644,6 +689,7 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
         applies_when=raw_applies_when,
         accepted_source_types=tuple(source_types),
         allowed_hosts=frozenset(allowed_hosts),
+        reusable_candidates=tuple(reusable_candidates),
     )
 
 
@@ -705,6 +751,42 @@ def _candidate_rows(
     return candidates, rejected, malformed, omitted
 
 
+def _reusable_candidate_rows(
+    raw: Any, *, allowed_hosts: frozenset[str], maximum: int
+) -> tuple[list[_Candidate], int, int, int]:
+    """Validate operation-local prior source locators without trusting metadata."""
+
+    if not isinstance(raw, list):
+        return [], 0, 1, 0
+    rejected = 0
+    malformed = 0
+    candidates: list[_Candidate] = []
+    seen_urls: set[str] = set()
+    for source in raw[:_MAX_REUSABLE_SOURCE_CANDIDATES]:
+        if not isinstance(source, Mapping) or set(source) != {"title", "url"}:
+            malformed += 1
+            continue
+        url = _canonical_candidate_url(source.get("url"))
+        title = _normalized_text(source.get("title"), maximum=500)
+        if (
+            url is None
+            or not _url_matches_allowed_hosts(url, allowed_hosts)
+            or url in seen_urls
+        ):
+            rejected += 1
+            continue
+        if title is None:
+            malformed += 1
+            continue
+        seen_urls.add(url)
+        candidates.append(_Candidate(canonical_url=url, title=title, snippets=()))
+    omitted = max(0, len(raw) - _MAX_REUSABLE_SOURCE_CANDIDATES)
+    if len(candidates) > maximum:
+        omitted += len(candidates) - maximum
+        candidates = candidates[:maximum]
+    return candidates, rejected, malformed, omitted
+
+
 def _unique_exact_span(document: str, text: str) -> tuple[int, int] | None:
     document_bytes = document.encode("utf-8")
     text_bytes = text.encode("utf-8")
@@ -714,10 +796,92 @@ def _unique_exact_span(document: str, text: str) -> tuple[int, int] | None:
     return first, first + len(text_bytes)
 
 
+def _normalized_locator_token(value: str) -> str | None:
+    token = value.casefold()
+    if token in {"labeled", "labelled", "labeling", "labelling"}:
+        return "label"
+    if len(token) < 5 or token in _LOCATOR_STOP_WORDS or not token.isalpha():
+        return None
+    if len(token) > 6 and token.endswith("ies"):
+        token = token[:-3] + "y"
+    elif len(token) > 5 and token.endswith("s") and not token.endswith("ss"):
+        token = token[:-1]
+    return token
+
+
+def _requirement_locator_terms(value: str) -> dict[str, int]:
+    terms: dict[str, int] = {}
+    for match in re.finditer(r"[^\W_]+", value, re.UNICODE):
+        token = _normalized_locator_token(match.group(0))
+        if token is not None:
+            terms[token] = max(terms.get(token, 0), len(token))
+    return terms
+
+
+def _requirement_window_start(
+    document: str, locator_text: str, maximum_characters: int
+) -> int | None:
+    terms = _requirement_locator_terms(locator_text)
+    if not terms:
+        return None
+    positions: dict[str, list[int]] = {term: [] for term in terms}
+    for match in re.finditer(r"[^\W_]+", document, re.UNICODE):
+        token = _normalized_locator_token(match.group(0))
+        if token in positions:
+            positions[token].append(match.start())
+    if not any(positions.values()):
+        return None
+    last_start = max(0, len(document) - maximum_characters)
+    candidate_starts = {0, last_start}
+    grid_step = max(1, maximum_characters // 2)
+    grid_count = last_start // grid_step + 1
+    if grid_count <= _MAX_LOCATOR_WINDOW_GRID_CANDIDATES:
+        candidate_starts.update(range(0, last_start + 1, grid_step))
+    else:
+        candidate_starts.update(
+            index
+            * last_start
+            // (_MAX_LOCATOR_WINDOW_GRID_CANDIDATES - 1)
+            for index in range(_MAX_LOCATOR_WINDOW_GRID_CANDIDATES)
+        )
+    for term_positions in positions.values():
+        if not term_positions:
+            continue
+        candidate_starts.update(
+            min(last_start, max(0, position - maximum_characters // 2))
+            for position in (term_positions[0], term_positions[-1])
+        )
+    best_start = 0
+    best_score = (-1, -1, -len(document), -len(document), 0)
+    document_midpoint = len(document) // 2
+    for start in sorted(candidate_starts):
+        end = start + maximum_characters
+        counts = {
+            term: bisect_right(term_positions, end - 1)
+            - bisect_left(term_positions, start)
+            for term, term_positions in positions.items()
+        }
+        distinct = {term for term, count in counts.items() if count}
+        total_hits = sum(counts.values())
+        score = (
+            sum(terms[term] for term in distinct),
+            len(distinct),
+            -total_hits,
+            -abs((start + maximum_characters // 2) - document_midpoint),
+            -start,
+        )
+        if score > best_score:
+            best_score = score
+            best_start = start
+    return best_start
+
+
 def _bounded_document_window(
     document: str,
     snippets: tuple[str, ...],
     maximum_characters: int,
+    *,
+    locator_text: str = "",
 ) -> str:
     if len(document) <= maximum_characters:
         return document
@@ -728,6 +892,11 @@ def _bounded_document_window(
         start = max(0, first - maximum_characters // 4)
         start = min(start, len(document) - maximum_characters)
         return document[start : start + maximum_characters]
+    requirement_start = _requirement_window_start(
+        document, locator_text, maximum_characters
+    )
+    if requirement_start is not None:
+        return document[requirement_start : requirement_start + maximum_characters]
     return document[:maximum_characters]
 
 
@@ -1269,6 +1438,7 @@ class ResilientResearchRunner:
                 )
             )
 
+        discovery_started_at = self._monotonic_clock()
         try:
             discovery_deadline = min(
                 fallback_deadline,
@@ -1277,27 +1447,50 @@ class ResilientResearchRunner:
             async with asyncio.timeout_at(discovery_deadline):
                 discovery = await self._discover(context.discovery_query)
         except TimeoutError:
-            return finish_fallback(
-                _primary_with_failed_fallback(
-                    primary,
-                    status="fallback_deadline_exceeded",
-                    query_complete=context.query_complete,
+            if not context.reusable_candidates:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="fallback_deadline_exceeded",
+                        query_complete=context.query_complete,
+                    )
                 )
-            )
+            discovery = {}
+            discovery_diagnostics = {
+                "route": "searxng",
+                "status": "deadline_exceeded",
+                "elapsed_ms": _finite_elapsed_ms(
+                    discovery_started_at, self._monotonic_clock()
+                ),
+                "call_count": 1,
+                "retry_count": 0,
+            }
         except Exception:
-            return finish_fallback(
-                _primary_with_failed_fallback(
-                    primary,
-                    status="error",
-                    query_complete=context.query_complete,
+            if not context.reusable_candidates:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="error",
+                        query_complete=context.query_complete,
+                    )
                 )
+            discovery = {}
+            discovery_diagnostics = {
+                "route": "searxng",
+                "status": "error",
+                "elapsed_ms": _finite_elapsed_ms(
+                    discovery_started_at, self._monotonic_clock()
+                ),
+                "call_count": 1,
+                "retry_count": 0,
+            }
+        else:
+            raw_discovery_diagnostics = discovery.get("runtime_diagnostics")
+            discovery_diagnostics = (
+                raw_discovery_diagnostics
+                if isinstance(raw_discovery_diagnostics, Mapping)
+                else {}
             )
-        raw_discovery_diagnostics = discovery.get("runtime_diagnostics")
-        discovery_diagnostics = (
-            raw_discovery_diagnostics
-            if isinstance(raw_discovery_diagnostics, Mapping)
-            else {}
-        )
         discovery_status = str(discovery_diagnostics.get("status") or "")
         # The internal SearX adapter is the authority for whether its response
         # shape was processed successfully.  A stray or malformed
@@ -1311,7 +1504,11 @@ class ResilientResearchRunner:
         ):
             discovery_healthy = False
             discovery_status = "all_engines_unresponsive"
-        if not discovery_healthy:
+            discovery_diagnostics = {
+                **discovery_diagnostics,
+                "status": discovery_status,
+            }
+        if not discovery_healthy and not context.reusable_candidates:
             return finish_fallback(
                 _primary_with_failed_fallback(
                     primary,
@@ -1321,11 +1518,65 @@ class ResilientResearchRunner:
                 )
             )
 
-        candidates, rejected_count, malformed_count, omitted_count = _candidate_rows(
-            discovery,
-            allowed_hosts=context.allowed_hosts,
-            maximum=self.maximum_candidates,
+        if discovery_healthy:
+            discovered_candidates, rejected_count, malformed_count, omitted_count = (
+                _candidate_rows(
+                    discovery,
+                    allowed_hosts=context.allowed_hosts,
+                    maximum=(
+                        self.maximum_candidates + len(context.reusable_candidates)
+                    ),
+                )
+            )
+        else:
+            discovered_candidates = []
+            rejected_count = malformed_count = omitted_count = 0
+        merged_candidates_by_url: dict[str, _Candidate] = {}
+        for candidate in (*context.reusable_candidates, *discovered_candidates):
+            existing = merged_candidates_by_url.get(candidate.canonical_url)
+            if existing is None:
+                merged_candidates_by_url[candidate.canonical_url] = candidate
+                continue
+            merged_candidates_by_url[candidate.canonical_url] = _Candidate(
+                canonical_url=existing.canonical_url,
+                title=existing.title,
+                snippets=tuple(
+                    dict.fromkeys((*existing.snippets, *candidate.snippets))
+                ),
+            )
+        reusable_urls = [
+            candidate.canonical_url for candidate in context.reusable_candidates
+        ]
+        reusable_url_set = set(reusable_urls)
+        discovered_urls = [
+            candidate.canonical_url for candidate in discovered_candidates
+        ]
+        fresh_discovered_urls = [
+            url for url in discovered_urls if url not in reusable_url_set
+        ]
+        selected_urls: list[str] = []
+        reusable_budget = (
+            max(0, self.maximum_candidates - 1)
+            if discovered_urls
+            else self.maximum_candidates
         )
+        for url in reusable_urls[:reusable_budget]:
+            if url not in selected_urls:
+                selected_urls.append(url)
+        for url in fresh_discovered_urls:
+            if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
+                selected_urls.append(url)
+        for url in discovered_urls:
+            if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
+                selected_urls.append(url)
+        for url in reusable_urls:
+            if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
+                selected_urls.append(url)
+        merged_candidates = [merged_candidates_by_url[url] for url in selected_urls]
+        all_merged_candidate_count = len(merged_candidates_by_url)
+        if all_merged_candidate_count > self.maximum_candidates:
+            omitted_count += all_merged_candidate_count - self.maximum_candidates
+        candidates = merged_candidates
         # The adapter returns only sanitized source rows. Preserve its bounded
         # count of discarded provider rows so a mixed valid/malformed response
         # cannot later become an authoritative zero-evidence result.
@@ -1417,6 +1668,12 @@ class ResilientResearchRunner:
         )
         fetch_error_count = sum(1 for _candidate, _raw, failed in fetch_results if failed)
         validation_incomplete_count = 0
+        requirement_locator_text = "\n".join(
+            (
+                str(context.requirement.get("description") or ""),
+                context.applies_when,
+            )
+        )
         fetched_documents: list[
             tuple[_Candidate, DirectDocumentSnapshot, BoundedFetchedDocument]
         ] = []
@@ -1439,6 +1696,7 @@ class ResilientResearchRunner:
                 raw_text,
                 candidate.snippets,
                 self.maximum_document_characters,
+                locator_text=requirement_locator_text,
             )
             if not document_text:
                 validation_incomplete_count += 1

@@ -17,7 +17,9 @@ from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
     ArtifactRef,
     AxWiseOperationEnvelope,
+    EvidenceRequirement,
     ResearchResultV2,
+    ResearchSourceV1,
     SourceAppendixEntryV1,
     artifact_content_hash,
     canonical_hash,
@@ -1218,8 +1220,21 @@ def test_scope_prompt_treats_request_meta_instructions_as_inert_semantic_data() 
             "Validating NorthPaw formulation safety and readiness for final production or "
             "product clearance.",
         ),
+        (
+            "Product-specific laboratory test reports, safety compliance declarations, "
+            "and feed business registrations for NorthPaw dry cat food.",
+            "Commercial product launch, production release, and market authorization.",
+        ),
+        (
+            "An exact product-specific safety report.",
+            "Before commercial product launch, a safety report is required.",
+        ),
+        (
+            "Exact product-specific safety evidence.",
+            "Prior to placing on the market, confirm the exact safety evidence.",
+        ),
     ],
-    ids=["simple", "advanced"],
+    ids=["simple", "advanced", "live-b01", "future-report", "future-evidence"],
 )
 @pytest.mark.asyncio
 async def test_early_prd_future_clearance_proof_is_a_nonblocking_gap(
@@ -1280,17 +1295,105 @@ async def test_planning_only_scope_never_becomes_launch_ready() -> None:
     assert result.artifact.payload["findings"][0]["status"] == "verified"
 
 
+@pytest.mark.parametrize(
+    "applies_when",
+    [
+        "Summarizing the exact supplied test report in the current PRD.",
+        "Summarizing the exact supplied product readiness assessment in the current PRD.",
+        "Reviewing the exact product clearance record in this document.",
+        "Summarizing product readiness evidence in these documents.",
+        "Reviewing product clearance evidence in the PRD.",
+        "Market authorization.",
+    ],
+)
 @pytest.mark.asyncio
-async def test_planning_policy_does_not_exempt_evidence_needed_for_current_artifact() -> None:
+async def test_planning_policy_does_not_exempt_evidence_needed_for_current_artifact(
+    applies_when: str,
+) -> None:
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="selected_evidence",
-            applies_when="Summarizing the exact supplied test report in the current PRD.",
+            applies_when=applies_when,
             topic_value="NorthPaw",
         ),
         AUTHORITY_KEY,
     ).execute(envelope_for(compile_input(B01_REQUEST)))
 
+    result = await GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact),
+    ).execute(research_operation(compiled))
+
+    assert result.evidence_readiness == "blocked"
+    assert result.artifact.payload["findings"][0]["blocking"] is True
+
+
+def test_repair_source_titles_are_canonical_across_catalogue_completion_order() -> None:
+    url = "https://eur-lex.europa.eu/eli/reg/2009/767/oj/eng"
+    retrieved_at = "2026-08-28T12:00:00Z"
+    claim_id = "a" * 64
+
+    def source(title: str) -> ResearchSourceV1:
+        source_identity = {
+            "canonicalUrl": url,
+            "retrievalDate": retrieved_at,
+            "sourceClasses": ["primary_law"],
+            "sourceTitle": title,
+        }
+        return ResearchSourceV1(
+            source_id=canonical_hash(source_identity),
+            source_title=title,
+            canonical_url=url,
+            source_classes=["primary_law"],
+            retrieval_date=retrieved_at,
+            supported_claim_ids=[claim_id],
+        )
+
+    requirement = EvidenceRequirement(
+        id="labeling-law",
+        claim_type="labeling_compliance",
+        description="Verify mandatory feed labeling rules.",
+        criticality="blocking",
+        verification_basis="grounded_claims",
+        applies_when="Creating the Estonia product label.",
+        accepted_source_types=["primary_law"],
+        allowed_source_hosts=["eur-lex.europa.eu"],
+    )
+    alpha = source("Alpha title")
+    zulu = source("Zulu title")
+
+    forward = cognitive_executor_module._repair_source_candidates(
+        requirement, [[zulu], [alpha]]
+    )
+    reverse = cognitive_executor_module._repair_source_candidates(
+        requirement, [[alpha], [zulu]]
+    )
+
+    assert forward == reverse == [{"url": url, "title": "Alpha title"}]
+    assert canonical_hash(forward) == canonical_hash(reverse)
+
+
+@pytest.mark.asyncio
+async def test_terminal_outcome_list_requires_planning_policy() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            verification_basis="selected_evidence",
+            applies_when=(
+                "Commercial product launch, production release, and market authorization."
+            ),
+            topic_value="NorthPaw",
+        ),
+        AUTHORITY_KEY,
+    ).execute(
+        envelope_for(
+            compile_input(
+                "Create a go/no-go launch memo for fictional NorthPaw dry cat food."
+            )
+        )
+    )
+
+    assert PLANNING_NON_CLEARANCE_POLICY not in compiled.artifact.payload["policies"]
     result = await GeminiCognitiveExecutor(
         FakeDrafter(),
         AUTHORITY_KEY,
@@ -2045,6 +2148,123 @@ async def test_targeted_repair_can_recover_a_transient_initial_search() -> None:
         1
     ]
     assert result.artifact.payload["findings"][0]["status"] == "verified"
+
+
+@pytest.mark.asyncio
+async def test_targeted_repair_reuses_only_same_operation_accepted_source_locators() -> None:
+    source_url = (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+        "?uri=CELEX%3A02009R0767-20180101"
+    )
+
+    class TwoRequirementDrafter(FakeDrafter):
+        async def draft(self, input_value, objective_context):
+            drafted = await super().draft(input_value, objective_context)
+            safety = drafted.value.evidence_requirements[0]
+            labeling = safety.model_copy(
+                update={
+                    "id": "pet-food-labeling-law",
+                    "claim_type": "labeling_compliance",
+                    "description": (
+                        "Verify mandatory pet-food labels and analytical constituents."
+                    ),
+                    "applies_when": "Creating an Estonia pet-food label.",
+                }
+            )
+            market = safety.model_copy(
+                update={
+                    "id": "optional-market-statistic",
+                    "claim_type": "market_analysis",
+                    "description": "Optional exact Estonia market statistic.",
+                    "criticality": "nonblocking",
+                    "accepted_source_types": [
+                        "grounded_web",
+                        "industry",
+                        "official_statistics",
+                    ],
+                    "applies_when": "Adding optional market context.",
+                }
+            )
+            return ModelOutput(
+                drafted.value.model_copy(
+                    update={"evidence_requirements": [safety, labeling, market]}
+                ),
+                input_tokens=drafted.input_tokens,
+                output_tokens=drafted.output_tokens,
+            )
+
+    class OperationLocalReuseRunner:
+        def __init__(self) -> None:
+            self.calls: dict[str, int] = {}
+            self.payloads: list[dict] = []
+
+        @staticmethod
+        def verified(text: str) -> dict:
+            return {
+                "search_performed": True,
+                "text": text,
+                "claims": [{"text": text, "source_urls": [source_url]}],
+                "sources": [{"title": "EUR-Lex", "url": source_url}],
+                "provider_queries": ["bounded provider query"],
+                "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
+                "runtime_diagnostics": {"call_count": 1},
+            }
+
+        async def search(self, query: str) -> dict:
+            payload = json.loads(query.rsplit("\n", 1)[1])
+            self.payloads.append(payload)
+            requirement_id = payload["requirement"]["id"]
+            call = self.calls.get(requirement_id, 0) + 1
+            self.calls[requirement_id] = call
+            if requirement_id == "food-safety-law":
+                assert "fallbackCandidateSources" not in payload
+                return self.verified(
+                    "Regulation 767/2009 governs placing feed on the market."
+                )
+            if requirement_id == "optional-market-statistic":
+                assert "fallbackCandidateSources" not in payload
+                return {
+                    "search_performed": True,
+                    "text": "",
+                    "claims": [],
+                    "sources": [],
+                    "provider_queries": ["bounded optional-statistic query"],
+                    "usage_metadata": {"inputTokens": 2, "outputTokens": 0},
+                    "runtime_diagnostics": {"call_count": 1},
+                }
+            if call == 1:
+                assert "fallbackCandidateSources" not in payload
+                return {
+                    "search_performed": False,
+                    "runtime_diagnostics": {
+                        "status": "retry_exhausted",
+                        "call_count": 3,
+                    },
+                }
+            assert payload["fallbackCandidateSources"] == [
+                {"title": "EUR-Lex", "url": source_url}
+            ]
+            return self.verified(
+                "Mandatory labels shall declare analytical constituents."
+            )
+
+    compiled = await GeminiCognitiveExecutor(
+        TwoRequirementDrafter(topic_value="cat-food"), AUTHORITY_KEY
+    ).execute(envelope_for())
+    runner = OperationLocalReuseRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert runner.calls == {
+        "food-safety-law": 1,
+        "optional-market-statistic": 2,
+        "pet-food-labeling-law": 2,
+    }
+    assert [
+        finding["status"] for finding in result.artifact.payload["findings"]
+    ] == ["verified", "verified", "missing"]
 
 
 @pytest.mark.asyncio
