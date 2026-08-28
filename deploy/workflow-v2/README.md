@@ -34,7 +34,14 @@ Required worker configuration:
 - `GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS=750000`
 - `GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS=3750000`
 - `GEMINI_SEARCH_COST_MICROS_PER_QUERY=14000`
+- `SEARXNG_URL` as the canonical private auxiliary-search origin
+- `SEARXNG_AUTH_MODE=google_identity`
 - bounded research, lease, heartbeat, idle and pool settings as needed
+
+The private SearXNG route is a bounded discovery fallback for transient Gemini
+Google Search failures. It is stateless and has no workflow authority. Search
+snippets are never accepted directly as verified claims; workflow-v2 fetches and
+hashes selected source material before typed claim extraction.
 
 `estimatedCostMicros` covers configured Gemini input/output token rates plus a
 conservative worst-case list-price charge for every provider-reported grounded
@@ -52,10 +59,16 @@ accounts, internal ingress, authenticated invocation, and no Gemini/seal secrets
 on the API service. Do not point either service at the historical Supabase
 project or the legacy Orqaly schema.
 
-Orqaly's coordinated release tooling owns service deployment, immutable image
-selection, numeric secret versions, service names and runtime origin checks.
-This AxWise repository intentionally supplies no independent Cloud Run deploy
-command that could bypass those cross-service release gates.
+Orqaly's coordinated release tooling owns deployment of the five application
+services, immutable application-image selection, service names and runtime
+origin checks. This AxWise repository does not independently deploy those five
+services. Its Preview-only
+`scripts/deploy-workflow-v2-searxng-cloud-run.sh` helper is narrower: it builds
+and deploys only the stateless auxiliary search transport, refuses every target
+outside Preview 001, authorizes only the pinned v2 worker identity, and outputs
+the canonical endpoint. The coordinated Orqaly deployment owns the worker's
+`SEARXNG_URL` and `SEARXNG_AUTH_MODE=google_identity` configuration; the helper
+never mutates the worker service or its container image.
 
 The dedicated image installs `backend/workflow_v2_requirements.lock`. The
 path-scoped workflow-v2 CI gate uses the same lock, verifies baseline checksum

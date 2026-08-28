@@ -81,13 +81,17 @@ class SearxngSearchService:
             )
             response.raise_for_status()
             payload = response.json()
+            if not isinstance(payload, dict) or not isinstance(
+                payload.get("results"), list
+            ):
+                raise ValueError("invalid SearXNG response shape")
             retrieved_at = datetime.now(timezone.utc).isoformat()
             raw_content = getattr(response, "content", None)
             if not isinstance(raw_content, (bytes, bytearray)):
                 raw_content = str(payload).encode("utf-8")
             response_hash = hashlib.sha256(raw_content).hexdigest()
             query_id = hashlib.sha256(query.encode("utf-8")).hexdigest()[:20]
-            rows = payload.get("results") if isinstance(payload, dict) else []
+            rows = payload["results"]
             unresponsive = []
             for raw in (
                 payload.get("unresponsive_engines", [])
@@ -107,11 +111,14 @@ class SearxngSearchService:
             sources = []
             claims = []
             passages = []
+            invalid_result_count = 0
             for row in rows or []:
                 if not isinstance(row, dict):
+                    invalid_result_count += 1
                     continue
                 url = str(row.get("url") or "").strip()
                 if not url.startswith("https://"):
+                    invalid_result_count += 1
                     continue
                 title = str(row.get("title") or "Unknown").strip()[:500]
                 content = str(row.get("content") or "").strip()[:1500]
@@ -170,7 +177,15 @@ class SearxngSearchService:
                 "search_performed": bool(sources),
                 "runtime_diagnostics": {
                     "route": "searxng",
-                    "status": "ok" if sources else "empty",
+                    "status": (
+                        "ok"
+                        if sources
+                        else (
+                            "response_processing_error"
+                            if rows and invalid_result_count == len(rows)
+                            else "empty"
+                        )
+                    ),
                     "elapsed_ms": max(
                         0, round((time.monotonic() - started_at) * 1000)
                     ),
@@ -180,11 +195,15 @@ class SearxngSearchService:
                     "fallback_used": False,
                     "http_status": response.status_code,
                     "result_count": len(sources),
+                    "invalid_result_count": invalid_result_count,
                     "unresponsive_engines": unresponsive,
                 },
             }
         except Exception as exc:
-            logger.warning("SearXNG search failed: %s", exc)
+            # Exception strings from HTTP clients can include the full query URL.
+            # Keep logs finite and content-free; typed diagnostics retain only
+            # the error class and status code.
+            logger.warning("SearXNG search failed: %s", type(exc).__name__)
             return {
                 "text": "",
                 "sources": [],
