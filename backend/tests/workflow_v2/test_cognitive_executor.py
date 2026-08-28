@@ -523,6 +523,34 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.artifact_resolver is resolver
 
 
+def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import backend.services.generative.gemini_search_service as search_module
+
+    captured: dict[str, object] = {}
+
+    class FakeSearchService:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(search_module, "GeminiSearchService", FakeSearchService)
+
+    runner = cognitive_executor_module.GeminiGroundedResearchRunner("test-key")
+
+    assert runner.service is not None
+    assert captured == {
+        "api_key": "test-key",
+        "search_operation_seconds": 45,
+        "search_attempt_seconds": 20,
+    }
+    assert (
+        float(captured["search_operation_seconds"])
+        + search_module.GEMINI_SEARCH_NORMALIZATION_SECONDS
+        == cognitive_executor_module._WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS
+    )
+
+
 @pytest.mark.asyncio
 async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics() -> None:
     executor = GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY)
@@ -761,6 +789,30 @@ class TransientFailureRunner:
         }
 
 
+class MeteredThenSkippedTransientRunner:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def search(self, _query):
+        self.calls += 1
+        result = {
+            "search_performed": False,
+            "runtime_diagnostics": {"status": "unavailable", "call_count": 0},
+        }
+        if self.calls == 1:
+            result.update(
+                {
+                    "provider_queries": ["bounded provider query"],
+                    "usage_metadata": {
+                        "inputTokens": 5,
+                        "outputTokens": 3,
+                        "totalTokens": 8,
+                    },
+                }
+            )
+        return result
+
+
 class TransientThenMissingRunner(MissingResearchRunner):
     async def search(self, query):
         self.queries.append(query)
@@ -943,6 +995,65 @@ class TrackingVerifiedResearchRunner(VerifiedResearchRunner):
     async def search(self, query):
         self.queries.append(query)
         return await super().search(query)
+
+
+class MixedAvailabilityResearchRunner(VerifiedResearchRunner):
+    def __init__(self) -> None:
+        self.requirement_ids: list[str] = []
+
+    async def search(self, query):
+        requirement_id = json.loads(query.split("\n", 1)[1])["requirement"]["id"]
+        self.requirement_ids.append(requirement_id)
+        if requirement_id == "food-safety-law":
+            return await super().search(query)
+        return {
+            "search_performed": False,
+            "runtime_diagnostics": {
+                "status": "unavailable",
+                "call_count": 0,
+            },
+        }
+
+
+class ControlledMaxCardinalityTransientRunner:
+    def __init__(self, *, concurrency: int, batch_count: int) -> None:
+        self.concurrency = concurrency
+        self.calls = 0
+        self.batch_started = [asyncio.Event() for _ in range(batch_count)]
+        self.batch_release = [asyncio.Event() for _ in range(batch_count)]
+
+    async def search(self, _query):
+        call_index = self.calls
+        self.calls += 1
+        batch_index = call_index // self.concurrency
+        if call_index % self.concurrency == self.concurrency - 1:
+            self.batch_started[batch_index].set()
+        await self.batch_release[batch_index].wait()
+        return {
+            "search_performed": False,
+            "runtime_diagnostics": {
+                "status": "unavailable",
+                "call_count": 0,
+            },
+        }
+
+
+class DeadlineWithCompletedSiblingRunner(VerifiedResearchRunner):
+    def __init__(self, expire_deadline) -> None:
+        self.expire_deadline = expire_deadline
+        self.cancelled = asyncio.Event()
+
+    async def search(self, query):
+        requirement_id = json.loads(query.split("\n", 1)[1])["requirement"]["id"]
+        if requirement_id == "food-safety-law":
+            await asyncio.sleep(0)
+            return await super().search(query)
+        self.expire_deadline()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            self.cancelled.set()
+            raise
 
 
 async def compiled_scope(
@@ -1607,25 +1718,32 @@ async def test_successful_zero_evidence_acquisition_blocks_essential_requirement
 
 
 @pytest.mark.parametrize(
-    ("status", "error_class"),
+    "status",
     [
-        ("deadline_exceeded", "AXWISE_RESEARCH_DEADLINE"),
-        ("retry_exhausted", "AXWISE_RESEARCH_RETRY_EXHAUSTED"),
+        "deadline_exceeded",
+        "retry_exhausted",
+        "unavailable",
+        "response_processing_error",
     ],
 )
 @pytest.mark.asyncio
-async def test_exhausted_transient_acquisition_is_retryable(
+async def test_exhausted_transient_acquisition_blocks_essential_requirement(
     status: str,
-    error_class: str,
 ) -> None:
     compiled = await compiled_scope()
     runner = TransientFailureRunner(status)
 
-    with pytest.raises(CognitiveExecutionFailure) as raised:
-        await execute_research(compiled, runner)
+    result = await execute_research(compiled, runner)
 
-    assert raised.value.error_class == error_class
-    assert raised.value.retryable is True
+    assert result.result_type == "research_completed"
+    assert result.evidence_readiness == "blocked"
+    assert result.artifact.payload["launchReady"] is False
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert result.artifact.payload["gaps"] == []
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert finding["blocking"] is True
+    assert status in finding["note"]
     assert len(runner.queries) == 2
 
 
@@ -1723,19 +1841,194 @@ async def test_successful_repair_with_zero_evidence_retains_missing_semantics() 
     assert len(runner.queries) == 2
 
 
+@pytest.mark.parametrize(
+    "status",
+    [
+        "deadline_exceeded",
+        "retry_exhausted",
+        "unavailable",
+        "response_processing_error",
+    ],
+)
 @pytest.mark.asyncio
-async def test_optional_transient_acquisition_is_retryable() -> None:
+async def test_optional_transient_acquisition_delivers_an_explicit_gap(
+    status: str,
+) -> None:
     compiled = await compiled_scope(
         criticality="nonblocking", claim_type="market_statistic"
     )
-    runner = TransientFailureRunner()
+    runner = TransientFailureRunner(status)
 
-    with pytest.raises(CognitiveExecutionFailure) as raised:
-        await execute_research(compiled, runner)
+    result = await execute_research(compiled, runner)
 
-    assert raised.value.error_class == "AXWISE_RESEARCH_RETRY_EXHAUSTED"
-    assert raised.value.retryable is True
+    assert result.result_type == "research_completed"
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["launchReady"] is False
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert finding["blocking"] is False
+    assert result.artifact.payload["gaps"] == [finding["note"]]
+    assert status in finding["note"]
     assert len(runner.queries) == 2
+
+
+@pytest.mark.asyncio
+async def test_transient_gap_retains_observed_provider_usage() -> None:
+    compiled = await compiled_scope(
+        criticality="nonblocking", claim_type="market_statistic"
+    )
+
+    result = await execute_research(compiled, MeteredThenSkippedTransientRunner())
+
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.metrics.input_tokens == 5
+    assert result.metrics.output_tokens == 3
+    assert result.metrics.total_tokens == 8
+    assert result.metrics.search_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_unavailable_requirement_preserves_completed_sibling_evidence() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            criticality="nonblocking",
+            claim_type="market_statistic",
+            evidence_count=2,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    runner = MixedAvailabilityResearchRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["launchReady"] is False
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert [finding["status"] for finding in result.artifact.payload["findings"]] == [
+        "verified",
+        "missing",
+    ]
+    assert [
+        entry["requirementId"] for entry in result.artifact.payload["claimLedger"]
+    ] == ["food-safety-law"]
+    assert runner.requirement_ids.count("food-safety-law") == 1
+    assert runner.requirement_ids.count("food-safety-law-1") == 2
+
+
+@pytest.mark.asyncio
+async def test_research_deadline_preserves_completed_sibling_as_gap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monotonic_seconds = [0.0]
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "_research_time",
+        lambda: monotonic_seconds[0],
+    )
+    monkeypatch.delenv("AXWISE_RESEARCH_DEADLINE_SECONDS", raising=False)
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            criticality="nonblocking",
+            claim_type="market_statistic",
+            evidence_count=2,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    runner = DeadlineWithCompletedSiblingRunner(
+        lambda: monotonic_seconds.__setitem__(
+            0,
+            float(cognitive_executor_module._DEFAULT_RESEARCH_DEADLINE_SECONDS),
+        )
+    )
+
+    result = await execute_research(compiled, runner)
+
+    assert runner.cancelled.is_set()
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["boundedRepairPasses"] == 0
+    assert [finding["status"] for finding in result.artifact.payload["findings"]] == [
+        "verified",
+        "missing",
+    ]
+    assert [
+        entry["requirementId"] for entry in result.artifact.payload["claimLedger"]
+    ] == ["food-safety-law"]
+    assert "bounded research deadline" in result.artifact.payload["gaps"][0]
+
+
+@pytest.mark.asyncio
+async def test_max_cardinality_two_pass_fallback_fits_research_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    concurrency = cognitive_executor_module._DEFAULT_RESEARCH_CONCURRENCY
+    requirement_count = cognitive_executor_module._MAX_EVIDENCE_REQUIREMENTS
+    batches_per_pass = (requirement_count + concurrency - 1) // concurrency
+    batch_durations = [45 + 60, *([60] * (batches_per_pass * 2 - 1))]
+    assert sum(batch_durations) == 405
+    all_primary_durations = [
+        cognitive_executor_module._WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS
+    ] * (batches_per_pass * 2)
+    assert sum(all_primary_durations) == 420
+    mixed_transient_duration = 70 + (45 + 60) + (5 * 60)
+    assert mixed_transient_duration == 475
+    mixed_postprocessing_transient_duration = 70 + (70 + 60) + (5 * 60)
+    assert mixed_postprocessing_transient_duration == 500
+    assert (
+        max(
+            sum(batch_durations),
+            sum(all_primary_durations),
+            mixed_transient_duration,
+            mixed_postprocessing_transient_duration,
+        )
+        < cognitive_executor_module._DEFAULT_RESEARCH_DEADLINE_SECONDS
+        <= cognitive_executor_module._MAX_RESEARCH_DEADLINE_SECONDS
+    )
+
+    monotonic_seconds = [0.0]
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "_research_time",
+        lambda: monotonic_seconds[0],
+    )
+    # Lower operator overrides are clamped to the proven concurrency/deadline
+    # floor so the 12-requirement bound remains compatible with the durable
+    # operation deadline.
+    monkeypatch.setenv("AXWISE_RESEARCH_CONCURRENCY", "1")
+    monkeypatch.setenv("AXWISE_RESEARCH_DEADLINE_SECONDS", "30")
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            criticality="nonblocking",
+            claim_type="market_statistic",
+            evidence_count=requirement_count,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    runner = ControlledMaxCardinalityTransientRunner(
+        concurrency=concurrency,
+        batch_count=len(batch_durations),
+    )
+
+    execution = asyncio.create_task(execute_research(compiled, runner))
+    for duration, started, release in zip(
+        batch_durations,
+        runner.batch_started,
+        runner.batch_release,
+        strict=True,
+    ):
+        await asyncio.wait_for(started.wait(), timeout=1)
+        monotonic_seconds[0] += duration
+        release.set()
+    result = await asyncio.wait_for(execution, timeout=1)
+
+    assert monotonic_seconds[0] == 405
+    assert runner.calls == requirement_count * 2
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert len(result.artifact.payload["gaps"]) == requirement_count
+    assert {
+        finding["status"] for finding in result.artifact.payload["findings"]
+    } == {"missing"}
 
 
 @pytest.mark.asyncio

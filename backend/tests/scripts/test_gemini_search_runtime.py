@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from types import SimpleNamespace
 from typing import Any
 
 import httpx
 import pytest
 
-from backend.services.generative.gemini_search_service import GeminiSearchService
+from backend.services.generative.gemini_search_service import (
+    GEMINI_SEARCH_ATTEMPT_SECONDS,
+    GEMINI_SEARCH_OPERATION_SECONDS,
+    GeminiSearchService,
+)
 
 
 pytestmark = pytest.mark.contract
@@ -98,6 +103,36 @@ def _response(text: str = "Grounded answer") -> SimpleNamespace:
     )
 
 
+def _redirect_response(
+    provider_urls: list[str], text: str = "Grounded answer"
+) -> SimpleNamespace:
+    metadata = SimpleNamespace(
+        web_search_queries=["grounded query"],
+        search_entry_point=None,
+        grounding_chunks=[
+            SimpleNamespace(
+                web=SimpleNamespace(title=f"Source {index}", uri=url)
+            )
+            for index, url in enumerate(provider_urls)
+        ],
+        grounding_supports=[],
+    )
+    return SimpleNamespace(
+        text=text,
+        candidates=[
+            SimpleNamespace(
+                content=SimpleNamespace(parts=[SimpleNamespace(text=text)]),
+                grounding_metadata=metadata,
+            )
+        ],
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=2,
+            candidates_token_count=3,
+            total_token_count=5,
+        ),
+    )
+
+
 def _service(models: SequenceModels, clock: FakeClock) -> GeminiSearchService:
     service = GeminiSearchService.__new__(GeminiSearchService)
     service._client = SimpleNamespace(models=models)
@@ -133,6 +168,46 @@ def _http_status_error(code: int, *, retry_after: str | None = None) -> Exceptio
         request=request,
         response=response,
     )
+
+
+def test_constructor_accepts_narrower_workflow_runtime_bounds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+
+    generic = GeminiSearchService()
+    service = GeminiSearchService(
+        search_operation_seconds=45,
+        search_attempt_seconds=20,
+    )
+
+    assert generic._search_operation_seconds == GEMINI_SEARCH_OPERATION_SECONDS
+    assert generic._search_attempt_seconds == GEMINI_SEARCH_ATTEMPT_SECONDS
+    assert service._search_operation_seconds == 45
+    assert service._search_attempt_seconds == 20
+
+
+@pytest.mark.parametrize(
+    ("operation_seconds", "attempt_seconds", "message"),
+    [
+        (0, 1, "search_operation_seconds"),
+        (121, 1, "search_operation_seconds"),
+        (45, 0, "search_attempt_seconds"),
+        (45, 46, "search_attempt_seconds"),
+        (float("nan"), 1, "search_operation_seconds"),
+    ],
+)
+def test_constructor_rejects_unbounded_runtime_limits(
+    operation_seconds: float,
+    attempt_seconds: float,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        GeminiSearchService(
+            search_operation_seconds=operation_seconds,
+            search_attempt_seconds=attempt_seconds,
+        )
 
 
 def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
@@ -244,6 +319,187 @@ async def test_cancelling_async_search_cancels_provider_without_retry(
         await task
     assert models.cancelled.is_set()
     assert len(models.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_stalled_async_provider_automatically_hits_outer_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    models = BlockingAsyncModels()
+    service = _async_service(models, FakeClock())
+    service._search_clock = time.monotonic
+    service._search_operation_seconds = 0.02
+    service._search_attempt_seconds = 0.02
+    started_at = time.monotonic()
+
+    result = await asyncio.wait_for(
+        service.search_web_general_async("stalled grounded query"),
+        timeout=1,
+    )
+
+    wall_elapsed = time.monotonic() - started_at
+    assert models.cancelled.is_set()
+    assert len(models.calls) == 1
+    assert result["search_performed"] is False
+    assert result["error"] == "TimeoutError"
+    assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
+    assert result["runtime_diagnostics"]["call_count"] == 1
+    assert result["runtime_diagnostics"]["deadline_ms"] == 20
+    diagnostic_elapsed_ms = result["runtime_diagnostics"]["elapsed_ms"]
+    assert 10 <= diagnostic_elapsed_ms <= 500
+    assert abs(diagnostic_elapsed_ms - round(wall_elapsed * 1000)) <= 5
+    assert wall_elapsed < 0.5
+
+
+@pytest.mark.asyncio
+async def test_repeated_cancellation_stops_async_redirect_resolution() -> None:
+    provider_url = (
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/source"
+    )
+    service = _async_service(
+        AsyncSequenceModels([_redirect_response([provider_url])]),
+        FakeClock(),
+    )
+    started = asyncio.Event()
+    cancelled = asyncio.Event()
+    release_cleanup = asyncio.Event()
+
+    async def resolve(_url: str) -> str:
+        started.set()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            cancelled.set()
+            await release_cleanup.wait()
+            raise
+
+    service._grounding_redirect_async_resolver = resolve
+    search = asyncio.create_task(service.search_web_general_async("grounded"))
+    await asyncio.wait_for(started.wait(), timeout=1)
+
+    search.cancel()
+    await asyncio.wait_for(cancelled.wait(), timeout=1)
+    search.cancel()
+    assert not search.done()
+    release_cleanup.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(search, timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_async_redirect_phase_has_strict_aggregate_deadline() -> None:
+    provider_url = (
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/source"
+    )
+    service = _async_service(
+        AsyncSequenceModels([_redirect_response([provider_url])]),
+        FakeClock(),
+    )
+    service._search_redirect_seconds = 0.01
+    cancelled = asyncio.Event()
+
+    async def resolve(_url: str) -> str:
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+
+    service._grounding_redirect_async_resolver = resolve
+    service._grounding_redirect_resolver = lambda _url: pytest.fail(
+        "async workflow parser attempted synchronous redirect I/O"
+    )
+
+    result = await asyncio.wait_for(
+        service.search_web_general_async("grounded"), timeout=1
+    )
+
+    assert cancelled.is_set()
+    assert result["search_performed"] is True
+    assert result["sources"][0]["url"] == provider_url
+    assert result["sources"][0]["resolved_url"] is None
+
+
+@pytest.mark.asyncio
+async def test_async_redirect_child_failure_is_sanitized_without_exception_group() -> None:
+    provider_url = (
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/source"
+    )
+    service = _async_service(
+        AsyncSequenceModels([_redirect_response([provider_url])]),
+        FakeClock(),
+    )
+
+    async def resolve(_url: str) -> str:
+        raise RuntimeError("sensitive redirect failure")
+
+    service._grounding_redirect_async_resolver = resolve
+
+    result = await service.search_web_general_async("grounded")
+
+    assert result["search_performed"] is True
+    assert result["sources"][0]["url"] == provider_url
+    assert result["sources"][0]["resolved_url"] is None
+    assert "sensitive redirect failure" not in str(result)
+
+
+@pytest.mark.asyncio
+async def test_async_normalization_updates_elapsed_and_caps_redirects() -> None:
+    provider_urls = [
+        "https://vertexaisearch.cloud.google.com/grounding-api-redirect/"
+        f"source-{index}"
+        for index in range(12)
+    ]
+    clock = FakeClock()
+    service = _async_service(
+        AsyncSequenceModels([_redirect_response(provider_urls)]), clock
+    )
+    observed: list[str] = []
+
+    async def resolve(url: str) -> str:
+        observed.append(url)
+        if len(observed) == 1:
+            clock.sleep(7)
+        return f"https://authority.example/source-{len(observed)}"
+
+    service._grounding_redirect_async_resolver = resolve
+
+    result = await service.search_web_general_async("grounded")
+
+    assert len(observed) == 10
+    assert len(result["sources"]) == 10
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 7000
+    assert result["runtime_diagnostics"]["deadline_ms"] == 35_000
+
+
+@pytest.mark.asyncio
+async def test_async_cpu_parser_fails_closed_at_its_absolute_deadline() -> None:
+    clock = FakeClock()
+    base_response = _response()
+
+    class AdvancingResponse:
+        candidates = base_response.candidates
+        usage_metadata = base_response.usage_metadata
+
+        @property
+        def text(self) -> str:
+            clock.sleep(6)
+            return "bounded response"
+
+    service = _async_service(
+        AsyncSequenceModels([AdvancingResponse()]),
+        clock,
+    )
+
+    result = await service.search_web_general_async("grounded")
+
+    assert result["search_performed"] is False
+    assert result["error"] == "TimeoutError"
+    assert result["runtime_diagnostics"]["status"] == "response_processing_error"
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 6000
+    assert result["runtime_diagnostics"]["deadline_ms"] == 35_000
 
 
 def test_transient_disconnect_retries_same_model_with_bounded_call_count(
