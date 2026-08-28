@@ -14,11 +14,15 @@ on:
       - "backend/database/workflow_v2/**"
       - "backend/domain/workflow_v2/**"
       - "backend/services/generative/gemini_search_service.py"
+      - "backend/services/generative/searxng_search_service.py"
       - "backend/services/llm/gemini_runtime.py"
       - "backend/services/workflow_v2/**"
+      - "backend/tests/scripts/test_workflow_v2_cloudbuild_contract.py"
       - "backend/tests/scripts/test_gemini_search_runtime.py"
       - "backend/tests/workflow_v2/**"
+      - "deploy/searxng/**"
       - "deploy/workflow-v2/**"
+      - "scripts/deploy-workflow-v2-searxng-cloud-run.sh"
   pull_request:
     paths:
       - ".github/workflows/workflow-v2.yml"
@@ -31,11 +35,15 @@ on:
       - "backend/database/workflow_v2/**"
       - "backend/domain/workflow_v2/**"
       - "backend/services/generative/gemini_search_service.py"
+      - "backend/services/generative/searxng_search_service.py"
       - "backend/services/llm/gemini_runtime.py"
       - "backend/services/workflow_v2/**"
+      - "backend/tests/scripts/test_workflow_v2_cloudbuild_contract.py"
       - "backend/tests/scripts/test_gemini_search_runtime.py"
       - "backend/tests/workflow_v2/**"
+      - "deploy/searxng/**"
       - "deploy/workflow-v2/**"
+      - "scripts/deploy-workflow-v2-searxng-cloud-run.sh"
 
 permissions:
   contents: read
@@ -103,6 +111,11 @@ jobs:
           python -m pytest -q
           --confcutdir=backend/tests/scripts
           backend/tests/scripts/test_gemini_search_runtime.py
+      - name: Run workflow-v2 image and search-deploy contracts
+        run: >-
+          python -m pytest -q
+          --confcutdir=backend/tests/scripts
+          backend/tests/scripts/test_workflow_v2_cloudbuild_contract.py
       - name: Run real PostgreSQL RLS and lease tests
         run: >-
           python -m pytest -q

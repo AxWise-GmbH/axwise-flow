@@ -44,6 +44,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _operation_metrics,
     _deterministic_quality_defects,
     _citation_sections,
+    _claim_from_grounding,
     _markdown_with_source_appendix,
     _model_owned_required_sections,
     _usage_from_result,
@@ -54,7 +55,16 @@ from backend.services.workflow_v2.cognitive_executor import (
     has_positive_launch_readiness_claim,
 )
 from backend.services.llm import gemini_runtime
+from backend.services.workflow_v2.exact_span_extractor import (
+    DraftCodePointSpan as ExactDraftCodePointSpan,
+    ExactSpanExtractionRequest,
+    ExactSpanSelectionDraft,
+    assemble_exact_span_result,
+)
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+from backend.services.workflow_v2.resilient_research_runner import (
+    ResilientResearchRunner,
+)
 from backend.services.workflow_v2.worker_main import cost_configuration_ready
 
 
@@ -462,6 +472,55 @@ def test_worker_readiness_requires_nonnegative_search_query_rate(
     assert cost_configuration_ready() is False
     monkeypatch.setenv("GEMINI_SEARCH_COST_MICROS_PER_QUERY", "-1")
     assert cost_configuration_ready() is False
+
+
+def test_production_executor_wires_resilient_search_and_typed_span_extraction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import backend.services.generative.searxng_search_service as searx_module
+    import backend.services.workflow_v2.exact_span_extractor as extractor_module
+
+    model = object()
+    primary = object()
+    discovery = object()
+    extractor = object()
+    drafter = object()
+    writer = object()
+    reviser = object()
+    resolver = object()
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("AXWISE_AUTHORITY_SEAL_KEY", "a" * 32)
+    monkeypatch.setattr(
+        cognitive_executor_module, "get_shared_workflow_model", lambda _key: model
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module, "GeminiGroundedResearchRunner", lambda _key: primary
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module, "PydanticAIScopeDrafter", lambda value: drafter
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module, "PydanticAISynthesisWriter", lambda value: writer
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module, "PydanticAIScopeReviser", lambda value: reviser
+    )
+    monkeypatch.setattr(searx_module, "SearxngSearchService", lambda: discovery)
+    monkeypatch.setattr(
+        extractor_module, "PydanticAIExactSpanExtractor", lambda value: extractor
+    )
+
+    executor = cognitive_executor_module.build_cognitive_executor(resolver)
+
+    assert isinstance(executor.research_runner, ResilientResearchRunner)
+    assert executor.research_runner.primary is primary
+    assert executor.research_runner.searxng is discovery
+    assert executor.research_runner.extractor is extractor
+    assert executor.scope_drafter is drafter
+    assert executor.synthesis_writer is writer
+    assert executor.scope_reviser is reviser
+    assert executor.artifact_resolver is resolver
 
 
 @pytest.mark.asyncio
@@ -1408,6 +1467,82 @@ async def test_selected_evidence_requires_a_claim_from_an_accepted_source_class(
     assert finding["sourceArtifactIds"] == [str(evidence.artifact_id)]
 
 
+def test_fallback_discovery_title_cannot_forge_an_accepted_source_class() -> None:
+    text = "A directly fetched passage."
+    url = "https://unrelated.example/article"
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    source = {
+        "provider": "searxng_direct_fetch",
+        "title": "Official Industry Association and Trade Body",
+        "url": url,
+    }
+
+    rejected = _claim_from_grounding(
+        {"text": text, "source_urls": [url]},
+        {url: source},
+        {"industry"},
+        set(),
+        response_hash,
+        text,
+    )
+    grounded = _claim_from_grounding(
+        {"text": text, "source_urls": [url]},
+        {url: source},
+        {"grounded_web"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    assert rejected is None
+    assert grounded is not None
+    assert grounded.source_types == ["grounded_web"]
+
+
+def test_fallback_discovery_hostname_cannot_forge_industry_authority() -> None:
+    text = "A directly fetched passage."
+    url = "https://not-an-industry-association.example.com/report"
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    claim = _claim_from_grounding(
+        {"text": text, "source_urls": [url]},
+        {
+            url: {
+                "provider": "searxng_direct_fetch",
+                "title": "Association and trade body",
+                "url": url,
+            }
+        },
+        {"industry"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    assert claim is None
+
+
+def test_every_claim_source_must_match_an_accepted_source_class() -> None:
+    text = "A claim citing two publishers."
+    law_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+    blog_url = "https://unrelated.example/article"
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    claim = _claim_from_grounding(
+        {"text": text, "source_urls": [law_url, blog_url]},
+        {
+            law_url: {"title": "EU law", "url": law_url},
+            blog_url: {"title": "Blog", "url": blog_url},
+        },
+        {"primary_law"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    assert claim is None
+
+
 @pytest.mark.parametrize(
     ("criticality", "claim_type"),
     [("blocking", "applicable_law"), ("nonblocking", "market_statistic")],
@@ -1492,6 +1627,88 @@ async def test_exhausted_transient_acquisition_is_retryable(
     assert raised.value.error_class == error_class
     assert raised.value.retryable is True
     assert len(runner.queries) == 2
+
+
+@pytest.mark.asyncio
+async def test_transient_google_search_uses_exact_fetched_fallback_evidence() -> None:
+    compiled = await compiled_scope()
+    source_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=example"
+    exact = "Feed business operators must comply with applicable feed labelling rules."
+    document_text = f"Official text preface. {exact} Annex."
+
+    class Primary:
+        async def search(self, _query: str) -> dict:
+            return {
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "deadline_exceeded",
+                    "call_count": 3,
+                },
+            }
+
+    class Discovery:
+        async def search_web_general(self, query: str) -> dict:
+            assert "cat-food" in query and "Estonia" in query
+            return {
+                "search_performed": True,
+                "sources": [{"title": "EUR-Lex feed law", "url": source_url}],
+                "claims": [
+                    {
+                        "text": "Untrusted search snippet.",
+                        "source_urls": [source_url],
+                    }
+                ],
+                "runtime_diagnostics": {"status": "ok"},
+            }
+
+    async def fetch(_url: str) -> dict:
+        return {
+            "final_url": source_url,
+            "text": document_text,
+            "retrieved_at": "2026-08-28T08:00:00Z",
+        }
+
+    class Extractor:
+        async def extract(self, request: ExactSpanExtractionRequest):
+            document = request.documents[0]
+            start = document.text.index(exact)
+            result = assemble_exact_span_result(
+                request,
+                ExactSpanSelectionDraft(
+                    document_id=document.document_id,
+                    spans=[
+                        ExactDraftCodePointSpan(
+                            start=start,
+                            end=start + len(exact),
+                        )
+                    ],
+                ),
+                input_tokens=11,
+                output_tokens=5,
+            )
+            return result
+
+    resilient = ResilientResearchRunner(
+        Primary(),
+        searxng=Discovery(),
+        fetcher=fetch,
+        extractor=Extractor(),
+    )
+    result = await execute_research(compiled, resilient)
+
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["boundedRepairPasses"] == 0
+    entry = result.artifact.payload["claimLedger"][0]
+    assert entry["providerResponseText"] == document_text
+    assert entry["providerResponseHash"] == hashlib.sha256(
+        document_text.encode("utf-8")
+    ).hexdigest()
+    assert [claim["text"] for claim in entry["claims"]] == [exact]
+    assert entry["claims"][0]["sourceUrls"] == [source_url]
+    assert "Untrusted search snippet." not in json.dumps(entry)
+    assert result.metrics.input_tokens == 11
+    assert result.metrics.output_tokens == 5
+    assert result.metrics.search_calls == 0
 
 
 @pytest.mark.asyncio

@@ -1742,7 +1742,7 @@ def _normalized_source_type(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", value.casefold()).strip("_")
 
 
-def _classify_source_types(url: str, title: str) -> set[str]:
+def _classify_source_types(url: str, _title: str) -> set[str]:
     parsed = urlparse(url)
     host = (parsed.hostname or "").casefold()
     path = (parsed.path or "").casefold()
@@ -1777,12 +1777,23 @@ def _classify_source_types(url: str, title: str) -> set[str]:
         types.add("official_statistics")
     if host in {"iso.org", "www.iso.org", "iec.ch", "www.iec.ch"}:
         types.add("standard")
-    if any(
-        marker in f"{host} {title}".casefold()
-        for marker in ("association", "industry", "trade body")
-    ):
-        types.add("industry")
+    # ``industry`` has no globally reliable hostname convention. Titles and
+    # arbitrary hostname substrings are publisher-controlled, so neither can
+    # establish that authority class. Industry-only evidence must therefore be
+    # supplied as selected immutable evidence whose class is already bound, or
+    # remain an explicit evidence gap.
     return types
+
+
+def _classify_source_record(url: str, raw_source: dict[str, Any]) -> set[str]:
+    """Classify a source without trusting fallback discovery metadata.
+
+    SearX titles are untrusted locators and can contain arbitrary organization
+    labels.  They remain useful for display, but must not elevate an unrelated
+    public host into the accepted ``industry`` evidence class.
+    """
+
+    return _classify_source_types(url, str(raw_source.get("title") or ""))
 
 
 def _canonical_retrieval_date(value: Any) -> str | None:
@@ -1808,7 +1819,7 @@ def _source_snapshot(
     retrieval_date = _canonical_retrieval_date(raw_source.get("retrieved_at"))
     if not title or title.casefold() == "unknown" or retrieval_date is None:
         return None
-    source_classes = utf16_ordinal_sorted(_classify_source_types(url, title))
+    source_classes = utf16_ordinal_sorted(_classify_source_record(url, raw_source))
     core = {
         "canonicalUrl": url,
         "retrievalDate": retrieval_date,
@@ -1904,9 +1915,12 @@ def _claim_from_grounding(
     source_types: set[str] = set()
     for url in urls:
         source = source_by_url.get(url, {})
-        source_types.update(_classify_source_types(url, str(source.get("title") or "")))
-    if accepted_source_types and not source_types.intersection(accepted_source_types):
-        return None
+        url_source_types = _classify_source_record(url, source)
+        if accepted_source_types and not url_source_types.intersection(
+            accepted_source_types
+        ):
+            return None
+        source_types.update(url_source_types)
     ordered_urls = utf16_ordinal_sorted(set(urls))
     ordered_types = utf16_ordinal_sorted(source_types)
     identity = canonical_hash(
@@ -2649,9 +2663,8 @@ class GeminiCognitiveExecutor:
                         {
                             url
                             for url in claim.source_urls
-                            if _classify_source_types(
-                                url,
-                                str(source_by_url.get(url, {}).get("title") or ""),
+                            if _classify_source_record(
+                                url, source_by_url.get(url, {})
                             ).intersection(accepted_types)
                         }
                     )
@@ -2662,8 +2675,8 @@ class GeminiCognitiveExecutor:
                 {
                     source_type
                     for item in sources
-                    for source_type in _classify_source_types(
-                        str(item.get("url") or ""), str(item.get("title") or "")
+                    for source_type in _classify_source_record(
+                        str(item.get("url") or ""), item
                     )
                 }
             )
@@ -3633,6 +3646,14 @@ class GeminiCognitiveExecutor:
 
 
 def build_cognitive_executor(artifact_resolver: ArtifactResolver) -> GeminiCognitiveExecutor:
+    from backend.services.generative.searxng_search_service import SearxngSearchService
+    from backend.services.workflow_v2.exact_span_extractor import (
+        PydanticAIExactSpanExtractor,
+    )
+    from backend.services.workflow_v2.resilient_research_runner import (
+        ResilientResearchRunner,
+    )
+
     api_key = os.getenv("GEMINI_API_KEY")
     authority_key = os.getenv("AXWISE_AUTHORITY_SEAL_KEY")
     if not api_key:
@@ -3640,10 +3661,15 @@ def build_cognitive_executor(artifact_resolver: ArtifactResolver) -> GeminiCogni
     if not authority_key:
         raise RuntimeError("AXWISE_AUTHORITY_SEAL_KEY is required")
     model = get_shared_workflow_model(api_key)
+    research_runner = ResilientResearchRunner(
+        GeminiGroundedResearchRunner(api_key),
+        searxng=SearxngSearchService(),
+        extractor=PydanticAIExactSpanExtractor(model),
+    )
     return GeminiCognitiveExecutor(
         PydanticAIScopeDrafter(model),
         authority_key.encode("utf-8"),
-        GeminiGroundedResearchRunner(api_key),
+        research_runner,
         artifact_resolver,
         PydanticAISynthesisWriter(model),
         PydanticAIScopeReviser(model),
