@@ -15,6 +15,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext
+from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 
 from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
@@ -1047,7 +1048,9 @@ def _markdown_with_source_appendix(
         return markdown.rstrip()
 
     def clean(value: str) -> str:
-        return re.sub(r"\s+", " ", value).strip()
+        return re.sub(r"\s+", " ", value).strip().replace(
+            "[evidence:", "［evidence:"
+        )
 
     rows = ["## Sources", ""]
     if not appendix:
@@ -1148,6 +1151,198 @@ def _deterministic_quality_defects(
     return utf16_ordinal_sorted(set(substantive)), utf16_ordinal_sorted(set(practical))
 
 
+_SAFE_SYNTHESIS_VALIDATION_REASONS = (
+    (
+        "model output must not provide its own source appendix",
+        "SOURCE_APPENDIX_FORBIDDEN",
+    ),
+    ("required Markdown sections are missing:", "REQUIRED_SECTIONS_MISSING"),
+    (
+        "evidence-gapped artifact contains a launch-ready claim",
+        "LAUNCH_READY_CLAIM_FORBIDDEN",
+    ),
+    (
+        "evidence marker must contain one exact lowercase immutable claim ID",
+        "EVIDENCE_MARKER_INVALID",
+    ),
+    (
+        "Markdown cites evidence outside the immutable claim ledger",
+        "EVIDENCE_CLAIM_NOT_ALLOWED",
+    ),
+    (
+        "evidence-backed Markdown must cite immutable claim IDs",
+        "EVIDENCE_CITATION_MISSING",
+    ),
+    (
+        "non-ready Markdown requires an evidence-gap, assumption or blocking section",
+        "EVIDENCE_STATUS_SECTION_MISSING",
+    ),
+    (
+        "Markdown does not surface every immutable gap or assumption",
+        "EVIDENCE_GAP_LABEL_MISSING",
+    ),
+    ("blocked report must state a no-go or blocked decision", "BLOCKED_DECISION_MISSING"),
+    (
+        "blocked report requires a Remediation heading",
+        "BLOCKED_REMEDIATION_HEADING_MISSING",
+    ),
+    (
+        "final artifact failed substantive/practical quality:",
+        "QUALITY_GATE_FAILED",
+    ),
+    (
+        "task coverage must exactly match sorted acceptance requirement IDs",
+        "TASK_COVERAGE_MISMATCH",
+    ),
+)
+
+
+def _safe_synthesis_validation_failure(
+    error: UnexpectedModelBehavior,
+    *,
+    phase: Literal["TASK", "EVALUATION", "FINAL", "BLOCKED_REPORT"],
+) -> CognitiveExecutionFailure | None:
+    """Translate only exhausted AxWise validators without retaining model content."""
+
+    if error.message != "Exceeded maximum output retries (2)":
+        return None
+    current: BaseException | None = error.__cause__ or error.__context__
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, ModelRetry):
+            reason = "VALIDATOR_REJECTED"
+            for prefix, candidate in _SAFE_SYNTHESIS_VALIDATION_REASONS:
+                if current.message.startswith(prefix):
+                    reason = candidate
+                    break
+            return CognitiveExecutionFailure(
+                f"AXWISE_{phase}_OUTPUT_VALIDATION_EXHAUSTED_{reason}",
+                retryable=True,
+            )
+        if isinstance(current, ToolRetryError):
+            return CognitiveExecutionFailure(
+                f"AXWISE_{phase}_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID",
+                retryable=True,
+            )
+        current = current.__cause__ or current.__context__
+    return None
+
+
+def _deterministic_blocked_report(research: ResearchResultV2) -> SynthesisDraft:
+    """Render an immutable no-go fact without another cognitive/provider decision."""
+
+    blocking_findings = sorted(
+        (
+            finding
+            for finding in research.findings
+            if finding.blocking and finding.status in {"missing", "conflicting"}
+        ),
+        key=lambda finding: finding.requirement_id.encode("utf-16-be"),
+    )
+    if research.readiness != "blocked" or not blocking_findings:
+        raise ValueError("deterministic blocked report requires blocking findings")
+
+    blocking_notes = {finding.note for finding in blocking_findings}
+    all_gap_labels = {
+        *research.assumptions,
+        *research.gaps,
+        *research.conflicts,
+        *(
+            finding.note
+            for finding in research.findings
+            if finding.status in {"missing", "conflicting"}
+        ),
+    }
+    additional_labels = utf16_ordinal_sorted(all_gap_labels - blocking_notes)
+    claims_by_id = {
+        claim.claim_id: claim
+        for claim in [
+            *research.selected_claims,
+            *(claim for entry in research.claim_ledger for claim in entry.claims),
+        ]
+    }
+    sourced_claim_ids = {
+        claim_id
+        for source in research.source_catalogue
+        for claim_id in source.supported_claim_ids
+    }
+    citable_claim_ids = utf16_ordinal_sorted(
+        claim_id
+        for claim_id, claim in claims_by_id.items()
+        if claim_id in sourced_claim_ids
+        and not has_positive_launch_readiness_claim(claim.text)
+    )
+
+    rows = [
+        "# Evidence decision",
+        "",
+        "The evidence decision is **blocked** and remains a **no-go**. This report records "
+        "the immutable evidence state; it is not product clearance, legal approval, a "
+        "safety determination, or authorization to launch. Only reversible non-launch "
+        "planning may continue while the blocking evidence is unresolved.",
+        "",
+        "## Blocking findings",
+        "",
+    ]
+    rows.extend(
+        f"- **Requirement `{finding.requirement_id}` ({finding.status})** — {finding.note}"
+        for finding in blocking_findings
+    )
+    rows.extend(["", "## Other immutable gaps and assumptions", ""])
+    rows.extend(
+        (f"- {label}" for label in additional_labels)
+        if additional_labels
+        else ["- No additional nonblocking gap or assumption is recorded."]
+    )
+    if citable_claim_ids:
+        chosen_claim_id = citable_claim_ids[0]
+        chosen_claim_text = re.sub(
+            r"\s+", " ", claims_by_id[chosen_claim_id].text
+        ).strip().replace("[evidence:", "［evidence:")
+        rows.extend(
+            [
+                "",
+                "## Immutable supporting context",
+                "",
+                f"- {chosen_claim_text} [evidence:{chosen_claim_id}]",
+                "- This verified context may inform bounded non-launch planning. It does "
+                "not resolve the blocking findings or change readiness.",
+            ]
+        )
+    rows.extend(
+        [
+            "",
+            "# Remediation plan",
+            "",
+            *(
+                f"- **Resolve `{finding.requirement_id}`:** obtain and bind authoritative "
+                f"evidence that resolves this exact finding: {finding.note}"
+                for finding in blocking_findings
+            ),
+            "- **Validation:** verify evidence identity, applicability, date, scope, "
+            "provenance, and any required signatures before reevaluation.",
+            "- **Acceptance check:** bind the exact immutable artifact and input hashes to "
+            "a new evidence review; general web context cannot substitute for required "
+            "product- or organization-specific proof.",
+            "- **Conflict control:** if verified evidence conflicts, retain both immutable "
+            "records and require the responsible legal or safety owner to resolve them.",
+            "- **Execution boundary:** continue only reversible discovery and planning; do "
+            "not launch, imply clearance, or represent the product as ready.",
+            "- **Decision rule:** reassess only after every applicable blocking requirement "
+            "is verified without unresolved conflict. Until then, readiness stays blocked.",
+            "",
+            "This remediation plan does not change evidence readiness or authorize a "
+            "successor workflow stage. A future review must independently validate the new "
+            "immutable evidence against the same accepted scope and requirement identifiers.",
+        ]
+    )
+    return SynthesisDraft(
+        title="Blocked decision and remediation report",
+        markdown="\n".join(rows),
+    )
+
+
 class PydanticAISynthesisWriter:
     def __init__(self, model: Any) -> None:
         self.task_agent = Agent(
@@ -1208,6 +1403,22 @@ class PydanticAISynthesisWriter:
             except ValueError as error:
                 raise ModelRetry(str(error)) from error
             return output
+
+    @staticmethod
+    async def _run_validated_agent(
+        agent: Any,
+        prompt: str,
+        context: SynthesisContext,
+        *,
+        phase: Literal["TASK", "EVALUATION", "FINAL", "BLOCKED_REPORT"],
+    ) -> Any:
+        try:
+            return await agent.run(prompt, deps=context)
+        except UnexpectedModelBehavior as error:
+            failure = _safe_synthesis_validation_failure(error, phase=phase)
+            if failure is None:
+                raise
+            raise failure from error
 
     @staticmethod
     def _allowed_claim_ids(research_payload: dict[str, Any]) -> list[str]:
@@ -1312,7 +1523,8 @@ class PydanticAISynthesisWriter:
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[TaskDraft]:
         context = self._context(input_value, research_payload, selected_contents)
-        result = await self.task_agent.run(
+        result = await self._run_validated_agent(
+            self.task_agent,
             self._prompt(
                 input_value,
                 scope_payload,
@@ -1320,7 +1532,8 @@ class PydanticAISynthesisWriter:
                 selected_contents,
                 context.allowed_claim_ids,
             ),
-            deps=context,
+            context,
+            phase="TASK",
         )
         _validate_task_draft(context, result.output)
         input_tokens, output_tokens = _usage_from_result(result)
@@ -1334,7 +1547,8 @@ class PydanticAISynthesisWriter:
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[EvaluationDraft]:
         context = self._context(input_value, research_payload, selected_contents)
-        result = await self.evaluation_agent.run(
+        result = await self._run_validated_agent(
+            self.evaluation_agent,
             self._prompt(
                 input_value,
                 scope_payload,
@@ -1342,7 +1556,8 @@ class PydanticAISynthesisWriter:
                 selected_contents,
                 context.allowed_claim_ids,
             ),
-            deps=context,
+            context,
+            phase="EVALUATION",
         )
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(result.output, input_tokens, output_tokens)
@@ -1355,7 +1570,8 @@ class PydanticAISynthesisWriter:
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[SynthesisDraft]:
         context = self._context(input_value, research_payload, selected_contents)
-        result = await self.final_agent.run(
+        result = await self._run_validated_agent(
+            self.final_agent,
             self._prompt(
                 input_value,
                 scope_payload,
@@ -1363,7 +1579,8 @@ class PydanticAISynthesisWriter:
                 selected_contents,
                 context.allowed_claim_ids,
             ),
-            deps=context,
+            context,
+            phase="FINAL",
         )
         _validate_synthesis(context, result.output)
         input_tokens, output_tokens = _usage_from_result(result)
@@ -1377,7 +1594,8 @@ class PydanticAISynthesisWriter:
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[SynthesisDraft]:
         context = self._context(input_value, research_payload, selected_contents)
-        result = await self.blocked_agent.run(
+        result = await self._run_validated_agent(
+            self.blocked_agent,
             self._prompt(
                 input_value,
                 scope_payload,
@@ -1385,7 +1603,8 @@ class PydanticAISynthesisWriter:
                 selected_contents,
                 context.allowed_claim_ids,
             ),
-            deps=context,
+            context,
+            phase="BLOCKED_REPORT",
         )
         _validate_synthesis(context, result.output)
         input_tokens, output_tokens = _usage_from_result(result)
@@ -2575,11 +2794,25 @@ class GeminiCognitiveExecutor:
             claims, conflicts, repair_failure_status = repaired.get(
                 requirement.id, ([], [], None)
             )
+            initial_failure_status = initial_failure_statuses.get(requirement.id)
+            if (
+                not claims
+                and not conflicts
+                and initial_failure_status is not None
+                and repair_failure_status is not None
+            ):
+                error_class = (
+                    "AXWISE_RESEARCH_DEADLINE"
+                    if "deadline_exceeded"
+                    in {initial_failure_status, repair_failure_status}
+                    else "AXWISE_RESEARCH_RETRY_EXHAUSTED"
+                )
+                raise CognitiveExecutionFailure(error_class, retryable=True)
             status_value = "conflicting" if conflicts else "verified" if claims else "missing"
             failure_statuses = [
                 value
                 for value in (
-                    initial_failure_statuses.get(requirement.id),
+                    initial_failure_status,
                     repair_failure_status,
                 )
                 if value is not None
@@ -2688,7 +2921,9 @@ class GeminiCognitiveExecutor:
         envelope: AxWiseOperationEnvelope,
         input_value: SynthesizeArtifactInputV1,
     ):
-        if self.artifact_resolver is None or self.synthesis_writer is None:
+        if self.artifact_resolver is None or (
+            input_value.purpose != "blocked_report" and self.synthesis_writer is None
+        ):
             raise CognitiveExecutionFailure("AXWISE_SYNTHESIS_UNAVAILABLE", retryable=True)
         scope_fact, research_fact = await asyncio.gather(
             asyncio.to_thread(
@@ -3346,12 +3581,7 @@ class GeminiCognitiveExecutor:
                 selected_contents,
             )
         else:
-            written = await self.synthesis_writer.write_blocked(
-                input_value,
-                scope.model_dump(mode="json", by_alias=True),
-                research.model_dump(mode="json", by_alias=True),
-                selected_contents,
-            )
+            written = ModelOutput(_deterministic_blocked_report(research))
         draft, input_tokens, output_tokens = _unwrap_model_output(written)
         _validate_synthesis(common_context, draft)
         appendix = _source_appendix_entries(draft.markdown, research)
@@ -3385,8 +3615,19 @@ class GeminiCognitiveExecutor:
                 ],
             ),
             evidence_readiness=research.readiness,
-            metrics=_operation_metrics(
-                input_tokens=input_tokens, output_tokens=output_tokens
+            metrics=(
+                OperationMetrics(
+                    latency_ms=0,
+                    input_tokens=0,
+                    output_tokens=0,
+                    total_tokens=0,
+                    search_calls=0,
+                    estimated_cost_micros=0,
+                )
+                if input_value.purpose == "blocked_report"
+                else _operation_metrics(
+                    input_tokens=input_tokens, output_tokens=output_tokens
+                )
             ),
         )
 
