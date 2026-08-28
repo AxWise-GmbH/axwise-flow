@@ -1477,6 +1477,7 @@ def _safe_synthesis_validation_failure(
         return None
     current: BaseException | None = error.__cause__ or error.__context__
     seen: set[int] = set()
+    structured_output_invalid = False
     while current is not None and id(current) not in seen:
         seen.add(id(current))
         if isinstance(current, ModelRetry):
@@ -1490,11 +1491,13 @@ def _safe_synthesis_validation_failure(
                 retryable=True,
             )
         if isinstance(current, ToolRetryError):
-            return CognitiveExecutionFailure(
-                f"AXWISE_{phase}_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID",
-                retryable=True,
-            )
+            structured_output_invalid = True
         current = current.__cause__ or current.__context__
+    if structured_output_invalid:
+        return CognitiveExecutionFailure(
+            f"AXWISE_{phase}_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID",
+            retryable=True,
+        )
     return None
 
 
@@ -1715,6 +1718,21 @@ class PydanticAISynthesisWriter:
             ],
         ]
 
+    @classmethod
+    def _required_gap_labels_for_input(
+        cls,
+        input_value: SynthesizeArtifactInputV1,
+        research_payload: dict[str, Any],
+    ) -> list[str]:
+        task = input_value.task
+        if (
+            input_value.purpose == "execute_task"
+            and task is not None
+            and not task.produces_full_contract
+        ):
+            return []
+        return cls._required_gap_labels(research_payload)
+
     def _context(
         self,
         input_value: SynthesizeArtifactInputV1,
@@ -1741,7 +1759,9 @@ class PydanticAISynthesisWriter:
             required_sections=required_sections,
             evidence_readiness=input_value.output_contract.evidence_readiness,
             allowed_claim_ids=self._allowed_claim_ids(research_payload),
-            required_gap_labels=self._required_gap_labels(research_payload),
+            required_gap_labels=self._required_gap_labels_for_input(
+                input_value, research_payload
+            ),
             acceptance_requirement_ids=(
                 task.acceptance_requirement_ids if task is not None else []
             ),

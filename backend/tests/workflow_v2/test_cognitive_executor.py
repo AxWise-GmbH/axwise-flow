@@ -398,6 +398,43 @@ async def test_terminal_evaluation_schema_failure_has_safe_finite_reason() -> No
 
 
 @pytest.mark.asyncio
+async def test_nested_model_retry_takes_precedence_over_transport_wrapper() -> None:
+    message = "Markdown does not surface every immutable gap or assumption"
+
+    class ExhaustedAgent:
+        async def run(self, _prompt, *, deps):
+            assert deps.purpose == "execute_task"
+            try:
+                try:
+                    raise ModelRetry(message)
+                except ModelRetry as model_retry:
+                    raise ToolRetryError(
+                        RetryPromptPart(content=message)
+                    ) from model_retry
+            except ToolRetryError as validation_error:
+                raise UnexpectedModelBehavior(
+                    "Exceeded maximum output retries (2)"
+                ) from validation_error
+
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=["An immutable gap."],
+    )
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await PydanticAISynthesisWriter._run_validated_agent(
+            ExhaustedAgent(), "{}", context, phase="TASK"
+        )
+
+    assert raised.value.error_class == (
+        "AXWISE_TASK_OUTPUT_VALIDATION_EXHAUSTED_EVIDENCE_GAP_LABEL_MISSING"
+    )
+    assert raised.value.retryable is True
+
+
+@pytest.mark.asyncio
 async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1462,6 +1499,39 @@ def test_task_prompt_matches_prompted_output_schema() -> None:
     )
 
     assert draft.requirement_coverage[0].requirement_id == "req-0123456789abcdef"
+
+
+def test_specialist_gap_validation_stays_within_its_bounded_lens() -> None:
+    research_payload = {
+        "assumptions": ["A product-specific laboratory assessment is pending."],
+        "gaps": ["Formal market authorization has not been supplied."],
+        "conflicts": [],
+        "findings": [],
+    }
+
+    class SpecialistTask:
+        produces_full_contract = False
+
+    class CoreTask:
+        produces_full_contract = True
+
+    class SpecialistInput:
+        purpose = "execute_task"
+        task = SpecialistTask()
+
+    class CoreInput:
+        purpose = "execute_task"
+        task = CoreTask()
+
+    assert PydanticAISynthesisWriter._required_gap_labels_for_input(
+        SpecialistInput(), research_payload
+    ) == []
+    assert PydanticAISynthesisWriter._required_gap_labels_for_input(
+        CoreInput(), research_payload
+    ) == [
+        "A product-specific laboratory assessment is pending.",
+        "Formal market authorization has not been supplied.",
+    ]
 
 
 @pytest.mark.parametrize(
