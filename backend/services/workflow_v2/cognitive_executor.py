@@ -3766,6 +3766,11 @@ class GeminiCognitiveExecutor:
                         if input_value.task.produces_full_contract
                         else []
                     ),
+                    "required_gap_labels": (
+                        common_context.required_gap_labels
+                        if input_value.task.produces_full_contract
+                        else []
+                    ),
                     "acceptance_requirement_ids": input_value.task.acceptance_requirement_ids,
                 }
             )
