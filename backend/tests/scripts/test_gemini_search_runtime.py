@@ -566,6 +566,78 @@ def test_non_transient_error_is_not_retried(
     assert result["runtime_diagnostics"]["call_count"] == 1
 
 
+@pytest.mark.asyncio
+async def test_async_first_non_transient_error_remains_non_retryable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    clock = FakeClock()
+    models = AsyncSequenceModels([_http_status_error(400)])
+    service = _async_service(models, clock)
+
+    result = await service.search_web_general_async("invalid async request")
+
+    assert result["search_performed"] is False
+    assert result["error"] == "HTTPStatusError"
+    assert len(models.calls) == 1
+    assert clock.sleeps == []
+    assert result["runtime_diagnostics"]["status"] == "non_retryable_error"
+    assert result["runtime_diagnostics"]["call_count"] == 1
+    assert result["runtime_diagnostics"]["retry_count"] == 0
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 0
+
+
+def test_transient_then_non_transient_failure_remains_fallback_eligible(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    clock = FakeClock()
+    models = SequenceModels(
+        [_http_status_error(504), _http_status_error(400)]
+    )
+    service = _service(models, clock)
+
+    result = service.search_web_general("temporarily unavailable search")
+
+    assert result["search_performed"] is False
+    assert result["error"] == "HTTPStatusError"
+    assert len(models.calls) == 2
+    assert clock.sleeps == [1.0]
+    assert result["runtime_diagnostics"]["status"] == "retry_exhausted"
+    assert result["runtime_diagnostics"]["call_count"] == 2
+    assert result["runtime_diagnostics"]["retry_count"] == 1
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_async_transients_then_non_transient_failure_remain_fallback_eligible(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    clock = FakeClock()
+    models = AsyncSequenceModels(
+        [
+            _http_status_error(504),
+            _http_status_error(504),
+            _http_status_error(400),
+        ]
+    )
+    service = _async_service(models, clock)
+
+    result = await service.search_web_general_async(
+        "repeatedly unavailable search"
+    )
+
+    assert result["search_performed"] is False
+    assert result["error"] == "HTTPStatusError"
+    assert len(models.calls) == 3
+    assert clock.sleeps == [1.0, 2.0]
+    assert result["runtime_diagnostics"]["status"] == "retry_exhausted"
+    assert result["runtime_diagnostics"]["call_count"] == 3
+    assert result["runtime_diagnostics"]["retry_count"] == 2
+    assert result["runtime_diagnostics"]["elapsed_ms"] == 3000
+
+
 def test_retry_delay_cannot_exceed_total_operation_deadline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
