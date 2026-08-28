@@ -26,6 +26,8 @@ from backend.services.workflow_v2.cognitive_executor import (
     PydanticAIScopeDrafter,
     PydanticAIScopeReviser,
     PydanticAISynthesisWriter,
+    SCOPE_REVISION_SYSTEM_PROMPT,
+    SCOPE_SYSTEM_PROMPT,
     ScopeDraft,
     ScopeRevisionDraft,
     SynthesisContext,
@@ -95,12 +97,16 @@ class FakeDrafter:
         *,
         criticality: str = "blocking",
         claim_type: str = "legal_safety",
+        verification_basis: str = "grounded_claims",
+        description: str = "Verify applicable pet-food safety obligations.",
         assumptions: list[str] | None = None,
         evidence: bool = True,
         evidence_count: int = 1,
     ) -> None:
         self.criticality = criticality
         self.claim_type = claim_type
+        self.verification_basis = verification_basis
+        self.description = description
         self.assumptions = assumptions or []
         self.evidence = evidence
         self.evidence_count = evidence_count
@@ -119,8 +125,9 @@ class FakeDrafter:
                             else f"food-safety-law-{index}"
                         ),
                         "claimType": self.claim_type,
-                        "description": "Verify applicable pet-food safety obligations.",
+                        "description": self.description,
                         "criticality": self.criticality,
+                        "verificationBasis": self.verification_basis,
                         "appliesWhen": "The deliverable recommends an Estonia launch.",
                         "acceptedSourceTypes": ["government", "primary_law"],
                     }
@@ -323,6 +330,7 @@ async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics(
         content_type="application/json", payload=scope, markdown=None
     )
     assert scope["authority"]["canonicalInputHash"] == envelope_for().canonical_input_hash
+    assert scope["evidenceRequirements"][0]["verificationBasis"] == "grounded_claims"
     assert len(scope["authority"]["seal"]) == 64
     assert result.metrics.latency_ms >= 1
     assert result.metrics.input_tokens == 11
@@ -567,10 +575,30 @@ class DeceptiveBlogRunner:
         }
 
 
+class ForbiddenGroundedResearchRunner:
+    def __init__(self) -> None:
+        self.queries = []
+
+    async def search(self, query):
+        self.queries.append(query)
+        raise AssertionError("selected-evidence requirements must not use grounded research")
+
+
+class TrackingVerifiedResearchRunner(VerifiedResearchRunner):
+    def __init__(self) -> None:
+        self.queries = []
+
+    async def search(self, query):
+        self.queries.append(query)
+        return await super().search(query)
+
+
 async def compiled_scope(
     *,
     criticality: str = "blocking",
     claim_type: str = "legal_safety",
+    verification_basis: str = "grounded_claims",
+    description: str = "Verify applicable pet-food safety obligations.",
     assumptions: list[str] | None = None,
     evidence: bool = True,
 ):
@@ -578,6 +606,8 @@ async def compiled_scope(
         FakeDrafter(
             criticality=criticality,
             claim_type=claim_type,
+            verification_basis=verification_basis,
+            description=description,
             assumptions=assumptions,
             evidence=evidence,
         ),
@@ -610,6 +640,183 @@ async def execute_research(compiled, runner, *extra_facts):
     return await executor.execute(
         research_operation(compiled, selected_evidence=list(extra_facts))
     )
+
+
+def selected_evidence_fact(
+    requirement_id: str,
+    *,
+    source_types: list[str] | None = None,
+) -> ArtifactFact:
+    text = "The exact product-specific assessment is complete and approved."
+    urls = ["https://health.ec.europa.eu/exact-product-assessment"]
+    typed_source_types = source_types or ["government"]
+    claim = {
+        "claimId": canonical_hash(
+            {
+                "text": text,
+                "sourceTypes": typed_source_types,
+                "sourceUrls": urls,
+            }
+        ),
+        "text": text,
+        "textSha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "sourceUrls": urls,
+        "sourceTypes": typed_source_types,
+        "providerResponseHash": None,
+        "segmentStart": None,
+        "segmentEnd": None,
+        "offsetUnit": None,
+    }
+    payload = {
+        "schemaVersion": "axwise.evidence.v1",
+        "requirementId": requirement_id,
+        "applicability": "applicable",
+        "claims": [claim],
+        "conflicts": [],
+    }
+    return ArtifactFact(
+        artifactId="00000000-0000-4000-8000-000000000038",
+        artifactHash=artifact_content_hash(
+            content_type="application/json", payload=payload, markdown=None
+        ),
+        kind="evidence",
+        contentType="application/json",
+        payload=payload,
+        markdown=None,
+        sourceArtifactIds=[],
+    )
+
+
+def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
+    for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
+        assert "verificationBasis" in prompt
+        assert "selected_evidence" in prompt
+        assert "grounded_claims" in prompt
+        for exact_proof in (
+            "certificate",
+            "declaration",
+            "test report",
+            "assessment",
+            "validation",
+            "executed agreement",
+            "safety record",
+        ):
+            assert exact_proof in prompt
+
+
+@pytest.mark.parametrize(
+    ("case", "claim_type", "description"),
+    [
+        (
+            "B02",
+            "product_conformity_and_validation",
+            "A CE declaration and clinical validation for the exact fictional medical device.",
+        ),
+        (
+            "A11",
+            "executed_governance_evidence",
+            "A completed product-specific DPIA and executed works-council agreement.",
+        ),
+        (
+            "A12",
+            "product_safety_evidence",
+            "Exact EN 71 test reports, cybersecurity assessment, and product safety record.",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_exact_product_proof_cannot_be_falsely_verified_by_grounded_web(
+    case: str,
+    claim_type: str,
+    description: str,
+) -> None:
+    compiled = await compiled_scope(
+        verification_basis="selected_evidence",
+        claim_type=claim_type,
+        description=description,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact),
+    )
+    result = await executor.execute(research_operation(compiled))
+
+    assert case in {"B02", "A11", "A12"}
+    assert result.evidence_readiness == "blocked"
+    assert result.artifact.payload["boundedRepairPasses"] == 0
+    assert result.artifact.payload["claimLedger"] == []
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert finding["sourceArtifactIds"] == []
+    assert "exact immutable selected evidence" in finding["note"]
+    assert "grounded web research cannot satisfy" in finding["note"]
+
+
+@pytest.mark.asyncio
+async def test_exact_product_proof_accepts_exact_immutable_selected_evidence() -> None:
+    compiled = await compiled_scope(
+        verification_basis="selected_evidence",
+        claim_type="product_conformity",
+        description="A declaration of conformity for the exact product.",
+    )
+    evidence = selected_evidence_fact("food-safety-law")
+    runner = ForbiddenGroundedResearchRunner()
+
+    result = await execute_research(compiled, runner, evidence)
+
+    assert runner.queries == []
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["boundedRepairPasses"] == 0
+    assert result.artifact.payload["claimLedger"] == []
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "verified"
+    assert finding["sourceArtifactIds"] == [str(evidence.artifact_id)]
+    assert finding["note"] == "Verified by 1 selected immutable claim(s)."
+
+
+@pytest.mark.asyncio
+async def test_selected_evidence_requires_a_claim_from_an_accepted_source_class() -> None:
+    compiled = await compiled_scope(
+        verification_basis="selected_evidence",
+        claim_type="product_conformity",
+        description="A declaration of conformity for the exact product.",
+    )
+    evidence = selected_evidence_fact("food-safety-law", source_types=["industry"])
+    runner = ForbiddenGroundedResearchRunner()
+
+    result = await execute_research(compiled, runner, evidence)
+
+    assert runner.queries == []
+    assert result.evidence_readiness == "blocked"
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert finding["sourceArtifactIds"] == [str(evidence.artifact_id)]
+
+
+@pytest.mark.parametrize(
+    ("criticality", "claim_type"),
+    [("blocking", "applicable_law"), ("nonblocking", "market_statistic")],
+)
+@pytest.mark.asyncio
+async def test_grounded_claim_basis_keeps_bounded_dynamic_acquisition(
+    criticality: str,
+    claim_type: str,
+) -> None:
+    compiled = await compiled_scope(
+        verification_basis="grounded_claims",
+        criticality=criticality,
+        claim_type=claim_type,
+    )
+    runner = TrackingVerifiedResearchRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert len(runner.queries) == 1
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["boundedRepairPasses"] == 0
+    assert result.artifact.payload["findings"][0]["status"] == "verified"
+    assert len(result.artifact.payload["claimLedger"]) == 1
 
 
 @pytest.mark.asyncio
@@ -778,7 +985,7 @@ async def test_deceptive_blog_title_and_metadata_cannot_become_primary_law() -> 
 
 @pytest.mark.asyncio
 async def test_only_typed_selected_evidence_can_establish_not_applicable() -> None:
-    compiled = await compiled_scope()
+    compiled = await compiled_scope(verification_basis="selected_evidence")
     payload = {
         "schemaVersion": "axwise.evidence.v1",
         "requirementId": "food-safety-law",

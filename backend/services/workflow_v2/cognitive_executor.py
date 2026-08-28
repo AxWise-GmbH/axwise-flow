@@ -174,7 +174,13 @@ when the request does not state it. The accepted scope is the sole future resear
 authority: include geography, evidence requirements, deliverables, personas/interviews,
 PRD requirements, limits, and policies here. Evidence requirements must be claim-specific;
 mark only essential legal/safety evidence as blocking. Optional statistics, offers, or
-commercial details are nonblocking. Return at most one truly material clarification,
+commercial details are nonblocking. Set verificationBasis to selected_evidence whenever
+the requirement asserts the existence, completion, execution, or contents of an exact
+product- or organization-specific certificate, declaration, test report, assessment,
+validation, executed agreement, or safety record. Such proof cannot be established by
+grounded web research. Set verificationBasis to grounded_claims for general law,
+standards, government obligations, and statistics. Split mixed general-law and exact-proof
+requirements so each has one verification basis. Return at most one truly material clarification,
 never a questionnaire. Emit every acceptedSourceTypes array sorted and unique using only
 the closed source vocabulary. Use one identical quality contract. Do not expose unrelated
 context.
@@ -315,6 +321,12 @@ return no topic anchors; the server preserves the accepted anchors. Apply the sa
 to objective_changed and objective offsets. Return all other semantic lists as their
 complete revised values. Never use chat history or unrelated context. Evidence
 requirements remain claim-specific; only essential legal/safety evidence may block.
+Set verificationBasis to selected_evidence whenever a requirement asserts the existence,
+completion, execution, or contents of an exact product- or organization-specific
+certificate, declaration, test report, assessment, validation, executed agreement, or
+safety record; grounded web research cannot establish those facts. Use grounded_claims
+for general law, standards, government obligations, and statistics, and split mixed
+general-law and exact-proof requirements so each has one verification basis.
 Emit every acceptedSourceTypes array sorted and unique using the closed source vocabulary.
 """.strip()
 
@@ -1214,7 +1226,7 @@ class GeminiCognitiveExecutor:
         envelope: AxWiseOperationEnvelope,
         input_value: ExecuteResearchInputV2,
     ):
-        if self.research_runner is None or self.artifact_resolver is None:
+        if self.artifact_resolver is None:
             raise CognitiveExecutionFailure("AXWISE_RESEARCH_UNAVAILABLE", retryable=True)
         scope_fact = await asyncio.to_thread(
             self.artifact_resolver.artifact_fact,
@@ -1334,6 +1346,17 @@ class GeminiCognitiveExecutor:
                     source_artifact_ids=source_ids,
                     note=f"Verified by {len(selected_claims)} selected immutable claim(s).",
                 )
+            elif requirement.verification_basis == "selected_evidence":
+                findings_by_id[requirement.id] = EvidenceFinding(
+                    requirement_id=requirement.id,
+                    status="missing",
+                    blocking=blocking,
+                    source_artifact_ids=source_ids,
+                    note=(
+                        "No exact immutable selected evidence with an accepted claim "
+                        "was supplied; grounded web research cannot satisfy this requirement."
+                    ),
+                )
             else:
                 source_ids_by_requirement[requirement.id] = [artifact_id, *source_ids]
                 to_acquire.append(requirement)
@@ -1349,6 +1372,8 @@ class GeminiCognitiveExecutor:
             limits=scope.limits,
             policies=scope.policies,
         )
+        if to_acquire and self.research_runner is None:
+            raise CognitiveExecutionFailure("AXWISE_RESEARCH_UNAVAILABLE", retryable=True)
         concurrency = max(1, min(int(os.getenv("AXWISE_RESEARCH_CONCURRENCY", "4")), 8))
         deadline_seconds = max(
             30, min(int(os.getenv("AXWISE_RESEARCH_DEADLINE_SECONDS", "300")), 900)
