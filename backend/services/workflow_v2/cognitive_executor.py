@@ -105,6 +105,35 @@ _PRD_BASELINE_SECTIONS = frozenset(
 _SOFTWARE_PRD_BASELINE_SECTIONS = frozenset(
     {*_PRD_BASELINE_SECTIONS, "Technical boundaries"}
 )
+_PLANNING_ARTIFACT_TYPES = frozenset(
+    {"product_prd", "software_prd", "research_strategy", "operational_plan"}
+)
+_STATUTORY_SOURCE_TYPES = frozenset({"government", "primary_law"})
+_NONSTATUTORY_AUTHORITY_SOURCE_TYPES = frozenset(
+    {"academic", "industry", "official_statistics", "standard"}
+)
+_STATUTORY_SEMANTICS = re.compile(
+    r"\b(?:act|directive|law|legal|legislation|regulation|regulatory|statute|statutory)\b"
+    r"|\barticles?\s+\d+[a-z]?\b",
+    re.IGNORECASE,
+)
+_NONSTATUTORY_AUTHORITY_SEMANTICS = re.compile(
+    r"\b(?:academic|benchmark|guidance|guideline|industry|standard|statistics?|study|"
+    r"trade[- ]body)\b",
+    re.IGNORECASE,
+)
+_UNAMBIGUOUS_STATUTORY_CLAIM_TYPES = frozenset(
+    {
+        "applicable_law",
+        "legal_obligation",
+        "legal_requirement",
+        "legal_safety",
+        "primary_law",
+        "regulatory_requirement",
+        "statutory_obligation",
+        "statutory_requirement",
+    }
+)
 
 
 def _research_time() -> float:
@@ -272,6 +301,7 @@ class SynthesisContext(_DraftModel):
     required_sections: list[str]
     evidence_readiness: str
     allowed_claim_ids: list[str]
+    allowed_claim_texts: dict[str, str] = Field(default_factory=dict)
     required_gap_labels: list[str]
     acceptance_requirement_ids: list[str] = Field(default_factory=list)
     repair_pass: int = Field(default=0, ge=0, le=1)
@@ -342,15 +372,21 @@ selected_evidence when that exact proof is needed only for a future launch, rele
 clearance, certification, or authorization decision. Exact proof includes a certificate,
 declaration, test report, assessment, validation, executed agreement, or safety record and
 cannot be established by grounded web research. Split mixed requirements so each has one
-evidence role and one verification basis.
+evidence role, one verification basis and one independently verifiable assertion. In
+particular, never combine statutory law with a separate standard, trade-body rule or statistic
+in one requirement even when both are blocking.
 When REQUEST_TEXT explicitly restricts a requirement to named publishers or official
 documentation, set allowedSourceHosts to the minimal sorted lowercase canonical hostnames
 for those publishers. Otherwise return an empty allowedSourceHosts list. Never infer a host
-restriction from the topic alone. Keep requirement criticality intrinsic. The server treats
-missing future_authorization_proof as a labelled gap for a non-launch_authorization artifact;
-selected_artifact_proof, launch_authorization, unsafe artifact content and verified conflicts
-still block. Preserve proof the owner explicitly makes optional or nonblocking. Return at most one truly material clarification, never a
-questionnaire. Emit every acceptedSourceTypes array sorted and unique using only the closed
+restriction from the topic alone. Keep requirement criticality intrinsic. For product PRDs,
+software PRDs, research strategies and operational plans, the server treats missing
+non-statutory grounded_claim evidence as a labelled gap; requirements that assert statutory-law
+obligations keep their blocking semantics regardless of publisher class. The server also treats
+missing future_authorization_proof as a
+labelled gap for a non-launch_authorization artifact. selected_artifact_proof,
+launch_authorization, unsafe artifact content and verified conflicts still block. Preserve
+proof the owner explicitly makes optional or nonblocking. Return at most one truly material
+clarification, never a questionnaire. Emit every acceptedSourceTypes array sorted and unique using only the closed
 source vocabulary. Use one identical quality contract. Do not expose unrelated context.
 """.strip()
 
@@ -359,11 +395,21 @@ def _effective_requirement_blocking(
     scope: ScopeArtifactV2,
     requirement: EvidenceRequirement,
 ) -> bool:
+    artifact_type = scope.deliverable_profile.artifact_type
     future_authorization_exemption = (
-        scope.deliverable_profile.artifact_type != "launch_authorization"
+        artifact_type != "launch_authorization"
         and requirement.evidence_role == "future_authorization_proof"
     )
-    return requirement.criticality == "blocking" and not future_authorization_exemption
+    nonstatutory_planning_exemption = (
+        artifact_type in _PLANNING_ARTIFACT_TYPES
+        and requirement.evidence_role == "grounded_claim"
+        and not _requirement_has_statutory_force(requirement)
+    )
+    return (
+        requirement.criticality == "blocking"
+        and not future_authorization_exemption
+        and not nonstatutory_planning_exemption
+    )
 
 
 def _permitted_nonblocking_evidence_gap_requirement_ids(
@@ -584,6 +630,7 @@ def _validate_draft(request: str, draft: ScopeDraft) -> None:
     _validate_allowed_source_host_authority(
         request, draft.evidence_requirements, accepted_hosts=set()
     )
+    _validate_atomic_evidence_requirements(draft.evidence_requirements)
     _project_deliverable_contract(
         authority_text=request,
         profile=draft.deliverable_profile,
@@ -625,6 +672,36 @@ def _validate_allowed_source_host_authority(
         raise ValueError(
             "allowedSourceHosts require an explicit publisher/source restriction"
         )
+
+
+def _validate_atomic_evidence_requirements(
+    requirements: list[EvidenceRequirement],
+) -> None:
+    for requirement in requirements:
+        source_types = set(requirement.accepted_source_types)
+        mixes_statutory_and_other_authority = bool(
+            source_types.intersection(_STATUTORY_SOURCE_TYPES)
+            and source_types.intersection(_NONSTATUTORY_AUTHORITY_SOURCE_TYPES)
+        )
+        description = re.sub(r"[_-]+", " ", requirement.description)
+        if (
+            mixes_statutory_and_other_authority
+            and _requirement_has_statutory_force(requirement)
+            and _NONSTATUTORY_AUTHORITY_SEMANTICS.search(description)
+        ):
+            raise ValueError(
+                "mixed statutory and non-statutory evidence assertions must be split "
+                "into independently verifiable requirements"
+            )
+
+
+def _requirement_has_statutory_force(requirement: EvidenceRequirement) -> bool:
+    claim_type = re.sub(r"[-\s]+", "_", requirement.claim_type.casefold())
+    description = re.sub(r"[_-]+", " ", requirement.description)
+    return (
+        claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
+        or _STATUTORY_SEMANTICS.search(description) is not None
+    )
 
 
 def _usage_from_result(result: Any) -> tuple[int, int]:
@@ -761,11 +838,16 @@ proof required to produce the current artifact safely. Use future_authorization_
 selected_evidence only when exact proof is needed for a future launch, release, clearance,
 certification, or authorization decision. Exact proof includes a certificate, declaration,
 test report, assessment, validation, executed agreement, or safety record and cannot be
-established by grounded web research. Split mixed requirements so each has one role and basis.
-Keep criticality intrinsic. Missing future_authorization_proof is a labelled gap for every
-non-launch_authorization artifact; selected_artifact_proof, launch_authorization, unsafe
-artifact content and verified conflicts still block. Preserve proof the owner explicitly
-makes optional or nonblocking.
+established by grounded web research. Split mixed requirements so each has one role, basis
+and independently verifiable assertion. Never combine statutory law with a separate standard,
+trade-body rule or statistic in one requirement.
+Keep criticality intrinsic. For product PRDs, software PRDs, research strategies and
+operational plans, missing non-statutory grounded_claim evidence is a labelled gap;
+requirements that assert statutory-law obligations keep their blocking semantics regardless
+of publisher class. Missing
+future_authorization_proof is a labelled gap for every non-launch_authorization artifact;
+selected_artifact_proof, launch_authorization, unsafe artifact content and verified conflicts
+still block. Preserve proof the owner explicitly makes optional or nonblocking.
 Emit every acceptedSourceTypes array sorted and unique using the closed source vocabulary.
 """.strip()
 
@@ -812,6 +894,7 @@ def _validate_revision_draft(
             else set()
         ),
     )
+    _validate_atomic_evidence_requirements(draft.evidence_requirements)
     _project_deliverable_contract(
         authority_text=correction,
         profile=draft.deliverable_profile,
@@ -885,8 +968,13 @@ requirements, limits and policies. OUTPUT_CONTRACT required sections, rubric and
 criteria are semantic quality checks, not headings to echo. A grounded factual claim must carry its
 exact `[evidence:<claim-id>]` marker from ALLOWED_CLAIM_IDS. Never invent a marker, URL,
 title, date, number, threshold, certification or clearance. Separate supported facts from
-assumptions and recommendations. If readiness is not ready, never claim launch, production,
-market, legal or safety readiness. AxWise returns cognitive facts only; never instruct
+assumptions and recommendations. Treat every exact number, recipe or composition, formula,
+health or safety outcome, processing parameter, legal obligation, standard, certification and
+market statistic as unsupported unless the same sentence cites an immutable claim that directly
+supports that exact assertion. A project choice without evidence is useful only when explicitly
+labelled as a proposed target, hypothesis, assumption or TBD validation item; it must not imply
+health, safety, legal or certification authority. If readiness is not ready, never claim launch,
+production, market, legal or safety readiness. AxWise returns cognitive facts only; never instruct
 Orqaly which workflow stage to run next. The server appends the exact source appendix.
 Never author a Sources or Source appendix heading or source row, even when that heading is
 named by OUTPUT_CONTRACT; it is a server-owned section added after validation.
@@ -917,7 +1005,12 @@ specific unsupported precision, contradictions, stale-topic references and readi
 violations, substantive-content defects and practicality defects. A shell that merely repeats
 scope, plan, evidence status or headings is not substantive. For PRDs, strategy and operational
 plans, missing decisions, actions, acceptance checks or validation steps is a practicality
-defect. Require prioritized requirements, requirement-linked Given/When/Then checks, metrics or
+defect. Inspect every sentence containing a number, percentage, money amount, date, formula,
+recipe/composition, processing parameter, health/safety outcome, named law/standard or
+compliance statement. An evidence marker supports only the exact claim text bound to that ID;
+adjacent facts, different numbers and broader conclusions remain unsupported. Uncited product
+choices must be explicitly labelled proposed targets, hypotheses, assumptions or TBD validation
+items. Require prioritized requirements, requirement-linked Given/When/Then checks, metrics or
 validation and concrete next steps for PRDs. Apply software technical-boundary checks only when
 artifactType is software_prd. Do not treat an explicitly labelled assumption or validation target as a verified fact.
 Return bounded repair instructions only for concrete defects; preserve valid material and never
@@ -933,7 +1026,9 @@ SYNTHESIS_SYSTEM_PROMPT = (
 Perform the single bounded repair by synthesizing the coherent core draft, specialist packets
 and exact evaluation feedback. Preserve correct material, resolve every listed contradiction,
 remove unsupported precision and stale-topic content, and cover every required section as a
-Markdown heading. Do not add new evidence claims. Return one useful final title and Markdown,
+Markdown heading. Remove or explicitly label unsupported exact specifications as proposed
+targets, hypotheses, assumptions or TBD validation items. Never stretch a citation beyond its
+exact immutable claim text. Do not add new evidence claims. Return one useful final title and Markdown,
 not a shell, questionnaire, workflow commentary or JSON dump.
 """
 ).strip()
@@ -1210,14 +1305,18 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
         if not any("remediation" in heading for heading in headings):
             raise ValueError("blocked report requires a Remediation heading")
     if context.quality_gate_required:
+        evidence_integrity = _deterministic_evidence_integrity_defects(
+            draft.markdown,
+            context.allowed_claim_texts,
+        )
         substantive, practicality = _deterministic_quality_defects(
             draft.markdown,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
         )
-        if substantive or practicality:
+        if evidence_integrity or substantive or practicality:
             raise ValueError("final artifact failed substantive/practical quality: " + "; ".join(
-                [*substantive, *practicality]
+                [*evidence_integrity, *substantive, *practicality]
             ))
 
 
@@ -1377,6 +1476,419 @@ def _appendix_matches_research(
             base_markdown, appendix, source_section_required=True
         ),
     }
+
+
+_PRECISE_VALUE = re.compile(
+    r"(?<![\w])(?:[€$£]\s*)?(?:[<>≥≤]=?\s*)?\d[\d.,]*"
+    r"(?:\s*(?:%|‰)"
+    r"|[-\s]*(?:mg\s*/\s*kg|mg|kg|g|ml|l|kcal|kj|cfu|°c|°f|days?|weeks?|months?|years?|"
+    r"hours?|minutes?|seconds?|million|billion)\b"
+    r"|\s*(?:[-–—]|\bto\b)\s*\d[\d.,]*(?:\s*%|\s*[a-zA-Z]+)?"
+    r"|\s*:\s*\d[\d.,]*"
+    r"|\s*/\s*\d[\d.,]*"
+    r"|\.\d+)",
+    re.IGNORECASE,
+)
+_CURRENCY_VALUE = re.compile(
+    r"(?<![\w])[€$£]\s*(?:[<>≥≤]=?\s*)?\d[\d.,]*",
+    re.IGNORECASE,
+)
+_ISO_DATE_VALUE = re.compile(r"(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)")
+_COUNT_VALUE = re.compile(
+    r"(?<![\w])\d[\d.,]*\s+(?:cats?|customers?|households?|interviews?|"
+    r"participants?|people|personas?|pouches?|recipes?|respondents?|skus?|users?)\b",
+    re.IGNORECASE,
+)
+_BARE_NUMBER = re.compile(r"(?<![\w])\d[\d.,]*(?![\w])")
+_FORMULA_MARKER = re.compile(r"(?:[=×^]|\\times|\\frac)")
+_EVIDENCE_SENSITIVE_ASSERTION = re.compile(
+    r"\b(?:"
+    r"prevent(?:s|ed|ing|ion)?|treat(?:s|ed|ing|ment)?|cure(?:s|d|ing)?|"
+    r"reduce(?:s|d|ing)?\s+(?:the\s+)?risk|renal|urinary|therapeutic|clinical|"
+    r"disease|pathogen|microbiolog(?:y|ical)|sterili[sz](?:e|ed|ation)|haccp|"
+    r"fediaf|complies?\s+with|compliant\s+with|compliance\s+with|"
+    r"certif(?:y|ied|ication)|authori[sz](?:e|ed|ation)|"
+    r"approved|legally|required\s+(?:by|under)|regulation\s*\(|"
+    r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
+    r"(?:mandates?|requires?|prohibits?|obliges?|must)\b|"
+    r"meet(?:s|ing)?\s+[^.;]{0,80}\b(?:standard|requirements?)\b|"
+    r"safe\s+(?:for|to)|ensur(?:e|es|ed|ing)\s+[^.;]{0,80}\b(?:health|safety)\b"
+    r")\b",
+    re.IGNORECASE,
+)
+_NONPROVISIONAL_AUTHORITY_ASSERTION = re.compile(
+    r"\b(?:prevent(?:s|ed|ing|ion)?|treat(?:s|ed|ing|ment)?|cure(?:s|d|ing)?|"
+    r"reduce(?:s|d|ing)?\s+(?:the\s+)?risk|renal|urinary|therapeutic|clinical|"
+    r"disease|fediaf|complies?\s+with|compliant\s+with|compliance\s+with|"
+    r"certif(?:y|ied|ication)|authori[sz](?:e|ed|ation)|approved|legally|"
+    r"required\s+(?:by|under)|regulation\s*\(|safe\s+(?:for|to)|"
+    r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
+    r"(?:mandates?|requires?|prohibits?|obliges?|must)\b|"
+    r"ensur(?:e|es|ed|ing)\s+[^.;]{0,80}\b(?:health|safety)\b)\b",
+    re.IGNORECASE,
+)
+_EXPLICIT_NONFACTUAL_QUALIFIER = re.compile(
+    r"\b(?:proposed(?:\s+(?:target|specification|threshold|recipe|formula|metric))?|"
+    r"validation\s+target|test\s+target|working\s+hypothesis|hypoth(?:esis|eses)|"
+    r"(?:explicit\s+)?assum(?:e|ed|ptions?)|illustrative\s+(?:example|target|scenario)|"
+    r"tbd|to\s+be\s+determined|subject\s+to\s+(?:expert\s+)?validation|"
+    r"requires?\s+(?:expert\s+)?validation|pending\s+(?:expert\s+)?validation|"
+    r"unverified|unresolved|not\s+yet\s+(?:verified|validated|approved|authorized)|"
+    r"must\s+be\s+(?:verified|validated|confirmed)|do\s+not\s+claim|must\s+not\s+claim"
+    r")\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_AUTHORITY_QUALIFIER = re.compile(
+    r"\b(?:unverified|unresolved|pending|unknown|not\s+yet|must\s+be\s+"
+    r"(?:verified|validated|confirmed)|do\s+not\s+claim|must\s+not\s+claim|gaps?|"
+    r"(?:is|are|does|do|did|can|could|may|must|will|has|have)\s+not|cannot|no[- ]go)\b",
+    re.IGNORECASE,
+)
+_CLAUSE_BREAK = re.compile(
+    r"(?<=[.!?;])\s+|,\s*(?:but|however|yet|nevertheless|nonetheless)\s+|"
+    r"\s+(?:but|however|yet|nevertheless|nonetheless)\s+",
+    re.IGNORECASE,
+)
+_POSITIVE_AUTHORITY_PREDICATE = re.compile(
+    r"\b(?:approved|authorized|certified|complies?|contains?|cures?|ensures?|has|have|"
+    r"is|meets?|prevents?|requires?|safe|treats?|was|were)\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_BOUNDARY = re.compile(
+    r"\s+(?:and|because|while|whereas)\s+|:\s+",
+    re.IGNORECASE,
+)
+_SUPPORT_TOKEN = re.compile(r"[a-z][a-z0-9-]{2,}", re.IGNORECASE)
+_SUPPORT_STOPWORDS = frozenset(
+    {
+        "accepted",
+        "according",
+        "artifact",
+        "and",
+        "are",
+        "been",
+        "being",
+        "contains",
+        "claim",
+        "complete",
+        "data",
+        "evidence",
+        "exact",
+        "fact",
+        "for",
+        "from",
+        "health",
+        "into",
+        "its",
+        "legal",
+        "may",
+        "must",
+        "not",
+        "only",
+        "product",
+        "require",
+        "required",
+        "requirement",
+        "requirements",
+        "safety",
+        "source",
+        "standard",
+        "supported",
+        "supports",
+        "validate",
+        "validated",
+        "validation",
+        "that",
+        "the",
+        "their",
+        "this",
+        "was",
+        "were",
+        "with",
+    }
+)
+
+
+def _precision_values(value: str) -> set[str]:
+    """Return normalized decision-relevant numeric assertions, excluding IDs."""
+
+    normalized = unicodedata.normalize("NFKC", value)
+    normalized = re.sub(r"\\text\{([^}]*)\}", r"\1", normalized)
+    normalized = re.sub(
+        r"\b(?:at\s+least|no\s+less\s+than)\s+(?=\d)",
+        ">=",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"\b(?:at\s+most|no\s+more\s+than)\s+(?=\d)",
+        "<=",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"\b(?:above|exceeds?|greater\s+than|more\s+than|over)\s+(?=\d)",
+        ">",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"\b(?:below|fewer\s+than|less\s+than|under)\s+(?=\d)",
+        "<",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"(\d[\d.,]*)\s*%\s*(?:[-–—]|\bto\b)\s*(\d[\d.,]*)\s*%",
+        r"\1-\2%",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"(\d[\d.,]*)\s+to\s+(\d[\d.,]*)\s*%",
+        r"\1-\2%",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"\bdegrees?\s+(celsius|fahrenheit)\b",
+        lambda match: "°C" if match.group(1).casefold() == "celsius" else "°F",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = (
+        normalized
+        .replace("−", "-")
+        .replace("≥", ">=")
+        .replace("≤", "<=")
+        .replace(r"\ge", ">=")
+        .replace(r"\le", "<=")
+        .replace(r"\circ", "°")
+        .replace(r"\%", "%")
+        .replace(r"\,", "")
+    )
+    normalized = re.sub(r"°\s+([cf])\b", r"°\1", normalized, flags=re.IGNORECASE)
+    matches = [
+        *[match.group(0) for match in _PRECISE_VALUE.finditer(normalized)],
+        *[match.group(0) for match in _CURRENCY_VALUE.finditer(normalized)],
+        *[match.group(0) for match in _ISO_DATE_VALUE.finditer(normalized)],
+        *[match.group(0) for match in _COUNT_VALUE.finditer(normalized)],
+    ]
+    if _FORMULA_MARKER.search(normalized):
+        matches.extend(match.group(0) for match in _BARE_NUMBER.finditer(normalized))
+
+    def canonical(value: str) -> str:
+        compact = (
+            re.sub(r"\s+", "", value)
+            .casefold()
+            .replace("–", "-")
+            .replace("—", "-")
+            .rstrip(".,")
+        )
+
+        def number(match: re.Match[str]) -> str:
+            raw = match.group(0)
+            if re.fullmatch(r"\d{1,3}(?:,\d{3})+", raw):
+                return raw.replace(",", "")
+            decimal = raw.replace(",", ".")
+            if "." not in decimal:
+                return decimal
+            return decimal.rstrip("0").rstrip(".")
+
+        return re.sub(r"\d[\d.,]*", number, compact)
+
+    return {
+        canonical(match)
+        for match in matches
+    }
+
+
+def _support_tokens(value: str) -> set[str]:
+    without_urls = re.sub(r"https?://\S+", " ", value)
+    without_markers = _RAW_EVIDENCE_MARKER.sub(" ", without_urls)
+    return {
+        token
+        for token in (
+            match.group(0).casefold().strip("-")
+            for match in _SUPPORT_TOKEN.finditer(without_markers)
+        )
+        if token not in _SUPPORT_STOPWORDS
+        and not token.startswith(("req-", "gap-"))
+    }
+
+
+def _claims_align_with_assertion(
+    assertion: str,
+    claim_texts: list[str],
+    *,
+    minimum_matches: int = 1,
+) -> bool:
+    assertion_tokens = _support_tokens(assertion)
+    claim_tokens = set().union(*(_support_tokens(text) for text in claim_texts))
+    if not assertion_tokens or not claim_tokens:
+        return False
+    matched = {
+        left
+        for left in assertion_tokens
+        if any(
+            left == right
+            or (len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6])
+            for right in claim_tokens
+        )
+    }
+    return len(matched) >= minimum_matches
+
+
+def _split_unresolved_assertions(fragment: str) -> list[str]:
+    """Separate an unresolved status clause from an unrelated positive assertion."""
+
+    queue = [fragment]
+    if re.match(
+        r"^\s*(?:although|pending|though|with)\b",
+        fragment,
+        re.IGNORECASE,
+    ) and "," in fragment:
+        left, right = fragment.split(",", 1)
+        if bool(_UNRESOLVED_AUTHORITY_QUALIFIER.search(left)) != bool(
+            _UNRESOLVED_AUTHORITY_QUALIFIER.search(right)
+        ):
+            queue = [left, right]
+
+    result: list[str] = []
+    while queue:
+        candidate = queue.pop(0).strip()
+        if not candidate:
+            continue
+        for boundary in _UNRESOLVED_BOUNDARY.finditer(candidate):
+            left = candidate[: boundary.start()].strip()
+            right = candidate[boundary.end() :].strip()
+            left_unresolved = bool(_UNRESOLVED_AUTHORITY_QUALIFIER.search(left))
+            right_unresolved = bool(_UNRESOLVED_AUTHORITY_QUALIFIER.search(right))
+            if left and right and left_unresolved != right_unresolved:
+                queue = [left, right, *queue]
+                break
+        else:
+            result.append(candidate)
+    return result
+
+
+def _deterministic_evidence_integrity_defects(
+    markdown: str,
+    allowed_claim_texts: dict[str, str],
+) -> list[str]:
+    """Reject only high-risk factual precision that lacks exact immutable support.
+
+    PRDs may and should contain concrete choices. Those choices remain valid without a
+    citation when the text labels them as proposals, hypotheses, assumptions or validation
+    targets. Externally verifiable numbers and health/safety/legal assertions must instead
+    cite an exact immutable claim in the same sentence or table cell. For numeric assertions,
+    the cited claim must contain the same normalized value.
+    """
+
+    base = markdown.split("\n\n## Sources\n", 1)[0]
+    defects: set[str] = set()
+    current_heading = ""
+    for line in base.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            continue
+        if not stripped or re.fullmatch(r"[:|+\-=\s]+", stripped):
+            continue
+        heading = re.match(r"^#{1,6}\s+(.+?)\s*#*$", stripped)
+        if heading:
+            current_heading = heading.group(1).strip()
+            stripped = current_heading
+        fragments = (
+            [cell.strip() for cell in stripped.strip("|").split("|")]
+            if "|" in stripped
+            else _CLAUSE_BREAK.split(stripped)
+        )
+        table_gap_context = (
+            "|" in stripped
+            and re.search(r"\bgaps?\b", current_heading, re.IGNORECASE) is not None
+            and _UNRESOLVED_AUTHORITY_QUALIFIER.search(stripped) is not None
+        )
+        expanded_fragments: list[str] = []
+        for fragment in fragments:
+            if _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment):
+                expanded_fragments.extend(_split_unresolved_assertions(fragment))
+            else:
+                expanded_fragments.append(fragment)
+        for fragment in expanded_fragments:
+            if not fragment:
+                continue
+            markers = {
+                match.group(1) for match in _RAW_EVIDENCE_MARKER.finditer(fragment)
+            }
+            without_markers = _RAW_EVIDENCE_MARKER.sub("", fragment)
+            precise_values = _precision_values(without_markers)
+            sensitive = _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
+            hard_authority = (
+                _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                is not None
+            )
+            if not precise_values and not sensitive:
+                continue
+            if (
+                table_gap_context
+                and sensitive
+                and not precise_values
+                and not _POSITIVE_AUTHORITY_PREDICATE.search(without_markers)
+            ):
+                continue
+            if _UNRESOLVED_AUTHORITY_QUALIFIER.search(without_markers):
+                continue
+            if (
+                not hard_authority
+                and _EXPLICIT_NONFACTUAL_QUALIFIER.search(
+                    f"{current_heading} {fragment}"
+                )
+            ):
+                continue
+            excerpt = re.sub(r"\s+", " ", without_markers).strip()[:180]
+            if not markers:
+                defects.add(
+                    "Unsupported factual precision requires an exact evidence marker or an "
+                    f"explicit proposal/assumption/validation label: {excerpt}"
+                )
+                continue
+            cited_texts = [
+                allowed_claim_texts[claim_id]
+                for claim_id in markers
+                if claim_id in allowed_claim_texts
+            ]
+            if not cited_texts:
+                # Marker membership is reported by the existing citation validator.
+                continue
+            supported_values = set().union(
+                *(_precision_values(text) for text in cited_texts)
+            )
+            unsupported_values = precise_values - supported_values
+            if unsupported_values:
+                defects.add(
+                    "Cited immutable claims do not support every exact value in this "
+                    f"assertion ({', '.join(utf16_ordinal_sorted(unsupported_values))}): "
+                    f"{excerpt}"
+                )
+                continue
+            if not _claims_align_with_assertion(
+                without_markers,
+                cited_texts,
+                minimum_matches=(
+                    min(3, max(1, len(_support_tokens(without_markers))))
+                    if _FORMULA_MARKER.search(without_markers)
+                    else (
+                        min(2, max(1, len(_support_tokens(without_markers))))
+                        if sensitive
+                        else 1
+                    )
+                ),
+            ):
+                defects.add(
+                    "Cited immutable claims do not semantically support this exact "
+                    f"assertion: {excerpt}"
+                )
+    return utf16_ordinal_sorted(defects)[:40]
 
 
 def _deterministic_quality_defects(
@@ -1753,6 +2265,24 @@ class PydanticAISynthesisWriter:
         return utf16_ordinal_sorted(selected.union(acquired))
 
     @staticmethod
+    def _allowed_claim_texts(research_payload: dict[str, Any]) -> dict[str, str]:
+        claims = [
+            *research_payload.get("selectedClaims", []),
+            *[
+                claim
+                for entry in research_payload.get("claimLedger", [])
+                for claim in entry.get("claims", [])
+            ],
+        ]
+        return {
+            claim["claimId"]: claim["text"]
+            for claim in claims
+            if isinstance(claim, dict)
+            and isinstance(claim.get("claimId"), str)
+            and isinstance(claim.get("text"), str)
+        }
+
+    @staticmethod
     def _required_gap_labels(research_payload: dict[str, Any]) -> list[str]:
         return [
             *research_payload.get("assumptions", []),
@@ -1806,6 +2336,7 @@ class PydanticAISynthesisWriter:
             required_sections=required_sections,
             evidence_readiness=input_value.output_contract.evidence_readiness,
             allowed_claim_ids=self._allowed_claim_ids(research_payload),
+            allowed_claim_texts=self._allowed_claim_texts(research_payload),
             required_gap_labels=self._required_gap_labels_for_input(
                 input_value, research_payload
             ),
@@ -2855,6 +3386,12 @@ class GeminiCognitiveExecutor:
             tenant_id=envelope.owner.tenant_id,
             artifact_id=input_value.accepted_scope.artifact_id,
         )
+        try:
+            _validate_atomic_evidence_requirements(scope.evidence_requirements)
+        except ValueError as error:
+            raise CognitiveExecutionFailure(
+                "AXWISE_SCOPE_EVIDENCE_CONTRACT_INVALID", retryable=False
+            ) from error
         artifact_id = uuid5(NAMESPACE_URL, f"axwise:{envelope.operation_id}:research")
 
         requirement_by_id = {item.id: item for item in scope.evidence_requirements}
@@ -3734,6 +4271,17 @@ class GeminiCognitiveExecutor:
                     ],
                 }
             ),
+            allowed_claim_texts={
+                claim.claim_id: claim.text
+                for claim in [
+                    *research.selected_claims,
+                    *[
+                        claim
+                        for entry in research.claim_ledger
+                        for claim in entry.claims
+                    ],
+                ]
+            },
             required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
                 research.model_dump(mode="json", by_alias=True)
             ),
@@ -3846,6 +4394,10 @@ class GeminiCognitiveExecutor:
                 in {"product_prd", "software_prd", "research_strategy", "operational_plan"},
                 artifact_type=plan.work_shape,
             )
+            local_evidence_integrity = _deterministic_evidence_integrity_defects(
+                draft.markdown,
+                common_context.allowed_claim_texts,
+            )
             acceptable_coverage = not any(
                 item.status == "gap"
                 and item.requirement_id not in permitted_evidence_gap_ids
@@ -3856,6 +4408,7 @@ class GeminiCognitiveExecutor:
                 input_value.task.task_kind == "core_draft"
                 and input_value.task.produces_full_contract
                 and acceptable_coverage
+                and not local_evidence_integrity
                 and not local_substantive
                 and not local_practicality
             ):
@@ -3984,7 +4537,22 @@ class GeminiCognitiveExecutor:
                     readiness_violations.add(
                         "Non-ready evidence was presented as launch or production ready."
                     )
-            unsupported = utf16_ordinal_sorted(set(draft.unsupported_precision))
+            deterministic_evidence_integrity = {
+                defect
+                for task, markdown in zip(
+                    artifact_tasks, artifact_markdowns, strict=True
+                )
+                if task.produces_full_contract
+                for defect in _deterministic_evidence_integrity_defects(
+                    markdown,
+                    common_context.allowed_claim_texts,
+                )
+            }
+            unsupported = utf16_ordinal_sorted(
+                set(draft.unsupported_precision).union(
+                    deterministic_evidence_integrity
+                )
+            )[:40]
             contradictions = utf16_ordinal_sorted(set(draft.contradictions))
             stale = utf16_ordinal_sorted(set(draft.stale_topic_references))
             readiness_issue_list = utf16_ordinal_sorted(readiness_violations)
