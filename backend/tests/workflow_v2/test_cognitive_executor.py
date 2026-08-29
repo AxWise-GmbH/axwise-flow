@@ -293,6 +293,59 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(monkeypatch)
     assert captured == ["PromptedOutput"] * 6
 
 
+def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
+    canonical = cognitive_executor_module._canonical_required_sections(
+        "product_prd",
+        [
+            "Acceptance Criteria",
+            "Concrete Next Steps",
+            "Market Risks & Mitigations",
+            "Risks & Mitigations",
+            "Success Metrics & KPIs",
+            "Target Users and Jobs-to-be-Done",
+        ],
+    )
+
+    assert canonical.count("Acceptance criteria") == 1
+    assert canonical.count("Next steps") == 1
+    assert canonical.count("Risks") == 1
+    assert canonical.count("Metrics and validation") == 1
+    assert canonical.count("Users, jobs, and pains") == 1
+    assert "Market Risks & Mitigations" in canonical
+    for alias in (
+        "Acceptance Criteria",
+        "Concrete Next Steps",
+        "Risks & Mitigations",
+        "Success Metrics & KPIs",
+        "Target Users and Jobs-to-be-Done",
+    ):
+        assert alias not in canonical
+
+
+def test_required_section_canonicalization_is_deterministic_and_prd_scoped() -> None:
+    forward = cognitive_executor_module._canonical_required_sections(
+        "product_prd", ["CUSTOM SECTION", "custom section", "RISKS AND MITIGATIONS"]
+    )
+    reverse = cognitive_executor_module._canonical_required_sections(
+        "product_prd", ["RISKS AND MITIGATIONS", "custom section", "CUSTOM SECTION"]
+    )
+
+    assert forward == reverse
+    assert "Risks" in forward
+    assert (
+        len([value for value in forward if value.casefold() == "custom section"]) == 1
+    )
+    assert cognitive_executor_module._canonical_required_sections(
+        "research_strategy", ["Risks & Mitigations"]
+    ) == ["Risks & Mitigations"]
+    assert (
+        "Technical boundaries"
+        in cognitive_executor_module._canonical_required_sections(
+            "software_prd", ["Acceptance Criteria"]
+        )
+    )
+
+
 @pytest.mark.asyncio
 async def test_final_quality_failure_is_a_bounded_model_output_retry(monkeypatch) -> None:
     validators = {}
@@ -4272,6 +4325,33 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
     )
     assert expected_line in candidate.artifact.markdown
 
+    repeated_citation_markdown = (
+        "# First use\n\n"
+        f"Grounded fact [evidence:{claim['claimId']}].\n\n"
+        "## Second use\n\n"
+        f"The same grounded fact [evidence:{claim['claimId']}]."
+    )
+    repeated_entries = cognitive_executor_module._source_appendix_entries(
+        repeated_citation_markdown,
+        ResearchResultV2.model_validate(research.artifact.payload),
+    )
+    assert len(repeated_entries) == 2
+    assert [entry.supported_section for entry in repeated_entries] == [
+        "First use",
+        "Second use",
+    ]
+    rendered_repeated = _markdown_with_source_appendix(
+        repeated_citation_markdown, repeated_entries
+    )
+    assert rendered_repeated.count(f"`[evidence:{claim['claimId']}]`") == 1
+    assert "section: First use · Second use" in rendered_repeated
+    assert _appendix_matches_research(
+        rendered_repeated,
+        repeated_entries,
+        ResearchResultV2.model_validate(research.artifact.payload),
+        rendered=True,
+    )
+
     candidate_payload = candidate.artifact.payload
 
     def wrong_attestation(payload):
@@ -4968,6 +5048,52 @@ def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees(
     )
     assert "PRD section 'Risks' is empty or too thin." in practicality
 
+    empty_child = prd().replace(
+        "### Concrete implementation detail\n\n- P0 decision",
+        "### Empty problem statement\n\n### Concrete implementation detail\n\n- P0 decision",
+        1,
+    )
+    _substantive, practicality = _deterministic_quality_defects(
+        empty_child,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert "Markdown section 'Empty problem statement' is empty or too thin." in practicality
+
+    duplicated = prd() + (
+        "\n\n## Risks\n\n- P0 duplicate risk with an owner and validation action."
+    )
+    substantive, _practicality = _deterministic_quality_defects(
+        duplicated,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert "The candidate repeats level-two sections: risks." in substantive
+
+    ascii_table = prd() + (
+        "\n\n## Framework\n\n```\n+-----+-----+\n| A | B |\n+-----+-----+\n```"
+    )
+    substantive, _practicality = _deterministic_quality_defects(
+        ascii_table,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert (
+        "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
+        in substantive
+    )
+
+    success_prediction = prd() + "\n\nThe product will succeed in the market."
+    substantive, _practicality = _deterministic_quality_defects(
+        success_prediction,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert (
+        "The candidate presents an unverified product or market success prediction as fact."
+        in substantive
+    )
+
     higher_level_boundary = prd(empty_section="Risks").replace(
         "## User journeys", "# User journeys"
     )
@@ -4988,6 +5114,50 @@ def test_evidence_marker_heading_parity_rejects_preamble_and_strips_closing_hash
     assert _citation_sections(
         f"# Evidence section ##\n\nSupported [evidence:{claim_id}]."
     ) == {claim_id: ["Evidence section"]}
+
+
+def test_server_line_removal_drops_an_entire_fenced_block() -> None:
+    markdown = (
+        "# PRD\n\nUseful content.\n\n"
+        "```text\n+------+------ +\n| safe | unsafe assertion |\n+------+------ +\n```\n\n"
+        "## Next steps\n\n- Validate the remaining decision."
+    )
+    pruned = cognitive_executor_module._markdown_without_matching_lines(
+        markdown, lambda line: "unsafe assertion" in line
+    )
+    assert "unsafe assertion" not in pruned
+    assert "```" not in pruned
+    assert "+------+" not in pruned
+    assert "## Next steps" in pruned
+
+
+def test_gap_labels_are_user_facing_requirement_descriptions() -> None:
+    internal_note = "No accepted grounded claim was available after the single repair pass."
+    labels = PydanticAISynthesisWriter._required_gap_labels(
+        {
+            "assumptions": [],
+            "gaps": [internal_note],
+            "conflicts": [],
+            "findings": [
+                {
+                    "requirementId": "er-standard",
+                    "status": "missing",
+                    "blocking": False,
+                    "note": internal_note,
+                }
+            ],
+        },
+        {
+            "evidenceRequirements": [
+                {
+                    "id": "er-standard",
+                    "description": "Applicable nutritional standard thresholds.",
+                }
+            ]
+        },
+    )
+    assert labels == ["Evidence gap: Applicable nutritional standard thresholds."]
+    assert internal_note not in labels
 
 
 @pytest.mark.parametrize(

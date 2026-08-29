@@ -9,7 +9,7 @@ import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Generic, Literal, Protocol, Sequence, TypeVar
+from typing import Any, Callable, Generic, Literal, Protocol, Sequence, TypeVar
 from urllib.parse import urlparse
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -500,6 +500,51 @@ def _normalized_semantic_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip().casefold()
 
 
+_PRD_REQUIRED_SECTION_ALIASES = {
+    "acceptance criteria": "Acceptance criteria",
+    "concrete next steps": "Next steps",
+    "metrics and validation": "Metrics and validation",
+    "next steps": "Next steps",
+    "risks": "Risks",
+    "risks & mitigations": "Risks",
+    "risks and mitigations": "Risks",
+    "success metrics & kpis": "Metrics and validation",
+    "success metrics and kpis": "Metrics and validation",
+    "target users and jobs-to-be-done": "Users, jobs, and pains",
+    "target users and jobs to be done": "Users, jobs, and pains",
+    "users, jobs, and pains": "Users, jobs, and pains",
+}
+
+
+def _canonical_required_sections(
+    artifact_type: str, values: Sequence[str]
+) -> list[str]:
+    """Collapse only known PRD aliases while retaining custom section authority."""
+
+    baseline_sections = (
+        _SOFTWARE_PRD_BASELINE_SECTIONS
+        if artifact_type == "software_prd"
+        else _PRD_BASELINE_SECTIONS
+        if artifact_type == "product_prd"
+        else frozenset()
+    )
+    if not baseline_sections:
+        return utf16_ordinal_sorted(set(values))
+
+    sections_by_identity: dict[str, str] = {}
+    for value in utf16_ordinal_sorted({*values, *baseline_sections}):
+        stripped = value.strip()
+        normalized = _normalized_semantic_text(stripped)
+        canonical = _PRD_REQUIRED_SECTION_ALIASES.get(normalized, stripped)
+        identity = _normalized_semantic_text(canonical)
+        existing = sections_by_identity.get(identity)
+        if existing is None or canonical.encode("utf-16-be") < existing.encode(
+            "utf-16-be"
+        ):
+            sections_by_identity[identity] = canonical
+    return utf16_ordinal_sorted(sections_by_identity.values())
+
+
 def _project_deliverable_contract(
     *,
     authority_text: str,
@@ -519,13 +564,6 @@ def _project_deliverable_contract(
     list[AcceptedDeliverableRequirementV1],
     list[DeliverableAcceptanceCriterionV1],
 ]:
-    baseline_sections = (
-        _SOFTWARE_PRD_BASELINE_SECTIONS
-        if profile.artifact_type == "software_prd"
-        else _PRD_BASELINE_SECTIONS
-        if profile.artifact_type == "product_prd"
-        else frozenset()
-    )
     accepted_profile = AcceptedDeliverableProfileV1(
         schema_version="axwise.deliverable-profile.v1",
         artifact_type=profile.artifact_type,
@@ -534,8 +572,8 @@ def _project_deliverable_contract(
         desired_outcome=profile.desired_outcome.strip(),
         audiences=utf16_ordinal_sorted(set(profile.audiences)),
         non_goals=utf16_ordinal_sorted(set(profile.non_goals)),
-        required_sections=utf16_ordinal_sorted(
-            set(profile.required_sections).union(baseline_sections)
+        required_sections=_canonical_required_sections(
+            profile.artifact_type, profile.required_sections
         ),
     )
     default_values = {
@@ -1112,7 +1150,10 @@ targets, but do not mix them in the same sentence or table cell as an evidence m
 invented persona names, ages, neighbourhoods and demographic facts; retain neutral user
 archetypes and jobs. Never remove a valid evidence marker while retaining the factual assertion
 it supported. If validator feedback names a remaining unsupported assertion, delete that entire
-Markdown line on the next retry. Cover every required section as a Markdown heading.
+Markdown line on the next retry. Use ordinary Markdown tables, never ASCII-art tables inside
+code fences. Keep level-two section headings unique, and never leave a heading or subsection
+without substantive content. Cover every required section as a Markdown heading. Treat product
+or market success as a hypothesis unless an exact immutable claim supports it.
 When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
 until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
 equivalent adjective forms even in a disclaimer, heading or status label.
@@ -1558,6 +1599,47 @@ def _with_immutable_gap_labels(
     return draft.model_copy(update={"markdown": markdown})
 
 
+def _markdown_without_matching_lines(
+    markdown: str, should_remove: Callable[[str], bool]
+) -> str:
+    """Remove unsafe lines without leaving a corrupted fenced structure behind."""
+
+    lines = markdown.splitlines()
+    target_indexes = {index for index, line in enumerate(lines) if should_remove(line)}
+    if not target_indexes:
+        return markdown
+
+    fenced_ranges: list[tuple[int, int]] = []
+    fence_start: int | None = None
+    fence_character = ""
+    fence_length = 0
+    for index, line in enumerate(lines):
+        match = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if match is None:
+            continue
+        marker = match.group(1)
+        if fence_start is None:
+            fence_start = index
+            fence_character = marker[0]
+            fence_length = len(marker)
+            continue
+        if marker[0] == fence_character and len(marker) >= fence_length:
+            fenced_ranges.append((fence_start, index))
+            fence_start = None
+            fence_character = ""
+            fence_length = 0
+    if fence_start is not None:
+        fenced_ranges.append((fence_start, len(lines) - 1))
+
+    removed = set(target_indexes)
+    for start, end in fenced_ranges:
+        if any(start <= index <= end for index in target_indexes):
+            removed.update(range(start, end + 1))
+    return "\n".join(
+        line for index, line in enumerate(lines) if index not in removed
+    )
+
+
 def _without_forbidden_task_launch_claim_lines(
     context: SynthesisContext,
     draft: TaskDraft,
@@ -1569,13 +1651,12 @@ def _without_forbidden_task_launch_claim_lines(
         and context.artifact_type == "launch_authorization"
     ):
         return draft
-    lines = draft.markdown.splitlines()
-    retained = [
-        line for line in lines if not has_positive_launch_readiness_claim(line)
-    ]
-    if len(retained) == len(lines):
+    markdown = _markdown_without_matching_lines(
+        draft.markdown, has_positive_launch_readiness_claim
+    )
+    if markdown == draft.markdown:
         return draft
-    return draft.model_copy(update={"markdown": "\n".join(retained).strip()})
+    return draft.model_copy(update={"markdown": markdown.strip()})
 
 
 def _validate_task_draft(context: SynthesisContext, draft: TaskDraft) -> None:
@@ -1597,6 +1678,27 @@ _SOURCE_CLASS_PRIORITY = (
     "industry",
     "grounded_web",
 )
+
+
+def _bounded_source_section_label(sections: Sequence[str]) -> str:
+    ordered = utf16_ordinal_sorted(set(sections))
+    if not ordered:
+        raise ValueError("source appendix citation has no Markdown section")
+    retained: list[str] = []
+    for index, section in enumerate(ordered):
+        candidate = " · ".join([*retained, section])
+        remaining = len(ordered) - index - 1
+        suffix = f" · (+{remaining} more sections)" if remaining else ""
+        if len(candidate + suffix) <= 500:
+            retained.append(section)
+            continue
+        break
+    if retained:
+        remaining = len(ordered) - len(retained)
+        suffix = f" · (+{remaining} more sections)" if remaining else ""
+        return " · ".join(retained) + suffix
+    suffix = f" · (+{len(ordered) - 1} more sections)" if len(ordered) > 1 else ""
+    return ordered[0][: 500 - len(suffix) - 1].rstrip() + "…" + suffix
 
 
 def _citation_sections(markdown: str) -> dict[str, list[str]]:
@@ -1688,14 +1790,32 @@ def _markdown_with_source_appendix(
     rows = ["## Sources", ""]
     if not appendix:
         rows.append("_No immutable evidence sources were cited for this artifact._")
+    grouped: dict[tuple[str, str, str, str, str, str], list[str]] = {}
     for entry in appendix:
+        key = (
+            entry.claim_id,
+            entry.source_title,
+            entry.canonical_url,
+            entry.source_class,
+            entry.retrieval_date,
+            entry.supported_claim,
+        )
+        grouped.setdefault(key, []).append(entry.supported_section)
+    for (
+        claim_id,
+        source_title,
+        canonical_url,
+        source_class,
+        retrieval_date,
+        supported_claim,
+    ), supported_sections in grouped.items():
         rows.append(
             "- "
-            f"`[evidence:{entry.claim_id}]` — "
-            f"{clean(entry.source_title)} — {entry.canonical_url} — "
-            f"class: `{entry.source_class}` — retrieved: `{entry.retrieval_date}` — "
-            f"section: {clean(entry.supported_section)} — "
-            f"supported claim: {clean(entry.supported_claim)}"
+            f"`[evidence:{claim_id}]` — "
+            f"{clean(source_title)} — {canonical_url} — "
+            f"class: `{source_class}` — retrieved: `{retrieval_date}` — "
+            f"section: {clean(_bounded_source_section_label(supported_sections))} — "
+            f"supported claim: {clean(supported_claim)}"
         )
     return markdown.rstrip() + "\n\n" + "\n".join(rows) + "\n"
 
@@ -2199,19 +2319,15 @@ def _prune_final_unsupported_evidence_lines(
     if not excerpts:
         return markdown
 
-    retained: list[str] = []
-    for line in markdown.splitlines():
-        stripped = line.strip()
-        if re.match(r"^#{1,6}\s+", stripped):
-            retained.append(line)
-            continue
+    def should_remove(line: str) -> bool:
+        if re.match(r"^#{1,6}\s+", line.strip()):
+            return False
         normalized = re.sub(
             r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)
         ).strip()
-        if any(excerpt in normalized for excerpt in excerpts):
-            continue
-        retained.append(line)
-    return "\n".join(retained)
+        return any(excerpt in normalized for excerpt in excerpts)
+
+    return _markdown_without_matching_lines(markdown, should_remove)
 
 
 def _deterministic_quality_defects(
@@ -2249,6 +2365,65 @@ def _deterministic_quality_defects(
         re.IGNORECASE,
     ):
         substantive.append("The candidate contains placeholder content.")
+    heading_matches = list(_MARKDOWN_HEADING.finditer(base))
+    heading_facts = [
+        (
+            match,
+            len(match.group(0)) - len(match.group(0).lstrip("#")),
+            match.group(1).strip(),
+            match.group(1).strip().casefold(),
+        )
+        for match in heading_matches
+    ]
+    level_two_names = [
+        _normalized_semantic_text(
+            _PRD_REQUIRED_SECTION_ALIASES.get(normalized, normalized)
+            if artifact_type in {"product_prd", "software_prd"}
+            else normalized
+        )
+        for _match, level, _raw, normalized in heading_facts
+        if level == 2
+    ]
+    duplicate_level_two = utf16_ordinal_sorted(
+        {name for name in level_two_names if level_two_names.count(name) > 1}
+    )
+    if duplicate_level_two:
+        substantive.append(
+            "The candidate repeats level-two sections: "
+            + ", ".join(duplicate_level_two)
+            + "."
+        )
+    for index, (match, level, raw_name, _normalized_name) in enumerate(heading_facts):
+        if level < 2:
+            continue
+        content_end = len(base)
+        for later_match, later_level, _later_raw, _later_normalized in heading_facts[
+            index + 1 :
+        ]:
+            if later_level <= level:
+                content_end = later_match.start()
+                break
+        section_body = _MARKDOWN_HEADING.sub("", base[match.end() : content_end])
+        if len(re.findall(r"\b[\w'-]+\b", section_body)) < 3:
+            practical.append(f"Markdown section {raw_name!r} is empty or too thin.")
+    fenced_blocks = re.findall(
+        r"(?ms)^\s*```[^\n]*\n(.*?)^\s*```\s*$", base
+    )
+    if any(
+        "|" in block and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", block)
+        for block in fenced_blocks
+    ):
+        substantive.append(
+            "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
+        )
+    if re.search(
+        r"\b(?:will\s+(?:succeed|win|dominate|guarantee)|guaranteed\s+to\s+(?:succeed|win|dominate))\b",
+        base,
+        re.IGNORECASE,
+    ):
+        substantive.append(
+            "The candidate presents an unverified product or market success prediction as fact."
+        )
     if practical_output_required:
         practical_terms = re.findall(
             r"\b(?:decision|action|acceptance|test|validate|validation|owner|risk|metric|milestone|next step|requirement)\w*\b",
@@ -2261,7 +2436,7 @@ def _deterministic_quality_defects(
             )
     if artifact_type in {"product_prd", "software_prd"}:
         headings = {name for _position, _raw, name in _markdown_headings(base)}
-        section_matches = list(_MARKDOWN_HEADING.finditer(base))
+        section_matches = heading_matches
         for index, section_match in enumerate(section_matches):
             raw_name = section_match.group(1).strip()
             normalized_name = raw_name.casefold()
@@ -2620,23 +2795,61 @@ class PydanticAISynthesisWriter:
         }
 
     @staticmethod
-    def _required_gap_labels(research_payload: dict[str, Any]) -> list[str]:
-        return [
-            *research_payload.get("assumptions", []),
-            *research_payload.get("gaps", []),
-            *research_payload.get("conflicts", []),
+    def _required_gap_labels(
+        research_payload: dict[str, Any],
+        scope_payload: dict[str, Any] | None = None,
+    ) -> list[str]:
+        requirements = {
+            item.get("id"): item.get("description")
+            for item in (scope_payload or {}).get("evidenceRequirements", [])
+            if isinstance(item, dict)
+            and isinstance(item.get("id"), str)
+            and isinstance(item.get("description"), str)
+        }
+        findings = [
+            item
+            for item in research_payload.get("findings", [])
+            if isinstance(item, dict)
+            and item.get("status") in {"missing", "conflicting"}
+        ]
+        finding_notes = {
+            item.get("note")
+            for item in findings
+            if isinstance(item.get("note"), str)
+        }
+        labels = [
             *[
-                finding["note"]
-                for finding in research_payload.get("findings", [])
-                if finding.get("status") in {"missing", "conflicting"}
+                value
+                for value in research_payload.get("assumptions", [])
+                if isinstance(value, str)
+            ],
+            *[
+                value
+                for key in ("gaps", "conflicts")
+                for value in research_payload.get(key, [])
+                if isinstance(value, str) and value not in finding_notes
             ],
         ]
+        for finding in findings:
+            requirement_id = finding.get("requirementId")
+            description = requirements.get(requirement_id)
+            if not description:
+                description = f"requirement {requirement_id}"
+            if finding.get("status") == "conflicting":
+                prefix = "Conflicting evidence remains unresolved"
+            elif finding.get("blocking") is True:
+                prefix = "Blocking evidence remains unresolved"
+            else:
+                prefix = "Evidence gap"
+            labels.append(f"{prefix}: {description}")
+        return utf16_ordinal_sorted(set(labels))
 
     @classmethod
     def _required_gap_labels_for_input(
         cls,
         input_value: SynthesizeArtifactInputV1,
         research_payload: dict[str, Any],
+        scope_payload: dict[str, Any] | None = None,
     ) -> list[str]:
         task = input_value.task
         if (
@@ -2645,11 +2858,12 @@ class PydanticAISynthesisWriter:
             and not task.produces_full_contract
         ):
             return []
-        return cls._required_gap_labels(research_payload)
+        return cls._required_gap_labels(research_payload, scope_payload)
 
     def _context(
         self,
         input_value: SynthesizeArtifactInputV1,
+        scope_payload: dict[str, Any],
         research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
     ) -> SynthesisContext:
@@ -2675,7 +2889,7 @@ class PydanticAISynthesisWriter:
             allowed_claim_ids=self._allowed_claim_ids(research_payload),
             allowed_claim_texts=self._allowed_claim_texts(research_payload),
             required_gap_labels=self._required_gap_labels_for_input(
-                input_value, research_payload
+                input_value, research_payload, scope_payload
             ),
             acceptance_requirement_ids=(
                 task.acceptance_requirement_ids if task is not None else []
@@ -2803,7 +3017,9 @@ class PydanticAISynthesisWriter:
         research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[TaskDraft]:
-        context = self._context(input_value, research_payload, selected_contents)
+        context = self._context(
+            input_value, scope_payload, research_payload, selected_contents
+        )
         result = await self._run_validated_agent(
             self.task_agent,
             self._prompt(
@@ -2829,7 +3045,9 @@ class PydanticAISynthesisWriter:
         research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[EvaluationDraft]:
-        context = self._context(input_value, research_payload, selected_contents)
+        context = self._context(
+            input_value, scope_payload, research_payload, selected_contents
+        )
         result = await self._run_validated_agent(
             self.evaluation_agent,
             self._prompt(
@@ -2852,7 +3070,9 @@ class PydanticAISynthesisWriter:
         research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[SynthesisDraft]:
-        context = self._context(input_value, research_payload, selected_contents)
+        context = self._context(
+            input_value, scope_payload, research_payload, selected_contents
+        )
         result = await self._run_validated_agent(
             self.final_agent,
             self._final_repair_prompt(input_value, selected_contents, context),
@@ -2871,7 +3091,9 @@ class PydanticAISynthesisWriter:
         research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[SynthesisDraft]:
-        context = self._context(input_value, research_payload, selected_contents)
+        context = self._context(
+            input_value, scope_payload, research_payload, selected_contents
+        )
         result = await self._run_validated_agent(
             self.blocked_agent,
             self._prompt(
@@ -4759,7 +4981,8 @@ class GeminiCognitiveExecutor:
                 ]
             },
             required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
-                research.model_dump(mode="json", by_alias=True)
+                research.model_dump(mode="json", by_alias=True),
+                scope.model_dump(mode="json", by_alias=True),
             ),
             repair_pass=input_value.repair_pass or 0,
             quality_gate_required=input_value.purpose
