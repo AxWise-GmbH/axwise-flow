@@ -1037,6 +1037,9 @@ and exact evaluation feedback. Preserve correct material, resolve every listed c
 remove unsupported external factual precision and stale-topic content, and cover every required
 section as a Markdown heading. Remove unsupported health, safety, legal, certification and external-fact
 assertions while preserving useful product, operational, budget, date and metric decisions.
+When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
+until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
+equivalent adjective forms even in a disclaimer, heading or status label.
 Never stretch a citation beyond its
 exact immutable claim text. Do not add new evidence claims. Return one useful final title and Markdown,
 not a shell, questionnaire, workflow commentary or JSON dump.
@@ -1123,6 +1126,86 @@ def _launch_claim_is_negated_or_conditional(
     if directly_negated:
         return True
 
+    if re.search(r"\bnon[- ]*$", local_prefix, re.IGNORECASE):
+        return True
+
+    # Compact planning artifacts often render a readiness field before its value,
+    # for example ``Launch-ready: No`` or ``Market ready - blocked``. The matched
+    # label is not a positive claim when the immediately following status is
+    # unambiguously negative. Keep ``launch-ready: no blockers remain`` positive:
+    # bare ``no`` is accepted only when it terminates the value or introduces a
+    # parenthetical/slash/dash-separated negative status.
+    negative_status_after = bool(
+        re.search(
+            r"^\s*(?:(?::|=|-)\s*)?(?:"
+            r"no(?=\s*(?:$|[-/(]|[.,;!?)]))|"
+            r"false\b|blocked\b|prohibited\b|"
+            r"not\s+(?:ready|approved|authorized|authorised|cleared|verified|"
+            r"established|allowed|permitted)\b|"
+            r"unapproved\b|unauthorized\b|unauthorised\b|"
+            r"unverified\b|pending\b"
+            r")",
+            suffix,
+            re.IGNORECASE,
+        )
+    )
+    if negative_status_after:
+        return True
+
+    meta_noun = (
+        r"(?:status|claims?|assertions?|language|wording|statements?|"
+        r"representations?|conclusions?|determinations?|descriptions?)"
+    )
+    negative_predicate = (
+        r"(?:(?:is|are|was|were|remains?)\s+(?:unsupported|unverified|"
+        r"unestablished|forbidden|prohibited|excluded|rejected|disallowed|denied)|"
+        r"(?:is|are|was|were|remains?|has|have|had)\s+(?:not|never)"
+        r"(?:\s+been)?\s+(?:asserted|established|supported|verified|validated|"
+        r"approved|authorized|authorised|confirmed|made|granted|allowed|"
+        r"permitted|used))"
+    )
+    closing_punctuation = r"[\s\"'“”‘’`)\]]*"
+    suffix_meta_negative = re.search(
+        rf"^{closing_punctuation}{meta_noun}\s+{negative_predicate}\b",
+        suffix,
+        re.IGNORECASE,
+    )
+    prefix_meta_subject = bool(
+        re.search(
+            rf"\b(?:phrase|term|label|{meta_noun})\s+[\"'“”‘’`]*$",
+            local_prefix,
+            re.IGNORECASE,
+        )
+        or re.search(
+            rf"\b{meta_noun}\s+that\b[\s\S]*$",
+            local_prefix,
+            re.IGNORECASE,
+        )
+    )
+    prefix_meta_negative = bool(
+        prefix_meta_subject
+        and re.search(
+            rf"^{closing_punctuation}{negative_predicate}\b",
+            suffix,
+            re.IGNORECASE,
+        )
+    )
+    rejection_before = re.search(
+        r"\b(?:avoids?|excludes?|forbids?|prohibits?|rejects?|removes?|omits?|"
+        r"disallows?)\s+(?:(?:any|all|the)\s+)?$",
+        local_prefix,
+        re.IGNORECASE,
+    )
+    meta_after_rejection = re.search(
+        rf"^{closing_punctuation}{meta_noun}\b",
+        suffix,
+        re.IGNORECASE,
+    )
+    if suffix_meta_negative or prefix_meta_negative or (
+        rejection_before and meta_after_rejection
+    ):
+        return True
+
     conditional_before = bool(
         re.search(
             r"\b(?:if|unless|until|once|when|whenever|provided(?:\s+that)?|assuming)\b",
@@ -1157,7 +1240,7 @@ def _launch_claim_is_negated_or_conditional(
             re.IGNORECASE,
         )
         or re.search(
-            r"\b(?:only\s+if|unless|until|once|when|after|provided(?:\s+that)?|subject\s+to|contingent\s+on|pending)\b",
+            r"\b(?:only\s+if|unless|until|once|when|after|provided(?:\s+that)?|subject\s+to|contingent\s+on)\b",
             suffix,
             re.IGNORECASE,
         )
