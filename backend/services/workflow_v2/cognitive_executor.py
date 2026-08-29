@@ -503,13 +503,22 @@ def _normalized_semantic_text(value: str) -> str:
 _PRD_REQUIRED_SECTION_ALIASES = {
     "acceptance criteria": "Acceptance criteria",
     "concrete next steps": "Next steps",
+    "explicit open gaps & pre-launch roadmap": "Evidence, assumptions, and gaps",
+    "explicit open gaps and pre-launch roadmap": "Evidence, assumptions, and gaps",
+    "given/when/then acceptance criteria": "Acceptance criteria",
     "metrics and validation": "Metrics and validation",
+    "metrics, assumptions & evidence-backed constraints": "Metrics and validation",
+    "metrics, assumptions and evidence-backed constraints": "Metrics and validation",
     "next steps": "Next steps",
+    "prioritized functional & operational prd requirements": "Prioritized requirements",
+    "prioritized functional and operational prd requirements": "Prioritized requirements",
     "risks": "Risks",
     "risks & mitigations": "Risks",
     "risks and mitigations": "Risks",
     "success metrics & kpis": "Metrics and validation",
     "success metrics and kpis": "Metrics and validation",
+    "target personas & user journeys": "User journeys",
+    "target personas and user journeys": "User journeys",
     "target users and jobs-to-be-done": "Users, jobs, and pains",
     "target users and jobs to be done": "Users, jobs, and pains",
     "users, jobs, and pains": "Users, jobs, and pains",
@@ -1963,6 +1972,18 @@ _POSITIVE_AUTHORITY_PREDICATE = re.compile(
     r"is|meets?|prevents?|requires?|safe|treats?|was|were)\b",
     re.IGNORECASE,
 )
+_ASSERTIVE_HEADING_PREDICATE = re.compile(
+    r"\b(?:"
+    r"is|are|was|were|has|have|must|shall|will|can|may|"
+    r"approve(?:d|s)?|authori[sz](?:e|ed|es)|certif(?:y|ied|ies)|"
+    r"achiev(?:e|ed|es)|complet(?:e|ed|es)|confirm(?:ed|s)?|"
+    r"establish(?:ed|es)?|grant(?:ed|s)?|obtain(?:ed|s)?|receiv(?:e|ed|es)|"
+    r"validat(?:e|ed|es)|verif(?:y|ied|ies)|"
+    r"complies?|compliant|contains?|cures?|ensures?|meets?|prevents?|"
+    r"requires?|mandates?|prohibits?|obliges?|safe|treats?"
+    r")\b",
+    re.IGNORECASE,
+)
 _UNRESOLVED_BOUNDARY = re.compile(
     r"\s+(?:and|because|while|whereas)\s+|:\s+",
     re.IGNORECASE,
@@ -2212,6 +2233,15 @@ def _deterministic_evidence_integrity_defects(
         if heading:
             current_heading = heading.group(1).strip()
             stripped = current_heading
+            if (
+                _RAW_EVIDENCE_MARKER.search(stripped) is None
+                and _ASSERTIVE_HEADING_PREDICATE.search(stripped) is None
+            ):
+                # A structural noun-phrase label is not itself a factual assertion.
+                # Required sections can legitimately name a standard, authority, or
+                # regulation. Headings that carry a citation or make an assertive
+                # authority claim still pass through the exact same checks below.
+                continue
         elif (
             current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
             and stripped in immutable_gap_bullets
@@ -2361,39 +2391,47 @@ def _prune_final_unsupported_evidence_lines(
     A model repair may correctly remove a mismatched marker but accidentally retain the
     unsupported factual line. Deleting that whole line is safer than trying to rewrite or
     recite it, and the normal synthesis validator still enforces headings, substance,
-    citations, immutable gaps, and practicality after this bounded pass.
+    citations, immutable gaps, and practicality after this bounded cleanup. The evidence
+    validator intentionally returns at most forty defects, so repeat only while a pass
+    removes text and never more times than the original line count.
     """
 
-    defects = _deterministic_evidence_integrity_defects(
-        markdown,
-        allowed_claim_texts,
-        artifact_type=artifact_type,
-        immutable_gap_labels=immutable_gap_labels,
-    )
-    excerpts = [
-        excerpt
-        for defect in defects
-        for _, separator, excerpt in [defect.partition(": ")]
-        if separator and excerpt
-    ]
-    if not excerpts:
-        return markdown
+    current = markdown
+    for _pass in range(max(1, len(markdown.splitlines()))):
+        defects = _deterministic_evidence_integrity_defects(
+            current,
+            allowed_claim_texts,
+            artifact_type=artifact_type,
+            immutable_gap_labels=immutable_gap_labels,
+        )
+        excerpts = [
+            excerpt
+            for defect in defects
+            for _, separator, excerpt in [defect.partition(": ")]
+            if separator and excerpt
+        ]
+        if not excerpts:
+            return current
 
-    def should_remove(line: str) -> bool:
-        if re.match(r"^#{1,6}\s+", line.strip()):
-            return False
-        normalized = re.sub(
-            r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)
-        ).strip()
-        return any(excerpt in normalized for excerpt in excerpts)
+        def should_remove(line: str) -> bool:
+            if re.match(r"^#{1,6}\s+", line.strip()):
+                return False
+            normalized = re.sub(
+                r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)
+            ).strip()
+            return any(excerpt in normalized for excerpt in excerpts)
 
-    return _markdown_without_matching_lines(
-        markdown,
-        should_remove,
-        protected_indexes=_canonical_immutable_gap_bullet_indexes(
-            markdown, immutable_gap_labels
-        ),
-    )
+        repaired = _markdown_without_matching_lines(
+            current,
+            should_remove,
+            protected_indexes=_canonical_immutable_gap_bullet_indexes(
+                current, immutable_gap_labels
+            ),
+        )
+        if repaired == current:
+            return current
+        current = repaired
+    return current
 
 
 def _remove_newly_orphaned_optional_sections(
