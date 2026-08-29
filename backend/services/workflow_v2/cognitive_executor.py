@@ -2084,6 +2084,7 @@ _UNRESOLVED_AUTHORITY_QUALIFIER = re.compile(
 )
 _UNRESOLVED_REQUIREMENT_ACTION = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:\*\*|__)?(?:given|when|then)(?:\s*:)?(?:\*\*|__)?\s*:?\s+)?"
     r"(?:(?:(?:validation|verification)(?:\s+action)?|next[- ]step|action)\s*:\s*)?"
     r"(?:verify|validate|confirm|obtain|consult|check|compile|determine|request|dispatch|"
     r"submit|finalize|prepare)\b",
@@ -2093,6 +2094,13 @@ _SERVER_VALIDATION_ACTION = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?validation\s+action\s*:\s*"
     r"(?:verify\s+this\s+item\s+before\s+relying\s+on\s+it|"
     r"verify\s+whether\s+.+?\s+before\s+treating\s+it\s+as\s+settled)"
+    r"[.;]?\s*$",
+    re.IGNORECASE,
+)
+_SERVER_SPECIFIC_VERIFICATION_ACTION = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:given|when|then)(?:\s*:)?\s+|verification\s*:\s*)"
+    r"confirm\s+whether\s+.+?\s+before\s+relying\s+on\s+the\s+outcome"
     r"[.;]?\s*$",
     re.IGNORECASE,
 )
@@ -2688,12 +2696,16 @@ def _deterministic_evidence_integrity_defects(
             cleaned_action = re.sub(r"[*_`]", "", without_markers)
             if (
                 not markers
-                and _SERVER_VALIDATION_ACTION.fullmatch(cleaned_action)
+                and (
+                    _SERVER_VALIDATION_ACTION.fullmatch(cleaned_action)
+                    or _SERVER_SPECIFIC_VERIFICATION_ACTION.fullmatch(cleaned_action)
+                )
                 and _is_bounded_unresolved_requirement_action(cleaned_action)
             ):
-                # These exact server-owned forms request proof without asserting the
-                # proposition. A generic action prefix cannot exempt an independently
-                # asserted coordinator or causal tail.
+                # Only exact server-owned verification forms are universally exempt.
+                # Arbitrary imperatives remain eligible only when they align with an
+                # explicit unresolved requirement below, so legal or safety assertions
+                # cannot be laundered as action language.
                 continue
             if (
                 unresolved_alignment
@@ -2811,17 +2823,32 @@ _UNRESOLVED_UNSUPPORTED_FACT_PREFIX = (
 )
 
 
-def _handled_task_evidence_defect(defect: str) -> tuple[str, bool, bool] | None:
+def _handled_task_evidence_defect(
+    defect: str, *, full_contract: bool
+) -> tuple[str, bool, bool] | None:
     """Return excerpt, unresolved-authority status, and citation requirement."""
 
     unresolved = defect.startswith(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX) or (
         "unresolved evidence assertion" in defect
     )
-    if not unresolved:
+    if unresolved:
+        _prefix, separator, excerpt = defect.partition(": ")
+        return (
+            (excerpt, True, defect.startswith("Cited immutable claims"))
+            if separator and excerpt
+            else None
+        )
+    if not full_contract or not defect.startswith(
+        (
+            "Unsupported factual precision requires an exact evidence marker",
+            "Cited immutable claims do not support every exact value in this assertion",
+            "Cited immutable claims do not semantically support this exact assertion",
+        )
+    ):
         return None
     _prefix, separator, excerpt = defect.partition(": ")
     return (
-        (excerpt, True, defect.startswith("Cited immutable claims"))
+        (excerpt, False, defect.startswith("Cited immutable claims"))
         if separator and excerpt
         else None
     )
@@ -2852,44 +2879,16 @@ def _task_fragment_parts(fragment: str) -> tuple[str, str, str, str]:
 def _as_unresolved_validation_action(
     fragment: str, *, table_cell: bool = False
 ) -> str:
-    """Reclassify one uncited authority assertion without losing its planning value."""
+    """Reclassify one unsafe assertion as a specific verification action."""
 
     list_prefix, role_prefix, role, body = _task_fragment_parts(fragment)
     body = body.strip().rstrip(" .;:")
-    action = f"Validation action: verify whether {body} before treating it as settled."
-    if role == "then" and not table_cell:
-        # Keep the Given/When/Then topology while ensuring the unresolved proposition is
-        # an action fragment in its own right rather than a factual acceptance outcome.
-        return (
-            f"{list_prefix}{role_prefix}record an unresolved evidence gap until "
-            "verification.\n\n"
-            f"{list_prefix}{action}"
-        )
-    if role == "then":
-        return f"{list_prefix}{action}"
-    return f"{list_prefix}{role_prefix}{action}"
-
-
-def _as_claim_free_validation_action(
-    fragment: str, *, table_cell: bool = False
-) -> str:
-    """Withhold an unsupported cited proposition while preserving its structure."""
-
-    list_prefix, role_prefix, role, _body = _task_fragment_parts(fragment)
-    if role == "given":
-        return (
-            f"{list_prefix}{role_prefix}the applicable planning evidence remains "
-            "unverified."
-        )
-    if role == "when":
-        return f"{list_prefix}{role_prefix}the relevant decision is reviewed."
-    if role == "then":
-        return (
-            f"{list_prefix}{role_prefix}record the evidence gap and defer the decision."
-        )
+    action = f"confirm whether {body} before relying on the outcome."
+    if role:
+        return f"{list_prefix}{role_prefix}{action}"
     if table_cell:
-        return "Validation action: verify this item before relying on it."
-    return f"{list_prefix}Validation action: verify this item before relying on it."
+        return f"Verification: {action}"
+    return f"{list_prefix}Verification: {action}"
 
 
 def _prepare_task_unresolved_actions(
@@ -2898,11 +2897,12 @@ def _prepare_task_unresolved_actions(
     """Withhold unsupported task claims without discarding the useful artifact.
 
     Non-authorizing, evidence-gapped work may retain an uncited unresolved-authority
-    proposition only as an explicit validation action. A cited unresolved-authority
-    proposition with polarity, value, or semantic mismatch is removed together with its
-    marker and replaced by claim-free structural text. Other precision and citation
-    defects are never rewritten here; strict validation and promotion checks remain
-    authoritative when exact support is absent.
+    proposition only as an explicit verification action. Full-contract drafts also
+    reclassify bounded unsupported precision and citation mismatches as specific
+    verification actions while preserving the proposition being checked. A causal or
+    coordinator tail that could assert an independent fact is left for the bounded model
+    retry. Strict validation and promotion checks remain authoritative when exact
+    targeting cannot be proven safe.
     """
 
     if (
@@ -2912,6 +2912,7 @@ def _prepare_task_unresolved_actions(
         return draft
 
     current = draft.markdown
+    full_contract = bool(context.required_sections)
 
     def present_required_headings(markdown: str) -> set[str]:
         headings = {normalized for _, _, normalized in _markdown_headings(markdown)}
@@ -2952,10 +2953,17 @@ def _prepare_task_unresolved_actions(
             defect_limit=None,
             excerpt_limit=None,
         )
+        if full_contract and len(defects) > 40:
+            # Do not turn a severely unsupported draft into a wall of verification
+            # actions. Let the bounded model retry rewrite it coherently instead.
+            break
         handled = [
             value
             for defect in defects
-            if (value := _handled_task_evidence_defect(defect)) is not None
+            if (value := _handled_task_evidence_defect(
+                defect, full_contract=full_contract
+            ))
+            is not None
         ]
         if not handled:
             break
@@ -3001,7 +3009,6 @@ def _prepare_task_unresolved_actions(
                         trailing,
                     )
                     locally_cited = _RAW_EVIDENCE_MARKER.search(candidate) is not None
-                    cited = locally_cited or adjacent_marker is not None
                     target = next(
                         (
                             item
@@ -3015,18 +3022,13 @@ def _prepare_task_unresolved_actions(
 
                     if adjacent_marker is not None:
                         target_end += adjacent_marker.end()
-                    _target_excerpt, unresolved_authority, _cited_defect = target
-                    claim_free = cited or not unresolved_authority or bool(
-                        _ACTION_ASSERTED_TAIL.search(markerless)
-                    )
-                    replacement = (
-                        _as_claim_free_validation_action(
-                            markerless, table_cell=is_table_line
-                        )
-                        if claim_free
-                        else _as_unresolved_validation_action(
-                            markerless, table_cell=is_table_line
-                        )
+                    _target_excerpt, _unresolved_authority, _cited_defect = target
+                    if _ACTION_ASSERTED_TAIL.search(markerless):
+                        # A wrapper must not retain an independently asserted causal or
+                        # coordinator tail. Strict validation requests a coherent retry.
+                        continue
+                    replacement = _as_unresolved_validation_action(
+                        markerless, table_cell=is_table_line
                     )
                     trial_unit = unit[:candidate_index] + replacement + unit[target_end:]
                     trial_units = [*units]
@@ -3062,7 +3064,10 @@ def _prepare_task_unresolved_actions(
                     trial_handled = [
                         value
                         for defect in trial_defects
-                        if (value := _handled_task_evidence_defect(defect)) is not None
+                        if (value := _handled_task_evidence_defect(
+                            defect, full_contract=full_contract
+                        ))
+                        is not None
                     ]
                     if len(trial_handled) >= len(handled):
                         continue
@@ -4405,8 +4410,15 @@ class PydanticAISynthesisWriter:
                 scope_payload
             ).requirements,
             repair_pass=input_value.repair_pass or 0,
-            quality_gate_required=input_value.purpose
-            in {"final_synthesis", "blocked_report"},
+            quality_gate_required=(
+                input_value.purpose in {"final_synthesis", "blocked_report"}
+                or (
+                    input_value.purpose == "execute_task"
+                    and task is not None
+                    and task.task_kind == "core_draft"
+                    and task.produces_full_contract
+                )
+            ),
             practical_output_required=(
                 input_value.purpose == "blocked_report"
                 or work_shape
@@ -6541,8 +6553,15 @@ class GeminiCognitiveExecutor:
             ),
             accepted_requirements=scope.requirements,
             repair_pass=input_value.repair_pass or 0,
-            quality_gate_required=input_value.purpose
-            in {"final_synthesis", "blocked_report"},
+            quality_gate_required=(
+                input_value.purpose in {"final_synthesis", "blocked_report"}
+                or (
+                    input_value.purpose == "execute_task"
+                    and input_value.task is not None
+                    and input_value.task.task_kind == "core_draft"
+                    and input_value.task.produces_full_contract
+                )
+            ),
             practical_output_required=(
                 input_value.purpose == "blocked_report"
                 or (

@@ -45,6 +45,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     EvaluationDraft,
     _appendix_matches_research,
     _blocked_report_output_contract,
+    _contains_server_deliverable_placeholder,
     _deterministic_evidence_integrity_defects,
     _operation_metrics,
     _deterministic_quality_defects,
@@ -4266,6 +4267,49 @@ def cognitive_input(
     }
 
 
+@pytest.mark.asyncio
+async def test_quality_gate_is_scoped_to_full_contract_core_task() -> None:
+    compiled = await compiled_scope(evidence=False)
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+
+    def typed_input(task: dict) -> SynthesizeArtifactInputV1:
+        return SynthesizeArtifactInputV1.model_validate(
+            cognitive_input(
+                purpose="execute_task",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref],
+                extra_contents=[plan_content],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                task=task,
+            )
+        )
+
+    writer = object.__new__(PydanticAISynthesisWriter)
+    core_input = typed_input(tasks[-1])
+    core_context = writer._context(
+        core_input,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        core_input.artifact_contents,
+    )
+    specialist_input = typed_input(tasks[0])
+    specialist_context = writer._context(
+        specialist_input,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        specialist_input.artifact_contents,
+    )
+
+    assert core_context.quality_gate_required is True
+    assert core_context.practical_output_required is True
+    assert specialist_context.quality_gate_required is False
+    assert specialist_context.required_sections == []
+
+
 async def execute_plan_tasks(
     executor,
     compiled,
@@ -4484,8 +4528,8 @@ async def test_task_operation_preserves_prd_by_reclassifying_unresolved_fact() -
         result.artifact.markdown or ""
     )
     assert (
-        "Validation action: verify whether Applicable pet-food safety obligations are "
-        "mandatory before treating it as settled."
+        "Verification: confirm whether Applicable pet-food safety obligations are "
+        "mandatory before relying on the outcome."
     ) in (result.artifact.markdown or "")
 
 
@@ -4703,7 +4747,7 @@ async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precisi
 
 
 @pytest.mark.asyncio
-async def test_unsupported_precise_core_candidate_requires_the_existing_repair_path() -> None:
+async def test_unsupported_precise_core_candidate_becomes_specific_verification() -> None:
     class UnsafePrecisionWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -4722,7 +4766,8 @@ async def test_unsupported_precise_core_candidate_requires_the_existing_repair_p
             )
 
     compiled = await compiled_scope()
-    research = await execute_research(compiled, VerifiedResearchRunner())
+    research = await execute_research(compiled, MissingResearchRunner())
+    assert research.evidence_readiness == "ready_with_gaps"
     plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
@@ -4740,7 +4785,16 @@ async def test_unsupported_precise_core_candidate_requires_the_existing_repair_p
         tasks,
         operation_base=820,
     )
-    assert results[-1].artifact.kind == "task_result"
+    candidate = results[-1]
+    assert candidate.artifact.kind == "final_markdown"
+    assert (
+        "Verification: confirm whether The validated formula contains 2,000 mg/kg "
+        "taurine and prevents renal disease before relying on the outcome."
+        in (candidate.artifact.markdown or "")
+    )
+    assert not _contains_server_deliverable_placeholder(
+        candidate.artifact.markdown or ""
+    )
 
     task_refs = sorted(
         [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
@@ -4766,14 +4820,16 @@ async def test_unsupported_precise_core_candidate_requires_the_existing_repair_p
         )
     )
 
-    assert evaluation.execution_output_contract_satisfied is False
-    assert evaluation.direct_promotion_artifact is None
-    assert evaluation.artifact.payload["unsupportedPrecision"]
-    assert evaluation.artifact.payload["repairRequired"] is True
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(candidate.artifact)
+    assert evaluation.artifact.payload["unsupportedPrecision"] == []
+    assert evaluation.artifact.payload["repairRequired"] is False
 
 
 @pytest.mark.asyncio
-async def test_evaluation_names_quality_defects_in_full_contract_task_result() -> None:
+async def test_full_contract_quality_defect_fails_before_task_persistence() -> None:
     class AsciiCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -4800,46 +4856,17 @@ async def test_evaluation_names_quality_defects_in_full_contract_task_result() -
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
         synthesis_writer=AsciiCoreWriter(),
     )
-    results = await execute_plan_tasks(
-        executor,
-        compiled,
-        research,
-        plan_ref,
-        plan_content,
-        output_contract,
-        tasks,
-        operation_base=850,
-    )
-    assert results[-1].artifact.kind == "task_result"
-    task_refs = sorted(
-        [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
-    )
-
-    evaluation = await executor.execute(
-        envelope_for(
-            cognitive_input(
-                purpose="evaluate_output",
-                compiled=compiled,
-                research=research,
-                output_contract=output_contract,
-                extra_refs=[plan_ref, *task_refs],
-                extra_contents=[
-                    plan_content,
-                    *[exact_content(item.artifact) for item in results],
-                ],
-                repair_pass=0,
-                acceptedPlan=plan_ref,
-                taskArtifacts=task_refs,
-            ),
-            operation_id="00000000-0000-4000-8000-000000000859",
-            operation_type="SynthesizeArtifactV1",
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        await execute_plan_tasks(
+            executor,
+            compiled,
+            research,
+            plan_ref,
+            plan_content,
+            output_contract,
+            tasks,
+            operation_base=850,
         )
-    )
-
-    assert evaluation.artifact.payload["substantiveContentDefects"] == [
-        "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
-    ]
-    assert evaluation.artifact.payload["repairRequired"] is True
 
 
 @pytest.mark.asyncio
@@ -5574,6 +5601,14 @@ def test_claim_support_guard_does_not_exempt_assertions_after_action_prefix() ->
             "Validation action: verify whether the manufacturer is HACCP certified "
             "before treating it as settled."
         ),
+        (
+            "Verification: confirm whether the manufacturer is HACCP certified "
+            "before relying on the outcome."
+        ),
+        (
+            "**Then** confirm whether the manufacturer is HACCP certified before "
+            "relying on the outcome."
+        ),
     ):
         assert _deterministic_evidence_integrity_defects(canonical_action, {}) == []
 
@@ -5595,6 +5630,21 @@ def test_claim_support_guard_does_not_exempt_assertions_after_action_prefix() ->
                 "HACCP manufacturer certification status."
             ],
         )
+
+
+@pytest.mark.parametrize(
+    ("artifact_type", "unsafe_action"),
+    [
+        ("product_prd", "Prepare the legally required PTA filing."),
+        ("launch_authorization", "Submit the mandatory authorization dossier."),
+    ],
+)
+def test_claim_support_guard_rejects_authority_presupposing_imperatives(
+    artifact_type: str, unsafe_action: str
+) -> None:
+    assert _deterministic_evidence_integrity_defects(
+        unsafe_action, {}, artifact_type=artifact_type
+    )
 
 
 def test_claim_support_guard_preserves_trailing_unresolved_scope_over_lists() -> None:
@@ -5945,12 +5995,17 @@ def test_task_reclassifies_only_uncited_unresolved_clause(
     )
     assert "PTA notification is mandatory." not in prepared.markdown
     assert (
-        "Validation action: verify whether PTA notification is mandatory before "
-        "treating it as settled."
+        "Verification: confirm whether PTA notification is mandatory before relying "
+        "on the outcome."
     ) in prepared.markdown
     assert "Given a draft label" in prepared.markdown
     assert "When the review runs" in prepared.markdown
-    assert "Then record an unresolved evidence gap until verification." in (
+    assert (
+        "Then confirm whether PTA notification is mandatory before relying on the "
+        "outcome."
+        in prepared.markdown
+    )
+    assert "record an unresolved evidence gap until verification" not in (
         prepared.markdown
     )
     assert prepared.model_dump(exclude={"markdown"}) == draft.model_dump(
@@ -5996,8 +6051,8 @@ def test_task_reclassifies_only_offending_table_cell() -> None:
 
     assert "| User need | Preserve clear feeding instructions. |" in prepared.markdown
     assert (
-        "| Authority | Validation action: verify whether PTA notification is mandatory "
-        "before treating it as settled. |"
+        "| Authority | Then confirm whether PTA notification is mandatory before "
+        "relying on the outcome. |"
     ) in prepared.markdown
     assert prepared.markdown.count("|") == draft.markdown.count("|")
     assert set(
@@ -6056,7 +6111,7 @@ def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
     assert cited + f" [evidence:{claim_id}]." in prepared.markdown
     assert prepared.markdown.count(f"[evidence:{claim_id}]") == 1
     assert (
-        "Validation action: verify whether PTA notification filing is mandatory"
+        "Verification: confirm whether PTA notification filing is mandatory"
         in prepared.markdown
     )
     _validate_task_draft(context, prepared)
@@ -6146,7 +6201,12 @@ def test_task_preserves_valid_cited_twin_before_bad_cited_twin() -> None:
 
     assert f"{assertion} [evidence:{supported_id}]" in prepared.markdown
     assert f"[evidence:{contradicted_id}]" not in prepared.markdown
-    assert prepared.markdown.count(assertion) == 1
+    assert prepared.markdown.count(assertion) == 2
+    assert (
+        f"Verification: confirm whether {assertion} before relying on the outcome."
+        in prepared.markdown
+    )
+    assert not _contains_server_deliverable_placeholder(prepared.markdown)
     _validate_task_draft(context, prepared)
 
 
@@ -6185,14 +6245,14 @@ def test_task_preserves_planning_table_twin_before_unsafe_prose_twin() -> None:
     assert f"| Authority | {assertion} |" in prepared.markdown
     assert prepared.markdown.count(assertion) == 1
     assert (
-        "Validation action: verify whether PTA notification filing is mandatory "
-        "before treating it as settled."
+        "Verification: confirm whether PTA notification filing is mandatory "
+        "before relying on the outcome."
         in prepared.markdown
     )
     _validate_task_draft(context, prepared)
 
 
-def test_task_withholds_bad_citation_but_not_launch_authorization() -> None:
+def test_task_reclassifies_bad_citation_but_not_launch_authorization() -> None:
     claim_id = "5" * 64
     supported_claim_id = "8" * 64
     context = SynthesisContext(
@@ -6231,16 +6291,21 @@ def test_task_withholds_bad_citation_but_not_launch_authorization() -> None:
     )
 
     prepared = _prepare_task_unresolved_actions(context, draft)
-    assert "PTA requires prior notification filing" not in prepared.markdown
+    assert (
+        "Verification: confirm whether PTA requires prior notification filing "
+        "before relying on the outcome."
+        in prepared.markdown
+    )
     assert f"[evidence:{claim_id}]" not in prepared.markdown
     assert (
         "Clear feeding instructions support correct daily use "
         f"[evidence:{supported_claim_id}]" in prepared.markdown
     )
-    assert (
-        "Validation action: verify this item before relying on it."
-        in prepared.markdown
+    assert "Validation action: verify this item before relying on it." not in (
+        prepared.markdown
     )
+    assert not _contains_server_deliverable_placeholder(prepared.markdown)
+    assert _prepare_task_unresolved_actions(context, prepared) == prepared
     _validate_task_draft(context, prepared)
     launch_context = context.model_copy(
         update={"artifact_type": "launch_authorization"}
@@ -6257,7 +6322,7 @@ def test_task_withholds_bad_citation_but_not_launch_authorization() -> None:
         "PTA does not require prior notification filing.",
     ],
 )
-def test_task_atomically_withholds_punctuation_adjacent_citation(
+def test_task_atomically_reclassifies_punctuation_adjacent_citation(
     claim_text: str,
 ) -> None:
     claim_id = "7" * 64
@@ -6298,17 +6363,22 @@ def test_task_atomically_withholds_punctuation_adjacent_citation(
     )
 
     prepared = _prepare_task_unresolved_actions(context, draft)
-    assert "PTA requires prior notification filing" not in prepared.markdown
+    assert (
+        "Verification: confirm whether PTA requires prior notification filing "
+        "before relying on the outcome."
+        in prepared.markdown
+    )
     assert f"[evidence:{claim_id}]" not in prepared.markdown
     assert (
         "Clear feeding instructions support correct daily use "
         f"[evidence:{supported_claim_id}]" in prepared.markdown
     )
-    assert prepared.markdown.count("Validation action:") == 1
+    assert "Validation action:" not in prepared.markdown
+    assert not _contains_server_deliverable_placeholder(prepared.markdown)
     _validate_task_draft(context, prepared)
 
 
-def test_full_contract_task_does_not_normalize_generic_unsupported_claims() -> None:
+def test_full_contract_reclassifies_generic_unsupported_claims_specifically() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6344,21 +6414,29 @@ def test_full_contract_task_does_not_normalize_generic_unsupported_claims() -> N
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert prepared == draft
-    assert "Co-manufacturer must maintain verified HACCP certification." in (
-        prepared.markdown
+    assert (
+        "Verification: confirm whether Co-manufacturer must maintain verified HACCP "
+        "certification before relying on the outcome."
+        in prepared.markdown
     )
-    assert "* **Then** the formula is safe for adult cats." in prepared.markdown
+    assert (
+        "* **Then** confirm whether the formula is safe for adult cats before relying "
+        "on the outcome."
+        in prepared.markdown
+    )
     assert "Validation action: verify this item before relying on it." not in (
         prepared.markdown
     )
-    assert "record the evidence gap and defer the decision" not in prepared.markdown
+    assert "record the evidence gap and defer the decision" not in (
+        prepared.markdown
+    )
     assert "[Lab Analysis Step]" in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown,
         {},
         artifact_type="product_prd",
-    )
+    ) == []
+    assert not _contains_server_deliverable_placeholder(prepared.markdown)
     assert (
         cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
             prepared.markdown
@@ -6367,7 +6445,7 @@ def test_full_contract_task_does_not_normalize_generic_unsupported_claims() -> N
     )
 
 
-def test_full_contract_still_normalizes_only_unresolved_authority() -> None:
+def test_full_contract_reclassifies_unresolved_authority_specifically() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6405,13 +6483,14 @@ def test_full_contract_still_normalizes_only_unresolved_authority() -> None:
         prepared.markdown
     )
     assert (
-        "Validation action: verify whether PTA notification filing is mandatory "
-        "before distribution before treating it as settled."
+        "Verification: confirm whether PTA notification filing is mandatory before "
+        "distribution before relying on the outcome."
         in prepared.markdown
     )
     assert "Validation action: verify this item before relying on it." not in (
         prepared.markdown
     )
+    assert not _contains_server_deliverable_placeholder(prepared.markdown)
     _validate_task_draft(context, prepared)
 
 
@@ -6597,7 +6676,7 @@ def test_full_contract_never_rewrites_fenced_content(
         ),
     ],
 )
-def test_task_withholds_asserted_tail_in_unresolved_requirement(unsafe: str) -> None:
+def test_task_leaves_asserted_tail_for_strict_model_retry(unsafe: str) -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=[],
@@ -6627,18 +6706,20 @@ def test_task_withholds_asserted_tail_in_unresolved_requirement(unsafe: str) -> 
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert unsafe not in prepared.markdown
-    assert "agency approved" not in prepared.markdown
-    assert "agency has approved" not in prepared.markdown
+    assert prepared == draft
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown,
         {},
         artifact_type="general_artifact",
         unresolved_evidence_requirements=context.unresolved_evidence_requirements,
-    ) == []
+    )
+    with pytest.raises(
+        ValueError, match="task artifact contradicts unresolved evidence"
+    ):
+        _validate_task_draft(context, prepared)
 
 
-def test_full_contract_preserves_generic_compact_given_when_then_verbatim() -> None:
+def test_full_contract_reclassifies_only_unsafe_compact_then_clause() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6670,16 +6751,15 @@ def test_full_contract_preserves_generic_compact_given_when_then_verbatim() -> N
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert prepared == draft
     assert (
-        "Given the product plan, When the release review runs, Then the formula "
-        "is safe for adult cats."
+        "Given the product plan, When the release review runs, Then confirm whether "
+        "the formula is safe for adult cats before relying on the outcome."
         in prepared.markdown
     )
     assert "record the evidence gap and defer the decision" not in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown, {}, artifact_type="product_prd"
-    )
+    ) == []
     assert (
         cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
             prepared.markdown
@@ -7080,6 +7160,33 @@ def test_final_quality_gate_rejects_exact_server_placeholders(
             context,
             SynthesisDraft(title="Server placeholder", markdown=candidate),
         )
+
+
+def test_final_quality_gate_retains_specific_verification_action() -> None:
+    useful = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    candidate = useful + (
+        "\n\nVerification: confirm whether the co-manufacturer holds the applicable "
+        "HACCP certification before relying on the outcome."
+    )
+
+    assert not _contains_server_deliverable_placeholder(candidate)
+    assert _deterministic_evidence_integrity_defects(
+        candidate, {}, artifact_type="product_prd"
+    ) == []
+    assert _deterministic_quality_defects(
+        candidate,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    ) == ([], [])
 
 
 def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees() -> None:
