@@ -2743,6 +2743,150 @@ def _deterministic_evidence_integrity_defects(
     return utf16_ordinal_sorted(defects)[:40]
 
 
+_UNRESOLVED_UNSUPPORTED_FACT_PREFIX = (
+    "An unresolved evidence requirement is asserted as fact without exact immutable "
+    "support or provisional/verification language: "
+)
+
+
+def _as_unresolved_validation_action(
+    fragment: str, *, table_cell: bool = False
+) -> str:
+    """Reclassify one uncited authority assertion without losing its planning value."""
+
+    prefix_match = re.match(
+        r"^(\s*(?:(?:[-+*]|\d+[.)])\s+)?)((?:Given|When|Then)\s+)?(.*)$",
+        fragment,
+        re.IGNORECASE,
+    )
+    assert prefix_match is not None
+    list_prefix, acceptance_prefix, body = prefix_match.groups()
+    body = body.strip().rstrip(" .;:")
+    action = f"Validation action: verify whether {body} before treating it as settled."
+    if (
+        acceptance_prefix
+        and acceptance_prefix.casefold().startswith("then")
+        and not table_cell
+    ):
+        # Keep the Given/When/Then topology while ensuring the unresolved proposition is
+        # an action fragment in its own right rather than a factual acceptance outcome.
+        return (
+            f"{list_prefix}Then record an unresolved evidence gap until verification.\n\n"
+            f"{list_prefix}{action}"
+        )
+    if acceptance_prefix and acceptance_prefix.casefold().startswith("then"):
+        return f"{list_prefix}{action}"
+    return f"{list_prefix}{acceptance_prefix or ''}{action}"
+
+
+def _prepare_task_unresolved_actions(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Turn only uncited unresolved task assertions into explicit validation actions.
+
+    The unchanged evidence validator remains authoritative. This preparation applies only
+    to non-authorizing outputs that are already allowed to complete with evidence gaps. It
+    is deliberately clause- and table-cell-local so useful supported analysis, citations
+    and Markdown structure survive. Incorrect or contradictory citations are never repaired.
+    """
+
+    if (
+        context.artifact_type == "launch_authorization"
+        or context.evidence_readiness != "ready_with_gaps"
+    ):
+        return draft
+
+    current = draft.markdown
+    for _pass in range(max(1, len(current.splitlines()))):
+        defects = _deterministic_evidence_integrity_defects(
+            current,
+            context.allowed_claim_texts,
+            artifact_type=context.artifact_type,
+            immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+        )
+        excerpts = [
+            defect.removeprefix(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX)
+            for defect in defects
+            if defect.startswith(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX)
+        ]
+        if not excerpts:
+            break
+
+        changed = False
+        repaired_lines: list[str] = []
+        for line in current.splitlines():
+            is_table_line = "|" in line
+            units = line.split("|") if is_table_line else [line]
+            repaired_units: list[str] = []
+            for unit in units:
+                candidate_base = unit.strip()
+                heading = _MARKDOWN_HEADING.fullmatch(candidate_base)
+                if heading is not None:
+                    candidate_base = heading.group(1).strip()
+                fragments = _CLAUSE_BREAK.split(candidate_base)
+                candidates = [
+                    candidate
+                    for fragment in fragments
+                    for candidate in (
+                        _split_unresolved_assertions(fragment)
+                        if _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment)
+                        else [fragment.strip()]
+                    )
+                    if candidate
+                ]
+                repaired_unit = unit
+                for candidate in candidates:
+                    if _RAW_EVIDENCE_MARKER.search(candidate) is not None:
+                        continue
+                    candidate_index = repaired_unit.find(candidate)
+                    if candidate_index < 0:
+                        continue
+                    trailing = repaired_unit[candidate_index + len(candidate) :]
+                    if re.match(
+                        r"^[\s.,;:!?()\[\]`*_~-]*\[evidence:[^\]\r\n]*\]",
+                        trailing,
+                    ):
+                        # A marker placed just after sentence punctuation is not local
+                        # support under the validator grammar, but deterministic cleanup
+                        # must not reinterpret it and thereby bypass a polarity or semantic
+                        # citation failure. Leave the malformed citation fail-closed.
+                        continue
+                    normalized = re.sub(r"\s+", " ", candidate).strip()
+                    matching_excerpt = next(
+                        (
+                            excerpt
+                            for excerpt in excerpts
+                            if normalized[:180] == excerpt
+                        ),
+                        None,
+                    )
+                    if matching_excerpt is None:
+                        continue
+                    repaired_unit = repaired_unit.replace(
+                        candidate,
+                        _as_unresolved_validation_action(
+                            candidate, table_cell=is_table_line
+                        ),
+                        1,
+                    )
+                    changed = True
+                repaired_units.append(repaired_unit)
+            repaired_lines.append("|".join(repaired_units))
+
+        if not changed:
+            break
+        current = "\n".join(repaired_lines)
+
+    if current == draft.markdown:
+        return draft
+    if set(_deterministic_structural_integrity_defects(current)).difference(
+        _deterministic_structural_integrity_defects(draft.markdown)
+    ):
+        return draft
+    return draft.model_copy(update={"markdown": current})
+
+
 def _canonical_immutable_gap_bullet_indexes(
     markdown: str, immutable_gap_labels: Sequence[str]
 ) -> set[int]:
@@ -3725,6 +3869,7 @@ class PydanticAISynthesisWriter:
         ) -> TaskDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
             output = _without_forbidden_task_launch_claim_lines(ctx.deps, output)
+            output = _prepare_task_unresolved_actions(ctx.deps, output)
             try:
                 _validate_task_draft(ctx.deps, output)
             except ValueError as error:
@@ -4063,6 +4208,7 @@ class PydanticAISynthesisWriter:
         )
         output = _with_immutable_gap_labels(context, result.output)
         output = _without_forbidden_task_launch_claim_lines(context, output)
+        output = _prepare_task_unresolved_actions(context, output)
         _validate_task_draft(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(output, input_tokens, output_tokens)
@@ -6151,6 +6297,7 @@ class GeminiCognitiveExecutor:
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
             draft = _with_immutable_gap_labels(context, draft)
             draft = _without_forbidden_task_launch_claim_lines(context, draft)
+            draft = _prepare_task_unresolved_actions(context, draft)
             _validate_task_draft(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)

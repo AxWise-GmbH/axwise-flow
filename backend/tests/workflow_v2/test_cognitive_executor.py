@@ -52,6 +52,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _claim_from_grounding,
     _markdown_with_source_appendix,
     _model_owned_required_sections,
+    _prepare_task_unresolved_actions,
     _usage_from_result,
     _usage_from_search,
     _validate_synthesis,
@@ -4429,6 +4430,64 @@ class BoundedSpecialistWriter(QualityWriter):
         )
 
 
+class UnresolvedAuthorityTaskWriter(QualityWriter):
+    async def execute_task(self, input_value, scope, research_payload, contents):
+        draft = await super().execute_task(
+            input_value, scope, research_payload, contents
+        )
+        return draft.model_copy(
+            update={
+                "markdown": (
+                    draft.markdown
+                    + "\n\n## Authority assumption\n\n"
+                    "Applicable pet-food safety obligations are mandatory."
+                )
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_task_operation_preserves_prd_by_reclassifying_unresolved_fact() -> None:
+    compiled = await compiled_scope()
+    research = await execute_research(compiled, MissingResearchRunner())
+    assert research.evidence_readiness == "ready_with_gaps"
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=UnresolvedAuthorityTaskWriter(),
+    )
+    execute_input = cognitive_input(
+        purpose="execute_task",
+        compiled=compiled,
+        research=research,
+        output_contract=output_contract,
+        extra_refs=[plan_ref],
+        extra_contents=[plan_content],
+        repair_pass=0,
+        acceptedPlan=plan_ref,
+        task=tasks[0],
+    )
+
+    result = await executor.execute(
+        envelope_for(
+            execute_input,
+            operation_id="00000000-0000-4000-8000-000000000059",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+
+    assert result.result_type == "task_completed"
+    assert "Applicable pet-food safety obligations are mandatory." not in (
+        result.artifact.markdown or ""
+    )
+    assert (
+        "Validation action: verify whether Applicable pet-food safety obligations are "
+        "mandatory before treating it as settled."
+    ) in (result.artifact.markdown or "")
+
+
 @pytest.mark.asyncio
 async def test_bounded_specialist_does_not_repeat_unrelated_global_gap_labels() -> None:
     compiled = await compiled_scope(
@@ -5802,6 +5861,261 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
             cognitive_executor_module._validate_task_draft(
                 adversarial_context, adversarial
             )
+
+
+@pytest.mark.parametrize(
+    "artifact_type",
+    ["product_prd", "research_strategy", "content_artifact", "general_artifact"],
+)
+def test_task_reclassifies_only_uncited_unresolved_clause(
+    artifact_type: str,
+) -> None:
+    claim_id = "4" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={
+            claim_id: "Clear feeding instructions support correct daily use."
+        },
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[
+            "Agriculture and Food Board (PTA) notification filing procedures."
+        ],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type=artifact_type,
+    )
+    draft = TaskDraft(
+        title="Useful specialist packet",
+        markdown=(
+            "# User analysis\n\nClear feeding instructions support correct daily use "
+            f"[evidence:{claim_id}]; PTA notification is mandatory.\n\n"
+            "## Acceptance criteria\n\nGiven a draft label\n\nWhen the review runs\n\n"
+            "Then PTA notification is mandatory.\n\n"
+            "## Evidence gaps\n\nPTA filing details remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The planning packet addresses the accepted requirement.",
+            }
+        ],
+        conclusions=["Preserve the supported user finding."],
+        unknowns=["The PTA filing procedure is unresolved."],
+    )
+
+    prepared = _prepare_task_unresolved_actions(context, draft)
+
+    assert (
+        f"Clear feeding instructions support correct daily use [evidence:{claim_id}]"
+        in prepared.markdown
+    )
+    assert "PTA notification is mandatory." not in prepared.markdown
+    assert (
+        "Validation action: verify whether PTA notification is mandatory before "
+        "treating it as settled."
+    ) in prepared.markdown
+    assert "Given a draft label" in prepared.markdown
+    assert "When the review runs" in prepared.markdown
+    assert "Then record an unresolved evidence gap until verification." in (
+        prepared.markdown
+    )
+    assert prepared.model_dump(exclude={"markdown"}) == draft.model_dump(
+        exclude={"markdown"}
+    )
+    assert _prepare_task_unresolved_actions(context, prepared) == prepared
+    _validate_task_draft(context, prepared)
+
+
+def test_task_reclassifies_only_offending_table_cell() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Authority decision table",
+        markdown=(
+            "# Decisions\n\n"
+            "| Topic | Planning decision |\n"
+            "| --- | --- |\n"
+            "| User need | Preserve clear feeding instructions. |\n"
+            "| Authority | Then PTA notification is mandatory. |\n\n"
+            "## Evidence gaps\n\nPTA filing details remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The decision table covers the requirement.",
+            }
+        ],
+        conclusions=["Retain the useful decision table."],
+    )
+
+    prepared = _prepare_task_unresolved_actions(context, draft)
+
+    assert "| User need | Preserve clear feeding instructions. |" in prepared.markdown
+    assert (
+        "| Authority | Validation action: verify whether PTA notification is mandatory "
+        "before treating it as settled. |"
+    ) in prepared.markdown
+    assert prepared.markdown.count("|") == draft.markdown.count("|")
+    assert set(
+        cognitive_executor_module._deterministic_structural_integrity_defects(
+            prepared.markdown
+        )
+    ).difference(
+        cognitive_executor_module._deterministic_structural_integrity_defects(
+            draft.markdown
+        )
+    ) == set()
+    _validate_task_draft(context, prepared)
+
+
+def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
+    claim_id = "6" * 64
+    shared = (
+        "PTA notification filing is mandatory before distribution for the applicable "
+        "authority procedure and the responsible operator review "
+        + "within the documented compliance boundary " * 4
+    )
+    cited = shared + "with exact immutable support"
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: cited + "."},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="research_strategy",
+    )
+    draft = TaskDraft(
+        title="Collision-safe research packet",
+        markdown=(
+            "# Authority research\n\n"
+            + shared
+            + "without evidence.\n\n"
+            + cited
+            + f" [evidence:{claim_id}].\n\n"
+            "## Evidence gaps\n\nPTA filing details remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The research packet addresses the accepted requirement.",
+            }
+        ],
+        conclusions=["Preserve the exact supported claim."],
+    )
+
+    prepared = _prepare_task_unresolved_actions(context, draft)
+
+    assert cited + f" [evidence:{claim_id}]." in prepared.markdown
+    assert prepared.markdown.count(f"[evidence:{claim_id}]") == 1
+    assert (
+        "Validation action: verify whether PTA notification filing is mandatory"
+        in prepared.markdown
+    )
+    _validate_task_draft(context, prepared)
+
+
+def test_task_does_not_reclassify_bad_citation_or_launch_authorization() -> None:
+    claim_id = "5" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={
+            claim_id: "PTA does not require prior notification filing."
+        },
+        required_gap_labels=[],
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Incorrectly cited packet",
+        markdown=(
+            "# Authority process\n\nPTA requires prior notification filing "
+            f"[evidence:{claim_id}].\n\n"
+            "## Evidence gaps\n\nPTA filing details remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The packet addresses the accepted requirement.",
+            }
+        ],
+        conclusions=["The cited polarity must remain fail-closed."],
+    )
+
+    assert _prepare_task_unresolved_actions(context, draft) == draft
+    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+        _validate_task_draft(context, draft)
+    assert (
+        _prepare_task_unresolved_actions(
+            context.model_copy(update={"artifact_type": "launch_authorization"}), draft
+        )
+        == draft
+    )
+
+
+@pytest.mark.parametrize(
+    "claim_text",
+    [
+        "PTA requires prior notification filing.",
+        "PTA does not require prior notification filing.",
+    ],
+)
+def test_task_does_not_reclassify_punctuation_adjacent_citation(
+    claim_text: str,
+) -> None:
+    claim_id = "7" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: claim_text},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="general_artifact",
+    )
+    draft = TaskDraft(
+        title="Malformed citation packet",
+        markdown=(
+            "# Authority process\n\nPTA requires prior notification filing. "
+            f"[evidence:{claim_id}]\n\n"
+            "## Evidence gaps\n\nPTA filing details remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The packet addresses the accepted requirement.",
+            }
+        ],
+        conclusions=["Malformed citation locality must fail closed."],
+    )
+
+    assert _prepare_task_unresolved_actions(context, draft) == draft
+    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+        _validate_task_draft(context, draft)
 
 
 @pytest.mark.parametrize(
