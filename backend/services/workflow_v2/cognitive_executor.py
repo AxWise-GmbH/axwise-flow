@@ -548,6 +548,12 @@ _PRD_REQUIRED_SECTION_ALIASES = {
     "metrics & pre-launch next steps": "Metrics and validation",
     "metrics and pre-launch next steps": "Metrics and validation",
     "next steps": "Next steps",
+    "actionable next steps": "Next steps",
+    "explicit open gaps & next steps": "Next steps",
+    "explicit open gaps and next steps": "Next steps",
+    "open gaps & next steps": "Next steps",
+    "open gaps and next steps": "Next steps",
+    "prioritized product requirements": "Prioritized requirements",
     "prioritized functional & operational prd requirements": "Prioritized requirements",
     "prioritized functional and operational prd requirements": "Prioritized requirements",
     "risks": "Risks",
@@ -1217,6 +1223,9 @@ health, safety, legal, process, test-method or certification specifications. If 
 immutable claim does not support one of those details, omit it or state the unresolved decision
 and how to validate it. Evidence markers are sentence- or table-cell-local: split verified facts
 from proposed targets, and never attach a marker to a line containing an unsupported target.
+When evidence readiness is not ready, include an explicit `Evidence gaps` or `Assumptions`
+Markdown heading even in a bounded specialist packet. Use ordinary Markdown tables, never
+ASCII-art tables inside code fences.
 Return typed title, Markdown, coverage, conclusions and unknowns.
 """
 ).strip()
@@ -4550,15 +4559,13 @@ class PydanticAISynthesisWriter:
                 scope_payload
             ).requirements,
             repair_pass=input_value.repair_pass or 0,
-            quality_gate_required=(
-                input_value.purpose in {"final_synthesis", "blocked_report"}
-                or (
-                    input_value.purpose == "execute_task"
-                    and task is not None
-                    and task.task_kind == "core_draft"
-                    and task.produces_full_contract
-                )
-            ),
+            # Execution artifacts are immutable drafts, not publishable outcomes. Their
+            # structure, scope, launch boundary, marker membership, gap labels and task
+            # coverage remain strict here. Substantive/practical and claim-alignment
+            # defects are measured below for direct promotion, then repaired by the
+            # evaluation/final stages instead of preventing those stages from running.
+            quality_gate_required=input_value.purpose
+            in {"final_synthesis", "blocked_report"},
             practical_output_required=(
                 input_value.purpose == "blocked_report"
                 or work_shape
@@ -4612,16 +4619,29 @@ class PydanticAISynthesisWriter:
 
         if input_value.purpose != "final_synthesis" or input_value.evaluation is None:
             raise ValueError("final repair prompt requires final_synthesis input")
-        core_candidates = [
-            item
-            for item in selected_contents
-            if item.content_type == "text/markdown"
-            and item.artifact.kind in {"task_result", "final_markdown"}
-            and isinstance(item.payload.get("task"), dict)
-            and item.payload["task"].get("taskKind") == "core_draft"
-            and item.payload["task"].get("producesFullContract") is True
-            and isinstance(item.markdown, str)
-        ]
+        def core_task(item: ImmutableArtifactContent) -> dict[str, Any] | None:
+            if item.artifact.kind == "task_result":
+                task = item.payload.get("task")
+                return task if isinstance(task, dict) else None
+            if item.artifact.kind == "final_markdown":
+                attestation = item.payload.get("candidateAttestation")
+                if not isinstance(attestation, dict):
+                    return None
+                task = attestation.get("task")
+                return task if isinstance(task, dict) else None
+            return None
+
+        core_candidates = []
+        for item in selected_contents:
+            task = core_task(item)
+            if (
+                item.content_type == "text/markdown"
+                and task is not None
+                and task.get("taskKind") == "core_draft"
+                and task.get("producesFullContract") is True
+                and isinstance(item.markdown, str)
+            ):
+                core_candidates.append(item)
         if len(core_candidates) != 1:
             raise ValueError("final repair prompt requires one full-contract core draft")
         evaluation_candidates = [
@@ -6693,15 +6713,8 @@ class GeminiCognitiveExecutor:
             ),
             accepted_requirements=scope.requirements,
             repair_pass=input_value.repair_pass or 0,
-            quality_gate_required=(
-                input_value.purpose in {"final_synthesis", "blocked_report"}
-                or (
-                    input_value.purpose == "execute_task"
-                    and input_value.task is not None
-                    and input_value.task.task_kind == "core_draft"
-                    and input_value.task.produces_full_contract
-                )
-            ),
+            quality_gate_required=input_value.purpose
+            in {"final_synthesis", "blocked_report"},
             practical_output_required=(
                 input_value.purpose == "blocked_report"
                 or (
