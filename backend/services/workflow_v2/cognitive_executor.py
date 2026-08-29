@@ -1331,6 +1331,43 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             ))
 
 
+def _with_immutable_gap_labels(
+    context: SynthesisContext,
+    draft: TaskDraft | SynthesisDraft,
+) -> TaskDraft | SynthesisDraft:
+    """Preserve exact research gaps without asking the model to copy immutable facts."""
+
+    if context.evidence_readiness not in {"ready_with_gaps", "blocked"}:
+        return draft
+    folded = draft.markdown.casefold()
+    seen: set[str] = set()
+    missing: list[str] = []
+    for label in context.required_gap_labels:
+        canonical = label.casefold()
+        if canonical in seen or canonical in folded:
+            continue
+        seen.add(canonical)
+        missing.append(label)
+    if not missing:
+        return draft
+    missing = utf16_ordinal_sorted(missing)
+    markdown = "\n".join(
+        [
+            draft.markdown.rstrip(),
+            "",
+            "## Immutable evidence gaps and assumptions",
+            "",
+            (
+                "These immutable gaps remain unresolved. They do not establish launch, "
+                "legal, safety, certification, or market clearance."
+            ),
+            "",
+            *(f"- {label}" for label in missing),
+        ]
+    )
+    return draft.model_copy(update={"markdown": markdown})
+
+
 def _validate_task_draft(context: SynthesisContext, draft: TaskDraft) -> None:
     coverage_ids = [item.requirement_id for item in draft.requirement_coverage]
     if coverage_ids != context.acceptance_requirement_ids:
@@ -2229,6 +2266,7 @@ class PydanticAISynthesisWriter:
         async def validate_task_output(
             ctx: RunContext[SynthesisContext], output: TaskDraft
         ) -> TaskDraft:
+            output = _with_immutable_gap_labels(ctx.deps, output)
             try:
                 _validate_task_draft(ctx.deps, output)
             except ValueError as error:
@@ -2239,6 +2277,7 @@ class PydanticAISynthesisWriter:
         async def validate_final_output(
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
+            output = _with_immutable_gap_labels(ctx.deps, output)
             try:
                 _validate_synthesis(ctx.deps, output)
             except ValueError as error:
@@ -2249,6 +2288,7 @@ class PydanticAISynthesisWriter:
         async def validate_blocked_output(
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
+            output = _with_immutable_gap_labels(ctx.deps, output)
             try:
                 _validate_synthesis(ctx.deps, output)
             except ValueError as error:
@@ -2423,9 +2463,10 @@ class PydanticAISynthesisWriter:
             context,
             phase="TASK",
         )
-        _validate_task_draft(context, result.output)
+        output = _with_immutable_gap_labels(context, result.output)
+        _validate_task_draft(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(output, input_tokens, output_tokens)
 
     async def evaluate_output(
         self,
@@ -2470,9 +2511,10 @@ class PydanticAISynthesisWriter:
             context,
             phase="FINAL",
         )
-        _validate_synthesis(context, result.output)
+        output = _with_immutable_gap_labels(context, result.output)
+        _validate_synthesis(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(output, input_tokens, output_tokens)
 
     async def write_blocked(
         self,
@@ -2494,9 +2536,10 @@ class PydanticAISynthesisWriter:
             context,
             phase="BLOCKED_REPORT",
         )
-        _validate_synthesis(context, result.output)
+        output = _with_immutable_gap_labels(context, result.output)
+        _validate_synthesis(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(output, input_tokens, output_tokens)
 
 
 def _source_span(request: str, draft: DraftSpan) -> SourceSpan:
@@ -4464,6 +4507,7 @@ class GeminiCognitiveExecutor:
                 selected_contents,
             )
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
+            draft = _with_immutable_gap_labels(context, draft)
             _validate_task_draft(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)
@@ -4789,6 +4833,7 @@ class GeminiCognitiveExecutor:
         else:
             written = ModelOutput(_deterministic_blocked_report(research))
         draft, input_tokens, output_tokens = _unwrap_model_output(written)
+        draft = _with_immutable_gap_labels(common_context, draft)
         _validate_synthesis(common_context, draft)
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(

@@ -55,6 +55,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _validate_synthesis,
     _validate_task_draft,
     _validate_revision_draft,
+    _with_immutable_gap_labels,
     has_positive_launch_readiness_claim,
 )
 from backend.services.llm import gemini_runtime
@@ -4848,6 +4849,43 @@ def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() 
     )
     with pytest.raises(ValueError, match="launch-ready"):
         _validate_synthesis(context, draft)
+
+
+def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content() -> None:
+    labels = [
+        "FEDIAF nutritional guidance was not verified.",
+        "Product-specific laboratory safety evidence has not been supplied.",
+    ]
+    context = SynthesisContext(
+        required_sections=["PRD"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[labels[1], labels[0], labels[1]],
+    )
+    original = SynthesisDraft(
+        title="Useful PRD",
+        markdown=(
+            "# PRD\n\nA substantive planning decision remains intact.\n\n"
+            "## Evidence gaps\n\n- Verification remains pending."
+        ),
+    )
+
+    preserved = _with_immutable_gap_labels(context, original)
+
+    assert preserved.title == original.title
+    assert preserved.markdown.startswith(original.markdown)
+    assert preserved.markdown.count(labels[0]) == 1
+    assert preserved.markdown.count(labels[1]) == 1
+    assert preserved.markdown.index(labels[0]) < preserved.markdown.index(labels[1])
+    assert "## Immutable evidence gaps and assumptions" in preserved.markdown
+    assert _with_immutable_gap_labels(context, preserved) == preserved
+    assert (
+        _with_immutable_gap_labels(
+            context.model_copy(update={"evidence_readiness": "ready"}), original
+        )
+        == original
+    )
+    _validate_synthesis(context, preserved)
 
 
 def test_ready_prd_cannot_claim_launch_authority_but_authorization_can() -> None:
