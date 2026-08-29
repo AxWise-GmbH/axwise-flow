@@ -1751,8 +1751,46 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
         "Prefer deleting an unsupported sentence or table",
         "cell over paraphrasing it",
         "persona names, ages, neighbourhoods and demographic facts",
+        "delete that entire",
+        "Markdown line on the next retry",
     ):
         assert required in final_prompt
+
+
+def test_final_repair_prunes_only_validator_named_unsupported_lines() -> None:
+    claim_id = "claim-0123456789abcdef"
+    supported = (
+        "Estonia has an official pet-food labelling framework "
+        f"[evidence:{claim_id}]"
+    )
+    unsupported = (
+        "* **Treats & Functional Snacks:** Treats & Functional Snacks comprises "
+        "~3% of volume"
+    )
+    markdown = "\n".join(
+        [
+            "# Market context",
+            "",
+            supported,
+            unsupported,
+            "",
+            "# Next steps",
+            "",
+            "- Validate the proposed segment before making a product decision.",
+        ]
+    )
+
+    repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
+        markdown,
+        {claim_id: "Estonia has an official pet-food labelling framework"},
+        artifact_type="product_prd",
+        immutable_gap_labels=[],
+    )
+
+    assert unsupported not in repaired
+    assert supported in repaired
+    assert "# Market context" in repaired
+    assert "# Next steps" in repaired
 
 
 def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts() -> None:

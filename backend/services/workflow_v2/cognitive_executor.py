@@ -1078,7 +1078,9 @@ ALLOWED_CLAIMS or removed with the unsupported assertion; never invent support. 
 product, operational, budget, date and metric choices as explicit proposals or validation
 targets, but do not mix them in the same sentence or table cell as an evidence marker. Remove
 invented persona names, ages, neighbourhoods and demographic facts; retain neutral user
-archetypes and jobs. Cover every required section as a Markdown heading.
+archetypes and jobs. Never remove a valid evidence marker while retaining the factual assertion
+it supported. If validator feedback names a remaining unsupported assertion, delete that entire
+Markdown line on the next retry. Cover every required section as a Markdown heading.
 When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
 until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
 equivalent adjective forms even in a disclaimer, heading or status label.
@@ -2115,6 +2117,51 @@ def _deterministic_evidence_integrity_defects(
     return utf16_ordinal_sorted(defects)[:40]
 
 
+def _prune_final_unsupported_evidence_lines(
+    markdown: str,
+    allowed_claim_texts: dict[str, str],
+    *,
+    artifact_type: str | None,
+    immutable_gap_labels: Sequence[str],
+) -> str:
+    """Conservatively delete final-output lines named by the evidence validator.
+
+    A model repair may correctly remove a mismatched marker but accidentally retain the
+    unsupported factual line. Deleting that whole line is safer than trying to rewrite or
+    recite it, and the normal synthesis validator still enforces headings, substance,
+    citations, immutable gaps, and practicality after this bounded pass.
+    """
+
+    defects = _deterministic_evidence_integrity_defects(
+        markdown,
+        allowed_claim_texts,
+        artifact_type=artifact_type,
+        immutable_gap_labels=immutable_gap_labels,
+    )
+    excerpts = [
+        excerpt
+        for defect in defects
+        for _, separator, excerpt in [defect.partition(": ")]
+        if separator and excerpt
+    ]
+    if not excerpts:
+        return markdown
+
+    retained: list[str] = []
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if re.match(r"^#{1,6}\s+", stripped):
+            retained.append(line)
+            continue
+        normalized = re.sub(
+            r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)
+        ).strip()
+        if any(excerpt in normalized for excerpt in excerpts):
+            continue
+        retained.append(line)
+    return "\n".join(retained)
+
+
 def _deterministic_quality_defects(
     markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
 ) -> tuple[list[str], list[str]]:
@@ -2446,6 +2493,16 @@ class PydanticAISynthesisWriter:
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
+            output = output.model_copy(
+                update={
+                    "markdown": _prune_final_unsupported_evidence_lines(
+                        output.markdown,
+                        ctx.deps.allowed_claim_texts,
+                        artifact_type=ctx.deps.artifact_type,
+                        immutable_gap_labels=ctx.deps.required_gap_labels,
+                    )
+                }
+            )
             try:
                 _validate_synthesis(ctx.deps, output)
             except ValueError as error:
