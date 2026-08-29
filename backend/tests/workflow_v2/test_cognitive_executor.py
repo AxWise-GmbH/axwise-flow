@@ -2070,6 +2070,178 @@ def test_final_pruning_reaches_fixed_point_beyond_validator_page() -> None:
     assert "Unsupported factual precision" in remaining[0]
 
 
+def test_structural_guard_rejects_priority_acceptance_traceability_drift() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "## Prioritized requirements\n\n"
+        "| ID | Priority | Requirement |\n"
+        "| --- | --- | --- |\n"
+        "| REQ-PLAN-01 | P0 | First bounded requirement |\n\n"
+        "## Acceptance criteria\n\n"
+        "### REQ-PLAN-01\n\nGiven a plan, When reviewed, Then retain it.\n\n"
+        "### REQ-PLAN-02\n\nGiven a gap, When reviewed, Then resolve it."
+    )
+
+    defects = cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    )
+
+    assert len(defects) == 1
+    assert "req-plan-02" in defects[0]
+    assert "missing from prioritized requirements" in defects[0]
+
+
+def test_structural_guard_allows_prioritized_requirements_without_individual_criteria() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "## Prioritized requirements\n\n"
+        "| ID | Priority | Requirement |\n"
+        "| --- | --- | --- |\n"
+        "| req-plan-01 | P0 | First bounded requirement |\n"
+        "| req-plan-02 | P1 | Second bounded requirement |\n\n"
+        "## Acceptance criteria\n\n"
+        "### req-plan-01\n\nGiven a plan, When reviewed, Then retain it."
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == []
+
+
+def test_structural_guard_rejects_a_jtbd_sequence_starting_at_three() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "## Users, jobs, and pains\n\n"
+        "**Proposed Jobs-to-be-Done (JTBD):**\n"
+        "3. Complete the final review.\n\n"
+        "**Pains:**\n- The review is currently difficult."
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == ["A numbered JTBD sequence has a missing leading or interior ordinal."]
+
+
+def test_structural_guard_rejects_a_roadmap_with_only_phase_two() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "## Next steps\n\n"
+        "| Execution Phase | Action |\n"
+        "| --- | --- |\n"
+        "| Phase 2 | Run the bounded validation. |"
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == ["An explicit Phase sequence has a missing leading or interior ordinal."]
+
+
+def test_structural_guard_ignores_phase_references_outside_roadmap_sections() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "## Context\n\nA dependency supplied during Phase 2 remains available.\n\n"
+        "## Next steps\n\n- Verify the remaining bounded decision."
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == []
+
+
+def test_structural_guard_ignores_markdown_examples_inside_fences() -> None:
+    markdown = (
+        "# Software PRD\n\n"
+        "```markdown\n"
+        "## Prioritized requirements\n\nreq-fake-priority\n\n"
+        "## Acceptance criteria\n\nreq-fake-acceptance\n\n"
+        "## Next steps\n\n- Phase 3: This is example syntax only.\n"
+        "```\n\n"
+        "## Prioritized requirements\n\n"
+        "| ID | Priority | Requirement |\n"
+        "| --- | --- | --- |\n"
+        "| req-real-01 | P0 | Build the bounded feature. |\n\n"
+        "## Acceptance criteria\n\n"
+        "Given req-real-01, When reviewed, Then retain it.\n\n"
+        "## Next steps\n\n- Phase 1: Build the bounded feature."
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == []
+
+
+def test_structural_guard_does_not_treat_jtbd_prose_as_a_sequence_label() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "We used JTBD analysis to frame the user problem.\n\n"
+        "## Risks\n\n"
+        "2. Supplier concentration needs mitigation."
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == []
+
+
+def test_structural_guard_does_not_treat_a_phase_reference_as_a_phase_label() -> None:
+    markdown = (
+        "# Planning artifact\n\n"
+        "## Next steps\n\n"
+        "- Use results from Phase 2 before release."
+    )
+
+    assert cognitive_executor_module._deterministic_structural_integrity_defects(
+        markdown
+    ) == []
+
+
+@pytest.mark.parametrize(
+    "markdown",
+    [
+        (
+            "# Planning artifact\n\n"
+            "## Prioritized requirements\n\n"
+            "| ID | Priority | Requirement |\n"
+            "| --- | --- | --- |\n"
+            "| REQ-PLAN-01 | P0 | Keep this bounded requirement. |\n"
+            "| REQ-PLAN-02 | P0 | The product is certified safe. |\n\n"
+            "## Acceptance criteria\n\n"
+            "### REQ-PLAN-01\n\nGiven input, When checked, Then retain it.\n\n"
+            "### REQ-PLAN-02\n\nGiven input, When checked, Then verify safety."
+        ),
+        (
+            "# Planning artifact\n\n"
+            "## Users, jobs, and pains\n\n"
+            "**Proposed Jobs-to-be-Done (JTBD):**\n"
+            "1. The product is certified safe.\n"
+            "2. Validate the proposed workflow."
+        ),
+        (
+            "# Planning artifact\n\n"
+            "## Next steps\n\n"
+            "| Execution Phase | Action |\n"
+            "| --- | --- |\n"
+            "| Phase 1 | The product is certified safe. |\n"
+            "| Phase 2 | Run the bounded validation. |"
+        ),
+    ],
+)
+def test_final_pruning_does_not_publish_structurally_damaged_markdown(
+    markdown: str,
+) -> None:
+    repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
+        markdown,
+        {},
+        artifact_type="product_prd",
+        immutable_gap_labels=[],
+    )
+
+    assert repaired == markdown
+    assert _deterministic_evidence_integrity_defects(
+        repaired, {}, artifact_type="product_prd"
+    )
+
+
 def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
     label = "Product-specific safety clearance remains unresolved."
     context = SynthesisContext(
@@ -2806,6 +2978,170 @@ def test_every_claim_source_must_match_an_accepted_source_class() -> None:
     assert claim is None
 
 
+def _generic_statutory_requirement() -> EvidenceRequirement:
+    return EvidenceRequirement(
+        id="legal-control",
+        claimType="applicable_law",
+        description=(
+            "Operational controls established by Regulation (EC) No 1069/2009."
+        ),
+        criticality="blocking",
+        evidenceRole="grounded_claim",
+        verificationBasis="grounded_claims",
+        appliesWhen="The deliverable plans regulated operations.",
+        acceptedSourceTypes=["primary_law"],
+        allowedSourceHosts=[],
+    )
+
+
+def test_grounded_claim_rejects_a_different_legal_instrument_and_appendix_mapping() -> None:
+    text = "Regulation (EC) No 1069/2009 establishes operational controls."
+    wrong_url = (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R0594"
+    )
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    sources = [
+        {
+            "title": "Official legal text",
+            "url": wrong_url,
+            "retrieved_at": "2026-08-29T00:00:00Z",
+        }
+    ]
+
+    claim = _claim_from_grounding(
+        {"text": text, "source_urls": [wrong_url]},
+        {wrong_url: sources[0]},
+        {"primary_law"},
+        set(),
+        response_hash,
+        text,
+        requirement=_generic_statutory_requirement(),
+        provider="gemini_google_search",
+    )
+    retained, catalogue = cognitive_executor_module._claims_with_source_catalogue(
+        [claim] if claim is not None else [], sources
+    )
+
+    assert claim is None
+    assert retained == []
+    assert catalogue == []
+
+
+def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evidence() -> None:
+    text = (
+        "Article 29 of Regulation (EC) No 1069/2009 requires documented controls."
+    )
+    url = (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+        "?uri=CELEX:02009R1069-20191214"
+    )
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    source = {"title": "Official consolidated legal text", "url": url}
+    arguments = (
+        {"text": text, "source_urls": [url]},
+        {url: source},
+        {"primary_law"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    google = _claim_from_grounding(
+        *arguments,
+        requirement=_generic_statutory_requirement(),
+        provider="gemini_google_search",
+    )
+    direct = _claim_from_grounding(
+        *arguments,
+        requirement=_generic_statutory_requirement(),
+        provider="searxng_direct_fetch",
+    )
+
+    assert google is None
+    assert direct is not None
+    assert direct.segment_start == 0
+    assert direct.segment_end == len(text.encode("utf-8"))
+    assert direct.provider_response_hash == response_hash
+
+
+@pytest.mark.parametrize(
+    "provision",
+    ["Art. 15", "Article 15", "Annex II", "Paragraph 3", "Section 4", "Chapter II", "Recital 12", "Point 6", "§ 5"],
+)
+def test_every_statutory_provision_form_requires_a_direct_exact_span(
+    provision: str,
+) -> None:
+    text = f"{provision} of Regulation (EC) No 1069/2009 establishes a control."
+    url = (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+        "?uri=CELEX:02009R1069-20191214"
+    )
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    arguments = (
+        {"text": text, "source_urls": [url]},
+        {url: {"title": "Official consolidated legal text", "url": url}},
+        {"primary_law"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    assert _claim_from_grounding(
+        *arguments,
+        requirement=_generic_statutory_requirement(),
+        provider="gemini_google_search",
+    ) is None
+    assert _claim_from_grounding(
+        *arguments,
+        requirement=_generic_statutory_requirement(),
+        provider="searxng_direct_fetch",
+    ) is not None
+
+
+def test_grounded_claim_rejects_an_explicit_enumeration_count_mismatch() -> None:
+    url = "https://example.test/framework"
+    source = {"title": "Framework", "url": url}
+
+    def admitted(text: str):
+        return _claim_from_grounding(
+            {"text": text, "source_urls": [url]},
+            {url: source},
+            {"grounded_web"},
+            set(),
+            hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            text,
+            provider="gemini_google_search",
+        )
+
+    assert admitted(
+        "The framework defines 3 controls: identify, monitor, correct, and verify."
+    ) is None
+    assert admitted(
+        "The framework defines 4 controls: identify, monitor, correct, and verify."
+    ) is not None
+    assert admitted(
+        "Article 29 controls: identify, monitor, and correct."
+    ) is not None
+    assert admitted(
+        "Regulation 29 requirements: identify, monitor, and correct."
+    ) is not None
+    assert admitted(
+        "The process requires action within 4 days: identify, notify, and document."
+    ) is not None
+    assert admitted(
+        "The package includes a 4 kg option table: small, medium, and large."
+    ) is not None
+    assert admitted(
+        "The regulation includes Article 4 requirements: identify, monitor, and correct."
+    ) is not None
+    assert admitted(
+        "The regulation lists Section 4 controls: identify, monitor, and correct."
+    ) is not None
+    assert admitted(
+        "The regulation defines Annex 4 requirements: identify, monitor, and correct."
+    ) is not None
+
+
 @pytest.mark.parametrize(
     ("criticality", "claim_type"),
     [("blocking", "applicable_law"), ("nonblocking", "market_statistic")],
@@ -2877,6 +3213,7 @@ async def test_successful_zero_evidence_acquisition_delivers_planning_gap() -> N
         "retry_exhausted",
         "unavailable",
         "response_processing_error",
+        "same_operation_locator_refetch",
     ],
 )
 @pytest.mark.asyncio
@@ -5192,6 +5529,374 @@ def test_claim_support_guard_preserves_trailing_unresolved_scope_over_lists() ->
         ),
     ):
         assert _deterministic_evidence_integrity_defects(honest_gap, {}) == []
+
+
+def test_unresolved_requirement_cannot_be_recast_as_an_authority_fact() -> None:
+    unresolved = [
+        (
+            "National filing, official-language packaging, and National Administration "
+            "Board (NAB) notification procedures."
+        )
+    ]
+    for assertion in (
+        "## National packaging\n\nPackaging must use official-language terminology.",
+        "## Authority process\n\nNAB filing is mandatory before distribution.",
+    ):
+        defects = _deterministic_evidence_integrity_defects(
+            assertion,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=unresolved,
+        )
+        assert defects
+        assert "unresolved evidence requirement" in defects[0].casefold()
+
+
+def test_unresolved_requirement_allows_provisional_and_verification_language() -> None:
+    unresolved = [
+        (
+            "National filing, official-language packaging, and National Administration "
+            "Board (NAB) notification procedures."
+        )
+    ]
+    for honest_planning_text in (
+        (
+            "## Draft national packaging\n\nDraft packaging terminology for National "
+            "Administration Board review; official wording remains unverified."
+        ),
+        (
+            "## Verification actions\n\nVerification action: confirm the national "
+            "filing procedure with NAB."
+        ),
+    ):
+        assert _deterministic_evidence_integrity_defects(
+            honest_planning_text,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=unresolved,
+        ) == []
+
+
+def test_unresolved_requirement_does_not_inherit_a_broad_heading_into_every_row() -> None:
+    unresolved = [
+        (
+            "National filing, official-language packaging, and National Administration "
+            "Board (NAB) notification procedures."
+        )
+    ]
+    useful_planning = (
+        "## Product packaging options\n\n"
+        "| Size | Candidate format |\n"
+        "| --- | --- |\n"
+        "| 1.5 kg | Fresh-lock pouch option |\n\n"
+        "Target success criteria remain subject to validation."
+    )
+
+    assert _deterministic_evidence_integrity_defects(
+        useful_planning,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=unresolved,
+    ) == []
+
+
+def test_unresolved_requirement_allows_exact_gap_labels_and_planning_objectives() -> None:
+    description = (
+        "Estonian national feed compliance requirements, official Estonian-language "
+        "packaging mandates, and Agriculture and Food Board (PTA) notification procedures."
+    )
+    honest_planning = (
+        "## Product objective\n\n"
+        "The desired outcome of this PRD is to establish a statutory packaging "
+        "architecture for distribution in Estonia.\n\n"
+        "### Open Evidence Gaps Summary\n\n"
+        f"{description}"
+    )
+
+    assert _deterministic_evidence_integrity_defects(
+        honest_planning,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[description],
+    ) == []
+
+
+def test_gap_label_cannot_hide_a_second_positive_authority_assertion() -> None:
+    description = "Agriculture and Food Board (PTA) notification procedures."
+    dishonest = (
+        "## Evidence gaps\n\n"
+        "Evidence gap: PTA notification procedures remain unresolved, but PTA "
+        "notification is mandatory before distribution."
+    )
+
+    defects = _deterministic_evidence_integrity_defects(
+        dishonest,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[description],
+    )
+
+    assert any("unresolved evidence requirement" in defect.casefold() for defect in defects)
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        "## Target market\n\nPTA notification is mandatory.",
+        "## Packaging option\n\nPTA notification is mandatory for Option A.",
+        "## Authority option\n\nOption A: PTA notification is mandatory before distribution.",
+        "## Authority candidate\n\nCandidate: PTA notification is mandatory before distribution.",
+        "## Authority proposal\n\nProposal: PTA notification is mandatory before distribution.",
+        "## Authority target\n\nTarget specification: PTA notification is mandatory before distribution.",
+        "## Authority review\n\nReview confirms PTA notification is mandatory.",
+        "## Authority audit\n\nAudit confirms PTA notification is mandatory.",
+        "## Authority test\n\nTest confirms PTA notification is mandatory.",
+        (
+            "## Label rules\n\nMandatory statutory packaging particulars include an "
+            "Estonian feed designation."
+        ),
+    ],
+)
+def test_target_or_option_context_cannot_make_an_authority_assertion_provisional(
+    unsafe: str,
+) -> None:
+    defects = _deterministic_evidence_integrity_defects(
+        unsafe,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[
+            "Estonian feed packaging mandates and Agriculture and Food Board (PTA) "
+            "notification procedures."
+        ],
+    )
+
+    assert any("unresolved evidence requirement" in defect.casefold() for defect in defects)
+
+
+def test_labeled_product_option_may_contain_a_verification_action_not_a_legal_fact() -> None:
+    markdown = "## Authority option\n\nOption A: submit the draft to PTA for verification."
+
+    assert _deterministic_evidence_integrity_defects(
+        markdown,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+    ) == []
+
+
+def test_experiment_hypothesis_and_target_columns_remain_planning_context() -> None:
+    markdown = (
+        "## Validation experiments\n\n"
+        "| Experiment | Hypothesis | Target |\n"
+        "| --- | --- | --- |\n"
+        "| Label audit | Packaging artwork satisfies all statutory Estonian feed "
+        "requirements. | 100% pass score; PTA pre-audit sign-off. |"
+    )
+
+    assert _deterministic_evidence_integrity_defects(
+        markdown,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[
+            "Official Estonian feed packaging requirements and PTA filing procedures."
+        ],
+    ) == []
+
+
+def test_task_validation_rejects_unresolved_authority_before_persistence() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[
+            "National Administration Board (NAB) notification procedures."
+        ],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    coverage = [
+        {
+            "requirement_id": "req-plan-01",
+            "status": "satisfied",
+            "note": "The planning packet addresses the accepted requirement.",
+        }
+    ]
+    unsafe = TaskDraft(
+        title="Unsafe specialist packet",
+        markdown=(
+            "# Authority process\n\nNAB notification is mandatory.\n\n"
+            "## Evidence gaps\n\nThe national procedure remains unresolved."
+        ),
+        requirement_coverage=coverage,
+        conclusions=["A planning conclusion was prepared."],
+    )
+    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+        cognitive_executor_module._validate_task_draft(context, unsafe)
+
+    provisional = unsafe.model_copy(
+        update={
+            "title": "Provisional specialist packet",
+            "markdown": (
+                "# Draft authority process\n\nConfirm the NAB notification procedure "
+                "before relying on it.\n\n## Evidence gaps\n\nThe national procedure "
+                "remains unresolved."
+            ),
+        }
+    )
+    cognitive_executor_module._validate_task_draft(context, provisional)
+
+    unrelated_id = "2" * 64
+    marked_context = context.model_copy(
+        update={
+            "allowed_claim_ids": [unrelated_id],
+            "allowed_claim_texts": {
+                unrelated_id: "Regional hygiene guidance describes general controls."
+            },
+        }
+    )
+    marked_unsafe = unsafe.model_copy(
+        update={
+            "markdown": (
+                "# Authority process\n\nNAB notification is mandatory "
+                f"[evidence:{unrelated_id}].\n\n## Evidence gaps\n\n"
+                "The national procedure remains unresolved."
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+        cognitive_executor_module._validate_task_draft(marked_context, marked_unsafe)
+
+    adversarial_context = context.model_copy(
+        update={
+            "unresolved_evidence_requirements": [
+                "Agriculture and Food Board (PTA) notification filing procedures and "
+                "official Estonian feed packaging requirements."
+            ]
+        }
+    )
+    for assertion in (
+        "PTA notification is mandatory although unresolved.",
+        "Despite being unresolved, PTA notification is mandatory.",
+        "PTA notification is mandatory even though it is unresolved.",
+        "PTA notification is mandatory, pending verification.",
+        "PTA notification remains unresolved and is mandatory.",
+        "The PTA notification filing cleared review.",
+        "PTA notification approval passed.",
+        "The packaging satisfies statutory Estonian feed requirements.",
+        "Packaging meets official Estonian-language requirements.",
+    ):
+        adversarial = unsafe.model_copy(
+            update={
+                "markdown": (
+                    f"# Authority process\n\n{assertion}\n\n"
+                    "## Evidence gaps\n\nPTA details remain unresolved."
+                )
+            }
+        )
+        with pytest.raises(
+            ValueError, match="task artifact contradicts unresolved evidence"
+        ):
+            cognitive_executor_module._validate_task_draft(
+                adversarial_context, adversarial
+            )
+
+
+@pytest.mark.parametrize(
+    "claim_text",
+    [
+        "PTA does not require prior notification filing.",
+        "No prior PTA notification filing is required.",
+        "PTA notification filing is optional.",
+        "PTA notification filing is exempt from prior approval.",
+    ],
+)
+def test_unresolved_authority_citation_cannot_reverse_claim_polarity(
+    claim_text: str,
+) -> None:
+    claim_id = "3" * 64
+    assertion = f"PTA requires prior notification filing [evidence:{claim_id}]."
+    defects = _deterministic_evidence_integrity_defects(
+        assertion,
+        {claim_id: claim_text},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+    )
+
+    assert any("opposite polarity" in defect for defect in defects)
+
+
+@pytest.mark.parametrize(
+    "claim_text",
+    [
+        "No later than 30 days after registration, PTA notification filing is mandatory.",
+        "No fee applies and PTA notification filing is mandatory.",
+    ],
+)
+def test_unrelated_no_phrase_does_not_reverse_positive_authority_support(
+    claim_text: str,
+) -> None:
+    claim_id = "4" * 64
+    assertion = f"PTA notification filing is mandatory [evidence:{claim_id}]."
+
+    assert _deterministic_evidence_integrity_defects(
+        assertion,
+        {claim_id: claim_text},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+    ) == []
+
+
+def test_unresolved_requirement_marker_must_semantically_support_the_assertion() -> None:
+    unresolved = [
+        "National Administration Board (NAB) notification filing procedures."
+    ]
+    supported_id = "1" * 64
+    unrelated_id = "2" * 64
+    assertion = "NAB accepts notification filings through its portal"
+    supported = (
+        "## Authority process\n\n"
+        f"{assertion} [evidence:{supported_id}]."
+    )
+    unrelated = (
+        "## Authority process\n\nNAB notification filing is mandatory "
+        f"[evidence:{unrelated_id}]."
+    )
+
+    assert _deterministic_evidence_integrity_defects(
+        supported,
+        {supported_id: assertion + "."},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=unresolved,
+    ) == []
+    assert _deterministic_evidence_integrity_defects(
+        unrelated,
+        {unrelated_id: "Regional hygiene guidance describes general controls."},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=unresolved,
+    )
+
+
+def test_only_missing_or_conflicting_findings_create_unresolved_requirements() -> None:
+    scope = {
+        "evidenceRequirements": [
+            {"id": "missing", "description": "Missing authority procedure."},
+            {"id": "verified", "description": "Verified market statistic."},
+        ]
+    }
+    research = {
+        "assumptions": ["A planning assumption that must not become an authority rule."],
+        "findings": [
+            {"requirementId": "missing", "status": "missing"},
+            {"requirementId": "verified", "status": "verified"},
+        ],
+    }
+
+    assert cognitive_executor_module._unresolved_evidence_requirement_descriptions(
+        research, scope
+    ) == ["Missing authority procedure."]
 
 
 def test_claim_support_guard_handles_latex_units_formulas_and_proposed_sections() -> None:

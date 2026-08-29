@@ -1473,8 +1473,28 @@ class ResilientResearchRunner:
             await _await_cancellation_safe(self._leave_search())
 
     async def _search_active(self, query: str) -> dict[str, Any]:
-        primary = await self._search_primary(query)
-        if primary.get("search_performed") is True:
+        context = _fallback_context(query)
+        locator_refetch = bool(context and context.reusable_candidates)
+        if locator_refetch:
+            # A targeted repair pass carries only operation-local locators that the
+            # initial provider response already discovered. Do not ask Gemini to
+            # restate them: refetch immutable publisher bytes and bind exact spans.
+            primary = {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "route": "gemini_google_search",
+                    "status": "same_operation_locator_refetch",
+                    "elapsed_ms": 0,
+                    "call_count": 0,
+                    "retry_count": 0,
+                },
+            }
+        else:
+            primary = await self._search_primary(query)
+        if primary.get("search_performed") is True and not locator_refetch:
             return primary
         raw_primary_diagnostics = primary.get("runtime_diagnostics")
         primary_diagnostics = (
@@ -1483,7 +1503,10 @@ class ResilientResearchRunner:
             else {}
         )
         primary_status = str(primary_diagnostics.get("status") or "")
-        if primary_status not in _FALLBACK_PRIMARY_STATUSES:
+        if (
+            not locator_refetch
+            and primary_status not in _FALLBACK_PRIMARY_STATUSES
+        ):
             return primary
         logger.info(
             "Workflow-v2 research fallback started; primary_status=%s",
@@ -1504,7 +1527,7 @@ class ResilientResearchRunner:
             asyncio.get_running_loop().time() + self.fallback_phase_seconds
         )
 
-        context = _fallback_context(query)
+        context = context or _fallback_context(query)
         if context is None:
             return finish_fallback(
                 _primary_with_failed_fallback(

@@ -163,6 +163,74 @@ async def test_primary_success_passes_through_by_identity_without_fallback() -> 
 
 
 @pytest.mark.asyncio
+async def test_same_operation_repair_locator_is_refetched_without_reasking_primary() -> None:
+    url = "https://pta.agri.ee/pet-food-rules"
+    exact = "Feed business operators must notify the competent authority."
+    primary = FakePrimary(
+        {
+            "search_performed": True,
+            "text": "A generated restatement that must remain locator-only.",
+            "claims": [],
+            "sources": [{"url": url, "title": "PTA rules"}],
+        }
+    )
+    searx = FakeSearx(discovery(status="empty"))
+    fetched: list[str] = []
+
+    async def fetch(candidate_url: str) -> dict:
+        fetched.append(candidate_url)
+        return document(candidate_url, f"Introduction. {exact} End.")
+
+    runner = ResilientResearchRunner(
+        primary,
+        searxng=searx,
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    )
+    result = await runner.search(
+        server_query(
+            allowed_hosts=["pta.agri.ee"],
+            fallback_candidates=[{"url": url, "title": "PTA rules"}],
+        )
+    )
+
+    assert primary.queries == []
+    assert fetched == [url]
+    assert result["provider"] == "searxng_direct_fetch"
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["primary_status"] == (
+        "same_operation_locator_refetch"
+    )
+
+
+@pytest.mark.asyncio
+async def test_failed_same_operation_locator_refetch_retains_bounded_status() -> None:
+    url = "https://pta.agri.ee/pet-food-rules"
+    primary = FakePrimary({"search_performed": True})
+    searx = FakeSearx(discovery(status="empty"))
+
+    async def failed_fetch(_url: str) -> dict:
+        raise OSError("publisher temporarily unavailable")
+
+    runner = ResilientResearchRunner(primary, searxng=searx, fetcher=failed_fetch)
+    result = await runner.search(
+        server_query(
+            allowed_hosts=["pta.agri.ee"],
+            fallback_candidates=[{"url": url, "title": "PTA rules"}],
+        )
+    )
+
+    assert primary.queries == []
+    assert result["search_performed"] is False
+    assert result["runtime_diagnostics"]["status"] == (
+        "same_operation_locator_refetch"
+    )
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "direct_fetch_error"
+    )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("status", ["configuration_error", "non_retryable_error"])
 async def test_nonretryable_primary_failure_never_invokes_fallback(status: str) -> None:
     failed = transient(status)

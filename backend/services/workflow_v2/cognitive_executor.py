@@ -10,7 +10,7 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Generic, Literal, Protocol, Sequence, TypeVar
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -87,6 +87,7 @@ _TRANSIENT_EVIDENCE_ACQUISITION_STATUSES = frozenset(
         "retry_exhausted",
         "unavailable",
         "response_processing_error",
+        "same_operation_locator_refetch",
     }
 )
 _PRD_BASELINE_SECTIONS = frozenset(
@@ -159,6 +160,38 @@ _EXPLICIT_EU_REGULATION_NUMBER_YEAR = re.compile(
 _EXPLICIT_EU_REGULATION_YEAR_NUMBER = re.compile(
     r"\bRegulation\s*\(EU\)\s*"
     r"(?P<year>(?:19|20)\d{2})\s*/\s*(?P<number>[1-9]\d{0,5})\b",
+    re.IGNORECASE,
+)
+_EU_REGULATION_CELEX_URL = re.compile(
+    r"(?:celex:)?[03](?P<year>(?:19|20)\d{2})r0*(?P<number>[1-9]\d{0,5})\b",
+    re.IGNORECASE,
+)
+_EU_REGULATION_CONSLEG_URL = re.compile(
+    r"consleg:(?P<year>(?:19|20)\d{2})r0*(?P<number>[1-9]\d{0,5})\b",
+    re.IGNORECASE,
+)
+_EU_REGULATION_ELI_URL = re.compile(
+    r"/eli/(?:reg|reg_impl|reg_del)/(?P<year>(?:19|20)\d{2})/"
+    r"0*(?P<number>[1-9]\d{0,5})(?:[/?#]|$)",
+    re.IGNORECASE,
+)
+_STATUTORY_PROVISION_REFERENCE = re.compile(
+    r"\b(?:art(?:icle)?s?\.?|annex(?:es)?|paragraphs?|sections?|chapters?|"
+    r"recitals?|points?)\s+"
+    r"(?:[IVXLCDM]+|\d+[a-z]?(?:\([a-z0-9ivxlcdm]+\))*)\b|§\s*\d+",
+    re.IGNORECASE,
+)
+_EXPLICIT_ENUMERATION = re.compile(
+    r"\b(?:all|exactly|defines?|includes?|requires?|comprises?|lists?|specifies?|"
+    r"sets?\s+out|consists?\s+of|inclusions?\s+of)\b"
+    r"[^:;\n]{0,100}?\b(?P<count>[2-9]|[1-9]\d)\s+"
+    r"(?P<label>[^:;\n]{1,120}):\s*"
+    r"(?P<items>[^.;\n]{3,1000})",
+    re.IGNORECASE,
+)
+_NON_ENUMERATION_COUNT_UNIT = re.compile(
+    r"^\s*(?:%|cm|days?|eur|g|grams?|hours?|kg|kilograms?|km|lit(?:er|re)s?|m|"
+    r"meters?|mg|milligrams?|minutes?|ml|months?|seconds?|usd|weeks?|years?)\b",
     re.IGNORECASE,
 )
 _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES = frozenset(
@@ -348,6 +381,7 @@ class SynthesisContext(_DraftModel):
     allowed_claim_ids: list[str]
     allowed_claim_texts: dict[str, str] = Field(default_factory=dict)
     required_gap_labels: list[str]
+    unresolved_evidence_requirements: list[str] = Field(default_factory=list)
     acceptance_requirement_ids: list[str] = Field(default_factory=list)
     repair_pass: int = Field(default=0, ge=0, le=1)
     quality_gate_required: bool = False
@@ -816,6 +850,66 @@ def _requirement_has_statutory_force(requirement: EvidenceRequirement) -> bool:
     )
 
 
+def _explicit_eu_regulation_identities(value: str) -> set[tuple[str, str]]:
+    """Return explicit EU regulation identities as canonical ``(year, number)`` pairs."""
+
+    return {
+        (match.group("year"), str(int(match.group("number"))))
+        for pattern in (
+            _EXPLICIT_EU_REGULATION_NUMBER_YEAR,
+            _EXPLICIT_EU_REGULATION_YEAR_NUMBER,
+        )
+        for match in pattern.finditer(value)
+    }
+
+
+def _explicit_eu_regulation_url_identities(url: str) -> set[tuple[str, str]]:
+    """Read only positively encoded EU regulation identities from publisher URLs."""
+
+    decoded = unquote(url)
+    return {
+        (match.group("year"), str(int(match.group("number"))))
+        for pattern in (
+            _EU_REGULATION_CELEX_URL,
+            _EU_REGULATION_CONSLEG_URL,
+            _EU_REGULATION_ELI_URL,
+        )
+        for match in pattern.finditer(decoded)
+    }
+
+
+def _has_explicit_enumeration_mismatch(value: str) -> bool:
+    """Reject a bounded explicit count only when its own comma-list contradicts it."""
+
+    without_markers = _RAW_EVIDENCE_MARKER.sub("", value)
+    for match in _EXPLICIT_ENUMERATION.finditer(without_markers):
+        count_prefix = without_markers[match.start() : match.start("count")]
+        if re.search(
+            r"\b(?:art(?:icle)?s?\.?|annex(?:es)?|paragraphs?|sections?|chapters?|"
+            r"recitals?|points?)\s*$",
+            count_prefix,
+            re.IGNORECASE,
+        ):
+            continue
+        if _NON_ENUMERATION_COUNT_UNIT.search(match.group("label")) is not None:
+            continue
+        raw_items = match.group("items")
+        if "," not in raw_items:
+            continue
+        pieces = [piece.strip(" *_`\t\r\n") for piece in raw_items.split(",")]
+        pieces = [piece for piece in pieces if piece]
+        if not pieces:
+            continue
+        final = re.split(r"\s+(?:and|or)\s+", pieces[-1], maxsplit=1, flags=re.I)
+        pieces = [*pieces[:-1], *(piece.strip() for piece in final if piece.strip())]
+        # This check is deliberately limited to clear, compact enumerations. It does
+        # not infer counts from prose, ranges, semicolon clauses, or implicit lists.
+        if len(pieces) >= 3 and all(len(piece.split()) <= 12 for piece in pieces):
+            if int(match.group("count")) != len(pieces):
+                return True
+    return False
+
+
 def _usage_from_result(result: Any) -> tuple[int, int]:
     usage_member = getattr(result, "usage", None)
     usage_value = usage_member() if callable(usage_member) else usage_member
@@ -1157,10 +1251,13 @@ product, operational, budget, date and metric choices as explicit proposals or v
 targets, but do not mix them in the same sentence or table cell as an evidence marker. Remove
 invented persona names, ages, neighbourhoods and demographic facts; retain neutral user
 archetypes and jobs. Never remove a valid evidence marker while retaining the factual assertion
-it supported. If validator feedback names a remaining unsupported assertion, delete that entire
-Markdown line on the next retry. Use ordinary Markdown tables, never ASCII-art tables inside
-code fences. Keep level-two section headings unique, and never leave a heading or subsection
-without substantive content. Cover every required section as a Markdown heading. Treat product
+it supported. Preserve matching prioritized-requirement and acceptance-criterion IDs and every
+leading/interior item in explicit JTBD and Phase sequences; replace an unsafe structured row
+coherently rather than leaving a hole. If validator feedback names a remaining unsupported
+assertion, delete that entire Markdown line on the next retry. Use ordinary Markdown tables,
+never ASCII-art tables inside code fences. Keep level-two section headings unique, and never
+leave a heading or subsection without substantive content. Cover every required section as a
+Markdown heading. Treat product
 or market success as a hypothesis unless an exact immutable claim supports it.
 When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
 until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
@@ -1528,6 +1625,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             context.allowed_claim_texts,
             artifact_type=context.artifact_type,
             immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
         )
         substantive, practicality = _deterministic_quality_defects(
             draft.markdown,
@@ -1706,6 +1804,26 @@ def _validate_task_draft(context: SynthesisContext, draft: TaskDraft) -> None:
         context,
         SynthesisDraft(title=draft.title, markdown=draft.markdown),
     )
+    evidence_integrity = _deterministic_evidence_integrity_defects(
+        draft.markdown,
+        context.allowed_claim_texts,
+        artifact_type=context.artifact_type,
+        immutable_gap_labels=context.required_gap_labels,
+        unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+    )
+    unresolved_assertions = [
+        defect
+        for defect in evidence_integrity
+        if (
+            defect.startswith("An unresolved evidence requirement is asserted as fact")
+            or "unresolved evidence assertion" in defect
+        )
+    ]
+    if unresolved_assertions:
+        raise ValueError(
+            "task artifact contradicts unresolved evidence: "
+            + "; ".join(unresolved_assertions)
+        )
 
 
 _SOURCE_CLASS_PRIORITY = (
@@ -1961,6 +2079,94 @@ _UNRESOLVED_AUTHORITY_QUALIFIER = re.compile(
     r"(?:is|are|does|do|did|can|could|may|must|will|has|have)\s+not|cannot|no[- ]go)\b",
     re.IGNORECASE,
 )
+_UNRESOLVED_REQUIREMENT_ACTION = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:(?:validation|verification)(?:\s+action)?|next[- ]step|action)\s*:\s*)?"
+    r"(?:verify|validate|confirm|obtain|consult|check|compile|determine|request|dispatch|"
+    r"submit|finalize|prepare)\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_LABELED_ACTION = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:draft|provisional|proposal|proposed|"
+    r"candidate|working\s+(?:option|draft)|option\s+[a-z0-9]+|target\s+"
+    r"(?:metric|profile|specification|success(?:\s+criteria)?|threshold|value))"
+    r"\s*[:\-–—]\s*(?:verify|validate|confirm|obtain|consult|check|compile|"
+    r"determine|request|dispatch|submit|finalize|prepare)\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_AUTHORITY_SIGNAL = re.compile(
+    r"\b(?:approved?|approval|audit|authorit(?:y|ies)|certif(?:y|ied|ication)|"
+    r"compl(?:y|ies|iance|iant)|dossier|filing|law|legal|mandat(?:e|es|ory)|"
+    r"notification|official|procedure|register(?:ed)?|registration|regulation|"
+    r"statutory)\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_POSITIVE_AUTHORITY_ASSERTION = re.compile(
+    r"\b(?:accept(?:s|ed)?|appl(?:y|ies)|approv(?:e|ed|es)|authori[sz](?:e|ed|es)|"
+    r"certif(?:y|ied|ies)|clear(?:s|ed)?|complet(?:e|ed|es)|comprises?|consists?|"
+    r"govern(?:s|ed)?|includes?|mandated|mandates?(?=\s+[a-z])|meets?|"
+    r"must(?!\s+be\s+(?:verified|validated|confirmed))|obliges?|pass(?:es|ed)?|"
+    r"permit(?:s|ted)?|prohibits?|register(?:s|ed)?|required?|requires?|satisf(?:y|ies|ied)|"
+    r"shall|submit(?:s|ted)?)\b|\b(?:is|are|was|were|remains?)\s+mandatory\b|"
+    r"\b(?:is|are|was|were)\s+(?:the\s+)?(?:approved|authorized|certified|competent|"
+    r"compliant|official|responsible)\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_REQUIREMENT_CONTEXT = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:"
+    r"(?:given|if|when)\b|[^:\n]{1,80}\b(?:gate|precondition)\s*:\s*(?:given|if|when)\b|"
+    r"[^:\n]{1,80}\btarget\s+(?:profile|criterion|criteria)\s*:|"
+    r"(?:the\s+)?(?:desired\s+outcome|planning\s+objective|product\s+objective)\b)",
+    re.IGNORECASE,
+)
+_EXPLICIT_UNRESOLVED_LABEL = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:evidence\s+)?(?:gap|assumption)\s*:",
+    re.IGNORECASE,
+)
+_EXPLICIT_PLANNING_TABLE_COLUMN = re.compile(
+    r"\b(?:expected\s+outcome|exit\s+criteria|hypothesis|planned\s+outcome|"
+    r"success\s+criteria|target|threshold)\b",
+    re.IGNORECASE,
+)
+_UNRESOLVED_AUTHORITY_MATCH_TOKENS = frozenset(
+    {
+        "approval",
+        "audit",
+        "authority",
+        "certification",
+        "compliance",
+        "dossier",
+        "filing",
+        "legal",
+        "mandate",
+        "mandatory",
+        "notification",
+        "official",
+        "procedure",
+        "registration",
+        "regulation",
+        "required",
+        "statutory",
+    }
+)
+_NON_DISTINCTIVE_REQUIREMENT_ACRONYMS = frozenset(
+    {"GTM", "KPI", "MVP", "OKR", "PRD", "SKU"}
+)
+_EXPLICIT_AUTHORITY_NEGATION = re.compile(
+    r"\b(?:can(?:not|'t)|could(?:\s+not|n't)|did(?:\s+not|n't)|do(?:\s+not|n't)|"
+    r"does(?:\s+not|n't)|has(?:\s+not|n't)|have(?:\s+not|n't)|is(?:\s+not|n't)|"
+    r"may\s+not|must\s+not|shall\s+not|was(?:\s+not|n't)|were(?:\s+not|n't)|"
+    r"will(?:\s+not|n't))\b|\bnot\s+(?:approved|authorized|certified|compliant|"
+    r"mandatory|permitted|required|statutory)\b|"
+    r"\bno\s+(?!later\b|more\b|less\b|fewer\b)"
+    r"(?:(?!(?:and|but|however)\b)[^,.;\n]){1,100}\b(?:is|are)\s+"
+    r"(?:required|mandatory)\b|"
+    r"\bno\s+(?:prior\s+)?(?:approval|authorization|filing|notification|registration)"
+    r"\s+(?:required|mandatory)\b|"
+    r"\b(?:approval|authorization|filing|notification|registration)\b"
+    r"[^.;\n]{0,60}\b(?:exempt|not\s+applicable|optional)\b",
+    re.IGNORECASE,
+)
 _CLAUSE_BREAK = re.compile(
     r"(?<=[.!?;])\s+|,\s*(?:but|however|yet|nevertheless|nonetheless)\s+|"
     r"\s+(?:but|however|yet|nevertheless|nonetheless)\s+",
@@ -2168,12 +2374,92 @@ def _claims_align_with_assertion(
     return len(matched) >= minimum_matches
 
 
+def _materially_matches_unresolved_requirement(
+    assertion: str, unresolved_requirements: Sequence[str]
+) -> bool:
+    """Match a final assertion to an unresolved typed requirement conservatively."""
+
+    assertion_tokens = _support_tokens(assertion)
+    assertion_acronyms = {
+        acronym
+        for acronym in re.findall(r"\b[A-Z][A-Z0-9]{2,}\b", assertion)
+        if acronym not in _NON_DISTINCTIVE_REQUIREMENT_ACRONYMS
+    }
+
+    def materially_same_token(left: str, right: str) -> bool:
+        return left == right or (
+            len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6]
+        )
+
+    def authority_token(value: str) -> bool:
+        return any(
+            materially_same_token(value, authority)
+            for authority in _UNRESOLVED_AUTHORITY_MATCH_TOKENS
+        )
+
+    if _UNRESOLVED_POSITIVE_AUTHORITY_ASSERTION.search(assertion) is None:
+        return False
+
+    for requirement in unresolved_requirements:
+        requirement_tokens = _support_tokens(requirement)
+        matched = {
+            left
+            for left in assertion_tokens
+            if any(materially_same_token(left, right) for right in requirement_tokens)
+        }
+        requirement_acronyms = {
+            acronym
+            for acronym in re.findall(r"\b[A-Z][A-Z0-9]{2,}\b", requirement)
+            if acronym not in _NON_DISTINCTIVE_REQUIREMENT_ACRONYMS
+        }
+        if assertion_acronyms.intersection(requirement_acronyms):
+            return True
+        # A generic overlap such as "Estonia packaging" is normal product-planning
+        # language. It becomes an unresolved authority assertion only when the same
+        # clause also claims a mandate, filing, approval, official rule, or equivalent.
+        if (
+            len(matched) >= 2
+            and any(not authority_token(token) for token in matched)
+            and _UNRESOLVED_AUTHORITY_SIGNAL.search(assertion) is not None
+        ):
+            return True
+    return False
+
+
+def _unresolved_evidence_requirement_descriptions(
+    research_payload: dict[str, Any], scope_payload: dict[str, Any]
+) -> list[str]:
+    """Project missing/conflicting findings onto accepted requirement descriptions."""
+
+    requirements = {
+        item.get("id"): item.get("description")
+        for item in scope_payload.get("evidenceRequirements", [])
+        if isinstance(item, dict)
+        and isinstance(item.get("id"), str)
+        and isinstance(item.get("description"), str)
+    }
+    unresolved_ids = {
+        item.get("requirementId")
+        for item in research_payload.get("findings", [])
+        if isinstance(item, dict)
+        and item.get("status") in {"missing", "conflicting"}
+        and isinstance(item.get("requirementId"), str)
+    }
+    return utf16_ordinal_sorted(
+        {
+            description
+            for requirement_id in unresolved_ids
+            if (description := requirements.get(requirement_id))
+        }
+    )
+
+
 def _split_unresolved_assertions(fragment: str) -> list[str]:
     """Separate an unresolved status clause from an unrelated positive assertion."""
 
     queue = [fragment]
     if re.match(
-        r"^\s*(?:although|pending|though|with)\b",
+        r"^\s*(?:although|despite|pending|though|with)\b",
         fragment,
         re.IGNORECASE,
     ) and "," in fragment:
@@ -2189,10 +2475,21 @@ def _split_unresolved_assertions(fragment: str) -> list[str]:
         if not candidate:
             continue
         for boundary in _UNRESOLVED_BOUNDARY.finditer(candidate):
+            if (
+                boundary.group(0).lstrip().startswith(":")
+                and _EXPLICIT_UNRESOLVED_LABEL.search(candidate) is not None
+            ):
+                continue
             left = candidate[: boundary.start()].strip()
             right = candidate[boundary.end() :].strip()
             left_unresolved = bool(_UNRESOLVED_AUTHORITY_QUALIFIER.search(left))
             right_unresolved = bool(_UNRESOLVED_AUTHORITY_QUALIFIER.search(right))
+            if re.match(
+                r"^(?:is|are|was|were|has|have|must|shall|will|can|could|may)\b",
+                right,
+                re.IGNORECASE,
+            ):
+                continue
             if left and right and left_unresolved != right_unresolved:
                 queue = [left, right, *queue]
                 break
@@ -2207,6 +2504,7 @@ def _deterministic_evidence_integrity_defects(
     *,
     artifact_type: str | None = None,
     immutable_gap_labels: Sequence[str] = (),
+    unresolved_evidence_requirements: Sequence[str] = (),
 ) -> list[str]:
     """Reject only high-risk factual precision that lacks exact immutable support.
 
@@ -2222,11 +2520,30 @@ def _deterministic_evidence_integrity_defects(
     immutable_gap_bullets = {
         _immutable_gap_bullet(label) for label in immutable_gap_labels
     }
+    pending_table_headers: list[str] | None = None
+    active_table_headers: list[str] | None = None
     for line in base.splitlines():
         stripped = line.strip()
         if stripped.startswith("```"):
             continue
-        if not stripped or re.fullmatch(r"[:|+\-=\s]+", stripped):
+        if not stripped:
+            pending_table_headers = None
+            active_table_headers = None
+            continue
+        table_cells = (
+            [cell.strip() for cell in stripped.strip("|").split("|")]
+            if "|" in stripped
+            else None
+        )
+        if table_cells is not None and all(
+            re.fullmatch(r":?-{3,}:?", cell) is not None for cell in table_cells
+        ):
+            active_table_headers = pending_table_headers
+            continue
+        if table_cells is None:
+            pending_table_headers = None
+            active_table_headers = None
+        if re.fullmatch(r"[:|+\-=\s]+", stripped):
             continue
         heading = re.match(r"^#{1,6}\s+(.+?)\s*#*$", stripped)
         if heading:
@@ -2249,23 +2566,31 @@ def _deterministic_evidence_integrity_defects(
             # item. Skip only this occurrence: raw, modified, extended, or relocated
             # copies remain subject to the normal evidence-integrity checks below.
             continue
-        fragments = (
-            [cell.strip() for cell in stripped.strip("|").split("|")]
-            if "|" in stripped
-            else _CLAUSE_BREAK.split(stripped)
-        )
+        if table_cells is not None:
+            fragments = table_cells
+            fragment_contexts = active_table_headers or [""] * len(fragments)
+            if active_table_headers is None:
+                pending_table_headers = [
+                    re.sub(r"[*_`]", "", cell).strip() for cell in fragments
+                ]
+        else:
+            fragments = _CLAUSE_BREAK.split(stripped)
+            fragment_contexts = [""] * len(fragments)
         table_gap_context = (
             "|" in stripped
             and re.search(r"\bgaps?\b", current_heading, re.IGNORECASE) is not None
             and _UNRESOLVED_AUTHORITY_QUALIFIER.search(stripped) is not None
         )
-        expanded_fragments: list[str] = []
-        for fragment in fragments:
+        expanded_fragments: list[tuple[str, str]] = []
+        for fragment, fragment_context in zip(fragments, fragment_contexts):
             if _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment):
-                expanded_fragments.extend(_split_unresolved_assertions(fragment))
+                expanded_fragments.extend(
+                    (item, fragment_context)
+                    for item in _split_unresolved_assertions(fragment)
+                )
             else:
-                expanded_fragments.append(fragment)
-        for fragment in expanded_fragments:
+                expanded_fragments.append((fragment, fragment_context))
+        for fragment, fragment_context in expanded_fragments:
             if not fragment:
                 continue
             markers = {
@@ -2274,11 +2599,26 @@ def _deterministic_evidence_integrity_defects(
             without_markers = _RAW_EVIDENCE_MARKER.sub("", fragment)
             precise_values = _precision_values(without_markers)
             sensitive = _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
+            unresolved_alignment = _materially_matches_unresolved_requirement(
+                without_markers, unresolved_evidence_requirements
+            )
+            normalized_unresolved_label = _normalized_semantic_text(
+                re.sub(r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?", "", without_markers)
+            )
+            exact_gap_section_label = (
+                re.search(r"\b(?:assumptions?|gaps?|unresolved)\b", current_heading, re.I)
+                is not None
+                and any(
+                    normalized_unresolved_label
+                    == _normalized_semantic_text(requirement)
+                    for requirement in unresolved_evidence_requirements
+                )
+            )
             hard_authority = (
                 _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers)
                 is not None
             )
-            if not precise_values and not sensitive:
+            if not precise_values and not sensitive and not unresolved_alignment:
                 continue
             if (
                 table_gap_context
@@ -2291,11 +2631,32 @@ def _deterministic_evidence_integrity_defects(
             if (
                 not markers
                 and _UNRESOLVED_AUTHORITY_QUALIFIER.search(without_markers)
+                and not unresolved_alignment
+            ):
+                continue
+            if unresolved_alignment and not markers and exact_gap_section_label:
+                continue
+            if (
+                unresolved_alignment
+                and not markers
+                and (
+                    _UNRESOLVED_LABELED_ACTION.search(
+                        re.sub(r"[*_`]", "", without_markers)
+                    )
+                    or _UNRESOLVED_REQUIREMENT_ACTION.search(
+                        re.sub(r"[*_`]", "", without_markers)
+                    )
+                    or _UNRESOLVED_REQUIREMENT_CONTEXT.search(
+                        re.sub(r"[*_`]", "", without_markers)
+                    )
+                    or _EXPLICIT_PLANNING_TABLE_COLUMN.search(fragment_context)
+                )
             ):
                 continue
             if (
                 not markers
                 and not hard_authority
+                and not unresolved_alignment
                 and _EXPLICIT_NONFACTUAL_QUALIFIER.search(
                     f"{current_heading} {fragment}"
                 )
@@ -2303,6 +2664,12 @@ def _deterministic_evidence_integrity_defects(
                 continue
             excerpt = re.sub(r"\s+", " ", without_markers).strip()[:180]
             if not markers:
+                if unresolved_alignment:
+                    defects.add(
+                        "An unresolved evidence requirement is asserted as fact without "
+                        f"exact immutable support or provisional/verification language: {excerpt}"
+                    )
+                    continue
                 if not sensitive and artifact_type in _PLANNING_ARTIFACT_TYPES:
                     continue
                 defects.add(
@@ -2318,16 +2685,37 @@ def _deterministic_evidence_integrity_defects(
             if not cited_texts:
                 # Marker membership is reported by the existing citation validator.
                 continue
+            if unresolved_alignment:
+                assertion_negated = (
+                    _EXPLICIT_AUTHORITY_NEGATION.search(without_markers) is not None
+                )
+                cited_polarities = {
+                    _EXPLICIT_AUTHORITY_NEGATION.search(text) is not None
+                    for text in cited_texts
+                }
+                if any(polarity != assertion_negated for polarity in cited_polarities):
+                    defects.add(
+                        "Cited immutable claims have opposite polarity for this unresolved "
+                        f"evidence assertion: {excerpt}"
+                    )
+                    continue
             supported_values = set().union(
                 *(_precision_values(text) for text in cited_texts)
             )
             unsupported_values = precise_values - supported_values
             if unsupported_values:
-                defects.add(
-                    "Cited immutable claims do not support every exact value in this "
-                    f"assertion ({', '.join(utf16_ordinal_sorted(unsupported_values))}): "
-                    f"{excerpt}"
-                )
+                if unresolved_alignment:
+                    defects.add(
+                        "Cited immutable claims do not support every exact value in this "
+                        "unresolved evidence assertion "
+                        f"({', '.join(utf16_ordinal_sorted(unsupported_values))}): {excerpt}"
+                    )
+                else:
+                    defects.add(
+                        "Cited immutable claims do not support every exact value in this "
+                        f"assertion ({', '.join(utf16_ordinal_sorted(unsupported_values))}): "
+                        f"{excerpt}"
+                    )
                 continue
             if not _claims_align_with_assertion(
                 without_markers,
@@ -2337,15 +2725,21 @@ def _deterministic_evidence_integrity_defects(
                     if _FORMULA_MARKER.search(without_markers)
                     else (
                         min(2, max(1, len(_support_tokens(without_markers))))
-                        if sensitive
+                        if sensitive or unresolved_alignment
                         else 1
                     )
                 ),
             ):
-                defects.add(
-                    "Cited immutable claims do not semantically support this exact "
-                    f"assertion: {excerpt}"
-                )
+                if unresolved_alignment:
+                    defects.add(
+                        "Cited immutable claims do not support this unresolved evidence "
+                        f"assertion: {excerpt}"
+                    )
+                else:
+                    defects.add(
+                        "Cited immutable claims do not semantically support this exact "
+                        f"assertion: {excerpt}"
+                    )
     return utf16_ordinal_sorted(defects)[:40]
 
 
@@ -2384,6 +2778,7 @@ def _prune_final_unsupported_evidence_lines(
     *,
     artifact_type: str | None,
     immutable_gap_labels: Sequence[str],
+    unresolved_evidence_requirements: Sequence[str] = (),
 ) -> str:
     """Conservatively delete final-output lines named by the evidence validator.
 
@@ -2402,6 +2797,7 @@ def _prune_final_unsupported_evidence_lines(
             allowed_claim_texts,
             artifact_type=artifact_type,
             immutable_gap_labels=immutable_gap_labels,
+            unresolved_evidence_requirements=unresolved_evidence_requirements,
         )
         excerpts = [
             excerpt
@@ -2428,6 +2824,13 @@ def _prune_final_unsupported_evidence_lines(
             ),
         )
         if repaired == current:
+            return current
+        if set(_deterministic_structural_integrity_defects(repaired)).difference(
+            _deterministic_structural_integrity_defects(current)
+        ):
+            # Row-level deletion cannot safely repair traceability or an ordered
+            # structure. Keep the candidate intact so the existing model validator
+            # requests a coherent replacement instead of publishing a damaged PRD.
             return current
         current = repaired
     return current
@@ -2563,6 +2966,10 @@ _MARKDOWN_LIST_ITEM = re.compile(
     r"(?P<content>\S.*?)\s*$"
 )
 _MARKDOWN_TABLE_SEPARATOR_CELL = re.compile(r"^:?-{3,}:?$")
+_DISPLAY_REQUIREMENT_ID = re.compile(
+    r"(?<![\w-])req(?:-[a-z0-9]+)+(?![\w-])", re.IGNORECASE
+)
+_JTBD_LABEL = re.compile(r"\b(?:jtbd|jobs?[- ]to[- ]be[- ]done)\b", re.IGNORECASE)
 
 
 def _incomplete_given_when_then_acceptance_blocks(markdown: str) -> list[str]:
@@ -2771,6 +3178,171 @@ def _incomplete_given_when_then_acceptance_blocks(markdown: str) -> list[str]:
     return utf16_ordinal_sorted(set(defects))
 
 
+def _markdown_with_fenced_bodies_blanked(markdown: str) -> str:
+    """Blank fenced code without changing offsets or line boundaries."""
+
+    result: list[str] = []
+    fence_character = ""
+    fence_length = 0
+
+    def blank(line: str) -> str:
+        return "".join(character if character in "\r\n" else " " for character in line)
+
+    for line in markdown.splitlines(keepends=True):
+        fence = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if fence is not None:
+            marker = fence.group(1)
+            if not fence_character:
+                fence_character = marker[0]
+                fence_length = len(marker)
+                result.append(blank(line))
+                continue
+            if marker[0] == fence_character and len(marker) >= fence_length:
+                fence_character = ""
+                fence_length = 0
+                result.append(blank(line))
+                continue
+        result.append(blank(line) if fence_character else line)
+    return "".join(result)
+
+
+def _deterministic_structural_integrity_defects(markdown: str) -> list[str]:
+    """Reject traceability and ordered-sequence holes without fabricating content."""
+
+    unfenced = _markdown_with_fenced_bodies_blanked(markdown)
+    base = unfenced.split("\n\n## Sources\n", 1)[0]
+    heading_matches = list(_MARKDOWN_HEADING.finditer(base))
+
+    def section_body(name: str) -> str | None:
+        wanted = _normalized_semantic_text(name)
+        for index, match in enumerate(heading_matches):
+            if _normalized_semantic_text(match.group(1)) != wanted:
+                continue
+            level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+            end = len(base)
+            for later in heading_matches[index + 1 :]:
+                later_level = len(later.group(0)) - len(later.group(0).lstrip("#"))
+                if later_level <= level:
+                    end = later.start()
+                    break
+            return base[match.end() : end]
+        return None
+
+    defects: list[str] = []
+    prioritized = section_body("Prioritized requirements")
+    acceptance = section_body("Acceptance criteria")
+    if prioritized is not None and acceptance is not None:
+        prioritized_ids = {
+            match.group(0).casefold()
+            for match in _DISPLAY_REQUIREMENT_ID.finditer(prioritized)
+        }
+        acceptance_ids = {
+            match.group(0).casefold()
+            for match in _DISPLAY_REQUIREMENT_ID.finditer(acceptance)
+        }
+        if prioritized_ids or acceptance_ids:
+            missing_from_priorities = acceptance_ids - prioritized_ids
+            if missing_from_priorities:
+                details = []
+                details.append(
+                    "missing from prioritized requirements: "
+                    + ", ".join(utf16_ordinal_sorted(missing_from_priorities))
+                )
+                defects.append(
+                    "An acceptance-criterion ID is absent from prioritized requirements ("
+                    + "; ".join(details)
+                    + ")."
+                )
+
+    jtbd_sequences: list[list[int]] = []
+    active_jtbd: list[int] | None = None
+
+    def is_jtbd_sequence_label(line: str) -> bool:
+        stripped = line.strip()
+        heading = _MARKDOWN_HEADING.fullmatch(stripped)
+        if heading is not None:
+            return _JTBD_LABEL.search(heading.group(1)) is not None
+        normalized = re.sub(r"[*_`]", "", stripped).strip().rstrip(":").strip()
+        return re.match(
+            r"^(?:proposed\s+)?(?:jtbd|jobs?[- ]to[- ]be[- ]done)\b",
+            normalized,
+            re.IGNORECASE,
+        ) is not None
+
+    for line in base.splitlines():
+        if is_jtbd_sequence_label(line):
+            if active_jtbd:
+                jtbd_sequences.append(active_jtbd)
+            active_jtbd = []
+            continue
+        if active_jtbd is None:
+            continue
+        numbered = re.match(r"^\s*(?P<number>[1-9]\d*)[.)]\s+\S", line)
+        if numbered is not None:
+            active_jtbd.append(int(numbered.group("number")))
+            continue
+        if not line.strip():
+            continue
+        if (
+            _MARKDOWN_HEADING.fullmatch(line.strip()) is not None
+            or re.match(r"^\s*[-+*]\s+", line) is not None
+        ):
+            if active_jtbd:
+                jtbd_sequences.append(active_jtbd)
+            active_jtbd = None
+    if active_jtbd:
+        jtbd_sequences.append(active_jtbd)
+    for numbers in jtbd_sequences:
+        unique = sorted(set(numbers))
+        if unique != list(range(1, max(unique) + 1)):
+            defects.append(
+                "A numbered JTBD sequence has a missing leading or interior ordinal."
+            )
+            break
+
+    roadmap_bodies: list[str] = []
+    roadmap_heading = re.compile(
+        r"\b(?:next\s+steps?|roadmap|execution\s+phases?)\b", re.IGNORECASE
+    )
+    for index, match in enumerate(heading_matches):
+        if roadmap_heading.search(match.group(1)) is None:
+            continue
+        level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+        end = len(base)
+        for later in heading_matches[index + 1 :]:
+            later_level = len(later.group(0)) - len(later.group(0).lstrip("#"))
+            if later_level <= level:
+                end = later.start()
+                break
+        roadmap_bodies.append(base[match.end() : end])
+    def explicit_phase_item_number(line: str) -> int | None:
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            candidate = next((cell for cell in cells if cell), "")
+        else:
+            candidate = re.sub(
+                r"^(?:#{1,6}\s+|[-+*]\s+|\d+[.)]\s+)", "", stripped
+            )
+        candidate = re.sub(r"^[*_`\s]+", "", candidate)
+        match = re.match(r"^phase\s+(?P<number>[1-9]\d*)\b", candidate, re.I)
+        return int(match.group("number")) if match is not None else None
+
+    phase_numbers = {
+        number
+        for body in roadmap_bodies
+        for line in body.splitlines()
+        if (number := explicit_phase_item_number(line)) is not None
+    }
+    if phase_numbers:
+        ordered_phases = sorted(phase_numbers)
+        if ordered_phases != list(range(1, max(ordered_phases) + 1)):
+            defects.append(
+                "An explicit Phase sequence has a missing leading or interior ordinal."
+            )
+    return utf16_ordinal_sorted(set(defects))
+
+
 def _deterministic_quality_defects(
     markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
 ) -> tuple[list[str], list[str]]:
@@ -2875,6 +3447,7 @@ def _deterministic_quality_defects(
             practical.append(
                 "The candidate lacks concrete decisions, actions, acceptance checks or validation steps."
             )
+    practical.extend(_deterministic_structural_integrity_defects(base))
     if artifact_type in {"product_prd", "software_prd"}:
         headings = {name for _position, _raw, name in _markdown_headings(base)}
         section_matches = heading_matches
@@ -3169,6 +3742,9 @@ class PydanticAISynthesisWriter:
                 ctx.deps.allowed_claim_texts,
                 artifact_type=ctx.deps.artifact_type,
                 immutable_gap_labels=ctx.deps.required_gap_labels,
+                unresolved_evidence_requirements=(
+                    ctx.deps.unresolved_evidence_requirements
+                ),
             )
             after_pruning = _remove_newly_orphaned_optional_sections(
                 before_pruning,
@@ -3338,6 +3914,11 @@ class PydanticAISynthesisWriter:
             allowed_claim_texts=self._allowed_claim_texts(research_payload),
             required_gap_labels=self._required_gap_labels_for_input(
                 input_value, research_payload, scope_payload
+            ),
+            unresolved_evidence_requirements=(
+                _unresolved_evidence_requirement_descriptions(
+                    research_payload, scope_payload
+                )
             ),
             acceptance_requirement_ids=(
                 task.acceptance_requirement_ids if task is not None else []
@@ -4001,11 +4582,45 @@ def _claim_from_grounding(
     allowed_source_hosts: set[str],
     expected_response_hash: str,
     provider_response_text: str,
+    *,
+    requirement: EvidenceRequirement | None = None,
+    provider: str | None = None,
 ) -> EvidenceClaimV1 | None:
     text = raw_claim.get("text")
     urls = [str(value) for value in raw_claim.get("source_urls", []) if value]
     if not isinstance(text, str) or not text.strip() or not urls:
         return None
+    if _has_explicit_enumeration_mismatch(text):
+        return None
+    if requirement is not None:
+        expected_instruments = _explicit_eu_regulation_identities(
+            requirement.description
+        )
+        claim_instruments = _explicit_eu_regulation_identities(text)
+        source_instruments = set().union(
+            *(_explicit_eu_regulation_url_identities(url) for url in urls)
+        )
+        if (
+            len(expected_instruments) == 1
+            and (
+                bool(claim_instruments - expected_instruments)
+                or bool(source_instruments - expected_instruments)
+            )
+        ):
+            return None
+        if claim_instruments and source_instruments and not (
+            claim_instruments & source_instruments
+        ):
+            return None
+        claim_provider = str(provider or raw_claim.get("provider") or "")
+        if (
+            _requirement_has_statutory_force(requirement)
+            and _STATUTORY_PROVISION_REFERENCE.search(text) is not None
+            and claim_provider != "searxng_direct_fetch"
+        ):
+            # A generated Google passage can locate a provision, but only a direct
+            # publisher fetch binds the exact provision text to immutable bytes.
+            return None
     if allowed_source_hosts and any(
         not _url_matches_allowed_hosts(url, allowed_source_hosts) for url in urls
     ):
@@ -4830,6 +5445,8 @@ class GeminiCognitiveExecutor:
                     set(requirement.allowed_source_hosts),
                     response_hash,
                     response_text,
+                    requirement=requirement,
+                    provider=str(raw.get("provider") or ""),
                 )
                 if claim is not None:
                     claims_by_id[claim.claim_id] = claim
@@ -5432,6 +6049,12 @@ class GeminiCognitiveExecutor:
                 research.model_dump(mode="json", by_alias=True),
                 scope.model_dump(mode="json", by_alias=True),
             ),
+            unresolved_evidence_requirements=(
+                _unresolved_evidence_requirement_descriptions(
+                    research.model_dump(mode="json", by_alias=True),
+                    scope.model_dump(mode="json", by_alias=True),
+                )
+            ),
             repair_pass=input_value.repair_pass or 0,
             quality_gate_required=input_value.purpose
             in {"final_synthesis", "blocked_report"},
@@ -5548,6 +6171,9 @@ class GeminiCognitiveExecutor:
                 common_context.allowed_claim_texts,
                 artifact_type=plan.work_shape,
                 immutable_gap_labels=context.required_gap_labels,
+                unresolved_evidence_requirements=(
+                    context.unresolved_evidence_requirements
+                ),
             )
             acceptable_coverage = not any(
                 item.status == "gap"
@@ -5699,6 +6325,9 @@ class GeminiCognitiveExecutor:
                     common_context.allowed_claim_texts,
                     artifact_type=plan.work_shape,
                     immutable_gap_labels=common_context.required_gap_labels,
+                    unresolved_evidence_requirements=(
+                        common_context.unresolved_evidence_requirements
+                    ),
                 )
             }
             unsupported = utf16_ordinal_sorted(deterministic_evidence_integrity)[:40]
