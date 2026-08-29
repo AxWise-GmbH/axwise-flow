@@ -299,9 +299,14 @@ def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
         [
             "Acceptance Criteria",
             "Concrete Next Steps",
+            "Explicit Open Gaps & Pre-Launch Roadmap",
+            "Given/When/Then Acceptance Criteria",
             "Market Risks & Mitigations",
+            "Metrics, Assumptions & Evidence-Backed Constraints",
+            "Prioritized Functional & Operational PRD Requirements",
             "Risks & Mitigations",
             "Success Metrics & KPIs",
+            "Target Personas & User Journeys",
             "Target Users and Jobs-to-be-Done",
         ],
     )
@@ -315,11 +320,61 @@ def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
     for alias in (
         "Acceptance Criteria",
         "Concrete Next Steps",
+        "Explicit Open Gaps & Pre-Launch Roadmap",
+        "Given/When/Then Acceptance Criteria",
+        "Metrics, Assumptions & Evidence-Backed Constraints",
+        "Prioritized Functional & Operational PRD Requirements",
         "Risks & Mitigations",
         "Success Metrics & KPIs",
+        "Target Personas & User Journeys",
         "Target Users and Jobs-to-be-Done",
     ):
         assert alias not in canonical
+
+
+def test_prd_required_sections_collapse_fresh_golden_semantic_duplicates() -> None:
+    fresh_golden_sections = [
+        "Acceptance criteria",
+        "Evidence, assumptions, and gaps",
+        "Executive Summary & Brand Context",
+        "Explicit Open Gaps & Pre-Launch Roadmap",
+        "Given/When/Then Acceptance Criteria",
+        "Metrics and validation",
+        "Metrics, Assumptions & Evidence-Backed Constraints",
+        "Next steps",
+        "Packaging, Labeling & Mandatory Analytical Disclosures",
+        "Prioritized Functional & Operational PRD Requirements",
+        "Prioritized requirements",
+        "Problem and desired outcome",
+        "Product Formulation & Nutritional Specifications (FEDIAF Aligned)",
+        "Product thesis, scope, and non-goals",
+        "Regulatory & Safety Compliance Baseline (EU & Estonia)",
+        "Risks",
+        "Target Personas & User Journeys",
+        "User journeys",
+        "Users, jobs, and pains",
+    ]
+
+    canonical = cognitive_executor_module._canonical_required_sections(
+        "product_prd", fresh_golden_sections
+    )
+
+    assert canonical == [
+        "Acceptance criteria",
+        "Evidence, assumptions, and gaps",
+        "Executive Summary & Brand Context",
+        "Metrics and validation",
+        "Next steps",
+        "Packaging, Labeling & Mandatory Analytical Disclosures",
+        "Prioritized requirements",
+        "Problem and desired outcome",
+        "Product Formulation & Nutritional Specifications (FEDIAF Aligned)",
+        "Product thesis, scope, and non-goals",
+        "Regulatory & Safety Compliance Baseline (EU & Estonia)",
+        "Risks",
+        "User journeys",
+        "Users, jobs, and pains",
+    ]
 
 
 def test_required_section_canonicalization_is_deterministic_and_prd_scoped() -> None:
@@ -1970,6 +2025,46 @@ def test_final_pruning_preserves_only_canonical_server_gap_bullet() -> None:
     assert pruned.count(label) == 1
     assert canonical_bullet in pruned
     _validate_synthesis(context, SynthesisDraft(title="Useful PRD", markdown=pruned))
+
+
+def test_final_pruning_reaches_fixed_point_beyond_validator_page() -> None:
+    unsafe_lines = [
+        f"- The formula is certified safe at {temperature}°C."
+        for temperature in range(40, 85)
+    ]
+    unsafe_heading = "## The product is FEDIAF compliant"
+    markdown = "\n".join(
+        [
+            "# Product requirements document",
+            "",
+            "This safe planning context and validation action must remain intact.",
+            "",
+            unsafe_heading,
+            "",
+            *unsafe_lines,
+        ]
+    )
+    assert len(
+        _deterministic_evidence_integrity_defects(
+            markdown, {}, artifact_type="product_prd"
+        )
+    ) == 40
+
+    repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
+        markdown,
+        {},
+        artifact_type="product_prd",
+        immutable_gap_labels=[],
+    )
+
+    assert all(line not in repaired for line in unsafe_lines)
+    assert "This safe planning context and validation action" in repaired
+    assert unsafe_heading in repaired
+    remaining = _deterministic_evidence_integrity_defects(
+        repaired, {}, artifact_type="product_prd"
+    )
+    assert len(remaining) == 1
+    assert "Unsupported factual precision" in remaining[0]
 
 
 def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
@@ -4998,6 +5093,48 @@ def test_claim_support_guard_rejects_unmarked_health_process_and_clearance_claim
         ),
     ):
         assert _deterministic_evidence_integrity_defects(markdown, {})
+
+
+def test_claim_support_guard_distinguishes_heading_labels_from_assertions() -> None:
+    structural_labels = (
+        "Product Formulation & Nutritional Specifications (FEDIAF Aligned)",
+        "Animal By-Product Sourcing & Safety (Regulation (EC) No 1069/2009)",
+        "EU Feed Hygiene & HACCP Management (Regulation (EC) No 183/2005)",
+        "Statutory Microbiological Criteria (Regulation (EU) No 142/2011)",
+        "Planning Assumptions vs Pre-Launch Authorization Proofs Gate",
+    )
+    for label in structural_labels:
+        markdown = (
+            f"## {label}\n\n"
+            "This section records bounded planning decisions and validation actions."
+        )
+        assert _deterministic_evidence_integrity_defects(
+            markdown, {}, artifact_type="product_prd"
+        ) == []
+
+    for assertion in (
+        "## The product is FEDIAF compliant",
+        "## The formula is certified safe for cats",
+        "## FEDIAF compliance achieved",
+        "## HACCP certification confirmed",
+        "## Product authorization received",
+        "## EU law requires this thermal process",
+    ):
+        assert _deterministic_evidence_integrity_defects(
+            assertion, {}, artifact_type="product_prd"
+        )
+
+
+def test_claim_support_guard_still_validates_cited_heading_assertions() -> None:
+    claim_id = "7" * 64
+    claims = {claim_id: "Moisture above 14% must be declared on the label."}
+    supported = (
+        f"## Moisture above 14% must be declared [evidence:{claim_id}]"
+    )
+    mismatched = supported.replace("14%", "20%")
+
+    assert _deterministic_evidence_integrity_defects(supported, claims) == []
+    assert _deterministic_evidence_integrity_defects(mismatched, claims)
 
 
 def test_claim_support_guard_cannot_launder_claims_across_clauses_or_layout() -> None:
