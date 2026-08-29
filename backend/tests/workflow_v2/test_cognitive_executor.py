@@ -4001,6 +4001,57 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
     ) == ([], [])
 
 
+def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees() -> None:
+    sections = [
+        "Acceptance criteria",
+        "Evidence, assumptions, and gaps",
+        "Metrics and validation",
+        "Next steps",
+        "Prioritized requirements",
+        "Problem and desired outcome",
+        "Product thesis, scope, and non-goals",
+        "Risks",
+        "User journeys",
+        "Users, jobs, and pains",
+    ]
+
+    def prd(*, empty_section: str | None = None) -> str:
+        rendered = ["# Nested product PRD"]
+        for section in sections:
+            rendered.extend(
+                [f"## {section}", "", "### Concrete implementation detail", ""]
+            )
+            if section != empty_section:
+                rendered.extend(
+                    [
+                        "- P0 decision with an accountable owner, measurable metric, and validation milestone.",
+                        "- Given the accepted scope, When the test runs, Then the requirement is verified.",
+                        "",
+                    ]
+                )
+        return "\n".join(rendered)
+
+    assert _deterministic_quality_defects(
+        prd(), practical_output_required=True, artifact_type="product_prd"
+    ) == ([], [])
+    _substantive, practicality = _deterministic_quality_defects(
+        prd(empty_section="Risks"),
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert "PRD section 'Risks' is empty or too thin." in practicality
+
+    higher_level_boundary = prd(empty_section="Risks").replace(
+        "## User journeys", "# User journeys"
+    )
+    _substantive, practicality = _deterministic_quality_defects(
+        higher_level_boundary,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert "PRD section 'Risks' is empty or too thin." in practicality
+
+
 def test_evidence_marker_heading_parity_rejects_preamble_and_strips_closing_hashes() -> None:
     claim_id = "a" * 64
     with pytest.raises(ValueError, match="after a real Markdown heading"):
