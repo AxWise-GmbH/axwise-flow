@@ -43,6 +43,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     EvaluationDraft,
     _appendix_matches_research,
     _blocked_report_output_contract,
+    _deterministic_evidence_integrity_defects,
     _operation_metrics,
     _deterministic_quality_defects,
     _citation_sections,
@@ -668,6 +669,78 @@ async def test_compile_scope_rejects_uncited_topic_fallback() -> None:
         await GeminiCognitiveExecutor(InvalidDrafter(), AUTHORITY_KEY).execute(
             envelope_for()
         )
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        (
+            "EU pet-food labelling obligations under Regulation (EC) No "
+            "767/2009 and an independent industry nutritional standard."
+        ),
+        (
+            "EU obligations under Regulation (EC) No 767/2009 together with "
+            "industry nutritional guidance."
+        ),
+        (
+            "EU obligations under Regulation (EC) No 767/2009, including an "
+            "independent nutritional standard."
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_compound_statutory_and_standard_requirement_is_rejected_before_sealing(
+    description: str,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="mixed statutory and non-statutory evidence assertions must be split",
+    ):
+        await GeminiCognitiveExecutor(
+            FakeDrafter(
+                claim_type="regulatory_standard",
+                description=description,
+                accepted_source_types=[
+                    "government",
+                    "industry",
+                    "primary_law",
+                    "standard",
+                ],
+            ),
+            AUTHORITY_KEY,
+        ).execute(envelope_for())
+
+
+@pytest.mark.asyncio
+async def test_atomic_statutory_and_standard_requirements_can_be_sealed_separately() -> None:
+    class AtomicDrafter(FakeDrafter):
+        async def draft(self, input_value, objective_context):
+            output = await super().draft(input_value, objective_context)
+            output.value.evidence_requirements.append(
+                EvidenceRequirement(
+                    id="nutrition-standard",
+                    claimType="technical_standard",
+                    description="An independent nutritional standard for the planned product.",
+                    criticality="blocking",
+                    evidenceRole="grounded_claim",
+                    verificationBasis="grounded_claims",
+                    appliesWhen="Drafting provisional product requirements.",
+                    acceptedSourceTypes=["industry", "standard"],
+                    allowedSourceHosts=[],
+                )
+            )
+            return output
+
+    compiled = await GeminiCognitiveExecutor(
+        AtomicDrafter(
+            claim_type="applicable_law",
+            description="Applicable EU and Estonian statutory feed obligations.",
+            accepted_source_types=["government", "primary_law", "standard"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+
+    assert len(compiled.artifact.payload["evidenceRequirements"]) == 2
 
 
 @pytest.mark.asyncio
@@ -1431,6 +1504,98 @@ async def test_current_artifact_selected_evidence_and_any_conflict_still_block()
     assert conflicted.evidence_readiness == "blocked"
 
 
+@pytest.mark.parametrize(
+    "artifact_type",
+    ["product_prd", "software_prd", "research_strategy", "operational_plan"],
+)
+@pytest.mark.asyncio
+async def test_missing_nonstatutory_grounded_claim_is_a_planning_gap(
+    artifact_type: str,
+) -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type=artifact_type,
+            claim_type="technical_standard",
+            description="An authoritative technical standard for the planned product.",
+            accepted_source_types=["industry", "standard"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+
+    requirement = compiled.artifact.payload["evidenceRequirements"][0]
+    assert requirement["criticality"] == "blocking"
+    assert requirement["evidenceRole"] == "grounded_claim"
+
+    result = await execute_research(compiled, MissingResearchRunner())
+
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert finding["blocking"] is False
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["gaps"] == [finding["note"]]
+
+
+@pytest.mark.asyncio
+async def test_planning_gap_exemption_preserves_statutory_and_authorization_blocks() -> None:
+    government_statistics = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            claim_type="market_statistic",
+            description="Official market statistics for the planning assumptions.",
+            accepted_source_types=["government", "official_statistics"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    statistics_result = await execute_research(
+        government_statistics, MissingResearchRunner()
+    )
+    assert statistics_result.evidence_readiness == "ready_with_gaps"
+    assert statistics_result.artifact.payload["findings"][0]["blocking"] is False
+
+    fediaf_standard = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            claim_type="regulatory_standard",
+            description="FEDIAF nutritional guidelines for complete cat food.",
+            accepted_source_types=["industry", "standard"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(operation_id="00000000-0000-4000-8000-000000000008"))
+    fediaf_result = await execute_research(fediaf_standard, MissingResearchRunner())
+    assert fediaf_result.evidence_readiness == "ready_with_gaps"
+    assert fediaf_result.artifact.payload["findings"][0]["blocking"] is False
+
+    statutory = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            claim_type="applicable_law",
+            description="Applicable statutory product-safety obligations.",
+            accepted_source_types=["government", "primary_law"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    statutory_result = await execute_research(statutory, MissingResearchRunner())
+    assert statutory_result.evidence_readiness == "blocked"
+    assert statutory_result.artifact.payload["findings"][0]["blocking"] is True
+
+    authorization = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="launch_authorization",
+            claim_type="technical_standard",
+            description="An authoritative technical standard for the product decision.",
+            accepted_source_types=["industry", "standard"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(
+        envelope_for(operation_id="00000000-0000-4000-8000-000000000009")
+    )
+    authorization_result = await execute_research(
+        authorization, MissingResearchRunner()
+    )
+    assert authorization_result.evidence_readiness == "blocked"
+    assert authorization_result.artifact.payload["findings"][0]["blocking"] is True
+
+
 def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
     for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
         assert "verificationBasis" in prompt
@@ -1443,6 +1608,11 @@ def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
         assert "software_prd" in prompt
         assert "launch_authorization" in prompt
         assert "go/no-go" in prompt
+        assert "non-statutory grounded_claim" in prompt
+        assert "statutory-law" in prompt
+        assert "publisher class" in prompt
+        assert "independently verifiable assertion" in prompt
+        assert "never combine statutory law" in prompt.casefold()
         for exact_proof in (
             "certificate",
             "declaration",
@@ -2747,6 +2917,30 @@ async def test_compile_and_revise_cannot_invent_publisher_restrictions() -> None
     with pytest.raises(ValueError, match="explicit publisher/source restriction"):
         _validate_revision_draft("Add a persona.", broadened, accepted)
 
+    compound_payload = {**base}
+    compound_payload["evidence_requirements"] = [
+        accepted.evidence_requirements[0].model_copy(
+            update={
+                "description": (
+                    "Applicable primary law and a separate industry standard."
+                ),
+                "accepted_source_types": [
+                    "government",
+                    "industry",
+                    "primary_law",
+                    "standard",
+                ],
+                "allowed_source_hosts": [],
+            }
+        )
+    ]
+    compound = ScopeRevisionDraft.model_validate(compound_payload)
+    with pytest.raises(
+        ValueError,
+        match="mixed statutory and non-statutory evidence assertions must be split",
+    ):
+        _validate_revision_draft("Add a persona.", compound, accepted)
+
 
 @pytest.mark.asyncio
 async def test_only_typed_selected_evidence_can_establish_not_applicable() -> None:
@@ -3349,6 +3543,76 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
+async def test_unsupported_precise_core_candidate_requires_the_existing_repair_path() -> None:
+    class UnsafePrecisionWriter(QualityWriter):
+        async def execute_task(self, input_value, scope, research_payload, contents):
+            draft = await super().execute_task(
+                input_value, scope, research_payload, contents
+            )
+            if not input_value.task.produces_full_contract:
+                return draft
+            return draft.model_copy(
+                update={
+                    "markdown": (
+                        draft.markdown
+                        + "\n\n## Formula claim\n\nThe validated formula contains "
+                        "2,000 mg/kg taurine and prevents renal disease."
+                    )
+                }
+            )
+
+    compiled = await compiled_scope()
+    research = await execute_research(compiled, VerifiedResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=UnsafePrecisionWriter(),
+    )
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=820,
+    )
+    assert results[-1].artifact.kind == "task_result"
+
+    task_refs = sorted(
+        [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000829",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+
+    assert evaluation.execution_output_contract_satisfied is False
+    assert evaluation.direct_promotion_artifact is None
+    assert evaluation.artifact.payload["unsupportedPrecision"]
+    assert evaluation.artifact.payload["repairRequired"] is True
+
+
+@pytest.mark.asyncio
 async def test_nonblocking_future_authorization_gap_can_directly_promote_prd() -> None:
     description = (
         "Product-specific laboratory report and safety clearance for the accepted "
@@ -3900,6 +4164,190 @@ def test_source_appendix_renderer_matches_cross_contract_grounded_bytes() -> Non
         "`2026-08-28T00:00:00Z` — section: Evidence decision — "
         "supported claim: Exact supported claim.\n"
     )
+
+
+def test_claim_support_guard_requires_same_clause_and_matching_exact_values() -> None:
+    claim_id = "c" * 64
+    claims = {
+        claim_id: "Moisture must be declared when it exceeds 14% by mass."
+    }
+    supported = (
+        "# Requirements\n\nMoisture above 14% must be declared "
+        f"[evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(supported, claims) == []
+
+    adjacent = (
+        "# Requirements\n\nMoisture above 14% must be declared. "
+        f"The source is recorded here [evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(adjacent, claims)
+
+    mismatched = (
+        "# Requirements\n\nMoisture must remain between 78% and 82.5% "
+        f"[evidence:{claim_id}]."
+    )
+    defects = _deterministic_evidence_integrity_defects(mismatched, claims)
+    assert defects
+    assert "78%" in defects[0]
+    assert "82.5%" in defects[0]
+
+    proposed = (
+        "# Metrics\n\nProposed target: conversion >= 42%; validate with a bounded cohort test."
+    )
+    assert _deterministic_evidence_integrity_defects(proposed, claims) == []
+    for honest_choice in (
+        "# Metrics\n\nProposed target: 20% trial conversion.",
+        "# Fulfilment\n\nAssumption: ship 14 pouches per box.",
+        "# Metrics\n\nTBD: conversion target 20%.",
+        "## Proposed product targets\n\n| Pack size | 85 g |",
+        "## Key assumptions\n\n| Pack size | 85 g |",
+        "## Hypotheses\n\nA 20% trial conversion is achievable.",
+    ):
+        assert _deterministic_evidence_integrity_defects(honest_choice, claims) == []
+
+
+def test_claim_support_guard_rejects_unmarked_health_process_and_clearance_claims() -> None:
+    for markdown in (
+        "# Product\n\nThe formulation prevents renal disease.",
+        "# Process\n\nSterilize above 121°C to ensure product safety.",
+        "# Status\n\nThe product is PTA approved.",
+        (
+            "# Product\n\nProposed target: 2,000 mg/kg taurine prevents renal "
+            "disease; validate with an expert review."
+        ),
+    ):
+        assert _deterministic_evidence_integrity_defects(markdown, {})
+
+
+def test_claim_support_guard_cannot_launder_claims_across_clauses_or_layout() -> None:
+    claim_id = "d" * 64
+    claims = {claim_id: "Moisture above 14% must be declared on the label."}
+    unsafe = (
+        "The formula contains 14% taurine and prevents renal disease "
+        f"[evidence:{claim_id}]."
+    )
+    examples = (
+        unsafe,
+        f"## PTA approved [evidence:{claim_id}]",
+        f"```text\n{unsafe}\n```",
+        f"| Gap pending | {unsafe} |",
+        f"The product is not launch-ready, but {unsafe}",
+        f"{unsafe}; launch authorization remains pending.",
+        "The product is not launch-ready and the formula contains 2,000 mg/kg taurine.",
+        "Launch authorization is unresolved: the formula contains 2,000 mg/kg taurine.",
+        "Although launch authorization is unresolved, the formula contains 2,000 mg/kg taurine.",
+        "The product is not launch-ready because the formula contains 2,000 mg/kg taurine.",
+        "With launch approval still pending, the formula contains 2,000 mg/kg taurine.",
+        "Pending launch approval, the formula contains 2,000 mg/kg taurine.",
+        "EU law mandates ingredient disclosure in Estonian.",
+    )
+    for markdown in examples:
+        assert _deterministic_evidence_integrity_defects(markdown, claims)
+
+
+def test_claim_support_guard_preserves_trailing_unresolved_scope_over_lists() -> None:
+    for honest_gap in (
+        (
+            "The product is not launch-ready because PTA approval, FEDIAF validation, "
+            "and laboratory safety clearance are pending."
+        ),
+        (
+            "The product is not launch-ready because the 14% threshold and 121°C "
+            "process remain unverified."
+        ),
+        (
+            "Launch gaps: PTA approval, FEDIAF validation, and laboratory safety "
+            "clearance remain pending."
+        ),
+        (
+            "## Open evidence and safety gaps\n\n"
+            "| Gap | Status | Next step |\n"
+            "| --- | --- | --- |\n"
+            "| FEDIAF nutritional validation | Pending | Obtain standard and laboratory review |"
+        ),
+    ):
+        assert _deterministic_evidence_integrity_defects(honest_gap, {}) == []
+
+
+def test_claim_support_guard_handles_latex_units_formulas_and_proposed_sections() -> None:
+    claim_id = "e" * 64
+    claims = {
+        claim_id: (
+            "The design limit is 14 mg/kg and the DER formula is "
+            "100 times kg to the power 0.67."
+        )
+    }
+    supported = (
+        "# Limit\n\nThe design limit is 14.0\\,\\text{mg/kg} "
+        f"[evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(supported, claims) == []
+
+    wrong_unit = (
+        "# Limit\n\nThe design limit is 14 g "
+        f"[evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(wrong_unit, claims)
+
+    extra_formula_term = (
+        "# Formula\n\nThe DER formula is 100 × kg^0.67 × activity factor "
+        f"[evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(extra_formula_term, claims)
+
+    proposed = (
+        "## Proposed process targets — validate with an expert\n\n"
+        "| Candidate process | Design target |\n"
+        "| --- | --- |\n"
+        "| Retort temperature | 121°C |"
+    )
+    assert _deterministic_evidence_integrity_defects(proposed, {}) == []
+
+
+def test_claim_support_guard_distinguishes_integer_money_counts_and_dates() -> None:
+    claim_id = "f" * 64
+    claims = {
+        claim_id: (
+            "The source reports €12, 10 interviews, and a review date of 2026-08-29."
+        )
+    }
+    supported = (
+        "# Evidence\n\nThe source reports €12, 10 interviews, and 2026-08-29 "
+        f"[evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(supported, claims) == []
+
+    wrong_date = supported.replace("2026-08-29", "2026-08-30")
+    assert _deterministic_evidence_integrity_defects(wrong_date, claims)
+
+
+def test_claim_support_guard_normalizes_threshold_ranges_and_written_temperatures() -> None:
+    claim_id = "9" * 64
+    claims = {
+        claim_id: (
+            "The supported threshold is at least 14%, the interval is 78 to 82%, "
+            "and the process temperature is 121 degrees Celsius."
+        )
+    }
+    supported = (
+        "# Evidence\n\nThe threshold is ≥14%, the interval is 78%–82%, and the "
+        f"process temperature is 121°C [evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(supported, claims) == []
+
+    wrong_temperature = supported.replace("121°C", "130 degrees Celsius")
+    assert _deterministic_evidence_integrity_defects(wrong_temperature, claims)
+
+
+def test_claim_support_guard_rejects_same_value_unrelated_sensitive_inference() -> None:
+    claim_id = "8" * 64
+    claims = {claim_id: "Moisture must be declared when it exceeds 14% by mass."}
+    laundered = (
+        "# Safety\n\nThe moisture regulation requires 14% taurine to prevent renal "
+        f"disease [evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(laundered, claims)
 
 
 @pytest.mark.parametrize(
