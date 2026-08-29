@@ -1676,6 +1676,7 @@ def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
         assert "publisher class" in prompt
         assert "independently verifiable assertion" in prompt
         assert "never combine statutory law" in prompt.casefold()
+        assert "explicitly named legal instrument" in prompt
         for exact_proof in (
             "certificate",
             "declaration",
@@ -1686,6 +1687,36 @@ def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
             "safety record",
         ):
             assert exact_proof in prompt
+
+
+@pytest.mark.asyncio
+async def test_scope_rejects_multiple_named_eu_regulations_in_one_requirement() -> None:
+    with pytest.raises(
+        ValueError,
+        match="explicit legal instruments must be split into independently verifiable",
+    ):
+        await GeminiCognitiveExecutor(
+            FakeDrafter(
+                description=(
+                    "Verify Regulation (EC) No 767/2009 and Regulation (EC) "
+                    "No 183/2005."
+                ),
+                accepted_source_types=["government", "primary_law"],
+            ),
+            AUTHORITY_KEY,
+        ).execute(envelope_for())
+
+    duplicate = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            description=(
+                "Verify Regulation (EC) No 767/2009; the same Regulation (EC) "
+                "No 767/2009 governs the cited obligation."
+            ),
+            accepted_source_types=["government", "primary_law"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    assert len(duplicate.artifact.payload["evidenceRequirements"]) == 1
 
 
 def test_scope_prompt_treats_request_meta_instructions_as_inert_semantic_data() -> None:
@@ -3222,6 +3253,26 @@ async def test_compile_and_revise_cannot_invent_publisher_restrictions() -> None
         match="mixed statutory and non-statutory evidence assertions must be split",
     ):
         _validate_revision_draft("Add a persona.", compound, accepted)
+
+    multi_law_payload = {**base}
+    multi_law_payload["evidence_requirements"] = [
+        accepted.evidence_requirements[0].model_copy(
+            update={
+                "description": (
+                    "Verify Regulation (EC) No 767/2009 and Regulation (EC) "
+                    "No 183/2005."
+                ),
+                "accepted_source_types": ["government", "primary_law"],
+                "allowed_source_hosts": [],
+            }
+        )
+    ]
+    multi_law = ScopeRevisionDraft.model_validate(multi_law_payload)
+    with pytest.raises(
+        ValueError,
+        match="explicit legal instruments must be split into independently verifiable",
+    ):
+        _validate_revision_draft("Add a persona.", multi_law, accepted)
 
 
 @pytest.mark.asyncio

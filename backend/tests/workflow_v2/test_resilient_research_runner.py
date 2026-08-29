@@ -28,6 +28,8 @@ def server_query(
     *,
     allowed_hosts: list[str] | None = None,
     fallback_candidates: list[dict[str, str]] | None = None,
+    description: str = "Verify applicable pet food labelling rules.",
+    accepted_source_types: list[str] | None = None,
 ) -> str:
     payload = {
         "acceptedScopeSemantics": {
@@ -46,12 +48,13 @@ def server_query(
         "requirement": {
             "id": "food-law",
             "claimType": "regulatory_requirement",
-            "description": "Verify applicable pet food labelling rules.",
+            "description": description,
             "criticality": "blocking",
             "evidenceRole": "grounded_claim",
             "verificationBasis": "grounded_claims",
             "appliesWhen": "When assessing Estonia pet-food market entry.",
-            "acceptedSourceTypes": ["government", "primary_law"],
+            "acceptedSourceTypes": accepted_source_types
+            or ["government", "primary_law"],
             "allowedSourceHosts": allowed_hosts or [],
         },
     }
@@ -1501,6 +1504,113 @@ async def test_invalid_operation_local_source_fails_canonical_input_closed() -> 
     assert result["runtime_diagnostics"]["fallback"]["status"] == (
         "invalid_canonical_input"
     )
+
+
+@pytest.mark.asyncio
+async def test_explicit_eu_regulation_outranks_degraded_search_results() -> None:
+    regulation_767 = "https://eur-lex.europa.eu/eli/reg/2009/767/oj/eng"
+    irrelevant = [
+        "https://irrelevant.example/bmi",
+        "https://irrelevant.example/boeing",
+        "https://irrelevant.example/dictionary",
+    ]
+    exact = "Feed materials may be marketed only if they are safe and genuine."
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        text = exact if url == regulation_767 else "Unrelated search result."
+        return document(url, f"Publisher heading. {text} Publisher footer.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient("retry_exhausted")),
+        searxng=FakeSearx(
+            discovery(
+                sources=[{"url": url, "title": "Irrelevant"} for url in irrelevant]
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    ).search(
+        server_query(
+            description=(
+                "Verify Regulation (EC) No 767/2009 for the accepted planning "
+                "requirement."
+            )
+        )
+    )
+
+    assert fetched == [regulation_767, irrelevant[0], irrelevant[1]]
+    assert result["search_performed"] is True
+    assert result["provider"] == "searxng_direct_fetch"
+    assert result["sources"][0]["url"] == regulation_767
+    assert result["claims"][0]["text"] == exact
+    assert result["provider_response_hash"] == hashlib.sha256(
+        result["text"].encode("utf-8")
+    ).hexdigest()
+
+
+@pytest.mark.asyncio
+async def test_multiple_named_eu_regulations_fail_canonical_input_closed() -> None:
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, "must not be fetched")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(discovery()),
+        fetcher=fetch,
+        extractor=EmptyExtractor(),
+    ).search(
+        server_query(
+            description=(
+                "Verify Regulation (EC) No 767/2009 and Regulation (EC) "
+                "No 183/2005."
+            )
+        )
+    )
+
+    assert fetched == []
+    assert result["search_performed"] is False
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "invalid_canonical_input"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("accepted_source_types", "allowed_hosts"),
+    [
+        (["government"], []),
+        (["government", "primary_law"], ["riigiteataja.ee"]),
+    ],
+)
+async def test_explicit_eu_locator_preserves_source_type_and_host_gates(
+    accepted_source_types: list[str], allowed_hosts: list[str]
+) -> None:
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, "must not be fetched")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(discovery(status="error", search_performed=False)),
+        fetcher=fetch,
+        extractor=EmptyExtractor(),
+    ).search(
+        server_query(
+            description="Verify Regulation (EC) No 767/2009.",
+            accepted_source_types=accepted_source_types,
+            allowed_hosts=allowed_hosts,
+        )
+    )
+
+    assert fetched == []
+    assert result["search_performed"] is False
 
 
 @pytest.mark.asyncio
