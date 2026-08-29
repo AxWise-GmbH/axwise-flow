@@ -57,6 +57,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _validate_synthesis,
     _validate_task_draft,
     _validate_revision_draft,
+    _without_forbidden_task_launch_claim_lines,
     _with_immutable_gap_labels,
     has_positive_launch_readiness_claim,
 )
@@ -1763,6 +1764,45 @@ def test_task_prompt_matches_prompted_output_schema() -> None:
     )
 
     assert draft.requirement_coverage[0].requirement_id == "req-0123456789abcdef"
+
+
+def test_task_output_prunes_only_positive_launch_claim_lines() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-0123456789abcdef"],
+        artifact_type="product_prd",
+    )
+    unsafe = TaskDraft(
+        title="Specialist packet",
+        markdown=(
+            "# User analysis\n\n"
+            "Keep this evidence-bounded user analysis.\n\n"
+            "The product is launch-ready for the Estonian market.\n\n"
+            "# Evidence gaps\n\n"
+            "Commercial launch is prohibited until unresolved evidence is verified."
+        ),
+        requirement_coverage=[
+            {
+                "requirementId": "req-0123456789abcdef",
+                "status": "satisfied",
+                "note": "The user analysis is complete.",
+            }
+        ],
+        conclusions=["Keep the bounded user analysis."],
+        unknowns=["The launch evidence remains unresolved."],
+    )
+
+    repaired = _without_forbidden_task_launch_claim_lines(context, unsafe)
+
+    assert "Keep this evidence-bounded user analysis." in repaired.markdown
+    assert "The product is launch-ready" not in repaired.markdown
+    assert "Commercial launch is prohibited until" in repaired.markdown
+    assert has_positive_launch_readiness_claim(repaired.markdown) is False
+    _validate_task_draft(context, repaired)
 
 
 def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> None:
