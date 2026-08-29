@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from pathlib import Path
 from uuid import UUID
 
 import httpx
@@ -22,6 +23,7 @@ from backend.domain.workflow_v2.contracts import (
     ResearchSourceV1,
     ScopeArtifactV2,
     SourceAppendixEntryV1,
+    SynthesizeArtifactInputV1,
     artifact_content_hash,
     canonical_hash,
 )
@@ -1730,6 +1732,123 @@ def test_task_prompt_matches_prompted_output_schema() -> None:
     )
 
     assert draft.requirement_coverage[0].requirement_id == "req-0123456789abcdef"
+
+
+def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> None:
+    task_prompt = cognitive_executor_module.TASK_SYSTEM_PROMPT
+    final_prompt = cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
+
+    for required in (
+        "do not silently choose an unspecified",
+        "invent personal names, ages, neighbourhoods",
+        "Do not invent exact nutrition",
+        "Evidence markers are sentence- or table-cell-local",
+    ):
+        assert required in task_prompt
+    for required in (
+        "one surgical repair of BASE_MARKDOWN",
+        "every exact item in REPAIR_TARGETS",
+        "Prefer deleting an unsupported sentence or table",
+        "cell over paraphrasing it",
+        "persona names, ages, neighbourhoods and demographic facts",
+    ):
+        assert required in final_prompt
+
+
+def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts() -> None:
+    fixture_path = (
+        Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
+    )
+    cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    final_case = next(item for item in cases if item["name"] == "final_synthesis")
+    input_value = SynthesizeArtifactInputV1.model_validate(final_case["input"])
+    contents = list(input_value.artifact_contents)
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    evaluation_payload = {
+        **evaluation_content.payload,
+        "unsupportedPrecision": [
+            "Unsupported nutritional threshold.",
+            "Unsupported processing temperature.",
+        ],
+        "contradictions": ["The product is both cleared and unresolved."],
+        "repairInstructions": [
+            "Remove the unsupported thresholds and preserve the useful PRD."
+        ],
+    }
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={"payload": evaluation_payload}
+    )
+    research_payload = next(
+        item.payload for item in contents if item.artifact.kind == "research"
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=input_value.output_contract.required_sections,
+        evidence_readiness=input_value.output_contract.evidence_readiness,
+        allowed_claim_ids=PydanticAISynthesisWriter._allowed_claim_ids(
+            research_payload
+        ),
+        allowed_claim_texts=PydanticAISynthesisWriter._allowed_claim_texts(
+            research_payload
+        ),
+        required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
+            research_payload
+        ),
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type=input_value.output_contract.artifact_type,
+    )
+
+    prompt = PydanticAISynthesisWriter._final_repair_prompt(
+        input_value, contents, context
+    )
+    payload = json.loads(prompt)
+    core = next(
+        item
+        for item in contents
+        if item.artifact.kind == "task_result"
+        and item.payload["task"]["taskKind"] == "core_draft"
+    )
+    specialists = [
+        item
+        for item in contents
+        if item.artifact.kind == "task_result"
+        and item.payload["task"]["taskKind"] == "specialist_analysis"
+    ]
+
+    assert payload["BASE_MARKDOWN"] == core.markdown
+    assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
+        "Unsupported nutritional threshold.",
+        "Unsupported processing temperature.",
+    ]
+    assert payload["REPAIR_TARGETS"]["contradictions"] == [
+        "The product is both cleared and unresolved."
+    ]
+    assert payload["REPAIR_INSTRUCTIONS"] == [
+        "Remove the unsupported thresholds and preserve the useful PRD."
+    ]
+    assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
+    semantic_method = payload["SEMANTIC_METHOD"]
+    assert semantic_method["method"] == "decision_useful_product_prd_v1"
+    assert "user segments, jobs to be done, pains, and buying roles" in semantic_method[
+        "analysisAreas"
+    ]
+    assert "measurable validation experiments with owners and decision thresholds" in (
+        semantic_method["analysisAreas"]
+    )
+    assert any(
+        "explicit hypothesis or proposal" in rule
+        for rule in semantic_method["consequentialAssertionRule"]
+    )
+    assert "SELECTED_IMMUTABLE_ARTIFACTS" not in payload
+    assert "ACCEPTED_SCOPE" not in payload
+    assert "RESEARCH_RESULT" not in payload
+    assert all(item.markdown not in payload.values() for item in specialists)
 
 
 def test_specialist_gap_validation_stays_within_its_bounded_lens() -> None:
