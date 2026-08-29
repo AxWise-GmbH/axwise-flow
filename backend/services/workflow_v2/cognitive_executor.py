@@ -545,6 +545,8 @@ _PRD_REQUIRED_SECTION_ALIASES = {
     "metrics and validation": "Metrics and validation",
     "metrics, assumptions & evidence-backed constraints": "Metrics and validation",
     "metrics, assumptions and evidence-backed constraints": "Metrics and validation",
+    "metrics & pre-launch next steps": "Metrics and validation",
+    "metrics and pre-launch next steps": "Metrics and validation",
     "next steps": "Next steps",
     "prioritized functional & operational prd requirements": "Prioritized requirements",
     "prioritized functional and operational prd requirements": "Prioritized requirements",
@@ -553,8 +555,12 @@ _PRD_REQUIRED_SECTION_ALIASES = {
     "risks and mitigations": "Risks",
     "success metrics & kpis": "Metrics and validation",
     "success metrics and kpis": "Metrics and validation",
+    "launch assumptions & open gaps": "Evidence, assumptions, and gaps",
+    "launch assumptions and open gaps": "Evidence, assumptions, and gaps",
     "target personas & user journeys": "User journeys",
     "target personas and user journeys": "User journeys",
+    "target personas & user needs": "Users, jobs, and pains",
+    "target personas and user needs": "Users, jobs, and pains",
     "target users and jobs-to-be-done": "Users, jobs, and pains",
     "target users and jobs to be done": "Users, jobs, and pains",
     "users, jobs, and pains": "Users, jobs, and pains",
@@ -1487,19 +1493,117 @@ _SERVER_OWNED_SOURCE_HEADING = re.compile(
     r"^(?:sources?|source appendix|references|bibliography)"
     r"(?:\s*/\s*(?:sources?|source appendix|references|bibliography))*$"
 )
-_MARKDOWN_HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$", re.MULTILINE)
+_MARKDOWN_HEADING = re.compile(
+    r"^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$", re.MULTILINE
+)
+_MARKDOWN_HEADING_ORDINAL = re.compile(
+    r"^(?:(?:\d+(?:\.\d+)+[.)]?)|(?:\d+|[ivxlcdm]+)[.)])\s+",
+    re.IGNORECASE,
+)
+_MARKDOWN_HEADING_TRAILING_QUALIFIER = re.compile(r"\s*\(([^()]*)\)\s*$")
 _RAW_EVIDENCE_MARKER = re.compile(r"\[evidence:([^\]\r\n]*)\]")
 _EVIDENCE_CLAIM_ID = re.compile(r"^[a-f0-9]{64}$")
 
 
-def _is_server_owned_source_heading(value: str) -> bool:
-    return _SERVER_OWNED_SOURCE_HEADING.fullmatch(value.strip().lower()) is not None
+def _markdown_heading_fragments(value: str) -> list[str]:
+    """Return bounded semantic labels from one rendered Markdown heading.
+
+    Numbering is presentation, not output-contract semantics. The full label and its
+    primary label before one trailing parenthetical are retained. The parenthetical is
+    never an independent identity: only explicit PRD aliases may collapse overlapping
+    contract sections. We do not use substring or fuzzy matching.
+    """
+
+    primary = value.strip().strip("*_`~ ")
+    primary = _MARKDOWN_HEADING_ORDINAL.sub("", primary, count=1).strip()
+    primary = primary.strip("*_`~ ")
+    full = primary
+    qualifier_match = _MARKDOWN_HEADING_TRAILING_QUALIFIER.search(primary)
+    fragments = [full]
+    if qualifier_match is not None:
+        primary_without_qualifier = primary[: qualifier_match.start()].strip()
+        primary_without_qualifier = primary_without_qualifier.strip("*_`~ ")
+        fragments = [primary_without_qualifier, full]
+    return list(dict.fromkeys(fragment for fragment in fragments if fragment))
+
+
+def _markdown_heading_identities(
+    value: str, *, artifact_type: str | None = None
+) -> set[str]:
+    """Project one rendered heading into bounded semantic identities."""
+
+    identities: set[str] = set()
+    for fragment in _markdown_heading_fragments(value):
+        normalized = re.sub(r"\s+", " ", fragment).strip().lower()
+        if normalized:
+            identities.add(normalized)
+        if artifact_type in {"product_prd", "software_prd"}:
+            alias = _PRD_REQUIRED_SECTION_ALIASES.get(
+                _normalized_semantic_text(fragment)
+            )
+            if alias is not None:
+                identities.add(re.sub(r"\s+", " ", alias).strip().lower())
+    return identities
+
+
+def _required_section_identities(
+    value: str, *, artifact_type: str | None = None
+) -> set[str]:
+    """Project one authoritative required label without splitting its semantics."""
+
+    label = value.strip().strip("*_`~ ")
+    label = _MARKDOWN_HEADING_ORDINAL.sub("", label, count=1).strip()
+    label = label.strip("*_`~ ")
+    normalized = re.sub(r"\s+", " ", label).strip().lower()
+    identities = {normalized} if normalized else set()
+    if artifact_type in {"product_prd", "software_prd"}:
+        alias = _PRD_REQUIRED_SECTION_ALIASES.get(_normalized_semantic_text(label))
+        if alias is not None:
+            identities.add(re.sub(r"\s+", " ", alias).strip().lower())
+    return identities
+
+
+def _markdown_heading_primary_identity(
+    value: str, *, artifact_type: str | None = None
+) -> str:
+    """Return the stable identity used for duplicate-heading checks."""
+
+    fragments = _markdown_heading_fragments(value)
+    if not fragments:
+        return ""
+    primary = fragments[0]
+    if artifact_type in {"product_prd", "software_prd"}:
+        primary = _PRD_REQUIRED_SECTION_ALIASES.get(
+            _normalized_semantic_text(primary), primary
+        )
+    return re.sub(r"\s+", " ", primary).strip().lower()
+
+
+def _markdown_heading_level(value: re.Match[str] | str) -> int:
+    """Return the ATX level while allowing CommonMark's three-space indent."""
+
+    line = value.group(0) if isinstance(value, re.Match) else value
+    unindented = line.lstrip(" ")
+    return len(unindented) - len(unindented.lstrip("#"))
+
+
+def _is_server_owned_source_heading(value: str, *, rendered: bool = False) -> bool:
+    identities = (
+        _markdown_heading_identities(value)
+        if rendered
+        else _required_section_identities(value)
+    )
+    return any(
+        _SERVER_OWNED_SOURCE_HEADING.fullmatch(identity) is not None
+        for identity in identities
+    )
 
 
 def _markdown_headings(markdown: str) -> list[tuple[int, str, str]]:
+    unfenced = _markdown_with_fenced_bodies_blanked(markdown)
     return [
         (match.start(), match.group(1).strip(), match.group(1).strip().lower())
-        for match in _MARKDOWN_HEADING.finditer(markdown)
+        for match in _MARKDOWN_HEADING.finditer(unfenced)
     ]
 
 
@@ -1573,14 +1677,25 @@ def _evidence_markers(markdown: str) -> list[re.Match[str]]:
 def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> None:
     folded = draft.markdown.lower()
     heading_facts = _markdown_headings(draft.markdown)
-    headings = [normalized for _, _, normalized in heading_facts]
-    if any(_is_server_owned_source_heading(name) for _, name, _ in heading_facts):
+    headings = {
+        identity
+        for _, raw_name, _ in heading_facts
+        for identity in _markdown_heading_identities(
+            raw_name, artifact_type=context.artifact_type
+        )
+    }
+    if any(
+        _is_server_owned_source_heading(name, rendered=True)
+        for _, name, _ in heading_facts
+    ):
         raise ValueError("model output must not provide its own source appendix")
     missing = [
         section
         for section in context.required_sections
         if not _is_server_owned_source_heading(section)
-        and section.strip().lower() not in headings
+        and not _required_section_identities(
+            section, artifact_type=context.artifact_type
+        ).intersection(headings)
     ]
     if missing:
         raise ValueError("required Markdown sections are missing: " + ", ".join(missing))
@@ -1863,7 +1978,10 @@ def _bounded_source_section_label(sections: Sequence[str]) -> str:
 
 def _citation_sections(markdown: str) -> dict[str, list[str]]:
     headings = _markdown_headings(markdown)
-    if any(_is_server_owned_source_heading(name) for _, name, _ in headings):
+    if any(
+        _is_server_owned_source_heading(name, rendered=True)
+        for _, name, _ in headings
+    ):
         raise ValueError("model output must not provide its own source appendix")
     sections: dict[str, set[str]] = {}
     for marker in _evidence_markers(markdown):
@@ -2915,12 +3033,20 @@ def _prepare_task_unresolved_actions(
     full_contract = bool(context.required_sections)
 
     def present_required_headings(markdown: str) -> set[str]:
-        headings = {normalized for _, _, normalized in _markdown_headings(markdown)}
+        headings = {
+            identity
+            for _, raw_name, _ in _markdown_headings(markdown)
+            for identity in _markdown_heading_identities(
+                raw_name, artifact_type=context.artifact_type
+            )
+        }
         return {
             section.strip().lower()
             for section in context.required_sections
             if not _is_server_owned_source_heading(section)
-            and section.strip().lower() in headings
+            and _required_section_identities(
+                section, artifact_type=context.artifact_type
+            ).intersection(headings)
         }
 
     def fenced_line_indexes(markdown: str) -> set[int]:
@@ -3224,8 +3350,11 @@ def _remove_newly_orphaned_optional_sections(
                         {
                             "start": offset,
                             "content_start": offset + len(raw_line),
-                            "level": len(raw_line) - len(raw_line.lstrip("#")),
+                            "level": _markdown_heading_level(raw_line),
                             "normalized": _normalized_semantic_text(heading.group(1)),
+                            "semantic_identities": _markdown_heading_identities(
+                                heading.group(1)
+                            ),
                         }
                     )
             offset += len(line)
@@ -3250,6 +3379,7 @@ def _remove_newly_orphaned_optional_sections(
                     "identity": (level, normalized, occurrence),
                     "level": level,
                     "normalized": normalized,
+                    "semantic_identities": heading["semantic_identities"],
                     "start": heading["start"],
                     "end": content_end,
                     "words": len(re.findall(r"\b[\w'-]+\b", body)),
@@ -3262,7 +3392,9 @@ def _remove_newly_orphaned_optional_sections(
         item["identity"]: item for item in sections(before_pruning)
     }
     required = {
-        _normalized_semantic_text(section) for section in required_sections
+        identity
+        for section in required_sections
+        for identity in _required_section_identities(section)
     }
     removable: list[tuple[int, int]] = []
     for item in sections(after_pruning):
@@ -3270,7 +3402,7 @@ def _remove_newly_orphaned_optional_sections(
         if (
             item["level"] >= 2
             and item["leaf"]
-            and item["normalized"] not in required
+            and not item["semantic_identities"].intersection(required)
             and item["words"] < 3
             and prior is not None
             and prior["words"] >= 3
@@ -3432,7 +3564,7 @@ def _incomplete_given_when_then_acceptance_blocks(markdown: str) -> list[str]:
             finish_block(clear_list_label=True)
             table_role_columns = None
             table_row_number = 0
-            level = len(stripped) - len(stripped.lstrip("#"))
+            level = _markdown_heading_level(stripped)
             heading_stack = [item for item in heading_stack if item[0] < level]
             heading_stack.append((level, heading.group(1).strip()))
             continue
@@ -3563,14 +3695,14 @@ def _deterministic_structural_integrity_defects(markdown: str) -> list[str]:
     heading_matches = list(_MARKDOWN_HEADING.finditer(base))
 
     def section_body(name: str) -> str | None:
-        wanted = _normalized_semantic_text(name)
+        wanted = _required_section_identities(name)
         for index, match in enumerate(heading_matches):
-            if _normalized_semantic_text(match.group(1)) != wanted:
+            if not _markdown_heading_identities(match.group(1)).intersection(wanted):
                 continue
-            level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+            level = _markdown_heading_level(match)
             end = len(base)
             for later in heading_matches[index + 1 :]:
-                later_level = len(later.group(0)) - len(later.group(0).lstrip("#"))
+                later_level = _markdown_heading_level(later)
                 if later_level <= level:
                     end = later.start()
                     break
@@ -3656,10 +3788,10 @@ def _deterministic_structural_integrity_defects(markdown: str) -> list[str]:
     for index, match in enumerate(heading_matches):
         if roadmap_heading.search(match.group(1)) is None:
             continue
-        level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+        level = _markdown_heading_level(match)
         end = len(base)
         for later in heading_matches[index + 1 :]:
-            later_level = len(later.group(0)) - len(later.group(0).lstrip("#"))
+            later_level = _markdown_heading_level(later)
             if later_level <= level:
                 end = later.start()
                 break
@@ -3710,8 +3842,10 @@ def _with_accepted_requirement_traceability(
         (
             index
             for index, match in enumerate(headings)
-            if _normalized_semantic_text(match.group(1))
-            == _normalized_semantic_text("Prioritized requirements")
+            if "prioritized requirements"
+            in _markdown_heading_identities(
+                match.group(1), artifact_type=context.artifact_type
+            )
         ),
         None,
     )
@@ -3719,8 +3853,10 @@ def _with_accepted_requirement_traceability(
         (
             index
             for index, match in enumerate(headings)
-            if _normalized_semantic_text(match.group(1))
-            == _normalized_semantic_text("Acceptance criteria")
+            if "acceptance criteria"
+            in _markdown_heading_identities(
+                match.group(1), artifact_type=context.artifact_type
+            )
         ),
         None,
     )
@@ -3729,10 +3865,10 @@ def _with_accepted_requirement_traceability(
 
     def section_body(index: int) -> tuple[str, int]:
         match = headings[index]
-        level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+        level = _markdown_heading_level(match)
         end = len(base)
         for later in headings[index + 1 :]:
-            later_level = len(later.group(0)) - len(later.group(0).lstrip("#"))
+            later_level = _markdown_heading_level(later)
             if later_level <= level:
                 end = later.start()
                 break
@@ -3858,23 +3994,21 @@ def _deterministic_quality_defects(
             "The candidate contains server-generated evidence-validation placeholders "
             "instead of substantive deliverable content."
         )
-    heading_matches = list(_MARKDOWN_HEADING.finditer(base))
+    heading_matches = list(
+        _MARKDOWN_HEADING.finditer(_markdown_with_fenced_bodies_blanked(base))
+    )
     heading_facts = [
         (
             match,
-            len(match.group(0)) - len(match.group(0).lstrip("#")),
+            _markdown_heading_level(match),
             match.group(1).strip(),
             match.group(1).strip().casefold(),
         )
         for match in heading_matches
     ]
     level_two_names = [
-        _normalized_semantic_text(
-            _PRD_REQUIRED_SECTION_ALIASES.get(normalized, normalized)
-            if artifact_type in {"product_prd", "software_prd"}
-            else normalized
-        )
-        for _match, level, _raw, normalized in heading_facts
+        _markdown_heading_primary_identity(raw, artifact_type=artifact_type)
+        for _match, level, raw, _normalized in heading_facts
         if level == 2
     ]
     duplicate_level_two = utf16_ordinal_sorted(
@@ -3929,23 +4063,29 @@ def _deterministic_quality_defects(
             )
     practical.extend(_deterministic_structural_integrity_defects(base))
     if artifact_type in {"product_prd", "software_prd"}:
-        headings = {name for _position, _raw, name in _markdown_headings(base)}
+        headings = {
+            identity
+            for _position, raw_name, _normalized in _markdown_headings(base)
+            for identity in _markdown_heading_identities(
+                raw_name, artifact_type=artifact_type
+            )
+        }
         section_matches = heading_matches
         for index, section_match in enumerate(section_matches):
             raw_name = section_match.group(1).strip()
-            normalized_name = raw_name.casefold()
-            if normalized_name not in {
-                section.casefold() for section in _PRD_BASELINE_SECTIONS
-            }.union({"technical boundaries"}):
-                continue
-            section_level = len(section_match.group(0)) - len(
-                section_match.group(0).lstrip("#")
+            heading_identities = _markdown_heading_identities(
+                raw_name, artifact_type=artifact_type
             )
+            if not heading_identities.intersection(
+                {
+                    section.lower() for section in _PRD_BASELINE_SECTIONS
+                }.union({"technical boundaries"})
+            ):
+                continue
+            section_level = _markdown_heading_level(section_match)
             content_end = len(base)
             for later_match in section_matches[index + 1 :]:
-                later_level = len(later_match.group(0)) - len(
-                    later_match.group(0).lstrip("#")
-                )
+                later_level = _markdown_heading_level(later_match)
                 if later_level <= section_level:
                     content_end = later_match.start()
                     break
