@@ -61,6 +61,7 @@ from backend.domain.workflow_v2.contracts import (
     artifact_content_hash,
     canonical_hash,
     canonical_json,
+    is_canonical_public_https_url,
     utf16_length,
     utf16_ordinal_sorted,
     utf16_slice,
@@ -134,6 +135,12 @@ _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES = frozenset(
         "statutory_requirement",
     }
 )
+_OFFICIAL_SOURCE_CLASSES_BY_HOST = {
+    # Stable publisher authorities, not product- or query-specific shortcuts.
+    # Subdomains inherit only the authority of their exact registered root.
+    "agri.ee": frozenset({"government"}),
+    "riigiteataja.ee": frozenset({"government", "primary_law"}),
+}
 
 
 def _research_time() -> float:
@@ -699,7 +706,8 @@ def _requirement_has_statutory_force(requirement: EvidenceRequirement) -> bool:
     claim_type = re.sub(r"[-\s]+", "_", requirement.claim_type.casefold())
     description = re.sub(r"[_-]+", " ", requirement.description)
     return (
-        claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
+        "primary_law" in requirement.accepted_source_types
+        or claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
         or _STATUTORY_SEMANTICS.search(description) is not None
     )
 
@@ -2634,16 +2642,20 @@ def _classify_source_types(url: str, _title: str) -> set[str]:
     path = (parsed.path or "").casefold()
     host_and_path = f"{host} {path}"
     types = {"grounded_web"}
-    government_host = bool(
+    for authority_host, authority_types in _OFFICIAL_SOURCE_CLASSES_BY_HOST.items():
+        if host == authority_host or host.endswith(f".{authority_host}"):
+            types.update(authority_types)
+    generic_government_host = bool(
         host.endswith(".gov")
         or re.search(r"(?:^|\.)gov\.[a-z]{2,3}$", host)
         or host == "europa.eu"
         or host.endswith(".europa.eu")
     )
+    government_host = generic_government_host or "government" in types
     if government_host:
         types.add("government")
-    if host == "eur-lex.europa.eu" or (
-        government_host
+    if "primary_law" in types or host == "eur-lex.europa.eu" or (
+        generic_government_host
         and any(
             marker in host_and_path
             for marker in ("legislation", "legal", "law", "regulation", "statute")
@@ -2725,6 +2737,34 @@ def _source_snapshot(
         return None
 
 
+@dataclass(frozen=True)
+class _ResearchSourceLocator:
+    """An untrusted operation-local URL hint that can never become evidence itself."""
+
+    canonical_url: str
+    source_title: str
+    source_classes: tuple[str, ...]
+
+
+def _source_locator(raw_source: dict[str, Any]) -> _ResearchSourceLocator | None:
+    title = str(raw_source.get("title") or "").strip()
+    url = str(raw_source.get("url") or "").strip()
+    if (
+        not title
+        or title.casefold() == "unknown"
+        or len(title) > 1_000
+        or not is_canonical_public_https_url(url)
+    ):
+        return None
+    return _ResearchSourceLocator(
+        canonical_url=url,
+        source_title=title,
+        source_classes=tuple(
+            utf16_ordinal_sorted(_classify_source_record(url, raw_source))
+        ),
+    )
+
+
 def _claims_with_source_catalogue(
     claims: list[EvidenceClaimV1], sources: list[dict[str, Any]]
 ) -> tuple[list[EvidenceClaimV1], list[ResearchSourceV1]]:
@@ -2785,6 +2825,7 @@ def _merge_source_catalogue(
 def _repair_source_candidates(
     requirement: EvidenceRequirement,
     catalogues: list[list[ResearchSourceV1]],
+    locator_catalogues: list[list[_ResearchSourceLocator]] | None = None,
 ) -> list[dict[str, str]]:
     """Reuse only authoritative public locators acquired in this operation.
 
@@ -2801,24 +2842,46 @@ def _repair_source_candidates(
     required_overlap = specific_types or accepted_types
     allowed_hosts = set(requirement.allowed_source_hosts)
     by_url: dict[str, dict[str, Any]] = {}
-    for source in (item for catalogue in catalogues for item in catalogue):
-        if len(source.canonical_url) > 1_000:
-            continue
-        source_types = {
-            _normalized_source_type(value) for value in source.source_classes
-        }
-        if not source_types.intersection(required_overlap):
-            continue
-        if allowed_hosts and not _url_matches_allowed_hosts(
-            source.canonical_url, allowed_hosts
-        ):
-            continue
+    def add_candidate(
+        *,
+        url: str,
+        title: str,
+        source_classes: set[str],
+        supported_claim_ids: set[str],
+    ) -> None:
+        if len(url) > 1_000:
+            return
+        if not source_classes.intersection(required_overlap):
+            return
+        if allowed_hosts and not _url_matches_allowed_hosts(url, allowed_hosts):
+            return
         row = by_url.setdefault(
-            source.canonical_url,
+            url,
             {"titles": set(), "supported_claim_ids": set()},
         )
-        row["titles"].add(source.source_title[:500])
-        row["supported_claim_ids"].update(source.supported_claim_ids)
+        row["titles"].add(title[:500])
+        row["supported_claim_ids"].update(supported_claim_ids)
+
+    for source in (item for catalogue in catalogues for item in catalogue):
+        add_candidate(
+            url=source.canonical_url,
+            title=source.source_title,
+            source_classes={
+                _normalized_source_type(value) for value in source.source_classes
+            },
+            supported_claim_ids=set(source.supported_claim_ids),
+        )
+    for source in (
+        item for catalogue in (locator_catalogues or []) for item in catalogue
+    ):
+        add_candidate(
+            url=source.canonical_url,
+            title=source.source_title,
+            source_classes={
+                _normalized_source_type(value) for value in source.source_classes
+            },
+            supported_claim_ids=set(),
+        )
 
     def direct_text_rank(url: str) -> int:
         path = urlparse(url).path.casefold()
@@ -3582,6 +3645,7 @@ class GeminiCognitiveExecutor:
         deadline = _research_time() + deadline_seconds
         ledger: list[EvidenceAcquisitionPassV1] = []
         acquired_source_catalogues: list[list[ResearchSourceV1]] = []
+        acquired_source_locator_catalogues: list[list[_ResearchSourceLocator]] = []
         input_tokens = 0
         output_tokens = 0
         total_tokens = 0
@@ -3640,7 +3704,9 @@ class GeminiCognitiveExecutor:
             }
             if pass_number == 1:
                 reusable_sources = _repair_source_candidates(
-                    requirement, acquired_source_catalogues
+                    requirement,
+                    acquired_source_catalogues,
+                    acquired_source_locator_catalogues,
                 )
                 if reusable_sources:
                     query_payload["fallbackCandidateSources"] = reusable_sources
@@ -3732,6 +3798,14 @@ class GeminiCognitiveExecutor:
                 claims=claims,
                 source_types_seen=source_types_seen,
             )
+            if pass_number == 0:
+                source_locators = [
+                    locator
+                    for item in sources
+                    if (locator := _source_locator(item)) is not None
+                ]
+                if source_locators:
+                    acquired_source_locator_catalogues.append(source_locators)
             usage_input, usage_output, usage_total, calls = _usage_from_search(raw)
             return (
                 claims,

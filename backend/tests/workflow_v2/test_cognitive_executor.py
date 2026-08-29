@@ -1596,6 +1596,66 @@ async def test_planning_gap_exemption_preserves_statutory_and_authorization_bloc
     assert authorization_result.artifact.payload["findings"][0]["blocking"] is True
 
 
+@pytest.mark.asyncio
+async def test_primary_law_keeps_live_pta_requirement_blocking_for_prd() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            claim_type="estonian_pta_feed_business_rules",
+            description=(
+                "Estonian national requirements and PTA obligations for registering "
+                "and operating a pet-food business or distribution facility."
+            ),
+            applies_when=(
+                "Operating feed storage, packaging, or direct distribution in Estonia."
+            ),
+            accepted_source_types=["government", "primary_law"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+
+    result = await execute_research(compiled, MissingResearchRunner())
+
+    finding = result.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert finding["blocking"] is True
+    assert result.evidence_readiness == "blocked"
+
+
+@pytest.mark.parametrize(
+    ("url", "expected", "unexpected"),
+    [
+        (
+            "https://pta.agri.ee/en/legal-regulation-guidance",
+            {"government", "grounded_web"},
+            {"primary_law"},
+        ),
+        (
+            "https://www.riigiteataja.ee/en/eli/ee/act/501012026001/consolide",
+            {"government", "grounded_web", "primary_law"},
+            set(),
+        ),
+        (
+            "https://riigiteataja.ee.evil.example/copied-law",
+            {"grounded_web"},
+            {"government", "primary_law"},
+        ),
+        (
+            "https://notagri.ee/copied-guidance",
+            {"grounded_web"},
+            {"government"},
+        ),
+    ],
+)
+def test_estonian_official_authority_hosts_require_exact_root_or_subdomain(
+    url: str, expected: set[str], unexpected: set[str]
+) -> None:
+    classified = cognitive_executor_module._classify_source_types(url, "untrusted")
+
+    assert expected.issubset(classified)
+    assert classified.isdisjoint(unexpected)
+
+
 def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
     for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
         assert "verificationBasis" in prompt
@@ -2718,6 +2778,70 @@ async def test_targeted_repair_reuses_only_same_operation_accepted_source_locato
     assert [
         finding["status"] for finding in result.artifact.payload["findings"]
     ] == ["verified", "verified", "missing"]
+
+
+@pytest.mark.asyncio
+async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it() -> None:
+    official_url = "https://pta.agri.ee/en/feed"
+
+    class RawLocatorThenVerifiedRunner:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def search(self, query: str) -> dict:
+            self.calls += 1
+            payload = json.loads(query.rsplit("\n", 1)[1])
+            if self.calls == 1:
+                assert "fallbackCandidateSources" not in payload
+                return {
+                    "search_performed": True,
+                    "text": "An official locator was found, but no exact claim was extracted.",
+                    "claims": [],
+                    "sources": [
+                        {"title": "Agriculture and Food Board", "url": official_url},
+                        {
+                            "title": "Copied guidance",
+                            "url": "https://unrelated.example/copied-guidance",
+                        },
+                    ],
+                    "provider_queries": ["initial bounded query"],
+                    "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
+                    "runtime_diagnostics": {"call_count": 1},
+                }
+            assert payload["fallbackCandidateSources"] == [
+                {"title": "Agriculture and Food Board", "url": official_url}
+            ]
+            exact = "Feed business operators must register their feed establishments."
+            return {
+                "search_performed": True,
+                "text": exact,
+                "claims": [{"text": exact, "source_urls": [official_url]}],
+                "sources": [
+                    {"title": "Agriculture and Food Board", "url": official_url}
+                ],
+                "provider_queries": ["single repair query"],
+                "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
+                "runtime_diagnostics": {"call_count": 1},
+            }
+
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="product_prd",
+            claim_type="estonian_pta_feed_business_rules",
+            description="PTA obligations for registering a feed business in Estonia.",
+            applies_when="Operating or distributing feed in Estonia.",
+            accepted_source_types=["government", "primary_law"],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    runner = RawLocatorThenVerifiedRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert runner.calls == 2
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["findings"][0]["status"] == "verified"
+    assert result.artifact.payload["boundedRepairPasses"] == 1
 
 
 @pytest.mark.asyncio
