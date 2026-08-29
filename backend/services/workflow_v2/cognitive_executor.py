@@ -1558,6 +1558,26 @@ def _with_immutable_gap_labels(
     return draft.model_copy(update={"markdown": markdown})
 
 
+def _without_forbidden_task_launch_claim_lines(
+    context: SynthesisContext,
+    draft: TaskDraft,
+) -> TaskDraft:
+    """Delete unsafe child-task assertions before they enter immutable lineage."""
+
+    if (
+        context.evidence_readiness == "ready"
+        and context.artifact_type == "launch_authorization"
+    ):
+        return draft
+    lines = draft.markdown.splitlines()
+    retained = [
+        line for line in lines if not has_positive_launch_readiness_claim(line)
+    ]
+    if len(retained) == len(lines):
+        return draft
+    return draft.model_copy(update={"markdown": "\n".join(retained).strip()})
+
+
 def _validate_task_draft(context: SynthesisContext, draft: TaskDraft) -> None:
     coverage_ids = [item.requirement_id for item in draft.requirement_coverage]
     if coverage_ids != context.acceptance_requirement_ids:
@@ -2514,6 +2534,7 @@ class PydanticAISynthesisWriter:
             ctx: RunContext[SynthesisContext], output: TaskDraft
         ) -> TaskDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
+            output = _without_forbidden_task_launch_claim_lines(ctx.deps, output)
             try:
                 _validate_task_draft(ctx.deps, output)
             except ValueError as error:
@@ -2796,6 +2817,7 @@ class PydanticAISynthesisWriter:
             phase="TASK",
         )
         output = _with_immutable_gap_labels(context, result.output)
+        output = _without_forbidden_task_launch_claim_lines(context, output)
         _validate_task_draft(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(output, input_tokens, output_tokens)
@@ -4834,6 +4856,7 @@ class GeminiCognitiveExecutor:
             )
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
             draft = _with_immutable_gap_labels(context, draft)
+            draft = _without_forbidden_task_launch_claim_lines(context, draft)
             _validate_task_draft(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)
