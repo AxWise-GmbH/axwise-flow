@@ -151,6 +151,16 @@ _NONSTATUTORY_AUTHORITY_SEMANTICS = re.compile(
     r"trade[- ]body)\b",
     re.IGNORECASE,
 )
+_EXPLICIT_EU_REGULATION_NUMBER_YEAR = re.compile(
+    r"\bRegulation\s*\((?:EC|EU|EEC)\)\s+No\.?\s*"
+    r"(?P<number>[1-9]\d{0,5})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+_EXPLICIT_EU_REGULATION_YEAR_NUMBER = re.compile(
+    r"\bRegulation\s*\(EU\)\s*"
+    r"(?P<year>(?:19|20)\d{2})\s*/\s*(?P<number>[1-9]\d{0,5})\b",
+    re.IGNORECASE,
+)
 _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES = frozenset(
     {
         "applicable_law",
@@ -410,6 +420,8 @@ cannot be established by grounded web research. Split mixed requirements so each
 evidence role, one verification basis and one independently verifiable assertion. In
 particular, never combine statutory law with a separate standard, trade-body rule or statistic
 in one requirement even when both are blocking.
+Give every explicitly named legal instrument its own evidence requirement; never combine
+two named regulations into one assertion.
 When REQUEST_TEXT explicitly restricts a requirement to named publishers or official
 documentation, set allowedSourceHosts to the minimal sorted lowercase canonical hostnames
 for those publishers. Otherwise return an empty allowedSourceHosts list. Never infer a host
@@ -728,6 +740,24 @@ def _validate_atomic_evidence_requirements(
                 "mixed statutory and non-statutory evidence assertions must be split "
                 "into independently verifiable requirements"
             )
+        explicit_regulations = {
+            (match.group("year"), str(int(match.group("number"))))
+            for pattern in (
+                _EXPLICIT_EU_REGULATION_NUMBER_YEAR,
+                _EXPLICIT_EU_REGULATION_YEAR_NUMBER,
+            )
+            for match in pattern.finditer(requirement.description)
+        }
+        if (
+            requirement.evidence_role == "grounded_claim"
+            and requirement.verification_basis == "grounded_claims"
+            and "primary_law" in source_types
+            and len(explicit_regulations) > 1
+        ):
+            raise ValueError(
+                "explicit legal instruments must be split into independently "
+                "verifiable requirements"
+            )
 
 
 def _requirement_has_statutory_force(requirement: EvidenceRequirement) -> bool:
@@ -877,6 +907,8 @@ test report, assessment, validation, executed agreement, or safety record and ca
 established by grounded web research. Split mixed requirements so each has one role, basis
 and independently verifiable assertion. Never combine statutory law with a separate standard,
 trade-body rule or statistic in one requirement.
+Give every explicitly named legal instrument its own evidence requirement; never combine
+two named regulations into one assertion.
 Keep criticality intrinsic. For product PRDs, software PRDs, research strategies and
 operational plans, missing non-statutory grounded_claim evidence is a labelled gap;
 requirements that assert statutory-law obligations keep their blocking semantics regardless

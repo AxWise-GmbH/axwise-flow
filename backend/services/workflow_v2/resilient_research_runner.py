@@ -132,6 +132,7 @@ class _FallbackContext:
     accepted_source_types: tuple[str, ...]
     allowed_hosts: frozenset[str]
     reusable_candidates: tuple[_Candidate, ...]
+    authority_candidates: tuple[_Candidate, ...]
 
 
 @dataclass(frozen=True)
@@ -507,6 +508,84 @@ def _url_matches_allowed_hosts(url: str, allowed_hosts: frozenset[str]) -> bool:
     return any(host == allowed or host.endswith(f".{allowed}") for allowed in allowed_hosts)
 
 
+_EU_REGULATION_NUMBER_YEAR = re.compile(
+    r"\bRegulation\s*\((?:EC|EU|EEC)\)\s+No\.?\s*"
+    r"(?P<number>[1-9]\d{0,5})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+_EU_REGULATION_YEAR_NUMBER = re.compile(
+    r"\bRegulation\s*\(EU\)\s*"
+    r"(?P<year>(?:19|20)\d{2})\s*/\s*(?P<number>[1-9]\d{0,5})\b",
+    re.IGNORECASE,
+)
+
+
+def _explicit_eu_regulation_candidates(
+    requirement: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+) -> tuple[_Candidate, ...] | None:
+    """Resolve only explicit accepted EU regulation references to EUR-Lex.
+
+    Search results remain useful discovery locators, but a degraded public
+    search engine must not hide a primary-law document that the accepted
+    requirement already identifies exactly. ELI is the EU's canonical,
+    deterministic identifier scheme; the publisher page is still refetched
+    and must pass the same exact-span validation as every other candidate.
+    """
+
+    accepted_source_types = requirement.get("acceptedSourceTypes")
+    description = requirement.get("description")
+    if (
+        requirement.get("evidenceRole") != "grounded_claim"
+        or requirement.get("verificationBasis") != "grounded_claims"
+        or not isinstance(accepted_source_types, list)
+        or "primary_law" not in accepted_source_types
+        or not isinstance(description, str)
+    ):
+        return ()
+    authority_host = "eur-lex.europa.eu"
+    if allowed_hosts and not _url_matches_allowed_hosts(
+        f"https://{authority_host}", allowed_hosts
+    ):
+        return ()
+
+    references: list[tuple[int, int, str]] = []
+    for pattern in (_EU_REGULATION_NUMBER_YEAR, _EU_REGULATION_YEAR_NUMBER):
+        for match in pattern.finditer(description):
+            references.append(
+                (
+                    match.start(),
+                    int(match.group("year")),
+                    str(int(match.group("number"))),
+                )
+            )
+    references.sort(key=lambda item: item[0])
+
+    candidates: list[_Candidate] = []
+    seen_urls: set[str] = set()
+    for _offset, year, number in references:
+        url = canonical_public_url(
+            f"https://{authority_host}/eli/reg/{year}/{number}/oj/eng"
+        )
+        if url is None or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        candidates.append(
+            _Candidate(
+                canonical_url=url,
+                title=f"EU Regulation {number}/{year} — EUR-Lex",
+                snippets=(f"Regulation {number}/{year}",),
+            )
+        )
+        if len(candidates) > 1:
+            # One evidence requirement must remain independently verifiable.
+            # The current exact-span contract selects one publisher document,
+            # so accepting one of several named laws would overstate coverage.
+            return None
+    return tuple(candidates)
+
+
 def _canonical_string_list(
     value: Any, *, maximum_items: int, maximum_item_characters: int
 ) -> tuple[list[str], bool] | None:
@@ -632,6 +711,12 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
     )
     if reusable_rejected or reusable_malformed or reusable_omitted:
         return None
+    authority_candidates = _explicit_eu_regulation_candidates(
+        requirement,
+        allowed_hosts=frozenset(allowed_hosts),
+    )
+    if authority_candidates is None:
+        return None
 
     # Material evidence semantics are rendered first and each field receives an
     # independent budget. A maximal topic list can therefore never erase the
@@ -690,6 +775,7 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
         accepted_source_types=tuple(source_types),
         allowed_hosts=frozenset(allowed_hosts),
         reusable_candidates=tuple(reusable_candidates),
+        authority_candidates=authority_candidates,
     )
 
 
@@ -1447,7 +1533,7 @@ class ResilientResearchRunner:
             async with asyncio.timeout_at(discovery_deadline):
                 discovery = await self._discover(context.discovery_query)
         except TimeoutError:
-            if not context.reusable_candidates:
+            if not context.reusable_candidates and not context.authority_candidates:
                 return finish_fallback(
                     _primary_with_failed_fallback(
                         primary,
@@ -1466,7 +1552,7 @@ class ResilientResearchRunner:
                 "retry_count": 0,
             }
         except Exception:
-            if not context.reusable_candidates:
+            if not context.reusable_candidates and not context.authority_candidates:
                 return finish_fallback(
                     _primary_with_failed_fallback(
                         primary,
@@ -1508,7 +1594,11 @@ class ResilientResearchRunner:
                 **discovery_diagnostics,
                 "status": discovery_status,
             }
-        if not discovery_healthy and not context.reusable_candidates:
+        if (
+            not discovery_healthy
+            and not context.reusable_candidates
+            and not context.authority_candidates
+        ):
             return finish_fallback(
                 _primary_with_failed_fallback(
                     primary,
@@ -1519,7 +1609,7 @@ class ResilientResearchRunner:
             )
 
         if discovery_healthy:
-            discovered_candidates, rejected_count, malformed_count, omitted_count = (
+            search_candidates, rejected_count, malformed_count, omitted_count = (
                 _candidate_rows(
                     discovery,
                     allowed_hosts=context.allowed_hosts,
@@ -1529,8 +1619,12 @@ class ResilientResearchRunner:
                 )
             )
         else:
-            discovered_candidates = []
+            search_candidates = []
             rejected_count = malformed_count = omitted_count = 0
+        discovered_candidates = [
+            *context.authority_candidates,
+            *search_candidates,
+        ]
         merged_candidates_by_url: dict[str, _Candidate] = {}
         for candidate in (*context.reusable_candidates, *discovered_candidates):
             existing = merged_candidates_by_url.get(candidate.canonical_url)
