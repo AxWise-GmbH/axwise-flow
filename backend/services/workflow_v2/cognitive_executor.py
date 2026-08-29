@@ -974,14 +974,15 @@ scope is the sole semantic authority. Preserve its deliverable profile, typed re
 Given/When/Then acceptance criteria, topic anchors, geography, personas, interviews, PRD
 requirements, limits and policies. OUTPUT_CONTRACT required sections, rubric and acceptance
 criteria are semantic quality checks, not headings to echo. A grounded factual claim must carry its
-exact `[evidence:<claim-id>]` marker from ALLOWED_CLAIM_IDS. Never invent a marker, URL,
-title, date, number, threshold, certification or clearance. Separate supported facts from
-assumptions and recommendations. Treat every exact number, recipe or composition, formula,
-health or safety outcome, processing parameter, legal obligation, standard, certification and
-market statistic as unsupported unless the same sentence cites an immutable claim that directly
-supports that exact assertion. A project choice without evidence is useful only when explicitly
-labelled as a proposed target, hypothesis, assumption or TBD validation item; it must not imply
-health, safety, legal or certification authority. If readiness is not ready, never claim launch,
+exact `[evidence:<claim-id>]` marker from ALLOWED_CLAIM_IDS. Never invent a marker or an
+evidence source's URL, title or publication date, and never invent certification or clearance.
+Separate supported facts from assumptions and
+recommendations. Exact immutable support is mandatory for health, safety, legal,
+certification and authority assertions, and every assertion carrying an evidence marker.
+For planning artifacts, ordinary numeric product, operational, budget, date and metric choices
+may be presented as decisions or targets without evidence, but must not be described as verified
+external facts or imply health, safety, legal or certification authority. If readiness is not
+ready, never claim launch,
 production, market, legal or safety readiness. AxWise returns cognitive facts only; never instruct
 Orqaly which workflow stage to run next. The server appends the exact source appendix.
 Never author a Sources or Source appendix heading or source row, even when that heading is
@@ -1013,12 +1014,12 @@ specific unsupported precision, contradictions, stale-topic references and readi
 violations, substantive-content defects and practicality defects. A shell that merely repeats
 scope, plan, evidence status or headings is not substantive. For PRDs, strategy and operational
 plans, missing decisions, actions, acceptance checks or validation steps is a practicality
-defect. Inspect every sentence containing a number, percentage, money amount, date, formula,
-recipe/composition, processing parameter, health/safety outcome, named law/standard or
-compliance statement. An evidence marker supports only the exact claim text bound to that ID;
-adjacent facts, different numbers and broader conclusions remain unsupported. Uncited product
-choices must be explicitly labelled proposed targets, hypotheses, assumptions or TBD validation
-items. Require prioritized requirements, requirement-linked Given/When/Then checks, metrics or
+defect. Inspect every health/safety/legal/certification/authority assertion and every assertion
+carrying an evidence marker. An evidence marker supports only the exact claim text bound to that
+ID; adjacent facts, different numbers and broader conclusions remain unsupported. Ordinary
+numeric product, operational, budget, date and metric decisions in planning artifacts are
+allowed without citations; do not mistake them for verified external facts. Require prioritized
+requirements, requirement-linked Given/When/Then checks, metrics or
 validation and concrete next steps for PRDs. Apply software technical-boundary checks only when
 artifactType is software_prd. Do not treat an explicitly labelled assumption or validation target as a verified fact.
 Return bounded repair instructions only for concrete defects; preserve valid material and never
@@ -1033,9 +1034,10 @@ SYNTHESIS_SYSTEM_PROMPT = (
 
 Perform the single bounded repair by synthesizing the coherent core draft, specialist packets
 and exact evaluation feedback. Preserve correct material, resolve every listed contradiction,
-remove unsupported precision and stale-topic content, and cover every required section as a
-Markdown heading. Remove or explicitly label unsupported exact specifications as proposed
-targets, hypotheses, assumptions or TBD validation items. Never stretch a citation beyond its
+remove unsupported external factual precision and stale-topic content, and cover every required
+section as a Markdown heading. Remove unsupported health, safety, legal, certification and external-fact
+assertions while preserving useful product, operational, budget, date and metric decisions.
+Never stretch a citation beyond its
 exact immutable claim text. Do not add new evidence claims. Return one useful final title and Markdown,
 not a shell, questionnaire, workflow commentary or JSON dump.
 """
@@ -1316,6 +1318,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
         evidence_integrity = _deterministic_evidence_integrity_defects(
             draft.markdown,
             context.allowed_claim_texts,
+            artifact_type=context.artifact_type,
         )
         substantive, practicality = _deterministic_quality_defects(
             draft.markdown,
@@ -1783,14 +1786,15 @@ def _split_unresolved_assertions(fragment: str) -> list[str]:
 def _deterministic_evidence_integrity_defects(
     markdown: str,
     allowed_claim_texts: dict[str, str],
+    *,
+    artifact_type: str | None = None,
 ) -> list[str]:
     """Reject only high-risk factual precision that lacks exact immutable support.
 
-    PRDs may and should contain concrete choices. Those choices remain valid without a
-    citation when the text labels them as proposals, hypotheses, assumptions or validation
-    targets. Externally verifiable numbers and health/safety/legal assertions must instead
-    cite an exact immutable claim in the same sentence or table cell. For numeric assertions,
-    the cited claim must contain the same normalized value.
+    Planning artifacts may and should contain concrete product, operational, budget, date and
+    metric choices. Health/safety/legal/certification/authority assertions must cite an exact
+    immutable claim in the same sentence or table cell. Any assertion carrying an evidence
+    marker is checked for exact numeric and semantic support.
     """
 
     base = markdown.split("\n\n## Sources\n", 1)[0]
@@ -1841,13 +1845,18 @@ def _deterministic_evidence_integrity_defects(
                 table_gap_context
                 and sensitive
                 and not precise_values
+                and not markers
                 and not _POSITIVE_AUTHORITY_PREDICATE.search(without_markers)
             ):
                 continue
-            if _UNRESOLVED_AUTHORITY_QUALIFIER.search(without_markers):
+            if (
+                not markers
+                and _UNRESOLVED_AUTHORITY_QUALIFIER.search(without_markers)
+            ):
                 continue
             if (
-                not hard_authority
+                not markers
+                and not hard_authority
                 and _EXPLICIT_NONFACTUAL_QUALIFIER.search(
                     f"{current_heading} {fragment}"
                 )
@@ -1855,6 +1864,8 @@ def _deterministic_evidence_integrity_defects(
                 continue
             excerpt = re.sub(r"\s+", " ", without_markers).strip()[:180]
             if not markers:
+                if not sensitive and artifact_type in _PLANNING_ARTIFACT_TYPES:
+                    continue
                 defects.add(
                     "Unsupported factual precision requires an exact evidence marker or an "
                     f"explicit proposal/assumption/validation label: {excerpt}"
@@ -4471,6 +4482,7 @@ class GeminiCognitiveExecutor:
             local_evidence_integrity = _deterministic_evidence_integrity_defects(
                 draft.markdown,
                 common_context.allowed_claim_texts,
+                artifact_type=plan.work_shape,
             )
             acceptable_coverage = not any(
                 item.status == "gap"
@@ -4620,13 +4632,10 @@ class GeminiCognitiveExecutor:
                 for defect in _deterministic_evidence_integrity_defects(
                     markdown,
                     common_context.allowed_claim_texts,
+                    artifact_type=plan.work_shape,
                 )
             }
-            unsupported = utf16_ordinal_sorted(
-                set(draft.unsupported_precision).union(
-                    deterministic_evidence_integrity
-                )
-            )[:40]
+            unsupported = utf16_ordinal_sorted(deterministic_evidence_integrity)[:40]
             contradictions = utf16_ordinal_sorted(set(draft.contradictions))
             stale = utf16_ordinal_sorted(set(draft.stale_topic_references))
             readiness_issue_list = utf16_ordinal_sorted(readiness_violations)

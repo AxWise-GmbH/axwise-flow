@@ -3667,6 +3667,90 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> None:
+    class NumericPlanningWriter(QualityWriter):
+        async def execute_task(self, input_value, scope, research_payload, contents):
+            draft = await super().execute_task(
+                input_value, scope, research_payload, contents
+            )
+            if not input_value.task.produces_full_contract:
+                return draft
+            return draft.model_copy(
+                update={
+                    "markdown": (
+                        draft.markdown
+                        + "\n\n## Product and pilot decisions\n\n"
+                        "Use 14 pouches per box, budget €1,500 for the pilot, target "
+                        "20% trial conversion, and interview 10 users by 2026-10-15."
+                    )
+                }
+            )
+
+        async def evaluate_output(self, _input, _scope, _research, _contents):
+            return EvaluationDraft(
+                unsupported_precision=[
+                    "The model treated ordinary planning decisions as unsupported."
+                ],
+                note="Deterministic evidence-integrity checks remain authoritative.",
+            )
+
+    compiled = await compiled_scope(
+        criticality="nonblocking", claim_type="market_statistic"
+    )
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=NumericPlanningWriter(),
+    )
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=830,
+    )
+    candidate = task_results[-1]
+    assert candidate.artifact.kind == "final_markdown"
+    assert "14 pouches per box" in candidate.artifact.markdown
+
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in task_results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000839",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.artifact.payload["unsupportedPrecision"] == []
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(candidate.artifact)
+
+
+@pytest.mark.asyncio
 async def test_unsupported_precise_core_candidate_requires_the_existing_repair_path() -> None:
     class UnsafePrecisionWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
@@ -4316,6 +4400,16 @@ def test_claim_support_guard_requires_same_clause_and_matching_exact_values() ->
     assert "78%" in defects[0]
     assert "82.5%" in defects[0]
 
+    proposed_but_mismatched = (
+        "# Metrics\n\nProposed target: moisture should remain at 20% "
+        f"[evidence:{claim_id}]."
+    )
+    assert _deterministic_evidence_integrity_defects(
+        proposed_but_mismatched,
+        claims,
+        artifact_type="product_prd",
+    )
+
     proposed = (
         "# Metrics\n\nProposed target: conversion >= 42%; validate with a bounded cohort test."
     )
@@ -4329,6 +4423,18 @@ def test_claim_support_guard_requires_same_clause_and_matching_exact_values() ->
         "## Hypotheses\n\nA 20% trial conversion is achievable.",
     ):
         assert _deterministic_evidence_integrity_defects(honest_choice, claims) == []
+
+    for ordinary_prd_decision in (
+        "# Metrics\n\nTarget 20% trial conversion.",
+        "# Fulfilment\n\nShip 14 pouches per box.",
+        "# Budget\n\nThe pilot budget is €1,500.",
+        "# Research\n\nInterview 10 users by 2026-10-15.",
+    ):
+        assert _deterministic_evidence_integrity_defects(
+            ordinary_prd_decision,
+            claims,
+            artifact_type="product_prd",
+        ) == []
 
 
 def test_claim_support_guard_rejects_unmarked_health_process_and_clearance_claims() -> None:
@@ -4680,6 +4786,28 @@ def test_final_and_task_validation_reject_malformed_raw_evidence_markers(
                 ],
                 conclusions=["The bounded task packet was prepared."],
                 unknowns=[],
+            ),
+        )
+
+
+def test_final_validation_rejects_well_formed_unknown_evidence_id() -> None:
+    unknown_claim_id = "b" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Artifact"],
+        evidence_readiness="ready",
+        allowed_claim_ids=["a" * 64],
+        required_gap_labels=[],
+    )
+    with pytest.raises(ValueError, match="outside the immutable claim ledger"):
+        _validate_synthesis(
+            context,
+            SynthesisDraft(
+                title="Unknown evidence",
+                markdown=(
+                    "# Artifact\n\nSubstantive content "
+                    f"[evidence:{unknown_claim_id}]."
+                ),
             ),
         )
 
