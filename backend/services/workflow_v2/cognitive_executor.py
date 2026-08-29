@@ -427,9 +427,9 @@ documentation, set allowedSourceHosts to the minimal sorted lowercase canonical 
 for those publishers. Otherwise return an empty allowedSourceHosts list. Never infer a host
 restriction from the topic alone. Keep requirement criticality intrinsic. For product PRDs,
 software PRDs, research strategies and operational plans, the server treats missing
-non-statutory grounded_claim evidence as a labelled gap; requirements that assert statutory-law
-obligations keep their blocking semantics regardless of publisher class. The server also treats
-missing future_authorization_proof as a
+grounded_claim evidence, including statutory-law research, as a labelled gap. Grounded legal
+evidence remains mandatory before the artifact may make the affected claim or represent itself
+as launch-ready. The server also treats missing future_authorization_proof as a
 labelled gap for a non-launch_authorization artifact. selected_artifact_proof,
 launch_authorization, unsafe artifact content and verified conflicts still block. Preserve
 proof the owner explicitly makes optional or nonblocking. Return at most one truly material
@@ -447,15 +447,14 @@ def _effective_requirement_blocking(
         artifact_type != "launch_authorization"
         and requirement.evidence_role == "future_authorization_proof"
     )
-    nonstatutory_planning_exemption = (
+    planning_grounded_claim_exemption = (
         artifact_type in _PLANNING_ARTIFACT_TYPES
         and requirement.evidence_role == "grounded_claim"
-        and not _requirement_has_statutory_force(requirement)
     )
     return (
         requirement.criticality == "blocking"
         and not future_authorization_exemption
-        and not nonstatutory_planning_exemption
+        and not planning_grounded_claim_exemption
     )
 
 
@@ -957,9 +956,9 @@ trade-body rule or statistic in one requirement.
 Give every explicitly named legal instrument its own evidence requirement; never combine
 two named regulations into one assertion.
 Keep criticality intrinsic. For product PRDs, software PRDs, research strategies and
-operational plans, missing non-statutory grounded_claim evidence is a labelled gap;
-requirements that assert statutory-law obligations keep their blocking semantics regardless
-of publisher class. Missing
+operational plans, missing grounded_claim evidence, including statutory-law research, is a
+labelled gap. Grounded legal evidence remains mandatory before the artifact may make the
+affected claim or represent itself as launch-ready. Missing
 future_authorization_proof is a labelled gap for every non-launch_authorization artifact;
 selected_artifact_proof, launch_authorization, unsafe artifact content and verified conflicts
 still block. Preserve proof the owner explicitly makes optional or nonblocking.

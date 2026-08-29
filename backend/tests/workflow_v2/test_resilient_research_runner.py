@@ -1085,7 +1085,9 @@ async def test_exact_unique_searx_snippet_is_bound_to_direct_document() -> None:
     assert "Estonia" in discovery_query
     assert "Verify applicable pet food labelling rules." in discovery_query
     assert "When assessing Estonia pet-food market entry." in discovery_query
-    assert "government" in discovery_query
+    assert "requirement:" not in discovery_query
+    assert "source classes:" not in discovery_query
+    assert "primary_law" not in discovery_query
     assert "UNRELATED" not in discovery_query
 
 
@@ -1256,12 +1258,11 @@ async def test_untrusted_snippet_only_locates_a_bounded_fetched_document_window(
 
 
 @pytest.mark.asyncio
-async def test_operation_local_source_precedes_irrelevant_discovery_and_is_refetched() -> None:
+async def test_operation_local_source_fills_remaining_slot_and_is_refetched() -> None:
     reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
     irrelevant_urls = [
         "https://irrelevant.example/a",
         "https://irrelevant.example/b",
-        "https://irrelevant.example/c",
     ]
     exact = "The mandatory label shall declare the analytical constituents."
     fetched: list[str] = []
@@ -1289,7 +1290,7 @@ async def test_operation_local_source_precedes_irrelevant_discovery_and_is_refet
         )
     )
 
-    assert fetched == [reused_url, *irrelevant_urls[:2]]
+    assert fetched == [*irrelevant_urls, reused_url]
     assert result["provider"] == "searxng_direct_fetch"
     assert result["sources"][0]["url"] == reused_url
     assert result["claims"][0]["text"] == exact
@@ -1336,15 +1337,21 @@ async def test_operation_local_duplicate_keeps_title_and_merges_fresh_snippet() 
 
 
 @pytest.mark.asyncio
-async def test_fresh_discovery_keeps_a_slot_when_three_reused_locators_exist() -> None:
-    reused_urls = [f"https://reused-{index}.example.ee/law" for index in range(3)]
-    fresh_url = "https://fresh.example.ee/exact-provision"
-    exact = "The fresh requirement-specific source contains the exact provision."
+async def test_current_labeling_discovery_precedes_unrelated_reused_legal_locators() -> None:
+    reused_urls = [
+        "https://eur-lex.europa.eu/eli/reg/2005/183/oj/eng",
+        "https://eur-lex.europa.eu/eli/reg/2009/1069/oj/eng",
+    ]
+    current_urls = [
+        "https://pta.agri.ee/general-feed-guidance",
+        "https://pta.agri.ee/pet-food-labeling",
+    ]
+    exact = "Pet food labels must identify the feed material and responsible operator."
     fetched: list[str] = []
 
     async def fetch(url: str) -> dict:
         fetched.append(url)
-        if url == fresh_url:
+        if url == current_urls[1]:
             return document(url, exact)
         return document(url, "Authoritative but unrelated publisher text.")
 
@@ -1353,13 +1360,10 @@ async def test_fresh_discovery_keeps_a_slot_when_three_reused_locators_exist() -
         searxng=FakeSearx(
             discovery(
                 sources=[
-                    *[
-                        {"url": url, "title": f"Repeated reused {index}"}
-                        for index, url in enumerate(reused_urls)
-                    ],
-                    {"url": fresh_url, "title": "Fresh exact source"},
+                    {"url": current_urls[0], "title": "General feed guidance"},
+                    {"url": current_urls[1], "title": "Exact labeling rules"},
                 ],
-                claims=[{"text": exact, "source_urls": [fresh_url]}],
+                claims=[{"text": exact, "source_urls": [current_urls[1]]}],
             )
         ),
         fetcher=fetch,
@@ -1373,8 +1377,8 @@ async def test_fresh_discovery_keeps_a_slot_when_three_reused_locators_exist() -
         )
     )
 
-    assert fetched == [*reused_urls[:2], fresh_url]
-    assert result["sources"][0]["url"] == fresh_url
+    assert fetched == [*current_urls, reused_urls[0]]
+    assert result["sources"][0]["url"] == current_urls[1]
     assert result["claims"][0]["text"] == exact
     assert result["runtime_diagnostics"]["candidate_count"] == 3
     assert result["runtime_diagnostics"]["omitted_candidate_count"] == 1
@@ -2005,12 +2009,13 @@ async def test_maximum_scope_cannot_erase_material_discovery_fields() -> None:
     assert fallback["query_complete"] is False
     discovery_query = searx.queries[0]
     assert len(discovery_query) <= 2_000
-    assert "requirement: MATERIAL LEGAL REQUIREMENT" in discovery_query
-    assert "applicability: ONLY FOR ESTONIA MARKET ENTRY" in discovery_query
-    assert "source classes: government | primary_law" in discovery_query
-    assert "publishers: site:host-00.example.ee" in discovery_query
-    assert "topics: anchor-00-" in discovery_query
-    assert "geography: geography-00-" in discovery_query
+    assert "MATERIAL LEGAL REQUIREMENT" in discovery_query
+    assert "ONLY FOR ESTONIA MARKET ENTRY" in discovery_query
+    assert "site:host-00.example.ee" in discovery_query
+    assert "anchor-00-" in discovery_query
+    assert "geography-00-" in discovery_query
+    assert "requirement:" not in discovery_query
+    assert "source classes:" not in discovery_query
 
 
 @pytest.mark.asyncio

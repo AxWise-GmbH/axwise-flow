@@ -1336,6 +1336,7 @@ class DeadlineWithCompletedSiblingRunner(VerifiedResearchRunner):
 async def compiled_scope(
     *,
     request: str = REQUEST,
+    artifact_type: str = "product_prd",
     criticality: str = "blocking",
     claim_type: str = "legal_safety",
     verification_basis: str = "grounded_claims",
@@ -1349,6 +1350,7 @@ async def compiled_scope(
 ):
     return await GeminiCognitiveExecutor(
         FakeDrafter(
+            artifact_type=artifact_type,
             criticality=criticality,
             claim_type=claim_type,
             verification_basis=verification_basis,
@@ -1621,7 +1623,7 @@ async def test_current_artifact_selected_evidence_and_any_conflict_still_block()
     ["product_prd", "software_prd", "research_strategy", "operational_plan"],
 )
 @pytest.mark.asyncio
-async def test_missing_nonstatutory_grounded_claim_is_a_planning_gap(
+async def test_missing_grounded_claim_is_a_planning_gap(
     artifact_type: str,
 ) -> None:
     compiled = await GeminiCognitiveExecutor(
@@ -1648,7 +1650,7 @@ async def test_missing_nonstatutory_grounded_claim_is_a_planning_gap(
 
 
 @pytest.mark.asyncio
-async def test_planning_gap_exemption_preserves_statutory_and_authorization_blocks() -> None:
+async def test_planning_gap_exemption_includes_statutory_research_but_preserves_authorization_blocks() -> None:
     government_statistics = await GeminiCognitiveExecutor(
         FakeDrafter(
             artifact_type="product_prd",
@@ -1687,8 +1689,8 @@ async def test_planning_gap_exemption_preserves_statutory_and_authorization_bloc
         AUTHORITY_KEY,
     ).execute(envelope_for())
     statutory_result = await execute_research(statutory, MissingResearchRunner())
-    assert statutory_result.evidence_readiness == "blocked"
-    assert statutory_result.artifact.payload["findings"][0]["blocking"] is True
+    assert statutory_result.evidence_readiness == "ready_with_gaps"
+    assert statutory_result.artifact.payload["findings"][0]["blocking"] is False
 
     authorization = await GeminiCognitiveExecutor(
         FakeDrafter(
@@ -1709,7 +1711,7 @@ async def test_planning_gap_exemption_preserves_statutory_and_authorization_bloc
 
 
 @pytest.mark.asyncio
-async def test_primary_law_keeps_live_pta_requirement_blocking_for_prd() -> None:
+async def test_primary_law_gap_does_not_suppress_a_planning_prd() -> None:
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             artifact_type="product_prd",
@@ -1730,8 +1732,8 @@ async def test_primary_law_keeps_live_pta_requirement_blocking_for_prd() -> None
 
     finding = result.artifact.payload["findings"][0]
     assert finding["status"] == "missing"
-    assert finding["blocking"] is True
-    assert result.evidence_readiness == "blocked"
+    assert finding["blocking"] is False
+    assert result.evidence_readiness == "ready_with_gaps"
 
 
 @pytest.mark.parametrize(
@@ -1770,6 +1772,7 @@ def test_estonian_official_authority_hosts_require_exact_root_or_subdomain(
 
 def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
     for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
+        normalized_prompt = " ".join(prompt.split())
         assert "verificationBasis" in prompt
         assert "evidenceRole" in prompt
         assert "selected_evidence" in prompt
@@ -1780,9 +1783,9 @@ def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
         assert "software_prd" in prompt
         assert "launch_authorization" in prompt
         assert "go/no-go" in prompt
-        assert "non-statutory grounded_claim" in prompt
-        assert "statutory-law" in prompt
-        assert "publisher class" in prompt
+        assert "missing grounded_claim evidence" in normalized_prompt
+        assert "including statutory-law research" in normalized_prompt
+        assert "represent itself as launch-ready" in normalized_prompt
         assert "independently verifiable assertion" in prompt
         assert "never combine statutory law" in prompt.casefold()
         assert "explicitly named legal instrument" in prompt
@@ -2493,7 +2496,7 @@ async def test_launch_authorization_keeps_future_proof_blocking() -> None:
 
 
 @pytest.mark.asyncio
-async def test_early_prd_keeps_general_legal_evidence_grounded_and_blocking() -> None:
+async def test_early_prd_keeps_general_legal_evidence_grounded_without_suppressing_delivery() -> None:
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="grounded_claims",
@@ -2516,7 +2519,12 @@ async def test_early_prd_keeps_general_legal_evidence_grounded_and_blocking() ->
     assert result.evidence_readiness == "ready"
     assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["findings"][0]["status"] == "verified"
-    assert result.artifact.payload["findings"][0]["blocking"] is True
+    assert result.artifact.payload["findings"][0]["blocking"] is False
+
+    missing = await execute_research(compiled, MissingResearchRunner())
+    assert missing.evidence_readiness == "ready_with_gaps"
+    assert missing.artifact.payload["findings"][0]["status"] == "missing"
+    assert missing.artifact.payload["findings"][0]["blocking"] is False
 
 
 @pytest.mark.asyncio
@@ -2854,11 +2862,12 @@ async def test_optional_gap_repairs_once_and_delivers_non_launch_ready_result() 
 
 
 @pytest.mark.asyncio
-async def test_successful_zero_evidence_acquisition_blocks_essential_requirement() -> None:
+async def test_successful_zero_evidence_acquisition_delivers_planning_gap() -> None:
     compiled = await compiled_scope()
-    blocked = await execute_research(compiled, MissingResearchRunner())
-    assert blocked.evidence_readiness == "blocked"
-    assert "launchReady" not in blocked.artifact.payload
+    result = await execute_research(compiled, MissingResearchRunner())
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["findings"][0]["blocking"] is False
+    assert "launchReady" not in result.artifact.payload
 
 
 @pytest.mark.parametrize(
@@ -2871,7 +2880,7 @@ async def test_successful_zero_evidence_acquisition_blocks_essential_requirement
     ],
 )
 @pytest.mark.asyncio
-async def test_exhausted_transient_acquisition_blocks_essential_requirement(
+async def test_exhausted_transient_acquisition_delivers_explicit_planning_gap(
     status: str,
 ) -> None:
     compiled = await compiled_scope()
@@ -2880,13 +2889,13 @@ async def test_exhausted_transient_acquisition_blocks_essential_requirement(
     result = await execute_research(compiled, runner)
 
     assert result.result_type == "research_completed"
-    assert result.evidence_readiness == "blocked"
+    assert result.evidence_readiness == "ready_with_gaps"
     assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["boundedRepairPasses"] == 1
-    assert result.artifact.payload["gaps"] == []
+    assert len(result.artifact.payload["gaps"]) == 1
     finding = result.artifact.payload["findings"][0]
     assert finding["status"] == "missing"
-    assert finding["blocking"] is True
+    assert finding["blocking"] is False
     assert status in finding["note"]
     assert len(runner.queries) == 2
 
@@ -2980,7 +2989,7 @@ async def test_successful_repair_with_zero_evidence_retains_missing_semantics() 
 
     result = await execute_research(compiled, runner)
 
-    assert result.evidence_readiness == "blocked"
+    assert result.evidence_readiness == "ready_with_gaps"
     assert result.artifact.payload["findings"][0]["status"] == "missing"
     assert len(runner.queries) == 2
 
@@ -3453,7 +3462,7 @@ async def test_deceptive_blog_title_and_metadata_cannot_become_primary_law() -> 
     compiled = await compiled_scope()
     result = await execute_research(compiled, DeceptiveBlogRunner())
 
-    assert result.evidence_readiness == "blocked"
+    assert result.evidence_readiness == "ready_with_gaps"
     assert result.artifact.payload["findings"][0]["status"] == "missing"
     assert all(
         entry["claims"] == [] for entry in result.artifact.payload["claimLedger"]
@@ -3515,9 +3524,7 @@ async def test_scope_authoritative_publisher_allowlist_accepts_only_named_hosts(
         for entry in rejected.artifact.payload["claimLedger"]
     )
     assert rejected.artifact.payload["findings"][0]["status"] == "missing"
-    assert rejected.evidence_readiness == (
-        "blocked" if criticality == "blocking" else "ready_with_gaps"
-    )
+    assert rejected.evidence_readiness == "ready_with_gaps"
 
 
 @pytest.mark.asyncio
@@ -4830,7 +4837,7 @@ async def test_ready_launch_authorization_can_produce_launch_ready_final_artifac
 
 @pytest.mark.asyncio
 async def test_blocked_report_is_safe_final_markdown_without_readiness_change() -> None:
-    compiled = await compiled_scope()
+    compiled = await compiled_scope(artifact_type="launch_authorization")
     research = await execute_research(compiled, MissingResearchRunner())
     assert research.evidence_readiness == "blocked"
     output_contract = _blocked_report_output_contract(
