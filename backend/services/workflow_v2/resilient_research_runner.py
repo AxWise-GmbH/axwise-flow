@@ -191,22 +191,15 @@ def _ordered_unique(values: list[str]) -> list[str]:
     return sorted(set(values), key=_utf16_key)
 
 
-def _bounded_query_section(
-    label: str, value: str, *, maximum: int
-) -> tuple[str, bool]:
-    """Render one deterministic section without letting it consume later fields."""
+def _bounded_query_term(value: str, *, maximum: int) -> tuple[str, bool]:
+    """Render one natural search term without letting it consume later fields."""
 
-    prefix = f"{label}: "
-    if maximum <= len(prefix):
-        raise ValueError("discovery section budget is too small")
+    if maximum <= 1:
+        raise ValueError("discovery term budget is too small")
     normalized = re.sub(r"\s+", " ", value).strip()
-    if len(prefix) + len(normalized) <= maximum:
-        return prefix + normalized, True
-    available = maximum - len(prefix)
-    return (
-        prefix + normalized[: max(1, available - 1)].rstrip() + "\u2026",
-        False,
-    )
+    if len(normalized) <= maximum:
+        return normalized, True
+    return normalized[: maximum - 1].rstrip() + "\u2026", False
 
 
 def _finite_diagnostic_int(
@@ -722,46 +715,41 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
     # independent budget. A maximal topic list can therefore never erase the
     # exact requirement, applicability gate, source classes, or publisher gate.
     rendered_sections = [
-        _bounded_query_section(
-            "requirement",
+        _bounded_query_term(
             description,
             maximum=_DISCOVERY_SECTION_BUDGETS["requirement"],
         ),
-        _bounded_query_section(
-            "applicability",
+        _bounded_query_term(
             applies_when_query,
             maximum=_DISCOVERY_SECTION_BUDGETS["applicability"],
-        ),
-        _bounded_query_section(
-            "source classes",
-            " | ".join(source_types),
-            maximum=_DISCOVERY_SECTION_BUDGETS["source classes"],
         ),
     ]
     if allowed_hosts:
         rendered_sections.append(
-            _bounded_query_section(
-                "publishers",
-                " | ".join(f"site:{host}" for host in allowed_hosts),
+            _bounded_query_term(
+                " ".join(f"site:{host}" for host in allowed_hosts),
                 maximum=_DISCOVERY_SECTION_BUDGETS["publishers"],
             )
         )
     rendered_sections.append(
-        _bounded_query_section(
-            "topics",
-            " | ".join(anchors),
+        _bounded_query_term(
+            " ".join(anchors),
             maximum=_DISCOVERY_SECTION_BUDGETS["topics"],
         )
     )
     if geography:
         rendered_sections.append(
-            _bounded_query_section(
-                "geography",
-                " | ".join(geography),
+            _bounded_query_term(
+                " ".join(geography),
                 maximum=_DISCOVERY_SECTION_BUDGETS["geography"],
             )
         )
-    discovery_query = " ; ".join(section for section, _complete in rendered_sections)
+    # Search engines interpret field-like prefixes such as ``requirement:`` as
+    # query operators or generic dictionary terms. Keep the server-owned
+    # structure in the canonical payload, but send discovery a natural query.
+    # Source classes remain an enforcement filter after fetch; words such as
+    # ``primary_law`` are not useful public-search terms.
+    discovery_query = " ".join(term for term, _complete in rendered_sections)
     query_complete = input_complete and all(
         complete for _section, complete in rendered_sections
     )
@@ -1641,25 +1629,16 @@ class ResilientResearchRunner:
         reusable_urls = [
             candidate.canonical_url for candidate in context.reusable_candidates
         ]
-        reusable_url_set = set(reusable_urls)
         discovered_urls = [
             candidate.canonical_url for candidate in discovered_candidates
         ]
-        fresh_discovered_urls = [
-            url for url in discovered_urls if url not in reusable_url_set
-        ]
         selected_urls: list[str] = []
-        reusable_budget = (
-            max(0, self.maximum_candidates - 1)
-            if discovered_urls
-            else self.maximum_candidates
-        )
-        for url in reusable_urls[:reusable_budget]:
-            if url not in selected_urls:
-                selected_urls.append(url)
-        for url in fresh_discovered_urls:
-            if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
-                selected_urls.append(url)
+        # Explicit authorities and the current requirement's ranked discovery
+        # are requirement-specific. Operation-local reusable locators are not
+        # confirmed for this requirement, so they may fill only spare capacity
+        # (or all capacity when discovery is unavailable). A URL present in
+        # both lists is naturally deduplicated here, while the merge above
+        # retains the fresh discovery snippets used to locate the exact span.
         for url in discovered_urls:
             if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
                 selected_urls.append(url)
