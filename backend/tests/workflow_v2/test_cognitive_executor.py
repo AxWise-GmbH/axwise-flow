@@ -5470,6 +5470,192 @@ def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees(
     assert "PRD section 'Risks' is empty or too thin." in practicality
 
 
+@pytest.mark.parametrize(
+    ("criterion", "expected_missing"),
+    [
+        (
+            "### AC-7 (Planning Boundary & Realism)\n"
+            "* **Given** the accepted deliverable profile and limits,\n"
+            "* **When** the PRD is reviewed,",
+            "Then",
+        ),
+        (
+            "### Scenario 3: Authorization boundary\n"
+            "* **Given** a planning-only product artifact,\n"
+            "* **Then** commercial launch remains prohibited.",
+            "When",
+        ),
+    ],
+)
+def test_prd_quality_gate_rejects_incomplete_gwt_acceptance_blocks(
+    criterion: str, expected_missing: str
+) -> None:
+    markdown = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    ).replace(
+        "- Given the accepted scope, when the artifact is reviewed, then each "
+        "requirement has a testable result.",
+        criterion,
+    )
+
+    _substantive, practicality = _deterministic_quality_defects(
+        markdown,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    expected = (
+        "Acceptance criterion block "
+        + repr(criterion.splitlines()[0].removeprefix("### "))
+        + f" is incomplete; missing {expected_missing}."
+    )
+    assert expected in practicality
+
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(
+            context,
+            SynthesisDraft(title="Incomplete acceptance PRD", markdown=markdown),
+        )
+
+
+@pytest.mark.parametrize(
+    "criterion",
+    [
+        (
+            "### AC-1: Compact criterion\n\n"
+            "- Given an accepted scope, When the artifact is reviewed, Then the "
+            "result is recorded."
+        ),
+        (
+            "### Scenario 1: Multiline criterion\n\n"
+            "* **Given** an accepted scope,\n"
+            "* **When:** the artifact is reviewed,\n"
+            "* __Then__: the result is recorded."
+        ),
+    ],
+)
+def test_gwt_acceptance_blocks_accept_complete_one_line_and_multiline_forms(
+    criterion: str,
+) -> None:
+    markdown = f"## Acceptance criteria\n\n{criterion}"
+
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            markdown
+        )
+        == []
+    )
+
+
+def test_gwt_acceptance_block_accepts_indented_wrapped_role_content() -> None:
+    markdown = (
+        "## Acceptance criteria\n\n"
+        "* **AC-1 (Wrapped criterion):**\n"
+        "  * **Given** an accepted scope whose bounded context\n"
+        "    continues on an indented Markdown line,\n"
+        "  * **When** the artifact is reviewed by its owner\n"
+        "    with the immutable evidence boundary preserved,\n"
+        "  * **Then** the result and remaining gap are recorded."
+    )
+
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            markdown
+        )
+        == []
+    )
+
+
+def test_gwt_acceptance_block_rejects_one_role_under_list_style_ac_label() -> None:
+    markdown = (
+        "## Acceptance criteria\n\n"
+        "* **AC-7 (Planning Boundary & Realism):**\n"
+        "  * **Given** the accepted deliverable profile and limits,\n\n"
+        "## Metrics and validation\n\n"
+        "Record the bounded result."
+    )
+
+    assert cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+        markdown
+    ) == [
+        "Acceptance criterion block 'AC-7 (Planning Boundary & Realism)' is "
+        "incomplete; missing When, Then."
+    ]
+
+
+@pytest.mark.parametrize(
+    ("row", "expected"),
+    [
+        ("| AC-1 | Accepted scope | Owner review | Recorded result |", []),
+        (
+            "| AC-2 | Accepted scope | | Recorded result |",
+            [
+                "Acceptance criterion block 'AC-2' is incomplete; missing When."
+            ],
+        ),
+    ],
+)
+def test_gwt_acceptance_table_rows_require_every_role_cell(
+    row: str, expected: list[str]
+) -> None:
+    markdown = (
+        "## Acceptance criteria\n\n"
+        "| ID | Given | When | Then |\n"
+        "| :--- | :--- | :--- | :--- |\n"
+        f"{row}"
+    )
+
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            markdown
+        )
+        == expected
+    )
+
+
+def test_gwt_detection_ignores_prose_headings_and_fenced_examples() -> None:
+    markdown = (
+        "# Given/When/Then Acceptance Criteria\n\n"
+        "Ordinary prose explains when evidence is useful and then records a "
+        "decision.\n\n"
+        "# Planning notes\n\n"
+        "- Given the current planning context, retain this bounded assumption.\n\n"
+        "- When a later planning review happens, retain its result too.\n\n"
+        "## Acceptance criteria\n\n"
+        "- Given a separated example input,\n"
+        "This substantive prose separates the examples.\n"
+        "- When a separate review happens, record it.\n\n"
+        "```text\n"
+        "### Scenario 3: illustrative incomplete example\n"
+        "- Given an example input,\n"
+        "- When the example runs,\n"
+        "```"
+    )
+
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            markdown
+        )
+        == []
+    )
+
+
 def test_evidence_marker_heading_parity_rejects_preamble_and_strips_closing_hashes() -> None:
     claim_id = "a" * 64
     with pytest.raises(ValueError, match="after a real Markdown heading"):

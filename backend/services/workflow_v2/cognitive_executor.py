@@ -2539,6 +2539,238 @@ def _remove_newly_orphaned_optional_sections(
     return re.sub(r"\n{3,}", "\n\n", repaired).rstrip()
 
 
+_GIVEN_WHEN_THEN_ROLE_LINE = re.compile(
+    r"^(?P<indent>\s*)(?:(?P<bullet>[-+*]|\d+[.)])(?P<spacing>\s+))?"
+    r"(?:\*\*|__)?(?P<role>given|when|then)"
+    r"(?:\s*:)?(?:\*\*|__)?\s*:?(?=\s|[\u2013\u2014-]|$)",
+    re.IGNORECASE,
+)
+_GIVEN_WHEN_THEN_INLINE_ROLE = re.compile(
+    r"[,;]\s*(?:\*\*|__)?(?P<role>given|when|then)"
+    r"(?:\s*:)?(?:\*\*|__)?\s*:?(?=\s|[\u2013\u2014-]|$)",
+    re.IGNORECASE,
+)
+_EXPLICIT_ACCEPTANCE_BLOCK_HEADING = re.compile(
+    r"(?:^|\b)(?:ac[\s-]*\d+\b|scenario\s+\d+\b|"
+    r"acceptance\s+(?:criterion|test)\s+\d+\b)",
+    re.IGNORECASE,
+)
+_ACCEPTANCE_CRITERIA_SECTION_HEADING = re.compile(
+    r"\bacceptance\s+criter(?:ion|ia)\b", re.IGNORECASE
+)
+_MARKDOWN_LIST_ITEM = re.compile(
+    r"^(?P<indent>\s*)(?P<bullet>[-+*]|\d+[.)])(?P<spacing>\s+)"
+    r"(?P<content>\S.*?)\s*$"
+)
+_MARKDOWN_TABLE_SEPARATOR_CELL = re.compile(r"^:?-{3,}:?$")
+
+
+def _incomplete_given_when_then_acceptance_blocks(markdown: str) -> list[str]:
+    """Find structurally incomplete Given/When/Then acceptance blocks.
+
+    Evidence cleanup intentionally removes an entire unsafe Markdown line. A criterion
+    must therefore be validated as one block after cleanup rather than by finding the
+    three role words anywhere in the document. Explicit role labels are recognized at
+    the beginning of plain, bulleted, or numbered lines; a compact one-line form may
+    introduce later roles after commas or semicolons. Single role-like prose is ignored
+    unless it appears under an explicit numbered criterion heading.
+    """
+
+    expected_roles = ("given", "when", "then")
+    heading_stack: list[tuple[int, str]] = []
+    active_roles: set[str] = set()
+    active_heading: str | None = None
+    active_in_acceptance_section = False
+    active_continuation_indent: int | None = None
+    current_list_label: str | None = None
+    table_role_columns: dict[str, int] | None = None
+    table_row_number = 0
+    defects: list[str] = []
+    fence_character = ""
+    fence_length = 0
+
+    def explicit_heading() -> str | None:
+        return next(
+            (
+                name
+                for _level, name in reversed(heading_stack)
+                if _EXPLICIT_ACCEPTANCE_BLOCK_HEADING.search(name) is not None
+            ),
+            None,
+        )
+
+    def in_acceptance_section() -> bool:
+        return any(
+            _ACCEPTANCE_CRITERIA_SECTION_HEADING.search(name) is not None
+            for _level, name in heading_stack
+        )
+
+    def record_missing(label: str, roles: set[str]) -> None:
+        missing = [role.title() for role in expected_roles if role not in roles]
+        if missing:
+            defects.append(
+                f"Acceptance criterion block {label!r} is incomplete; missing "
+                + ", ".join(missing)
+                + "."
+            )
+
+    def finish_block(*, clear_list_label: bool = False) -> None:
+        nonlocal active_heading, active_in_acceptance_section
+        nonlocal active_continuation_indent, current_list_label
+        if active_roles and (
+            active_heading is not None
+            or (active_in_acceptance_section and len(active_roles) >= 2)
+        ):
+            record_missing(
+                active_heading or "unheaded Given/When/Then block", active_roles
+            )
+        active_roles.clear()
+        active_heading = None
+        active_in_acceptance_section = False
+        active_continuation_indent = None
+        if clear_list_label:
+            current_list_label = None
+
+    def list_acceptance_label(line: str) -> tuple[str, int] | None:
+        item = _MARKDOWN_LIST_ITEM.match(line)
+        if item is None:
+            return None
+        label = item.group("content").strip()
+        label = re.sub(r"^(?:\*\*|__)", "", label)
+        label = re.sub(r"(?:\*\*|__)\s*$", "", label).strip().rstrip(":")
+        if _EXPLICIT_ACCEPTANCE_BLOCK_HEADING.match(label) is None:
+            return None
+        return label, len(item.group("indent").expandtabs(4))
+
+    def markdown_table_cells(line: str) -> list[str] | None:
+        stripped = line.strip()
+        if stripped.count("|") < 2:
+            return None
+        if stripped.startswith("|"):
+            stripped = stripped[1:]
+        if stripped.endswith("|"):
+            stripped = stripped[:-1]
+        return [cell.strip() for cell in stripped.split("|")]
+
+    def table_cell_label(cell: str) -> str:
+        return re.sub(r"[*_`]", "", cell).strip().rstrip(":").strip()
+
+    for line in markdown.splitlines():
+        fence = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if fence is not None:
+            marker = fence.group(1)
+            if not fence_character:
+                finish_block(clear_list_label=True)
+                fence_character = marker[0]
+                fence_length = len(marker)
+            elif marker[0] == fence_character and len(marker) >= fence_length:
+                fence_character = ""
+                fence_length = 0
+            continue
+        if fence_character:
+            continue
+
+        stripped = line.strip()
+        heading = _MARKDOWN_HEADING.fullmatch(stripped)
+        if heading is not None:
+            finish_block(clear_list_label=True)
+            table_role_columns = None
+            table_row_number = 0
+            level = len(stripped) - len(stripped.lstrip("#"))
+            heading_stack = [item for item in heading_stack if item[0] < level]
+            heading_stack.append((level, heading.group(1).strip()))
+            continue
+
+        cells = markdown_table_cells(line)
+        if cells is not None:
+            normalized_cells = [table_cell_label(cell).casefold() for cell in cells]
+            header_columns = {
+                role: normalized_cells.index(role)
+                for role in expected_roles
+                if role in normalized_cells
+            }
+            if len(header_columns) == len(expected_roles):
+                finish_block(clear_list_label=True)
+                table_role_columns = header_columns
+                table_row_number = 0
+                continue
+            if table_role_columns is not None:
+                if all(
+                    _MARKDOWN_TABLE_SEPARATOR_CELL.fullmatch(cell) is not None
+                    for cell in normalized_cells
+                ):
+                    continue
+                table_row_number += 1
+                present_roles = {
+                    role
+                    for role, index in table_role_columns.items()
+                    if index < len(cells) and bool(table_cell_label(cells[index]))
+                }
+                non_role_cells = [
+                    table_cell_label(cell)
+                    for index, cell in enumerate(cells)
+                    if index not in table_role_columns.values()
+                    and table_cell_label(cell)
+                ]
+                label = (
+                    non_role_cells[0][:160]
+                    if non_role_cells
+                    else f"table row {table_row_number}"
+                )
+                record_missing(label, present_roles)
+                continue
+        table_role_columns = None
+        table_row_number = 0
+
+        listed_label = list_acceptance_label(line)
+        if listed_label is not None:
+            finish_block(clear_list_label=True)
+            current_list_label, _label_indent = listed_label
+            continue
+
+        role_line = _GIVEN_WHEN_THEN_ROLE_LINE.match(line)
+        if role_line is None:
+            if not stripped:
+                continue
+            indentation = len(line) - len(line.lstrip(" \t"))
+            if (
+                active_roles
+                and active_continuation_indent is not None
+                and len(line[:indentation].expandtabs(4))
+                >= active_continuation_indent
+            ):
+                continue
+            finish_block(clear_list_label=True)
+            continue
+        roles = {
+            role_line.group("role").casefold(),
+            *(
+                match.group("role").casefold()
+                for match in _GIVEN_WHEN_THEN_INLINE_ROLE.finditer(
+                    line[role_line.end() :]
+                )
+            ),
+        }
+        if "given" in roles and active_roles:
+            finish_block()
+        if not active_roles:
+            active_heading = current_list_label or explicit_heading()
+            active_in_acceptance_section = in_acceptance_section()
+            bullet = role_line.group("bullet")
+            if bullet is not None:
+                active_continuation_indent = len(
+                    (
+                        role_line.group("indent")
+                        + bullet
+                        + role_line.group("spacing")
+                    ).expandtabs(4)
+                )
+        active_roles.update(roles)
+
+    finish_block()
+    return utf16_ordinal_sorted(set(defects))
+
+
 def _deterministic_quality_defects(
     markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
 ) -> tuple[list[str], list[str]]:
@@ -2675,6 +2907,7 @@ def _deterministic_quality_defects(
             practical.append(
                 "The PRD lacks Given/When/Then acceptance traceability."
             )
+        practical.extend(_incomplete_given_when_then_acceptance_blocks(base))
         if not {"metrics and validation", "next steps", "prioritized requirements"}.issubset(
             headings
         ):
