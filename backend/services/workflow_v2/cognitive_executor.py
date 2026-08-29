@@ -1582,6 +1582,29 @@ def _with_immutable_gap_labels(
     if not missing:
         return draft
     missing = utf16_ordinal_sorted(missing)
+    lines = draft.markdown.rstrip().splitlines()
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        heading = _MARKDOWN_HEADING.fullmatch(stripped)
+        if (
+            heading is None
+            or heading.group(1).strip() not in _IMMUTABLE_GAP_SECTION_HEADINGS
+        ):
+            continue
+        insert_at = len(lines)
+        for later_index in range(index + 1, len(lines)):
+            later_stripped = lines[later_index].strip()
+            later_heading = _MARKDOWN_HEADING.fullmatch(later_stripped)
+            if later_heading is not None:
+                insert_at = later_index
+                break
+        additions = [*(_immutable_gap_bullet(label) for label in missing)]
+        if insert_at > 0 and lines[insert_at - 1].strip():
+            additions.insert(0, "")
+        if insert_at < len(lines) and lines[insert_at].strip():
+            additions.append("")
+        lines[insert_at:insert_at] = additions
+        return draft.model_copy(update={"markdown": "\n".join(lines)})
     markdown = "\n".join(
         [
             draft.markdown.rstrip(),
@@ -1600,12 +1623,20 @@ def _with_immutable_gap_labels(
 
 
 def _markdown_without_matching_lines(
-    markdown: str, should_remove: Callable[[str], bool]
+    markdown: str,
+    should_remove: Callable[[str], bool],
+    *,
+    protected_indexes: Sequence[int] = (),
 ) -> str:
     """Remove unsafe lines without leaving a corrupted fenced structure behind."""
 
     lines = markdown.splitlines()
-    target_indexes = {index for index, line in enumerate(lines) if should_remove(line)}
+    protected = set(protected_indexes)
+    target_indexes = {
+        index
+        for index, line in enumerate(lines)
+        if index not in protected and should_remove(line)
+    }
     if not target_indexes:
         return markdown
 
@@ -2289,6 +2320,35 @@ def _deterministic_evidence_integrity_defects(
     return utf16_ordinal_sorted(defects)[:40]
 
 
+def _canonical_immutable_gap_bullet_indexes(
+    markdown: str, immutable_gap_labels: Sequence[str]
+) -> set[int]:
+    """Locate only exact server-owned immutable-gap bullets.
+
+    The same immutable text can also appear in model prose and legitimately be selected
+    for removal by the evidence validator. Protecting by line value alone would preserve
+    that unsafe copy, so protection is scoped to the canonical server-owned section.
+    """
+
+    canonical_bullets = {
+        _immutable_gap_bullet(label) for label in immutable_gap_labels
+    }
+    protected: set[int] = set()
+    current_heading = ""
+    for index, line in enumerate(markdown.splitlines()):
+        stripped = line.strip()
+        heading = _MARKDOWN_HEADING.fullmatch(stripped)
+        if heading is not None:
+            current_heading = heading.group(1).strip()
+            continue
+        if (
+            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
+            and stripped in canonical_bullets
+        ):
+            protected.add(index)
+    return protected
+
+
 def _prune_final_unsupported_evidence_lines(
     markdown: str,
     allowed_claim_texts: dict[str, str],
@@ -2327,7 +2387,119 @@ def _prune_final_unsupported_evidence_lines(
         ).strip()
         return any(excerpt in normalized for excerpt in excerpts)
 
-    return _markdown_without_matching_lines(markdown, should_remove)
+    return _markdown_without_matching_lines(
+        markdown,
+        should_remove,
+        protected_indexes=_canonical_immutable_gap_bullet_indexes(
+            markdown, immutable_gap_labels
+        ),
+    )
+
+
+def _remove_newly_orphaned_optional_sections(
+    before_pruning: str,
+    after_pruning: str,
+    *,
+    required_sections: Sequence[str],
+) -> str:
+    """Remove only optional subsections orphaned by deterministic evidence pruning.
+
+    The thin-section quality gate remains authoritative. An originally thin section and
+    every required section are retained so validation still rejects them. This cleanup
+    only removes an optional heading whose substantive body was deleted by the server's
+    conservative unsafe-line pruning in this exact pass.
+    """
+
+    def sections(markdown: str) -> list[dict[str, Any]]:
+        headings: list[dict[str, Any]] = []
+        fence_character = ""
+        fence_length = 0
+        offset = 0
+        for line in markdown.splitlines(keepends=True):
+            raw_line = line.rstrip("\r\n")
+            fence = re.match(r"^\s*(`{3,}|~{3,})", raw_line)
+            if fence is not None:
+                marker = fence.group(1)
+                if not fence_character:
+                    fence_character = marker[0]
+                    fence_length = len(marker)
+                elif marker[0] == fence_character and len(marker) >= fence_length:
+                    fence_character = ""
+                    fence_length = 0
+                offset += len(line)
+                continue
+            if not fence_character:
+                heading = _MARKDOWN_HEADING.fullmatch(raw_line)
+                if heading is not None:
+                    headings.append(
+                        {
+                            "start": offset,
+                            "content_start": offset + len(raw_line),
+                            "level": len(raw_line) - len(raw_line.lstrip("#")),
+                            "normalized": _normalized_semantic_text(heading.group(1)),
+                        }
+                    )
+            offset += len(line)
+        occurrences: dict[tuple[int, str], int] = {}
+        result: list[dict[str, Any]] = []
+        for index, heading in enumerate(headings):
+            level = heading["level"]
+            normalized = heading["normalized"]
+            occurrence_key = (level, normalized)
+            occurrence = occurrences.get(occurrence_key, 0)
+            occurrences[occurrence_key] = occurrence + 1
+            content_end = len(markdown)
+            descendants = False
+            for later in headings[index + 1 :]:
+                if later["level"] <= level:
+                    content_end = later["start"]
+                    break
+                descendants = True
+            body = markdown[heading["content_start"] : content_end]
+            result.append(
+                {
+                    "identity": (level, normalized, occurrence),
+                    "level": level,
+                    "normalized": normalized,
+                    "start": heading["start"],
+                    "end": content_end,
+                    "words": len(re.findall(r"\b[\w'-]+\b", body)),
+                    "leaf": not descendants,
+                }
+            )
+        return result
+
+    before_by_identity = {
+        item["identity"]: item for item in sections(before_pruning)
+    }
+    required = {
+        _normalized_semantic_text(section) for section in required_sections
+    }
+    removable: list[tuple[int, int]] = []
+    for item in sections(after_pruning):
+        prior = before_by_identity.get(item["identity"])
+        if (
+            item["level"] >= 2
+            and item["leaf"]
+            and item["normalized"] not in required
+            and item["words"] < 3
+            and prior is not None
+            and prior["words"] >= 3
+        ):
+            removable.append((item["start"], item["end"]))
+    if not removable:
+        return after_pruning
+
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(removable):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    repaired = after_pruning
+    for start, end in reversed(merged):
+        repaired = repaired[:start] + repaired[end:]
+    return re.sub(r"\n{3,}", "\n\n", repaired).rstrip()
 
 
 def _deterministic_quality_defects(
@@ -2721,16 +2893,22 @@ class PydanticAISynthesisWriter:
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
-            output = output.model_copy(
-                update={
-                    "markdown": _prune_final_unsupported_evidence_lines(
-                        output.markdown,
-                        ctx.deps.allowed_claim_texts,
-                        artifact_type=ctx.deps.artifact_type,
-                        immutable_gap_labels=ctx.deps.required_gap_labels,
-                    )
-                }
+            before_pruning = output.markdown
+            after_pruning = _prune_final_unsupported_evidence_lines(
+                before_pruning,
+                ctx.deps.allowed_claim_texts,
+                artifact_type=ctx.deps.artifact_type,
+                immutable_gap_labels=ctx.deps.required_gap_labels,
             )
+            after_pruning = _remove_newly_orphaned_optional_sections(
+                before_pruning,
+                after_pruning,
+                required_sections=ctx.deps.required_sections,
+            )
+            output = output.model_copy(
+                update={"markdown": after_pruning}
+            )
+            output = _with_immutable_gap_labels(ctx.deps, output)
             try:
                 _validate_synthesis(ctx.deps, output)
             except ValueError as error:
@@ -5259,7 +5437,11 @@ class GeminiCognitiveExecutor:
             readiness_issue_list = utf16_ordinal_sorted(readiness_violations)
             deterministic_substantive: list[str] = []
             deterministic_practicality: list[str] = []
-            for markdown in candidate_markdowns:
+            for task, markdown in zip(
+                artifact_tasks, artifact_markdowns, strict=True
+            ):
+                if not task.produces_full_contract:
+                    continue
                 content_defects, practical_defects = _deterministic_quality_defects(
                     markdown,
                     practical_output_required=plan.work_shape

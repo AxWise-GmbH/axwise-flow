@@ -1917,6 +1917,157 @@ def test_final_repair_prunes_only_validator_named_unsupported_lines() -> None:
     assert "# Next steps" in repaired
 
 
+def test_final_pruning_preserves_only_canonical_server_gap_bullet() -> None:
+    label = (
+        "Independent ISO/IEC 17025 laboratory assays verifying microbiological "
+        "safety are missing."
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[label],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    base = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    model_copy = f"- {label} Therefore the formula is certified safe."
+    injected = _with_immutable_gap_labels(
+        context,
+        SynthesisDraft(
+            title="Useful PRD",
+            markdown=base + "\n\n## Model-authored status\n\n" + model_copy,
+        ),
+    )
+    canonical_bullet = f"- {label}"
+    assert injected.markdown.count(label) == 2
+
+    pruned = cognitive_executor_module._prune_final_unsupported_evidence_lines(
+        injected.markdown,
+        {},
+        artifact_type="product_prd",
+        immutable_gap_labels=[label],
+    )
+    pruned = cognitive_executor_module._remove_newly_orphaned_optional_sections(
+        injected.markdown,
+        pruned,
+        required_sections=[],
+    )
+
+    assert model_copy not in pruned
+    assert pruned.count(label) == 1
+    assert canonical_bullet in pruned
+    _validate_synthesis(context, SynthesisDraft(title="Useful PRD", markdown=pruned))
+
+
+def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
+    label = "Product-specific safety clearance remains unresolved."
+    context = SynthesisContext(
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[label],
+    )
+    original = SynthesisDraft(
+        title="PRD",
+        markdown=(
+            "# PRD\n\nUseful planning content.\n\n"
+            "## Immutable evidence gaps and assumptions\n\n"
+            "These gaps remain unresolved.\n\n"
+            "### Owner notes\n\nRetain this useful follow-up context.\n\n"
+            "## Next steps\n\n- Obtain and verify the missing record."
+        ),
+    )
+
+    merged = _with_immutable_gap_labels(context, original)
+
+    assert merged.markdown.count("## Immutable evidence gaps and assumptions") == 1
+    assert merged.markdown.count(label) == 1
+    assert merged.markdown.index(label) < merged.markdown.index("### Owner notes")
+    assert merged.markdown.index(label) < merged.markdown.index("## Next steps")
+    assert _with_immutable_gap_labels(context, merged) == merged
+
+
+def test_final_pruning_removes_only_new_optional_orphan_sections() -> None:
+    before = (
+        "# PRD\n\nUseful overview.\n\n"
+        "## Required section\n\nRequired body before pruning.\n\n"
+        "### Newly orphaned\n\nUnsafe factual precision was here.\n\n"
+        "### Originally thin\n\n\n"
+        "### Neighbor\n\nNeighboring content remains useful."
+    )
+    after = before.replace("Unsafe factual precision was here.", "").replace(
+        "Required body before pruning.", ""
+    )
+
+    repaired = cognitive_executor_module._remove_newly_orphaned_optional_sections(
+        before,
+        after,
+        required_sections=["Required section"],
+    )
+
+    assert "### Newly orphaned" not in repaired
+    assert "## Required section" in repaired
+    assert "### Originally thin" in repaired
+    assert "### Neighbor" in repaired
+    assert "Neighboring content remains useful." in repaired
+
+
+def test_final_pruning_does_not_hide_nested_or_fenced_thin_sections() -> None:
+    nested_before = (
+        "# PRD\n\nUseful overview.\n\n"
+        "## Optional parent\n\nUnsafe parent content was removed.\n\n"
+        "### Required child\n\n"
+        "## Neighbor\n\nNeighboring content remains useful."
+    )
+    nested_after = nested_before.replace("Unsafe parent content was removed.", "")
+
+    nested_repaired = (
+        cognitive_executor_module._remove_newly_orphaned_optional_sections(
+            nested_before,
+            nested_after,
+            required_sections=["Required child"],
+        )
+    )
+
+    assert "## Optional parent" in nested_repaired
+    assert "### Required child" in nested_repaired
+    fenced_before = (
+        "# PRD\n\nUseful overview.\n\n"
+        "```text\n## Repeated name\nSubstantive pseudo-heading content.\n```\n\n"
+        "## Repeated name\n\n"
+        "## Neighbor\n\nNeighboring content remains useful."
+    )
+    fenced_after = (
+        "# PRD\n\nUseful overview.\n\n"
+        "## Repeated name\n\n"
+        "## Neighbor\n\nNeighboring content remains useful."
+    )
+
+    fenced_repaired = (
+        cognitive_executor_module._remove_newly_orphaned_optional_sections(
+            fenced_before,
+            fenced_after,
+            required_sections=[],
+        )
+    )
+
+    assert "## Repeated name" in fenced_repaired
+    assert "## Neighbor" in fenced_repaired
+
+
 def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts() -> None:
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
@@ -4119,6 +4270,76 @@ async def test_unsupported_precise_core_candidate_requires_the_existing_repair_p
     assert evaluation.execution_output_contract_satisfied is False
     assert evaluation.direct_promotion_artifact is None
     assert evaluation.artifact.payload["unsupportedPrecision"]
+    assert evaluation.artifact.payload["repairRequired"] is True
+
+
+@pytest.mark.asyncio
+async def test_evaluation_names_quality_defects_in_full_contract_task_result() -> None:
+    class AsciiCoreWriter(QualityWriter):
+        async def execute_task(self, input_value, scope, research_payload, contents):
+            draft = await super().execute_task(
+                input_value, scope, research_payload, contents
+            )
+            if not input_value.task.produces_full_contract:
+                return draft
+            return draft.model_copy(
+                update={
+                    "markdown": (
+                        draft.markdown
+                        + "\n\n## Decision matrix\n\n```text\n"
+                        "+-----+-----+\n| A | B |\n+-----+-----+\n```"
+                    )
+                }
+            )
+
+    compiled = await compiled_scope()
+    research = await execute_research(compiled, VerifiedResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=AsciiCoreWriter(),
+    )
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=850,
+    )
+    assert results[-1].artifact.kind == "task_result"
+    task_refs = sorted(
+        [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
+    )
+
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000859",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+
+    assert evaluation.artifact.payload["substantiveContentDefects"] == [
+        "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
+    ]
     assert evaluation.artifact.payload["repairRequired"] is True
 
 
