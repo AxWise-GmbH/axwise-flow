@@ -109,6 +109,34 @@ _SOFTWARE_PRD_BASELINE_SECTIONS = frozenset(
 _PLANNING_ARTIFACT_TYPES = frozenset(
     {"product_prd", "software_prd", "research_strategy", "operational_plan"}
 )
+_PRODUCT_PRD_SEMANTIC_METHOD = {
+    "method": "decision_useful_product_prd_v1",
+    "analysisAreas": [
+        "problem, market context, and demand implications",
+        "user segments, jobs to be done, pains, and buying roles",
+        "product thesis, scope, non-goals, and material product options",
+        "prioritized requirements and acceptance checks",
+        "user journeys and operational implications",
+        "regulatory and safety constraints plus unresolved authorization gaps",
+        "relevant competitor, channel, pricing, and unit-economics hypotheses",
+        "measurable validation experiments with owners and decision thresholds",
+        "next-step and 90-day execution plan",
+        "risks, triggers, mitigations, and contingencies",
+    ],
+    "consequentialAssertionRule": [
+        "verified fact with a sentence- or table-cell-local allowed claim marker",
+        "accepted scope or owner decision stated as a decision",
+        "explicit hypothesis or proposal with a validation method and decision threshold",
+    ],
+    "personaRule": (
+        "Use evidence-grounded archetypes and jobs; do not invent names, ages, "
+        "neighbourhoods, demographics, interview findings, or customer quotations."
+    ),
+    "decisionRule": (
+        "When evidence cannot settle a material choice, present bounded options or a "
+        "hypothesis and specify the decision owner, validation action, and threshold."
+    ),
+}
 _STATUTORY_SOURCE_TYPES = frozenset({"government", "primary_law"})
 _NONSTATUTORY_AUTHORITY_SOURCE_TYPES = frozenset(
     {"academic", "industry", "official_statistics", "standard"}
@@ -1000,7 +1028,15 @@ concrete, merge-ready findings and corrections through its
 bounded lens. Cover every ID in TASK.acceptanceRequirementIds exactly once in `requirement_coverage`,
 with status satisfied, gap, or not_applicable and a specific note. Include decision rules,
 acceptance checks, risks and open decisions where applicable. Do not emit a template or
-restatement of the scope. Return typed title, Markdown, coverage, conclusions and unknowns.
+restatement of the scope. For physical-product PRDs, do not silently choose an unspecified
+product concept, format or formulation as settled. Present material product choices as explicit
+proposals or options with a validation action. Use evidence-grounded persona archetypes; never
+invent personal names, ages, neighbourhoods or demographic facts. Do not invent exact nutrition,
+health, safety, legal, process, test-method or certification specifications. If an exact
+immutable claim does not support one of those details, omit it or state the unresolved decision
+and how to validate it. Evidence markers are sentence- or table-cell-local: split verified facts
+from proposed targets, and never attach a marker to a line containing an unsupported target.
+Return typed title, Markdown, coverage, conclusions and unknowns.
 """
 ).strip()
 
@@ -1032,11 +1068,17 @@ SYNTHESIS_SYSTEM_PROMPT = (
     _COGNITIVE_BOUNDARY_PROMPT
     + """
 
-Perform the single bounded repair by synthesizing the coherent core draft, specialist packets
-and exact evaluation feedback. Preserve correct material, resolve every listed contradiction,
-remove unsupported external factual precision and stale-topic content, and cover every required
-section as a Markdown heading. Remove unsupported health, safety, legal, certification and external-fact
-assertions while preserving useful product, operational, budget, date and metric decisions.
+Perform one surgical repair of BASE_MARKDOWN using every exact item in REPAIR_TARGETS and
+REPAIR_INSTRUCTIONS. BASE_MARKDOWN is the sole prose draft; do not resynthesize specialist
+packets or echo diagnostics. Preserve unaffected evidence-backed analysis, requirements,
+decisions, acceptance checks, metrics and next steps. Resolve every listed contradiction and
+remove every unsupported or stale assertion. Prefer deleting an unsupported sentence or table
+cell over paraphrasing it. A mismatched citation must be narrowed to the exact text in
+ALLOWED_CLAIMS or removed with the unsupported assertion; never invent support. Preserve useful
+product, operational, budget, date and metric choices as explicit proposals or validation
+targets, but do not mix them in the same sentence or table cell as an evidence marker. Remove
+invented persona names, ages, neighbourhoods and demographic facts; retain neutral user
+archetypes and jobs. Cover every required section as a Markdown heading.
 When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
 until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
 equivalent adjective forms even in a disclaimer, heading or status label.
@@ -2560,12 +2602,87 @@ class PydanticAISynthesisWriter:
                 "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
                     mode="json", by_alias=True
                 ),
+                "SEMANTIC_METHOD": (
+                    _PRODUCT_PRD_SEMANTIC_METHOD
+                    if input_value.output_contract.artifact_type == "product_prd"
+                    else None
+                ),
                 "REPAIR_PASS": input_value.repair_pass,
                 "SELECTED_IMMUTABLE_ARTIFACTS": [
                     item.model_dump(mode="json", by_alias=True)
                     for item in selected_contents
                 ],
                 "ALLOWED_CLAIM_IDS": allowed_claim_ids,
+            }
+        )
+
+    @staticmethod
+    def _final_repair_prompt(
+        input_value: SynthesizeArtifactInputV1,
+        selected_contents: list[ImmutableArtifactContent],
+        context: SynthesisContext,
+    ) -> str:
+        """Project immutable final inputs into one compact, surgical repair prompt."""
+
+        if input_value.purpose != "final_synthesis" or input_value.evaluation is None:
+            raise ValueError("final repair prompt requires final_synthesis input")
+        core_candidates = [
+            item
+            for item in selected_contents
+            if item.content_type == "text/markdown"
+            and item.artifact.kind in {"task_result", "final_markdown"}
+            and isinstance(item.payload.get("task"), dict)
+            and item.payload["task"].get("taskKind") == "core_draft"
+            and item.payload["task"].get("producesFullContract") is True
+            and isinstance(item.markdown, str)
+        ]
+        if len(core_candidates) != 1:
+            raise ValueError("final repair prompt requires one full-contract core draft")
+        evaluation_candidates = [
+            item
+            for item in selected_contents
+            if item.artifact == input_value.evaluation
+            and item.artifact.kind == "evaluation"
+            and item.content_type == "application/json"
+        ]
+        if len(evaluation_candidates) != 1:
+            raise ValueError("final repair prompt requires the exact evaluation artifact")
+        evaluation = EvaluationResultV1.model_validate(
+            evaluation_candidates[0].payload
+        )
+        repair_targets = {
+            "unmetRequirementIds": evaluation.unmet_requirement_ids,
+            "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
+            "unsupportedPrecision": evaluation.unsupported_precision,
+            "contradictions": evaluation.contradictions,
+            "staleTopicReferences": evaluation.stale_topic_references,
+            "readinessViolations": evaluation.readiness_violations,
+            "substantiveContentDefects": evaluation.substantive_content_defects,
+            "practicalityDefects": evaluation.practicality_defects,
+        }
+        core = core_candidates[0]
+        return canonical_json(
+            {
+                "PURPOSE": input_value.purpose,
+                "BASE_MARKDOWN": core.markdown,
+                "CORE_ARTIFACT": core.artifact.model_dump(mode="json", by_alias=True),
+                "EVALUATION_ARTIFACT": input_value.evaluation.model_dump(
+                    mode="json", by_alias=True
+                ),
+                "REPAIR_TARGETS": repair_targets,
+                "REPAIR_INSTRUCTIONS": evaluation.repair_instructions,
+                "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
+                    mode="json", by_alias=True
+                ),
+                "SEMANTIC_METHOD": (
+                    _PRODUCT_PRD_SEMANTIC_METHOD
+                    if input_value.output_contract.artifact_type == "product_prd"
+                    else None
+                ),
+                "EVIDENCE_READINESS": context.evidence_readiness,
+                "REQUIRED_GAP_LABELS": context.required_gap_labels,
+                "ALLOWED_CLAIMS": context.allowed_claim_texts,
+                "REPAIR_PASS": input_value.repair_pass,
             }
         )
 
@@ -2627,13 +2744,7 @@ class PydanticAISynthesisWriter:
         context = self._context(input_value, research_payload, selected_contents)
         result = await self._run_validated_agent(
             self.final_agent,
-            self._prompt(
-                input_value,
-                scope_payload,
-                research_payload,
-                selected_contents,
-                context.allowed_claim_ids,
-            ),
+            self._final_repair_prompt(input_value, selected_contents, context),
             context,
             phase="FINAL",
         )
