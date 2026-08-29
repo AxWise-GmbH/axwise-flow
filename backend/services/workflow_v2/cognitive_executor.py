@@ -383,6 +383,9 @@ class SynthesisContext(_DraftModel):
     required_gap_labels: list[str]
     unresolved_evidence_requirements: list[str] = Field(default_factory=list)
     acceptance_requirement_ids: list[str] = Field(default_factory=list)
+    accepted_requirements: list[AcceptedDeliverableRequirementV1] = Field(
+        default_factory=list
+    )
     repair_pass: int = Field(default=0, ge=0, le=1)
     quality_gate_required: bool = False
     practical_output_required: bool = False
@@ -2086,6 +2089,29 @@ _UNRESOLVED_REQUIREMENT_ACTION = re.compile(
     r"submit|finalize|prepare)\b",
     re.IGNORECASE,
 )
+_SERVER_VALIDATION_ACTION = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?validation\s+action\s*:\s*"
+    r"(?:verify\s+this\s+item\s+before\s+relying\s+on\s+it|"
+    r"verify\s+whether\s+.+?\s+before\s+treating\s+it\s+as\s+settled)"
+    r"[.;]?\s*$",
+    re.IGNORECASE,
+)
+_ACTION_ASSERTED_TAIL = re.compile(
+    r"\bbecause\b|"
+    r"(?:[,;]\s*|\s+)(?:and|but|however|yet|while|whereas)\s+"
+    r"(?:the\s+|this\s+|that\s+|these\s+|those\s+)?"
+    r"[^,.;]{0,100}\b(?:is|are|was|were|has|have|must|shall|will|can|may)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_bounded_unresolved_requirement_action(fragment: str) -> bool:
+    """Accept an imperative only when it has no independent factual tail."""
+
+    match = _UNRESOLVED_REQUIREMENT_ACTION.match(fragment)
+    if match is None:
+        return False
+    return _ACTION_ASSERTED_TAIL.search(fragment[match.end() :]) is None
 _UNRESOLVED_LABELED_ACTION = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:draft|provisional|proposal|proposed|"
     r"candidate|working\s+(?:option|draft)|option\s+[a-z0-9]+|target\s+"
@@ -2172,6 +2198,27 @@ _CLAUSE_BREAK = re.compile(
     r"\s+(?:but|however|yet|nevertheless|nonetheless)\s+",
     re.IGNORECASE,
 )
+_TASK_GWT_ROLE_START = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:\*\*|__)?(?:given|when|then)"
+    r"(?:\s*:)?(?:\*\*|__)?\s*:?(?=\s|[\u2013\u2014-]|$)",
+    re.IGNORECASE,
+)
+_INLINE_GWT_ROLE_BREAK = re.compile(
+    r",\s*(?=(?:\*\*|__)?(?:Given|When|Then)(?:\s*:)?(?:\*\*|__)?"
+    r"\s*:?(?=\s|[\u2013\u2014-]|$))"
+)
+
+
+def _evidence_clause_fragments(fragment: str) -> list[str]:
+    """Split compact acceptance roles without treating subordinate prose as roles."""
+
+    result: list[str] = []
+    for clause in _CLAUSE_BREAK.split(fragment):
+        if _TASK_GWT_ROLE_START.match(clause) is not None:
+            result.extend(_INLINE_GWT_ROLE_BREAK.split(clause))
+        else:
+            result.append(clause)
+    return result
 _POSITIVE_AUTHORITY_PREDICATE = re.compile(
     r"\b(?:approved|authorized|certified|complies?|contains?|cures?|ensures?|has|have|"
     r"is|meets?|prevents?|requires?|safe|treats?|was|were)\b",
@@ -2505,6 +2552,8 @@ def _deterministic_evidence_integrity_defects(
     artifact_type: str | None = None,
     immutable_gap_labels: Sequence[str] = (),
     unresolved_evidence_requirements: Sequence[str] = (),
+    defect_limit: int | None = 40,
+    excerpt_limit: int | None = 180,
 ) -> list[str]:
     """Reject only high-risk factual precision that lacks exact immutable support.
 
@@ -2574,7 +2623,7 @@ def _deterministic_evidence_integrity_defects(
                     re.sub(r"[*_`]", "", cell).strip() for cell in fragments
                 ]
         else:
-            fragments = _CLAUSE_BREAK.split(stripped)
+            fragments = _evidence_clause_fragments(stripped)
             fragment_contexts = [""] * len(fragments)
         table_gap_context = (
             "|" in stripped
@@ -2636,6 +2685,16 @@ def _deterministic_evidence_integrity_defects(
                 continue
             if unresolved_alignment and not markers and exact_gap_section_label:
                 continue
+            cleaned_action = re.sub(r"[*_`]", "", without_markers)
+            if (
+                not markers
+                and _SERVER_VALIDATION_ACTION.fullmatch(cleaned_action)
+                and _is_bounded_unresolved_requirement_action(cleaned_action)
+            ):
+                # These exact server-owned forms request proof without asserting the
+                # proposition. A generic action prefix cannot exempt an independently
+                # asserted coordinator or causal tail.
+                continue
             if (
                 unresolved_alignment
                 and not markers
@@ -2643,7 +2702,7 @@ def _deterministic_evidence_integrity_defects(
                     _UNRESOLVED_LABELED_ACTION.search(
                         re.sub(r"[*_`]", "", without_markers)
                     )
-                    or _UNRESOLVED_REQUIREMENT_ACTION.search(
+                    or _is_bounded_unresolved_requirement_action(
                         re.sub(r"[*_`]", "", without_markers)
                     )
                     or _UNRESOLVED_REQUIREMENT_CONTEXT.search(
@@ -2662,7 +2721,9 @@ def _deterministic_evidence_integrity_defects(
                 )
             ):
                 continue
-            excerpt = re.sub(r"\s+", " ", without_markers).strip()[:180]
+            excerpt = re.sub(r"\s+", " ", without_markers).strip()
+            if excerpt_limit is not None:
+                excerpt = excerpt[:excerpt_limit]
             if not markers:
                 if unresolved_alignment:
                     defects.add(
@@ -2740,7 +2801,8 @@ def _deterministic_evidence_integrity_defects(
                         "Cited immutable claims do not semantically support this exact "
                         f"assertion: {excerpt}"
                     )
-    return utf16_ordinal_sorted(defects)[:40]
+    ordered = utf16_ordinal_sorted(defects)
+    return ordered if defect_limit is None else ordered[:defect_limit]
 
 
 _UNRESOLVED_UNSUPPORTED_FACT_PREFIX = (
@@ -2749,45 +2811,113 @@ _UNRESOLVED_UNSUPPORTED_FACT_PREFIX = (
 )
 
 
+def _handled_task_evidence_defect(
+    defect: str, *, full_contract: bool
+) -> tuple[str, bool, bool] | None:
+    """Return excerpt, unresolved-authority status, and citation requirement."""
+
+    unresolved = defect.startswith(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX) or (
+        "unresolved evidence assertion" in defect
+    )
+    if unresolved:
+        _prefix, separator, excerpt = defect.partition(": ")
+        return (
+            (excerpt, True, defect.startswith("Cited immutable claims"))
+            if separator and excerpt
+            else None
+        )
+    if not full_contract or not defect.startswith(
+        (
+            "Unsupported factual precision requires an exact evidence marker",
+            "Cited immutable claims do not support every exact value in this assertion",
+            "Cited immutable claims do not semantically support this exact assertion",
+        )
+    ):
+        return None
+    _prefix, separator, excerpt = defect.partition(": ")
+    return (
+        (excerpt, False, defect.startswith("Cited immutable claims"))
+        if separator and excerpt
+        else None
+    )
+
+
+_TASK_FRAGMENT_PREFIX = re.compile(
+    r"^(?P<list>\s*(?:(?:[-+*]|\d+[.)])\s+)?)"
+    r"(?:(?P<role_prefix>(?:\*\*|__)?(?P<role>Given|When|Then)"
+    r"(?:\s*:)?(?:\*\*|__)?\s*:?\s+))?"
+    r"(?P<body>.*)$",
+    re.IGNORECASE,
+)
+
+
+def _task_fragment_parts(fragment: str) -> tuple[str, str, str, str]:
+    """Split a task fragment while preserving list and formatted G/W/T topology."""
+
+    match = _TASK_FRAGMENT_PREFIX.match(fragment)
+    assert match is not None
+    return (
+        match.group("list") or "",
+        match.group("role_prefix") or "",
+        (match.group("role") or "").casefold(),
+        match.group("body") or "",
+    )
+
+
 def _as_unresolved_validation_action(
     fragment: str, *, table_cell: bool = False
 ) -> str:
     """Reclassify one uncited authority assertion without losing its planning value."""
 
-    prefix_match = re.match(
-        r"^(\s*(?:(?:[-+*]|\d+[.)])\s+)?)((?:Given|When|Then)\s+)?(.*)$",
-        fragment,
-        re.IGNORECASE,
-    )
-    assert prefix_match is not None
-    list_prefix, acceptance_prefix, body = prefix_match.groups()
+    list_prefix, role_prefix, role, body = _task_fragment_parts(fragment)
     body = body.strip().rstrip(" .;:")
     action = f"Validation action: verify whether {body} before treating it as settled."
-    if (
-        acceptance_prefix
-        and acceptance_prefix.casefold().startswith("then")
-        and not table_cell
-    ):
+    if role == "then" and not table_cell:
         # Keep the Given/When/Then topology while ensuring the unresolved proposition is
         # an action fragment in its own right rather than a factual acceptance outcome.
         return (
-            f"{list_prefix}Then record an unresolved evidence gap until verification.\n\n"
+            f"{list_prefix}{role_prefix}record an unresolved evidence gap until "
+            "verification.\n\n"
             f"{list_prefix}{action}"
         )
-    if acceptance_prefix and acceptance_prefix.casefold().startswith("then"):
+    if role == "then":
         return f"{list_prefix}{action}"
-    return f"{list_prefix}{acceptance_prefix or ''}{action}"
+    return f"{list_prefix}{role_prefix}{action}"
+
+
+def _as_claim_free_validation_action(
+    fragment: str, *, table_cell: bool = False
+) -> str:
+    """Withhold an unsupported cited proposition while preserving its structure."""
+
+    list_prefix, role_prefix, role, _body = _task_fragment_parts(fragment)
+    if role == "given":
+        return (
+            f"{list_prefix}{role_prefix}the applicable planning evidence remains "
+            "unverified."
+        )
+    if role == "when":
+        return f"{list_prefix}{role_prefix}the relevant decision is reviewed."
+    if role == "then":
+        return (
+            f"{list_prefix}{role_prefix}record the evidence gap and defer the decision."
+        )
+    if table_cell:
+        return "Validation action: verify this item before relying on it."
+    return f"{list_prefix}Validation action: verify this item before relying on it."
 
 
 def _prepare_task_unresolved_actions(
     context: SynthesisContext, draft: TaskDraft
 ) -> TaskDraft:
-    """Turn only uncited unresolved task assertions into explicit validation actions.
+    """Withhold unsupported task claims without discarding the useful artifact.
 
-    The unchanged evidence validator remains authoritative. This preparation applies only
-    to non-authorizing outputs that are already allowed to complete with evidence gaps. It
-    is deliberately clause- and table-cell-local so useful supported analysis, citations
-    and Markdown structure survive. Incorrect or contradictory citations are never repaired.
+    Non-authorizing, evidence-gapped work may retain an uncited proposition only as an
+    explicit validation action. A cited proposition with polarity, value, or semantic
+    mismatch is removed together with its marker and replaced by claim-free structural
+    text. Full-contract drafts apply the same treatment to every deterministic evidence
+    defect so a strong task artifact can be evaluated or promoted without another rewrite.
+    Strict validation remains authoritative when exact targeting cannot be proven safe.
     """
 
     if (
@@ -2797,34 +2927,76 @@ def _prepare_task_unresolved_actions(
         return draft
 
     current = draft.markdown
-    for _pass in range(max(1, len(current.splitlines()))):
+    full_contract = bool(context.required_sections)
+
+    def present_required_headings(markdown: str) -> set[str]:
+        headings = {normalized for _, _, normalized in _markdown_headings(markdown)}
+        return {
+            section.strip().lower()
+            for section in context.required_sections
+            if not _is_server_owned_source_heading(section)
+            and section.strip().lower() in headings
+        }
+
+    def fenced_line_indexes(markdown: str) -> set[int]:
+        indexes: set[int] = set()
+        fence_character = ""
+        fence_length = 0
+        for index, line in enumerate(markdown.splitlines()):
+            fence = re.match(r"^\s*(`{3,}|~{3,})", line)
+            if fence is not None:
+                marker = fence.group(1)
+                indexes.add(index)
+                if not fence_character:
+                    fence_character = marker[0]
+                    fence_length = len(marker)
+                elif marker[0] == fence_character and len(marker) >= fence_length:
+                    fence_character = ""
+                    fence_length = 0
+                continue
+            if fence_character:
+                indexes.add(index)
+        return indexes
+
+    for _pass in range(max(1, len(current.splitlines()) * 2)):
         defects = _deterministic_evidence_integrity_defects(
             current,
             context.allowed_claim_texts,
             artifact_type=context.artifact_type,
             immutable_gap_labels=context.required_gap_labels,
             unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+            defect_limit=None,
+            excerpt_limit=None,
         )
-        excerpts = [
-            defect.removeprefix(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX)
+        handled = [
+            value
             for defect in defects
-            if defect.startswith(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX)
+            if (value := _handled_task_evidence_defect(
+                defect, full_contract=full_contract
+            ))
+            is not None
         ]
-        if not excerpts:
+        if not handled:
             break
 
         changed = False
-        repaired_lines: list[str] = []
-        for line in current.splitlines():
+        lines = current.splitlines()
+        fenced_indexes = fenced_line_indexes(current)
+        for line_index, line in enumerate(lines):
+            if line_index in fenced_indexes:
+                continue
             is_table_line = "|" in line
             units = line.split("|") if is_table_line else [line]
-            repaired_units: list[str] = []
-            for unit in units:
+            for unit_index, unit in enumerate(units):
                 candidate_base = unit.strip()
                 heading = _MARKDOWN_HEADING.fullmatch(candidate_base)
                 if heading is not None:
                     candidate_base = heading.group(1).strip()
-                fragments = _CLAUSE_BREAK.split(candidate_base)
+                fragments = (
+                    [candidate_base]
+                    if is_table_line
+                    else _evidence_clause_fragments(candidate_base)
+                )
                 candidates = [
                     candidate
                     for fragment in fragments
@@ -2835,48 +3007,98 @@ def _prepare_task_unresolved_actions(
                     )
                     if candidate
                 ]
-                repaired_unit = unit
                 for candidate in candidates:
-                    if _RAW_EVIDENCE_MARKER.search(candidate) is not None:
-                        continue
-                    candidate_index = repaired_unit.find(candidate)
+                    candidate_index = unit.find(candidate)
                     if candidate_index < 0:
                         continue
-                    trailing = repaired_unit[candidate_index + len(candidate) :]
-                    if re.match(
-                        r"^[\s.,;:!?()\[\]`*_~-]*\[evidence:[^\]\r\n]*\]",
+                    markerless = _RAW_EVIDENCE_MARKER.sub("", candidate)
+                    normalized = re.sub(r"\s+", " ", markerless).strip()
+                    target_end = candidate_index + len(candidate)
+                    trailing = unit[target_end:]
+                    adjacent_marker = re.match(
+                        r"^[\s.,;:!?()`*_~-]*(\[evidence:[^\]\r\n]+\])",
                         trailing,
-                    ):
-                        # A marker placed just after sentence punctuation is not local
-                        # support under the validator grammar, but deterministic cleanup
-                        # must not reinterpret it and thereby bypass a polarity or semantic
-                        # citation failure. Leave the malformed citation fail-closed.
-                        continue
-                    normalized = re.sub(r"\s+", " ", candidate).strip()
-                    matching_excerpt = next(
+                    )
+                    locally_cited = _RAW_EVIDENCE_MARKER.search(candidate) is not None
+                    cited = locally_cited or adjacent_marker is not None
+                    target = next(
                         (
-                            excerpt
-                            for excerpt in excerpts
-                            if normalized[:180] == excerpt
+                            item
+                            for item in handled
+                            if normalized == item[0] and locally_cited == item[2]
                         ),
                         None,
                     )
-                    if matching_excerpt is None:
+                    if target is None:
                         continue
-                    repaired_unit = repaired_unit.replace(
-                        candidate,
-                        _as_unresolved_validation_action(
-                            candidate, table_cell=is_table_line
-                        ),
-                        1,
-                    )
-                    changed = True
-                repaired_units.append(repaired_unit)
-            repaired_lines.append("|".join(repaired_units))
 
+                    if adjacent_marker is not None:
+                        target_end += adjacent_marker.end()
+                    _target_excerpt, unresolved_authority, _cited_defect = target
+                    claim_free = cited or not unresolved_authority or bool(
+                        _ACTION_ASSERTED_TAIL.search(markerless)
+                    )
+                    replacement = (
+                        _as_claim_free_validation_action(
+                            markerless, table_cell=is_table_line
+                        )
+                        if claim_free
+                        else _as_unresolved_validation_action(
+                            markerless, table_cell=is_table_line
+                        )
+                    )
+                    trial_unit = unit[:candidate_index] + replacement + unit[target_end:]
+                    trial_units = [*units]
+                    trial_units[unit_index] = trial_unit
+                    trial_lines = [*lines]
+                    trial_lines[line_index] = "|".join(trial_units)
+                    trial = "\n".join(trial_lines)
+                    if set(_deterministic_structural_integrity_defects(trial)).difference(
+                        _deterministic_structural_integrity_defects(current)
+                    ):
+                        continue
+                    if present_required_headings(current).difference(
+                        present_required_headings(trial)
+                    ):
+                        continue
+                    if set(
+                        _incomplete_given_when_then_acceptance_blocks(trial)
+                    ).difference(
+                        _incomplete_given_when_then_acceptance_blocks(current)
+                    ):
+                        continue
+                    trial_defects = _deterministic_evidence_integrity_defects(
+                        trial,
+                        context.allowed_claim_texts,
+                        artifact_type=context.artifact_type,
+                        immutable_gap_labels=context.required_gap_labels,
+                        unresolved_evidence_requirements=(
+                            context.unresolved_evidence_requirements
+                        ),
+                        defect_limit=None,
+                        excerpt_limit=None,
+                    )
+                    trial_handled = [
+                        value
+                        for defect in trial_defects
+                        if (value := _handled_task_evidence_defect(
+                            defect, full_contract=full_contract
+                        ))
+                        is not None
+                    ]
+                    if len(trial_handled) >= len(handled):
+                        continue
+                    if set(trial_defects).difference(defects):
+                        continue
+                    current = trial
+                    changed = True
+                    break
+                if changed:
+                    break
+            if changed:
+                break
         if not changed:
             break
-        current = "\n".join(repaired_lines)
 
     if current == draft.markdown:
         return draft
@@ -3487,6 +3709,98 @@ def _deterministic_structural_integrity_defects(markdown: str) -> list[str]:
     return utf16_ordinal_sorted(set(defects))
 
 
+def _with_accepted_requirement_traceability(
+    context: SynthesisContext, draft: TaskDraft | SynthesisDraft
+) -> TaskDraft | SynthesisDraft:
+    """Add missing immutable requirement IDs without asking the model to rewrite work."""
+
+    if (
+        context.artifact_type not in {"product_prd", "software_prd"}
+        or not context.accepted_requirements
+    ):
+        return draft
+    base = _markdown_with_fenced_bodies_blanked(draft.markdown).split(
+        "\n\n## Sources\n", 1
+    )[0]
+    headings = list(_MARKDOWN_HEADING.finditer(base))
+    prioritized_index = next(
+        (
+            index
+            for index, match in enumerate(headings)
+            if _normalized_semantic_text(match.group(1))
+            == _normalized_semantic_text("Prioritized requirements")
+        ),
+        None,
+    )
+    acceptance_index = next(
+        (
+            index
+            for index, match in enumerate(headings)
+            if _normalized_semantic_text(match.group(1))
+            == _normalized_semantic_text("Acceptance criteria")
+        ),
+        None,
+    )
+    if prioritized_index is None or acceptance_index is None:
+        return draft
+
+    def section_body(index: int) -> tuple[str, int]:
+        match = headings[index]
+        level = len(match.group(0)) - len(match.group(0).lstrip("#"))
+        end = len(base)
+        for later in headings[index + 1 :]:
+            later_level = len(later.group(0)) - len(later.group(0).lstrip("#"))
+            if later_level <= level:
+                end = later.start()
+                break
+        return base[match.end() : end], end
+
+    prioritized, insertion_offset = section_body(prioritized_index)
+    acceptance, _acceptance_end = section_body(acceptance_index)
+    prioritized_ids = {
+        match.group(0).casefold()
+        for match in _DISPLAY_REQUIREMENT_ID.finditer(prioritized)
+    }
+    acceptance_ids = {
+        match.group(0).casefold()
+        for match in _DISPLAY_REQUIREMENT_ID.finditer(acceptance)
+    }
+    requirements = {item.id: item for item in context.accepted_requirements}
+    missing = [
+        requirements[requirement_id]
+        for requirement_id in utf16_ordinal_sorted(
+            acceptance_ids.difference(prioritized_ids)
+        )
+        if requirement_id in requirements
+    ]
+    if not missing:
+        return draft
+    if len(missing) != len(acceptance_ids.difference(prioritized_ids)):
+        return draft
+
+    rows = [
+        "### Accepted-scope traceability",
+        "",
+        "| Priority | Requirement ID | Category | Immutable binding |",
+        "| --- | --- | --- | --- |",
+        *[
+            "| "
+            f"{item.priority} | `{item.id}` | `{item.category}` | "
+            "Exact semantics remain bound to the immutable accepted scope. |"
+            for item in missing
+        ],
+    ]
+    insertion = "\n\n" + "\n".join(rows) + "\n"
+    repaired = draft.markdown[:insertion_offset].rstrip() + insertion + draft.markdown[
+        insertion_offset:
+    ].lstrip("\n")
+    if set(_deterministic_structural_integrity_defects(repaired)).difference(
+        _deterministic_structural_integrity_defects(draft.markdown)
+    ):
+        return draft
+    return draft.model_copy(update={"markdown": repaired})
+
+
 def _deterministic_quality_defects(
     markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
 ) -> tuple[list[str], list[str]]:
@@ -3870,6 +4184,7 @@ class PydanticAISynthesisWriter:
             output = _with_immutable_gap_labels(ctx.deps, output)
             output = _without_forbidden_task_launch_claim_lines(ctx.deps, output)
             output = _prepare_task_unresolved_actions(ctx.deps, output)
+            output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
                 _validate_task_draft(ctx.deps, output)
             except ValueError as error:
@@ -3900,6 +4215,7 @@ class PydanticAISynthesisWriter:
                 update={"markdown": after_pruning}
             )
             output = _with_immutable_gap_labels(ctx.deps, output)
+            output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
                 _validate_synthesis(ctx.deps, output)
             except ValueError as error:
@@ -4068,6 +4384,9 @@ class PydanticAISynthesisWriter:
             acceptance_requirement_ids=(
                 task.acceptance_requirement_ids if task is not None else []
             ),
+            accepted_requirements=ScopeArtifactV2.model_validate(
+                scope_payload
+            ).requirements,
             repair_pass=input_value.repair_pass or 0,
             quality_gate_required=input_value.purpose
             in {"final_synthesis", "blocked_report"},
@@ -4209,6 +4528,7 @@ class PydanticAISynthesisWriter:
         output = _with_immutable_gap_labels(context, result.output)
         output = _without_forbidden_task_launch_claim_lines(context, output)
         output = _prepare_task_unresolved_actions(context, output)
+        output = _with_accepted_requirement_traceability(context, output)
         _validate_task_draft(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(output, input_tokens, output_tokens)
@@ -4255,6 +4575,7 @@ class PydanticAISynthesisWriter:
             phase="FINAL",
         )
         output = _with_immutable_gap_labels(context, result.output)
+        output = _with_accepted_requirement_traceability(context, output)
         _validate_synthesis(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(output, input_tokens, output_tokens)
@@ -6201,6 +6522,7 @@ class GeminiCognitiveExecutor:
                     scope.model_dump(mode="json", by_alias=True),
                 )
             ),
+            accepted_requirements=scope.requirements,
             repair_pass=input_value.repair_pass or 0,
             quality_gate_required=input_value.purpose
             in {"final_synthesis", "blocked_report"},
@@ -6298,6 +6620,7 @@ class GeminiCognitiveExecutor:
             draft = _with_immutable_gap_labels(context, draft)
             draft = _without_forbidden_task_launch_claim_lines(context, draft)
             draft = _prepare_task_unresolved_actions(context, draft)
+            draft = _with_accepted_requirement_traceability(context, draft)
             _validate_task_draft(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)
@@ -6636,6 +6959,7 @@ class GeminiCognitiveExecutor:
             written = ModelOutput(_deterministic_blocked_report(research))
         draft, input_tokens, output_tokens = _unwrap_model_output(written)
         draft = _with_immutable_gap_labels(common_context, draft)
+        draft = _with_accepted_requirement_traceability(common_context, draft)
         _validate_synthesis(common_context, draft)
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(
