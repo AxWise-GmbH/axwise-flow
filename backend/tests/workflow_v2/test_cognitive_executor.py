@@ -4888,6 +4888,111 @@ def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content()
     _validate_synthesis(context, preserved)
 
 
+def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> None:
+    label = (
+        "The cat-food product will be formulated and packaged for compliance with EU "
+        "animal nutrition regulations and Estonian veterinary requirements"
+    )
+    markdown = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[label],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+
+    preserved = _with_immutable_gap_labels(
+        context,
+        SynthesisDraft(title="Useful honest PRD", markdown=markdown),
+    )
+    canonical_bullet = f"- {label}"
+    assert canonical_bullet in preserved.markdown
+    assert preserved.markdown.count(label) == 1
+    assert _with_immutable_gap_labels(context, preserved) == preserved
+    assert _deterministic_evidence_integrity_defects(
+        preserved.markdown,
+        {},
+        artifact_type="product_prd",
+        immutable_gap_labels=context.required_gap_labels,
+    ) == []
+    _validate_synthesis(context, preserved)
+
+    raw_claim_elsewhere = preserved.model_copy(
+        update={
+            "markdown": preserved.markdown.replace(
+                "# Product requirements document",
+                f"# Product requirements document\n\n{label}",
+                1,
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(context, raw_claim_elsewhere)
+
+    expanded_canonical_bullet = preserved.model_copy(
+        update={
+            "markdown": preserved.markdown.replace(
+                canonical_bullet,
+                canonical_bullet
+                + ". Therefore the formula complies with all applicable feed law.",
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(context, expanded_canonical_bullet)
+
+    comma_extended = preserved.model_copy(
+        update={
+            "markdown": preserved.markdown.replace(
+                canonical_bullet,
+                canonical_bullet
+                + ", therefore the formula complies with all applicable feed law.",
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(context, comma_extended)
+
+    dash_extended = preserved.model_copy(
+        update={
+            "markdown": preserved.markdown.replace(
+                canonical_bullet,
+                canonical_bullet
+                + " — therefore the formula complies with all applicable feed law.",
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(context, dash_extended)
+
+    relocated = SynthesisDraft(
+        title="Relocated unresolved item",
+        markdown=markdown.replace(
+            "# Product requirements document",
+            f"# Product requirements document\n\n{canonical_bullet}",
+            1,
+        ),
+    )
+    relocated_preserved = _with_immutable_gap_labels(context, relocated)
+    assert relocated_preserved.markdown.count(label) == 2
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(context, relocated_preserved)
+
+
 def test_ready_prd_cannot_claim_launch_authority_but_authorization_can() -> None:
     draft = SynthesisDraft(
         title="Launch decision",

@@ -9,7 +9,7 @@ import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Generic, Literal, Protocol, TypeVar
+from typing import Any, Generic, Literal, Protocol, Sequence, TypeVar
 from urllib.parse import urlparse
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -1402,6 +1402,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             draft.markdown,
             context.allowed_claim_texts,
             artifact_type=context.artifact_type,
+            immutable_gap_labels=context.required_gap_labels,
         )
         substantive, practicality = _deterministic_quality_defects(
             draft.markdown,
@@ -1414,6 +1415,34 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             ))
 
 
+_IMMUTABLE_GAP_SECTION_HEADINGS = frozenset(
+    {
+        "Immutable evidence gaps and assumptions",
+        "Other immutable gaps and assumptions",
+    }
+)
+
+
+def _immutable_gap_bullet(label: str) -> str:
+    return f"- {label}"
+
+
+def _has_server_owned_immutable_gap_bullet(markdown: str, bullet: str) -> bool:
+    current_heading = ""
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        heading = re.match(r"^#{1,6}\s+(.+?)\s*#*$", stripped)
+        if heading:
+            current_heading = heading.group(1).strip()
+            continue
+        if (
+            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
+            and stripped == bullet
+        ):
+            return True
+    return False
+
+
 def _with_immutable_gap_labels(
     context: SynthesisContext,
     draft: TaskDraft | SynthesisDraft,
@@ -1422,12 +1451,14 @@ def _with_immutable_gap_labels(
 
     if context.evidence_readiness not in {"ready_with_gaps", "blocked"}:
         return draft
-    folded = draft.markdown.casefold()
     seen: set[str] = set()
     missing: list[str] = []
     for label in context.required_gap_labels:
         canonical = label.casefold()
-        if canonical in seen or canonical in folded:
+        canonical_bullet = _immutable_gap_bullet(label)
+        if canonical in seen or _has_server_owned_immutable_gap_bullet(
+            draft.markdown, canonical_bullet
+        ):
             continue
         seen.add(canonical)
         missing.append(label)
@@ -1445,7 +1476,7 @@ def _with_immutable_gap_labels(
                 "legal, safety, certification, or market clearance."
             ),
             "",
-            *(f"- {label}" for label in missing),
+            *(_immutable_gap_bullet(label) for label in missing),
         ]
     )
     return draft.model_copy(update={"markdown": markdown})
@@ -1908,6 +1939,7 @@ def _deterministic_evidence_integrity_defects(
     allowed_claim_texts: dict[str, str],
     *,
     artifact_type: str | None = None,
+    immutable_gap_labels: Sequence[str] = (),
 ) -> list[str]:
     """Reject only high-risk factual precision that lacks exact immutable support.
 
@@ -1920,6 +1952,9 @@ def _deterministic_evidence_integrity_defects(
     base = markdown.split("\n\n## Sources\n", 1)[0]
     defects: set[str] = set()
     current_heading = ""
+    immutable_gap_bullets = {
+        _immutable_gap_bullet(label) for label in immutable_gap_labels
+    }
     for line in base.splitlines():
         stripped = line.strip()
         if stripped.startswith("```"):
@@ -1930,6 +1965,14 @@ def _deterministic_evidence_integrity_defects(
         if heading:
             current_heading = heading.group(1).strip()
             stripped = current_heading
+        elif (
+            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
+            and stripped in immutable_gap_bullets
+        ):
+            # This exact line is appended by AxWise to preserve an immutable unresolved
+            # item. Skip only this occurrence: raw, modified, extended, or relocated
+            # copies remain subject to the normal evidence-integrity checks below.
+            continue
         fragments = (
             [cell.strip() for cell in stripped.strip("|").split("|")]
             if "|" in stripped
@@ -2262,7 +2305,7 @@ def _deterministic_blocked_report(research: ResearchResultV2) -> SynthesisDraft:
     )
     rows.extend(["", "## Other immutable gaps and assumptions", ""])
     rows.extend(
-        (f"- {label}" for label in additional_labels)
+        (_immutable_gap_bullet(label) for label in additional_labels)
         if additional_labels
         else ["- No additional nonblocking gap or assumption is recorded."]
     )
@@ -4610,6 +4653,7 @@ class GeminiCognitiveExecutor:
                 draft.markdown,
                 common_context.allowed_claim_texts,
                 artifact_type=plan.work_shape,
+                immutable_gap_labels=context.required_gap_labels,
             )
             acceptable_coverage = not any(
                 item.status == "gap"
@@ -4760,6 +4804,7 @@ class GeminiCognitiveExecutor:
                     markdown,
                     common_context.allowed_claim_texts,
                     artifact_type=plan.work_shape,
+                    immutable_gap_labels=common_context.required_gap_labels,
                 )
             }
             unsupported = utf16_ordinal_sorted(deterministic_evidence_integrity)[:40]
