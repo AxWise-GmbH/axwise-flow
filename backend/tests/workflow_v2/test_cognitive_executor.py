@@ -306,6 +306,8 @@ def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
             "Given/When/Then Acceptance Criteria",
             "Market Risks & Mitigations",
             "Metrics, Assumptions & Evidence-Backed Constraints",
+            "Open Gaps & Next Steps",
+            "Prioritized Product Requirements",
             "Prioritized Functional & Operational PRD Requirements",
             "Risks & Mitigations",
             "Success Metrics & KPIs",
@@ -326,6 +328,8 @@ def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
         "Explicit Open Gaps & Pre-Launch Roadmap",
         "Given/When/Then Acceptance Criteria",
         "Metrics, Assumptions & Evidence-Backed Constraints",
+        "Open Gaps & Next Steps",
+        "Prioritized Product Requirements",
         "Prioritized Functional & Operational PRD Requirements",
         "Risks & Mitigations",
         "Success Metrics & KPIs",
@@ -1928,6 +1932,8 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
         "invent personal names, ages, neighbourhoods",
         "Do not invent exact nutrition",
         "Evidence markers are sentence- or table-cell-local",
+        "include an explicit `Evidence gaps` or `Assumptions`",
+        "ASCII-art tables inside code fences",
     ):
         assert required in task_prompt
     for required in (
@@ -2435,6 +2441,80 @@ def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts()
     assert "ACCEPTED_SCOPE" not in payload
     assert "RESEARCH_RESULT" not in payload
     assert all(item.markdown not in payload.values() for item in specialists)
+
+
+def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
+    fixture_path = (
+        Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
+    )
+    cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    final_case = next(item for item in cases if item["name"] == "final_synthesis")
+    input_value = SynthesizeArtifactInputV1.model_validate(final_case["input"])
+    contents = list(input_value.artifact_contents)
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "task_result"
+        and item.payload["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    candidate_payload = {
+        "schemaVersion": "axwise.final-markdown.v1",
+        "title": core.payload["title"],
+        "markdown": core.markdown,
+        "sourceArtifacts": core.payload["sourceArtifacts"],
+        "sourceAppendix": core.payload["sourceAppendix"],
+        "evidenceReadiness": core.payload["evidenceReadiness"],
+        "launchReady": False,
+        "candidateAttestation": {
+            "task": core.payload["task"],
+            "requirementCoverage": core.payload["requirementCoverage"],
+            "executionReceipt": core.payload["executionReceipt"],
+        },
+    }
+    candidate_ref, candidate_content = artifact_ref(
+        "00000000-0000-4000-8000-000000000299",
+        "final_markdown",
+        "text/markdown",
+        candidate_payload,
+        core.markdown,
+    )
+    candidate_ref = ArtifactRef.model_validate(candidate_ref)
+    candidate_content = type(core).model_validate(candidate_content)
+    contents[core_index] = candidate_content
+    task_artifacts = [
+        candidate_ref if item == core.artifact else item
+        for item in input_value.task_artifacts
+    ]
+    input_value = input_value.model_copy(
+        update={"artifact_contents": contents, "task_artifacts": task_artifacts}
+    )
+    research_payload = next(
+        item.payload for item in contents if item.artifact.kind == "research"
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=input_value.output_contract.required_sections,
+        evidence_readiness=input_value.output_contract.evidence_readiness,
+        allowed_claim_ids=PydanticAISynthesisWriter._allowed_claim_ids(
+            research_payload
+        ),
+        allowed_claim_texts=PydanticAISynthesisWriter._allowed_claim_texts(
+            research_payload
+        ),
+        required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
+            research_payload
+        ),
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type=input_value.output_contract.artifact_type,
+    )
+
+    prompt = PydanticAISynthesisWriter._final_repair_prompt(
+        input_value, contents, context
+    )
+
+    assert json.loads(prompt)["BASE_MARKDOWN"] == core.markdown
 
 
 def test_specialist_gap_validation_stays_within_its_bounded_lens() -> None:
@@ -4268,7 +4348,7 @@ def cognitive_input(
 
 
 @pytest.mark.asyncio
-async def test_quality_gate_is_scoped_to_full_contract_core_task() -> None:
+async def test_quality_gate_is_reserved_for_publishable_final_output() -> None:
     compiled = await compiled_scope(evidence=False)
     research = await execute_research(compiled, MissingResearchRunner())
     plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
@@ -4304,7 +4384,7 @@ async def test_quality_gate_is_scoped_to_full_contract_core_task() -> None:
         specialist_input.artifact_contents,
     )
 
-    assert core_context.quality_gate_required is True
+    assert core_context.quality_gate_required is False
     assert core_context.practical_output_required is True
     assert specialist_context.quality_gate_required is False
     assert specialist_context.required_sections == []
@@ -4829,7 +4909,7 @@ async def test_unsupported_precise_core_candidate_becomes_specific_verification(
 
 
 @pytest.mark.asyncio
-async def test_full_contract_quality_defect_fails_before_task_persistence() -> None:
+async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
     class AsciiCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -4856,17 +4936,50 @@ async def test_full_contract_quality_defect_fails_before_task_persistence() -> N
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
         synthesis_writer=AsciiCoreWriter(),
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        await execute_plan_tasks(
-            executor,
-            compiled,
-            research,
-            plan_ref,
-            plan_content,
-            output_contract,
-            tasks,
-            operation_base=850,
+    results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=850,
+    )
+    core = results[-1]
+    assert core.artifact.kind == "task_result"
+    assert "```text" in (core.artifact.markdown or "")
+
+    task_refs = sorted(
+        [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000859",
+            operation_type="SynthesizeArtifactV1",
         )
+    )
+
+    assert evaluation.execution_output_contract_satisfied is False
+    assert evaluation.direct_promotion_artifact is None
+    assert any(
+        "ASCII-art table" in defect
+        for defect in evaluation.artifact.payload["substantiveContentDefects"]
+    )
 
 
 @pytest.mark.asyncio
@@ -7694,6 +7807,35 @@ def test_required_sections_accept_numbered_and_parenthetical_semantic_labels() -
                 markdown="# HACCP certified\n\nA qualifier is not the whole contract label.",
             ),
         )
+
+
+def test_prd_domain_headings_satisfy_exact_generic_baseline_aliases() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[
+            "Next steps",
+            "Open Gaps & Next Steps",
+            "Prioritized Product Requirements",
+            "Prioritized requirements",
+        ],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+
+    _validate_synthesis(
+        context,
+        SynthesisDraft(
+            title="Domain PRD",
+            markdown=(
+                "## 9. Prioritized Product Requirements\n\n"
+                "P0 planning requirements.\n\n"
+                "## 14. Open Gaps & Next Steps\n\n"
+                "Concrete validation actions."
+            ),
+        ),
+    )
 
 
 @pytest.mark.parametrize(
