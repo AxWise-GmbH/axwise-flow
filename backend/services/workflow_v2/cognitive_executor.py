@@ -2811,32 +2811,17 @@ _UNRESOLVED_UNSUPPORTED_FACT_PREFIX = (
 )
 
 
-def _handled_task_evidence_defect(
-    defect: str, *, full_contract: bool
-) -> tuple[str, bool, bool] | None:
+def _handled_task_evidence_defect(defect: str) -> tuple[str, bool, bool] | None:
     """Return excerpt, unresolved-authority status, and citation requirement."""
 
     unresolved = defect.startswith(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX) or (
         "unresolved evidence assertion" in defect
     )
-    if unresolved:
-        _prefix, separator, excerpt = defect.partition(": ")
-        return (
-            (excerpt, True, defect.startswith("Cited immutable claims"))
-            if separator and excerpt
-            else None
-        )
-    if not full_contract or not defect.startswith(
-        (
-            "Unsupported factual precision requires an exact evidence marker",
-            "Cited immutable claims do not support every exact value in this assertion",
-            "Cited immutable claims do not semantically support this exact assertion",
-        )
-    ):
+    if not unresolved:
         return None
     _prefix, separator, excerpt = defect.partition(": ")
     return (
-        (excerpt, False, defect.startswith("Cited immutable claims"))
+        (excerpt, True, defect.startswith("Cited immutable claims"))
         if separator and excerpt
         else None
     )
@@ -2912,12 +2897,12 @@ def _prepare_task_unresolved_actions(
 ) -> TaskDraft:
     """Withhold unsupported task claims without discarding the useful artifact.
 
-    Non-authorizing, evidence-gapped work may retain an uncited proposition only as an
-    explicit validation action. A cited proposition with polarity, value, or semantic
-    mismatch is removed together with its marker and replaced by claim-free structural
-    text. Full-contract drafts apply the same treatment to every deterministic evidence
-    defect so a strong task artifact can be evaluated or promoted without another rewrite.
-    Strict validation remains authoritative when exact targeting cannot be proven safe.
+    Non-authorizing, evidence-gapped work may retain an uncited unresolved-authority
+    proposition only as an explicit validation action. A cited unresolved-authority
+    proposition with polarity, value, or semantic mismatch is removed together with its
+    marker and replaced by claim-free structural text. Other precision and citation
+    defects are never rewritten here; strict validation and promotion checks remain
+    authoritative when exact support is absent.
     """
 
     if (
@@ -2927,7 +2912,6 @@ def _prepare_task_unresolved_actions(
         return draft
 
     current = draft.markdown
-    full_contract = bool(context.required_sections)
 
     def present_required_headings(markdown: str) -> set[str]:
         headings = {normalized for _, _, normalized in _markdown_headings(markdown)}
@@ -2971,10 +2955,7 @@ def _prepare_task_unresolved_actions(
         handled = [
             value
             for defect in defects
-            if (value := _handled_task_evidence_defect(
-                defect, full_contract=full_contract
-            ))
-            is not None
+            if (value := _handled_task_evidence_defect(defect)) is not None
         ]
         if not handled:
             break
@@ -3081,10 +3062,7 @@ def _prepare_task_unresolved_actions(
                     trial_handled = [
                         value
                         for defect in trial_defects
-                        if (value := _handled_task_evidence_defect(
-                            defect, full_contract=full_contract
-                        ))
-                        is not None
+                        if (value := _handled_task_evidence_defect(defect)) is not None
                     ]
                     if len(trial_handled) >= len(handled):
                         continue
@@ -3801,6 +3779,40 @@ def _with_accepted_requirement_traceability(
     return draft.model_copy(update={"markdown": repaired})
 
 
+_SERVER_GWT_PLACEHOLDER_BODIES = frozenset(
+    {
+        ("given", "the applicable planning evidence remains unverified"),
+        ("when", "the relevant decision is reviewed"),
+        ("then", "record the evidence gap and defer the decision"),
+        ("then", "record an unresolved evidence gap until verification"),
+    }
+)
+
+
+def _contains_server_deliverable_placeholder(markdown: str) -> bool:
+    """Detect exact server fallback prose that is safe but not deliverable content."""
+
+    unfenced = _markdown_with_fenced_bodies_blanked(markdown)
+    for line in unfenced.splitlines():
+        units = line.split("|") if "|" in line else [line]
+        for unit in units:
+            for fragment in _evidence_clause_fragments(unit.strip()):
+                cleaned = re.sub(r"[`]", "", fragment).strip()
+                if not cleaned:
+                    continue
+                if _SERVER_VALIDATION_ACTION.fullmatch(
+                    re.sub(r"[*_]", "", cleaned)
+                ):
+                    return True
+                _list_prefix, _role_prefix, role, body = _task_fragment_parts(
+                    cleaned
+                )
+                normalized_body = re.sub(r"[*_]", "", body).strip().rstrip(".;:")
+                if (role, normalized_body.casefold()) in _SERVER_GWT_PLACEHOLDER_BODIES:
+                    return True
+    return False
+
+
 def _deterministic_quality_defects(
     markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
 ) -> tuple[list[str], list[str]]:
@@ -3836,6 +3848,11 @@ def _deterministic_quality_defects(
         re.IGNORECASE,
     ):
         substantive.append("The candidate contains placeholder content.")
+    if _contains_server_deliverable_placeholder(base):
+        substantive.append(
+            "The candidate contains server-generated evidence-validation placeholders "
+            "instead of substantive deliverable content."
+        )
     heading_matches = list(_MARKDOWN_HEADING.finditer(base))
     heading_facts = [
         (

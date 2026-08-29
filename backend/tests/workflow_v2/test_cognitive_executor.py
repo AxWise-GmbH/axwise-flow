@@ -6308,7 +6308,7 @@ def test_task_atomically_withholds_punctuation_adjacent_citation(
     _validate_task_draft(context, prepared)
 
 
-def test_full_contract_task_reclassifies_generic_unsupported_claims() -> None:
+def test_full_contract_task_does_not_normalize_generic_unsupported_claims() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6344,31 +6344,75 @@ def test_full_contract_task_reclassifies_generic_unsupported_claims() -> None:
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert (
-        "\n\nCo-manufacturer must maintain verified HACCP certification.\n\n"
-        not in prepared.markdown
+    assert prepared == draft
+    assert "Co-manufacturer must maintain verified HACCP certification." in (
+        prepared.markdown
     )
-    assert (
-        "Validation action: verify this item before relying on it."
-        in prepared.markdown
+    assert "* **Then** the formula is safe for adult cats." in prepared.markdown
+    assert "Validation action: verify this item before relying on it." not in (
+        prepared.markdown
     )
-    assert "* **Then** the formula is safe for adult cats." not in prepared.markdown
-    assert (
-        "* **Then** record the evidence gap and defer the decision."
-        in prepared.markdown
-    )
+    assert "record the evidence gap and defer the decision" not in prepared.markdown
     assert "[Lab Analysis Step]" in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown,
         {},
         artifact_type="product_prd",
-    ) == []
+    )
     assert (
         cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
             prepared.markdown
         )
         == []
     )
+
+
+def test_full_contract_still_normalizes_only_unresolved_authority() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=["PTA notification filing procedures."],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Substantive full contract",
+        markdown=(
+            "# Product plan\n\n"
+            "The planning packet retains its concrete audience, product choices, and "
+            "validation roadmap.\n\n"
+            "PTA notification filing is mandatory before distribution.\n\n"
+            "## Evidence gaps\n\nPTA filing details remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The full contract covers the accepted requirement.",
+            }
+        ],
+        conclusions=["Keep the substantive product plan."],
+    )
+
+    prepared = _prepare_task_unresolved_actions(context, draft)
+
+    assert "retains its concrete audience, product choices" in prepared.markdown
+    assert "PTA notification filing is mandatory before distribution." not in (
+        prepared.markdown
+    )
+    assert (
+        "Validation action: verify whether PTA notification filing is mandatory "
+        "before distribution before treating it as settled."
+        in prepared.markdown
+    )
+    assert "Validation action: verify this item before relying on it." not in (
+        prepared.markdown
+    )
+    _validate_task_draft(context, prepared)
 
 
 def test_full_contract_duplicate_identical_defects_remain_fail_closed() -> None:
@@ -6409,7 +6453,7 @@ def test_full_contract_duplicate_identical_defects_remain_fail_closed() -> None:
     )
 
 
-def test_full_contract_reclassifies_more_than_public_defect_limit() -> None:
+def test_full_contract_does_not_normalize_beyond_public_defect_limit() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6448,10 +6492,16 @@ def test_full_contract_reclassifies_more_than_public_defect_limit() -> None:
         )
     ) == 40
     prepared = _prepare_task_unresolved_actions(context, draft)
-    assert all(line not in prepared.markdown for line in unsafe_lines)
-    assert _deterministic_evidence_integrity_defects(
-        prepared.markdown, {}, artifact_type="product_prd"
-    ) == []
+    assert prepared == draft
+    assert all(line in prepared.markdown for line in unsafe_lines)
+    assert len(
+        _deterministic_evidence_integrity_defects(
+            prepared.markdown,
+            {},
+            artifact_type="product_prd",
+            defect_limit=None,
+        )
+    ) == 45
 
 
 def test_full_contract_does_not_rename_required_unsafe_heading() -> None:
@@ -6588,7 +6638,7 @@ def test_task_withholds_asserted_tail_in_unresolved_requirement(unsafe: str) -> 
     ) == []
 
 
-def test_full_contract_preserves_compact_given_when_then_topology() -> None:
+def test_full_contract_preserves_generic_compact_given_when_then_verbatim() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6620,14 +6670,16 @@ def test_full_contract_preserves_compact_given_when_then_topology() -> None:
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
+    assert prepared == draft
     assert (
-        "Given the product plan, When the release review runs, Then record the "
-        "evidence gap and defer the decision."
+        "Given the product plan, When the release review runs, Then the formula "
+        "is safe for adult cats."
         in prepared.markdown
     )
+    assert "record the evidence gap and defer the decision" not in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown, {}, artifact_type="product_prd"
-    ) == []
+    )
     assert (
         cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
             prepared.markdown
@@ -6972,6 +7024,62 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
     assert _deterministic_quality_defects(
         useful, practical_output_required=True
     ) == ([], [])
+
+
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "Validation action: verify this item before relying on it.",
+        (
+            "Validation action: verify whether PTA notification is mandatory before "
+            "treating it as settled."
+        ),
+        "* **Given** the applicable planning evidence remains unverified.",
+        "* **When** the relevant decision is reviewed.",
+        "* **Then** record the evidence gap and defer the decision.",
+        "* **Then** record an unresolved evidence gap until verification.",
+    ],
+)
+def test_final_quality_gate_rejects_exact_server_placeholders(
+    placeholder: str,
+) -> None:
+    useful = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    candidate = useful + "\n\n" + placeholder
+    substantive, _practicality = _deterministic_quality_defects(
+        candidate,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert (
+        "The candidate contains server-generated evidence-validation placeholders "
+        "instead of substantive deliverable content."
+        in substantive
+    )
+
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(
+            context,
+            SynthesisDraft(title="Server placeholder", markdown=candidate),
+        )
 
 
 def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees() -> None:
