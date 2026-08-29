@@ -6797,8 +6797,8 @@ def test_full_contract_adds_exact_accepted_requirement_traceability() -> None:
         title="Traceable PRD",
         markdown=(
             f"# Traceable PRD\n\n{fenced_example}\n\n"
-            "## Prioritized requirements\n\n- **P0** Define the product plan.\n\n"
-            "## Acceptance criteria\n\n"
+            "## 6. Prioritized requirements\n\n- **P0** Define the product plan.\n\n"
+            "## 7. Acceptance criteria (Given/When/Then)\n\n"
             "Given the accepted scope\n\nWhen the PRD is reviewed\n\n"
             f"Then the planning deliverable is defined (`{requirement_id}`).\n\n"
             "## Evidence gaps\n\nEvidence remains unresolved."
@@ -6818,9 +6818,11 @@ def test_full_contract_adds_exact_accepted_requirement_traceability() -> None:
     assert prepared.markdown.count(requirement_id) == 3
     assert fenced_example in prepared.markdown
     assert "### Accepted-scope traceability" in prepared.markdown
-    assert prepared.markdown.rfind("## Prioritized requirements") < prepared.markdown.index(
+    assert prepared.markdown.rfind(
+        "## 6. Prioritized requirements"
+    ) < prepared.markdown.index(
         "### Accepted-scope traceability"
-    ) < prepared.markdown.rfind("## Acceptance criteria")
+    ) < prepared.markdown.rfind("## 7. Acceptance criteria (Given/When/Then)")
     assert (
         "An acceptance-criterion ID is absent from prioritized requirements"
         not in " ".join(
@@ -7616,6 +7618,247 @@ def test_required_heading_uses_shared_lowercase_not_python_casefold() -> None:
             divergent,
             SynthesisDraft(title="Unicode", markdown="# Straße\n\nUseful content."),
         )
+
+
+def test_required_sections_accept_numbered_and_parenthetical_semantic_labels() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[
+            "Acceptance criteria",
+            "EU & Estonian Regulatory & Safety Requirements",
+            "Evidence, assumptions, and gaps",
+            "Executive Summary & Product Overview",
+            "Formulation & Labeling Specifications",
+            "Launch Assumptions & Open Gaps",
+            "Metrics & Pre-Launch Next Steps",
+            "Metrics and validation",
+            "Next steps",
+            "Prioritized requirements",
+            "Problem and desired outcome",
+            "Product thesis, scope, and non-goals",
+            "Risks",
+            "Target Personas & User Needs",
+            "User journeys",
+            "Users, jobs, and pains",
+        ],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    markdown = (
+        "# NorthPaw PRD\n\nUseful planning content.\n\n"
+        "## 1. Executive Summary & Product Overview\n\nBounded product overview.\n\n"
+        "## 2. Problem and desired outcome\n\nProblem and outcome.\n\n"
+        "## 3. Product thesis, scope, and non-goals\n\nScope boundaries.\n\n"
+        "## 4. Users, jobs, and pains (Target Personas & User Needs)\n\n"
+        "Evidence-grounded archetypes and jobs inform the product decisions.\n\n"
+        "## 5. User journeys\n\nDecision journey.\n\n"
+        "## 6. Prioritized requirements\n\nP0 planning requirement.\n\n"
+        "## **7.1. Acceptance criteria**\n\n"
+        "Given the accepted scope, When it is reviewed, Then decisions are traceable.\n\n"
+        "## 8. EU & Estonian Regulatory & Safety Requirements\n\n"
+        "Evidence boundary and verification actions.\n\n"
+        "## 9. Formulation & Labeling Specifications\n\nBounded product decisions.\n\n"
+        "## 10. Metrics and validation (Metrics & Pre-Launch Next Steps)\n\n"
+        "Owners validate each metric before the next decision.\n\n"
+        "## 11. Evidence, assumptions, and gaps (Launch Assumptions & Open Gaps)\n\n"
+        "Assumptions and gaps remain explicit.\n\n"
+        "## 12. Risks\n\nRisks and mitigations.\n\n"
+        "## 13. Next steps\n\nConcrete next actions."
+    )
+
+    _validate_synthesis(
+        context, SynthesisDraft(title="Numbered PRD", markdown=markdown)
+    )
+
+    exact_combined = context.model_copy(
+        update={
+            "required_sections": [
+                "Users, jobs, and pains (Target Personas & User Needs)"
+            ]
+        }
+    )
+    _validate_synthesis(
+        exact_combined, SynthesisDraft(title="Combined label", markdown=markdown)
+    )
+
+    atomic_required = context.model_copy(
+        update={"required_sections": ["Facility status (HACCP certified)"]}
+    )
+    with pytest.raises(ValueError, match="required Markdown sections"):
+        _validate_synthesis(
+            atomic_required,
+            SynthesisDraft(
+                title="Qualifier only",
+                markdown="# HACCP certified\n\nA qualifier is not the whole contract label.",
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "markdown",
+    [
+        "# 7. Acceptance\n\nThe longer label is not present.",
+        "# Artifact\n\nThe prose mentions Acceptance criteria but has no heading.",
+        "# Artifact\n\n```markdown\n## 7. Acceptance criteria\n```",
+    ],
+)
+def test_required_sections_reject_partial_prose_and_fenced_pseudo_headings(
+    markdown: str,
+) -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Acceptance criteria"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+    )
+    with pytest.raises(ValueError, match="required Markdown sections"):
+        _validate_synthesis(
+            context, SynthesisDraft(title="Missing section", markdown=markdown)
+        )
+
+
+def test_prd_quality_gate_uses_numbered_semantic_heading_labels() -> None:
+    markdown = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    numbered = markdown
+    for ordinal, heading in enumerate(
+        [
+            "Product thesis, scope, and non-goals",
+            "Problem and desired outcome",
+            "Users, jobs, and pains",
+            "User journeys",
+            "Prioritized requirements",
+            "Acceptance criteria",
+            "Metrics and validation",
+            "Risks",
+            "Next steps",
+            "Evidence, assumptions, and gaps",
+        ],
+        start=1,
+    ):
+        rendered = heading
+        if heading == "Users, jobs, and pains":
+            rendered += " (Target Personas & User Needs)"
+        numbered = numbered.replace(f"## {heading}", f"## {ordinal}. {rendered}")
+
+    assert _deterministic_quality_defects(
+        numbered,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    ) == ([], [])
+
+    duplicate = numbered + "\n\n## Risks\n\n- P0 duplicate risk and mitigation."
+    substantive, _practicality = _deterministic_quality_defects(
+        duplicate,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert "The candidate repeats level-two sections: risks." in substantive
+
+    collapsed = numbered.replace(
+        "## 6. Acceptance criteria", "## 8. Risks (Acceptance criteria)"
+    ).replace(
+        "## 8. Risks\n\n- Risk: unsupported claims. Control: immutable evidence checks.",
+        "",
+    )
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Risks", "Acceptance criteria"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    with pytest.raises(ValueError, match="Acceptance criteria"):
+        _validate_synthesis(
+            context,
+            SynthesisDraft(title="Unsafe collapsed headings", markdown=collapsed),
+        )
+
+
+@pytest.mark.parametrize(
+    ("indent", "label"),
+    [
+        ("", "14. Sources"),
+        (" ", "14. Sources"),
+        ("   ", "14. Sources"),
+        ("", "**14. Sources**"),
+        ("", "14. **Sources**"),
+        ("", "1.1. Sources"),
+    ],
+)
+def test_numbered_source_heading_remains_server_owned(
+    indent: str, label: str
+) -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Artifact"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+    )
+    with pytest.raises(ValueError, match="must not provide its own source appendix"):
+        _validate_synthesis(
+            context,
+            SynthesisDraft(
+                title="Forbidden sources",
+                markdown=(
+                    "# Artifact\n\nUseful content.\n\n"
+                    f"{indent}## {label}\n\n- Invented."
+                ),
+            ),
+        )
+    assert _model_owned_required_sections(["1. Sources", "Artifact"]) == ["Artifact"]
+
+
+def test_numbered_headings_surface_evidence_and_quality_defects_together() -> None:
+    markdown = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    ).replace("## Acceptance criteria", "## 7. Acceptance criteria")
+    markdown += (
+        "\n\nThe facility maintains certified HACCP compliance."
+        "\n\nThis placeholder must be replaced."
+        "\n\n## Framework\n\n```text\n+-----+-----+\n| A | B |\n+-----+-----+\n```"
+    )
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Acceptance criteria"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+
+    with pytest.raises(ValueError) as raised:
+        _validate_synthesis(
+            context, SynthesisDraft(title="Combined feedback", markdown=markdown)
+        )
+    message = str(raised.value)
+    assert "required Markdown sections are missing" not in message
+    assert "Unsupported factual precision" in message
+    assert "contains placeholder content" in message
+    assert "ASCII-art table" in message
 
 
 def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() -> None:
