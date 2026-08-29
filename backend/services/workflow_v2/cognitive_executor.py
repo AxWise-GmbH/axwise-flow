@@ -1426,19 +1426,29 @@ def _deterministic_quality_defects(
             )
     if artifact_type in {"product_prd", "software_prd"}:
         headings = {name for _position, _raw, name in _markdown_headings(base)}
-        section_positions = _markdown_headings(base)
-        for index, (position, raw_name, normalized_name) in enumerate(section_positions):
+        section_matches = list(_MARKDOWN_HEADING.finditer(base))
+        for index, section_match in enumerate(section_matches):
+            raw_name = section_match.group(1).strip()
+            normalized_name = raw_name.casefold()
             if normalized_name not in {
                 section.casefold() for section in _PRD_BASELINE_SECTIONS
             }.union({"technical boundaries"}):
                 continue
-            content_start = base.find("\n", position) + 1
-            content_end = (
-                section_positions[index + 1][0]
-                if index + 1 < len(section_positions)
-                else len(base)
+            section_level = len(section_match.group(0)) - len(
+                section_match.group(0).lstrip("#")
             )
-            if len(re.findall(r"\b[\w'-]+\b", base[content_start:content_end])) < 3:
+            content_end = len(base)
+            for later_match in section_matches[index + 1 :]:
+                later_level = len(later_match.group(0)) - len(
+                    later_match.group(0).lstrip("#")
+                )
+                if later_level <= section_level:
+                    content_end = later_match.start()
+                    break
+            section_body = _MARKDOWN_HEADING.sub(
+                "", base[section_match.end() : content_end]
+            )
+            if len(re.findall(r"\b[\w'-]+\b", section_body)) < 3:
                 practical.append(f"PRD section {raw_name!r} is empty or too thin.")
         if not re.search(r"\bP[012]\b", base):
             practical.append("The PRD has no explicit P0/P1/P2 requirement priorities.")
