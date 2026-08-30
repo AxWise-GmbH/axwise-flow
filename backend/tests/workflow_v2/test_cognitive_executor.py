@@ -4,8 +4,6 @@ import asyncio
 import hashlib
 import json
 from pathlib import Path
-from uuid import UUID
-
 import httpx
 import pytest
 from pydantic import BaseModel
@@ -278,7 +276,9 @@ def ref(fact: ArtifactFact) -> dict:
     }
 
 
-def test_complex_outputs_use_provider_compatible_prompted_transport(monkeypatch) -> None:
+def test_complex_outputs_use_provider_compatible_prompted_transport(
+    monkeypatch,
+) -> None:
     captured = []
 
     class CapturingAgent:
@@ -409,7 +409,9 @@ def test_required_section_canonicalization_is_deterministic_and_prd_scoped() -> 
 
 
 @pytest.mark.asyncio
-async def test_final_quality_failure_is_a_bounded_model_output_retry(monkeypatch) -> None:
+async def test_final_quality_failure_is_a_bounded_model_output_retry(
+    monkeypatch,
+) -> None:
     validators = {}
 
     class CapturingAgent:
@@ -486,19 +488,20 @@ async def test_final_validator_retries_without_deleting_unsupported_rows(
         practical_output_required=True,
         artifact_type="product_prd",
     )
-    unsafe_row = (
-        "| REQ-P0-01 | Quality Lead | The formula is safe for adult cats. |"
+    unsafe_row = "| REQ-P0-01 | Quality Lead | The formula is safe for adult cats. |"
+    candidate = (
+        quality_markdown(
+            {
+                "assumptions": [],
+                "gaps": [],
+                "conflicts": [],
+                "findings": [],
+                "selectedClaims": [],
+                "claimLedger": [],
+            }
+        )
+        + f"\n\n{unsafe_row}"
     )
-    candidate = quality_markdown(
-        {
-            "assumptions": [],
-            "gaps": [],
-            "conflicts": [],
-            "findings": [],
-            "selectedClaims": [],
-            "claimLedger": [],
-        }
-    ) + f"\n\n{unsafe_row}"
 
     class Context:
         deps = context
@@ -817,7 +820,9 @@ def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
 
 
 @pytest.mark.asyncio
-async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics() -> None:
+async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics() -> (
+    None
+):
     executor = GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY)
     result = await executor.execute(envelope_for())
     scope = result.artifact.payload
@@ -830,7 +835,9 @@ async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics(
     assert result.artifact.artifact_hash == artifact_content_hash(
         content_type="application/json", payload=scope, markdown=None
     )
-    assert scope["authority"]["canonicalInputHash"] == envelope_for().canonical_input_hash
+    assert (
+        scope["authority"]["canonicalInputHash"] == envelope_for().canonical_input_hash
+    )
     assert scope["evidenceRequirements"][0]["verificationBasis"] == "grounded_claims"
     assert len(scope["authority"]["seal"]) == 64
     assert result.metrics.latency_ms >= 1
@@ -894,7 +901,9 @@ async def test_compound_statutory_and_standard_requirement_is_rejected_before_se
 
 
 @pytest.mark.asyncio
-async def test_atomic_statutory_and_standard_requirements_can_be_sealed_separately() -> None:
+async def test_atomic_statutory_and_standard_requirements_can_be_sealed_separately() -> (
+    None
+):
     class AtomicDrafter(FakeDrafter):
         async def draft(self, input_value, objective_context):
             output = await super().draft(input_value, objective_context)
@@ -998,8 +1007,12 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
     revised = revised_result.artifact.payload
 
     assert [topic["value"] for topic in revised["topicAnchors"]] == ["dog-food"]
-    assert revised["researchInputHash"] != compiled.artifact.payload["researchInputHash"]
-    assert revised_result.artifact.source_artifact_ids == [compiled.artifact.artifact_id]
+    assert (
+        revised["researchInputHash"] != compiled.artifact.payload["researchInputHash"]
+    )
+    assert revised_result.artifact.source_artifact_ids == [
+        compiled.artifact.artifact_id
+    ]
 
 
 @pytest.mark.asyncio
@@ -1087,7 +1100,9 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
         artifact_resolver=Resolver(revised.artifact),
     ).execute(research_operation(revised))
     assert revised.artifact.payload["policies"] == owner_policies
-    assert revised.artifact.payload["evidenceRequirements"][0]["criticality"] == "blocking"
+    assert (
+        revised.artifact.payload["evidenceRequirements"][0]["criticality"] == "blocking"
+    )
     assert research.artifact.payload["findings"][0]["blocking"] is False
     assert research.evidence_readiness == "ready_with_gaps"
 
@@ -1242,6 +1257,7 @@ class VerifiedResearchRunner:
         url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=example"
         return {
             "search_performed": True,
+            "provider": "searxng_direct_fetch",
             "text": text,
             "claims": [{"text": text, "source_urls": [url]}],
             "sources": [{"title": "Estonian regulation", "url": url}],
@@ -1316,6 +1332,7 @@ class PublisherRestrictedRunner:
         text = "The exact publisher documentation supports this bounded claim."
         return {
             "search_performed": True,
+            "provider": "searxng_direct_fetch",
             "text": text,
             "claims": [{"text": text, "source_urls": self.urls}],
             "sources": [
@@ -1332,7 +1349,9 @@ class ForbiddenGroundedResearchRunner:
 
     async def search(self, query):
         self.queries.append(query)
-        raise AssertionError("selected-evidence requirements must not use grounded research")
+        raise AssertionError(
+            "selected-evidence requirements must not use grounded research"
+        )
 
 
 class TrackingVerifiedResearchRunner(VerifiedResearchRunner):
@@ -1436,7 +1455,9 @@ async def compiled_scope(
     ).execute(envelope_for(compile_input(request)))
 
 
-def research_operation(compiled, *, selected_evidence: list[ArtifactFact] | None = None):
+def research_operation(
+    compiled, *, selected_evidence: list[ArtifactFact] | None = None
+):
     selected = selected_evidence or []
     input_payload = {
         "type": "ExecuteResearchV2",
@@ -1572,20 +1593,18 @@ def selected_evidence_fact(
 
 
 @pytest.mark.asyncio
-async def test_typed_physical_and_software_prd_profiles_have_stable_semantic_ids() -> None:
+async def test_typed_physical_and_software_prd_profiles_have_stable_semantic_ids() -> (
+    None
+):
     first = await GeminiCognitiveExecutor(
         FakeDrafter(artifact_type="product_prd"), AUTHORITY_KEY
     ).execute(envelope_for())
     repeated = await GeminiCognitiveExecutor(
         FakeDrafter(artifact_type="product_prd"), AUTHORITY_KEY
-    ).execute(
-        envelope_for(operation_id="00000000-0000-4000-8000-000000000006")
-    )
+    ).execute(envelope_for(operation_id="00000000-0000-4000-8000-000000000006"))
     software = await GeminiCognitiveExecutor(
         FakeDrafter(artifact_type="software_prd"), AUTHORITY_KEY
-    ).execute(
-        envelope_for(operation_id="00000000-0000-4000-8000-000000000007")
-    )
+    ).execute(envelope_for(operation_id="00000000-0000-4000-8000-000000000007"))
 
     physical_profile = first.artifact.payload["deliverableProfile"]
     software_profile = software.artifact.payload["deliverableProfile"]
@@ -1594,18 +1613,22 @@ async def test_typed_physical_and_software_prd_profiles_have_stable_semantic_ids
     assert software_profile["artifactType"] == "software_prd"
     assert "Technical boundaries" not in physical_profile["requiredSections"]
     assert "Technical boundaries" in software_profile["requiredSections"]
-    assert first.artifact.payload["requirements"] == repeated.artifact.payload[
-        "requirements"
-    ]
-    assert first.artifact.payload["acceptanceCriteria"] == repeated.artifact.payload[
-        "acceptanceCriteria"
-    ]
-    assert first.artifact.payload["researchInputHash"] == repeated.artifact.payload[
-        "researchInputHash"
-    ]
-    assert first.artifact.payload["researchInputHash"] != software.artifact.payload[
-        "researchInputHash"
-    ]
+    assert (
+        first.artifact.payload["requirements"]
+        == repeated.artifact.payload["requirements"]
+    )
+    assert (
+        first.artifact.payload["acceptanceCriteria"]
+        == repeated.artifact.payload["acceptanceCriteria"]
+    )
+    assert (
+        first.artifact.payload["researchInputHash"]
+        == repeated.artifact.payload["researchInputHash"]
+    )
+    assert (
+        first.artifact.payload["researchInputHash"]
+        != software.artifact.payload["researchInputHash"]
+    )
 
 
 @pytest.mark.asyncio
@@ -1615,9 +1638,9 @@ async def test_accepted_scope_rejects_duplicate_evidence_requirement_ids() -> No
         AUTHORITY_KEY,
     ).execute(envelope_for())
     duplicate = json.loads(json.dumps(compiled.artifact.payload))
-    duplicate["evidenceRequirements"][1]["id"] = duplicate[
-        "evidenceRequirements"
-    ][0]["id"]
+    duplicate["evidenceRequirements"][1]["id"] = duplicate["evidenceRequirements"][0][
+        "id"
+    ]
 
     with pytest.raises(ValueError, match="evidence requirements must have unique IDs"):
         ScopeArtifactV2.model_validate(duplicate)
@@ -1648,7 +1671,9 @@ async def test_normal_prd_future_selected_evidence_gap_needs_no_magic_phrase() -
 
 
 @pytest.mark.asyncio
-async def test_current_artifact_selected_evidence_and_any_conflict_still_block() -> None:
+async def test_current_artifact_selected_evidence_and_any_conflict_still_block() -> (
+    None
+):
     current = await GeminiCognitiveExecutor(
         FakeDrafter(
             artifact_type="product_prd",
@@ -1674,9 +1699,7 @@ async def test_current_artifact_selected_evidence_and_any_conflict_still_block()
             applies_when="Before commercial product launch.",
         ),
         AUTHORITY_KEY,
-    ).execute(
-        envelope_for(operation_id="00000000-0000-4000-8000-000000000008")
-    )
+    ).execute(envelope_for(operation_id="00000000-0000-4000-8000-000000000008"))
     evidence = selected_evidence_fact(
         "food-safety-law",
         conflicts=["Two verified product records conflict on the safety decision."],
@@ -1720,7 +1743,9 @@ async def test_missing_grounded_claim_is_a_planning_gap(
 
 
 @pytest.mark.asyncio
-async def test_planning_gap_exemption_includes_statutory_research_but_preserves_authorization_blocks() -> None:
+async def test_planning_gap_exemption_includes_statutory_research_but_preserves_authorization_blocks() -> (
+    None
+):
     government_statistics = await GeminiCognitiveExecutor(
         FakeDrafter(
             artifact_type="product_prd",
@@ -1770,9 +1795,7 @@ async def test_planning_gap_exemption_includes_statutory_research_but_preserves_
             accepted_source_types=["industry", "standard"],
         ),
         AUTHORITY_KEY,
-    ).execute(
-        envelope_for(operation_id="00000000-0000-4000-8000-000000000009")
-    )
+    ).execute(envelope_for(operation_id="00000000-0000-4000-8000-000000000009"))
     authorization_result = await execute_research(
         authorization, MissingResearchRunner()
     )
@@ -2014,8 +2037,7 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
 def test_final_repair_prunes_only_validator_named_unsupported_lines() -> None:
     claim_id = "claim-0123456789abcdef"
     supported = (
-        "Estonia has an official pet-food labelling framework "
-        f"[evidence:{claim_id}]"
+        "Estonia has an official pet-food labelling framework " f"[evidence:{claim_id}]"
     )
     unsupported = (
         "* **Treats & Functional Snacks:** Treats & Functional Snacks comprises "
@@ -2119,11 +2141,14 @@ def test_final_pruning_reaches_fixed_point_beyond_validator_page() -> None:
             *unsafe_lines,
         ]
     )
-    assert len(
-        _deterministic_evidence_integrity_defects(
-            markdown, {}, artifact_type="product_prd"
+    assert (
+        len(
+            _deterministic_evidence_integrity_defects(
+                markdown, {}, artifact_type="product_prd"
+            )
         )
-    ) == 40
+        == 40
+    )
 
     repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
         markdown,
@@ -2163,7 +2188,9 @@ def test_structural_guard_rejects_priority_acceptance_traceability_drift() -> No
     assert "missing from prioritized requirements" in defects[0]
 
 
-def test_structural_guard_allows_prioritized_requirements_without_individual_criteria() -> None:
+def test_structural_guard_allows_prioritized_requirements_without_individual_criteria() -> (
+    None
+):
     markdown = (
         "# Planning artifact\n\n"
         "## Prioritized requirements\n\n"
@@ -2175,9 +2202,10 @@ def test_structural_guard_allows_prioritized_requirements_without_individual_cri
         "### req-plan-01\n\nGiven a plan, When reviewed, Then retain it."
     )
 
-    assert cognitive_executor_module._deterministic_structural_integrity_defects(
-        markdown
-    ) == []
+    assert (
+        cognitive_executor_module._deterministic_structural_integrity_defects(markdown)
+        == []
+    )
 
 
 def test_structural_guard_rejects_a_jtbd_sequence_starting_at_three() -> None:
@@ -2215,9 +2243,10 @@ def test_structural_guard_ignores_phase_references_outside_roadmap_sections() ->
         "## Next steps\n\n- Verify the remaining bounded decision."
     )
 
-    assert cognitive_executor_module._deterministic_structural_integrity_defects(
-        markdown
-    ) == []
+    assert (
+        cognitive_executor_module._deterministic_structural_integrity_defects(markdown)
+        == []
+    )
 
 
 def test_structural_guard_ignores_markdown_examples_inside_fences() -> None:
@@ -2237,9 +2266,10 @@ def test_structural_guard_ignores_markdown_examples_inside_fences() -> None:
         "## Next steps\n\n- Phase 1: Build the bounded feature."
     )
 
-    assert cognitive_executor_module._deterministic_structural_integrity_defects(
-        markdown
-    ) == []
+    assert (
+        cognitive_executor_module._deterministic_structural_integrity_defects(markdown)
+        == []
+    )
 
 
 def test_structural_guard_does_not_treat_jtbd_prose_as_a_sequence_label() -> None:
@@ -2250,9 +2280,10 @@ def test_structural_guard_does_not_treat_jtbd_prose_as_a_sequence_label() -> Non
         "2. Supplier concentration needs mitigation."
     )
 
-    assert cognitive_executor_module._deterministic_structural_integrity_defects(
-        markdown
-    ) == []
+    assert (
+        cognitive_executor_module._deterministic_structural_integrity_defects(markdown)
+        == []
+    )
 
 
 def test_structural_guard_does_not_treat_a_phase_reference_as_a_phase_label() -> None:
@@ -2262,9 +2293,10 @@ def test_structural_guard_does_not_treat_a_phase_reference_as_a_phase_label() ->
         "- Use results from Phase 2 before release."
     )
 
-    assert cognitive_executor_module._deterministic_structural_integrity_defects(
-        markdown
-    ) == []
+    assert (
+        cognitive_executor_module._deterministic_structural_integrity_defects(markdown)
+        == []
+    )
 
 
 @pytest.mark.parametrize(
@@ -2449,13 +2481,16 @@ def test_final_repair_projection_preserves_required_section_and_safety_action() 
     )
     assert "## Safety boundary" in projected.markdown
     assert projected.markdown.count(f"- {gap}") == 1
-    assert _deterministic_evidence_integrity_defects(
-        projected.markdown,
-        {},
-        artifact_type="product_prd",
-        immutable_gap_labels=context.required_gap_labels,
-        unresolved_evidence_requirements=context.unresolved_evidence_requirements,
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            {},
+            artifact_type="product_prd",
+            immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+        )
+        == []
+    )
     with pytest.raises(ValueError, match="substantive/practical quality"):
         _validate_synthesis(context, projected)
 
@@ -2507,13 +2542,738 @@ def test_final_repair_projection_preserves_table_and_acceptance_topology() -> No
         "review):" in projected.markdown
     )
     assert f"[evidence:{claim_id}]" not in projected.markdown
-    assert _deterministic_evidence_integrity_defects(
-        projected.markdown,
-        context.allowed_claim_texts,
+    assert (
+        _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            context.allowed_claim_texts,
+            artifact_type="product_prd",
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+        == []
+    )
+
+
+def test_final_projection_repairs_every_duplicate_evidence_defect_occurrence() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    unsafe = "- The formula is safe for adult cats."
+    draft = SynthesisDraft(
+        title="Duplicate claims",
+        markdown=f"# Product plan\n\n{unsafe}\n{unsafe}",
+    )
+
+    projected = _prepare_task_unresolved_actions(context, draft, include_generic=True)
+
+    assert (
+        projected.markdown.count(
+            "Validation target (all following content is unverified until "
+            "pre-adoption review): The formula is safe for adult cats."
+        )
+        == 2
+    )
+    assert (
+        _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            {},
+            artifact_type="product_prd",
+            defect_limit=None,
+            excerpt_limit=None,
+            preserve_duplicate_occurrences=True,
+        )
+        == []
+    )
+
+
+def test_statutory_locator_table_projection_is_narrow_and_idempotent() -> None:
+    supported_id = "1" * 64
+    source_only_id = "2" * 64
+    numeric_id = "3" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[supported_id, source_only_id, numeric_id],
+        allowed_claim_texts={
+            supported_id: "Target species and life stage: adult cats.",
+            source_only_id: "The canonical publisher is EUR-Lex.",
+            numeric_id: "Net quantity must be expressed in metric units.",
+        },
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    markdown = (
+        "# Label plan\n\n"
+        "| Item | Declaration | Statutory basis |\n"
+        "| --- | --- | --- |\n"
+        "| Species | Target species and life stage: adult cats | Reg (EC) No "
+        f"767/2009 Art 17 [evidence:{supported_id}] |\n"
+        "| Designation | Complete feed for adult cats | Reg (EC) No 767/2009 "
+        f"Art 15 [evidence:{source_only_id}] |\n"
+        "| Quantity | Net quantity examples: 400 g and 1.5 kg | Reg (EC) No "
+        f"767/2009 Art 15 [evidence:{numeric_id}] |"
+    )
+    draft = SynthesisDraft(title="Label plan", markdown=markdown)
+
+    projected = cognitive_executor_module._project_statutory_locator_tables(
+        context, draft
+    )
+    projected_twice = cognitive_executor_module._project_statutory_locator_tables(
+        context, projected
+    )
+
+    assert projected_twice == projected
+    assert (
+        projected.markdown.count(
+            "Unverified candidate statutory locator — verify before adoption"
+        )
+        == 1
+    )
+    assert (
+        "Target species and life stage: adult cats "
+        f"[evidence:{supported_id}]" in projected.markdown
+    )
+    assert f"[evidence:{source_only_id}]" not in projected.markdown
+    assert f"[evidence:{numeric_id}]" not in projected.markdown
+    locator_cells = [
+        line.rsplit("|", 2)[1]
+        for line in projected.markdown.splitlines()
+        if line.startswith("|") and "Reg (EC)" in line
+    ]
+    assert locator_cells
+    assert all("[evidence:" not in cell for cell in locator_cells)
+    assert len(
+        [line for line in projected.markdown.splitlines() if line.startswith("|")]
+    ) == len([line for line in markdown.splitlines() if line.startswith("|")])
+    assert (
+        _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            context.allowed_claim_texts,
+            artifact_type="product_prd",
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "markdown",
+    [
+        (
+            "| Declaration | Statutory basis |\n"
+            "| --- | --- |\n"
+            "| Adult cats | Regulation 767/2009 Article 17 requires an adult-cat "
+            f"declaration [evidence:{'4' * 64}] |"
+        ),
+        (
+            "```markdown\n"
+            "| Declaration | Statutory basis |\n"
+            "| --- | --- |\n"
+            "| Adult cats | Regulation 767/2009 Article 17 "
+            f"[evidence:{'4' * 64}] |\n"
+            "```"
+        ),
+        (
+            "| Declaration | Statutory basis |\n"
+            "| --- | --- |\n"
+            "| Adult cats \\| kittens | Regulation 767/2009 Article 17 "
+            f"[evidence:{'4' * 64}] |"
+        ),
+        *[
+            (
+                "| Declaration | Statutory basis |\n"
+                "| --- | --- |\n"
+                f"| Adult cats | {locator} [evidence:{'4' * 64}] |"
+            )
+            for locator in (
+                "Regulation 767/2009 Article 15 forbids sale without registration",
+                "Regulation 767/2009 Article 15 compels manufacturers to register",
+                "Regulation 767/2009 Article 15 obligates the operator to notify",
+                "Regulation 767/2009 Article 15 prescribes a 30-day deadline",
+                "Regulation 767/2009 Article 15 defines pet food as regulated material",
+                "law forbids sale without notice Act Section 7",
+                "operator must register under the Act Section 7",
+                "product is safe under the Act Section 7",
+            )
+        ],
+    ],
+)
+def test_statutory_locator_table_projection_fails_closed_on_non_locator_tables(
+    markdown: str,
+) -> None:
+    claim_id = "4" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: "Adult cats must be declared."},
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(title="Fail closed", markdown=markdown)
+
+    assert (
+        cognitive_executor_module._project_statutory_locator_tables(context, draft)
+        == draft
+    )
+
+
+@pytest.mark.parametrize(
+    "locator",
+    [
+        "Reg (EC) No 767/2009 Art 15, 17",
+        "Reg (EC) No 767/2009 Art 17, Annex VII",
+        "Regulation (EU) 2023/123 Article 4",
+        "Feed Act § 12",
+        "Animal Products Act Section 7",
+    ],
+)
+def test_compact_statutory_locator_accepts_only_provision_addresses(
+    locator: str,
+) -> None:
+    assert cognitive_executor_module._is_pure_statutory_locator(locator)
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        "Adult cats require veterinary authorization before sale",
+        "Adult cats are safe to feed this formula",
+        "Adult cats must be registered by the operator",
+    ],
+)
+def test_statutory_locator_projection_never_moves_a_coincidental_claim_marker(
+    declaration: str,
+) -> None:
+    claim_id = "6" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={
+            claim_id: "Adult cats are commonly kept as companion animals."
+        },
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[declaration],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="False citation guard",
+        markdown=(
+            "| Declaration | Statutory basis |\n"
+            "| --- | --- |\n"
+            f"| {declaration} | Regulation 767/2009 Article 15 "
+            f"[evidence:{claim_id}] |"
+        ),
+    )
+
+    projected = cognitive_executor_module._project_statutory_locator_tables(
+        context, draft
+    )
+
+    assert f"{declaration} [evidence:{claim_id}]" not in projected.markdown
+    assert f"[evidence:{claim_id}]" not in projected.markdown
+    assert any(
+        declaration in defect
+        for defect in _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            context.allowed_claim_texts,
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ("declaration", "claim_text"),
+    [
+        (
+            "Adult cats are not safe to feed this formula",
+            "Adult cats are safe to feed this formula",
+        ),
+        (
+            "Adult cats must not be registered by the operator",
+            "Adult cats must be registered by the operator",
+        ),
+        (
+            "Adult cats require veterinary authorization",
+            "Adult cats do not require veterinary authorization",
+        ),
+    ],
+)
+def test_statutory_locator_projection_never_inverts_claim_polarity(
+    declaration: str, claim_text: str
+) -> None:
+    claim_id = "7" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: claim_text},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[declaration],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Polarity guard",
+        markdown=(
+            "| Declaration | Statutory basis |\n"
+            "| --- | --- |\n"
+            f"| {declaration} | Regulation 767/2009 Article 15 "
+            f"[evidence:{claim_id}] |"
+        ),
+    )
+
+    projected = cognitive_executor_module._project_statutory_locator_tables(
+        context, draft
+    )
+
+    assert f"{declaration} [evidence:{claim_id}]" not in projected.markdown
+    assert f"[evidence:{claim_id}]" not in projected.markdown
+    assert any(
+        declaration in defect
+        for defect in _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            context.allowed_claim_texts,
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "assertion",
+    [
+        "Regulation (EC) No 767/2009 does not require registration.",
+        "EU law does not prohibit sale without approval.",
+        "The operator is not legally required to notify the authority.",
+        "The product must not be registered by the operator.",
+        "Regulation (EC) No 767/2009 does not authorize commercial sale.",
+        (
+            "Regulation (EC) No 767/2009 does not establish a registration "
+            "requirement."
+        ),
+        "The law does not grant permission to sell the product.",
+        "The directive does not provide a legal basis for registration.",
+        "The statute does not confirm that notification is required.",
+        "The regulation itself does not authorize launch.",
+        "The formula does not prevent urinary disease.",
+        "The process does not eliminate pathogens.",
+        "The diet does not reduce renal risk.",
+        "The product is not certified by FEDIAF.",
+        "The facility is not HACCP certified.",
+    ],
+)
+def test_definite_negative_sensitive_facts_still_require_evidence(
+    assertion: str,
+) -> None:
+    defects = _deterministic_evidence_integrity_defects(
+        assertion,
+        {},
         artifact_type="product_prd",
         defect_limit=None,
         excerpt_limit=None,
-    ) == []
+    )
+
+    assert any(assertion in defect for defect in defects)
+
+
+@pytest.mark.parametrize(
+    "boundary",
+    [
+        (
+            "The product is not launch-ready because legal and safety clearance "
+            "are pending."
+        ),
+        "This remediation plan does not authorize commercial launch.",
+        (
+            "This artifact is not product clearance, legal approval, a safety "
+            "determination, or authorization to launch."
+        ),
+        (
+            "These findings do not establish launch, legal, safety, certification, "
+            "or market clearance."
+        ),
+        (
+            "This remediation plan does not change evidence readiness or authorize "
+            "a successor workflow stage."
+        ),
+        (
+            "An explicit open gaps section without asserting unauthorized launch "
+            "approval or legal commercial certification."
+        ),
+        "Certification evidence remains unresolved.",
+    ],
+)
+def test_honest_evidence_status_and_withholding_boundaries_remain_publishable(
+    boundary: str,
+) -> None:
+    assert (
+        _deterministic_evidence_integrity_defects(
+            boundary,
+            {},
+            artifact_type="product_prd",
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    ("assertion", "unsupported_tail"),
+    [
+        (
+            "Safety clearance is pending — the formula is safe for adult cats.",
+            "the formula is safe for adult cats.",
+        ),
+        (
+            "Safety clearance is unresolved - the formula prevents urinary disease.",
+            "the formula prevents urinary disease.",
+        ),
+        (
+            "Legal approval is pending / Regulation 767/2009 authorizes sale.",
+            "Regulation 767/2009 authorizes sale.",
+        ),
+        (
+            "Evidence is unverified, the facility is HACCP certified.",
+            "the facility is HACCP certified.",
+        ),
+        (
+            "Safety status is unknown although the formula is safe for cats.",
+            "the formula is safe for cats.",
+        ),
+        (
+            "Safety clearance is pending—the formula is safe for adult cats.",
+            "the formula is safe for adult cats.",
+        ),
+        (
+            "Safety clearance is pending/the formula is safe for adult cats.",
+            "the formula is safe for adult cats.",
+        ),
+        (
+            "Evidence is unverified:the facility is HACCP certified.",
+            "the facility is HACCP certified.",
+        ),
+        (
+            "Safety status is unknown;the formula is safe for cats.",
+            "the formula is safe for cats.",
+        ),
+        (
+            "Safety clearance is pending (the formula is safe for adult cats).",
+            "the formula is safe for adult cats",
+        ),
+        (
+            "Safety clearance remains unresolved [the facility is HACCP certified].",
+            "the facility is HACCP certified",
+        ),
+        (
+            "Safety status is unknown therefore the formula is safe for cats.",
+            "the formula is safe for cats.",
+        ),
+        (
+            "Evidence is unverified hence the facility is HACCP certified.",
+            "the facility is HACCP certified.",
+        ),
+        (
+            "An open gaps section without claiming launch, the product is safe.",
+            "the product is safe.",
+        ),
+        (
+            "The formula supports urinary health, evidence remains pending.",
+            "The formula supports urinary health",
+        ),
+        (
+            "Do not claim launch readiness therefore the formula is safe for adult cats.",
+            "the formula is safe for adult cats.",
+        ),
+        (
+            "The formula is safe therefore its evidence must be verified before launch.",
+            "The formula is safe",
+        ),
+    ],
+)
+def test_status_prefix_cannot_launder_an_independent_sensitive_fact(
+    assertion: str, unsupported_tail: str
+) -> None:
+    defects = _deterministic_evidence_integrity_defects(
+        assertion,
+        {},
+        artifact_type="product_prd",
+        defect_limit=None,
+        excerpt_limit=None,
+    )
+
+    assert any(unsupported_tail in defect for defect in defects)
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        "FEDIAF compliance has not yet been verified.",
+        "HACCP certification has not yet been confirmed.",
+    ],
+)
+def test_bounded_not_yet_verified_status_remains_publishable(status: str) -> None:
+    assert (
+        _deterministic_evidence_integrity_defects(
+            status,
+            {},
+            artifact_type="product_prd",
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+        == []
+    )
+
+
+def test_pre_adoption_review_projection_preserves_gwt_and_rejects_extra_actions() -> (
+    None
+):
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    safe = SynthesisDraft(
+        title="Acceptance",
+        markdown=(
+            "- **Given:** Packaging artwork is ready for review.\n"
+            "- **When:** The packaging copy and artwork are reviewed against Regulation "
+            "(EC) No 767/2009 and Estonian PTA regulations,\n"
+            "- **Then:** The owner records the review result."
+        ),
+    )
+
+    projected = cognitive_executor_module._project_pre_adoption_review_conditions(
+        context, safe
+    )
+
+    assert projected.markdown == safe.markdown.replace(
+        "The packaging copy and artwork are reviewed against Regulation "
+        "(EC) No 767/2009 and Estonian PTA regulations,",
+        "The packaging copy and artwork undergo the pre-adoption legal "
+        "and regulatory review defined in this artifact.",
+    )
+    assert [line.split(":", 1)[0] for line in projected.markdown.splitlines()] == [
+        "- **Given",
+        "- **When",
+        "- **Then",
+    ]
+
+    coordinated = safe.model_copy(
+        update={
+            "markdown": safe.markdown.replace(
+                "and Estonian PTA regulations,",
+                "and the owner publishes it.",
+            )
+        }
+    )
+    archived = safe.model_copy(
+        update={
+            "markdown": safe.markdown.replace(
+                "and Estonian PTA regulations,",
+                ", and the owner archives the artwork.",
+            )
+        }
+    )
+    unsafe_authorities = [
+        "Regulation (EC) No 767/2009, then the owner archives it in 2026.",
+        "Regulation (EC) No 767/2009; next the owner records it under the 2026 law.",
+        "Regulation (EC) No 767/2009. The owner notifies the team.",
+        "Regulation (EC) No 767/2009 and the owner archives it.",
+    ]
+    fenced = SynthesisDraft(
+        title="Example",
+        markdown=(
+            "```gherkin\nWhen: Packaging is reviewed against Article 15 of "
+            "Regulation (EC) No 767/2009.\n```"
+        ),
+    )
+    assert (
+        cognitive_executor_module._project_pre_adoption_review_conditions(
+            context, coordinated
+        )
+        == coordinated
+    )
+    assert (
+        cognitive_executor_module._project_pre_adoption_review_conditions(
+            context, archived
+        )
+        == archived
+    )
+    for authority in unsafe_authorities:
+        unsafe = safe.model_copy(
+            update={
+                "markdown": safe.markdown.replace(
+                    "Regulation (EC) No 767/2009 and Estonian PTA regulations,",
+                    authority,
+                )
+            }
+        )
+        assert (
+            cognitive_executor_module._project_pre_adoption_review_conditions(
+                context, unsafe
+            )
+            == unsafe
+        )
+    assert (
+        cognitive_executor_module._project_pre_adoption_review_conditions(
+            context, fenced
+        )
+        == fenced
+    )
+
+
+def test_redundant_gate_diagram_projection_requires_distinctive_prose_match() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    duplicated = SynthesisDraft(
+        title="Gates",
+        markdown=(
+            "```text\n"
+            "[Gate 1: Formula Review] ---> [Gate 2: Facility Certification]\n"
+            "Pathogen formula review     HACCP facility audit\n"
+            "Reject path: quarantine the affected batch and notify the owner.\n"
+            "```\n"
+            "1. **Formula gate:** Proposed pathogen formula review.\n"
+            "2. **Facility gate:** Proposed HACCP facility certification audit.\n"
+            "3. **Operational gate:** Proposed logistics review."
+        ),
+    )
+    unrelated = SynthesisDraft(
+        title="Unrelated gates",
+        markdown=(
+            "```text\n"
+            "[Gate 1: Formula Safety] ---> [Gate 2: Facility HACCP Certification]\n"
+            "```\n"
+            "1. **Formula gate:** Proposed acquisition review.\n"
+            "2. **Facility gate:** Proposed branding review."
+        ),
+    )
+
+    projected = cognitive_executor_module._project_redundant_unsupported_gate_diagrams(
+        context, duplicated
+    )
+
+    assert "```" in projected.markdown
+    assert "Pathogen formula review     HACCP facility audit" in projected.markdown
+    assert (
+        "Reject path: quarantine the affected batch and notify the owner."
+        in projected.markdown
+    )
+    assert (
+        projected.markdown.count(
+            "Validation target (all following content is unverified until "
+            "pre-adoption review):"
+        )
+        == 3
+    )
+    assert "1. **Formula gate:**" in projected.markdown
+    assert "3. **Operational gate:**" in projected.markdown
+    assert (
+        cognitive_executor_module._project_redundant_unsupported_gate_diagrams(
+            context, projected
+        )
+        == projected
+    )
+
+    pure_duplicate = duplicated.model_copy(
+        update={
+            "markdown": duplicated.markdown.replace(
+                "Pathogen formula review     HACCP facility audit\n", ""
+            ).replace(
+                "Reject path: quarantine the affected batch and notify the owner.\n",
+                "",
+            )
+        }
+    )
+    projected_pure_duplicate = (
+        cognitive_executor_module._project_redundant_unsupported_gate_diagrams(
+            context, pure_duplicate
+        )
+    )
+    assert "```" not in projected_pure_duplicate.markdown
+    assert "1. **Formula gate:**" in projected_pure_duplicate.markdown
+    assert "3. **Operational gate:**" in projected_pure_duplicate.markdown
+    assert (
+        cognitive_executor_module._project_redundant_unsupported_gate_diagrams(
+            context, unrelated
+        )
+        == unrelated
+    )
+
+
+@pytest.mark.parametrize(
+    ("artifact_type", "readiness"),
+    [("launch_authorization", "ready_with_gaps"), ("product_prd", "blocked")],
+)
+def test_new_final_projections_never_demote_launch_or_blocked_evidence(
+    artifact_type: str, readiness: str
+) -> None:
+    claim_id = "5" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness=readiness,
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: "Adult cats must be declared."},
+        required_gap_labels=[],
+        artifact_type=artifact_type,
+    )
+    draft = SynthesisDraft(
+        title="Authority decision",
+        markdown=(
+            "| Declaration | Statutory basis |\n"
+            "| --- | --- |\n"
+            "| Adult cats | Regulation 767/2009 Article 17 "
+            f"[evidence:{claim_id}] |\n\n"
+            "- **When:** Packaging is reviewed against Regulation (EC) No 767/2009."
+        ),
+    )
+
+    assert (
+        cognitive_executor_module._project_statutory_locator_tables(context, draft)
+        == draft
+    )
+    assert (
+        cognitive_executor_module._project_pre_adoption_review_conditions(
+            context, draft
+        )
+        == draft
+    )
+    assert (
+        cognitive_executor_module._project_redundant_unsupported_gate_diagrams(
+            context, draft
+        )
+        == draft
+    )
 
 
 def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() -> None:
@@ -2604,11 +3364,13 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
     semantic_method = payload["SEMANTIC_METHOD"]
     assert semantic_method["method"] == "decision_useful_product_prd_v1"
-    assert "user segments, jobs to be done, pains, and buying roles" in semantic_method[
-        "analysisAreas"
-    ]
-    assert "measurable validation experiments with owners and decision thresholds" in (
-        semantic_method["analysisAreas"]
+    assert (
+        "user segments, jobs to be done, pains, and buying roles"
+        in semantic_method["analysisAreas"]
+    )
+    assert (
+        "measurable validation experiments with owners and decision thresholds"
+        in (semantic_method["analysisAreas"])
     )
     assert any(
         "explicit hypothesis or proposal" in rule
@@ -2662,13 +3424,9 @@ def test_final_repair_prompt_drops_stale_instructions_after_projection() -> None
         item.payload for item in contents if item.artifact.kind == "research"
     )
     writer = object.__new__(PydanticAISynthesisWriter)
-    context = writer._context(
-        input_value, scope_payload, research_payload, contents
-    )
+    context = writer._context(input_value, scope_payload, research_payload, contents)
 
-    payload = json.loads(
-        writer._final_repair_prompt(input_value, contents, context)
-    )
+    payload = json.loads(writer._final_repair_prompt(input_value, contents, context))
 
     assert "\nThe formula is safe for adult cats.\n" not in payload["BASE_MARKDOWN"]
     assert (
@@ -2781,9 +3539,12 @@ def test_specialist_gap_validation_stays_within_its_bounded_lens() -> None:
         purpose = "execute_task"
         task = CoreTask()
 
-    assert PydanticAISynthesisWriter._required_gap_labels_for_input(
-        SpecialistInput(), research_payload
-    ) == []
+    assert (
+        PydanticAISynthesisWriter._required_gap_labels_for_input(
+            SpecialistInput(), research_payload
+        )
+        == []
+    )
     assert PydanticAISynthesisWriter._required_gap_labels_for_input(
         CoreInput(), research_payload
     ) == [
@@ -2993,7 +3754,9 @@ async def test_launch_authorization_keeps_future_proof_blocking() -> None:
 
 
 @pytest.mark.asyncio
-async def test_early_prd_keeps_general_legal_evidence_grounded_without_suppressing_delivery() -> None:
+async def test_early_prd_keeps_general_legal_evidence_grounded_without_suppressing_delivery() -> (
+    None
+):
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             verification_basis="grounded_claims",
@@ -3208,7 +3971,9 @@ async def test_exact_product_proof_accepts_exact_immutable_selected_evidence() -
 
 
 @pytest.mark.asyncio
-async def test_selected_evidence_requires_a_claim_from_an_accepted_source_class() -> None:
+async def test_selected_evidence_requires_a_claim_from_an_accepted_source_class() -> (
+    None
+):
     compiled = await compiled_scope(
         verification_basis="selected_evidence",
         evidence_role="selected_artifact_proof",
@@ -3319,11 +4084,11 @@ def _generic_statutory_requirement() -> EvidenceRequirement:
     )
 
 
-def test_grounded_claim_rejects_a_different_legal_instrument_and_appendix_mapping() -> None:
+def test_grounded_claim_rejects_a_different_legal_instrument_and_appendix_mapping() -> (
+    None
+):
     text = "Regulation (EC) No 1069/2009 establishes operational controls."
-    wrong_url = (
-        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R0594"
-    )
+    wrong_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R0594"
     response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
     sources = [
         {
@@ -3352,10 +4117,10 @@ def test_grounded_claim_rejects_a_different_legal_instrument_and_appendix_mappin
     assert catalogue == []
 
 
-def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evidence() -> None:
-    text = (
-        "Article 29 of Regulation (EC) No 1069/2009 requires documented controls."
-    )
+def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evidence() -> (
+    None
+):
+    text = "Article 29 of Regulation (EC) No 1069/2009 requires documented controls."
     url = (
         "https://eur-lex.europa.eu/legal-content/EN/TXT/"
         "?uri=CELEX:02009R1069-20191214"
@@ -3389,9 +4154,55 @@ def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evid
     assert direct.provider_response_hash == response_hash
 
 
+def test_every_google_statutory_claim_is_locator_only_without_a_provision_number() -> (
+    None
+):
+    text = "Regulation (EC) No 1069/2009 establishes operational controls."
+    url = (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+        "?uri=CELEX:02009R1069-20191214"
+    )
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    arguments = (
+        {"text": text, "source_urls": [url]},
+        {url: {"title": "Official consolidated legal text", "url": url}},
+        {"primary_law"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    assert (
+        _claim_from_grounding(
+            *arguments,
+            requirement=_generic_statutory_requirement(),
+            provider="gemini_google_search",
+        )
+        is None
+    )
+    assert (
+        _claim_from_grounding(
+            *arguments,
+            requirement=_generic_statutory_requirement(),
+            provider="searxng_direct_fetch",
+        )
+        is not None
+    )
+
+
 @pytest.mark.parametrize(
     "provision",
-    ["Art. 15", "Article 15", "Annex II", "Paragraph 3", "Section 4", "Chapter II", "Recital 12", "Point 6", "§ 5"],
+    [
+        "Art. 15",
+        "Article 15",
+        "Annex II",
+        "Paragraph 3",
+        "Section 4",
+        "Chapter II",
+        "Recital 12",
+        "Point 6",
+        "§ 5",
+    ],
 )
 def test_every_statutory_provision_form_requires_a_direct_exact_span(
     provision: str,
@@ -3411,16 +4222,22 @@ def test_every_statutory_provision_form_requires_a_direct_exact_span(
         text,
     )
 
-    assert _claim_from_grounding(
-        *arguments,
-        requirement=_generic_statutory_requirement(),
-        provider="gemini_google_search",
-    ) is None
-    assert _claim_from_grounding(
-        *arguments,
-        requirement=_generic_statutory_requirement(),
-        provider="searxng_direct_fetch",
-    ) is not None
+    assert (
+        _claim_from_grounding(
+            *arguments,
+            requirement=_generic_statutory_requirement(),
+            provider="gemini_google_search",
+        )
+        is None
+    )
+    assert (
+        _claim_from_grounding(
+            *arguments,
+            requirement=_generic_statutory_requirement(),
+            provider="searxng_direct_fetch",
+        )
+        is not None
+    )
 
 
 def test_grounded_claim_rejects_an_explicit_enumeration_count_mismatch() -> None:
@@ -3438,33 +4255,51 @@ def test_grounded_claim_rejects_an_explicit_enumeration_count_mismatch() -> None
             provider="gemini_google_search",
         )
 
-    assert admitted(
-        "The framework defines 3 controls: identify, monitor, correct, and verify."
-    ) is None
-    assert admitted(
-        "The framework defines 4 controls: identify, monitor, correct, and verify."
-    ) is not None
-    assert admitted(
-        "Article 29 controls: identify, monitor, and correct."
-    ) is not None
-    assert admitted(
-        "Regulation 29 requirements: identify, monitor, and correct."
-    ) is not None
-    assert admitted(
-        "The process requires action within 4 days: identify, notify, and document."
-    ) is not None
-    assert admitted(
-        "The package includes a 4 kg option table: small, medium, and large."
-    ) is not None
-    assert admitted(
-        "The regulation includes Article 4 requirements: identify, monitor, and correct."
-    ) is not None
-    assert admitted(
-        "The regulation lists Section 4 controls: identify, monitor, and correct."
-    ) is not None
-    assert admitted(
-        "The regulation defines Annex 4 requirements: identify, monitor, and correct."
-    ) is not None
+    assert (
+        admitted(
+            "The framework defines 3 controls: identify, monitor, correct, and verify."
+        )
+        is None
+    )
+    assert (
+        admitted(
+            "The framework defines 4 controls: identify, monitor, correct, and verify."
+        )
+        is not None
+    )
+    assert admitted("Article 29 controls: identify, monitor, and correct.") is not None
+    assert (
+        admitted("Regulation 29 requirements: identify, monitor, and correct.")
+        is not None
+    )
+    assert (
+        admitted(
+            "The process requires action within 4 days: identify, notify, and document."
+        )
+        is not None
+    )
+    assert (
+        admitted("The package includes a 4 kg option table: small, medium, and large.")
+        is not None
+    )
+    assert (
+        admitted(
+            "The regulation includes Article 4 requirements: identify, monitor, and correct."
+        )
+        is not None
+    )
+    assert (
+        admitted(
+            "The regulation lists Section 4 controls: identify, monitor, and correct."
+        )
+        is not None
+    )
+    assert (
+        admitted(
+            "The regulation defines Annex 4 requirements: identify, monitor, and correct."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize(
@@ -3633,9 +4468,10 @@ async def test_transient_google_search_uses_exact_fetched_fallback_evidence() ->
     assert result.artifact.payload["boundedRepairPasses"] == 0
     entry = result.artifact.payload["claimLedger"][0]
     assert entry["providerResponseText"] == document_text
-    assert entry["providerResponseHash"] == hashlib.sha256(
-        document_text.encode("utf-8")
-    ).hexdigest()
+    assert (
+        entry["providerResponseHash"]
+        == hashlib.sha256(document_text.encode("utf-8")).hexdigest()
+    )
     assert [claim["text"] for claim in entry["claims"]] == [exact]
     assert entry["claims"][0]["sourceUrls"] == [source_url]
     assert "Untrusted search snippet." not in json.dumps(entry)
@@ -3841,9 +4677,9 @@ async def test_max_cardinality_two_pass_fallback_fits_research_deadline(
     assert result.evidence_readiness == "ready_with_gaps"
     assert result.artifact.payload["boundedRepairPasses"] == 1
     assert len(result.artifact.payload["gaps"]) == requirement_count
-    assert {
-        finding["status"] for finding in result.artifact.payload["findings"]
-    } == {"missing"}
+    assert {finding["status"] for finding in result.artifact.payload["findings"]} == {
+        "missing"
+    }
 
 
 @pytest.mark.asyncio
@@ -3856,14 +4692,16 @@ async def test_targeted_repair_can_recover_a_transient_initial_search() -> None:
     assert result.evidence_readiness == "ready"
     assert result.artifact.payload["boundedRepairPasses"] == 1
     assert len(runner.queries) == 2
-    assert [entry["passNumber"] for entry in result.artifact.payload["claimLedger"]] == [
-        1
-    ]
+    assert [
+        entry["passNumber"] for entry in result.artifact.payload["claimLedger"]
+    ] == [1]
     assert result.artifact.payload["findings"][0]["status"] == "verified"
 
 
 @pytest.mark.asyncio
-async def test_targeted_repair_reuses_only_same_operation_accepted_source_locators() -> None:
+async def test_targeted_repair_reuses_only_same_operation_accepted_source_locators() -> (
+    None
+):
     source_url = (
         "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
         "?uri=CELEX%3A02009R0767-20180101"
@@ -3914,6 +4752,7 @@ async def test_targeted_repair_reuses_only_same_operation_accepted_source_locato
         def verified(text: str) -> dict:
             return {
                 "search_performed": True,
+                "provider": "searxng_direct_fetch",
                 "text": text,
                 "claims": [{"text": text, "source_urls": [source_url]}],
                 "sources": [{"title": "EUR-Lex", "url": source_url}],
@@ -3974,13 +4813,17 @@ async def test_targeted_repair_reuses_only_same_operation_accepted_source_locato
         "optional-market-statistic": 2,
         "pet-food-labeling-law": 2,
     }
-    assert [
-        finding["status"] for finding in result.artifact.payload["findings"]
-    ] == ["verified", "verified", "missing"]
+    assert [finding["status"] for finding in result.artifact.payload["findings"]] == [
+        "verified",
+        "verified",
+        "missing",
+    ]
 
 
 @pytest.mark.asyncio
-async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it() -> None:
+async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it() -> (
+    None
+):
     official_url = "https://pta.agri.ee/en/feed"
 
     class RawLocatorThenVerifiedRunner:
@@ -3992,10 +4835,15 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
             payload = json.loads(query.rsplit("\n", 1)[1])
             if self.calls == 1:
                 assert "fallbackCandidateSources" not in payload
+                generated = (
+                    "PTA guidance says feed business operators must register their "
+                    "feed establishments."
+                )
                 return {
                     "search_performed": True,
-                    "text": "An official locator was found, but no exact claim was extracted.",
-                    "claims": [],
+                    "provider": "gemini_google_search",
+                    "text": generated,
+                    "claims": [{"text": generated, "source_urls": [official_url]}],
                     "sources": [
                         {"title": "Agriculture and Food Board", "url": official_url},
                         {
@@ -4013,6 +4861,7 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
             exact = "Feed business operators must register their feed establishments."
             return {
                 "search_performed": True,
+                "provider": "searxng_direct_fetch",
                 "text": exact,
                 "claims": [{"text": exact, "source_urls": [official_url]}],
                 "sources": [
@@ -4041,6 +4890,33 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     assert result.evidence_readiness == "ready"
     assert result.artifact.payload["findings"][0]["status"] == "verified"
     assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert len(result.artifact.payload["claimLedger"]) == 2
+    initial, ledger = result.artifact.payload["claimLedger"]
+    assert initial["passNumber"] == 0
+    assert initial["claims"] == []
+    assert ledger["passNumber"] == 1
+    assert ledger["providerResponseText"] == (
+        "Feed business operators must register their feed establishments."
+    )
+    assert ledger["claims"][0]["segmentStart"] == 0
+    assert ledger["claims"][0]["segmentEnd"] == len(
+        ledger["providerResponseText"].encode("utf-8")
+    )
+    response_bytes = ledger["providerResponseText"].encode("utf-8")
+    claim = ledger["claims"][0]
+    exact_span = response_bytes[claim["segmentStart"] : claim["segmentEnd"]]
+    assert hashlib.sha256(response_bytes).hexdigest() == ledger["providerResponseHash"]
+    assert exact_span.decode("utf-8") == claim["text"]
+    assert hashlib.sha256(exact_span).hexdigest() == claim["textSha256"]
+
+    prompt_view = PydanticAISynthesisWriter._research_prompt_view(
+        result.artifact.payload
+    )
+    prompt_json = json.dumps(prompt_view)
+    assert "providerResponseText" not in prompt_json
+    assert "PTA guidance says" not in prompt_json
+    assert claim["text"] in prompt_json
+    assert official_url in prompt_json
 
 
 @pytest.mark.asyncio
@@ -4096,7 +4972,9 @@ async def test_verified_grounding_has_exact_claim_provenance_and_usage() -> None
     assert len(ledger) == 1
     claim = ledger[0]["claims"][0]
     response = ledger[0]["providerResponseText"].encode("utf-8")
-    assert response[claim["segmentStart"] : claim["segmentEnd"]].decode() == claim["text"]
+    assert (
+        response[claim["segmentStart"] : claim["segmentEnd"]].decode() == claim["text"]
+    )
     assert claim["providerResponseHash"] == ledger[0]["providerResponseHash"]
     source = result.artifact.payload["sourceCatalogue"][0]
     assert source["canonicalUrl"] == claim["sourceUrls"][0]
@@ -4110,7 +4988,9 @@ async def test_verified_grounding_has_exact_claim_provenance_and_usage() -> None
 
 
 @pytest.mark.asyncio
-async def test_ungrounded_conflict_text_cannot_override_verified_legal_evidence() -> None:
+async def test_ungrounded_conflict_text_cannot_override_verified_legal_evidence() -> (
+    None
+):
     compiled = await compiled_scope()
     result = await execute_research(compiled, UngroundedConflictRunner())
 
@@ -4182,8 +5062,7 @@ async def test_scope_authoritative_publisher_allowlist_accepts_only_named_hosts(
     )
     rejected = await execute_research(compiled, mixed)
     assert all(
-        entry["claims"] == []
-        for entry in rejected.artifact.payload["claimLedger"]
+        entry["claims"] == [] for entry in rejected.artifact.payload["claimLedger"]
     )
     assert rejected.artifact.payload["findings"][0]["status"] == "missing"
     assert rejected.evidence_readiness == "ready_with_gaps"
@@ -4229,9 +5108,7 @@ async def test_compile_and_revise_cannot_invent_publisher_restrictions() -> None
     broadened_payload = {**base}
     broadened_payload["evidence_requirements"] = [
         accepted.evidence_requirements[0].model_copy(
-            update={
-                "allowed_source_hosts": ["eur-lex.europa.eu", "postgresql.org"]
-            }
+            update={"allowed_source_hosts": ["eur-lex.europa.eu", "postgresql.org"]}
         )
     ]
     broadened = ScopeRevisionDraft.model_validate(broadened_payload)
@@ -4573,7 +5450,11 @@ def cognitive_input(
         key=lambda item: item["artifactId"],
     )
     contents = sorted(
-        [exact_content(compiled.artifact), exact_content(research.artifact), *extra_contents],
+        [
+            exact_content(compiled.artifact),
+            exact_content(research.artifact),
+            *extra_contents,
+        ],
         key=lambda item: item["artifact"]["artifactId"],
     )
     return {
@@ -4664,9 +5545,7 @@ async def execute_plan_tasks(
         result = await executor.execute(
             envelope_for(
                 value,
-                operation_id=(
-                    f"00000000-0000-4000-8000-{operation_base + index:012d}"
-                ),
+                operation_id=(f"00000000-0000-4000-8000-{operation_base + index:012d}"),
                 operation_type="SynthesizeArtifactV1",
             )
         )
@@ -4732,6 +5611,205 @@ class QualityWriter:
                 "its applicability, and absence of conflicting verified evidence."
             ),
         )
+
+
+async def _final_writer_fixture():
+    compiled = await compiled_scope(evidence=False)
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=QualityWriter(),
+    )
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=930,
+    )
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in task_results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000939",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    final_input = SynthesizeArtifactInputV1.model_validate(
+        cognitive_input(
+            purpose="final_synthesis",
+            compiled=compiled,
+            research=research,
+            output_contract=output_contract,
+            extra_refs=[plan_ref, *task_refs, ref(evaluation.artifact)],
+            extra_contents=[
+                plan_content,
+                *[exact_content(item.artifact) for item in task_results],
+                exact_content(evaluation.artifact),
+            ],
+            repair_pass=1,
+            acceptedPlan=plan_ref,
+            taskArtifacts=task_refs,
+            evaluation=ref(evaluation.artifact),
+        )
+    )
+    return compiled, research, final_input, list(final_input.artifact_contents)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_uses_strict_projection_after_model_validation_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+    context = writer._context(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+    core = next(
+        item
+        for item in contents
+        if item.artifact.kind == "final_markdown"
+        and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
+    )
+    expected = cognitive_executor_module._project_final_repair_base(
+        context,
+        title=core.payload["title"],
+        markdown=core.markdown,
+    )
+    _validate_synthesis(context, expected)
+    calls = []
+
+    async def exhausted(agent, prompt, call_context, *, phase):
+        calls.append((agent, prompt, call_context, phase))
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+
+    assert len(calls) == 1
+    assert calls[0][3] == "FINAL"
+    assert result.value == expected
+    # The fallback itself adds no tokens. Failed provider-attempt cost is captured from
+    # provider logs during release verification, not inferred from this zero value.
+    assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_does_not_mask_non_validation_provider_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+
+    async def unavailable(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure("AXWISE_GEMINI_UNAVAILABLE", retryable=True)
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(unavailable),
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await writer.write(
+            input_value,
+            compiled.artifact.payload,
+            research.artifact.payload,
+            contents,
+        )
+    assert raised.value.error_class == "AXWISE_GEMINI_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_final_writer_disables_projection_fallback_for_semantic_defects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={
+            "payload": {
+                **evaluation_content.payload,
+                "contradictions": ["The candidate contains a semantic contradiction."],
+                "outputContractSatisfied": False,
+                "promotedArtifact": None,
+                "repairRequired": True,
+                "repairInstructions": ["Resolve the semantic contradiction."],
+            }
+        }
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+
+    async def exhausted(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await writer.write(
+            input_value,
+            compiled.artifact.payload,
+            research.artifact.payload,
+            contents,
+        )
+    assert raised.value.error_class.startswith(
+        "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_"
+    )
 
 
 class GapQualityWriter(QualityWriter):
@@ -4805,8 +5883,7 @@ class UnresolvedAuthorityTaskWriter(QualityWriter):
         return draft.model_copy(
             update={
                 "markdown": (
-                    draft.markdown
-                    + "\n\n## Authority assumption\n\n"
+                    draft.markdown + "\n\n## Authority assumption\n\n"
                     "Applicable pet-food safety obligations are mandatory."
                 )
             }
@@ -4986,7 +6063,9 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> None:
+async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> (
+    None
+):
     class NumericPlanningWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -4997,8 +6076,7 @@ async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precisi
             return draft.model_copy(
                 update={
                     "markdown": (
-                        draft.markdown
-                        + "\n\n## Product and pilot decisions\n\n"
+                        draft.markdown + "\n\n## Product and pilot decisions\n\n"
                         "Use 14 pouches per box, budget €1,500 for the pilot, target "
                         "20% trial conversion, and interview 10 users by 2026-10-15."
                     )
@@ -5163,8 +6241,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
             return draft.model_copy(
                 update={
                     "markdown": (
-                        draft.markdown
-                        + "\n\n## Decision matrix\n\n```text\n"
+                        draft.markdown + "\n\n## Decision matrix\n\n```text\n"
                         "+-----+-----+\n| A | B |\n+-----+-----+\n```"
                     )
                 }
@@ -5268,13 +6345,16 @@ async def test_nonblocking_future_authorization_gap_can_directly_promote_prd() -
     assert candidate.artifact.kind == "final_markdown"
     assert candidate.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
     assert candidate.artifact.payload["launchReady"] is False
-    assert next(
-        coverage
-        for coverage in candidate.artifact.payload["candidateAttestation"][
-            "requirementCoverage"
-        ]
-        if coverage["requirementId"] == evidence_requirement_id
-    )["status"] == "gap"
+    assert (
+        next(
+            coverage
+            for coverage in candidate.artifact.payload["candidateAttestation"][
+                "requirementCoverage"
+            ]
+            if coverage["requirementId"] == evidence_requirement_id
+        )["status"]
+        == "gap"
+    )
     assert all(
         label in candidate.artifact.markdown
         for label in research.artifact.payload["gaps"]
@@ -5567,14 +6647,14 @@ async def test_exact_source_appendix_and_forged_candidates_are_rejected() -> Non
     assert gap_evaluation.execution_output_contract_satisfied is False
     assert gap_evaluation.direct_promotion_artifact is None
     assert gap_evaluation.artifact.payload["unmetRequirementIds"] == [
-        gap_payload["candidateAttestation"]["requirementCoverage"][0][
-            "requirementId"
-        ]
+        gap_payload["candidateAttestation"]["requirementCoverage"][0]["requirementId"]
     ]
 
 
 @pytest.mark.asyncio
-async def test_ready_launch_authorization_can_produce_launch_ready_final_artifact() -> None:
+async def test_ready_launch_authorization_can_produce_launch_ready_final_artifact() -> (
+    None
+):
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             artifact_type="launch_authorization",
@@ -5632,6 +6712,7 @@ async def test_blocked_report_is_safe_final_markdown_without_readiness_change() 
         extra_contents=[],
         repair_pass=0,
     )
+
     class ForbiddenBlockedWriter(QualityWriter):
         async def write_blocked(self, *_args, **_kwargs):
             raise AssertionError("blocked reports must not call Gemini synthesis")
@@ -5701,7 +6782,9 @@ async def test_blocked_report_is_safe_final_markdown_without_readiness_change() 
 
 
 @pytest.mark.asyncio
-async def test_deterministic_blocked_report_cites_immutable_context_and_appendix() -> None:
+async def test_deterministic_blocked_report_cites_immutable_context_and_appendix() -> (
+    None
+):
     compiled = await GeminiCognitiveExecutor(
         FakeDrafter(
             evidence_count=2,
@@ -5808,9 +6891,7 @@ def test_source_appendix_renderer_matches_cross_contract_grounded_bytes() -> Non
 
 def test_claim_support_guard_requires_same_clause_and_matching_exact_values() -> None:
     claim_id = "c" * 64
-    claims = {
-        claim_id: "Moisture must be declared when it exceeds 14% by mass."
-    }
+    claims = {claim_id: "Moisture must be declared when it exceeds 14% by mass."}
     supported = (
         "# Requirements\n\nMoisture above 14% must be declared "
         f"[evidence:{claim_id}]."
@@ -5842,9 +6923,7 @@ def test_claim_support_guard_requires_same_clause_and_matching_exact_values() ->
         artifact_type="product_prd",
     )
 
-    proposed = (
-        "# Metrics\n\nProposed target: conversion >= 42%; validate with a bounded cohort test."
-    )
+    proposed = "# Metrics\n\nProposed target: conversion >= 42%; validate with a bounded cohort test."
     assert _deterministic_evidence_integrity_defects(proposed, claims) == []
     for honest_choice in (
         "# Metrics\n\nProposed target: 20% trial conversion.",
@@ -5862,14 +6941,19 @@ def test_claim_support_guard_requires_same_clause_and_matching_exact_values() ->
         "# Budget\n\nThe pilot budget is €1,500.",
         "# Research\n\nInterview 10 users by 2026-10-15.",
     ):
-        assert _deterministic_evidence_integrity_defects(
-            ordinary_prd_decision,
-            claims,
-            artifact_type="product_prd",
-        ) == []
+        assert (
+            _deterministic_evidence_integrity_defects(
+                ordinary_prd_decision,
+                claims,
+                artifact_type="product_prd",
+            )
+            == []
+        )
 
 
-def test_claim_support_guard_rejects_unmarked_health_process_and_clearance_claims() -> None:
+def test_claim_support_guard_rejects_unmarked_health_process_and_clearance_claims() -> (
+    None
+):
     for markdown in (
         "# Product\n\nThe formulation prevents renal disease.",
         "# Process\n\nSterilize above 121°C to ensure product safety.",
@@ -5895,9 +6979,12 @@ def test_claim_support_guard_distinguishes_heading_labels_from_assertions() -> N
             f"## {label}\n\n"
             "This section records bounded planning decisions and validation actions."
         )
-        assert _deterministic_evidence_integrity_defects(
-            markdown, {}, artifact_type="product_prd"
-        ) == []
+        assert (
+            _deterministic_evidence_integrity_defects(
+                markdown, {}, artifact_type="product_prd"
+            )
+            == []
+        )
 
     for assertion in (
         "## The product is FEDIAF compliant",
@@ -5915,9 +7002,7 @@ def test_claim_support_guard_distinguishes_heading_labels_from_assertions() -> N
 def test_claim_support_guard_still_validates_cited_heading_assertions() -> None:
     claim_id = "7" * 64
     claims = {claim_id: "Moisture above 14% must be declared on the label."}
-    supported = (
-        f"## Moisture above 14% must be declared [evidence:{claim_id}]"
-    )
+    supported = f"## Moisture above 14% must be declared [evidence:{claim_id}]"
     mismatched = supported.replace("14%", "20%")
 
     assert _deterministic_evidence_integrity_defects(supported, claims) == []
@@ -6042,9 +7127,9 @@ def test_validation_target_scopes_the_complete_line_or_table_cell(
     )
 
     assert _deterministic_evidence_integrity_defects(target, {}) == []
-    assert _deterministic_evidence_integrity_defects(
-        f"| Authority | {target} |", {}
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(f"| Authority | {target} |", {}) == []
+    )
     assert _deterministic_evidence_integrity_defects(
         f"{target}\nThe certification is current.", {}
     )
@@ -6130,15 +7215,20 @@ def test_unresolved_requirement_allows_provisional_and_verification_language() -
             "filing procedure with NAB."
         ),
     ):
-        assert _deterministic_evidence_integrity_defects(
-            honest_planning_text,
-            {},
-            artifact_type="product_prd",
-            unresolved_evidence_requirements=unresolved,
-        ) == []
+        assert (
+            _deterministic_evidence_integrity_defects(
+                honest_planning_text,
+                {},
+                artifact_type="product_prd",
+                unresolved_evidence_requirements=unresolved,
+            )
+            == []
+        )
 
 
-def test_unresolved_requirement_does_not_inherit_a_broad_heading_into_every_row() -> None:
+def test_unresolved_requirement_does_not_inherit_a_broad_heading_into_every_row() -> (
+    None
+):
     unresolved = [
         (
             "National filing, official-language packaging, and National Administration "
@@ -6153,15 +7243,20 @@ def test_unresolved_requirement_does_not_inherit_a_broad_heading_into_every_row(
         "Target success criteria remain subject to validation."
     )
 
-    assert _deterministic_evidence_integrity_defects(
-        useful_planning,
-        {},
-        artifact_type="product_prd",
-        unresolved_evidence_requirements=unresolved,
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            useful_planning,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=unresolved,
+        )
+        == []
+    )
 
 
-def test_unresolved_requirement_allows_exact_gap_labels_and_planning_objectives() -> None:
+def test_unresolved_requirement_allows_exact_gap_labels_and_planning_objectives() -> (
+    None
+):
     description = (
         "Estonian national feed compliance requirements, official Estonian-language "
         "packaging mandates, and Agriculture and Food Board (PTA) notification procedures."
@@ -6174,12 +7269,15 @@ def test_unresolved_requirement_allows_exact_gap_labels_and_planning_objectives(
         f"{description}"
     )
 
-    assert _deterministic_evidence_integrity_defects(
-        honest_planning,
-        {},
-        artifact_type="product_prd",
-        unresolved_evidence_requirements=[description],
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            honest_planning,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=[description],
+        )
+        == []
+    )
 
 
 def test_gap_label_cannot_hide_a_second_positive_authority_assertion() -> None:
@@ -6197,7 +7295,9 @@ def test_gap_label_cannot_hide_a_second_positive_authority_assertion() -> None:
         unresolved_evidence_requirements=[description],
     )
 
-    assert any("unresolved evidence requirement" in defect.casefold() for defect in defects)
+    assert any(
+        "unresolved evidence requirement" in defect.casefold() for defect in defects
+    )
 
 
 @pytest.mark.parametrize(
@@ -6231,18 +7331,27 @@ def test_target_or_option_context_cannot_make_an_authority_assertion_provisional
         ],
     )
 
-    assert any("unresolved evidence requirement" in defect.casefold() for defect in defects)
+    assert any(
+        "unresolved evidence requirement" in defect.casefold() for defect in defects
+    )
 
 
-def test_labeled_product_option_may_contain_a_verification_action_not_a_legal_fact() -> None:
-    markdown = "## Authority option\n\nOption A: submit the draft to PTA for verification."
+def test_labeled_product_option_may_contain_a_verification_action_not_a_legal_fact() -> (
+    None
+):
+    markdown = (
+        "## Authority option\n\nOption A: submit the draft to PTA for verification."
+    )
 
-    assert _deterministic_evidence_integrity_defects(
-        markdown,
-        {},
-        artifact_type="product_prd",
-        unresolved_evidence_requirements=["PTA notification filing procedures."],
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            markdown,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=["PTA notification filing procedures."],
+        )
+        == []
+    )
 
 
 def test_experiment_hypothesis_and_target_columns_remain_planning_context() -> None:
@@ -6254,14 +7363,17 @@ def test_experiment_hypothesis_and_target_columns_remain_planning_context() -> N
         "requirements. | 100% pass score; PTA pre-audit sign-off. |"
     )
 
-    assert _deterministic_evidence_integrity_defects(
-        markdown,
-        {},
-        artifact_type="product_prd",
-        unresolved_evidence_requirements=[
-            "Official Estonian feed packaging requirements and PTA filing procedures."
-        ],
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            markdown,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=[
+                "Official Estonian feed packaging requirements and PTA filing procedures."
+            ],
+        )
+        == []
+    )
 
 
 def test_task_validation_rejects_unresolved_authority_before_persistence() -> None:
@@ -6294,7 +7406,9 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
         requirement_coverage=coverage,
         conclusions=["A planning conclusion was prepared."],
     )
-    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+    with pytest.raises(
+        ValueError, match="task artifact contradicts unresolved evidence"
+    ):
         cognitive_executor_module._validate_task_draft(context, unsafe)
 
     provisional = unsafe.model_copy(
@@ -6327,7 +7441,9 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
             )
         }
     )
-    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+    with pytest.raises(
+        ValueError, match="task artifact contradicts unresolved evidence"
+    ):
         cognitive_executor_module._validate_task_draft(marked_context, marked_unsafe)
 
     adversarial_context = context.model_copy(
@@ -6425,8 +7541,7 @@ def test_task_reclassifies_only_uncited_unresolved_clause(
     assert "When the review runs" in prepared.markdown
     assert (
         "Then Validation target (all following content is unverified until "
-        "pre-adoption review): PTA notification is mandatory."
-        in prepared.markdown
+        "pre-adoption review): PTA notification is mandatory." in prepared.markdown
     )
     assert "record an unresolved evidence gap until verification" not in (
         prepared.markdown
@@ -6478,15 +7593,18 @@ def test_task_reclassifies_only_offending_table_cell() -> None:
         "until pre-adoption review): PTA notification is mandatory. |"
     ) in prepared.markdown
     assert prepared.markdown.count("|") == draft.markdown.count("|")
-    assert set(
-        cognitive_executor_module._deterministic_structural_integrity_defects(
-            prepared.markdown
+    assert (
+        set(
+            cognitive_executor_module._deterministic_structural_integrity_defects(
+                prepared.markdown
+            )
+        ).difference(
+            cognitive_executor_module._deterministic_structural_integrity_defects(
+                draft.markdown
+            )
         )
-    ).difference(
-        cognitive_executor_module._deterministic_structural_integrity_defects(
-            draft.markdown
-        )
-    ) == set()
+        == set()
+    )
     _validate_task_draft(context, prepared)
 
 
@@ -6495,7 +7613,8 @@ def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
     shared = (
         "PTA notification filing is mandatory before distribution for the applicable "
         "authority procedure and the responsible operator review "
-        + "within the documented compliance boundary " * 4
+        + "within the documented compliance boundary "
+        * 4
     )
     cited = shared + "with exact immutable support"
     context = SynthesisContext(
@@ -6536,8 +7655,7 @@ def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): "
-        "PTA notification filing is mandatory"
-        in prepared.markdown
+        "PTA notification filing is mandatory" in prepared.markdown
     )
     _validate_task_draft(context, prepared)
 
@@ -6547,7 +7665,8 @@ def test_task_preserves_supported_line_before_long_uncited_prefix_collision() ->
     shared = (
         "PTA notification filing is mandatory before distribution for the applicable "
         "authority procedure and the responsible operator review "
-        + "within the documented compliance boundary " * 4
+        + "within the documented compliance boundary "
+        * 4
     )
     cited = shared + "with exact immutable support"
     unsupported = shared + "without evidence"
@@ -6586,8 +7705,7 @@ def test_task_preserves_supported_line_before_long_uncited_prefix_collision() ->
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): "
-        f"{unsupported}."
-        in prepared.markdown
+        f"{unsupported}." in prepared.markdown
     )
     assert prepared.markdown.count(f"[evidence:{claim_id}]") == 1
     _validate_task_draft(context, prepared)
@@ -6636,8 +7754,7 @@ def test_task_preserves_valid_cited_twin_before_bad_cited_twin() -> None:
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): "
-        f"{assertion}."
-        in prepared.markdown
+        f"{assertion}." in prepared.markdown
     )
     assert not _contains_server_deliverable_placeholder(prepared.markdown)
     _validate_task_draft(context, prepared)
@@ -6681,8 +7798,7 @@ def test_task_preserves_planning_table_twin_before_unsafe_prose_twin() -> None:
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): "
-        "PTA notification filing is mandatory."
-        in prepared.markdown
+        "PTA notification filing is mandatory." in prepared.markdown
     )
     _validate_task_draft(context, prepared)
 
@@ -6729,8 +7845,7 @@ def test_task_reclassifies_bad_citation_but_not_launch_authorization() -> None:
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): PTA "
-        "requires prior notification filing."
-        in prepared.markdown
+        "requires prior notification filing." in prepared.markdown
     )
     assert f"[evidence:{claim_id}]" not in prepared.markdown
     assert (
@@ -6747,7 +7862,9 @@ def test_task_reclassifies_bad_citation_but_not_launch_authorization() -> None:
         update={"artifact_type": "launch_authorization"}
     )
     assert _prepare_task_unresolved_actions(launch_context, draft) == draft
-    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+    with pytest.raises(
+        ValueError, match="task artifact contradicts unresolved evidence"
+    ):
         _validate_task_draft(launch_context, draft)
 
 
@@ -6802,8 +7919,7 @@ def test_task_atomically_reclassifies_punctuation_adjacent_citation(
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): PTA "
-        "requires prior notification filing."
-        in prepared.markdown
+        "requires prior notification filing." in prepared.markdown
     )
     assert f"[evidence:{claim_id}]" not in prepared.markdown
     assert (
@@ -6910,8 +8026,7 @@ def test_full_contract_reclassifies_unresolved_authority_specifically() -> None:
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): PTA "
-        "notification filing is mandatory before distribution."
-        in prepared.markdown
+        "notification filing is mandatory before distribution." in prepared.markdown
     )
     assert "Validation action: verify this item before relying on it." not in (
         prepared.markdown
@@ -6991,22 +8106,28 @@ def test_full_contract_does_not_normalize_beyond_public_defect_limit() -> None:
         conclusions=["Retain the useful plan."],
     )
 
-    assert len(
-        _deterministic_evidence_integrity_defects(
-            draft.markdown, {}, artifact_type="product_prd"
+    assert (
+        len(
+            _deterministic_evidence_integrity_defects(
+                draft.markdown, {}, artifact_type="product_prd"
+            )
         )
-    ) == 40
+        == 40
+    )
     prepared = _prepare_task_unresolved_actions(context, draft)
     assert prepared == draft
     assert all(line in prepared.markdown for line in unsafe_lines)
-    assert len(
-        _deterministic_evidence_integrity_defects(
-            prepared.markdown,
-            {},
-            artifact_type="product_prd",
-            defect_limit=None,
+    assert (
+        len(
+            _deterministic_evidence_integrity_defects(
+                prepared.markdown,
+                {},
+                artifact_type="product_prd",
+                defect_limit=None,
+            )
         )
-    ) == 45
+        == 45
+    )
 
 
 def test_full_contract_does_not_rename_required_unsafe_heading() -> None:
@@ -7092,14 +8213,8 @@ def test_full_contract_never_rewrites_fenced_content(
 @pytest.mark.parametrize(
     "unsafe",
     [
-        (
-            "PTA notification must be filed because the agency approved the "
-            "product."
-        ),
-        (
-            "PTA notification must be filed, and the agency has approved the "
-            "product."
-        ),
+        ("PTA notification must be filed because the agency approved the " "product."),
+        ("PTA notification must be filed, and the agency has approved the " "product."),
     ],
 )
 def test_task_leaves_asserted_tail_for_strict_model_retry(unsafe: str) -> None:
@@ -7242,11 +8357,11 @@ def test_full_contract_adds_exact_accepted_requirement_traceability() -> None:
     assert prepared.markdown.count(requirement_id) == 3
     assert fenced_example in prepared.markdown
     assert "**Accepted-scope traceability**" in prepared.markdown
-    assert prepared.markdown.rfind(
-        "## 6. Prioritized requirements"
-    ) < prepared.markdown.index(
-        "**Accepted-scope traceability**"
-    ) < prepared.markdown.rfind("## 7. Acceptance criteria (Given/When/Then)")
+    assert (
+        prepared.markdown.rfind("## 6. Prioritized requirements")
+        < prepared.markdown.index("**Accepted-scope traceability**")
+        < prepared.markdown.rfind("## 7. Acceptance criteria (Given/When/Then)")
+    )
     assert (
         "An acceptance-criterion ID is absent from prioritized requirements"
         not in " ".join(
@@ -7349,36 +8464,39 @@ def test_unrelated_no_phrase_does_not_reverse_positive_authority_support(
     claim_id = "4" * 64
     assertion = f"PTA notification filing is mandatory [evidence:{claim_id}]."
 
-    assert _deterministic_evidence_integrity_defects(
-        assertion,
-        {claim_id: claim_text},
-        artifact_type="product_prd",
-        unresolved_evidence_requirements=["PTA notification filing procedures."],
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            assertion,
+            {claim_id: claim_text},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=["PTA notification filing procedures."],
+        )
+        == []
+    )
 
 
-def test_unresolved_requirement_marker_must_semantically_support_the_assertion() -> None:
-    unresolved = [
-        "National Administration Board (NAB) notification filing procedures."
-    ]
+def test_unresolved_requirement_marker_must_semantically_support_the_assertion() -> (
+    None
+):
+    unresolved = ["National Administration Board (NAB) notification filing procedures."]
     supported_id = "1" * 64
     unrelated_id = "2" * 64
     assertion = "NAB accepts notification filings through its portal"
-    supported = (
-        "## Authority process\n\n"
-        f"{assertion} [evidence:{supported_id}]."
-    )
+    supported = "## Authority process\n\n" f"{assertion} [evidence:{supported_id}]."
     unrelated = (
         "## Authority process\n\nNAB notification filing is mandatory "
         f"[evidence:{unrelated_id}]."
     )
 
-    assert _deterministic_evidence_integrity_defects(
-        supported,
-        {supported_id: assertion + "."},
-        artifact_type="product_prd",
-        unresolved_evidence_requirements=unresolved,
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            supported,
+            {supported_id: assertion + "."},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=unresolved,
+        )
+        == []
+    )
     assert _deterministic_evidence_integrity_defects(
         unrelated,
         {unrelated_id: "Regional hygiene guidance describes general controls."},
@@ -7395,7 +8513,9 @@ def test_only_missing_or_conflicting_findings_create_unresolved_requirements() -
         ]
     }
     research = {
-        "assumptions": ["A planning assumption that must not become an authority rule."],
+        "assumptions": [
+            "A planning assumption that must not become an authority rule."
+        ],
         "findings": [
             {"requirementId": "missing", "status": "missing"},
             {"requirementId": "verified", "status": "verified"},
@@ -7407,7 +8527,9 @@ def test_only_missing_or_conflicting_findings_create_unresolved_requirements() -
     ) == ["Missing authority procedure."]
 
 
-def test_claim_support_guard_handles_latex_units_formulas_and_proposed_sections() -> None:
+def test_claim_support_guard_handles_latex_units_formulas_and_proposed_sections() -> (
+    None
+):
     claim_id = "e" * 64
     claims = {
         claim_id: (
@@ -7416,15 +8538,11 @@ def test_claim_support_guard_handles_latex_units_formulas_and_proposed_sections(
         )
     }
     supported = (
-        "# Limit\n\nThe design limit is 14.0\\,\\text{mg/kg} "
-        f"[evidence:{claim_id}]."
+        "# Limit\n\nThe design limit is 14.0\\,\\text{mg/kg} " f"[evidence:{claim_id}]."
     )
     assert _deterministic_evidence_integrity_defects(supported, claims) == []
 
-    wrong_unit = (
-        "# Limit\n\nThe design limit is 14 g "
-        f"[evidence:{claim_id}]."
-    )
+    wrong_unit = "# Limit\n\nThe design limit is 14 g " f"[evidence:{claim_id}]."
     assert _deterministic_evidence_integrity_defects(wrong_unit, claims)
 
     extra_formula_term = (
@@ -7459,7 +8577,9 @@ def test_claim_support_guard_distinguishes_integer_money_counts_and_dates() -> N
     assert _deterministic_evidence_integrity_defects(wrong_date, claims)
 
 
-def test_claim_support_guard_normalizes_threshold_ranges_and_written_temperatures() -> None:
+def test_claim_support_guard_normalizes_threshold_ranges_and_written_temperatures() -> (
+    None
+):
     claim_id = "9" * 64
     claims = {
         claim_id: (
@@ -7490,9 +8610,18 @@ def test_claim_support_guard_rejects_same_value_unrelated_sensitive_inference() 
 @pytest.mark.parametrize(
     ("deliverables", "expected"),
     [
-        (["Product requirements document", "Sources"], ["Product requirements document"]),
-        (["Product requirements document", "Source appendix"], ["Product requirements document"]),
-        (["Product requirements document", "References / Bibliography"], ["Product requirements document"]),
+        (
+            ["Product requirements document", "Sources"],
+            ["Product requirements document"],
+        ),
+        (
+            ["Product requirements document", "Source appendix"],
+            ["Product requirements document"],
+        ),
+        (
+            ["Product requirements document", "References / Bibliography"],
+            ["Product requirements document"],
+        ),
         (["Bibliography", "References", "Source", "Sources"], ["Artifact"]),
     ],
 )
@@ -7546,7 +8675,8 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
         "# Product requirements document\n\n"
         + "Accepted scope, accepted plan, evidence status, PRD requirements, and source "
         "artifacts are listed without doing the requested work. "
-        + "Context only. " * 115
+        + "Context only. "
+        * 115
     )
     substantive, practicality = _deterministic_quality_defects(
         shell, practical_output_required=True
@@ -7581,9 +8711,10 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
             "claimLedger": [],
         }
     )
-    assert _deterministic_quality_defects(
-        useful, practical_output_required=True
-    ) == ([], [])
+    assert _deterministic_quality_defects(useful, practical_output_required=True) == (
+        [],
+        [],
+    )
 
 
 @pytest.mark.parametrize(
@@ -7621,8 +8752,7 @@ def test_final_quality_gate_rejects_exact_server_placeholders(
     )
     assert (
         "The candidate contains server-generated evidence-validation placeholders "
-        "instead of substantive deliverable content."
-        in substantive
+        "instead of substantive deliverable content." in substantive
     )
 
     context = SynthesisContext(
@@ -7659,9 +8789,12 @@ def test_final_quality_gate_retains_specific_verification_action() -> None:
     )
 
     assert not _contains_server_deliverable_placeholder(candidate)
-    assert _deterministic_evidence_integrity_defects(
-        candidate, {}, artifact_type="product_prd"
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            candidate, {}, artifact_type="product_prd"
+        )
+        == []
+    )
     assert _deterministic_quality_defects(
         candidate,
         practical_output_required=True,
@@ -7680,17 +8813,24 @@ def test_final_quality_gate_accepts_repeated_bounded_validation_targets() -> Non
             "claimLedger": [],
         }
     )
-    candidate = useful + "\n\n" + "\n\n".join(
-        "Validation target (all following content is unverified until pre-adoption "
-        "review): "
-        f"safety condition {index} is satisfied."
-        for index in range(1, 7)
+    candidate = (
+        useful
+        + "\n\n"
+        + "\n\n".join(
+            "Validation target (all following content is unverified until pre-adoption "
+            "review): "
+            f"safety condition {index} is satisfied."
+            for index in range(1, 7)
+        )
     )
 
     assert not _contains_server_deliverable_placeholder(candidate)
-    assert _deterministic_evidence_integrity_defects(
-        candidate, {}, artifact_type="product_prd"
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            candidate, {}, artifact_type="product_prd"
+        )
+        == []
+    )
     assert _deterministic_quality_defects(
         candidate,
         practical_output_required=True,
@@ -7709,10 +8849,14 @@ def test_final_quality_gate_rejects_repetitive_verification_scaffolding() -> Non
             "claimLedger": [],
         }
     )
-    candidate = useful + "\n\n" + "\n\n".join(
-        f"Verification: confirm whether safety condition {index} applies before "
-        "relying on the outcome."
-        for index in range(1, 5)
+    candidate = (
+        useful
+        + "\n\n"
+        + "\n\n".join(
+            f"Verification: confirm whether safety condition {index} applies before "
+            "relying on the outcome."
+            for index in range(1, 5)
+        )
     )
 
     substantive, _practicality = _deterministic_quality_defects(
@@ -7722,12 +8866,13 @@ def test_final_quality_gate_rejects_repetitive_verification_scaffolding() -> Non
     )
     assert (
         "The candidate contains server-generated evidence-validation placeholders "
-        "instead of substantive deliverable content."
-        in substantive
+        "instead of substantive deliverable content." in substantive
     )
 
 
-def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees() -> None:
+def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees() -> (
+    None
+):
     sections = [
         "Acceptance criteria",
         "Evidence, assumptions, and gaps",
@@ -7777,7 +8922,10 @@ def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees(
         practical_output_required=True,
         artifact_type="product_prd",
     )
-    assert "Markdown section 'Empty problem statement' is empty or too thin." in practicality
+    assert (
+        "Markdown section 'Empty problem statement' is empty or too thin."
+        in practicality
+    )
 
     duplicated = prd() + (
         "\n\n## Risks\n\n- P0 duplicate risk with an owner and validation action."
@@ -7959,9 +9107,7 @@ def test_gwt_acceptance_block_rejects_one_role_under_list_style_ac_label() -> No
         ("| AC-1 | Accepted scope | Owner review | Recorded result |", []),
         (
             "| AC-2 | Accepted scope | | Recorded result |",
-            [
-                "Acceptance criterion block 'AC-2' is incomplete; missing When."
-            ],
+            ["Acceptance criterion block 'AC-2' is incomplete; missing When."],
         ),
     ],
 )
@@ -8010,7 +9156,9 @@ def test_gwt_detection_ignores_prose_headings_and_fenced_examples() -> None:
     )
 
 
-def test_evidence_marker_heading_parity_rejects_preamble_and_strips_closing_hashes() -> None:
+def test_evidence_marker_heading_parity_rejects_preamble_and_strips_closing_hashes() -> (
+    None
+):
     claim_id = "a" * 64
     with pytest.raises(ValueError, match="after a real Markdown heading"):
         _citation_sections(
@@ -8037,7 +9185,9 @@ def test_server_line_removal_drops_an_entire_fenced_block() -> None:
 
 
 def test_gap_labels_are_user_facing_requirement_descriptions() -> None:
-    internal_note = "No accepted grounded claim was available after the single repair pass."
+    internal_note = (
+        "No accepted grounded claim was available after the single repair pass."
+    )
     labels = PydanticAISynthesisWriter._required_gap_labels(
         {
             "assumptions": [],
@@ -8363,9 +9513,7 @@ def test_prd_quality_gate_uses_numbered_semantic_heading_labels() -> None:
         ("", "1.1. Sources"),
     ],
 )
-def test_numbered_source_heading_remains_server_owned(
-    indent: str, label: str
-) -> None:
+def test_numbered_source_heading_remains_server_owned(indent: str, label: str) -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Artifact"],
@@ -8444,7 +9592,9 @@ def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() 
         _validate_synthesis(context, draft)
 
 
-def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content() -> None:
+def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content() -> (
+    None
+):
     labels = [
         "FEDIAF nutritional guidance was not verified.",
         "Product-specific laboratory safety evidence has not been supplied.",
@@ -8516,12 +9666,15 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
     assert canonical_bullet in preserved.markdown
     assert preserved.markdown.count(label) == 1
     assert _with_immutable_gap_labels(context, preserved) == preserved
-    assert _deterministic_evidence_integrity_defects(
-        preserved.markdown,
-        {},
-        artifact_type="product_prd",
-        immutable_gap_labels=context.required_gap_labels,
-    ) == []
+    assert (
+        _deterministic_evidence_integrity_defects(
+            preserved.markdown,
+            {},
+            artifact_type="product_prd",
+            immutable_gap_labels=context.required_gap_labels,
+        )
+        == []
+    )
     _validate_synthesis(context, preserved)
 
     raw_claim_elsewhere = preserved.model_copy(
@@ -8643,7 +9796,7 @@ def test_ready_prd_cannot_claim_launch_authority_but_authorization_can() -> None
         ("Launch-ready status has not been established.", False),
         ("Launch-ready claims are prohibited.", False),
         ("This PRD excludes launch-ready assertions.", False),
-        ('The phrase “market-ready” is unsupported.', False),
+        ("The phrase “market-ready” is unsupported.", False),
         ("Any claim that there are no blockers to launch is forbidden.", False),
         ("This is a non-launch-ready planning artifact.", False),
         ("Launch-ready language is excluded.", False),
@@ -8690,8 +9843,7 @@ def test_ready_with_gaps_validator_rejects_launch_euphemisms(claim: str) -> None
     draft = SynthesisDraft(
         title="Unsafe claim",
         markdown=(
-            f"# PRD\n\n{claim}\n\n## Evidence gaps\n\n"
-            "Optional statistic is missing."
+            f"# PRD\n\n{claim}\n\n## Evidence gaps\n\n" "Optional statistic is missing."
         ),
     )
     with pytest.raises(ValueError, match="launch-ready"):
