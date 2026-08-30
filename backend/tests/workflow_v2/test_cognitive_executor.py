@@ -2441,10 +2441,11 @@ def test_final_repair_projection_preserves_required_section_and_safety_action() 
         context, title="Product plan", markdown=markdown
     )
 
-    assert "The formula is safe for adult cats." not in projected.markdown
+    assert "\nThe formula is safe for adult cats.\n" not in projected.markdown
     assert (
-        "Verification: confirm whether The formula is safe for adult cats before "
-        "relying on the outcome." in projected.markdown
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        "The formula is safe for adult cats." in projected.markdown
     )
     assert "## Safety boundary" in projected.markdown
     assert projected.markdown.count(f"- {gap}") == 1
@@ -2501,7 +2502,10 @@ def test_final_repair_projection_preserves_table_and_acceptance_topology() -> No
     assert "Given a candidate formula" in projected.markdown
     assert "When evidence is reviewed" in projected.markdown
     assert "Unverified assumption:" in projected.markdown
-    assert "Verification: confirm whether" in projected.markdown
+    assert (
+        "Validation target (all following content is unverified until pre-adoption "
+        "review):" in projected.markdown
+    )
     assert f"[evidence:{claim_id}]" not in projected.markdown
     assert _deterministic_evidence_integrity_defects(
         projected.markdown,
@@ -2666,8 +2670,11 @@ def test_final_repair_prompt_drops_stale_instructions_after_projection() -> None
         writer._final_repair_prompt(input_value, contents, context)
     )
 
-    assert "The formula is safe for adult cats." not in payload["BASE_MARKDOWN"]
-    assert "Verification: confirm whether" in payload["BASE_MARKDOWN"]
+    assert "\nThe formula is safe for adult cats.\n" not in payload["BASE_MARKDOWN"]
+    assert (
+        "Validation target (all following content is unverified until pre-adoption "
+        "review):" in payload["BASE_MARKDOWN"]
+    )
     assert all(
         "Restore the removed formula" not in instruction
         for instruction in payload["REPAIR_INSTRUCTIONS"]
@@ -4839,12 +4846,13 @@ async def test_task_operation_preserves_prd_by_reclassifying_unresolved_fact() -
     )
 
     assert result.result_type == "task_completed"
-    assert "Applicable pet-food safety obligations are mandatory." not in (
+    assert "\nApplicable pet-food safety obligations are mandatory.\n" not in (
         result.artifact.markdown or ""
     )
     assert (
-        "Verification: confirm whether Applicable pet-food safety obligations are "
-        "mandatory before relying on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        "Applicable pet-food safety obligations are mandatory."
     ) in (result.artifact.markdown or "")
 
 
@@ -5106,7 +5114,9 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
         "The validated formula contains 2,000 mg/kg taurine and prevents renal disease."
         in (candidate.artifact.markdown or "")
     )
-    assert "Verification: confirm whether" not in (candidate.artifact.markdown or "")
+    assert "all following content is unverified until pre-adoption review" not in (
+        candidate.artifact.markdown or ""
+    )
     assert not _contains_server_deliverable_placeholder(
         candidate.artifact.markdown or ""
     )
@@ -5955,6 +5965,11 @@ def test_claim_support_guard_does_not_exempt_assertions_after_action_prefix() ->
             "**Then** confirm whether the manufacturer is HACCP certified before "
             "relying on the outcome."
         ),
+        (
+            "Validation target (all following content is unverified until pre-adoption "
+            "review): "
+            "the manufacturer is HACCP certified."
+        ),
     ):
         assert _deterministic_evidence_integrity_defects(canonical_action, {}) == []
 
@@ -5967,6 +5982,11 @@ def test_claim_support_guard_does_not_exempt_assertions_after_action_prefix() ->
             "Validation action: verify this item because the manufacturer is HACCP "
             "certified."
         ),
+        (
+            "Validation target (all following content is unverified until pre-adoption "
+            "review): "
+            "the manufacturer is HACCP certified.\nThe certification is current."
+        ),
     ):
         assert _deterministic_evidence_integrity_defects(unsafe_tail, {})
         assert _deterministic_evidence_integrity_defects(
@@ -5976,6 +5996,61 @@ def test_claim_support_guard_does_not_exempt_assertions_after_action_prefix() ->
                 "HACCP manufacturer certification status."
             ],
         )
+
+
+@pytest.mark.parametrize(
+    "compound_proposition",
+    [
+        "the manufacturer is HACCP certified, the certification is current",
+        "the manufacturer is HACCP certified;the certification is current",
+        "the manufacturer is HACCP certified — the certification is current",
+        "the manufacturer is HACCP certified (the certification is current)",
+        "the manufacturer is HACCP certified, which is current",
+    ],
+)
+def test_only_explicit_whole_proposition_validation_target_is_exempt(
+    compound_proposition: str,
+) -> None:
+    ambiguous = (
+        "Validation target: determine whether "
+        f"{compound_proposition} before adoption."
+    )
+    scoped = (
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        f"{compound_proposition}."
+    )
+
+    assert _deterministic_evidence_integrity_defects(ambiguous, {})
+    assert _deterministic_evidence_integrity_defects(scoped, {}) == []
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "the manufacturer is HACCP certified.The certification is current.",
+        "the manufacturer is HACCP certified!The certification is current.",
+        "the manufacturer is HACCP certified. The certification is current.",
+    ],
+)
+def test_validation_target_scopes_the_complete_line_or_table_cell(
+    payload: str,
+) -> None:
+    target = (
+        "Validation target (all following content is unverified until pre-adoption "
+        f"review): {payload}"
+    )
+
+    assert _deterministic_evidence_integrity_defects(target, {}) == []
+    assert _deterministic_evidence_integrity_defects(
+        f"| Authority | {target} |", {}
+    ) == []
+    assert _deterministic_evidence_integrity_defects(
+        f"{target}\nThe certification is current.", {}
+    )
+    assert _deterministic_evidence_integrity_defects(
+        f"| Authority | {target} | The certification is current. |", {}
+    )
 
 
 @pytest.mark.parametrize(
@@ -6339,16 +6414,18 @@ def test_task_reclassifies_only_uncited_unresolved_clause(
         f"Clear feeding instructions support correct daily use [evidence:{claim_id}]"
         in prepared.markdown
     )
-    assert "PTA notification is mandatory." not in prepared.markdown
+    assert "\nPTA notification is mandatory.\n" not in prepared.markdown
+    assert "\nThen PTA notification is mandatory.\n" not in prepared.markdown
     assert (
-        "Verification: confirm whether PTA notification is mandatory before relying "
-        "on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        "PTA notification is mandatory."
     ) in prepared.markdown
     assert "Given a draft label" in prepared.markdown
     assert "When the review runs" in prepared.markdown
     assert (
-        "Then confirm whether PTA notification is mandatory before relying on the "
-        "outcome."
+        "Then Validation target (all following content is unverified until "
+        "pre-adoption review): PTA notification is mandatory."
         in prepared.markdown
     )
     assert "record an unresolved evidence gap until verification" not in (
@@ -6397,8 +6474,8 @@ def test_task_reclassifies_only_offending_table_cell() -> None:
 
     assert "| User need | Preserve clear feeding instructions. |" in prepared.markdown
     assert (
-        "| Authority | Then confirm whether PTA notification is mandatory before "
-        "relying on the outcome. |"
+        "| Authority | Then Validation target (all following content is unverified "
+        "until pre-adoption review): PTA notification is mandatory. |"
     ) in prepared.markdown
     assert prepared.markdown.count("|") == draft.markdown.count("|")
     assert set(
@@ -6457,7 +6534,9 @@ def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
     assert cited + f" [evidence:{claim_id}]." in prepared.markdown
     assert prepared.markdown.count(f"[evidence:{claim_id}]") == 1
     assert (
-        "Verification: confirm whether PTA notification filing is mandatory"
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        "PTA notification filing is mandatory"
         in prepared.markdown
     )
     _validate_task_draft(context, prepared)
@@ -6503,7 +6582,13 @@ def test_task_preserves_supported_line_before_long_uncited_prefix_collision() ->
     prepared = _prepare_task_unresolved_actions(context, draft)
 
     assert cited + f" [evidence:{claim_id}]." in prepared.markdown
-    assert unsupported + "." not in prepared.markdown
+    assert f"\n\n{unsupported}.\n\n" not in prepared.markdown
+    assert (
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        f"{unsupported}."
+        in prepared.markdown
+    )
     assert prepared.markdown.count(f"[evidence:{claim_id}]") == 1
     _validate_task_draft(context, prepared)
 
@@ -6549,7 +6634,9 @@ def test_task_preserves_valid_cited_twin_before_bad_cited_twin() -> None:
     assert f"[evidence:{contradicted_id}]" not in prepared.markdown
     assert prepared.markdown.count(assertion) == 2
     assert (
-        f"Verification: confirm whether {assertion} before relying on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        f"{assertion}."
         in prepared.markdown
     )
     assert not _contains_server_deliverable_placeholder(prepared.markdown)
@@ -6589,10 +6676,12 @@ def test_task_preserves_planning_table_twin_before_unsafe_prose_twin() -> None:
     prepared = _prepare_task_unresolved_actions(context, draft)
 
     assert f"| Authority | {assertion} |" in prepared.markdown
-    assert prepared.markdown.count(assertion) == 1
+    assert prepared.markdown.count(assertion) == 2
+    assert f"\n\n{assertion}\n\n" not in prepared.markdown
     assert (
-        "Verification: confirm whether PTA notification filing is mandatory "
-        "before relying on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        "PTA notification filing is mandatory."
         in prepared.markdown
     )
     _validate_task_draft(context, prepared)
@@ -6638,8 +6727,9 @@ def test_task_reclassifies_bad_citation_but_not_launch_authorization() -> None:
 
     prepared = _prepare_task_unresolved_actions(context, draft)
     assert (
-        "Verification: confirm whether PTA requires prior notification filing "
-        "before relying on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): PTA "
+        "requires prior notification filing."
         in prepared.markdown
     )
     assert f"[evidence:{claim_id}]" not in prepared.markdown
@@ -6710,8 +6800,9 @@ def test_task_atomically_reclassifies_punctuation_adjacent_citation(
 
     prepared = _prepare_task_unresolved_actions(context, draft)
     assert (
-        "Verification: confirm whether PTA requires prior notification filing "
-        "before relying on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): PTA "
+        "requires prior notification filing."
         in prepared.markdown
     )
     assert f"[evidence:{claim_id}]" not in prepared.markdown
@@ -6761,7 +6852,9 @@ def test_full_contract_preserves_generic_defects_for_final_repair() -> None:
     prepared = _prepare_task_unresolved_actions(context, draft)
 
     assert prepared == draft
-    assert "Verification: confirm whether" not in prepared.markdown
+    assert "all following content is unverified until pre-adoption review" not in (
+        prepared.markdown
+    )
     assert "[Lab Analysis Step]" in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown,
@@ -6811,12 +6904,13 @@ def test_full_contract_reclassifies_unresolved_authority_specifically() -> None:
     prepared = _prepare_task_unresolved_actions(context, draft)
 
     assert "retains its concrete audience, product choices" in prepared.markdown
-    assert "PTA notification filing is mandatory before distribution." not in (
+    assert "\nPTA notification filing is mandatory before distribution.\n" not in (
         prepared.markdown
     )
     assert (
-        "Verification: confirm whether PTA notification filing is mandatory before "
-        "distribution before relying on the outcome."
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): PTA "
+        "notification filing is mandatory before distribution."
         in prepared.markdown
     )
     assert "Validation action: verify this item before relying on it." not in (
@@ -7084,7 +7178,9 @@ def test_full_contract_preserves_unsafe_compact_then_for_final_repair() -> None:
     prepared = _prepare_task_unresolved_actions(context, draft)
 
     assert prepared == draft
-    assert "Verification: confirm whether" not in prepared.markdown
+    assert "all following content is unverified until pre-adoption review" not in (
+        prepared.markdown
+    )
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown, {}, artifact_type="product_prd"
     )
@@ -7145,11 +7241,11 @@ def test_full_contract_adds_exact_accepted_requirement_traceability() -> None:
 
     assert prepared.markdown.count(requirement_id) == 3
     assert fenced_example in prepared.markdown
-    assert "### Accepted-scope traceability" in prepared.markdown
+    assert "**Accepted-scope traceability**" in prepared.markdown
     assert prepared.markdown.rfind(
         "## 6. Prioritized requirements"
     ) < prepared.markdown.index(
-        "### Accepted-scope traceability"
+        "**Accepted-scope traceability**"
     ) < prepared.markdown.rfind("## 7. Acceptance criteria (Given/When/Then)")
     assert (
         "An acceptance-criterion ID is absent from prioritized requirements"
@@ -7160,6 +7256,60 @@ def test_full_contract_adds_exact_accepted_requirement_traceability() -> None:
         )
     )
     assert _with_accepted_requirement_traceability(context, prepared) == prepared
+
+
+@pytest.mark.parametrize("heading_level", [3, 6])
+def test_accepted_requirement_traceability_is_nested_and_idempotent(
+    heading_level: int,
+) -> None:
+    requirement = {
+        "category": "prd",
+        "description": "Define the planning deliverable.",
+        "priority": "P0",
+        "authority": "owner",
+    }
+    requirement_id = f"req-{canonical_hash(requirement)[:16]}"
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Prioritized requirements", "Acceptance criteria"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        accepted_requirements=[{"id": requirement_id, **requirement}],
+        artifact_type="product_prd",
+    )
+    heading = "#" * heading_level
+    draft = SynthesisDraft(
+        title="Nested traceable PRD",
+        markdown=(
+            "# Nested traceable PRD\n\n"
+            f"{heading} Prioritized requirements\n\n"
+            "- **P0** Define the product plan.\n\n"
+            f"{heading} Acceptance criteria\n\n"
+            "Given the accepted scope\n\n"
+            "When the PRD is reviewed\n\n"
+            f"Then the planning deliverable is defined (`{requirement_id}`)."
+        ),
+    )
+
+    prepared = _with_accepted_requirement_traceability(context, draft)
+    prepared_twice = _with_accepted_requirement_traceability(context, prepared)
+
+    assert prepared_twice == prepared
+    assert prepared.markdown.count("**Accepted-scope traceability**") == 1
+    assert prepared.markdown.count(requirement_id) == 2
+    assert prepared.markdown.index(
+        "**Accepted-scope traceability**"
+    ) < prepared.markdown.index(f"{heading} Acceptance criteria")
+    assert (
+        "An acceptance-criterion ID is absent from prioritized requirements"
+        not in " ".join(
+            cognitive_executor_module._deterministic_structural_integrity_defects(
+                prepared.markdown
+            )
+        )
+    )
 
 
 @pytest.mark.parametrize(
@@ -7506,6 +7656,35 @@ def test_final_quality_gate_retains_specific_verification_action() -> None:
     candidate = useful + (
         "\n\nVerification: confirm whether the co-manufacturer holds the applicable "
         "HACCP certification before relying on the outcome."
+    )
+
+    assert not _contains_server_deliverable_placeholder(candidate)
+    assert _deterministic_evidence_integrity_defects(
+        candidate, {}, artifact_type="product_prd"
+    ) == []
+    assert _deterministic_quality_defects(
+        candidate,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    ) == ([], [])
+
+
+def test_final_quality_gate_accepts_repeated_bounded_validation_targets() -> None:
+    useful = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    candidate = useful + "\n\n" + "\n\n".join(
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        f"safety condition {index} is satisfied."
+        for index in range(1, 7)
     )
 
     assert not _contains_server_deliverable_placeholder(candidate)
