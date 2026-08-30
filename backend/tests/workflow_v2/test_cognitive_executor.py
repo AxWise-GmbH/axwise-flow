@@ -3309,6 +3309,21 @@ def test_strict_final_fallback_repairs_scaffolding_and_ascii_roadmap() -> None:
         "| - Dispatch output          - Record decision        - Submit filing |\n"
         "+-----------------------------------------------------------+\n"
         "```\n\n"
+        "```text\n"
+        "Month 1 (Days 1–30): Technical & Regulatory Validation Planning\n"
+        "  ├── [GAP-01 / GAP-03] Proposed action: Cross-verify formulation "
+        "model against EUR-Lex heavy metal annexes and FEDIAF adult cat nutrient "
+        "tables.\n"
+        "  └── Draft bilingual packaging artwork for review.\n\n"
+        "Month 2 (Days 31–60): Pilot Testing Proposals\n"
+        "  ├── [GAP-04] Proposed validation: Submit pilot samples for "
+        "independent testing.\n"
+        "  └── Record the proposed commercial assumptions.\n\n"
+        "Month 3 (Days 61–90): Verification & Commercial Planning\n"
+        "  ├── [GAP-05] Proposed validation: Conduct a retail margin study.\n"
+        "  └── Review laboratory safety results and complete pre-production "
+        "compliance audit before seeking commercial authorization.\n"
+        "```\n\n"
         "## Evidence, assumptions, and gaps\n\n"
         "- External certification and authority requirements remain unresolved."
     )
@@ -3363,6 +3378,21 @@ def test_strict_final_fallback_repairs_scaffolding_and_ascii_roadmap() -> None:
         "Submit filing",
     ):
         assert retained in fallback.markdown
+    assert "```text\nMonth 1" not in fallback.markdown
+    assert "- **Month 1 (Days 1–30): Technical & Regulatory Validation Planning**" in (
+        fallback.markdown
+    )
+    assert (
+        "Unknown pending evidence (the complete following item is unverified and not "
+        "approved for execution): [GAP-01 / GAP-03] Proposed action: Cross-verify "
+        "formulation model against EUR-Lex heavy metal annexes and FEDIAF adult cat "
+        "nutrient tables."
+    ) in fallback.markdown
+    assert (
+        "Unknown pending evidence (the complete following item is unverified and not "
+        "approved for execution): Review laboratory safety results and complete "
+        "pre-production compliance audit before seeking commercial authorization."
+    ) in fallback.markdown
     assert (
         cognitive_executor_module._final_repair_topology_defects(
             fallback_context.final_repair_topology, fallback.markdown
