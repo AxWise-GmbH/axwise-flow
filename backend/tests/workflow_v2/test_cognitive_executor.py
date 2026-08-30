@@ -44,6 +44,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _appendix_matches_research,
     _blocked_report_output_contract,
     _contains_server_deliverable_placeholder,
+    _contains_server_unverified_validation_target,
     _deterministic_evidence_integrity_defects,
     _operation_metrics,
     _deterministic_quality_defects,
@@ -294,6 +295,69 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(
     PydanticAISynthesisWriter(object())
 
     assert captured == ["PromptedOutput"] * 6
+
+
+@pytest.mark.asyncio
+async def test_task_output_validator_bounds_composite_only_for_full_contract(
+    monkeypatch,
+) -> None:
+    validators = {}
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.task_agent.system_prompt]
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[
+            "Applicable EU feed-labeling law and Estonian enforcement requirements."
+        ],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Full-contract planning draft",
+        markdown=(
+            "# Product plan\n\nAll packaging artwork and declarations must strictly "
+            "comply with Regulation (EC) No 767/2009 because the Estonian Agriculture "
+            "and Food Board has authority over national enforcement.\n\n"
+            "## Evidence gaps\n\nThe named legal requirements remain unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The planning contract remains covered.",
+            }
+        ],
+        conclusions=["Retain the useful planning content for bounded review."],
+    )
+
+    class FullContractContext:
+        deps = context
+
+    validated = await validator(FullContractContext(), draft)
+    assert _contains_server_unverified_validation_target(validated.markdown)
+
+    specialist_context = context.model_copy(update={"required_sections": []})
+
+    class SpecialistContext:
+        deps = specialist_context
+
+    with pytest.raises(ModelRetry, match="contradicts unresolved evidence"):
+        await validator(SpecialistContext(), draft)
 
 
 def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
@@ -6063,6 +6127,60 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
+async def test_server_bounded_composite_core_requires_evaluation() -> None:
+    class CompositeAuthorityCoreWriter(QualityWriter):
+        async def execute_task(self, input_value, scope, research_payload, contents):
+            draft = await super().execute_task(
+                input_value, scope, research_payload, contents
+            )
+            if not input_value.task.produces_full_contract:
+                return draft
+            return draft.model_copy(
+                update={
+                    "markdown": (
+                        draft.markdown
+                        + "\n\n## Authority review\n\nApplicable pet-food safety "
+                        "obligations are mandatory because the authority has approved "
+                        "the product."
+                    )
+                }
+            )
+
+    compiled = await compiled_scope()
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=CompositeAuthorityCoreWriter(),
+    )
+
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=865,
+    )
+
+    core = task_results[-1]
+    assert core.artifact.kind == "task_result"
+    assert _contains_server_unverified_validation_target(core.artifact.markdown or "")
+    assert not _deterministic_evidence_integrity_defects(
+        core.artifact.markdown or "",
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[
+            "Verify applicable pet-food safety obligations."
+        ],
+    )
+
+
+@pytest.mark.asyncio
 async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> (
     None
 ):
@@ -8258,6 +8376,93 @@ def test_task_leaves_asserted_tail_for_strict_model_retry(unsafe: str) -> None:
         ValueError, match="task artifact contradicts unresolved evidence"
     ):
         _validate_task_draft(context, prepared)
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        (
+            "All packaging artwork and declarations must strictly comply with "
+            "Regulation (EC) No 767/2009 because the Estonian Agriculture and Food "
+            "Board has authority over national enforcement."
+        ),
+        (
+            "Given the accepted product scope, When the PRD is reviewed, Then it "
+            "includes explicit formulation proposals framed against FEDIAF guideline "
+            "baselines, and the plan must satisfy EU feed labeling rules and target "
+            "user personas."
+        ),
+    ],
+)
+def test_full_contract_atomically_bounds_composite_authority_target(
+    unsafe: str,
+) -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=["Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[
+            "Applicable EU feed-labeling law and Estonian enforcement requirements.",
+            "Applicable FEDIAF nutritional guideline baselines.",
+        ],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Full-contract planning draft",
+        markdown=(
+            f"# Product plan\n\n{unsafe}\n\n"
+            "## Evidence gaps\n\nThe named legal and guideline baselines remain "
+            "unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The planning contract remains covered.",
+            }
+        ],
+        conclusions=["Retain the useful planning content for bounded review."],
+    )
+
+    assert _prepare_task_unresolved_actions(context, draft) == draft
+    prepared = _prepare_task_unresolved_actions(
+        context, draft, allow_composite_authority_targets=True
+    )
+
+    assert prepared != draft
+    assert (
+        prepared.markdown.count(
+            "Validation target (all following content is unverified until pre-adoption review):"
+        )
+        == 1
+    )
+    assert _contains_server_unverified_validation_target(prepared.markdown)
+    assert not _deterministic_evidence_integrity_defects(
+        prepared.markdown,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+    )
+    assert (
+        _prepare_task_unresolved_actions(
+            context, prepared, allow_composite_authority_targets=True
+        )
+        == prepared
+    )
+    _validate_task_draft(context, prepared)
+    launch_context = context.model_copy(
+        update={"artifact_type": "launch_authorization"}
+    )
+    assert (
+        _prepare_task_unresolved_actions(
+            launch_context, draft, allow_composite_authority_targets=True
+        )
+        == draft
+    )
 
 
 def test_full_contract_preserves_unsafe_compact_then_for_final_repair() -> None:
