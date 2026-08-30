@@ -526,7 +526,7 @@ async def test_final_quality_failure_is_a_bounded_model_output_retry(
 
 
 @pytest.mark.asyncio
-async def test_final_validator_retries_without_deleting_unsupported_rows(
+async def test_final_validator_prunes_only_safe_residual_unsupported_rows(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -580,13 +580,288 @@ async def test_final_validator_retries_without_deleting_unsupported_rows(
     class Context:
         deps = context
 
+    result = await validator(
+        Context(), SynthesisDraft(title="Unsafe row", markdown=candidate)
+    )
+
+    assert seen[-1] == result.markdown
+    assert unsafe_row not in result.markdown
+    assert "Decision-useful physical product requirements." in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_final_validator_never_prunes_an_accepted_requirement_row(
+    monkeypatch,
+) -> None:
+    validators = {}
+    seen = []
+    real_validate = cognitive_executor_module._validate_synthesis
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    def recording_validate(context, draft):
+        seen.append(draft.markdown)
+        return real_validate(context, draft)
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    monkeypatch.setattr(
+        cognitive_executor_module, "_validate_synthesis", recording_validate
+    )
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.final_agent.system_prompt]
+    requirement = {
+        "category": "prd",
+        "description": "Define a bounded formula-safety requirement.",
+        "priority": "P0",
+        "authority": "owner",
+    }
+    requirement_id = f"req-{canonical_hash(requirement)[:16]}"
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        accepted_requirements=[{"id": requirement_id, **requirement}],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    unsafe_row = (
+        f"| {requirement_id.upper()} | Quality Lead | "
+        "The formula is certified safe for adult cats. |"
+    )
+    candidate = (
+        quality_markdown(
+            {
+                "assumptions": [],
+                "gaps": [],
+                "conflicts": [],
+                "findings": [],
+                "selectedClaims": [],
+                "claimLedger": [],
+            }
+        )
+        + f"\n\n{unsafe_row}"
+    )
+
+    class Context:
+        deps = context
+
     with pytest.raises(ModelRetry, match="substantive/practical quality"):
         await validator(
-            Context(), SynthesisDraft(title="Unsafe row", markdown=candidate)
+            Context(), SynthesisDraft(title="Accepted requirement", markdown=candidate)
         )
 
-    assert seen[-1] == candidate
     assert unsafe_row in seen[-1]
+
+
+@pytest.mark.asyncio
+async def test_final_validator_repairs_residual_gwt_without_breaking_topology(
+    monkeypatch,
+) -> None:
+    validators = {}
+    seen = []
+    real_validate = cognitive_executor_module._validate_synthesis
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    def recording_validate(context, draft):
+        seen.append(draft.markdown)
+        return real_validate(context, draft)
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    monkeypatch.setattr(
+        cognitive_executor_module, "_validate_synthesis", recording_validate
+    )
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.final_agent.system_prompt]
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    unsafe_when = "* **When:** Regulation (EC) No 767/2009 requires a certified label,"
+    candidate = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    ).replace(
+        "- Given the accepted scope, when the artifact is reviewed, then each "
+        "requirement has a testable result.",
+        "### AC-1: Regulatory review\n\n"
+        "* **Given** the accepted scope,\n"
+        f"{unsafe_when}\n"
+        "* **Then:** record the bounded review result.",
+    )
+
+    class Context:
+        deps = context
+
+    result = await validator(
+        Context(), SynthesisDraft(title="Unsafe criterion", markdown=candidate)
+    )
+
+    assert seen[-1] == result.markdown
+    assert unsafe_when not in result.markdown
+    assert (
+        "* **When:** confirm whether Regulation (EC) No 767/2009 requires a "
+        "certified label before relying on the outcome."
+    ) in result.markdown
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            result.markdown
+        )
+        == []
+    )
+    assert not _contains_server_unverified_validation_target(result.markdown)
+
+
+@pytest.mark.asyncio
+async def test_final_validator_retries_instead_of_publishing_gwt_scaffold_wall(
+    monkeypatch,
+) -> None:
+    validators = {}
+    seen = []
+    real_validate = cognitive_executor_module._validate_synthesis
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    def recording_validate(context, draft):
+        seen.append(draft.markdown)
+        return real_validate(context, draft)
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    monkeypatch.setattr(
+        cognitive_executor_module, "_validate_synthesis", recording_validate
+    )
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.final_agent.system_prompt]
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    candidate = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    ).replace(
+        "- Given the accepted scope, when the artifact is reviewed, then each "
+        "requirement has a testable result.",
+        "### AC-1: Regulatory review\n\n"
+        "* **Given** the accepted scope,\n"
+        "* **When:** Regulation (EC) No 767/2009 requires a certified label,\n"
+        "* **Then:** the product is certified safe under Regulation (EC) No "
+        "767/2009.\n\n"
+        "### AC-2: Safety review\n\n"
+        "* **Given** a candidate formula,\n"
+        "* **When:** FEDIAF requires this exact nutrient profile,\n"
+        "* **Then:** the formula is FEDIAF compliant.",
+    )
+
+    class Context:
+        deps = context
+
+    with pytest.raises(ModelRetry, match="substantive/practical quality"):
+        await validator(
+            Context(), SynthesisDraft(title="Scaffold wall", markdown=candidate)
+        )
+
+    assert seen[-1].count("confirm whether") == 2
+    assert "* **Then:** the formula is FEDIAF compliant." in seen[-1]
+
+
+@pytest.mark.asyncio
+async def test_final_validator_rejects_server_validation_scaffolding(
+    monkeypatch,
+) -> None:
+    validators = {}
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.final_agent.system_prompt]
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    candidate = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    ) + (
+        "\n\nValidation target (all following content is unverified until "
+        "pre-adoption review): The formula is certified safe."
+    )
+
+    class Context:
+        deps = context
+
+    with pytest.raises(ModelRetry, match="server-generated validation scaffolding"):
+        await validator(
+            Context(), SynthesisDraft(title="Scaffolded final", markdown=candidate)
+        )
 
 
 @pytest.mark.asyncio
@@ -2104,6 +2379,12 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
         "persona names, ages, neighbourhoods and demographic facts",
         "delete that entire",
         "Markdown line on the next retry",
+        "Parenthetical labels",
+        "Given states only the accepted input",
+        "Then records",
+        "the possible pass, fail, or unresolved outcome",
+        "Then record the criterion as pass only if",
+        "never propose executing the process before its applicability is verified",
     ):
         assert required in final_prompt
 
@@ -2565,7 +2846,7 @@ def test_final_repair_projection_preserves_required_section_and_safety_action() 
         )
         == []
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
+    with pytest.raises(ValueError, match="server-generated validation scaffolding"):
         _validate_synthesis(context, projected)
 
 
@@ -7243,6 +7524,10 @@ def test_claim_support_guard_does_not_exempt_assertions_after_action_prefix() ->
             "certified."
         ),
         (
+            "Validation action: verify whether PTA notification applies, and submit the "
+            "filing before treating it as settled."
+        ),
+        (
             "Validation target (all following content is unverified until pre-adoption "
             "review): "
             "the manufacturer is HACCP certified.\nThe certification is current."
@@ -7399,6 +7684,346 @@ def test_unresolved_requirement_allows_provisional_and_verification_language() -
             )
             == []
         )
+
+
+def test_unresolved_requirement_allows_bounded_conditional_acceptance_outcome() -> None:
+    unresolved = ["Official-language packaging declarations and filing procedures."]
+    safe = [
+        (
+            "- **Then** record the criterion as pass if every packaging declaration is "
+            "independently verified; otherwise record it as unresolved."
+        ),
+        (
+            "- **Then** commercial dispatch is prohibited until laboratory evidence "
+            "confirms the candidate batch is independently verified."
+        ),
+        (
+            "- **Then** mark the criterion as unresolved until independent evidence "
+            "verifies it."
+        ),
+        (
+            "- **Then** the criterion remains unresolved until independent evidence "
+            "verifies it."
+        ),
+        (
+            "- **Then** keep launch blocked until independent verification confirms "
+            "compliance."
+        ),
+        "- **Then** show a validation error if the user submits an empty field.",
+        "- **Then** show the premium pack if the buyer chooses monthly delivery.",
+        "- **Then** display the evidence list if records exist.",
+        ("- **Then** show the legal-disclaimer field if the category is " "regulated."),
+        (
+            "- **Then** show the certification field if the supplier selects a "
+            "regulated product."
+        ),
+        (
+            "- **Then** mark the regulatory-review task complete if the reviewer "
+            "clicks Done."
+        ),
+        (
+            "- **Then** display the safety questionnaire if the user selects cat "
+            "food."
+        ),
+    ]
+    unsafe = [
+        "- **Then** official-language packaging is mandatory if the product is sold.",
+        "- **Then** the formula is certified safe if validation passes.",
+        "- **Then** the notification is approved if verification passes.",
+        "- **Then** the formula meets all safety requirements if validation passes.",
+        "- **Then** the formula complies with FEDIAF if validation passes.",
+        "- **Then** legal requirements are satisfied if verification passes.",
+        "- **Then** launch is permitted if validation passes.",
+        (
+            "- **Then** record the formula is certified safe as pass if validation "
+            "passes."
+        ),
+        (
+            "- **Then** record legal requirements are satisfied as pass if "
+            "verification passes."
+        ),
+        (
+            "- **Then** record the criterion as pass if evidence is independently "
+            "verified; otherwise record it as unresolved, and the product is legally "
+            "approved."
+        ),
+        (
+            "- **Then** launch remains blocked until verification is complete, and the "
+            "product is certified safe."
+        ),
+        (
+            "- **Then** record the criterion as pass unless evidence disproves product "
+            "safety."
+        ),
+        "- **Then** the product is market-ready if testing passes.",
+        "- **Then** the product is fit for commercial sale if validation passes.",
+        "- **Then** the product is suitable for launch if tests pass.",
+        "- **Then** commercial distribution may begin if testing passes.",
+        "- **Then** go to market if validation passes.",
+    ]
+
+    for outcome in safe:
+        assert (
+            _deterministic_evidence_integrity_defects(
+                outcome,
+                {},
+                artifact_type="product_prd",
+                unresolved_evidence_requirements=unresolved,
+            )
+            == []
+        )
+    for assertion in unsafe:
+        assert _deterministic_evidence_integrity_defects(
+            assertion,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=unresolved,
+        )
+
+
+def test_unresolved_requirement_allows_whole_proposition_verification_action() -> None:
+    actions = [
+        (
+            "Validation action: verify whether EU feed hygiene and labelling rules are "
+            "satisfied before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether statutory requirements apply before "
+            "treating compliance as settled."
+        ),
+        (
+            "Validation action: consult qualified nutrition professionals regarding "
+            "candidate formulation parameters."
+        ),
+        "Validation action: review legal and safety requirements.",
+        "Validation action: consult legal and nutrition experts.",
+        "Validation action: inspect labelling and packaging evidence.",
+        "Validation action: verify legal and safety requirements.",
+        "Validation action: assess whether legal and safety requirements apply.",
+    ]
+
+    for action in actions:
+        assert (
+            _deterministic_evidence_integrity_defects(
+                action,
+                {},
+                artifact_type="product_prd",
+                unresolved_evidence_requirements=[
+                    "EU feed hygiene and labelling requirements."
+                ],
+            )
+            == []
+        )
+
+    for unsafe in (
+        "Validation action: submit the legal notification dossier.",
+        (
+            "Validation action: verify whether notification applies, and submit the "
+            "filing before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies, and send the "
+            "filing before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies and lodge the "
+            "application before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies and pay the "
+            "filing fee before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies, and send the "
+            "forms before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies and lodge the "
+            "paperwork before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies and then "
+            "launch the product before treating it as settled."
+        ),
+        (
+            "Validation action: verify whether PTA notification applies and then sell "
+            "the product before treating it as settled."
+        ),
+        "Validation action: obtain regulator sign-off before launch.",
+        (
+            "Validation action: verify whether PTA notification applies before "
+            "treating it as settled, and submit the filing before treating it as "
+            "settled."
+        ),
+    ):
+        assert _deterministic_evidence_integrity_defects(
+            unsafe,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=[
+                "EU feed hygiene and labelling requirements."
+            ],
+        )
+
+
+def test_specific_when_verification_rejects_coordinated_execution() -> None:
+    safe = (
+        "- **When:** confirm whether Regulation (EC) No 767/2009 requires a "
+        "certified label before relying on the outcome."
+    )
+    unsafe = [
+        (
+            "- **When:** confirm whether the formula is safe and launch the product "
+            "before relying on the outcome."
+        ),
+        (
+            "- **When:** confirm whether PTA notification applies and file the dossier "
+            "before relying on the outcome."
+        ),
+        (
+            "- **When:** confirm whether Regulation (EC) No 767/2009 requires filing "
+            "and submit the dossier before relying on the outcome."
+        ),
+    ]
+
+    assert cognitive_executor_module._is_bounded_specific_verification_action(safe)
+    for action in unsafe:
+        assert not cognitive_executor_module._is_bounded_specific_verification_action(
+            action
+        )
+
+    assert _deterministic_evidence_integrity_defects(
+        "- **When:** PTA notification applies and file the dossier",
+        {},
+        artifact_type="product_prd",
+    )
+
+
+def test_planning_target_allows_internal_persona_design_not_authority_claim() -> None:
+    safe = [
+        (
+            "Proposed target: Persona 2 detailed with professional JTBD, urinary tract "
+            "disease risk criteria, and analytical review needs."
+        ),
+        "Proposed target: design an approval workflow for internal content review.",
+        "Proposed target: map regulatory notification requirements.",
+        (
+            "Proposed target: document the certification decision tree without "
+            "claiming certification."
+        ),
+        "Proposed target: build a permit-tracking interface.",
+        "Proposed target: legal review is assigned to the founder before launch.",
+        "Proposed target: HACCP review is included in the internal work plan.",
+    ]
+    unsafe = [
+        "Proposed target: PTA notification is mandatory before distribution.",
+        "Proposed target: obtain HACCP certification before distribution.",
+        "Proposed target: file the PTA notification before distribution.",
+        "Proposed target: prepare the legal dossier before launch.",
+        "Proposed target: the product formula is certified safe.",
+        "Proposed target: lodge the PTA application before distribution.",
+        "Proposed target: send the legal dossier before launch.",
+        "Proposed target: the product meets all statutory requirements.",
+        "Proposed target: the product may be marketed legally in Estonia.",
+        "Proposed target: secure regulator sign-off before launch.",
+        "Proposed target: the supplier is ISO 22000 certified.",
+        "Proposed target: the laboratory is officially accredited.",
+    ]
+
+    for target in safe:
+        assert (
+            _deterministic_evidence_integrity_defects(
+                target, {}, artifact_type="product_prd"
+            )
+            == []
+        )
+    for assertion in unsafe:
+        assert _deterministic_evidence_integrity_defects(
+            assertion, {}, artifact_type="product_prd"
+        )
+
+
+def test_exact_explicit_gap_label_is_not_recast_as_an_authority_claim() -> None:
+    label = (
+        "European Union and national statutory product safety, formulation, and "
+        "labelling requirements."
+    )
+    exact = f"Evidence gap: {label}"
+    bold_exact = f"- **Evidence gap:** {label}"
+    italic_exact = f"- *Evidence gap:* {label}"
+    extended = f"{exact} The product is legally approved."
+
+    assert (
+        _deterministic_evidence_integrity_defects(
+            exact,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=[label],
+        )
+        == []
+    )
+    assert (
+        _deterministic_evidence_integrity_defects(
+            bold_exact,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=[label],
+        )
+        == []
+    )
+    assert (
+        _deterministic_evidence_integrity_defects(
+            italic_exact,
+            {},
+            artifact_type="product_prd",
+            unresolved_evidence_requirements=[label],
+        )
+        == []
+    )
+    assert _deterministic_evidence_integrity_defects(
+        extended,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[label],
+    )
+
+
+def test_table_cell_html_breaks_keep_each_planning_action_independent() -> None:
+    safe = (
+        "| Workstream | Actions |\n"
+        "| --- | --- |\n"
+        "| Validation | • Validation action: verify whether the plant hygiene audit "
+        "meets standards before treating it as settled.<br>• Proposed target: produce "
+        "2 pilot batches. |"
+    )
+    unsafe = safe.replace(
+        "• Proposed target: produce 2 pilot batches.",
+        "• Proposed target: obtain legal certification before launch.",
+    )
+
+    assert (
+        _deterministic_evidence_integrity_defects(safe, {}, artifact_type="product_prd")
+        == []
+    )
+    assert _deterministic_evidence_integrity_defects(
+        unsafe, {}, artifact_type="product_prd"
+    )
+
+
+def test_ragged_markdown_table_is_validated_without_crashing() -> None:
+    ragged = (
+        "| A | B |\n"
+        "| --- | --- |\n"
+        "| Proposed target: 2 pilot batches | Validation action: verify whether "
+        "notification applies before treating it as settled. | extra |"
+    )
+
+    assert isinstance(
+        _deterministic_evidence_integrity_defects(
+            ragged, {}, artifact_type="product_prd"
+        ),
+        list,
+    )
 
 
 def test_unresolved_requirement_does_not_inherit_a_broad_heading_into_every_row() -> (
@@ -8983,10 +9608,6 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
     "placeholder",
     [
         "Validation action: verify this item before relying on it.",
-        (
-            "Validation action: verify whether PTA notification is mandatory before "
-            "treating it as settled."
-        ),
         "* **Given** the applicable planning evidence remains unverified.",
         "* **When** the relevant decision is reviewed.",
         "* **Then** record the evidence gap and defer the decision.",
@@ -9046,8 +9667,10 @@ def test_final_quality_gate_retains_specific_verification_action() -> None:
         }
     )
     candidate = useful + (
-        "\n\nVerification: confirm whether the co-manufacturer holds the applicable "
-        "HACCP certification before relying on the outcome."
+        "\n\nValidation action: verify whether the co-manufacturer holds the "
+        "applicable HACCP certification before treating it as settled.\n\n"
+        "Verification: confirm whether the laboratory result covers the candidate "
+        "formula before relying on the outcome."
     )
 
     assert not _contains_server_deliverable_placeholder(candidate)

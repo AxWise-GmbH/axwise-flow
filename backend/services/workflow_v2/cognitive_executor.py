@@ -1287,6 +1287,19 @@ never ASCII-art tables inside code fences. Keep level-two section headings uniqu
 leave a heading or subsection without substantive content. Cover every required section as a
 Markdown heading. Treat product
 or market success as a hypothesis unless an exact immutable claim supports it.
+Parenthetical labels such as `(Validation target)` or `(Planning proposal)` do not by
+themselves make an assertion provisional. Use `Proposed target:` only for an internal
+planning choice, or use `Validation action: verify whether ... before treating it as
+settled.` for an external fact that still requires evidence. In Given/When/Then criteria,
+Given states only the accepted input, When names the verification action, and Then records
+the possible pass, fail, or unresolved outcome; never relabel an unsupported Given or Then
+assertion as a validation target. When a Then outcome depends on unresolved evidence, use
+the controlled form `Then record the criterion as pass only if ... is independently
+verified; otherwise record it as unresolved.` Never state safe, compliant, approved,
+certified, authorized, permitted, or equivalent status as the conditional outcome.
+For an authority, legal, filing, notification, dossier, certification, or clearance process,
+never propose executing the process before its applicability is verified. State only a
+validation action that verifies whether the process applies.
 When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
 until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
 equivalent adjective forms even in a disclaimer, heading or status label.
@@ -1762,6 +1775,13 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             raise ValueError("blocked report must state a no-go or blocked decision")
         if not any("remediation" in heading for heading in headings):
             raise ValueError("blocked report requires a Remediation heading")
+    if context.purpose == "final_synthesis" and (
+        _contains_server_unverified_validation_target(draft.markdown)
+    ):
+        raise ValueError(
+            "final artifact contains server-generated validation scaffolding instead "
+            "of publication-ready prose"
+        )
     if context.quality_gate_required:
         evidence_integrity = _deterministic_evidence_integrity_defects(
             draft.markdown,
@@ -2325,6 +2345,56 @@ _EXPLICIT_NONFACTUAL_QUALIFIER = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+_EXPLICIT_PLANNING_TARGET_PREFIX = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:\*\*|__)?(?:given|when|then)(?:\s*:)?(?:\*\*|__)?\s*:?\s+)?"
+    r"proposed\s+target\s*:\s*\S",
+    re.IGNORECASE,
+)
+_PLANNING_TARGET_OBLIGATION_ASSERTION = re.compile(
+    r"\b(?:must|shall|requires?|required|mandatory|applies?|"
+    r"complies?|compliant|approved|authori[sz]ed|permitted|prohibited)\b",
+    re.IGNORECASE,
+)
+_PLANNING_TARGET_EXTERNAL_SUBJECT = re.compile(
+    r"\b(?:authority|agency|board|certification|clearance|compliance|directive|"
+    r"dossier|fediaf|filing|haccp|law|legal|licen[cs]e|notification|permit|"
+    r"register|registration|regulation|statute|statutory)\b",
+    re.IGNORECASE,
+)
+_PLANNING_TARGET_PRODUCT_STATUS_ASSERTION = re.compile(
+    r"\b(?:formula|product|service|system|artifact)\b[^.;]{0,120}(?:"
+    r"\b(?:certified|safe|approved|authori[sz]ed|compliant)\b|"
+    r"\bmeet(?:s)?\s+(?:all\s+)?(?:fediaf|legal|regulatory|safety|statutory)\s+"
+    r"requirements?\b|"
+    r"\b(?:may|can|is\s+permitted\s+to)\s+be\s+"
+    r"(?:marketed|sold|launched|distributed)\b[^.;]{0,40}\blegally\b)",
+    re.IGNORECASE,
+)
+_PLANNING_TARGET_EXTERNAL_STATUS_ASSERTION = re.compile(
+    r"\b(?:facility|laboratory|manufacturer|partner|plant|provider|supplier|vendor)\b"
+    r"[^.;]{0,100}\b(?:is|are|be|remains?)\s+"
+    r"(?:[a-z0-9()/-]+\s+){0,3}"
+    r"(?:accredited|approved|authori[sz]ed|certified|compliant|official)\b",
+    re.IGNORECASE,
+)
+_AUTHORITY_PROCESS_OBJECT = re.compile(
+    r"\b(?:approval|authori[sz]ation|certification|clearance|dossier|filing|"
+    r"notification|registration|permit|licen[cs]e|sign[- ]?off)\b|"
+    r"\b(?:authority|agency|board|legal|official|pta|regulatory|statutory)\b"
+    r"[^.;\n]{0,60}\b(?:application|fee|forms?|paperwork)\b|"
+    r"\b(?:application|fee|forms?|paperwork)\b[^.;\n]{0,60}"
+    r"\b(?:authority|agency|board|legal|official|pta|regulatory|statutory)\b",
+    re.IGNORECASE,
+)
+_INTERNAL_PLANNING_TARGET = re.compile(
+    r"^(?:analy[sz]e|assign|build|compare|create|define|describe|design|document|"
+    r"draft|evaluate|include|map|model|outline|plan|prototype|record|research|"
+    r"review|schedule|track)\b|"
+    r"\b(?:decision\s+tree|internal\s+(?:content\s+)?review|internal\s+work\s+plan|"
+    r"tracking\s+interface|workflow)\b",
+    re.IGNORECASE,
+)
 _UNRESOLVED_AUTHORITY_QUALIFIER = re.compile(
     r"\b(?:unverified|unresolved|pending|unknown|not\s+yet|must\s+be\s+"
     r"(?:verified|validated|confirmed)|do\s+not\s+claim|must\s+not\s+claim|gaps?|"
@@ -2339,6 +2409,12 @@ _UNRESOLVED_REQUIREMENT_ACTION = re.compile(
     r"submit|finalize|prepare)\b",
     re.IGNORECASE,
 )
+_EXPLICIT_VALIDATION_ACTION_PREFIX = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:\*\*|__)?(?:given|when|then)(?:\s*:)?(?:\*\*|__)?\s*:?\s+)?"
+    r"validation\s+action\s*:\s*",
+    re.IGNORECASE,
+)
 _SERVER_VALIDATION_ACTION = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?validation\s+action\s*:\s*"
     r"(?:verify\s+this\s+item\s+before\s+relying\s+on\s+it|"
@@ -2346,11 +2422,51 @@ _SERVER_VALIDATION_ACTION = re.compile(
     r"[.;]?\s*$",
     re.IGNORECASE,
 )
+_PUBLICATION_VERIFICATION_ACTION = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?validation\s+action\s*:\s*"
+    r"verify\s+whether\s+.+?\s+before\s+treating\s+"
+    r"(?:it|them|[a-z][a-z -]{0,60})\s+as\s+settled[.;]?\s*$",
+    re.IGNORECASE,
+)
+_VALIDATION_INFORMATION_ACTION = re.compile(
+    r"^(?:analy[sz]e|assess|check|confirm|consult|determine|inspect|review|"
+    r"validate|verify)\b",
+    re.IGNORECASE,
+)
+_SAFE_VERIFICATION_QUESTION_END = re.compile(
+    r"(?:\bappl(?:y|ies)(?:\s+(?:as|to)\s+[^,;]{1,100})?|"
+    r"\b(?:is|are|was|were|remain|remains)\s+"
+    r"(?:independently\s+)?(?:[a-z0-9()/-]+\s+){0,3}"
+    r"(?:applicable|required|satisfied|supported|verified|"
+    r"valid|accurate|complete|consistent|necessary|unresolved|gathered|accredited|"
+    r"approved|authori[sz]ed|certified|compliant|official)"
+    r"(?:\s+before\s+[^,;]{1,100})?|"
+    r"\b(?:can|could|may)\s+be\s+"
+    r"(?:consulted|gathered|obtained|validated|verified)"
+    r"(?:\s+regarding\s+[^,;]{1,100})?|"
+    r"\b(?:has|holds?)\s+[^,;]{0,100}\b"
+    r"(?:accreditation|approval|certification|clearance|licen[cs]e|permit)|"
+    r"\b(?:adhere(?:s)?\s+to|meets?|satisf(?:y|ies))\s+[^,;]{0,100}"
+    r"\b(?:criteria|guidelines?|requirements?|standards?|thresholds?))"
+    r"[.?!]?\s*$",
+    re.IGNORECASE,
+)
 _SERVER_SPECIFIC_VERIFICATION_ACTION = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
     r"(?:(?:given|when|then)(?:\s*:)?\s+|verification\s*:\s*)"
     r"confirm\s+whether\s+.+?\s+before\s+relying\s+on\s+the\s+outcome"
     r"[.;]?\s*$",
+    re.IGNORECASE,
+)
+_COORDINATED_EXECUTION_CLAUSE = re.compile(
+    r"(?:[,;]\s*)?\b(?:and|then)\s+[a-z][a-z-]*\s+"
+    r"(?:(?:the|a|an|this|that)\s+\S+|"
+    r"(?:application|dossier|filing|forms?|formula|notification|paperwork|product))\b",
+    re.IGNORECASE,
+)
+_VERIFICATION_QUESTION_PREDICATE = re.compile(
+    r"\b(?:appl(?:y|ies)|complies?|is|are|meets?|requires?|satisf(?:y|ies)|"
+    r"supports?|validates?|verifies?)\b",
     re.IGNORECASE,
 )
 _SERVER_UNVERIFIED_VALIDATION_TARGET = re.compile(
@@ -2373,10 +2489,87 @@ _ACTION_ASSERTED_TAIL = re.compile(
 def _is_bounded_unresolved_requirement_action(fragment: str) -> bool:
     """Accept an imperative only when it has no independent factual tail."""
 
+    cleaned = re.sub(r"[*_`]", "", fragment).strip()
+    validation_prefix = _EXPLICIT_VALIDATION_ACTION_PREFIX.match(cleaned)
+    if re.search(
+        r"\bverify\s+this\s+item\s+before\s+relying\s+on\s+it\b",
+        cleaned,
+        re.IGNORECASE,
+    ):
+        return _SERVER_VALIDATION_ACTION.fullmatch(cleaned) is not None
+    if (
+        _SERVER_VALIDATION_ACTION.fullmatch(cleaned) is not None
+        or _PUBLICATION_VERIFICATION_ACTION.fullmatch(cleaned) is not None
+    ):
+        # The exact form must contain one complete proposition ending in an
+        # applicability/satisfaction predicate. An appended imperative therefore
+        # fails by construction, regardless of which execution verb it uses.
+        parts = re.split(
+            r"\bbefore\s+treating\s+(?:it|them|[a-z][a-z -]{0,60})\s+"
+            r"as\s+settled\b",
+            cleaned,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )
+        question = re.split(
+            r"\bverify\s+whether\b", parts[0], maxsplit=1, flags=re.IGNORECASE
+        )[-1].strip()
+        return (
+            len(parts) == 2
+            and re.fullmatch(r"[.;]?\s*", parts[1]) is not None
+            and bool(question)
+            and ";" not in question
+            and re.search(r"\bbecause\b", cleaned, re.IGNORECASE) is None
+            and _SAFE_VERIFICATION_QUESTION_END.search(question) is not None
+        )
+    if validation_prefix is not None:
+        action = cleaned[validation_prefix.end() :].strip()
+        verify_whether = re.match(r"verify\s+whether\s+", action, re.IGNORECASE)
+        if verify_whether is not None:
+            proposition = action[verify_whether.end() :].strip()
+            return (
+                bool(proposition)
+                and ";" not in proposition
+                and re.search(r"\bbecause\b", proposition, re.IGNORECASE) is None
+                and _SAFE_VERIFICATION_QUESTION_END.search(proposition) is not None
+            )
+        action_match = _VALIDATION_INFORMATION_ACTION.match(action)
+        if action_match is None:
+            return False
+        # Non-question validation actions are limited to one information-gathering
+        # action. Coordinated execution must be expressed separately and validated.
+        action_tail = action[action_match.end() :]
+        if ";" in action_tail or _COORDINATED_EXECUTION_CLAUSE.search(action_tail):
+            return False
+        return _ACTION_ASSERTED_TAIL.search(action_tail) is None
     match = _UNRESOLVED_REQUIREMENT_ACTION.match(fragment)
     if match is None:
         return False
     return _ACTION_ASSERTED_TAIL.search(fragment[match.end() :]) is None
+
+
+def _is_bounded_specific_verification_action(fragment: str) -> bool:
+    """Accept one scoped question and reject any coordinated execution tail."""
+
+    cleaned = re.sub(r"[*_`]", "", fragment).strip()
+    if _SERVER_SPECIFIC_VERIFICATION_ACTION.fullmatch(cleaned) is None:
+        return False
+    parts = re.split(
+        r"\bbefore\s+relying\s+on\s+the\s+outcome\b",
+        cleaned,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )
+    if len(parts) != 2 or re.fullmatch(r"[.;]?\s*", parts[1]) is None:
+        return False
+    proposition = re.split(
+        r"\bconfirm\s+whether\b", parts[0], maxsplit=1, flags=re.IGNORECASE
+    )[-1].strip()
+    return (
+        bool(proposition)
+        and _VERIFICATION_QUESTION_PREDICATE.search(proposition) is not None
+        and _COORDINATED_EXECUTION_CLAUSE.search(proposition) is None
+    )
 
 
 _UNRESOLVED_LABELED_ACTION = re.compile(
@@ -2405,11 +2598,81 @@ _UNRESOLVED_POSITIVE_AUTHORITY_ASSERTION = re.compile(
     r"compliant|official|responsible)\b",
     re.IGNORECASE,
 )
+_AUTHORITY_PROCESS_EXECUTION = re.compile(
+    r"\b(?:obtain|file|notify|register|submit|prepare|assemble|execute|complete|"
+    r"secure|request)\b[^.;\n]{0,120}\b(?:approval|authori[sz]ation|certification|"
+    r"clearance|dossier|filing|notification|registration|permit|licen[cs]e)\b",
+    re.IGNORECASE,
+)
 _UNRESOLVED_REQUIREMENT_CONTEXT = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:"
     r"(?:given|if|when)\b|[^:\n]{1,80}\b(?:gate|precondition)\s*:\s*(?:given|if|when)\b|"
     r"[^:\n]{1,80}\btarget\s+(?:profile|criterion|criteria)\s*:|"
     r"(?:the\s+)?(?:desired\s+outcome|planning\s+objective|product\s+objective)\b)",
+    re.IGNORECASE,
+)
+_CONDITIONAL_THEN_CANDIDATE = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:\*\*|__)?then(?:\s*:)?(?:\*\*|__)?\s*:?\s+"
+    r".+\b(?:if|unless|until)\b.+$",
+    re.IGNORECASE,
+)
+_CONDITIONAL_AUTHORITY_ASSERTION = re.compile(
+    r"\b(?:launch|release|distribution|marketing|sale)\b[^.;]{0,100}\b"
+    r"(?:allowed|approved|authori[sz]ed|permitted)\b|"
+    r"\bproduct\b[^.;]{0,100}\b(?:market[- ]ready|fit\s+for\s+commercial\s+sale|"
+    r"suitable\s+for\s+launch)\b|"
+    r"\bcommercial\s+distribution\b[^.;]{0,80}\b(?:can|may|must|will)\s+begin\b|"
+    r"\bgo\s+to\s+market\b|"
+    r"\b(?:formula|product)\b[^.;]{0,100}\b(?:complies?|meets?|satisfies?)\b"
+    r"[^.;]{0,80}\b(?:legal|regulatory|safety|statutory|requirements?)\b|"
+    r"\blegal\s+requirements?\b[^.;]{0,80}\b(?:met|satisfied)\b|"
+    r"\b(?:record|mark)\s+(?:the\s+)?(?:criterion|result|outcome|status)\b"
+    r"[^.;]{0,240}\b(?:approval|authori[sz]ation|certification|compliance|evidence|"
+    r"legal|regulatory|safety|statutory)\b|"
+    r"\b(?:approval|certification|clearance|declaration|filing|notification|packaging|"
+    r"registration)\b[^.;]{0,100}\b(?:applies?|mandatory|required)\b",
+    re.IGNORECASE,
+)
+_CONDITIONAL_UI_BEHAVIOR = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:\*\*|__)?then(?:\s*:)?(?:\*\*|__)?\s*:?\s+"
+    r"(?:(?:display|show|hide|enable|disable|render|open|close)\b[^.;]{0,160}\b"
+    r"(?:error|field|form|list|message|option|pack|panel|questionnaire|screen|view)\b|"
+    r"mark\b[^.;]{0,120}\btask\s+complete\b)"
+    r"[^.;]*\b(?:if|unless|until)\b[^.;]+[.]?\s*$",
+    re.IGNORECASE,
+)
+_UNRESOLVED_CONDITIONAL_RECORDED_OUTCOME = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:\*\*|__)?then(?:\s*:)?(?:\*\*|__)?\s*:?\s+"
+    r"(?:record|mark)\s+(?:the\s+)?(?:criterion|result|outcome|status)\s+as\s+"
+    r"(?:pass|fail)\s+(?:only\s+)?if\s+[^;]{1,1200}\b"
+    r"(?:is|are)\s+independently\s+verified\s*;\s*otherwise\s+"
+    r"(?:record|mark)\s+(?:it|the\s+(?:criterion|result|outcome|status))\s+as\s+"
+    r"unresolved[.]?"
+    r"(?:\s+Commercial\s+launch\s+is\s+prohibited\s+until\s+the\s+unresolved\s+"
+    r"evidence\s+is\s+verified[.])?\s*$",
+    re.IGNORECASE,
+)
+_UNRESOLVED_CONDITIONAL_UNRESOLVED_OUTCOME = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:\*\*|__)?then(?:\s*:)?(?:\*\*|__)?\s*:?\s+"
+    r"(?:(?:record|mark)\s+(?:the\s+)?(?:criterion|result|outcome|status)\s+as\s+"
+    r"unresolved|(?:the\s+)?(?:criterion|result|outcome|status)\s+remains\s+"
+    r"unresolved)\s+until\s+independent\s+(?:evidence|verification)\s+"
+    r"(?:confirms?|validates?|verifies?)\s+[^,;]{1,160}[.]?\s*$",
+    re.IGNORECASE,
+)
+_UNRESOLVED_CONDITIONAL_WITHHOLDING_OUTCOME = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:\*\*|__)?then(?:\s*:)?(?:\*\*|__)?\s*:?\s+"
+    r"(?:keep\s+)?(?:commercial\s+)?(?:dispatch|launch|release|distribution|"
+    r"marketing|sale|production)\b(?:\s+(?:is|remains|must\s+be))?\s+"
+    r"(?:prohibited|blocked|withheld|deferred)\s+until\s+"
+    r"(?:independent\s+(?:evidence|verification)|laboratory\s+evidence)\s+"
+    r"(?:confirms?|validates?|verifies?)\s+[^,;]{1,180}"
+    r"(?:\bis\s+independently\s+verified)?[.]?\s*$",
     re.IGNORECASE,
 )
 _EXPLICIT_UNRESOLVED_LABEL = re.compile(
@@ -2846,6 +3109,10 @@ def _deterministic_evidence_integrity_defects(
     immutable_gap_bullets = {
         _immutable_gap_bullet(label) for label in immutable_gap_labels
     }
+    normalized_exact_gap_labels = {
+        _normalized_semantic_text(label)
+        for label in [*immutable_gap_labels, *unresolved_evidence_requirements]
+    }
     pending_table_headers: list[str] | None = None
     active_table_headers: list[str] | None = None
 
@@ -2858,7 +3125,31 @@ def _deterministic_evidence_integrity_defects(
             is not None
         )
 
-    for line in base.splitlines():
+    def exact_explicit_gap_fragment(value: str) -> bool:
+        cleaned = re.sub(r"^\s*(?:(?:[-+*]|\d+[.)])\s+|[•·]\s*)", "", value).strip()
+        # Normalize emphasis only around the label; the immutable payload remains
+        # byte-for-byte represented after semantic normalization below.
+        cleaned = re.sub(
+            r"^(\*\*?|__?)((?:evidence\s+)?(?:gap|assumption)):\1",
+            r"\2:",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        cleaned = re.sub(
+            r"^(\*\*?|__?)((?:evidence\s+)?(?:gap|assumption))\1\s*:",
+            r"\2:",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        match = _EXPLICIT_UNRESOLVED_LABEL.match(cleaned)
+        return (
+            match is not None
+            and _normalized_semantic_text(cleaned[match.end() :])
+            in normalized_exact_gap_labels
+        )
+
+    base_lines = base.splitlines()
+    for line_index, line in enumerate(base_lines):
         stripped = line.strip()
         if stripped.startswith("```"):
             continue
@@ -2867,7 +3158,10 @@ def _deterministic_evidence_integrity_defects(
             active_table_headers = None
             continue
         table_cells = (
-            [cell.strip() for cell in stripped.strip("|").split("|")]
+            [
+                cell.replace(r"\|", "|").strip()
+                for cell in re.split(r"(?<!\\)\|", stripped.strip("|"))
+            ]
             if "|" in stripped
             else None
         )
@@ -2903,16 +3197,50 @@ def _deterministic_evidence_integrity_defects(
             # copies remain subject to the normal evidence-integrity checks below.
             continue
         if table_cells is not None:
-            fragments = table_cells
-            fragment_contexts = active_table_headers or [""] * len(fragments)
             if active_table_headers is None:
-                pending_table_headers = [
-                    re.sub(r"[*_`]", "", cell).strip() for cell in fragments
-                ]
+                next_stripped = (
+                    base_lines[line_index + 1].strip()
+                    if line_index + 1 < len(base_lines)
+                    else ""
+                )
+                next_cells = (
+                    [
+                        cell.strip()
+                        for cell in re.split(r"(?<!\\)\|", next_stripped.strip("|"))
+                    ]
+                    if "|" in next_stripped
+                    else []
+                )
+                if next_cells and all(
+                    re.fullmatch(r":?-{3,}:?", cell) is not None for cell in next_cells
+                ):
+                    pending_table_headers = [
+                        re.sub(r"[*_`]", "", cell).strip() for cell in table_cells
+                    ]
+                    # A Markdown header labels columns; it is not an evidence
+                    # assertion. The following separator activates these labels.
+                    continue
+            fragments = []
+            fragment_contexts = []
+            table_contexts = active_table_headers or [""] * len(table_cells)
+            for cell_index, cell in enumerate(table_cells):
+                cell_context = (
+                    table_contexts[cell_index]
+                    if cell_index < len(table_contexts)
+                    else ""
+                )
+                for cell_item in re.split(r"<br\s*/?>", cell, flags=re.IGNORECASE):
+                    fragments.append(re.sub(r"^\s*[•·]\s*", "", cell_item).strip())
+                    fragment_contexts.append(cell_context)
         else:
             if server_scoped_unverified_target(stripped):
                 continue
-            fragments = _evidence_clause_fragments(stripped)
+            if _task_fragment_parts(stripped)[2] == "then":
+                # Preserve the controlled `; otherwise ...` outcome as one unit.
+                # Other roles keep the normal clause splitting used by projection.
+                fragments = _INLINE_GWT_ROLE_BREAK.split(stripped)
+            else:
+                fragments = _evidence_clause_fragments(stripped)
             fragment_contexts = [""] * len(fragments)
         table_gap_context = (
             "|" in stripped
@@ -2927,7 +3255,16 @@ def _deterministic_evidence_integrity_defects(
                 # punctuation inside that payload cannot turn a provisional target
                 # into an asserted factual tail.
                 continue
-            if _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment):
+            if exact_explicit_gap_fragment(fragment):
+                expanded_fragments.append((fragment, fragment_context))
+            elif _UNRESOLVED_CONDITIONAL_RECORDED_OUTCOME.fullmatch(
+                re.sub(r"[*_`]", "", fragment)
+            ):
+                # Keep the complete controlled `pass only if independently
+                # verified; otherwise unresolved` outcome intact. Its punctuation
+                # and numeric targets are conditional criteria, not asserted facts.
+                expanded_fragments.append((fragment, fragment_context))
+            elif _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment):
                 expanded_fragments.extend(
                     (item, fragment_context)
                     for item in _split_unresolved_assertions(fragment)
@@ -2941,13 +3278,89 @@ def _deterministic_evidence_integrity_defects(
                 match.group(1) for match in _RAW_EVIDENCE_MARKER.finditer(fragment)
             }
             without_markers = _RAW_EVIDENCE_MARKER.sub("", fragment)
+            cleaned_without_markers = re.sub(r"[*_`]", "", without_markers)
             precise_values = _precision_values(without_markers)
-            sensitive = (
-                _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
-                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+            raw_conditional_then_candidate = (
+                _CONDITIONAL_THEN_CANDIDATE.fullmatch(cleaned_without_markers)
+                is not None
             )
             unresolved_alignment = _materially_matches_unresolved_requirement(
                 without_markers, unresolved_evidence_requirements
+            )
+            gwt_role = _task_fragment_parts(cleaned_without_markers)[2]
+            gwt_authority_execution = (
+                gwt_role == "when"
+                and _AUTHORITY_PROCESS_OBJECT.search(without_markers) is not None
+                and (
+                    _PLANNING_TARGET_OBLIGATION_ASSERTION.search(without_markers)
+                    is not None
+                    or _COORDINATED_EXECUTION_CLAUSE.search(without_markers) is not None
+                )
+            )
+            conditional_ui_behavior = (
+                _CONDITIONAL_UI_BEHAVIOR.fullmatch(cleaned_without_markers) is not None
+            )
+            evidence_sensitive = not conditional_ui_behavior and (
+                _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
+                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+                or gwt_authority_execution
+                or (
+                    raw_conditional_then_candidate
+                    and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                    is not None
+                )
+            )
+            conditional_then_candidate = (
+                raw_conditional_then_candidate
+                and (evidence_sensitive or unresolved_alignment)
+                and not conditional_ui_behavior
+            )
+            planning_prefix = _EXPLICIT_PLANNING_TARGET_PREFIX.search(
+                cleaned_without_markers
+            )
+            planning_payload = (
+                re.split(
+                    r"proposed\s+target\s*:\s*",
+                    cleaned_without_markers,
+                    maxsplit=1,
+                    flags=re.IGNORECASE,
+                )[-1].strip()
+                if planning_prefix is not None
+                else ""
+            )
+            planning_process_object = (
+                _AUTHORITY_PROCESS_OBJECT.search(planning_payload) is not None
+            )
+            planning_target_authority_assertion = planning_prefix is not None and (
+                _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION.search(planning_payload)
+                is not None
+                or _PLANNING_TARGET_EXTERNAL_STATUS_ASSERTION.search(planning_payload)
+                is not None
+                or (
+                    planning_process_object
+                    and (
+                        _PLANNING_TARGET_OBLIGATION_ASSERTION.search(planning_payload)
+                        is not None
+                        or _INTERNAL_PLANNING_TARGET.search(planning_payload) is None
+                    )
+                )
+                or _AUTHORITY_PROCESS_EXECUTION.search(without_markers) is not None
+            )
+            validation_action_authority_execution = (
+                _EXPLICIT_VALIDATION_ACTION_PREFIX.search(
+                    re.sub(r"[*_`]", "", without_markers)
+                )
+                is not None
+                and (
+                    _AUTHORITY_PROCESS_EXECUTION.search(without_markers) is not None
+                    or not _is_bounded_unresolved_requirement_action(without_markers)
+                )
+            )
+            sensitive = (
+                evidence_sensitive
+                or planning_target_authority_assertion
+                or validation_action_authority_execution
+                or conditional_then_candidate
             )
             normalized_unresolved_label = _normalized_semantic_text(
                 re.sub(r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?", "", without_markers)
@@ -2958,9 +3371,13 @@ def _deterministic_evidence_integrity_defects(
                 normalized_unresolved_label == _normalized_semantic_text(requirement)
                 for requirement in unresolved_evidence_requirements
             )
+            exact_explicit_gap_label = exact_explicit_gap_fragment(without_markers)
             hard_authority = (
                 _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers) is not None
                 or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+                or planning_target_authority_assertion
+                or validation_action_authority_execution
+                or conditional_then_candidate
             )
             if not precise_values and not sensitive and not unresolved_alignment:
                 continue
@@ -2980,14 +3397,37 @@ def _deterministic_evidence_integrity_defects(
                 and _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is None
             ):
                 continue
-            if unresolved_alignment and not markers and exact_gap_section_label:
+            if not markers and (exact_gap_section_label or exact_explicit_gap_label):
                 continue
             cleaned_action = re.sub(r"[*_`]", "", without_markers)
             if (
                 not markers
+                and artifact_type in _PLANNING_ARTIFACT_TYPES
+                and _EXPLICIT_PLANNING_TARGET_PREFIX.search(cleaned_action)
+                and _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION.search(cleaned_action)
+                is None
+                and not planning_target_authority_assertion
+                and _AUTHORITY_PROCESS_EXECUTION.search(cleaned_action) is None
+            ):
+                continue
+            if not markers and (
+                _UNRESOLVED_CONDITIONAL_RECORDED_OUTCOME.fullmatch(cleaned_action)
+                or _UNRESOLVED_CONDITIONAL_UNRESOLVED_OUTCOME.fullmatch(cleaned_action)
+                or _UNRESOLVED_CONDITIONAL_WITHHOLDING_OUTCOME.fullmatch(cleaned_action)
+            ):
+                continue
+            if (
+                not markers
+                and _EXPLICIT_VALIDATION_ACTION_PREFIX.search(cleaned_action)
+                and _is_bounded_unresolved_requirement_action(cleaned_action)
+                and _AUTHORITY_PROCESS_EXECUTION.search(cleaned_action) is None
+            ):
+                continue
+            if (
+                not markers
                 and (
                     _SERVER_VALIDATION_ACTION.fullmatch(cleaned_action)
-                    or _SERVER_SPECIFIC_VERIFICATION_ACTION.fullmatch(cleaned_action)
+                    or _is_bounded_specific_verification_action(cleaned_action)
                 )
                 and _is_bounded_unresolved_requirement_action(cleaned_action)
             ):
@@ -3479,18 +3919,23 @@ def _prune_final_unsupported_evidence_lines(
     artifact_type: str | None,
     immutable_gap_labels: Sequence[str],
     unresolved_evidence_requirements: Sequence[str] = (),
+    accepted_requirement_ids: Sequence[str] = (),
 ) -> str:
     """Conservatively delete final-output lines named by the evidence validator.
 
     A model repair may correctly remove a mismatched marker but accidentally retain the
     unsupported factual line. Deleting that whole line is safer than trying to rewrite or
     recite it, and the normal synthesis validator still enforces headings, substance,
-    citations, immutable gaps, and practicality after this bounded cleanup. The evidence
-    validator intentionally returns at most forty defects, so repeat only while a pass
-    removes text and never more times than the original line count.
+    citations, immutable gaps, and practicality after this bounded cleanup. Remove one
+    exact line at a time so an unsafe acceptance-role or traceability row cannot prevent
+    unrelated residual assertions from being pruned. Repeat only while a safe pass removes
+    text and never more times than the original line count.
     """
 
     current = markdown
+    protected_requirement_ids = {
+        requirement_id.casefold() for requirement_id in accepted_requirement_ids
+    }
     for _pass in range(max(1, len(markdown.splitlines()))):
         defects = _deterministic_evidence_integrity_defects(
             current,
@@ -3498,6 +3943,9 @@ def _prune_final_unsupported_evidence_lines(
             artifact_type=artifact_type,
             immutable_gap_labels=immutable_gap_labels,
             unresolved_evidence_requirements=unresolved_evidence_requirements,
+            defect_limit=None,
+            excerpt_limit=None,
+            preserve_duplicate_occurrences=True,
         )
         excerpts = [
             excerpt
@@ -3507,31 +3955,167 @@ def _prune_final_unsupported_evidence_lines(
         ]
         if not excerpts:
             return current
-
-        def should_remove(line: str) -> bool:
-            if re.match(r"^#{1,6}\s+", line.strip()):
-                return False
-            normalized = re.sub(r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)).strip()
-            return any(excerpt in normalized for excerpt in excerpts)
-
-        repaired = _markdown_without_matching_lines(
-            current,
-            should_remove,
-            protected_indexes=_canonical_immutable_gap_bullet_indexes(
-                current, immutable_gap_labels
-            ),
+        lines = current.splitlines()
+        protected = _canonical_immutable_gap_bullet_indexes(
+            current, immutable_gap_labels
         )
-        if repaired == current:
+        fenced = _fenced_markdown_line_indexes(current)
+        before_structural = _deterministic_structural_integrity_defects(current)
+        before_gwt = _incomplete_given_when_then_acceptance_blocks(current)
+        changed = False
+        for index, line in enumerate(lines):
+            line_requirement_ids = {
+                match.group(0).casefold()
+                for match in _DISPLAY_REQUIREMENT_ID.finditer(line)
+            }
+            if (
+                index in protected
+                or index in fenced
+                or re.match(r"^#{1,6}\s+", line.strip())
+                or line_requirement_ids.intersection(protected_requirement_ids)
+            ):
+                continue
+            normalized = re.sub(r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)).strip()
+            if not any(excerpt in normalized for excerpt in excerpts):
+                continue
+            repaired = "\n".join([*lines[:index], *lines[index + 1 :]])
+            if set(_deterministic_structural_integrity_defects(repaired)).difference(
+                before_structural
+            ) or set(
+                _incomplete_given_when_then_acceptance_blocks(repaired)
+            ).difference(before_gwt):
+                continue
+            repaired_defects = _deterministic_evidence_integrity_defects(
+                repaired,
+                allowed_claim_texts,
+                artifact_type=artifact_type,
+                immutable_gap_labels=immutable_gap_labels,
+                unresolved_evidence_requirements=unresolved_evidence_requirements,
+                defect_limit=None,
+                excerpt_limit=None,
+                preserve_duplicate_occurrences=True,
+            )
+            if len(repaired_defects) >= len(defects) or set(
+                repaired_defects
+            ).difference(defects):
+                continue
+            current = repaired
+            changed = True
+            break
+        if not changed:
             return current
-        if set(_deterministic_structural_integrity_defects(repaired)).difference(
-            _deterministic_structural_integrity_defects(current)
-        ):
-            # Row-level deletion cannot safely repair traceability or an ordered
-            # structure. Keep the candidate intact so the existing model validator
-            # requests a coherent replacement instead of publishing a damaged PRD.
-            return current
-        current = repaired
     return current
+
+
+def _repair_final_gwt_evidence_assertions(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Keep acceptance topology while turning a residual unsafe role into a check.
+
+    Final line pruning deliberately skips a Given/When/Then role whose removal would make
+    an acceptance block incomplete. For non-authorizing artifacts, reclassify only an
+    unsafe ``When`` action as a bounded verification step. Never rewrite ``Given`` input
+    semantics or a ``Then`` expected outcome. The evidence, structure and quality validators
+    must all improve or remain unchanged; repeated server phrasing still trips the existing
+    deliverable-placeholder quality gate.
+    """
+
+    if context.artifact_type == "launch_authorization":
+        return draft
+    current = draft.markdown
+    for _pass in range(max(1, len(current.splitlines()))):
+        defects = _deterministic_evidence_integrity_defects(
+            current,
+            context.allowed_claim_texts,
+            artifact_type=context.artifact_type,
+            immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+            defect_limit=None,
+            excerpt_limit=None,
+            preserve_duplicate_occurrences=True,
+        )
+        excerpts = [
+            excerpt
+            for defect in defects
+            for _, separator, excerpt in [defect.partition(": ")]
+            if separator and excerpt
+        ]
+        if not excerpts:
+            break
+        lines = current.splitlines()
+        fenced = _fenced_markdown_line_indexes(current)
+        before_structural = _deterministic_structural_integrity_defects(current)
+        before_gwt = _incomplete_given_when_then_acceptance_blocks(current)
+        before_substantive, before_practical = _deterministic_quality_defects(
+            current,
+            practical_output_required=context.practical_output_required,
+            artifact_type=context.artifact_type,
+        )
+        changed = False
+        for index, line in enumerate(lines):
+            if index in fenced or "|" in line:
+                continue
+            list_prefix, role_prefix, role, body = _task_fragment_parts(line)
+            if role != "when" or not body.strip():
+                continue
+            normalized = re.sub(r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)).strip()
+            if not any(excerpt in normalized for excerpt in excerpts):
+                continue
+            body = _RAW_EVIDENCE_MARKER.sub("", body).strip().rstrip(" .;,: ")
+            if not body:
+                continue
+            if body.casefold().startswith("confirm whether "):
+                continue
+            replacement = (
+                f"{list_prefix}{role_prefix}confirm whether {body} before relying on "
+                "the outcome."
+            )
+            if not _is_bounded_specific_verification_action(replacement):
+                continue
+            trial_lines = [*lines]
+            trial_lines[index] = replacement
+            trial = "\n".join(trial_lines)
+            trial_defects = _deterministic_evidence_integrity_defects(
+                trial,
+                context.allowed_claim_texts,
+                artifact_type=context.artifact_type,
+                immutable_gap_labels=context.required_gap_labels,
+                unresolved_evidence_requirements=(
+                    context.unresolved_evidence_requirements
+                ),
+                defect_limit=None,
+                excerpt_limit=None,
+                preserve_duplicate_occurrences=True,
+            )
+            if len(trial_defects) >= len(defects) or set(trial_defects).difference(
+                defects
+            ):
+                continue
+            if set(_deterministic_structural_integrity_defects(trial)).difference(
+                before_structural
+            ) or set(_incomplete_given_when_then_acceptance_blocks(trial)).difference(
+                before_gwt
+            ):
+                continue
+            trial_substantive, trial_practical = _deterministic_quality_defects(
+                trial,
+                practical_output_required=context.practical_output_required,
+                artifact_type=context.artifact_type,
+            )
+            if set(trial_substantive).difference(before_substantive) or set(
+                trial_practical
+            ).difference(before_practical):
+                continue
+            current = trial
+            changed = True
+            break
+        if not changed:
+            break
+    return (
+        draft
+        if current == draft.markdown
+        else draft.model_copy(update={"markdown": current})
+    )
 
 
 def _remove_newly_orphaned_optional_sections(
@@ -4737,10 +5321,14 @@ def _contains_server_deliverable_placeholder(markdown: str) -> bool:
                 if not cleaned:
                     continue
                 if _SERVER_VALIDATION_ACTION.fullmatch(re.sub(r"[*_]", "", cleaned)):
-                    return True
+                    if re.search(r"\bverify\s+this\s+item\b", cleaned, re.IGNORECASE):
+                        return True
+                    # A content-specific whole-proposition verification action is
+                    # publication-ready planning content, not generic server filler.
+                    continue
                 if _SERVER_SPECIFIC_VERIFICATION_ACTION.fullmatch(
                     re.sub(r"[*_]", "", cleaned)
-                ):
+                ) and _is_bounded_specific_verification_action(cleaned):
                     specific_verification_actions += 1
                     # A single bounded verification step can be useful. Repeated exact
                     # server phrasing is repair scaffolding, not final deliverable prose.
@@ -5188,6 +5776,27 @@ class PydanticAISynthesisWriter:
         async def validate_final_output(
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
+            output = _with_immutable_gap_labels(ctx.deps, output)
+            before_pruning = output.markdown
+            after_pruning = _prune_final_unsupported_evidence_lines(
+                before_pruning,
+                ctx.deps.allowed_claim_texts,
+                artifact_type=ctx.deps.artifact_type,
+                immutable_gap_labels=ctx.deps.required_gap_labels,
+                unresolved_evidence_requirements=(
+                    ctx.deps.unresolved_evidence_requirements
+                ),
+                accepted_requirement_ids=[
+                    requirement.id for requirement in ctx.deps.accepted_requirements
+                ],
+            )
+            after_pruning = _remove_newly_orphaned_optional_sections(
+                before_pruning,
+                after_pruning,
+                required_sections=ctx.deps.required_sections,
+            )
+            output = output.model_copy(update={"markdown": after_pruning})
+            output = _repair_final_gwt_evidence_assertions(ctx.deps, output)
             output = _with_immutable_gap_labels(ctx.deps, output)
             output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
