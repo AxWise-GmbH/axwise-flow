@@ -1726,6 +1726,16 @@ def _evidence_markers(markdown: str) -> list[re.Match[str]]:
     return markers
 
 
+_EVIDENCE_STATUS_HEADING = re.compile(
+    r"\b(?:evidence\s+(?:gaps?|decision)|assumptions?|block(?:ed|ing)?|no-go)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_evidence_status_heading(heading: str) -> bool:
+    return _EVIDENCE_STATUS_HEADING.search(heading) is not None
+
+
 def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> None:
     folded = draft.markdown.lower()
     heading_facts = _markdown_headings(draft.markdown)
@@ -1762,22 +1772,12 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
     allowed = set(context.allowed_claim_ids)
     if citations - allowed:
         raise ValueError("Markdown cites evidence outside the immutable claim ledger")
-    if allowed and not citations:
+    if allowed and not citations and not (
+        context.purpose == "execute_task" and not context.required_sections
+    ):
         raise ValueError("evidence-backed Markdown must cite immutable claim IDs")
     if context.evidence_readiness in {"ready_with_gaps", "blocked"}:
-        if not any(
-            any(
-                label in heading
-                for label in (
-                    "evidence gap",
-                    "evidence decision",
-                    "assumption",
-                    "block",
-                    "no-go",
-                )
-            )
-            for heading in headings
-        ):
+        if not any(_is_evidence_status_heading(heading) for heading in headings):
             raise ValueError(
                 "non-ready Markdown requires an evidence-gap, assumption or blocking section"
             )
@@ -2013,6 +2013,14 @@ def _validate_task_draft(context: SynthesisContext, draft: TaskDraft) -> None:
         raise ValueError(
             "task artifact contradicts unresolved evidence: "
             + "; ".join(unresolved_assertions)
+        )
+    hard_specialist_defects = [
+        defect for defect in evidence_integrity if _is_hard_task_evidence_defect(defect)
+    ]
+    if not context.required_sections and hard_specialist_defects:
+        raise ValueError(
+            "specialist task contains residual unsupported evidence assertions: "
+            + "; ".join(hard_specialist_defects)
         )
 
 
@@ -2255,6 +2263,24 @@ _NONPROVISIONAL_AUTHORITY_ASSERTION = re.compile(
     r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
     r"(?:mandates?|requires?|prohibits?|obliges?|must)\b|"
     r"ensur(?:e|es|ed|ing)\s+[^.;]{0,80}\b(?:health|safety)\b)\b",
+    re.IGNORECASE,
+)
+_SAFE_NONAUTHORITY_PLANNING_DIRECTIVE = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:"
+    r"treat\s+(?:the\s+)?(?:[\w-]+\s+){0,3}(?:personas?|segments?|users?|"
+    r"customers?|owners?|audiences?|roles?|requirements?|assumptions?|ideas?|"
+    r"concepts?)\s+as\b|"
+    r"prevent\s+(?:user|customer|operator)\s+(?:confusion|errors?|mistakes?)\b|"
+    r"reduce\s+(?:the\s+)?risk\s+of\s+(?:user|customer|operator)\s+"
+    r"(?:confusion|errors?|mistakes?)\b|"
+    r"ensure\s+(?:the\s+)?(?:health|safety)\s+information\s+(?:is|remains)\s+"
+    r"(?:clear|visible|accessible|understandable)\b)",
+    re.IGNORECASE,
+)
+_SAFE_BOUNDED_PLANNING_SAMPLE_TAIL = re.compile(
+    r"^(?:the\s+)?(?:primary|secondary|candidate|proposed|initial)\s+"
+    r"(?:persona|segment|audience|role)\s+for\s+\d[\d.,]*\s+"
+    r"(?:interviews?|participants?|users?|sessions?|tests?)[.]?$",
     re.IGNORECASE,
 )
 _DEFINITE_NEGATED_LEGAL_ASSERTION = re.compile(
@@ -3145,6 +3171,29 @@ def _split_unresolved_assertions(fragment: str) -> list[str]:
     return result
 
 
+def _is_safe_nonauthority_planning_directive(value: str) -> bool:
+    """Accept a product/UX directive only when its complete tail stays non-authorizing."""
+
+    cleaned = re.sub(r"[*_`]", "", value).strip()
+    match = _SAFE_NONAUTHORITY_PLANNING_DIRECTIVE.match(cleaned)
+    if match is None:
+        return False
+    tail = cleaned[match.end() :].strip()
+    if not tail:
+        return True
+    precise_tail_is_bounded_sample = (
+        _SAFE_BOUNDED_PLANNING_SAMPLE_TAIL.fullmatch(tail) is not None
+    )
+    return not (
+        _EVIDENCE_SENSITIVE_ASSERTION.search(tail)
+        or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(tail)
+        or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(tail)
+        or _INDEPENDENT_SENSITIVE_FACT.search(tail)
+        or _AUTHORITY_PROCESS_EXECUTION.search(tail)
+        or (_precision_values(tail) and not precise_tail_is_bounded_sample)
+    )
+
+
 def _deterministic_evidence_integrity_defects(
     markdown: str,
     allowed_claim_texts: dict[str, str],
@@ -3403,7 +3452,13 @@ def _deterministic_evidence_integrity_defects(
             conditional_ui_behavior = (
                 _CONDITIONAL_UI_BEHAVIOR.fullmatch(cleaned_without_markers) is not None
             )
-            evidence_sensitive = not conditional_ui_behavior and (
+            safe_non_authority_planning_directive = (
+                _is_safe_nonauthority_planning_directive(cleaned_without_markers)
+            )
+            evidence_sensitive = (
+                not conditional_ui_behavior
+                and not safe_non_authority_planning_directive
+                and (
                 _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
                 or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
                 or gwt_authority_execution
@@ -3411,6 +3466,7 @@ def _deterministic_evidence_integrity_defects(
                     raw_conditional_then_candidate
                     and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
                     is not None
+                )
                 )
             )
             conditional_then_candidate = (
@@ -3476,11 +3532,16 @@ def _deterministic_evidence_integrity_defects(
             )
             exact_explicit_gap_label = exact_explicit_gap_fragment(without_markers)
             hard_authority = (
-                _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers) is not None
-                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
-                or planning_target_authority_assertion
-                or validation_action_authority_execution
-                or conditional_then_candidate
+                not safe_non_authority_planning_directive
+                and (
+                    _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                    is not None
+                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
+                    is not None
+                    or planning_target_authority_assertion
+                    or validation_action_authority_execution
+                    or conditional_then_candidate
+                )
             )
             if not precise_values and not sensitive and not unresolved_alignment:
                 continue
@@ -3699,6 +3760,24 @@ def _handled_task_evidence_defect(
     )
 
 
+def _is_hard_task_evidence_defect(defect: str) -> bool:
+    """Select only unresolved or authority assertions for task-stage projection."""
+
+    if _handled_task_evidence_defect(defect, include_generic=False) is not None:
+        return True
+    _prefix, separator, excerpt = defect.partition(": ")
+    if not separator or not excerpt:
+        return False
+    cleaned = re.sub(r"[*_`]", "", excerpt).strip()
+    if _is_safe_nonauthority_planning_directive(cleaned):
+        return False
+    return (
+        _NONPROVISIONAL_AUTHORITY_ASSERTION.search(cleaned) is not None
+        or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned) is not None
+        or _AUTHORITY_PROCESS_EXECUTION.search(cleaned) is not None
+    )
+
+
 _TASK_FRAGMENT_PREFIX = re.compile(
     r"^(?P<list>\s*(?:(?:[-+*]|\d+[.)])\s+)?)"
     r"(?:(?P<role_prefix>(?:\*\*|__)?(?P<role>Given|When|Then)"
@@ -3827,7 +3906,7 @@ def _prepare_task_unresolved_actions(
             unresolved_evidence_requirements=context.unresolved_evidence_requirements,
             defect_limit=None,
             excerpt_limit=None,
-            preserve_duplicate_occurrences=include_generic,
+            preserve_duplicate_occurrences=True,
         )
         handled = [
             value
@@ -3953,7 +4032,7 @@ def _prepare_task_unresolved_actions(
                         ),
                         defect_limit=None,
                         excerpt_limit=None,
-                        preserve_duplicate_occurrences=include_generic,
+                        preserve_duplicate_occurrences=True,
                     )
                     trial_handled = [
                         value
@@ -5510,7 +5589,10 @@ def _as_publication_unknown_item(fragment: str) -> str:
 
 
 def _project_remaining_evidence_defects(
-    context: SynthesisContext, draft: SynthesisDraft
+    context: SynthesisContext,
+    draft: SynthesisDraft,
+    *,
+    defect_selector: Callable[[str], bool] | None = None,
 ) -> SynthesisDraft:
     """Reclassify only exact residual defect units for a strict final fallback."""
 
@@ -5524,6 +5606,8 @@ def _project_remaining_evidence_defects(
         defects = _projection_evidence_defects(
             context, current, preserve_duplicate_occurrences=True
         )
+        if defect_selector is not None:
+            defects = [defect for defect in defects if defect_selector(defect)]
         excerpts = [
             excerpt
             for defect in defects
@@ -5611,6 +5695,12 @@ def _project_remaining_evidence_defects(
                             trial,
                             preserve_duplicate_occurrences=True,
                         )
+                        if defect_selector is not None:
+                            trial_defects = [
+                                defect
+                                for defect in trial_defects
+                                if defect_selector(defect)
+                            ]
                         trial_substantive, trial_practical = (
                             _deterministic_quality_defects(
                                 trial,
@@ -5663,6 +5753,133 @@ def _project_strict_final_fallback(
     fallback = _with_immutable_gap_labels(context, fallback)
     fallback = _with_accepted_requirement_traceability(context, fallback)
     return SynthesisDraft.model_validate(fallback)
+
+
+def _with_normalized_task_requirement_coverage(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Bind task coverage to the accepted plan without retrying model metadata."""
+
+    expected = context.acceptance_requirement_ids
+    by_requirement_id: dict[str, list[RequirementCoverageV1]] = {}
+    for item in draft.requirement_coverage:
+        if item.requirement_id in expected:
+            by_requirement_id.setdefault(item.requirement_id, []).append(item)
+    normalized: list[RequirementCoverageV1] = []
+    for requirement_id in expected:
+        candidates = by_requirement_id.get(requirement_id, [])
+        gap = next((item for item in candidates if item.status == "gap"), None)
+        statuses = {item.status for item in candidates}
+        if gap is not None:
+            normalized.append(gap)
+        elif len(statuses) == 1:
+            normalized.append(candidates[0])
+        elif candidates:
+            normalized.append(
+                RequirementCoverageV1(
+                    requirement_id=requirement_id,
+                    status="gap",
+                    note=(
+                        "Conflicting duplicate coverage statuses were returned for this "
+                        "accepted-plan requirement; retain it as an open gap."
+                    ),
+                )
+            )
+        else:
+            normalized.append(
+                RequirementCoverageV1(
+                    requirement_id=requirement_id,
+                    status="gap",
+                    note=(
+                        "The specialist output did not explicitly cover this accepted-plan "
+                        "requirement; retain it as an open gap for downstream synthesis."
+                    ),
+                )
+            )
+    if normalized == draft.requirement_coverage:
+        return draft
+    return draft.model_copy(update={"requirement_coverage": normalized})
+
+
+def _with_task_evidence_status_section(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Make inherited non-ready status explicit when a specialist omitted the heading."""
+
+    if context.evidence_readiness != "ready_with_gaps":
+        return draft
+    headings = {
+        identity
+        for _, raw_name, _ in _markdown_headings(draft.markdown)
+        for identity in _markdown_heading_identities(
+            raw_name, artifact_type=context.artifact_type
+        )
+    }
+    if any(_is_evidence_status_heading(heading) for heading in headings):
+        return draft
+    return draft.model_copy(
+        update={
+            "markdown": "\n".join(
+                [
+                    draft.markdown.rstrip(),
+                    "",
+                    "## Evidence gaps and assumptions",
+                    "",
+                    "- This specialist packet inherits unresolved evidence gaps. It is "
+                    "planning input only and does not establish launch, legal, safety, "
+                    "certification, or market clearance.",
+                ]
+            )
+        }
+    )
+
+
+def _project_strict_task_fallback(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Reclassify residual unsupported task prose while preserving typed task facts."""
+
+    if (
+        context.purpose != "execute_task"
+        or context.required_sections
+        or context.artifact_type == "launch_authorization"
+        or context.evidence_readiness == "blocked"
+    ):
+        return draft
+    projected = _project_remaining_evidence_defects(
+        context,
+        SynthesisDraft(title=draft.title, markdown=draft.markdown),
+        defect_selector=_is_hard_task_evidence_defect,
+    )
+    if projected.markdown == draft.markdown:
+        return draft
+    return draft.model_copy(update={"markdown": projected.markdown})
+
+
+def _prepare_task_draft_for_validation(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Apply deterministic task safety/metadata corrections before the hard gate."""
+
+    prepared = _with_normalized_task_requirement_coverage(context, draft)
+    prepared = _with_immutable_gap_labels(context, prepared)
+    prepared = _with_task_evidence_status_section(context, prepared)
+    prepared = _without_forbidden_task_launch_claim_lines(context, prepared)
+    prepared = _prepare_task_unresolved_actions(
+        context,
+        prepared,
+        allow_composite_authority_targets=True,
+    )
+    prepared = _project_strict_task_fallback(context, prepared)
+    prepared = _with_accepted_requirement_traceability(context, prepared)
+    try:
+        _validate_task_draft(context, prepared)
+    except ValueError as error:
+        if not str(error).startswith("task artifact contradicts unresolved evidence"):
+            raise
+        prepared = _project_strict_task_fallback(context, prepared)
+        _validate_task_draft(context, prepared)
+    return prepared
 
 
 def _project_final_repair_base(
@@ -6151,16 +6368,8 @@ class PydanticAISynthesisWriter:
         async def validate_task_output(
             ctx: RunContext[SynthesisContext], output: TaskDraft
         ) -> TaskDraft:
-            output = _with_immutable_gap_labels(ctx.deps, output)
-            output = _without_forbidden_task_launch_claim_lines(ctx.deps, output)
-            output = _prepare_task_unresolved_actions(
-                ctx.deps,
-                output,
-                allow_composite_authority_targets=True,
-            )
-            output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
-                _validate_task_draft(ctx.deps, output)
+                output = _prepare_task_draft_for_validation(ctx.deps, output)
             except ValueError as error:
                 raise ModelRetry(str(error)) from error
             return output
@@ -6597,15 +6806,7 @@ class PydanticAISynthesisWriter:
             context,
             phase="TASK",
         )
-        output = _with_immutable_gap_labels(context, result.output)
-        output = _without_forbidden_task_launch_claim_lines(context, output)
-        output = _prepare_task_unresolved_actions(
-            context,
-            output,
-            allow_composite_authority_targets=True,
-        )
-        output = _with_accepted_requirement_traceability(context, output)
-        _validate_task_draft(context, output)
+        output = _prepare_task_draft_for_validation(context, result.output)
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(output, input_tokens, output_tokens)
 
@@ -8848,15 +9049,7 @@ class GeminiCognitiveExecutor:
                 selected_contents,
             )
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
-            draft = _with_immutable_gap_labels(context, draft)
-            draft = _without_forbidden_task_launch_claim_lines(context, draft)
-            draft = _prepare_task_unresolved_actions(
-                context,
-                draft,
-                allow_composite_authority_targets=True,
-            )
-            draft = _with_accepted_requirement_traceability(context, draft)
-            _validate_task_draft(context, draft)
+            draft = _prepare_task_draft_for_validation(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)
             receipt = {

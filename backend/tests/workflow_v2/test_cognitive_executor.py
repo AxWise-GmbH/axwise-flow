@@ -370,6 +370,372 @@ async def test_task_output_validator_bounds_composite_for_non_launch_tasks(
         await validator(LaunchContext(), draft)
 
 
+def test_task_preparation_normalizes_every_duplicate_unresolved_assertion() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[
+            "National Administration Board (NAB) notification procedures."
+        ],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    assertion = "NAB notification is mandatory."
+    draft = TaskDraft(
+        title="Duplicate authority assertions",
+        markdown=(
+            f"# User analysis\n\n{assertion}\n\n{assertion}\n\n"
+            "## Evidence gaps\n\nThe notification procedure remains unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The specialist packet addresses the accepted requirement.",
+            }
+        ],
+        conclusions=["Retain the useful user analysis."],
+    )
+
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+
+    assert prepared.markdown.count(assertion) == 2
+    assert (
+        prepared.markdown.count(
+            "Validation target (all following content is unverified until pre-adoption review):"
+        )
+        == 2
+    )
+    _validate_task_draft(context, prepared)
+
+
+def test_task_preparation_derives_coverage_and_evidence_status_from_contract() -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01", "req-plan-02"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Useful specialist packet",
+        markdown=(
+            "# Product building blocks\n\nUsers need a clear planning concept and a bounded "
+            "validation path."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-extra-01",
+                "status": "satisfied",
+                "note": "This unaccepted requirement must be discarded.",
+            },
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The first accepted requirement is covered.",
+            },
+            {
+                "requirement_id": "req-plan-01",
+                "status": "gap",
+                "note": "This duplicate must be discarded deterministically.",
+            },
+        ],
+        conclusions=["The packet contains useful planning input."],
+    )
+
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+
+    assert [item.requirement_id for item in prepared.requirement_coverage] == [
+        "req-plan-01",
+        "req-plan-02",
+    ]
+    assert [item.status for item in prepared.requirement_coverage] == [
+        "gap",
+        "gap",
+    ]
+    assert "## Evidence gaps and assumptions" in prepared.markdown
+    assert "does not establish launch, legal, safety" in prepared.markdown
+    _validate_task_draft(context, prepared)
+
+
+def test_task_projects_uncited_high_risk_assertion_with_unrelated_ledger() -> None:
+    allowed_claim_id = "d" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[allowed_claim_id],
+        allowed_claim_texts={
+            allowed_claim_id: "An unrelated immutable market observation."
+        },
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Legal specialist packet",
+        markdown=(
+            "# Legal planning\n\nEstonian law requires registration within 30 days."
+            "\n\n## Evidence gaps\n\nThe applicable registration rule is unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "gap",
+                "note": "The applicable registration rule remains unresolved.",
+            }
+        ],
+        conclusions=["Do not rely on an unverified legal deadline."],
+    )
+
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+
+    assert "Unknown pending evidence" in prepared.markdown
+    assert "[evidence:" not in prepared.markdown
+    _validate_task_draft(context, prepared)
+
+    full_contract_context = context.model_copy(
+        update={"required_sections": ["Evidence gaps"]}
+    )
+    with pytest.raises(ValueError, match="must cite immutable claim IDs"):
+        _validate_task_draft(full_contract_context, prepared)
+
+
+def test_task_rejects_unprojectable_residual_claim_despite_valid_citation() -> None:
+    allowed_claim_id = "e" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[allowed_claim_id],
+        allowed_claim_texts={allowed_claim_id: "An immutable market observation."},
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Unprojectable legal specialist packet",
+        markdown=(
+            "# Legal planning\n\nAn immutable market observation "
+            f"[evidence:{allowed_claim_id}].\n\n"
+            "```text\nEstonian law requires registration within 30 days.\n```\n\n"
+            "## Evidence gaps\n\nThe applicable registration rule is unresolved."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "gap",
+                "note": "The applicable registration rule remains unresolved.",
+            }
+        ],
+        conclusions=["Do not rely on an unverified legal deadline."],
+    )
+
+    with pytest.raises(
+        ValueError, match="residual unsupported evidence assertions"
+    ):
+        cognitive_executor_module._prepare_task_draft_for_validation(context, draft)
+
+
+@pytest.mark.parametrize(
+    "directive",
+    [
+        "Treat the personas as hypotheses and validate them before product decisions.",
+        "Treat first-time cat owners as the primary persona.",
+        "Treat first-time cat owners as the primary persona for 10 interviews.",
+        "Prevent user confusion during onboarding.",
+        "Reduce the risk of user error in the setup flow.",
+        "Ensure safety information is clear in the interface.",
+    ],
+)
+def test_task_preserves_nonauthority_product_planning_directive(
+    directive: str,
+) -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=["f" * 64],
+        allowed_claim_texts={"f" * 64: "An unrelated immutable market observation."},
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Product and user planning",
+        markdown=(
+            f"# Product and user planning\n\n{directive}\n\n"
+            "## Evidence gaps\n\nUser validation remains open."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "gap",
+                "note": "User validation remains open.",
+            }
+        ],
+        conclusions=["Retain the bounded product planning directive."],
+    )
+
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+
+    assert directive in prepared.markdown
+    assert "Unknown pending evidence" not in prepared.markdown
+    _validate_task_draft(context, prepared)
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        "Treat users as personas and ensure the product is safe for cats.",
+        "Prevent user confusion and comply with Regulation (EC) No 767/2009.",
+        "Reduce the risk of user error and certify the formula as safe.",
+        "Ensure safety information is clear in the interface and the recipe is safe for cats.",
+        "Treat users as personas and register within 30 days.",
+    ],
+)
+def test_task_safe_directive_prefix_cannot_hide_authority_tail(unsafe: str) -> None:
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Unsafe composite planning directive",
+        markdown=(
+            f"# Product planning\n\n{unsafe}\n\n"
+            "## Evidence gaps\n\nProduct safety and authority evidence remain open."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "gap",
+                "note": "Product safety and authority evidence remain open.",
+            }
+        ],
+        conclusions=["Do not accept the unsafe authority tail."],
+    )
+
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+
+    assert "Unknown pending evidence" in prepared.markdown
+    _validate_task_draft(context, prepared)
+
+
+def test_task_does_not_require_an_unrelated_research_citation() -> None:
+    allowed_claim_id = "a" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[allowed_claim_id],
+        allowed_claim_texts={
+            allowed_claim_id: "An immutable market claim outside this specialist lens."
+        },
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="User-needs specialist packet",
+        markdown=(
+            "# User needs\n\nTreat the personas as hypotheses and validate them "
+            "before product decisions.\n\n## Evidence gaps\n\nPersona evidence remains open."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "gap",
+                "note": "Persona evidence remains an explicit gap.",
+            }
+        ],
+        conclusions=["Validate the proposed personas."],
+    )
+
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+
+    assert "[evidence:" not in prepared.markdown
+    assert "Treat the personas as hypotheses" in prepared.markdown
+    assert "Unknown pending evidence" not in prepared.markdown
+    _validate_task_draft(context, prepared)
+
+
+def test_task_preparation_keeps_foreign_citations_and_authority_outputs_fatal() -> None:
+    allowed_claim_id = "b" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[allowed_claim_id],
+        allowed_claim_texts={allowed_claim_id: "Supported planning context."},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=["NAB notification procedures."],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    coverage = [
+        {
+            "requirement_id": "req-plan-01",
+            "status": "gap",
+            "note": "The authority procedure remains unresolved.",
+        }
+    ]
+    foreign_citation = TaskDraft(
+        title="Foreign citation",
+        markdown=(
+            "# Planning context\n\nSupported planning context "
+            f"[evidence:{'c' * 64}].\n\n## Evidence gaps\n\nAuthority proof is open."
+        ),
+        requirement_coverage=coverage,
+        conclusions=["Preserve the evidence boundary."],
+    )
+    with pytest.raises(ValueError, match="outside the immutable claim ledger"):
+        cognitive_executor_module._prepare_task_draft_for_validation(
+            context, foreign_citation
+        )
+
+    authority_output = foreign_citation.model_copy(
+        update={
+            "title": "Authority output",
+            "markdown": (
+                "# Authority decision\n\nNAB notification is mandatory.\n\n"
+                "## Evidence gaps\n\nThe exact procedure remains unresolved."
+            ),
+        }
+    )
+    launch_context = context.model_copy(
+        update={"artifact_type": "launch_authorization"}
+    )
+    with pytest.raises(ValueError, match="contradicts unresolved evidence"):
+        cognitive_executor_module._prepare_task_draft_for_validation(
+            launch_context, authority_output
+        )
+
+
 def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
     canonical = cognitive_executor_module._canonical_required_sections(
         "product_prd",
