@@ -450,6 +450,69 @@ async def test_final_quality_failure_is_a_bounded_model_output_retry(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_final_validator_retries_without_deleting_unsupported_rows(
+    monkeypatch,
+) -> None:
+    validators = {}
+    seen = []
+    real_validate = cognitive_executor_module._validate_synthesis
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    def recording_validate(context, draft):
+        seen.append(draft.markdown)
+        return real_validate(context, draft)
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    monkeypatch.setattr(
+        cognitive_executor_module, "_validate_synthesis", recording_validate
+    )
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.final_agent.system_prompt]
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    unsafe_row = (
+        "| REQ-P0-01 | Quality Lead | The formula is safe for adult cats. |"
+    )
+    candidate = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    ) + f"\n\n{unsafe_row}"
+
+    class Context:
+        deps = context
+
+    with pytest.raises(ModelRetry, match="substantive/practical quality"):
+        await validator(
+            Context(), SynthesisDraft(title="Unsafe row", markdown=candidate)
+        )
+
+    assert seen[-1] == candidate
+    assert unsafe_row in seen[-1]
+
+
+@pytest.mark.asyncio
 async def test_terminal_synthesis_validator_failure_has_safe_finite_reason() -> None:
     class ExhaustedAgent:
         async def run(self, _prompt, *, deps):
@@ -2347,7 +2410,109 @@ def test_final_pruning_does_not_hide_nested_or_fenced_thin_sections() -> None:
     assert "## Neighbor" in fenced_repaired
 
 
-def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts() -> None:
+def test_final_repair_projection_preserves_required_section_and_safety_action() -> None:
+    gap = "Product-specific safety clearance remains unresolved."
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Safety boundary", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[gap],
+        unresolved_evidence_requirements=[gap],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    filler = " ".join(
+        [
+            "The planning team owns a concrete requirement, decision, metric, risk, "
+            "validation action, acceptance check, and next step."
+        ]
+        * 14
+    )
+    markdown = (
+        f"# Product plan\n\n{filler}\n\n"
+        "## Safety boundary\n\nThe formula is safe for adult cats.\n\n"
+        f"## Evidence gaps\n\n{gap}"
+    )
+
+    projected = cognitive_executor_module._project_final_repair_base(
+        context, title="Product plan", markdown=markdown
+    )
+
+    assert "The formula is safe for adult cats." not in projected.markdown
+    assert (
+        "Verification: confirm whether The formula is safe for adult cats before "
+        "relying on the outcome." in projected.markdown
+    )
+    assert "## Safety boundary" in projected.markdown
+    assert projected.markdown.count(f"- {gap}") == 1
+    assert _deterministic_evidence_integrity_defects(
+        projected.markdown,
+        {},
+        artifact_type="product_prd",
+        immutable_gap_labels=context.required_gap_labels,
+        unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+    ) == []
+    with pytest.raises(ValueError, match="substantive/practical quality"):
+        _validate_synthesis(context, projected)
+
+
+def test_final_repair_projection_preserves_table_and_acceptance_topology() -> None:
+    claim_id = "d" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Prioritized requirements", "Acceptance criteria"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: "Estonia has approximately 300,400 cats."},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    markdown = (
+        "# Product plan\n\n"
+        "## Prioritized requirements\n\n"
+        "| ID | Owner | Requirement |\n"
+        "| --- | --- | --- |\n"
+        f"| REQ-P0-01 | Product Lead | Estonia has approximately 300,400 cats and "
+        f"more than 50% buy premium food [evidence:{claim_id}]. |\n"
+        "| REQ-P0-02 | Quality Lead | Co-manufacturer must maintain certified "
+        "HACCP compliance. |\n\n"
+        "## Acceptance criteria\n\n"
+        "| ID | Given | When | Then |\n"
+        "| --- | --- | --- | --- |\n"
+        "| REQ-P0-02 | Given a candidate formula | When evidence is reviewed | Then "
+        "the formula is safe for adult cats. |"
+    )
+
+    projected = cognitive_executor_module._project_final_repair_base(
+        context, title="Product plan", markdown=markdown
+    )
+
+    assert projected.markdown.count("|") == markdown.count("|")
+    assert projected.markdown.count("REQ-P0-01") == 1
+    assert projected.markdown.count("REQ-P0-02") == 2
+    assert "Product Lead" in projected.markdown
+    assert "Quality Lead" in projected.markdown
+    assert "Given a candidate formula" in projected.markdown
+    assert "When evidence is reviewed" in projected.markdown
+    assert "Unverified assumption:" in projected.markdown
+    assert "Verification: confirm whether" in projected.markdown
+    assert f"[evidence:{claim_id}]" not in projected.markdown
+    assert _deterministic_evidence_integrity_defects(
+        projected.markdown,
+        context.allowed_claim_texts,
+        artifact_type="product_prd",
+        defect_limit=None,
+        excerpt_limit=None,
+    ) == []
+
+
+def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() -> None:
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
     )
@@ -2414,16 +2579,24 @@ def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts()
     ]
 
     assert payload["BASE_MARKDOWN"] == core.markdown
-    assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
-        "Unsupported nutritional threshold.",
-        "Unsupported processing temperature.",
-    ]
+    # Stale evaluation diagnostics that do not occur in the projected base are not
+    # handed back to the model as instructions to recreate absent claims.
+    assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == []
     assert payload["REPAIR_TARGETS"]["contradictions"] == [
         "The product is both cleared and unresolved."
     ]
-    assert payload["REPAIR_INSTRUCTIONS"] == [
-        "Remove the unsupported thresholds and preserve the useful PRD."
-    ]
+    assert set(payload["REPAIR_INSTRUCTIONS"]) == {
+        "Remove the unsupported thresholds and preserve the useful PRD.",
+        (
+            "Apply each structured repair target only when its referenced issue is "
+            "still observable in BASE_MARKDOWN; never recreate absent text."
+        ),
+        (
+            "Repair every named post-projection substantive or practicality defect "
+            "with concrete deliverable content, using only explicit proposals, "
+            "assumptions, validation actions and the allowed immutable claims."
+        ),
+    }
     assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
     semantic_method = payload["SEMANTIC_METHOD"]
     assert semantic_method["method"] == "decision_useful_product_prd_v1"
@@ -2441,6 +2614,68 @@ def test_final_repair_prompt_elevates_defects_and_excludes_duplicate_artifacts()
     assert "ACCEPTED_SCOPE" not in payload
     assert "RESEARCH_RESULT" not in payload
     assert all(item.markdown not in payload.values() for item in specialists)
+
+
+def test_final_repair_prompt_drops_stale_instructions_after_projection() -> None:
+    fixture_path = (
+        Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
+    )
+    cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    final_case = next(item for item in cases if item["name"] == "final_synthesis")
+    input_value = SynthesizeArtifactInputV1.model_validate(final_case["input"])
+    contents = list(input_value.artifact_contents)
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "task_result"
+        and item.payload["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    unsafe = core.markdown + (
+        "\n\n## Formula safety\n\nThe formula is safe for adult cats."
+    )
+    contents[core_index] = core.model_copy(update={"markdown": unsafe})
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={
+            "payload": {
+                **evaluation_content.payload,
+                "repairInstructions": [
+                    "Restore the removed formula safety claim as verified."
+                ],
+            }
+        }
+    )
+    scope_payload = next(
+        item.payload for item in contents if item.artifact.kind == "scope"
+    )
+    research_payload = next(
+        item.payload for item in contents if item.artifact.kind == "research"
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    context = writer._context(
+        input_value, scope_payload, research_payload, contents
+    )
+
+    payload = json.loads(
+        writer._final_repair_prompt(input_value, contents, context)
+    )
+
+    assert "The formula is safe for adult cats." not in payload["BASE_MARKDOWN"]
+    assert "Verification: confirm whether" in payload["BASE_MARKDOWN"]
+    assert all(
+        "Restore the removed formula" not in instruction
+        for instruction in payload["REPAIR_INSTRUCTIONS"]
+    )
+    assert any(
+        "structure-preserving safety projection" in instruction
+        for instruction in payload["REPAIR_INSTRUCTIONS"]
+    )
 
 
 def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
@@ -4827,7 +5062,7 @@ async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precisi
 
 
 @pytest.mark.asyncio
-async def test_unsupported_precise_core_candidate_becomes_specific_verification() -> None:
+async def test_unsupported_precise_core_candidate_requires_final_repair() -> None:
     class UnsafePrecisionWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -4866,12 +5101,12 @@ async def test_unsupported_precise_core_candidate_becomes_specific_verification(
         operation_base=820,
     )
     candidate = results[-1]
-    assert candidate.artifact.kind == "final_markdown"
+    assert candidate.artifact.kind == "task_result"
     assert (
-        "Verification: confirm whether The validated formula contains 2,000 mg/kg "
-        "taurine and prevents renal disease before relying on the outcome."
+        "The validated formula contains 2,000 mg/kg taurine and prevents renal disease."
         in (candidate.artifact.markdown or "")
     )
+    assert "Verification: confirm whether" not in (candidate.artifact.markdown or "")
     assert not _contains_server_deliverable_placeholder(
         candidate.artifact.markdown or ""
     )
@@ -4900,12 +5135,10 @@ async def test_unsupported_precise_core_candidate_becomes_specific_verification(
         )
     )
 
-    assert evaluation.execution_output_contract_satisfied is True
-    assert evaluation.direct_promotion_artifact.model_dump(
-        mode="json", by_alias=True
-    ) == ref(candidate.artifact)
-    assert evaluation.artifact.payload["unsupportedPrecision"] == []
-    assert evaluation.artifact.payload["repairRequired"] is False
+    assert evaluation.execution_output_contract_satisfied is False
+    assert evaluation.direct_promotion_artifact is None
+    assert evaluation.artifact.payload["unsupportedPrecision"]
+    assert evaluation.artifact.payload["repairRequired"] is True
 
 
 @pytest.mark.asyncio
@@ -6491,7 +6724,7 @@ def test_task_atomically_reclassifies_punctuation_adjacent_citation(
     _validate_task_draft(context, prepared)
 
 
-def test_full_contract_reclassifies_generic_unsupported_claims_specifically() -> None:
+def test_full_contract_preserves_generic_defects_for_final_repair() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6527,28 +6760,14 @@ def test_full_contract_reclassifies_generic_unsupported_claims_specifically() ->
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert (
-        "Verification: confirm whether Co-manufacturer must maintain verified HACCP "
-        "certification before relying on the outcome."
-        in prepared.markdown
-    )
-    assert (
-        "* **Then** confirm whether the formula is safe for adult cats before relying "
-        "on the outcome."
-        in prepared.markdown
-    )
-    assert "Validation action: verify this item before relying on it." not in (
-        prepared.markdown
-    )
-    assert "record the evidence gap and defer the decision" not in (
-        prepared.markdown
-    )
+    assert prepared == draft
+    assert "Verification: confirm whether" not in prepared.markdown
     assert "[Lab Analysis Step]" in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown,
         {},
         artifact_type="product_prd",
-    ) == []
+    )
     assert not _contains_server_deliverable_placeholder(prepared.markdown)
     assert (
         cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
@@ -6832,7 +7051,7 @@ def test_task_leaves_asserted_tail_for_strict_model_retry(unsafe: str) -> None:
         _validate_task_draft(context, prepared)
 
 
-def test_full_contract_reclassifies_only_unsafe_compact_then_clause() -> None:
+def test_full_contract_preserves_unsafe_compact_then_for_final_repair() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=["Evidence gaps"],
@@ -6864,15 +7083,11 @@ def test_full_contract_reclassifies_only_unsafe_compact_then_clause() -> None:
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert (
-        "Given the product plan, When the release review runs, Then confirm whether "
-        "the formula is safe for adult cats before relying on the outcome."
-        in prepared.markdown
-    )
-    assert "record the evidence gap and defer the decision" not in prepared.markdown
+    assert prepared == draft
+    assert "Verification: confirm whether" not in prepared.markdown
     assert _deterministic_evidence_integrity_defects(
         prepared.markdown, {}, artifact_type="product_prd"
-    ) == []
+    )
     assert (
         cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
             prepared.markdown
@@ -7302,6 +7517,35 @@ def test_final_quality_gate_retains_specific_verification_action() -> None:
         practical_output_required=True,
         artifact_type="product_prd",
     ) == ([], [])
+
+
+def test_final_quality_gate_rejects_repetitive_verification_scaffolding() -> None:
+    useful = quality_markdown(
+        {
+            "assumptions": [],
+            "gaps": [],
+            "conflicts": [],
+            "findings": [],
+            "selectedClaims": [],
+            "claimLedger": [],
+        }
+    )
+    candidate = useful + "\n\n" + "\n\n".join(
+        f"Verification: confirm whether safety condition {index} applies before "
+        "relying on the outcome."
+        for index in range(1, 5)
+    )
+
+    substantive, _practicality = _deterministic_quality_defects(
+        candidate,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    assert (
+        "The candidate contains server-generated evidence-validation placeholders "
+        "instead of substantive deliverable content."
+        in substantive
+    )
 
 
 def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees() -> None:
