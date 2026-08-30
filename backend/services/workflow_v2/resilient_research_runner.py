@@ -121,6 +121,7 @@ class DirectDocumentExtractor(Protocol):
 
 
 DirectTextFetcher = Callable[[str], Awaitable[Mapping[str, Any]]]
+SourceTypeClassifier = Callable[[str, str], set[str]]
 
 
 @dataclass(frozen=True)
@@ -768,7 +769,12 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
 
 
 def _candidate_rows(
-    raw: Mapping[str, Any], *, allowed_hosts: frozenset[str], maximum: int
+    raw: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+    accepted_source_types: frozenset[str],
+    source_type_classifier: SourceTypeClassifier | None,
+    maximum: int,
 ) -> tuple[list[_Candidate], int, int, int]:
     by_url: dict[str, dict[str, Any]] = {}
     rejected = 0
@@ -806,23 +812,61 @@ def _candidate_rows(
                 if url in by_url and snippet not in by_url[url]["snippets"]:
                     by_url[url]["snippets"].append(snippet)
 
-    candidates: list[_Candidate] = []
+    candidates: list[tuple[_Candidate, frozenset[str]]] = []
     # Preserve SearXNG's ranked result order after validation and deduplication;
     # limiting alphabetically would let a lower-ranked host crowd out the most
     # relevant candidate.  Replaying the same immutable provider response still
-    # produces the same ordering.
+    # produces the same ordering. When the server provides its trusted source
+    # classifier, apply that gate before the limit: an incompatible high-ranked
+    # web result must not hide a later eligible authority or reusable locator.
     ranked_rows = list(by_url.items())
-    omitted = max(0, len(ranked_rows) - maximum)
-    for url, row in ranked_rows[:maximum]:
+    for url, row in ranked_rows:
         titles = _ordered_unique(row["titles"])
-        candidates.append(
-            _Candidate(
-                canonical_url=url,
-                title=titles[0] if titles else (urlsplit(url).hostname or "Publisher"),
-                snippets=tuple(row["snippets"]),
-            )
+        candidate = _Candidate(
+            canonical_url=url,
+            title=titles[0] if titles else (urlsplit(url).hostname or "Publisher"),
+            snippets=tuple(row["snippets"]),
         )
-    return candidates, rejected, malformed, omitted
+        matched_types = accepted_source_types
+        if source_type_classifier is not None:
+            try:
+                classified_types = frozenset(
+                    source_type_classifier(candidate.canonical_url, candidate.title)
+                )
+            except (TypeError, ValueError):
+                classified_types = frozenset()
+            matched_types = classified_types.intersection(accepted_source_types)
+            if not matched_types:
+                rejected += 1
+                continue
+        candidates.append((candidate, frozenset(matched_types)))
+
+    # When both a specific authority class and generic grounded web are
+    # accepted, preserve SearX rank within each class while putting specific
+    # matches first. Generic web remains viable; it simply cannot crowd a
+    # later, more specific match out of the bounded fetch set.
+    specific_source_types = accepted_source_types.difference({"grounded_web"})
+    if source_type_classifier is not None and specific_source_types:
+        candidates = [
+            *(
+                row
+                for row in candidates
+                if row[1].intersection(specific_source_types)
+            ),
+            *(
+                row
+                for row in candidates
+                if not row[1].intersection(specific_source_types)
+            ),
+        ]
+
+    omitted = max(0, len(candidates) - maximum)
+    return (
+        [candidate for candidate, _types in candidates[:maximum]],
+        rejected,
+        malformed,
+        omitted,
+    )
 
 
 def _reusable_candidate_rows(
@@ -1258,6 +1302,7 @@ class ResilientResearchRunner:
         primary_healthy_seconds: float = _DEFAULT_PRIMARY_HEALTHY_SECONDS,
         fallback_phase_seconds: float = WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
         monotonic_clock: Callable[[], float] = time.monotonic,
+        source_type_classifier: SourceTypeClassifier | None = None,
     ) -> None:
         if maximum_candidates < 1 or maximum_candidates > 10:
             raise ValueError("maximum_candidates must be between 1 and 10")
@@ -1313,6 +1358,7 @@ class ResilientResearchRunner:
         self.primary_cooldown_seconds = normalized_cooldown
         self.primary_healthy_seconds = normalized_healthy
         self.fallback_phase_seconds = normalized_fallback_phase
+        self.source_type_classifier = source_type_classifier
         self._monotonic_clock = monotonic_clock
         self._primary_condition = asyncio.Condition()
         self._primary_gate_in_flight = False
@@ -1624,6 +1670,10 @@ class ResilientResearchRunner:
                 _candidate_rows(
                     discovery,
                     allowed_hosts=context.allowed_hosts,
+                    accepted_source_types=frozenset(
+                        context.accepted_source_types
+                    ),
+                    source_type_classifier=self.source_type_classifier,
                     maximum=(
                         self.maximum_candidates + len(context.reusable_candidates)
                     ),

@@ -1487,7 +1487,13 @@ def test_final_publication_normalizer_is_non_rejecting_and_reader_facing() -> No
     assert "Unknown pending evidence (the complete following item" not in (
         normalized.markdown
     )
-    assert normalized.markdown.count("**Pending verification:**") == 2
+    assert normalized.markdown.count("**Pending verification:**") == 1
+    assert (
+        normalized.markdown.count(
+            "**Proposed validation target — requires authoritative verification:**"
+        )
+        == 1
+    )
     assert "All specifications are grounded" not in normalized.markdown
     assert "Specifications combine accepted evidence" in normalized.markdown
     assert "launch-ready" not in normalized.markdown
@@ -1544,8 +1550,197 @@ def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> 
     assert f"[evidence:{water_claim_id}]" not in normalized.markdown
     assert "Cats prefer chicken-flavoured kibble." in normalized.markdown
     assert "Fresh kibble improves palatability." in normalized.markdown
-    assert "**Pending verification:** EU law guarantees this formula is safe." in (
-        normalized.markdown
+    assert "EU law guarantees this formula is safe." not in normalized.markdown
+    assert (
+        "**Proposed validation target — requires authoritative verification:** "
+        "Confirm the applicable composition evidence and constraint before adoption."
+        in normalized.markdown
+    )
+
+
+def test_scope_prompt_splits_broad_regulatory_domains_without_inventing_law() -> None:
+    prompt = " ".join(cognitive_executor_module.SCOPE_SYSTEM_PROMPT.split())
+
+    assert "independently researchable legal-domain evidence rows" in prompt
+    assert "Keep national law separate from supranational law" in prompt
+    assert (
+        "safety, hygiene, composition and labelling obligations in separate rows"
+        in prompt
+    )
+    assert "Do not invent an instrument, title or number" in prompt
+
+
+def test_final_publication_omits_unsupported_authority_and_keeps_useful_prose() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=["Authoritative product evidence remains open."],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Useful PRD",
+        markdown=(
+            "# Useful PRD\n\n"
+            "## Product requirements\n\n"
+            "- The formula must be legally compliant with a statutory 15 mg/kg limit.\n"
+            "- The label must carry a mandatory statement within 14 days.\n"
+            "- The food treats renal disease at 10 mg/kg.\n"
+            "- The formula must comply with a statutory 20 mg/kg limit.\n"
+            "- The formula must use a chicken flavour target.\n"
+            "- The label must show the NorthPaw brand name.\n"
+            "- Proposed nutritional target: 35% protein.\n"
+            "- Nutrition panel must show serving values.\n"
+            "- Safety stock must cover 2 weeks.\n"
+            "- The health dashboard must refresh in 2 seconds.\n"
+            "- Safety review must happen within 2 days.\n"
+            "- Product safety threshold is 25 mg/kg.\n"
+            "- Proposed target: the product is legally compliant under Regulation X at 15 mg/kg.\n"
+            "- Directive No. 2002/32/EC sets a maximum of 5 mg/kg.\n"
+            "- Regulation (EC) No. 767/2009 sets a limit of 45 mg/kg.\n"
+            "| Legal review | Unknown pending evidence (the complete following item is unverified and not approved for execution): The label is legally compliant. | Owner |\n"
+            "- Prioritize a resealable pack for convenient storage.\n\n"
+            "## Evidence gaps\n\nAuthoritative product evidence remains open."
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert normalized.markdown.count(
+        "Proposed validation target — requires authoritative verification"
+    ) == 5
+    assert normalized.markdown.count(
+        "Confirm the applicable composition evidence and constraint before adoption."
+    ) == 1
+    assert normalized.markdown.count(
+        "Confirm the applicable labelling evidence and constraint before adoption."
+    ) == 1
+    assert normalized.markdown.count(
+        "Confirm the health claim and its authoritative evidence before adoption."
+    ) == 1
+    assert normalized.markdown.count(
+        "Confirm which legal constraint applies before adoption."
+    ) == 1
+    assert normalized.markdown.count(
+        "Confirm the product-specific safety evidence before adoption."
+    ) == 1
+    assert "15 mg/kg" not in normalized.markdown
+    assert "14 days" not in normalized.markdown
+    assert "10 mg/kg" not in normalized.markdown
+    assert "20 mg/kg" not in normalized.markdown
+    assert "legally compliant" not in normalized.markdown
+    assert "The formula must use a chicken flavour target." in normalized.markdown
+    assert "The label must show the NorthPaw brand name." in normalized.markdown
+    assert "Proposed nutritional target: 35% protein." in normalized.markdown
+    assert "Nutrition panel must show serving values." in normalized.markdown
+    assert "Safety stock must cover 2 weeks." in normalized.markdown
+    assert "The health dashboard must refresh in 2 seconds." in normalized.markdown
+    assert "Safety review must happen within 2 days." in normalized.markdown
+    assert "25 mg/kg" not in normalized.markdown
+    assert "Regulation X" not in normalized.markdown
+    assert "2002/32/EC" not in normalized.markdown
+    assert "767/2009" not in normalized.markdown
+    assert "5 mg/kg" not in normalized.markdown
+    assert "45 mg/kg" not in normalized.markdown
+    assert "| Owner |" in normalized.markdown
+    assert normalized.markdown.count("Legal review") == 1
+    target_lines = [
+        line
+        for line in normalized.markdown.splitlines()
+        if "Proposed validation target" in line
+    ]
+    assert len(target_lines) == len(set(target_lines)) == 5
+    assert "Confirm the applicable high-stakes constraint" not in normalized.markdown
+    assert all(
+        forbidden not in line.casefold()
+        for line in target_lines
+        for forbidden in ("mandatory", "statutory", "compliant", "must")
+    )
+    assert "Prioritize a resealable pack for convenient storage." in normalized.markdown
+    assert "Validation target (all following content" not in normalized.markdown
+    assert "Unknown pending evidence" not in normalized.markdown
+    assert "complete following item is unverified" not in normalized.markdown
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
+    )
+
+
+def test_final_publication_dedup_keeps_ordinary_mixed_line_suffix() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=["Product-specific safety evidence remains open."],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Useful PRD",
+        markdown=(
+            "# Useful PRD\n\n"
+            "## Product requirements\n\n"
+            "- The product is safe for cats.\n"
+            "- The food is safe for cats. Keep the resealable pack requirement.\n\n"
+            "## Evidence gaps\n\nProduct-specific safety evidence remains open."
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert normalized.markdown.count(
+        "Confirm the product-specific safety evidence before adoption."
+    ) == 1
+    assert "Keep the resealable pack requirement." in normalized.markdown
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
+    )
+
+
+def test_final_publication_dedupes_repeated_targets_within_table_row() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=["Product-specific safety evidence remains open."],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Useful PRD",
+        markdown=(
+            "# Useful PRD\n\n"
+            "## Product requirements\n\n"
+            "| First check | Second check |\n"
+            "| --- | --- |\n"
+            "| Product is safe for cats. | Food is safe for cats. |\n\n"
+            "## Evidence gaps\n\nProduct-specific safety evidence remains open."
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert normalized.markdown.count(
+        "Confirm the product-specific safety evidence before adoption."
+    ) == 1
+    assert normalized.markdown.count(
+        "See the corresponding validation requirement stated earlier."
+    ) == 1
+    assert "| First check | Second check |" in normalized.markdown
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
     )
 
 
@@ -1882,6 +2077,10 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.research_runner.primary is primary
     assert executor.research_runner.searxng is discovery
     assert executor.research_runner.extractor is extractor
+    assert (
+        executor.research_runner.source_type_classifier
+        is cognitive_executor_module._classify_source_types
+    )
     assert executor.scope_drafter is drafter
     assert executor.synthesis_writer is writer
     assert executor.scope_reviser is reviser
@@ -7414,7 +7613,10 @@ async def test_executor_applies_the_publication_normalizer_exactly_once(
         result.artifact.markdown
     )
     assert "Validation target (all following content" not in result.artifact.markdown
-    assert "**Pending verification:**" in result.artifact.markdown
+    assert (
+        "**Proposed validation target — requires authoritative verification:**"
+        in result.artifact.markdown
+    )
 
 
 @pytest.mark.asyncio

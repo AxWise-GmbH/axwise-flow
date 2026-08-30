@@ -1366,6 +1366,196 @@ async def test_operation_local_source_fills_remaining_slot_and_is_refetched() ->
 
 
 @pytest.mark.asyncio
+async def test_ineligible_fresh_results_cannot_crow_reusable_authority() -> None:
+    reused_url = "https://eur-lex.europa.eu/eli/reg/2009/767/oj/eng"
+    generic_urls = [
+        "https://generic.example.org/first",
+        "https://generic.example.org/second",
+        "https://generic.example.org/third",
+    ]
+    exact = "Feed materials may be marketed only if they are safe and genuine."
+    classified: list[str] = []
+    fetched: list[str] = []
+
+    def classify(url: str, _title: str) -> set[str]:
+        classified.append(url)
+        return {"grounded_web"}
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        if url == reused_url:
+            return document(url, f"Regulation. {exact} Annex.")
+        return document(url, "Generic publisher text.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(
+                sources=[
+                    {"url": url, "title": "Generic web result"}
+                    for url in generic_urls
+                ]
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        maximum_candidates=1,
+        source_type_classifier=classify,
+    ).search(
+        server_query(
+            accepted_source_types=["primary_law"],
+            fallback_candidates=[{"url": reused_url, "title": "EUR-Lex"}],
+        )
+    )
+
+    assert classified == generic_urls
+    assert fetched == [reused_url]
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["candidate_count"] == 1
+    assert result["runtime_diagnostics"]["rejected_candidate_count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_source_type_filter_runs_before_fresh_candidate_limit() -> None:
+    generic_urls = [
+        "https://generic.example.org/first",
+        "https://generic.example.org/second",
+        "https://generic.example.org/third",
+    ]
+    statistics_url = "https://statistics.example.org/official-table"
+    exact = "The official table reports this exact market statistic."
+    fetched: list[str] = []
+
+    def classify(url: str, _title: str) -> set[str]:
+        if url == statistics_url:
+            return {"grounded_web", "official_statistics"}
+        return {"grounded_web"}
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, exact)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(
+                sources=[
+                    *(
+                        {"url": url, "title": "Generic web result"}
+                        for url in generic_urls
+                    ),
+                    {"url": statistics_url, "title": "Official statistics"},
+                ]
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        maximum_candidates=1,
+        source_type_classifier=classify,
+    ).search(server_query(accepted_source_types=["official_statistics"]))
+
+    assert fetched == [statistics_url]
+    assert result["sources"][0]["url"] == statistics_url
+    assert result["runtime_diagnostics"]["rejected_candidate_count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_specific_fresh_source_outranks_generic_grounded_web() -> None:
+    generic_url = "https://generic.example.org/market-summary"
+    statistics_url = "https://statistics.example.org/official-table"
+    exact = "The official table reports this exact market statistic."
+    fetched: list[str] = []
+
+    def classify(url: str, _title: str) -> set[str]:
+        if url == statistics_url:
+            return {"grounded_web", "official_statistics"}
+        return {"grounded_web"}
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, exact)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(
+                sources=[
+                    {"url": generic_url, "title": "Generic market summary"},
+                    {"url": statistics_url, "title": "Official statistics"},
+                ]
+            )
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        maximum_candidates=1,
+        source_type_classifier=classify,
+    ).search(
+        server_query(
+            accepted_source_types=["grounded_web", "official_statistics"]
+        )
+    )
+
+    assert fetched == [statistics_url]
+    assert result["sources"][0]["url"] == statistics_url
+
+
+@pytest.mark.asyncio
+async def test_grounded_web_keeps_generic_fresh_candidate_viable() -> None:
+    url = "https://generic.example.org/market-summary"
+    exact = "The publisher reports this exact market observation."
+    fetched: list[str] = []
+
+    async def fetch(candidate_url: str) -> dict:
+        fetched.append(candidate_url)
+        return document(candidate_url, exact)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(sources=[{"url": url, "title": "Market summary"}])
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        source_type_classifier=lambda _url, _title: {"grounded_web"},
+    ).search(server_query(accepted_source_types=["grounded_web"]))
+
+    assert fetched == [url]
+    assert result["claims"][0]["text"] == exact
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("accepted_source_type", ["industry", "official_statistics"])
+async def test_generic_fresh_result_preserves_specific_market_evidence_gap(
+    accepted_source_type: str,
+) -> None:
+    url = "https://generic.example.org/market-summary"
+    fetched: list[str] = []
+
+    async def fetch(candidate_url: str) -> dict:
+        fetched.append(candidate_url)
+        return document(candidate_url, "Must not be fetched.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(
+            discovery(sources=[{"url": url, "title": "Market summary"}])
+        ),
+        fetcher=fetch,
+        extractor=EmptyExtractor(),
+        source_type_classifier=lambda _url, _title: {"grounded_web"},
+    ).search(server_query(accepted_source_types=[accepted_source_type]))
+
+    assert fetched == []
+    assert result["search_performed"] is False
+    assert result["runtime_diagnostics"]["fallback"]["status"] == (
+        "discovery_rows_incomplete"
+    )
+    assert result["runtime_diagnostics"]["fallback"][
+        "rejected_candidate_count"
+    ] == 1
+
+
+@pytest.mark.asyncio
 async def test_operation_local_duplicate_keeps_title_and_merges_fresh_snippet() -> None:
     reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
     exact = "The exact authoritative provision appears only in the later section."
