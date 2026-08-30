@@ -2506,6 +2506,32 @@ _SERVER_UNVERIFIED_VALIDATION_TARGET = re.compile(
     r"[.;]?\s*$",
     re.IGNORECASE,
 )
+_SERVER_UNVERIFIED_VALIDATION_TARGET_PARTS = re.compile(
+    r"^(?P<list>\s*(?:(?:[-+*]|\d+[.)])\s+)?)"
+    r"(?:(?P<role_prefix>(?:\*\*|__)?(?:given|when|then)"
+    r"(?:\s*:)?(?:\*\*|__)?\s*:?\s+))?"
+    r"validation\s+target\s*\(\s*all\s+following\s+content\s+is\s+unverified\s+"
+    r"until\s+pre-adoption\s+review\s*\)\s*:\s*(?P<body>\S.*?)\s*$",
+    re.IGNORECASE,
+)
+_SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE = re.compile(
+    r"validation\s+target\s*\(\s*all\s+following\s+content\s+is\s+unverified\s+"
+    r"until\s+pre-adoption\s+review\s*\)\s*:\s*(?P<body>\S.+?)\s*$",
+    re.IGNORECASE,
+)
+_PUBLICATION_UNKNOWN_PENDING_ITEM = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:\*\*|__)?(?:given|when|then)(?:\s*:)?(?:\*\*|__)?\s*:?\s+)?"
+    r"unknown\s+pending\s+evidence\s*\(\s*the\s+complete\s+following\s+item\s+"
+    r"is\s+unverified\s+and\s+not\s+approved\s+for\s+execution\s*\)\s*:\s*"
+    r"\S.+?[.]?\s*$",
+    re.IGNORECASE,
+)
+_PUBLICATION_UNKNOWN_PENDING_PREFIX = re.compile(
+    r"unknown\s+pending\s+evidence\s*\(\s*the\s+complete\s+following\s+item\s+"
+    r"is\s+unverified\s+and\s+not\s+approved\s+for\s+execution\s*\)\s*:\s*",
+    re.IGNORECASE,
+)
 _ACTION_ASSERTED_TAIL = re.compile(
     r"\bbecause\b|"
     r"(?:[,;]\s*|\s+)(?:and|but|however|yet|while|whereas)\s+"
@@ -3064,6 +3090,17 @@ def _unresolved_evidence_requirement_descriptions(
 def _split_unresolved_assertions(fragment: str) -> list[str]:
     """Separate an unresolved status clause from an unrelated positive assertion."""
 
+    if _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
+        re.sub(r"[`]", "", fragment).strip()
+    ) is not None:
+        return [fragment.strip()]
+    controlled_prefix = _PUBLICATION_UNKNOWN_PENDING_PREFIX.search(fragment)
+    if controlled_prefix is not None:
+        controlled_suffix = fragment[controlled_prefix.start() :].strip()
+        if _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(controlled_suffix) is not None:
+            leading = fragment[: controlled_prefix.start()].strip()
+            return [item for item in (leading, controlled_suffix) if item]
+
     queue = [fragment]
     if (
         re.match(
@@ -3150,6 +3187,15 @@ def _deterministic_evidence_integrity_defects(
             _RAW_EVIDENCE_MARKER.search(value) is None
             and _SERVER_UNVERIFIED_VALIDATION_TARGET.fullmatch(
                 re.sub(r"[*_`]", "", value).strip()
+            )
+            is not None
+        )
+
+    def publication_scoped_unknown_item(value: str) -> bool:
+        return (
+            _RAW_EVIDENCE_MARKER.search(value) is None
+            and _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
+                re.sub(r"[`]", "", value).strip()
             )
             is not None
         )
@@ -3262,14 +3308,24 @@ def _deterministic_evidence_integrity_defects(
                     fragments.append(re.sub(r"^\s*[•·]\s*", "", cell_item).strip())
                     fragment_contexts.append(cell_context)
         else:
-            if server_scoped_unverified_target(stripped):
+            rendered_items = [
+                item.strip()
+                for item in re.split(r"<br\s*/?>", stripped, flags=re.IGNORECASE)
+                if item.strip()
+            ]
+            if len(rendered_items) == 1 and (
+                server_scoped_unverified_target(rendered_items[0])
+                or publication_scoped_unknown_item(rendered_items[0])
+            ):
                 continue
-            if _task_fragment_parts(stripped)[2] == "then":
-                # Preserve the controlled `; otherwise ...` outcome as one unit.
-                # Other roles keep the normal clause splitting used by projection.
-                fragments = _INLINE_GWT_ROLE_BREAK.split(stripped)
-            else:
-                fragments = _evidence_clause_fragments(stripped)
+            fragments = []
+            for rendered_item in rendered_items:
+                if _task_fragment_parts(rendered_item)[2] == "then":
+                    # Preserve the controlled `; otherwise ...` outcome as one unit.
+                    # Other roles keep the normal clause splitting used by projection.
+                    fragments.extend(_INLINE_GWT_ROLE_BREAK.split(rendered_item))
+                else:
+                    fragments.extend(_evidence_clause_fragments(rendered_item))
             fragment_contexts = [""] * len(fragments)
         table_gap_context = (
             "|" in stripped
@@ -3284,7 +3340,23 @@ def _deterministic_evidence_integrity_defects(
                 # punctuation inside that payload cannot turn a provisional target
                 # into an asserted factual tail.
                 continue
+            if publication_scoped_unknown_item(fragment):
+                # The complete rendering unit is explicitly unknown and withheld from
+                # execution. Recognize the whole unit before clause splitting; its
+                # preserved payload is context, not an accepted factual claim.
+                continue
             if exact_explicit_gap_fragment(fragment):
+                expanded_fragments.append((fragment, fragment_context))
+            elif (
+                _SERVER_VALIDATION_ACTION.fullmatch(
+                    re.sub(r"[*_`]", "", fragment).strip()
+                )
+                is not None
+                and _is_bounded_unresolved_requirement_action(fragment)
+            ):
+                # The complete proposition is inside one bounded verification
+                # question. Keep it intact so conjunctions in the question cannot be
+                # misread as independently asserted factual tails.
                 expanded_fragments.append((fragment, fragment_context))
             elif _UNRESOLVED_CONDITIONAL_RECORDED_OUTCOME.fullmatch(
                 re.sub(r"[*_`]", "", fragment)
@@ -3302,6 +3374,8 @@ def _deterministic_evidence_integrity_defects(
                 expanded_fragments.append((fragment, fragment_context))
         for fragment, fragment_context in expanded_fragments:
             if not fragment:
+                continue
+            if publication_scoped_unknown_item(fragment):
                 continue
             markers = {
                 match.group(1) for match in _RAW_EVIDENCE_MARKER.finditer(fragment)
@@ -5057,6 +5131,13 @@ def _project_pre_adoption_review_conditions(
 _ASCII_DECISION_DIAGRAM = re.compile(r"(?:-{2,}>|={2,}>|[┌┐└┘│─])")
 _FENCED_GATE_LABEL = re.compile(r"\[Gate\s+\d+\s*:\s*([^\]]+)\]", re.IGNORECASE)
 _NUMBERED_GATE_LINE = re.compile(r"^\s*\d+[.)]\s+.+?\bgate\b", re.IGNORECASE)
+_FENCED_ROADMAP_LABEL = re.compile(
+    r"\[\s*((?:month|stage|step|gate|phase)\s+([1-9]\d*)\s*:[^\]]+?)\s*\]",
+    re.IGNORECASE,
+)
+_FENCED_ROADMAP_ACTIVITY = re.compile(
+    r"(?:^|\s{2,})-\s+(.+?)(?=(?:\s{2,}-\s+)|\s*\|?\s*$)"
+)
 
 
 def _project_redundant_unsupported_gate_diagrams(
@@ -5194,6 +5275,394 @@ def _project_redundant_unsupported_gate_diagrams(
         if current == draft.markdown
         else draft.model_copy(update={"markdown": current})
     )
+
+
+def _publication_unknown_item(fragment: str) -> str | None:
+    """Turn one exact task-stage wrapper into an honest reader-facing gap item."""
+
+    match = _SERVER_UNVERIFIED_VALIDATION_TARGET_PARTS.fullmatch(fragment)
+    if match is None:
+        return None
+    body = match.group("body").strip()
+    if not body:
+        return None
+    return (
+        f"{match.group('list') or ''}{match.group('role_prefix') or ''}"
+        "Unknown pending evidence (the complete following item is unverified and not "
+        f"approved for execution): {body}"
+    )
+
+
+def _publication_unknown_item_inline(fragment: str) -> str:
+    """Normalize an exact wrapper at the end of a larger rendering unit."""
+
+    match = _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE.search(fragment)
+    if match is None:
+        return fragment
+    body = match.group("body").strip()
+    if not body:
+        return fragment
+    unknown_item = (
+        "Unknown pending evidence (the complete following item is unverified and not "
+        f"approved for execution): {body}"
+    )
+    return fragment[: match.start()] + unknown_item
+
+
+def _project_server_validation_scaffolding(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Remove exact internal wrappers without weakening the publication validator."""
+
+    if (
+        context.artifact_type == "launch_authorization"
+        or context.evidence_readiness == "blocked"
+    ):
+        return draft
+    current = draft.markdown
+    lines = current.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(current)
+    changed = False
+    for line_index, line in enumerate(lines):
+        if line_index in fenced_indexes:
+            continue
+        is_table_line = "|" in line
+        units = line.split("|") if is_table_line else [line]
+        trial_units = [*units]
+        line_changed = False
+        for unit_index, unit in enumerate(units):
+            pieces = re.split(r"(<br\s*/?>)", unit, flags=re.IGNORECASE)
+            trial_pieces = [*pieces]
+            for piece_index in range(0, len(pieces), 2):
+                replacement = _publication_unknown_item(pieces[piece_index])
+                if replacement is not None:
+                    trial_pieces[piece_index] = replacement
+                    line_changed = True
+                    continue
+                replacement = _publication_unknown_item_inline(
+                    pieces[piece_index]
+                )
+                if replacement != pieces[piece_index]:
+                    trial_pieces[piece_index] = replacement
+                    line_changed = True
+            if line_changed:
+                trial_units[unit_index] = "".join(trial_pieces)
+        if line_changed:
+            lines[line_index] = "|".join(trial_units)
+            changed = True
+    if not changed:
+        return draft
+    projected = "\n".join(lines)
+    if set(_deterministic_structural_integrity_defects(projected)).difference(
+        _deterministic_structural_integrity_defects(current)
+    ) or set(_incomplete_given_when_then_acceptance_blocks(projected)).difference(
+        _incomplete_given_when_then_acceptance_blocks(current)
+    ):
+        return draft
+    return draft.model_copy(update={"markdown": projected})
+
+
+def _project_fenced_ascii_roadmaps(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Convert a recognized numbered ASCII roadmap into ordinary Markdown."""
+
+    if (
+        context.artifact_type == "launch_authorization"
+        or context.evidence_readiness == "blocked"
+    ):
+        return draft
+    current = draft.markdown
+    lines = current.splitlines()
+    index = 0
+    while index < len(lines):
+        opening = re.match(r"^\s*(`{3,}|~{3,})", lines[index])
+        if opening is None:
+            index += 1
+            continue
+        marker = opening.group(1)[0]
+        marker_length = len(opening.group(1))
+        end = next(
+            (
+                later
+                for later in range(index + 1, len(lines))
+                if (
+                    (closing := re.match(r"^\s*(`{3,}|~{3,})", lines[later]))
+                    is not None
+                    and closing.group(1)[0] == marker
+                    and len(closing.group(1)) >= marker_length
+                )
+            ),
+            None,
+        )
+        if end is None:
+            break
+        body = "\n".join(lines[index + 1 : end])
+        labels = [
+            (int(match.group(2)), re.sub(r"\s+", " ", match.group(1)).strip())
+            for match in _FENCED_ROADMAP_LABEL.finditer(body)
+        ]
+        is_ascii_table = (
+            "|" in body
+            and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
+        )
+        recognized = (
+            is_ascii_table
+            and _ASCII_DECISION_DIAGRAM.search(body) is not None
+            and _RAW_EVIDENCE_MARKER.search(body) is None
+            and len(labels) >= 2
+            and len(re.findall(r"\[[^\]]+\]", body)) == len(labels)
+        )
+        if not recognized:
+            index = end + 1
+            continue
+        replacement: list[str] = []
+        retained_semantic_lines: list[str] = []
+        for body_line in body.splitlines():
+            stripped = body_line.strip()
+            if not stripped or re.fullmatch(r"\+[-+]+\+", stripped) is not None:
+                continue
+            content = stripped.strip("|").strip()
+            if not content or re.fullmatch(r"[|vV^<>+\-=\s]+", content) is not None:
+                continue
+            retained_semantic_lines.append(content)
+            if _FENCED_ROADMAP_LABEL.search(content) is not None:
+                rendered = _FENCED_ROADMAP_LABEL.sub(
+                    lambda match: "**"
+                    + re.sub(r"\s+", " ", match.group(1)).strip()
+                    + "**",
+                    content,
+                )
+                replacement.append(f"- {rendered}")
+                continue
+            if _FENCED_ROADMAP_ACTIVITY.search(content) is not None:
+                replacement.append(
+                    "- Unknown pending evidence (the complete following item is "
+                    "unverified and not approved for execution): " + content
+                )
+                continue
+            replacement.append(f"**{content}**")
+        if not replacement:
+            index = end + 1
+            continue
+        retained_tokens = _support_tokens("\n".join(retained_semantic_lines))
+        projected_tokens = _support_tokens("\n".join(replacement))
+        if retained_tokens.difference(projected_tokens):
+            index = end + 1
+            continue
+        trial_lines = [*lines[:index], *replacement, *lines[end + 1 :]]
+        trial = "\n".join(trial_lines)
+        before_evidence = _projection_evidence_defects(
+            context, current, preserve_duplicate_occurrences=True
+        )
+        trial_evidence = _projection_evidence_defects(
+            context, trial, preserve_duplicate_occurrences=True
+        )
+        before_substantive, before_practical = _deterministic_quality_defects(
+            current,
+            practical_output_required=context.practical_output_required,
+            artifact_type=context.artifact_type,
+        )
+        trial_substantive, trial_practical = _deterministic_quality_defects(
+            trial,
+            practical_output_required=context.practical_output_required,
+            artifact_type=context.artifact_type,
+        )
+        ascii_defect = (
+            "The candidate uses an ASCII-art table inside a code fence instead of "
+            "valid Markdown."
+        )
+        if (
+            set(trial_evidence).difference(before_evidence)
+            or set(trial_substantive).difference(before_substantive)
+            or set(trial_practical).difference(before_practical)
+            or ascii_defect not in before_substantive
+            or ascii_defect in trial_substantive
+            or set(_deterministic_structural_integrity_defects(trial)).difference(
+                _deterministic_structural_integrity_defects(current)
+            )
+            or set(_incomplete_given_when_then_acceptance_blocks(trial)).difference(
+                _incomplete_given_when_then_acceptance_blocks(current)
+            )
+        ):
+            index = end + 1
+            continue
+        lines = trial_lines
+        current = trial
+        index += len(replacement)
+    return (
+        draft
+        if current == draft.markdown
+        else draft.model_copy(update={"markdown": current})
+    )
+
+
+def _as_publication_unknown_item(fragment: str) -> str:
+    """Preserve one defect-bearing unit while making its status unambiguous."""
+
+    list_prefix, role_prefix, _role, body = _task_fragment_parts(fragment)
+    body = body.strip()
+    return (
+        f"{list_prefix}{role_prefix}"
+        "Unknown pending evidence (the complete following item is unverified and not "
+        f"approved for execution): {body}"
+    )
+
+
+def _project_remaining_evidence_defects(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Reclassify only exact residual defect units for a strict final fallback."""
+
+    if (
+        context.artifact_type == "launch_authorization"
+        or context.evidence_readiness == "blocked"
+    ):
+        return draft
+    current = draft.markdown
+    for _pass in range(max(1, len(current.splitlines()) * 2)):
+        defects = _projection_evidence_defects(
+            context, current, preserve_duplicate_occurrences=True
+        )
+        excerpts = [
+            excerpt
+            for defect in defects
+            for _prefix, separator, excerpt in [defect.partition(": ")]
+            if separator and excerpt
+        ]
+        if not excerpts:
+            break
+        normalized_excerpts = {
+            re.sub(r"\s+", " ", excerpt).strip() for excerpt in excerpts
+        }
+        lines = current.splitlines()
+        fenced_indexes = _fenced_markdown_line_indexes(current)
+        before_topology = _final_repair_topology(current)
+        before_structural = _deterministic_structural_integrity_defects(current)
+        before_gwt = _incomplete_given_when_then_acceptance_blocks(current)
+        before_substantive, before_practical = _deterministic_quality_defects(
+            current,
+            practical_output_required=context.practical_output_required,
+            artifact_type=context.artifact_type,
+        )
+        changed = False
+        for line_index, line in enumerate(lines):
+            if line_index in fenced_indexes:
+                continue
+            stripped_line = line.strip()
+            if not stripped_line or _MARKDOWN_HEADING.fullmatch(stripped_line):
+                continue
+            is_table_line = "|" in line
+            units = line.split("|") if is_table_line else [line]
+            for unit_index, unit in enumerate(units):
+                pieces = re.split(r"(<br\s*/?>)", unit, flags=re.IGNORECASE)
+                for piece_index in range(0, len(pieces), 2):
+                    piece = pieces[piece_index]
+                    if _RAW_EVIDENCE_MARKER.search(piece) is not None:
+                        continue
+                    fragments = _evidence_clause_fragments(piece.strip())
+                    parsed_candidates = [
+                        candidate
+                        for fragment in fragments
+                        for candidate in (
+                            _split_unresolved_assertions(fragment)
+                            if _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment)
+                            else [fragment.strip()]
+                        )
+                        if candidate
+                    ]
+                    candidates = [
+                        *[
+                            fragment
+                            for fragment in fragments
+                            if any(excerpt in fragment for excerpt in excerpts)
+                        ],
+                        *[
+                            excerpt
+                            for excerpt in excerpts
+                            if excerpt in piece
+                        ],
+                        *parsed_candidates,
+                    ]
+                    for candidate in candidates:
+                        normalized = re.sub(r"\s+", " ", candidate).strip()
+                        if not any(
+                            excerpt == normalized or excerpt in normalized
+                            for excerpt in normalized_excerpts
+                        ):
+                            continue
+                        candidate_index = piece.find(candidate)
+                        if candidate_index < 0:
+                            continue
+                        replacement = _as_publication_unknown_item(candidate)
+                        trial_pieces = [*pieces]
+                        trial_pieces[piece_index] = (
+                            piece[:candidate_index]
+                            + replacement
+                            + piece[candidate_index + len(candidate) :]
+                        )
+                        trial_units = [*units]
+                        trial_units[unit_index] = "".join(trial_pieces)
+                        trial_lines = [*lines]
+                        trial_lines[line_index] = "|".join(trial_units)
+                        trial = "\n".join(trial_lines)
+                        trial_defects = _projection_evidence_defects(
+                            context,
+                            trial,
+                            preserve_duplicate_occurrences=True,
+                        )
+                        trial_substantive, trial_practical = (
+                            _deterministic_quality_defects(
+                                trial,
+                                practical_output_required=(
+                                    context.practical_output_required
+                                ),
+                                artifact_type=context.artifact_type,
+                            )
+                        )
+                        if (
+                            len(trial_defects) >= len(defects)
+                            or Counter(trial_defects) - Counter(defects)
+                            or _final_repair_topology_defects(before_topology, trial)
+                            or set(
+                                _deterministic_structural_integrity_defects(trial)
+                            ).difference(before_structural)
+                            or set(
+                                _incomplete_given_when_then_acceptance_blocks(trial)
+                            ).difference(before_gwt)
+                            or set(trial_substantive).difference(before_substantive)
+                            or set(trial_practical).difference(before_practical)
+                        ):
+                            continue
+                        current = trial
+                        changed = True
+                        break
+                    if changed:
+                        break
+                if changed:
+                    break
+            if changed:
+                break
+        if not changed:
+            break
+    return (
+        draft
+        if current == draft.markdown
+        else draft.model_copy(update={"markdown": current})
+    )
+
+
+def _project_strict_final_fallback(
+    context: SynthesisContext, projected: SynthesisDraft
+) -> SynthesisDraft:
+    """Build a conservative fallback while keeping normal validation authoritative."""
+
+    fallback = _project_server_validation_scaffolding(context, projected)
+    fallback = _project_fenced_ascii_roadmaps(context, fallback)
+    fallback = _project_remaining_evidence_defects(context, fallback)
+    fallback = _with_immutable_gap_labels(context, fallback)
+    fallback = _with_accepted_requirement_traceability(context, fallback)
+    return SynthesisDraft.model_validate(fallback)
 
 
 def _project_final_repair_base(
@@ -6182,14 +6651,12 @@ class PydanticAISynthesisWriter:
             and item.artifact.kind == "evaluation"
         )
         evaluation = EvaluationResultV1.model_validate(evaluation_content.payload)
-        semantic_or_quality_defects = (
+        hard_semantic_defects = (
             evaluation.unmet_requirement_ids,
             evaluation.unresolved_source_markers,
             evaluation.contradictions,
             evaluation.stale_topic_references,
             evaluation.readiness_violations,
-            evaluation.substantive_content_defects,
-            evaluation.practicality_defects,
         )
         core_candidates = [
             item
@@ -6230,13 +6697,34 @@ class PydanticAISynthesisWriter:
                     "final_repair_topology": _final_repair_topology(projected.markdown)
                 }
             )
-            if not any(semantic_or_quality_defects):
+            fallback = _project_strict_final_fallback(context, projected)
+            core_substantive, core_practical = _deterministic_quality_defects(
+                core.markdown,
+                practical_output_required=context.practical_output_required,
+                artifact_type=context.artifact_type,
+            )
+            fallback_substantive, fallback_practical = (
+                _deterministic_quality_defects(
+                    fallback.markdown,
+                    practical_output_required=context.practical_output_required,
+                    artifact_type=context.artifact_type,
+                )
+            )
+            evaluator_only_quality = (
+                set(evaluation.substantive_content_defects).difference(
+                    set(core_substantive).difference(fallback_substantive)
+                ),
+                set(evaluation.practicality_defects).difference(
+                    set(core_practical).difference(fallback_practical)
+                ),
+            )
+            if not any(hard_semantic_defects) and not any(evaluator_only_quality):
                 try:
-                    _validate_synthesis(context, projected)
+                    _validate_synthesis(context, fallback)
                 except ValueError:
                     pass
                 else:
-                    validated_fallback = projected
+                    validated_fallback = fallback
         prompt = self._final_repair_prompt(input_value, selected_contents, context)
         try:
             result = await self._run_validated_agent(
