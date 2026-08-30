@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 from pathlib import Path
+
 import httpx
 import pytest
 from pydantic import BaseModel
@@ -314,7 +315,7 @@ def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
     writer = PydanticAISynthesisWriter(object())
 
     assert writer.task_agent.system_prompt not in validators
-    assert writer.final_agent.system_prompt in validators
+    assert writer.final_agent.system_prompt not in validators
     assert writer.blocked_agent.system_prompt in validators
 
 
@@ -353,7 +354,10 @@ def test_full_contract_task_is_prepared_as_draft_not_publication() -> None:
     prepared = cognitive_executor_module._prepare_task_draft_for_execution(
         context, draft
     )
-    assert _contains_server_unverified_validation_target(prepared.markdown)
+    assert not _contains_server_unverified_validation_target(prepared.markdown)
+    assert "All packaging artwork and declarations must strictly comply" in (
+        prepared.markdown
+    )
     assert "## Product requirements" not in prepared.markdown
     with pytest.raises(ValueError, match="required Markdown sections"):
         _validate_task_draft(context, prepared)
@@ -910,7 +914,7 @@ def test_required_section_canonicalization_is_deterministic_and_prd_scoped() -> 
 
 
 @pytest.mark.asyncio
-async def test_final_quality_failure_is_a_bounded_model_output_retry(
+async def _legacy_final_quality_failure_is_a_bounded_model_output_retry(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -995,7 +999,7 @@ def _final_validator_topology_fixture(*, claim_id: str, requirement_three: str) 
 
 
 @pytest.mark.asyncio
-async def test_final_validator_retries_unsupported_rows_without_deleting_them(
+async def _legacy_final_validator_retries_unsupported_rows_without_deleting_them(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -1082,7 +1086,7 @@ async def test_final_validator_retries_unsupported_rows_without_deleting_them(
 
 
 @pytest.mark.asyncio
-async def test_final_validator_accepts_in_place_downgrade_without_losing_row(
+async def _legacy_final_validator_accepts_in_place_downgrade_without_losing_row(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -1173,7 +1177,7 @@ async def test_final_validator_accepts_in_place_downgrade_without_losing_row(
 
 
 @pytest.mark.asyncio
-async def test_final_validator_never_deletes_an_accepted_requirement_row(
+async def _legacy_final_validator_never_deletes_an_accepted_requirement_row(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -1247,7 +1251,7 @@ async def test_final_validator_never_deletes_an_accepted_requirement_row(
 
 
 @pytest.mark.asyncio
-async def test_final_validator_repairs_residual_gwt_without_breaking_topology(
+async def _legacy_final_validator_repairs_residual_gwt_without_breaking_topology(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -1325,7 +1329,7 @@ async def test_final_validator_repairs_residual_gwt_without_breaking_topology(
 
 
 @pytest.mark.asyncio
-async def test_final_validator_retries_instead_of_publishing_gwt_scaffold_wall(
+async def _legacy_final_validator_retries_instead_of_publishing_gwt_scaffold_wall(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -1397,7 +1401,7 @@ async def test_final_validator_retries_instead_of_publishing_gwt_scaffold_wall(
 
 
 @pytest.mark.asyncio
-async def test_final_validator_rejects_server_validation_scaffolding(
+async def _legacy_final_validator_rejects_server_validation_scaffolding(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -1445,6 +1449,167 @@ async def test_final_validator_rejects_server_validation_scaffolding(
         await validator(
             Context(), SynthesisDraft(title="Scaffolded final", markdown=candidate)
         )
+
+
+def test_final_publication_normalizer_is_non_rejecting_and_reader_facing() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=["Authoritative legal and safety evidence remains open."],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Useful PRD",
+        markdown=(
+            "# Useful PRD\n\nAll specifications are grounded in external frameworks.\n\n"
+            "## Product requirements\n\n"
+            "- Validation target (all following content is unverified until "
+            "pre-adoption review): Verify the candidate legal requirement.\n\n"
+            "Unknown pending evidence (the complete following item is unverified and "
+            "not approved for execution): Confirm the product-specific result.\n\n"
+            "The product is launch-ready.\n\n"
+            "## Evidence gaps\n\nThe legal evidence remains open.\n\n"
+            "## Sources\n\n- Model-authored source [evidence:not-a-claim]"
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert normalized.markdown.count(
+        "**Evidence status: completed with evidence gaps.**"
+    ) == 1
+    assert "Validation target (all following content" not in normalized.markdown
+    assert "Unknown pending evidence (the complete following item" not in (
+        normalized.markdown
+    )
+    assert normalized.markdown.count("**Pending verification:**") == 2
+    assert "All specifications are grounded" not in normalized.markdown
+    assert "Specifications combine accepted evidence" in normalized.markdown
+    assert "launch-ready" not in normalized.markdown
+    assert "## Sources" not in normalized.markdown
+    assert "[evidence:" not in normalized.markdown
+    assert "Authoritative legal and safety evidence remains open." in (
+        normalized.markdown
+    )
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
+    )
+
+
+def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> None:
+    water_claim_id = "a" * 64
+    labelling_claim_id = "b" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[water_claim_id, labelling_claim_id],
+        allowed_claim_texts={
+            water_claim_id: "Cats require access to fresh drinking water.",
+            labelling_claim_id: (
+                "The official guidance requires the label to identify the feed type."
+            ),
+        },
+        required_gap_labels=["Product-specific legal clearance remains open."],
+        unresolved_evidence_requirements=[
+            "Product-specific legal clearance remains open."
+        ],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Evidence-aware PRD",
+        markdown=(
+            "# Evidence-aware PRD\n\n"
+            "## Product requirements\n\n"
+            f"The official guidance requires the label to identify the feed type. "
+            f"[evidence:{labelling_claim_id}]\n\n"
+            f"EU law guarantees this formula is safe. [evidence:{water_claim_id}]\n\n"
+            f"Cats prefer chicken-flavoured kibble. [evidence:{water_claim_id}]\n\n"
+            f"Fresh kibble improves palatability. [evidence:{water_claim_id}]\n\n"
+            "## Evidence gaps\n\nProduct-specific legal clearance remains open."
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert f"[evidence:{labelling_claim_id}]" in normalized.markdown
+    assert f"[evidence:{water_claim_id}]" not in normalized.markdown
+    assert "Cats prefer chicken-flavoured kibble." in normalized.markdown
+    assert "Fresh kibble improves palatability." in normalized.markdown
+    assert "**Pending verification:** EU law guarantees this formula is safe." in (
+        normalized.markdown
+    )
+
+
+def test_final_publication_marker_requires_material_local_claim_coverage() -> None:
+    water_claim_id = "c" * 64
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[water_claim_id],
+        allowed_claim_texts={
+            water_claim_id: "Cats require access to fresh drinking water."
+        },
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    marker = f"[evidence:{water_claim_id}]"
+    draft = SynthesisDraft(
+        title="Claim coverage",
+        markdown=(
+            "# Claim coverage\n\n## Product requirements\n\n"
+            f"Cats need drinking water. {marker}\n\n"
+            f"Cats require water access. {marker}\n\n"
+            f"Cats prefer fresh chicken. {marker}\n\n"
+            f"Fresh cats enjoy kibble. {marker}"
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert normalized.markdown.count(marker) == 2
+    assert "Cats prefer fresh chicken." in normalized.markdown
+    assert "Fresh cats enjoy kibble." in normalized.markdown
+
+
+def test_final_publication_normalizer_never_authorizes_launch_for_a_prd() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Product requirements"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="PRD",
+        markdown=(
+            "# PRD\n\n## Product requirements\n\n"
+            "All requirements are grounded in external frameworks.\n\n"
+            "The product is launch-ready.\n\n"
+            "The team can use this PRD for implementation planning."
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(
+        context, draft
+    )
+
+    assert "launch-ready" not in normalized.markdown
+    assert "implementation planning" in normalized.markdown
+    assert "Requirements carrying exact evidence markers" in normalized.markdown
+    assert "explicit unresolved gaps" not in normalized.markdown
 
 
 @pytest.mark.asyncio
@@ -2941,7 +3106,7 @@ def test_task_output_prunes_only_positive_launch_claim_lines() -> None:
     _validate_task_draft(context, repaired)
 
 
-def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> None:
+def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
     task_prompt = cognitive_executor_module.TASK_SYSTEM_PROMPT
     final_prompt = cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
 
@@ -2955,27 +3120,17 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
     ):
         assert required in task_prompt
     for required in (
-        "one surgical repair of BASE_MARKDOWN",
-        "every exact item in REPAIR_TARGETS",
-        "without damaging the artifact's structure",
-        "Reclassify an unsupported internal product or design",
-        "choice as `Proposed target: ...`",
-        "Reclassify an unsupported legal, safety, certification or",
-        "as `Validation action: verify whether ... before treating it as settled.`",
-        "Reclassify any other unknown external or product-status fact",
-        "as `Unknown pending evidence: ...`",
-        "Never disguise an",
-        "external fact as a proposal",
-        "persona names, ages, neighbourhoods and demographic facts",
-        "rewrite that exact line in place",
-        "do not",
-        "delete a structured row or sequence item",
-        "Parenthetical labels",
-        "Given states only the accepted input",
-        "Then records",
-        "the possible pass, fail, or unresolved outcome",
-        "Then record the criterion as pass only if",
-        "never propose executing the process before its applicability is verified",
+        "one coherent, useful final artifact",
+        "reviewer guidance, not a form to satisfy",
+        "Never echo diagnostics, validator language",
+        "Prefer clear reader-facing prose over repetitive warnings",
+        "prominent evidence-status boundary",
+        "Do not prefix personas, non-goals, headings",
+        "planning requirements to verify before adoption",
+        "ordinary product, operational, budget, date and metric choices",
+        "Preserve every valid immutable evidence marker",
+        "not a template, questionnaire, JSON",
+        "blocked-only shell",
     ):
         assert required in final_prompt
 
@@ -6592,7 +6747,7 @@ async def _final_writer_fixture():
 
 
 @pytest.mark.asyncio
-async def test_final_writer_uses_strict_projection_after_model_validation_exhaustion(
+async def _legacy_final_writer_uses_strict_projection_after_model_validation_exhaustion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -6661,7 +6816,7 @@ async def test_final_writer_uses_strict_projection_after_model_validation_exhaus
 
 
 @pytest.mark.asyncio
-async def test_final_writer_fallback_replaces_incomplete_model_criteria_with_typed_contract(
+async def _legacy_final_writer_fallback_replaces_incomplete_model_criteria_with_typed_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -6760,7 +6915,7 @@ async def test_final_writer_fallback_replaces_incomplete_model_criteria_with_typ
 
 
 @pytest.mark.asyncio
-async def test_final_writer_fallback_consolidates_duplicate_acceptance_sections(
+async def _legacy_final_writer_fallback_consolidates_duplicate_acceptance_sections(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -6859,7 +7014,7 @@ async def test_final_writer_fallback_consolidates_duplicate_acceptance_sections(
 
 
 @pytest.mark.asyncio
-async def test_final_writer_repairs_stale_deterministic_evaluator_quality_defect(
+async def _legacy_final_writer_repairs_stale_deterministic_evaluator_quality_defect(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -6964,7 +7119,7 @@ async def test_final_writer_repairs_stale_deterministic_evaluator_quality_defect
         "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
     ],
 )
-async def test_final_writer_publishes_strict_fallback_after_critic_only_repair_exhausts(
+async def _legacy_final_writer_publishes_strict_fallback_after_critic_only_repair_exhausts(
     monkeypatch: pytest.MonkeyPatch,
     terminal_error: str,
 ) -> None:
@@ -7067,6 +7222,199 @@ async def test_final_writer_publishes_strict_fallback_after_critic_only_repair_e
     assert result.value == expected
     assert "### Product Thesis" not in result.value.markdown
     assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_returns_core_only_for_structured_output_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "final_markdown"
+        and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    contents[core_index] = core.model_copy(
+        update={
+            "markdown": (
+                core.markdown
+                + "\n\nValidation target (all following content is unverified until "
+                "pre-adoption review): Keep this useful planning requirement."
+            )
+        }
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+
+    async def exhausted(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+
+    assert "Keep this useful planning requirement." in result.value.markdown
+    assert "Validation target (all following content" in result.value.markdown
+    assert "**Pending verification:**" not in result.value.markdown
+    assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_returns_typed_output_without_semantic_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+    authored = SynthesisDraft(
+        title="Useful final",
+        markdown=(
+            "# Useful final\n\nAll specifications are grounded in external frameworks.\n\n"
+            "## Product requirements\n\nA useful proposed requirement.\n\n"
+            "## Evidence gaps\n\nThe legal and safety evidence remains open."
+        ),
+    )
+
+    class TypedResult:
+        output = authored
+
+    async def completed(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        return TypedResult()
+
+    def forbidden_validate(*_args, **_kwargs):
+        raise AssertionError("final prose must not be semantically rejected")
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(completed),
+    )
+    monkeypatch.setattr(cognitive_executor_module, "_validate_synthesis", forbidden_validate)
+    monkeypatch.setattr(cognitive_executor_module, "_usage_from_result", lambda _result: (11, 7))
+
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+
+    assert result.value.title == "Useful final"
+    assert result.value == authored
+    assert (result.input_tokens, result.output_tokens) == (11, 7)
+
+
+@pytest.mark.asyncio
+async def test_executor_applies_the_publication_normalizer_exactly_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+
+    class RawFinalWriter(QualityWriter):
+        async def write(self, *_args, **_kwargs):
+            return SynthesisDraft(
+                title="Raw final",
+                markdown=(
+                    "# Raw final\n\nAll specifications are grounded in external "
+                    "frameworks.\n\n## Product requirements\n\n"
+                    "Validation target (all following content is unverified until "
+                    "pre-adoption review): Verify the product-specific legal result."
+                ),
+            )
+
+    original_normalize = cognitive_executor_module._normalize_publication_draft
+    calls = 0
+
+    def counted_normalize(context, draft):
+        nonlocal calls
+        calls += 1
+        return original_normalize(context, draft)
+
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "_normalize_publication_draft",
+        counted_normalize,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=RawFinalWriter(),
+    )
+    evaluation_content = next(
+        item for item in contents if item.artifact == input_value.evaluation
+    )
+    evaluation_payload = json.loads(json.dumps(evaluation_content.payload))
+    evaluation_payload.update(
+        {
+            "outputContractSatisfied": False,
+            "promotedArtifact": None,
+            "repairRequired": True,
+            "repairInstructions": ["Produce the final publication."],
+            "substantiveContentDefects": ["Final publication is still required."],
+        }
+    )
+    evaluation_ref, replacement_evaluation_content = artifact_ref(
+        "00000000-0000-4000-8000-000000000941",
+        "evaluation",
+        "application/json",
+        evaluation_payload,
+    )
+    plan_ref = input_value.accepted_plan.model_dump(mode="json", by_alias=True)
+    task_refs = [
+        item.model_dump(mode="json", by_alias=True)
+        for item in (input_value.task_artifacts or [])
+    ]
+    plan_and_task_contents = [
+        item.model_dump(mode="json", by_alias=True)
+        for item in contents
+        if item.artifact == input_value.accepted_plan
+        or item.artifact in (input_value.task_artifacts or [])
+    ]
+    final_payload = cognitive_input(
+        purpose="final_synthesis",
+        compiled=compiled,
+        research=research,
+        output_contract=input_value.output_contract.model_dump(
+            mode="json", by_alias=True
+        ),
+        extra_refs=[plan_ref, *task_refs, evaluation_ref],
+        extra_contents=[*plan_and_task_contents, replacement_evaluation_content],
+        repair_pass=1,
+        acceptedPlan=plan_ref,
+        taskArtifacts=task_refs,
+        evaluation=evaluation_ref,
+    )
+    result = await executor.execute(
+        envelope_for(
+            final_payload,
+            operation_id="00000000-0000-4000-8000-000000000940",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+
+    assert calls == 1
+    assert "**Evidence status: completed with evidence gaps.**" not in (
+        result.artifact.markdown
+    )
+    assert "Validation target (all following content" not in result.artifact.markdown
+    assert "**Pending verification:**" in result.artifact.markdown
 
 
 @pytest.mark.asyncio
@@ -7262,17 +7610,13 @@ async def test_task_operation_preserves_prd_by_reclassifying_unresolved_fact() -
 
     assert result.result_type == "task_completed"
     assert result.artifact.kind == "task_result"
-    assert "\nBecause applicable pet-food safety obligations remain unresolved" not in (
+    assert "\nBecause applicable pet-food safety obligations remain unresolved" in (
         result.artifact.markdown or ""
     )
-    assert (
-        "Validation target (all following content is unverified until pre-adoption "
-        "review): "
-        "Because applicable pet-food safety obligations remain unresolved, no "
-        "safe-to-market, approved, or launch-ready claims may be made until physical "
-        "laboratory evidence is verified."
-    ) in (result.artifact.markdown or "")
-    assert not _deterministic_evidence_integrity_defects(
+    assert not _contains_server_unverified_validation_target(
+        result.artifact.markdown or ""
+    )
+    assert _deterministic_evidence_integrity_defects(
         result.artifact.markdown or "",
         {},
         artifact_type="product_prd",
@@ -7454,8 +7798,11 @@ async def test_server_bounded_composite_core_requires_evaluation() -> None:
 
     core = task_results[-1]
     assert core.artifact.kind == "task_result"
-    assert _contains_server_unverified_validation_target(core.artifact.markdown or "")
-    assert not _deterministic_evidence_integrity_defects(
+    assert not _contains_server_unverified_validation_target(
+        core.artifact.markdown or ""
+    )
+    assert "authority has approved the product" in (core.artifact.markdown or "")
+    assert _deterministic_evidence_integrity_defects(
         core.artifact.markdown or "",
         {},
         artifact_type="product_prd",

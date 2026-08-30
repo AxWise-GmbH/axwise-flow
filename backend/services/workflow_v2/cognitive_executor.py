@@ -1280,56 +1280,32 @@ SYNTHESIS_SYSTEM_PROMPT = (
     _COGNITIVE_BOUNDARY_PROMPT
     + """
 
-Perform one surgical repair of BASE_MARKDOWN using every exact item in REPAIR_TARGETS and
-REPAIR_INSTRUCTIONS. BASE_MARKDOWN is the sole prose draft; do not resynthesize specialist
-packets or echo diagnostics. The server may already have reclassified unsupported fragments
-in BASE_MARKDOWN; never turn those fragments back into verified claims or citations.
-Preserve unaffected evidence-backed analysis, requirements, decisions, acceptance checks,
-metrics and next steps.
-Resolve every listed contradiction and
-remove every unsupported or stale assertion without damaging the artifact's structure. Preserve
-the surrounding heading, list item, table row, requirement ID and sequence position while
-rewriting only the unsupported fragment. Reclassify an unsupported internal product or design
-choice as `Proposed target: ...`. Reclassify an unsupported legal, safety, certification or
-applicability assertion as `Validation action: verify whether ... before treating it as settled.`
-Reclassify any other unknown external or product-status fact as `Unknown pending evidence: ...`
-using a neutral description of what remains unknown, never the original affirmative claim. In a
-Markdown table cell, separate multiple entries with `<br>` so each label remains independently
-scoped. Never disguise an external fact as a proposal. A mismatched citation must be narrowed to
-the exact text in
-ALLOWED_CLAIMS or removed from the rewritten fragment; never invent support. Preserve useful
-product, operational, budget, date and metric choices as explicit proposals or validation
-targets, but do not mix them in the same sentence or table cell as an evidence marker. Remove
-invented persona names, ages, neighbourhoods and demographic facts; retain neutral user
-archetypes and jobs. Never remove a valid evidence marker while retaining the factual assertion
-it supported. Preserve matching prioritized-requirement and acceptance-criterion IDs and every
-leading/interior item in every explicit numbered sequence; replace an unsafe structured row or
-list item coherently rather than leaving a hole. If validator feedback names a remaining
-unsupported assertion, rewrite that exact line in place using the controlled forms above; do not
-delete a structured row or sequence item. Use ordinary Markdown tables,
-never ASCII-art tables inside code fences. Keep level-two section headings unique, and never
-leave a heading or subsection without substantive content. Cover every required section as a
-Markdown heading. Treat product
-or market success as a hypothesis unless an exact immutable claim supports it.
-Parenthetical labels such as `(Validation target)` or `(Planning proposal)` do not by
-themselves make an assertion provisional. Use `Proposed target:` only for an internal
-planning choice, or use `Validation action: verify whether ... before treating it as
-settled.` for an external fact that still requires evidence. In Given/When/Then criteria,
-Given states only the accepted input, When names the verification action, and Then records
-the possible pass, fail, or unresolved outcome; never relabel an unsupported Given or Then
-assertion as a validation target. When a Then outcome depends on unresolved evidence, use
-the controlled form `Then record the criterion as pass only if ... is independently
-verified; otherwise record it as unresolved.` Never state safe, compliant, approved,
-certified, authorized, permitted, or equivalent status as the conditional outcome.
-For an authority, legal, filing, notification, dossier, certification, or clearance process,
-never propose executing the process before its applicability is verified. State only a
-validation action that verifies whether the process applies.
-When evidence is not ready, state the boundary exactly as `Commercial launch is prohibited
-until the unresolved evidence is verified.` Do not use `launch-ready`, `market-ready` or
-equivalent adjective forms even in a disclaimer, heading or status label.
-Never stretch a citation beyond its
-exact immutable claim text. Do not add new evidence claims. Return one useful final title and Markdown,
-not a shell, questionnaire, workflow commentary or JSON dump.
+Turn BASE_MARKDOWN into one coherent, useful final artifact. Preserve its strongest analysis,
+decisions, requirements, acceptance checks, metrics, risks and next steps. REPAIR_TARGETS and
+REPAIR_INSTRUCTIONS are reviewer guidance, not a form to satisfy and not instructions to repeat;
+apply only corrections that are concrete and consistent with the accepted scope and immutable
+evidence. Never echo diagnostics, validator language, workflow commentary or internal control
+metadata into the deliverable.
+
+Prefer clear reader-facing prose over repetitive warnings. When evidence is incomplete, state one
+prominent evidence-status boundary near the beginning, keep the exact unresolved items in the
+evidence-gaps section, and label only the particular affected claim or requirement as pending
+verification. Do not prefix personas, non-goals, headings, ordinary product choices, or the
+planning-artifact boundary with generic evidence warnings. Keep a useful PRD deliverable even
+when product-specific launch authorization or safety clearance is unavailable; never imply that
+the artifact itself grants launch, legal, safety, certification or market approval.
+
+Preserve every valid immutable evidence marker and never broaden its exact supported claim.
+Remove a mismatched marker instead of inventing support. Treat unsupported legal, safety,
+certification or authority statements as planning requirements to verify before adoption. Treat
+ordinary product, operational, budget, date and metric choices as explicit proposals or targets,
+not verified external facts. Preserve neutral persona archetypes and jobs; do not invent names,
+ages, neighbourhoods, demographics, interviews or quotations. Use ordinary Markdown tables,
+complete Given/When/Then acceptance checks and substantive section content. Never author a
+Sources appendix because the server appends it from immutable claim metadata.
+
+Return one substantial final title and Markdown document, not a template, questionnaire, JSON
+dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
 """
 ).strip()
 
@@ -6081,7 +6057,9 @@ def _project_strict_task_fallback(
     return draft.model_copy(update={"markdown": projected.markdown})
 
 
-def _without_model_owned_task_appendix(draft: TaskDraft) -> TaskDraft:
+def _without_model_owned_task_appendix(
+    draft: TaskDraft | SynthesisDraft,
+) -> TaskDraft | SynthesisDraft:
     """Drop model-authored source sections; the server owns the exact appendix."""
 
     lines = draft.markdown.splitlines()
@@ -6120,8 +6098,8 @@ def _without_model_owned_task_appendix(draft: TaskDraft) -> TaskDraft:
 
 
 def _without_unbound_task_evidence_markers(
-    context: SynthesisContext, draft: TaskDraft
-) -> TaskDraft:
+    context: SynthesisContext, draft: TaskDraft | SynthesisDraft
+) -> TaskDraft | SynthesisDraft:
     """Remove malformed or foreign markers while preserving the draft for evaluation."""
 
     allowed = set(context.allowed_claim_ids)
@@ -6149,6 +6127,240 @@ def _without_unbound_task_evidence_markers(
     )
 
 
+_OVERBROAD_PUBLICATION_GROUNDING_CLAIM = re.compile(
+    r"\bAll\s+(?P<subject>specifications|requirements|claims|constraints)\s+are\s+"
+    r"(?:fully\s+)?(?:grounded|verified|validated|evidence-backed)"
+    r"(?:\s+in\s+[^.?!]*)?[.?!]",
+    re.IGNORECASE,
+)
+_PUBLICATION_EVIDENCE_STATUS_BLOCK = (
+    "> **Evidence status: completed with evidence gaps.** This is a useful "
+    "planning artifact, not launch authorization. Items marked **Pending "
+    "verification** and the explicit legal, safety, product, or market gaps "
+    "below must be resolved before relying on them for execution or launch."
+)
+
+
+def _immutable_claim_covers_publication_assertion(
+    assertion: str, claim_text: str
+) -> bool:
+    """Require broad local token coverage, not one or two coincidental words."""
+
+    assertion_tokens = _expanded_support_tokens(assertion)
+    claim_tokens = _expanded_support_tokens(claim_text)
+    if not assertion_tokens or not claim_tokens:
+        return False
+    matched = {
+        left
+        for left in assertion_tokens
+        if any(
+            left == right
+            or (len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6])
+            for right in claim_tokens
+        )
+    }
+    minimum_matches = min(2, len(assertion_tokens))
+    return (
+        len(matched) >= minimum_matches
+        and len(matched) * 3 >= len(assertion_tokens) * 2
+    )
+
+
+def _without_mismatched_publication_evidence_markers(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Keep a marker only when its immutable claim supports the local assertion.
+
+    This is deterministic provenance cleanup, not a semantic acceptance gate: an
+    unrelated marker is removed and the useful prose remains available for publication.
+    """
+
+    def clean_fragment(fragment: str) -> str:
+        marker_ids = [
+            match.group(1) for match in _RAW_EVIDENCE_MARKER.finditer(fragment)
+        ]
+        if not marker_ids:
+            return fragment
+        assertion = _RAW_EVIDENCE_MARKER.sub("", fragment)
+        assertion_values = _precision_values(assertion)
+        sensitive = bool(
+            _EVIDENCE_SENSITIVE_ASSERTION.search(assertion)
+            or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(assertion)
+            or _materially_matches_unresolved_requirement(
+                assertion, context.unresolved_evidence_requirements
+            )
+        )
+        minimum_matches = (
+            min(3, max(1, len(_support_tokens(assertion))))
+            if _FORMULA_MARKER.search(assertion)
+            else min(2, max(1, len(_support_tokens(assertion))))
+            if sensitive
+            else 1
+        )
+        retained_ids = [
+            claim_id
+            for claim_id in marker_ids
+            if claim_id in context.allowed_claim_texts
+            and _assertions_share_explicit_polarity(
+                assertion, context.allowed_claim_texts[claim_id]
+            )
+            and _immutable_claim_covers_publication_assertion(
+                assertion, context.allowed_claim_texts[claim_id]
+            )
+        ]
+        retained_texts = [context.allowed_claim_texts[item] for item in retained_ids]
+        collectively_supported = bool(retained_texts) and not assertion_values.difference(
+            set().union(*(_precision_values(text) for text in retained_texts))
+        )
+        collectively_supported = collectively_supported and _claims_align_with_assertion(
+            assertion,
+            retained_texts,
+            minimum_matches=minimum_matches,
+        )
+        retained = set(retained_ids if collectively_supported else [])
+        cleaned = _RAW_EVIDENCE_MARKER.sub(
+            lambda match: match.group(0) if match.group(1) in retained else "",
+            fragment,
+        )
+        return re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
+
+    lines: list[str] = []
+    for line in draft.markdown.splitlines():
+        table_units = re.split(r"((?<!\\)\|)", line)
+        for unit_index in range(0, len(table_units), 2):
+            pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
+            for piece_index in range(0, len(pieces), 2):
+                piece = re.sub(
+                    r"(?P<punct>[.!?;])(?P<spacing>[ \t]+)"
+                    r"(?P<markers>(?:\[evidence:[^\]\r\n]+\][ \t]*)+)$",
+                    lambda match: (
+                        f"{match.group('spacing')}{match.group('markers').rstrip()}"
+                        f"{match.group('punct')}"
+                    ),
+                    pieces[piece_index],
+                )
+                pieces[piece_index] = piece
+                for fragment in _evidence_clause_fragments(piece):
+                    if _RAW_EVIDENCE_MARKER.search(fragment) is None:
+                        continue
+                    pieces[piece_index] = pieces[piece_index].replace(
+                        fragment, clean_fragment(fragment), 1
+                    )
+            table_units[unit_index] = "".join(pieces)
+        lines.append("".join(table_units))
+    markdown = "\n".join(lines)
+    return (
+        draft
+        if markdown == draft.markdown
+        else draft.model_copy(update={"markdown": markdown})
+    )
+
+
+def _normalize_publication_draft(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Apply one non-rejecting AxWise publication boundary.
+
+    Typed model parsing remains bounded, but prose is not sent through another semantic
+    retry loop. This normalizer keeps immutable provenance and launch boundaries while
+    preserving the useful document the model authored.
+    """
+
+    prepared = SynthesisDraft.model_validate(draft)
+    prepared = SynthesisDraft.model_validate(
+        _without_model_owned_task_appendix(prepared)
+    )
+    prepared = SynthesisDraft.model_validate(
+        _without_unbound_task_evidence_markers(context, prepared)
+    )
+    prepared = prepared.model_copy(
+        update={
+            "markdown": "\n".join(
+                line
+                for line in prepared.markdown.splitlines()
+                if line.strip() != _PUBLICATION_EVIDENCE_STATUS_BLOCK
+            )
+        }
+    )
+    if context.purpose != "blocked_report":
+        prepared = _without_mismatched_publication_evidence_markers(context, prepared)
+        prepared = _project_remaining_evidence_defects(
+            context,
+            prepared,
+            defect_selector=_is_hard_task_evidence_defect,
+        )
+
+    lines: list[str] = []
+    for line in prepared.markdown.splitlines():
+        heading_line = line.lstrip().startswith("#")
+        replacement_prefix = "" if heading_line else "**Pending verification:** "
+        cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE.sub(
+            lambda match: replacement_prefix + match.group("body"), line
+        )
+        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
+            replacement_prefix, cleaned
+        )
+        lines.append(cleaned)
+    markdown = "\n".join(lines)
+
+    def replace_overbroad_grounding_claim(match: re.Match[str]) -> str:
+        subject = match.group("subject").capitalize()
+        if context.evidence_readiness == "ready":
+            return (
+                f"{subject} carrying exact evidence markers are grounded in immutable "
+                "sources; other statements are planning decisions or proposals."
+            )
+        return (
+            f"{subject} combine accepted evidence with explicit unresolved gaps and "
+            "are not fully verified."
+        )
+
+    markdown = _OVERBROAD_PUBLICATION_GROUNDING_CLAIM.sub(
+        replace_overbroad_grounding_claim, markdown
+    )
+    if not (
+        context.evidence_readiness == "ready"
+        and context.artifact_type == "launch_authorization"
+    ):
+        if has_positive_launch_readiness_claim(markdown):
+            markdown = _markdown_without_matching_lines(
+                markdown, has_positive_launch_readiness_claim
+            ).strip()
+
+    prepared = prepared.model_copy(update={"markdown": markdown})
+    prepared = SynthesisDraft.model_validate(
+        _with_immutable_gap_labels(context, prepared)
+    )
+    prepared = SynthesisDraft.model_validate(
+        _with_accepted_requirement_traceability(context, prepared)
+    )
+
+    if context.evidence_readiness == "ready_with_gaps":
+        markdown_lines = prepared.markdown.splitlines()
+        if markdown_lines and markdown_lines[0].startswith("# "):
+            first, remainder = markdown_lines[0], markdown_lines[1:]
+            while remainder and not remainder[0].strip():
+                remainder.pop(0)
+            markdown_lines = [
+                first,
+                "",
+                _PUBLICATION_EVIDENCE_STATUS_BLOCK,
+                "",
+                *remainder,
+            ]
+        else:
+            while markdown_lines and not markdown_lines[0].strip():
+                markdown_lines.pop(0)
+            markdown_lines = [
+                _PUBLICATION_EVIDENCE_STATUS_BLOCK,
+                "",
+                *markdown_lines,
+            ]
+        prepared = prepared.model_copy(update={"markdown": "\n".join(markdown_lines)})
+
+    return SynthesisDraft.model_validate(prepared)
+
+
 def _prepare_task_draft_for_execution(
     context: SynthesisContext, draft: TaskDraft
 ) -> TaskDraft:
@@ -6158,12 +6370,6 @@ def _prepare_task_draft_for_execution(
     prepared = _with_immutable_gap_labels(context, prepared)
     prepared = _with_task_evidence_status_section(context, prepared)
     prepared = _without_forbidden_task_launch_claim_lines(context, prepared)
-    prepared = _prepare_task_unresolved_actions(
-        context,
-        prepared,
-        allow_composite_authority_targets=True,
-    )
-    prepared = _project_strict_task_fallback(context, prepared)
     prepared = _without_model_owned_task_appendix(prepared)
     prepared = _without_unbound_task_evidence_markers(context, prepared)
     prepared = _with_accepted_requirement_traceability(context, prepared)
@@ -6176,6 +6382,12 @@ def _prepare_task_draft_for_validation(
     """Compatibility helper for tests and explicit final-candidate validation."""
 
     prepared = _prepare_task_draft_for_execution(context, draft)
+    prepared = _prepare_task_unresolved_actions(
+        context,
+        prepared,
+        allow_composite_authority_targets=True,
+    )
+    prepared = _project_strict_task_fallback(context, prepared)
     try:
         _validate_task_draft(context, prepared)
     except ValueError as error:
@@ -6668,20 +6880,6 @@ class PydanticAISynthesisWriter:
             retries={"output": 2},
         )
 
-        @self.final_agent.output_validator
-        async def validate_final_output(
-            ctx: RunContext[SynthesisContext], output: SynthesisDraft
-        ) -> SynthesisDraft:
-            output = _with_immutable_gap_labels(ctx.deps, output)
-            output = _repair_final_gwt_evidence_assertions(ctx.deps, output)
-            output = _with_immutable_gap_labels(ctx.deps, output)
-            output = _with_accepted_requirement_traceability(ctx.deps, output)
-            try:
-                _validate_synthesis(ctx.deps, output)
-            except ValueError as error:
-                raise ModelRetry(str(error)) from error
-            return output
-
         @self.blocked_agent.output_validator
         async def validate_blocked_output(
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
@@ -7146,14 +7344,7 @@ class PydanticAISynthesisWriter:
             if item.artifact == input_value.evaluation
             and item.artifact.kind == "evaluation"
         )
-        evaluation = EvaluationResultV1.model_validate(evaluation_content.payload)
-        hard_semantic_defects = (
-            evaluation.unmet_requirement_ids,
-            evaluation.unresolved_source_markers,
-            evaluation.contradictions,
-            evaluation.stale_topic_references,
-            evaluation.readiness_violations,
-        )
+        EvaluationResultV1.model_validate(evaluation_content.payload)
         core_candidates = [
             item
             for item in selected_contents
@@ -7180,43 +7371,18 @@ class PydanticAISynthesisWriter:
                 )
             )
         ]
-        validated_fallback: SynthesisDraft | None = None
+        core_fallback: SynthesisDraft | None = None
         if len(core_candidates) == 1:
             core = core_candidates[0]
-            projected = _project_final_repair_base(
-                context,
+            core_fallback = SynthesisDraft(
                 title=str(core.payload.get("title") or "Final artifact"),
                 markdown=core.markdown,
             )
-            model_context = context.model_copy(
+            context = context.model_copy(
                 update={
-                    "final_repair_topology": _final_repair_topology(projected.markdown)
+                    "final_repair_topology": _final_repair_topology(core.markdown)
                 }
             )
-            canonical_projected = _with_canonical_acceptance_criteria(
-                context, projected
-            )
-            canonical_projected = _without_empty_noncontract_subheadings(
-                context, canonical_projected
-            )
-            fallback_context = context.model_copy(
-                update={
-                    "final_repair_topology": _final_repair_topology(
-                        canonical_projected.markdown
-                    )
-                }
-            )
-            fallback = _project_strict_final_fallback(
-                fallback_context, canonical_projected
-            )
-            if not any(hard_semantic_defects):
-                try:
-                    _validate_synthesis(fallback_context, fallback)
-                except ValueError:
-                    pass
-                else:
-                    validated_fallback = fallback
-            context = model_context
         prompt = self._final_repair_prompt(input_value, selected_contents, context)
         try:
             result = await self._run_validated_agent(
@@ -7226,19 +7392,17 @@ class PydanticAISynthesisWriter:
                 phase="FINAL",
             )
         except CognitiveExecutionFailure as error:
-            if validated_fallback is None or not error.error_class.startswith(
-                "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_"
+            if (
+                core_fallback is None
+                or error.error_class
+                != "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID"
             ):
                 raise
-            # Give the bounded model repair first chance to improve readability. If its
-            # output retries exhaust, publish only the already strict, evidence-only
-            # projection instead of failing a semantically complete workflow.
-            return ModelOutput(validated_fallback, 0, 0)
-        output = _with_immutable_gap_labels(context, result.output)
-        output = _with_accepted_requirement_traceability(context, output)
-        _validate_synthesis(context, output)
+            return ModelOutput(core_fallback, 0, 0)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(output, input_tokens, output_tokens)
+        return ModelOutput(
+            SynthesisDraft.model_validate(result.output), input_tokens, output_tokens
+        )
 
     async def write_blocked(
         self,
@@ -9726,9 +9890,7 @@ class GeminiCognitiveExecutor:
         else:
             written = ModelOutput(_deterministic_blocked_report(research))
         draft, input_tokens, output_tokens = _unwrap_model_output(written)
-        draft = _with_immutable_gap_labels(common_context, draft)
-        draft = _with_accepted_requirement_traceability(common_context, draft)
-        _validate_synthesis(common_context, draft)
+        draft = _normalize_publication_draft(common_context, draft)
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(
             draft.markdown,
