@@ -299,10 +299,7 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(
     assert captured == ["PromptedOutput"] * 6
 
 
-@pytest.mark.asyncio
-async def test_task_output_validator_bounds_composite_for_non_launch_tasks(
-    monkeypatch,
-) -> None:
+def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
     validators = {}
 
     class CapturingAgent:
@@ -315,10 +312,16 @@ async def test_task_output_validator_bounds_composite_for_non_launch_tasks(
 
     monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
     writer = PydanticAISynthesisWriter(object())
-    validator = validators[writer.task_agent.system_prompt]
+
+    assert writer.task_agent.system_prompt not in validators
+    assert writer.final_agent.system_prompt in validators
+    assert writer.blocked_agent.system_prompt in validators
+
+
+def test_full_contract_task_is_prepared_as_draft_not_publication() -> None:
     context = SynthesisContext(
         purpose="execute_task",
-        required_sections=["Evidence gaps"],
+        required_sections=["Product requirements", "Evidence gaps"],
         evidence_readiness="ready_with_gaps",
         allowed_claim_ids=[],
         allowed_claim_texts={},
@@ -347,29 +350,82 @@ async def test_task_output_validator_bounds_composite_for_non_launch_tasks(
         conclusions=["Retain the useful planning content for bounded review."],
     )
 
-    class FullContractContext:
-        deps = context
+    prepared = cognitive_executor_module._prepare_task_draft_for_execution(
+        context, draft
+    )
+    assert _contains_server_unverified_validation_target(prepared.markdown)
+    assert "## Product requirements" not in prepared.markdown
+    with pytest.raises(ValueError, match="required Markdown sections"):
+        _validate_task_draft(context, prepared)
 
-    validated = await validator(FullContractContext(), draft)
-    assert _contains_server_unverified_validation_target(validated.markdown)
 
-    specialist_context = context.model_copy(update={"required_sections": []})
-
-    class SpecialistContext:
-        deps = specialist_context
-
-    specialist = await validator(SpecialistContext(), draft)
-    assert _contains_server_unverified_validation_target(specialist.markdown)
-
-    launch_context = specialist_context.model_copy(
-        update={"artifact_type": "launch_authorization"}
+def test_task_draft_drops_model_source_appendix_and_unbound_markers() -> None:
+    allowed_claim_id = "a" * 64
+    context = SynthesisContext(
+        purpose="execute_task",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[allowed_claim_id],
+        allowed_claim_texts={allowed_claim_id: "Supported immutable claim."},
+        required_gap_labels=[],
+        acceptance_requirement_ids=["req-plan-01"],
+        artifact_type="product_prd",
+    )
+    draft = TaskDraft(
+        title="Draft with model appendix",
+        markdown=(
+            "# Analysis\n\nSupported immutable claim "
+            f"[evidence:{allowed_claim_id}]. Foreign claim "
+            f"[evidence:{'b' * 64}]. Malformed [evidence:not-a-hash].\n\n"
+            "## Sources\n\n- https://model-invented.invalid/source\n\n"
+            "## Next steps\n\n- Verify remaining decisions."
+        ),
+        requirement_coverage=[
+            {
+                "requirement_id": "req-plan-01",
+                "status": "satisfied",
+                "note": "The analysis addresses the accepted task.",
+            }
+        ],
+        conclusions=["Retain the bounded analysis."],
     )
 
-    class LaunchContext:
-        deps = launch_context
+    prepared = cognitive_executor_module._prepare_task_draft_for_execution(
+        context, draft
+    )
 
-    with pytest.raises(ModelRetry, match="contradicts unresolved evidence"):
-        await validator(LaunchContext(), draft)
+    assert f"[evidence:{allowed_claim_id}]" in prepared.markdown
+    assert f"[evidence:{'b' * 64}]" not in prepared.markdown
+    assert "[evidence:not-a-hash]" not in prepared.markdown
+    assert "## Sources" not in prepared.markdown
+    assert "model-invented.invalid" not in prepared.markdown
+    assert "## Next steps" in prepared.markdown
+
+    before_heading = draft.model_copy(
+        update={
+            "markdown": (
+                f"Supported immutable claim [evidence:{allowed_claim_id}].\n\n"
+                "# Analysis\n\nThe bounded draft continues here."
+            )
+        }
+    )
+    prepared_before_heading = (
+        cognitive_executor_module._prepare_task_draft_for_execution(
+            context, before_heading
+        )
+    )
+    assert "[evidence:" not in prepared_before_heading.markdown
+
+    appendix_only = draft.model_copy(
+        update={"markdown": "# Sources\n\n- https://model-invented.invalid/source"}
+    )
+    prepared_appendix_only = (
+        cognitive_executor_module._prepare_task_draft_for_execution(
+            context, appendix_only
+        )
+    )
+    assert prepared_appendix_only.markdown.startswith("# Task draft")
+    assert "model-invented.invalid" not in prepared_appendix_only.markdown
 
 
 def test_task_preparation_normalizes_every_duplicate_unresolved_assertion() -> None:
@@ -686,7 +742,7 @@ def test_task_does_not_require_an_unrelated_research_citation() -> None:
     _validate_task_draft(context, prepared)
 
 
-def test_task_preparation_keeps_foreign_citations_and_authority_outputs_fatal() -> None:
+def test_task_preparation_sanitizes_foreign_citations_but_keeps_authority_fatal() -> None:
     allowed_claim_id = "b" * 64
     context = SynthesisContext(
         purpose="execute_task",
@@ -715,10 +771,11 @@ def test_task_preparation_keeps_foreign_citations_and_authority_outputs_fatal() 
         requirement_coverage=coverage,
         conclusions=["Preserve the evidence boundary."],
     )
-    with pytest.raises(ValueError, match="outside the immutable claim ledger"):
-        cognitive_executor_module._prepare_task_draft_for_validation(
-            context, foreign_citation
-        )
+    prepared_foreign = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, foreign_citation
+    )
+    assert f"[evidence:{'c' * 64}]" not in prepared_foreign.markdown
+    assert "Supported planning context" in prepared_foreign.markdown
 
     authority_output = foreign_citation.model_copy(
         update={
