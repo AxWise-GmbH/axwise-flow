@@ -1260,8 +1260,11 @@ SYNTHESIS_SYSTEM_PROMPT = (
 
 Perform one surgical repair of BASE_MARKDOWN using every exact item in REPAIR_TARGETS and
 REPAIR_INSTRUCTIONS. BASE_MARKDOWN is the sole prose draft; do not resynthesize specialist
-packets or echo diagnostics. Preserve unaffected evidence-backed analysis, requirements,
-decisions, acceptance checks, metrics and next steps. Resolve every listed contradiction and
+packets or echo diagnostics. The server may already have reclassified unsupported fragments
+in BASE_MARKDOWN; never turn those fragments back into verified claims or citations.
+Preserve unaffected evidence-backed analysis, requirements, decisions, acceptance checks,
+metrics and next steps.
+Resolve every listed contradiction and
 remove every unsupported or stale assertion. Prefer deleting an unsupported sentence or table
 cell over paraphrasing it. A mismatched citation must be narrowed to the exact text in
 ALLOWED_CLAIMS or removed with the unsupported assertion; never invent support. Preserve useful
@@ -2951,9 +2954,15 @@ _UNRESOLVED_UNSUPPORTED_FACT_PREFIX = (
 
 
 def _handled_task_evidence_defect(
-    defect: str, *, full_contract: bool
+    defect: str, *, include_generic: bool = False
 ) -> tuple[str, bool, bool] | None:
-    """Return excerpt, unresolved-authority status, and citation requirement."""
+    """Return only unresolved-authority defects safe to reclassify as actions.
+
+    Full-contract drafts are immutable inputs to evaluation and final repair. Generic
+    precision or citation defects must remain visible to those stages; rewriting them
+    here turns substantive prose into repetitive verification boilerplate and can make
+    an otherwise useful deliverable harder to repair.
+    """
 
     unresolved = defect.startswith(_UNRESOLVED_UNSUPPORTED_FACT_PREFIX) or (
         "unresolved evidence assertion" in defect
@@ -2965,7 +2974,7 @@ def _handled_task_evidence_defect(
             if separator and excerpt
             else None
         )
-    if not full_contract or not defect.startswith(
+    if not include_generic or not defect.startswith(
         (
             "Unsupported factual precision requires an exact evidence marker",
             "Cited immutable claims do not support every exact value in this assertion",
@@ -3018,28 +3027,46 @@ def _as_unresolved_validation_action(
     return f"{list_prefix}Verification: {action}"
 
 
+def _as_unverified_repair_assumption(
+    fragment: str, *, table_cell: bool = False
+) -> str:
+    """Preserve a non-authority proposition without presenting it as verified fact."""
+
+    list_prefix, role_prefix, _role, body = _task_fragment_parts(fragment)
+    body = body.strip().rstrip(" .;:")
+    assumption = f"Unverified assumption: {body}."
+    if role_prefix:
+        return f"{list_prefix}{role_prefix}{assumption}"
+    if table_cell:
+        return assumption
+    return f"{list_prefix}{assumption}"
+
+
 def _prepare_task_unresolved_actions(
-    context: SynthesisContext, draft: TaskDraft
-) -> TaskDraft:
+    context: SynthesisContext,
+    draft: TaskDraft | SynthesisDraft,
+    *,
+    include_generic: bool = False,
+) -> TaskDraft | SynthesisDraft:
     """Withhold unsupported task claims without discarding the useful artifact.
 
     Non-authorizing, evidence-gapped work may retain an uncited unresolved-authority
-    proposition only as an explicit verification action. Full-contract drafts also
-    reclassify bounded unsupported precision and citation mismatches as specific
-    verification actions while preserving the proposition being checked. A causal or
-    coordinator tail that could assert an independent fact is left for the bounded model
-    retry. Strict validation and promotion checks remain authoritative when exact
-    targeting cannot be proven safe.
+    proposition only as an explicit verification action. Generic precision and citation
+    defects remain unchanged for evaluation and final repair. A causal or coordinator
+    tail that could assert an independent fact is left for the bounded model retry.
+    Strict validation and promotion checks remain authoritative when exact targeting
+    cannot be proven safe.
     """
 
-    if (
-        context.artifact_type == "launch_authorization"
-        or context.evidence_readiness != "ready_with_gaps"
-    ):
+    if context.artifact_type == "launch_authorization":
+        return draft
+    if include_generic:
+        if context.evidence_readiness not in {"ready", "ready_with_gaps"}:
+            return draft
+    elif context.evidence_readiness != "ready_with_gaps":
         return draft
 
     current = draft.markdown
-    full_contract = bool(context.required_sections)
 
     def present_required_headings(markdown: str) -> set[str]:
         headings = {
@@ -3088,16 +3115,14 @@ def _prepare_task_unresolved_actions(
             defect_limit=None,
             excerpt_limit=None,
         )
-        if full_contract and len(defects) > 40:
-            # Do not turn a severely unsupported draft into a wall of verification
-            # actions. Let the bounded model retry rewrite it coherently instead.
-            break
         handled = [
             value
             for defect in defects
-            if (value := _handled_task_evidence_defect(
-                defect, full_contract=full_contract
-            ))
+            if (
+                value := _handled_task_evidence_defect(
+                    defect, include_generic=include_generic
+                )
+            )
             is not None
         ]
         if not handled:
@@ -3157,13 +3182,28 @@ def _prepare_task_unresolved_actions(
 
                     if adjacent_marker is not None:
                         target_end += adjacent_marker.end()
-                    _target_excerpt, _unresolved_authority, _cited_defect = target
+                    _target_excerpt, unresolved_authority, _cited_defect = target
                     if _ACTION_ASSERTED_TAIL.search(markerless):
                         # A wrapper must not retain an independently asserted causal or
                         # coordinator tail. Strict validation requests a coherent retry.
                         continue
-                    replacement = _as_unresolved_validation_action(
-                        markerless, table_cell=is_table_line
+                    use_validation_action = unresolved_authority or (
+                        include_generic
+                        and (
+                            _EVIDENCE_SENSITIVE_ASSERTION.search(markerless)
+                            is not None
+                            or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(markerless)
+                            is not None
+                        )
+                    )
+                    replacement = (
+                        _as_unresolved_validation_action(
+                            markerless, table_cell=is_table_line
+                        )
+                        if use_validation_action
+                        else _as_unverified_repair_assumption(
+                            markerless, table_cell=is_table_line
+                        )
                     )
                     trial_unit = unit[:candidate_index] + replacement + unit[target_end:]
                     trial_units = [*units]
@@ -3199,9 +3239,11 @@ def _prepare_task_unresolved_actions(
                     trial_handled = [
                         value
                         for defect in trial_defects
-                        if (value := _handled_task_evidence_defect(
-                            defect, full_contract=full_contract
-                        ))
+                        if (
+                            value := _handled_task_evidence_defect(
+                                defect, include_generic=include_generic
+                            )
+                        )
                         is not None
                     ]
                     if len(trial_handled) >= len(handled):
@@ -3929,6 +3971,29 @@ def _with_accepted_requirement_traceability(
     return draft.model_copy(update={"markdown": repaired})
 
 
+def _project_final_repair_base(
+    context: SynthesisContext, *, title: str, markdown: str
+) -> SynthesisDraft:
+    """Create a conservative repair input without weakening publication checks.
+
+    The immutable task artifact remains unchanged. This projection reclassifies only an
+    exactly targeted fragment or table cell, preserving headings, IDs, owners, list/table
+    topology and Given/When/Then structure. Legal, safety and authority propositions become
+    explicit verification actions; other unsupported propositions become unverified
+    assumptions. Ambiguous or structurally unsafe matches remain unchanged for the bounded
+    model repair. The normal strict synthesis validator remains the publication gate.
+    """
+
+    projected = SynthesisDraft(title=title, markdown=markdown)
+    projected = _with_immutable_gap_labels(context, projected)
+    projected = _prepare_task_unresolved_actions(
+        context, projected, include_generic=True
+    )
+    projected = _with_immutable_gap_labels(context, projected)
+    projected = _with_accepted_requirement_traceability(context, projected)
+    return SynthesisDraft.model_validate(projected)
+
+
 _SERVER_GWT_PLACEHOLDER_BODIES = frozenset(
     {
         ("given", "the applicable planning evidence remains unverified"),
@@ -3943,6 +4008,7 @@ def _contains_server_deliverable_placeholder(markdown: str) -> bool:
     """Detect exact server fallback prose that is safe but not deliverable content."""
 
     unfenced = _markdown_with_fenced_bodies_blanked(markdown)
+    specific_verification_actions = 0
     for line in unfenced.splitlines():
         units = line.split("|") if "|" in line else [line]
         for unit in units:
@@ -3954,6 +4020,14 @@ def _contains_server_deliverable_placeholder(markdown: str) -> bool:
                     re.sub(r"[*_]", "", cleaned)
                 ):
                     return True
+                if _SERVER_SPECIFIC_VERIFICATION_ACTION.fullmatch(
+                    re.sub(r"[*_]", "", cleaned)
+                ):
+                    specific_verification_actions += 1
+                    # A single bounded verification step can be useful. Repeated exact
+                    # server phrasing is repair scaffolding, not final deliverable prose.
+                    if specific_verification_actions >= 4:
+                        return True
                 _list_prefix, _role_prefix, role, body = _task_fragment_parts(
                     cleaned
                 )
@@ -4367,25 +4441,6 @@ class PydanticAISynthesisWriter:
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
-            before_pruning = output.markdown
-            after_pruning = _prune_final_unsupported_evidence_lines(
-                before_pruning,
-                ctx.deps.allowed_claim_texts,
-                artifact_type=ctx.deps.artifact_type,
-                immutable_gap_labels=ctx.deps.required_gap_labels,
-                unresolved_evidence_requirements=(
-                    ctx.deps.unresolved_evidence_requirements
-                ),
-            )
-            after_pruning = _remove_newly_orphaned_optional_sections(
-                before_pruning,
-                after_pruning,
-                required_sections=ctx.deps.required_sections,
-            )
-            output = output.model_copy(
-                update={"markdown": after_pruning}
-            )
-            output = _with_immutable_gap_labels(ctx.deps, output)
             output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
                 _validate_synthesis(ctx.deps, output)
@@ -4619,6 +4674,7 @@ class PydanticAISynthesisWriter:
 
         if input_value.purpose != "final_synthesis" or input_value.evaluation is None:
             raise ValueError("final repair prompt requires final_synthesis input")
+
         def core_task(item: ImmutableArtifactContent) -> dict[str, Any] | None:
             if item.artifact.kind == "task_result":
                 task = item.payload.get("task")
@@ -4656,27 +4712,89 @@ class PydanticAISynthesisWriter:
         evaluation = EvaluationResultV1.model_validate(
             evaluation_candidates[0].payload
         )
+        core = core_candidates[0]
+        projected = _project_final_repair_base(
+            context,
+            title=str(core.payload.get("title") or "Final artifact"),
+            markdown=core.markdown,
+        )
+        projected_evidence_defects = _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            context.allowed_claim_texts,
+            artifact_type=context.artifact_type,
+            immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=(
+                context.unresolved_evidence_requirements
+            ),
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+        projected_substantive, projected_practicality = (
+            _deterministic_quality_defects(
+                projected.markdown,
+                practical_output_required=context.practical_output_required,
+                artifact_type=context.artifact_type,
+            )
+        )
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            "unsupportedPrecision": evaluation.unsupported_precision,
+            "unsupportedPrecision": projected_evidence_defects,
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
-            "substantiveContentDefects": evaluation.substantive_content_defects,
-            "practicalityDefects": evaluation.practicality_defects,
+            "substantiveContentDefects": utf16_ordinal_sorted(
+                set(evaluation.substantive_content_defects).union(
+                    projected_substantive
+                )
+            ),
+            "practicalityDefects": utf16_ordinal_sorted(
+                set(evaluation.practicality_defects).union(
+                    projected_practicality
+                )
+            ),
         }
-        core = core_candidates[0]
+        projection_changed = projected.markdown != core.markdown
+        # Evaluator guidance remains applicable when the base is byte-identical. Once
+        # projection changes the base, opaque prose can conflict with the current text;
+        # typed targets above retain the concrete findings in that branch.
+        repair_instructions = (
+            [] if projection_changed else list(evaluation.repair_instructions)
+        )
+        repair_instructions.append(
+            "Apply each structured repair target only when its referenced issue is "
+            "still observable in BASE_MARKDOWN; never recreate absent text."
+        )
+        if projection_changed:
+            repair_instructions.extend(
+                [
+                    "BASE_MARKDOWN is a structure-preserving safety projection. Keep "
+                    "every requirement ID, owner, table row and Given/When/Then role.",
+                    "Rewrite projected verification and unverified-assumption labels "
+                    "into concise section-appropriate proposals or validation actions. "
+                    "Keep legal, safety and authority uncertainty explicit.",
+                    "If ALLOWED_CLAIMS exactly supports a narrower part of a projected "
+                    "statement, split it and attach that claim's marker only to the "
+                    "supported text; never recreate unsupported content.",
+                ]
+            )
+        if projected_substantive or projected_practicality:
+            repair_instructions.append(
+                "Repair every named post-projection substantive or practicality defect "
+                "with concrete deliverable content, using only explicit proposals, "
+                "assumptions, validation actions and the allowed immutable claims."
+            )
+        repair_instructions = utf16_ordinal_sorted(set(repair_instructions))
         return canonical_json(
             {
                 "PURPOSE": input_value.purpose,
-                "BASE_MARKDOWN": core.markdown,
+                "BASE_MARKDOWN": projected.markdown,
                 "CORE_ARTIFACT": core.artifact.model_dump(mode="json", by_alias=True),
                 "EVALUATION_ARTIFACT": input_value.evaluation.model_dump(
                     mode="json", by_alias=True
                 ),
                 "REPAIR_TARGETS": repair_targets,
-                "REPAIR_INSTRUCTIONS": evaluation.repair_instructions,
+                "REPAIR_INSTRUCTIONS": repair_instructions,
                 "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
                     mode="json", by_alias=True
                 ),
