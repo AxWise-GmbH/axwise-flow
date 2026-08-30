@@ -2234,6 +2234,14 @@ _SERVER_SPECIFIC_VERIFICATION_ACTION = re.compile(
     r"[.;]?\s*$",
     re.IGNORECASE,
 )
+_SERVER_UNVERIFIED_VALIDATION_TARGET = re.compile(
+    r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
+    r"(?:(?:\*\*|__)?(?:given|when|then)(?:\s*:)?(?:\*\*|__)?\s*:?\s+)?"
+    r"validation\s+target\s*\(\s*all\s+following\s+content\s+is\s+unverified\s+"
+    r"until\s+pre-adoption\s+review\s*\)\s*:\s*\S.+?"
+    r"[.;]?\s*$",
+    re.IGNORECASE,
+)
 _ACTION_ASSERTED_TAIL = re.compile(
     r"\bbecause\b|"
     r"(?:[,;]\s*|\s+)(?:and|but|however|yet|while|whereas)\s+"
@@ -2709,6 +2717,16 @@ def _deterministic_evidence_integrity_defects(
     }
     pending_table_headers: list[str] | None = None
     active_table_headers: list[str] | None = None
+
+    def server_scoped_unverified_target(value: str) -> bool:
+        return (
+            _RAW_EVIDENCE_MARKER.search(value) is None
+            and _SERVER_UNVERIFIED_VALIDATION_TARGET.fullmatch(
+                re.sub(r"[*_`]", "", value).strip()
+            )
+            is not None
+        )
+
     for line in base.splitlines():
         stripped = line.strip()
         if stripped.startswith("```"):
@@ -2761,6 +2779,8 @@ def _deterministic_evidence_integrity_defects(
                     re.sub(r"[*_`]", "", cell).strip() for cell in fragments
                 ]
         else:
+            if server_scoped_unverified_target(stripped):
+                continue
             fragments = _evidence_clause_fragments(stripped)
             fragment_contexts = [""] * len(fragments)
         table_gap_context = (
@@ -2770,6 +2790,12 @@ def _deterministic_evidence_integrity_defects(
         )
         expanded_fragments: list[tuple[str, str]] = []
         for fragment, fragment_context in zip(fragments, fragment_contexts):
+            if server_scoped_unverified_target(fragment):
+                # The complete server-owned fragment labels every following token as
+                # unverified. Recognize it before unresolved-clause splitting so
+                # punctuation inside that payload cannot turn a provisional target
+                # into an asserted factual tail.
+                continue
             if _UNRESOLVED_AUTHORITY_QUALIFIER.search(fragment):
                 expanded_fragments.extend(
                     (item, fragment_context)
@@ -3019,12 +3045,16 @@ def _as_unresolved_validation_action(
 
     list_prefix, role_prefix, role, body = _task_fragment_parts(fragment)
     body = body.strip().rstrip(" .;:")
-    action = f"confirm whether {body} before relying on the outcome."
+    action = (
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): "
+        f"{body}."
+    )
     if role:
         return f"{list_prefix}{role_prefix}{action}"
     if table_cell:
-        return f"Verification: {action}"
-    return f"{list_prefix}Verification: {action}"
+        return action
+    return f"{list_prefix}{action}"
 
 
 def _as_unverified_repair_assumption(
@@ -3949,7 +3979,7 @@ def _with_accepted_requirement_traceability(
         return draft
 
     rows = [
-        "### Accepted-scope traceability",
+        "**Accepted-scope traceability**",
         "",
         "| Priority | Requirement ID | Category | Immutable binding |",
         "| --- | --- | --- | --- |",
