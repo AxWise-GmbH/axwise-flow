@@ -21,6 +21,7 @@ _GOOGLE_IDENTITY_ENDPOINT = (
     "service-accounts/default/identity"
 )
 _SEARXNG_REQUEST_SECONDS = 20.0
+_MAX_SANITIZED_DISCOVERY_RESULTS = 30
 
 
 class SearxngSearchService:
@@ -190,7 +191,11 @@ class SearxngSearchService:
                     }
                 )
             passages.append(f"{title}\n{content}\n{url}")
-            if len(sources) >= 10:
+            # Preserve a bounded discovery pool for the workflow-v2 runner to
+            # classify before applying its much smaller direct-fetch limit.
+            # Search aggregators can interleave noisy generic rows ahead of an
+            # eligible government, primary-law, or statistics publisher.
+            if len(sources) >= _MAX_SANITIZED_DISCOVERY_RESULTS:
                 break
         return {
             "text": "\n\n".join(passages),

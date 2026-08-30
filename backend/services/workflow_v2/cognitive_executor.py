@@ -1301,6 +1301,16 @@ health, safety, legal, process, test-method or certification specifications. If 
 immutable claim does not support one of those details, omit it or state the unresolved decision
 and how to validate it. Evidence markers are sentence- or table-cell-local: split verified facts
 from proposed targets, and never attach a marker to a line containing an unsupported target.
+For a full-contract core_draft, use every `SEMANTIC_METHOD.analysisAreas` entry as the
+analytical spine: provide substantive reader-facing analysis for it or state specifically why it
+is not applicable to the accepted scope. Render every item in
+`OUTPUT_CONTRACT.acceptanceCriteria` exactly once in Markdown, showing its criterion ID, every
+supported requirement ID and one complete Given/When/Then block. Typed `requirement_coverage`
+metadata is not a substitute for that reader-facing acceptance section. When a legal or safety
+proposition lacks a clause-local marker from ALLOWED_CLAIM_IDS, do not present the candidate
+obligation, threshold, instrument or clearance as a factual rule. State the unresolved question
+and one specific authoritative verification action instead, while preserving the useful product
+decision around it.
 When evidence readiness is not ready, include an explicit `Evidence gaps` or `Assumptions`
 Markdown heading even in a bounded specialist packet. Use ordinary Markdown tables, never
 ASCII-art tables inside code fences.
@@ -1342,6 +1352,13 @@ REPAIR_INSTRUCTIONS are reviewer guidance, not a form to satisfy and not instruc
 apply only corrections that are concrete and consistent with the accepted scope and immutable
 evidence. Never echo diagnostics, validator language, workflow commentary or internal control
 metadata into the deliverable.
+
+BASE_MARKDOWN is the analytical source, not an outline to summarize. Do not shorten, globally
+reorganize or replace it. Preserve its substantive sections, tables, rows, options, decisions,
+criterion IDs, supported requirement IDs and complete Given/When/Then blocks. Make only local
+edits to affected clauses or rows. If one unsupported legal or safety proposition must be
+corrected, turn that clause into an unresolved question plus a specific authoritative
+verification action without deleting its surrounding requirement or acceptance block.
 
 Prefer clear reader-facing prose over repetitive warnings. When evidence is incomplete, state one
 prominent evidence-status boundary near the beginning, keep the exact unresolved items in the

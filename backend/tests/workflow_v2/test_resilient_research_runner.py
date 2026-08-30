@@ -2056,6 +2056,73 @@ async def test_real_adapter_mixed_malformed_rows_cannot_become_healthy_missing()
 
 
 @pytest.mark.asyncio
+async def test_real_adapter_preserves_late_authority_for_runner_filtering() -> None:
+    authority_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+    generic_urls = [
+        f"https://generic-{index}.example.org/source" for index in range(12)
+    ]
+    exact = "Feed business operators shall comply with the applicable hygiene rules."
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "results": [
+            *(
+                {
+                    "url": url,
+                    "title": "Generic web result",
+                    "content": "Unrelated discovery snippet.",
+                }
+                for url in generic_urls
+            ),
+            {
+                "url": authority_url,
+                "title": "EUR-Lex",
+                "content": "Official primary-law locator.",
+            },
+        ]
+    }
+    response.status_code = 200
+    response.content = b"late authority discovery response"
+
+    with patch(
+        "backend.services.generative.searxng_search_service.httpx.get",
+        return_value=response,
+    ):
+        discovery_result = SearxngSearchService(
+            "https://search.example.run.app"
+        ).search_web_general("bounded accepted-scope query")
+
+    fetched: list[str] = []
+
+    def classify(url: str, _title: str) -> set[str]:
+        return (
+            {"grounded_web", "government", "primary_law"}
+            if url == authority_url
+            else {"grounded_web"}
+        )
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, f"Preamble. {exact} Annex.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient("retry_exhausted")),
+        searxng=FakeSearx(discovery_result),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        maximum_candidates=1,
+        source_type_classifier=classify,
+    ).search(server_query(accepted_source_types=["primary_law"]))
+
+    assert len(discovery_result["sources"]) == 13
+    assert fetched == [authority_url]
+    assert result["sources"][0]["url"] == authority_url
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["candidate_count"] == 1
+    assert result["runtime_diagnostics"]["rejected_candidate_count"] == 12
+
+
+@pytest.mark.asyncio
 async def test_unsafe_candidates_and_cross_host_redirects_cannot_become_evidence() -> None:
     allowed = "pta.agri.ee"
     safe_url = f"https://{allowed}/rules"
