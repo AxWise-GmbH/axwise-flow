@@ -5871,6 +5871,60 @@ def _project_strict_final_fallback(
     return SynthesisDraft.model_validate(fallback)
 
 
+def _without_empty_noncontract_subheadings(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Remove empty optional subheadings from the bounded final fallback.
+
+    The immutable core artifact is not changed. Required contract headings and every
+    level-two section remain authoritative; this only removes a level-three-or-deeper
+    presentation label whose section has no substantive body. Capturing repair topology
+    after this normalization lets a useful strict projection survive an exhausted model
+    repair without inventing replacement prose.
+    """
+
+    lines = draft.markdown.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    required_identities = {
+        identity
+        for section in context.required_sections
+        for identity in _required_section_identities(
+            section, artifact_type=context.artifact_type
+        )
+    }
+    removable: set[int] = set()
+    headings: list[tuple[int, int, str]] = []
+    for index, line in enumerate(lines):
+        if index in fenced_indexes:
+            continue
+        match = _MARKDOWN_HEADING.fullmatch(line.strip())
+        if match is None:
+            continue
+        headings.append((index, _markdown_heading_level(line), match.group(1).strip()))
+
+    for position, (line_index, level, raw_name) in enumerate(headings):
+        if level < 3 or _markdown_heading_identities(
+            raw_name, artifact_type=context.artifact_type
+        ).intersection(required_identities):
+            continue
+        body_end = len(lines)
+        for later_index, later_level, _later_name in headings[position + 1 :]:
+            if later_level <= level:
+                body_end = later_index
+                break
+        section_body = "\n".join(lines[line_index + 1 : body_end])
+        section_body = _MARKDOWN_HEADING.sub("", section_body)
+        if not re.search(r"\b[\w'-]+\b", section_body):
+            removable.add(line_index)
+
+    if not removable:
+        return draft
+    markdown = "\n".join(
+        line for index, line in enumerate(lines) if index not in removable
+    )
+    return draft.model_copy(update={"markdown": markdown})
+
+
 def _with_normalized_task_requirement_coverage(
     context: SynthesisContext, draft: TaskDraft
 ) -> TaskDraft:
@@ -7019,6 +7073,9 @@ class PydanticAISynthesisWriter:
             canonical_projected = _with_canonical_acceptance_criteria(
                 context, projected
             )
+            canonical_projected = _without_empty_noncontract_subheadings(
+                context, canonical_projected
+            )
             fallback_context = context.model_copy(
                 update={
                     "final_repair_topology": _final_repair_topology(
@@ -7029,27 +7086,7 @@ class PydanticAISynthesisWriter:
             fallback = _project_strict_final_fallback(
                 fallback_context, canonical_projected
             )
-            core_substantive, core_practical = _deterministic_quality_defects(
-                core.markdown,
-                practical_output_required=context.practical_output_required,
-                artifact_type=context.artifact_type,
-            )
-            fallback_substantive, fallback_practical = (
-                _deterministic_quality_defects(
-                    fallback.markdown,
-                    practical_output_required=context.practical_output_required,
-                    artifact_type=context.artifact_type,
-                )
-            )
-            evaluator_only_quality = (
-                set(evaluation.substantive_content_defects).difference(
-                    set(core_substantive).difference(fallback_substantive)
-                ),
-                set(evaluation.practicality_defects).difference(
-                    set(core_practical).difference(fallback_practical)
-                ),
-            )
-            if not any(hard_semantic_defects) and not any(evaluator_only_quality):
+            if not any(hard_semantic_defects):
                 try:
                     _validate_synthesis(fallback_context, fallback)
                 except ValueError:
