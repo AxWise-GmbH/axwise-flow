@@ -7466,6 +7466,77 @@ async def test_server_bounded_composite_core_requires_evaluation() -> None:
 
 
 @pytest.mark.asyncio
+async def test_incomplete_core_falls_through_to_evaluation_instead_of_failing() -> None:
+    class IncompleteCoreWriter(QualityWriter):
+        async def execute_task(self, input_value, scope, research_payload, contents):
+            draft = await super().execute_task(
+                input_value, scope, research_payload, contents
+            )
+            if not input_value.task.produces_full_contract:
+                return draft
+            return draft.model_copy(
+                update={
+                    "markdown": draft.markdown.replace(
+                        "## Next steps", "## Deferred work", 1
+                    )
+                }
+            )
+
+    compiled = await compiled_scope(
+        criticality="nonblocking", claim_type="market_statistic"
+    )
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, output_contract, tasks = plan_fixture(compiled, research)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact, research.artifact),
+        synthesis_writer=IncompleteCoreWriter(),
+    )
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=875,
+    )
+    core = task_results[-1]
+    assert core.artifact.kind == "task_result"
+    assert "## Deferred work" in (core.artifact.markdown or "")
+
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in task_results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000879",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert evaluation.execution_output_contract_satisfied is False
+    assert evaluation.direct_promotion_artifact is None
+    assert evaluation.artifact.payload["repairRequired"] is True
+
+
+@pytest.mark.asyncio
 async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> (
     None
 ):
