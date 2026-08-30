@@ -6081,10 +6081,78 @@ def _project_strict_task_fallback(
     return draft.model_copy(update={"markdown": projected.markdown})
 
 
-def _prepare_task_draft_for_validation(
+def _without_model_owned_task_appendix(draft: TaskDraft) -> TaskDraft:
+    """Drop model-authored source sections; the server owns the exact appendix."""
+
+    lines = draft.markdown.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    headings: list[tuple[int, int, str]] = []
+    for index, line in enumerate(lines):
+        if index in fenced_indexes:
+            continue
+        match = _MARKDOWN_HEADING.fullmatch(line.strip())
+        if match is None:
+            continue
+        headings.append((index, _markdown_heading_level(match), match.group(1).strip()))
+
+    removed: set[int] = set()
+    for heading_index, (start, level, name) in enumerate(headings):
+        if not _is_server_owned_source_heading(name, rendered=True):
+            continue
+        end = len(lines)
+        for later_start, later_level, _later_name in headings[heading_index + 1 :]:
+            if later_level <= level:
+                end = later_start
+                break
+        removed.update(range(start, end))
+    if not removed:
+        return draft
+    markdown = "\n".join(
+        line for index, line in enumerate(lines) if index not in removed
+    ).strip()
+    if not markdown:
+        markdown = (
+            "# Task draft\n\n"
+            "No substantive task content remained after removing the model-authored "
+            "source appendix."
+        )
+    return draft.model_copy(update={"markdown": markdown})
+
+
+def _without_unbound_task_evidence_markers(
     context: SynthesisContext, draft: TaskDraft
 ) -> TaskDraft:
-    """Apply deterministic task safety/metadata corrections before the hard gate."""
+    """Remove malformed or foreign markers while preserving the draft for evaluation."""
+
+    allowed = set(context.allowed_claim_ids)
+    heading_positions = [
+        position
+        for position, _name, _folded in _markdown_headings(draft.markdown)
+    ]
+    first_heading = min(heading_positions) if heading_positions else len(draft.markdown)
+
+    def replace(marker: re.Match[str]) -> str:
+        claim_id = marker.group(1)
+        if (
+            marker.start() > first_heading
+            and _EVIDENCE_CLAIM_ID.fullmatch(claim_id) is not None
+            and claim_id in allowed
+        ):
+            return marker.group(0)
+        return ""
+
+    markdown = _RAW_EVIDENCE_MARKER.sub(replace, draft.markdown)
+    return (
+        draft
+        if markdown == draft.markdown
+        else draft.model_copy(update={"markdown": markdown})
+    )
+
+
+def _prepare_task_draft_for_execution(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Prepare a typed draft for lineage without treating it as final publication."""
 
     prepared = _with_normalized_task_requirement_coverage(context, draft)
     prepared = _with_immutable_gap_labels(context, prepared)
@@ -6096,7 +6164,18 @@ def _prepare_task_draft_for_validation(
         allow_composite_authority_targets=True,
     )
     prepared = _project_strict_task_fallback(context, prepared)
+    prepared = _without_model_owned_task_appendix(prepared)
+    prepared = _without_unbound_task_evidence_markers(context, prepared)
     prepared = _with_accepted_requirement_traceability(context, prepared)
+    return TaskDraft.model_validate(prepared)
+
+
+def _prepare_task_draft_for_validation(
+    context: SynthesisContext, draft: TaskDraft
+) -> TaskDraft:
+    """Compatibility helper for tests and explicit final-candidate validation."""
+
+    prepared = _prepare_task_draft_for_execution(context, draft)
     try:
         _validate_task_draft(context, prepared)
     except ValueError as error:
@@ -6589,16 +6668,6 @@ class PydanticAISynthesisWriter:
             retries={"output": 2},
         )
 
-        @self.task_agent.output_validator
-        async def validate_task_output(
-            ctx: RunContext[SynthesisContext], output: TaskDraft
-        ) -> TaskDraft:
-            try:
-                output = _prepare_task_draft_for_validation(ctx.deps, output)
-            except ValueError as error:
-                raise ModelRetry(str(error)) from error
-            return output
-
         @self.final_agent.output_validator
         async def validate_final_output(
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
@@ -7033,9 +7102,8 @@ class PydanticAISynthesisWriter:
             context,
             phase="TASK",
         )
-        output = _prepare_task_draft_for_validation(context, result.output)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(output, input_tokens, output_tokens)
+        return ModelOutput(result.output, input_tokens, output_tokens)
 
     async def evaluate_output(
         self,
@@ -9275,7 +9343,7 @@ class GeminiCognitiveExecutor:
                 selected_contents,
             )
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
-            draft = _prepare_task_draft_for_validation(context, draft)
+            draft = _prepare_task_draft_for_execution(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)
             receipt = {
@@ -9309,10 +9377,31 @@ class GeminiCognitiveExecutor:
                 and item.requirement_id not in permitted_evidence_gap_ids
                 for item in draft.requirement_coverage
             )
+            direct_publication_allowed = False
+            if (
+                input_value.task.task_kind == "core_draft"
+                and input_value.task.produces_full_contract
+            ):
+                publication_context = context.model_copy(
+                    update={
+                        "purpose": "final_synthesis",
+                        "quality_gate_required": True,
+                    }
+                )
+                try:
+                    _validate_synthesis(
+                        publication_context,
+                        SynthesisDraft(title=draft.title, markdown=task_markdown),
+                    )
+                except ValueError:
+                    pass
+                else:
+                    direct_publication_allowed = True
             artifact_id: UUID
             if (
                 input_value.task.task_kind == "core_draft"
                 and input_value.task.produces_full_contract
+                and direct_publication_allowed
                 and acceptable_coverage
                 and not local_evidence_integrity
                 and not local_substantive
