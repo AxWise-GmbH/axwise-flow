@@ -474,6 +474,11 @@ particular, never combine statutory law with a separate standard, trade-body rul
 in one requirement even when both are blocking.
 Give every explicitly named legal instrument its own evidence requirement; never combine
 two named regulations into one assertion.
+For a broad regulatory request, create independently researchable legal-domain evidence
+rows instead of one umbrella requirement. Keep national law separate from supranational
+law, and keep safety, hygiene, composition and labelling obligations in separate rows. Do
+not invent an instrument, title or number: name one only when REQUEST_TEXT names it;
+otherwise describe the jurisdiction and legal domain that research must identify.
 When REQUEST_TEXT explicitly restricts a requirement to named publishers or official
 documentation, set allowedSourceHosts to the minimal sorted lowercase canonical hostnames
 for those publishers. Otherwise return an empty allowedSourceHosts list. Never infer a host
@@ -1303,6 +1308,13 @@ not verified external facts. Preserve neutral persona archetypes and jobs; do no
 ages, neighbourhoods, demographics, interviews or quotations. Use ordinary Markdown tables,
 complete Given/When/Then acceptance checks and substantive section content. Never author a
 Sources appendix because the server appends it from immutable claim metadata.
+
+Omit unsupported high-stakes legal, safety or health precision. When the useful document
+needs to retain such an unresolved item, rewrite it as `Proposed validation target — requires
+authoritative verification` followed by one short domain- or decision-specific verification
+action. Do not repeat the unverified number, instrument identity, or
+mandatory/statutory/compliant/must authority language after that label, and do not repeat an
+identical validation target throughout the document.
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
@@ -2525,6 +2537,11 @@ _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE = re.compile(
     r"until\s+pre-adoption\s+review\s*\)\s*:\s*(?P<body>\S.+?)\s*$",
     re.IGNORECASE,
 )
+_SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX = re.compile(
+    r"validation\s+target\s*\(\s*all\s+following\s+content\s+is\s+unverified\s+"
+    r"until\s+pre-adoption\s+review\s*\)\s*:\s*",
+    re.IGNORECASE,
+)
 _PUBLICATION_UNKNOWN_PENDING_ITEM = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?"
     r"(?:(?:\*\*|__)?(?:given|when|then)(?:\s*:)?(?:\*\*|__)?\s*:?\s+)?"
@@ -2785,7 +2802,8 @@ _EXPLICIT_AUTHORITY_NEGATION = re.compile(
     re.IGNORECASE,
 )
 _CLAUSE_BREAK = re.compile(
-    r"(?<=[.!?;])\s+|,\s*(?:but|however|yet|nevertheless|nonetheless)\s+|"
+    r"(?<!\bNo\.)(?<=[.!?;])\s+|"
+    r",\s*(?:but|however|yet|nevertheless|nonetheless)\s+|"
     r"\s+(?:but|however|nevertheless|nonetheless)\s+|(?<!not)\s+yet\s+",
     re.IGNORECASE,
 )
@@ -3755,6 +3773,7 @@ def _is_hard_task_evidence_defect(defect: str) -> bool:
         _NONPROVISIONAL_AUTHORITY_ASSERTION.search(cleaned) is not None
         or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned) is not None
         or _AUTHORITY_PROCESS_EXECUTION.search(cleaned) is not None
+        or _PUBLICATION_LABEL_AUTHORITY_ASSERTION.search(cleaned) is not None
     )
 
 
@@ -6139,6 +6158,80 @@ _PUBLICATION_EVIDENCE_STATUS_BLOCK = (
     "verification** and the explicit legal, safety, product, or market gaps "
     "below must be resolved before relying on them for execution or launch."
 )
+_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL = (
+    "Proposed validation target — requires authoritative verification"
+)
+_PUBLICATION_HIGH_STAKES_DOMAIN = re.compile(
+    r"\b(?:act|authorization|certification|clinical|disease|directive|haccp|"
+    r"hygiene|law|legal|legislation|microbiolog(?:y|ical)|pathogens?|"
+    r"regulation|regulatory|statute|statutory|therapeutic)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_SAFETY_PRECISION_ASSERTION = re.compile(
+    r"\b(?:health|safety)\s+(?:limit|threshold|tolerance|specification)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_UNSUPPORTED_AUTHORITY_LANGUAGE = re.compile(
+    r"\b(?:must|shall|required|mandatory|statutory|"
+    r"compl(?:y|ies|ied|iance|iant)|approved|authori[sz]ed|permitted|prohibited)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_LABEL_AUTHORITY_ASSERTION = re.compile(
+    r"\b(?:label|labelling|labeling|packaging|declaration)\b[^.;\n]{0,160}\b"
+    r"(?:legal|mandatory|statutory|required\s+(?:by|under)|compl(?:y|ies|iant|iance))\b|"
+    r"\b(?:legal|mandatory|statutory|required\s+(?:by|under)|"
+    r"compl(?:y|ies|iant|iance))\b[^.;\n]{0,160}\b"
+    r"(?:label|labelling|labeling|packaging|declaration)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_VALIDATION_DOMAINS = (
+    (
+        re.compile(r"\b(?:label|labelling|labeling|packaging|declaration)\b", re.I),
+        "Confirm the applicable labelling evidence and constraint before adoption.",
+    ),
+    (
+        re.compile(
+            r"\b(?:haccp|hygiene|manufactur(?:e|er|ing)|microbiolog(?:y|ical)|"
+            r"pathogens?|production)\b",
+            re.I,
+        ),
+        "Confirm the applicable hygiene and safety control before adoption.",
+    ),
+    (
+        re.compile(
+            r"\b(?:composition|formula|formulation|ingredient|nutrient|nutrition)\b",
+            re.I,
+        ),
+        "Confirm the applicable composition evidence and constraint before adoption.",
+    ),
+    (
+        re.compile(r"\b(?:clinical|disease|health|therapeutic)\b", re.I),
+        "Confirm the health claim and its authoritative evidence before adoption.",
+    ),
+    (
+        re.compile(
+            r"\b(?:approval|authori[sz]ation|certification|clearance|licen[cs]e|"
+            r"registration)\b",
+            re.I,
+        ),
+        "Confirm whether authorization or certification evidence applies before adoption.",
+    ),
+    (
+        re.compile(r"\b(?:safe|safety)\b", re.I),
+        "Confirm the product-specific safety evidence before adoption.",
+    ),
+    (
+        re.compile(
+            r"\b(?:act|directive|law|legal|legislation|regulation|regulatory|"
+            r"statute|statutory)\b",
+            re.I,
+        ),
+        "Confirm which legal constraint applies before adoption.",
+    ),
+)
+_PUBLICATION_VALIDATION_ACTIONS = tuple(
+    action for _pattern, action in _PUBLICATION_VALIDATION_DOMAINS
+) + ("Confirm the applicable high-stakes constraint before adoption.",)
 
 
 def _immutable_claim_covers_publication_assertion(
@@ -6256,6 +6349,49 @@ def _without_mismatched_publication_evidence_markers(
     )
 
 
+def _reader_facing_publication_target(body: str, *, heading: bool = False) -> str:
+    """Render one internal repair target without publishing unsupported authority."""
+
+    cleaned = re.sub(r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", body)).strip()
+    high_stakes = (
+        not _is_pure_evidence_status_or_withholding(cleaned)
+        and not _is_safe_nonauthority_planning_directive(cleaned)
+        and bool(
+            _EVIDENCE_SENSITIVE_ASSERTION.search(cleaned)
+            or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(cleaned)
+            or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned)
+            or _AUTHORITY_PROCESS_EXECUTION.search(cleaned)
+            or _PUBLICATION_LABEL_AUTHORITY_ASSERTION.search(cleaned)
+            or (
+                _PUBLICATION_SAFETY_PRECISION_ASSERTION.search(cleaned)
+                and _precision_values(cleaned)
+            )
+            or (
+                _PUBLICATION_HIGH_STAKES_DOMAIN.search(cleaned)
+                and (
+                    _precision_values(cleaned)
+                    or _PUBLICATION_UNSUPPORTED_AUTHORITY_LANGUAGE.search(cleaned)
+                    or _PLANNING_TARGET_OBLIGATION_ASSERTION.search(cleaned)
+                    or _UNRESOLVED_REQUIREMENT_ACTION.search(cleaned)
+                )
+            )
+        )
+    )
+    if high_stakes:
+        label = _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL
+        rendered_label = label if heading else f"**{label}:**"
+        action = next(
+            (
+                candidate
+                for pattern, candidate in _PUBLICATION_VALIDATION_DOMAINS
+                if pattern.search(cleaned)
+            ),
+            "Confirm the applicable high-stakes constraint before adoption.",
+        )
+        return f"{rendered_label} {action}"
+    return cleaned if heading else f"**Pending verification:** {cleaned}"
+
+
 def _normalize_publication_draft(
     context: SynthesisContext, draft: SynthesisDraft
 ) -> SynthesisDraft:
@@ -6291,15 +6427,113 @@ def _normalize_publication_draft(
         )
 
     lines: list[str] = []
-    for line in prepared.markdown.splitlines():
+    seen_authoritative_targets: set[str] = set()
+    fenced_indexes = _fenced_markdown_line_indexes(prepared.markdown)
+
+    def replace_internal_wrappers(
+        value: str, pattern: re.Pattern[str], *, heading: bool
+    ) -> str:
+        for _pass in range(max(1, len(value.split(". ")) + 1)):
+            match = pattern.search(value)
+            if match is None:
+                break
+            tail = value[match.end() :]
+            body = next(
+                (
+                    fragment
+                    for fragment in _evidence_clause_fragments(tail)
+                    if fragment.strip()
+                ),
+                tail,
+            )
+            body_start = tail.find(body)
+            if body_start < 0:
+                break
+            body_end = body_start + len(body)
+            value = (
+                value[: match.start()]
+                + tail[:body_start]
+                + _reader_facing_publication_target(body, heading=heading)
+                + tail[body_end:]
+            )
+        return value
+
+    for line_index, line in enumerate(prepared.markdown.splitlines()):
+        if line_index in fenced_indexes:
+            lines.append(line)
+            continue
         heading_line = line.lstrip().startswith("#")
-        replacement_prefix = "" if heading_line else "**Pending verification:** "
-        cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE.sub(
-            lambda match: replacement_prefix + match.group("body"), line
-        )
-        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
-            replacement_prefix, cleaned
-        )
+        units = line.split("|") if "|" in line else [line]
+        for unit_index, unit in enumerate(units):
+            pieces = re.split(r"(<br\s*/?>)", unit, flags=re.IGNORECASE)
+            for piece_index in range(0, len(pieces), 2):
+                piece = replace_internal_wrappers(
+                    pieces[piece_index],
+                    _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX,
+                    heading=heading_line,
+                )
+                piece = replace_internal_wrappers(
+                    piece,
+                    _PUBLICATION_UNKNOWN_PENDING_PREFIX,
+                    heading=heading_line,
+                )
+                if not heading_line:
+                    for fragment in _evidence_clause_fragments(piece):
+                        if (
+                            _RAW_EVIDENCE_MARKER.search(fragment) is not None
+                            or _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL in fragment
+                        ):
+                            continue
+                        list_prefix, role_prefix, _role, body = _task_fragment_parts(
+                            fragment
+                        )
+                        rendered = _reader_facing_publication_target(body)
+                        if _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in rendered:
+                            continue
+                        piece = piece.replace(
+                            fragment,
+                            f"{list_prefix}{role_prefix}{rendered}",
+                            1,
+                        )
+                pieces[piece_index] = piece
+            units[unit_index] = "".join(pieces)
+        cleaned = "|".join(units)
+        standalone_body = re.sub(
+            r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?", "", cleaned
+        ).strip()
+        drop_line = False
+        for action in _PUBLICATION_VALIDATION_ACTIONS:
+            target = (
+                f"**{_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL}:** {action}"
+            )
+            occurrences = cleaned.count(target)
+            if occurrences == 0:
+                continue
+            already_seen = action in seen_authoritative_targets
+            if (
+                already_seen
+                and occurrences == 1
+                and "|" not in cleaned
+                and standalone_body == target
+            ):
+                drop_line = True
+                break
+            reference = (
+                "**Pending verification:** See the corresponding validation "
+                "requirement stated earlier."
+            )
+            if already_seen:
+                cleaned = cleaned.replace(target, reference)
+            elif occurrences > 1:
+                first = cleaned.find(target)
+                suffix_start = first + len(target)
+                cleaned = (
+                    cleaned[:suffix_start]
+                    + cleaned[suffix_start:].replace(target, reference)
+                )
+            seen_authoritative_targets.add(action)
+        if drop_line:
+            continue
         lines.append(cleaned)
     markdown = "\n".join(lines)
 
@@ -9963,6 +10197,7 @@ def build_cognitive_executor(
         GeminiGroundedResearchRunner(api_key),
         searxng=SearxngSearchService(),
         extractor=PydanticAIExactSpanExtractor(model),
+        source_type_classifier=_classify_source_types,
     )
     return GeminiCognitiveExecutor(
         PydanticAIScopeDrafter(model),
