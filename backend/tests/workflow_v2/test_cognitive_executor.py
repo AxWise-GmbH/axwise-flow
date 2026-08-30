@@ -16,6 +16,7 @@ from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
     ArtifactRef,
     AxWiseOperationEnvelope,
+    DeliverableAcceptanceCriterionV1,
     EvidenceRequirement,
     ResearchResultV2,
     ResearchSourceV1,
@@ -54,6 +55,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _model_owned_required_sections,
     _prepare_task_unresolved_actions,
     _with_accepted_requirement_traceability,
+    _with_canonical_acceptance_criteria,
     _usage_from_result,
     _usage_from_search,
     _validate_synthesis,
@@ -6519,12 +6521,23 @@ async def test_final_writer_uses_strict_projection_after_model_validation_exhaus
         if item.artifact.kind == "final_markdown"
         and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
     )
-    expected = cognitive_executor_module._project_final_repair_base(
+    projected = cognitive_executor_module._project_final_repair_base(
         context,
         title=core.payload["title"],
         markdown=core.markdown,
     )
-    _validate_synthesis(context, expected)
+    canonical_projected = _with_canonical_acceptance_criteria(context, projected)
+    fallback_context = context.model_copy(
+        update={
+            "final_repair_topology": cognitive_executor_module._final_repair_topology(
+                canonical_projected.markdown
+            )
+        }
+    )
+    expected = cognitive_executor_module._project_strict_final_fallback(
+        fallback_context, canonical_projected
+    )
+    _validate_synthesis(fallback_context, expected)
     calls = []
 
     async def exhausted(agent, prompt, call_context, *, phase):
@@ -6550,11 +6563,110 @@ async def test_final_writer_uses_strict_projection_after_model_validation_exhaus
     assert len(calls) == 1
     assert calls[0][3] == "FINAL"
     assert calls[0][2].final_repair_topology == (
-        cognitive_executor_module._final_repair_topology(expected.markdown)
+        cognitive_executor_module._final_repair_topology(projected.markdown)
     )
     assert result.value == expected
     # The fallback itself adds no tokens. Failed provider-attempt cost is captured from
     # provider logs during release verification, not inferred from this zero value.
+    assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_fallback_replaces_incomplete_model_criteria_with_typed_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "final_markdown"
+        and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    acceptance_start = core.markdown.index("## Acceptance criteria")
+    acceptance_end = core.markdown.find("\n## ", acceptance_start + 1)
+    assert acceptance_end > acceptance_start
+    scenario_heading = (
+        "Scenario 2: Estonian Statutory Labeling and Packaging Compliance"
+    )
+    incomplete_section = (
+        "## Acceptance criteria\n\n"
+        f"### {scenario_heading}\n\n"
+        "* **When** audited against Estonian pet food labeling regulations and PTA "
+        "administrative mandates,\n"
+        "* **Then** the artwork must display mandatory Estonian-language declarations "
+        "without unsubstantiated medicinal claims.\n"
+    )
+    contents[core_index] = core.model_copy(
+        update={
+            "markdown": (
+                core.markdown[:acceptance_start]
+                + incomplete_section
+                + core.markdown[acceptance_end:]
+            )
+        }
+    )
+    defect = (
+        f"Acceptance criterion block {scenario_heading!r} is incomplete; missing Given."
+    )
+    assert defect in _deterministic_quality_defects(
+        contents[core_index].markdown,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )[1]
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={
+            "payload": {
+                **evaluation_content.payload,
+                "practicalityDefects": [defect],
+                "outputContractSatisfied": False,
+                "promotedArtifact": None,
+                "repairRequired": True,
+                "repairInstructions": ["Restore complete acceptance criteria."],
+            }
+        }
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+
+    async def exhausted(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+
+    assert scenario_heading not in result.value.markdown
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            result.value.markdown
+        )
+        == []
+    )
+    for criterion in input_value.output_contract.acceptance_criteria:
+        assert f"### `{criterion.id}`" in result.value.markdown
+        assert f"- **Given** {criterion.given}" in result.value.markdown
+        assert f"- **When** {criterion.when}" in result.value.markdown
+        assert f"- **Then** {criterion.then}" in result.value.markdown
     assert (result.input_tokens, result.output_tokens) == (0, 0)
 
 
@@ -10506,6 +10618,71 @@ def test_prd_quality_gate_rejects_incomplete_gwt_acceptance_blocks(
             context,
             SynthesisDraft(title="Incomplete acceptance PRD", markdown=markdown),
         )
+
+
+def test_strict_fallback_renders_exact_typed_acceptance_contract() -> None:
+    semantic = {
+        "given": "a dry adult-cat food formula specified for NorthPaw in Estonia",
+        "when": (
+            "the product specifications and label declarations are reviewed against "
+            "EU and Estonian pet food regulations"
+        ),
+        "then": (
+            "the PRD defines mandatory nutritional thresholds, analytical constituent "
+            "declarations, and Estonian-language labeling requirements with cited evidence"
+        ),
+        "supports": [
+            "req-1a890d58097d14f0",
+            "req-9097dc0dc01b6cf4",
+            "req-e0966bd858f696bf",
+        ],
+    }
+    criterion = DeliverableAcceptanceCriterionV1(
+        id=f"acc-{canonical_hash(semantic)[:16]}", **semantic
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        accepted_acceptance_criteria=[criterion],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="NorthPaw PRD",
+        markdown=(
+            "# NorthPaw PRD\n\n"
+            "## Acceptance criteria\n\n"
+            "### Scenario 2: Estonian Statutory Labeling and Packaging Compliance\n\n"
+            "* **When** audited against Estonian pet food labeling regulations and "
+            "PTA administrative mandates,\n"
+            "* **Then** the artwork must display mandatory Estonian-language "
+            "declarations without unsubstantiated medicinal claims.\n\n"
+            "## Metrics and validation\n\n- Record the review outcome."
+        ),
+    )
+
+    rendered = _with_canonical_acceptance_criteria(context, draft)
+
+    assert rendered.markdown != draft.markdown
+    assert f"### `{criterion.id}`" in rendered.markdown
+    assert f"- **Given** {criterion.given}" in rendered.markdown
+    assert f"- **When** {criterion.when}" in rendered.markdown
+    assert f"- **Then** {criterion.then}" in rendered.markdown
+    assert all(
+        f"`{requirement_id}`" in rendered.markdown
+        for requirement_id in criterion.supports
+    )
+    assert "PTA administrative mandates" not in rendered.markdown
+    assert "## Metrics and validation" in rendered.markdown
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            rendered.markdown
+        )
+        == []
+    )
+    assert _with_canonical_acceptance_criteria(context, rendered) == rendered
 
 
 @pytest.mark.parametrize(
