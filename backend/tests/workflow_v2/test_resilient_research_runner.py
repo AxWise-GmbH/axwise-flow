@@ -163,6 +163,56 @@ async def test_primary_success_passes_through_by_identity_without_fallback() -> 
 
 
 @pytest.mark.asyncio
+async def test_primary_success_exposes_accepted_response_url_as_locator_only() -> None:
+    official_url = "https://eur-lex.europa.eu/eli/reg/2009/767/oj/eng"
+    primary = FakePrimary(
+        {
+            "search_performed": True,
+            "provider": "gemini_google_search",
+            "text": (
+                "Generated legal prose is not evidence. Canonical source: "
+                f"[{official_url}]({official_url})"
+            ),
+            "claims": [],
+            "sources": [],
+        }
+    )
+    searx = FakeSearx(discovery())
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, "unused")
+
+    result = await ResilientResearchRunner(
+        primary,
+        searxng=searx,
+        fetcher=fetch,
+        source_type_classifier=lambda _url, _title: {
+            "government",
+            "primary_law",
+        },
+    ).search(
+        server_query(
+            accepted_source_types=["primary_law"],
+            allowed_hosts=["eur-lex.europa.eu"],
+        )
+    )
+
+    assert result["text"] == primary.result["text"]
+    assert result["claims"] == []
+    assert result["sources"] == []
+    assert result["same_operation_locators"] == [
+        {
+            "title": "eur-lex.europa.eu",
+            "url": official_url,
+        }
+    ]
+    assert searx.queries == []
+    assert fetched == []
+
+
+@pytest.mark.asyncio
 async def test_same_operation_repair_locator_is_refetched_without_reasking_primary() -> None:
     url = "https://pta.agri.ee/pet-food-rules"
     exact = "Feed business operators must notify the competent authority."
@@ -244,6 +294,162 @@ async def test_nonretryable_primary_failure_never_invokes_fallback(status: str) 
 
     assert result is failed
     assert searx.queries == []
+
+
+@pytest.mark.asyncio
+async def test_transient_primary_official_url_is_refetched_as_locator_only() -> None:
+    official_url = "https://eur-lex.europa.eu/eli/reg/2005/183/oj/eng"
+    rejected_url = "https://marketing.example.org/pet-food-summary"
+    exact = "Feed business operators shall comply with the applicable hygiene rules."
+    publisher_text = f"Preamble. {exact} Annex."
+    primary_result = transient("retry_exhausted")
+    primary_result.update(
+        {
+            "text": (
+                "Untrusted provider prose must not become evidence. Sources: "
+                f"{rejected_url}, https://127.0.0.1/private, and {official_url}."
+            ),
+            "claims": [],
+            "sources": [],
+        }
+    )
+    fetched: list[str] = []
+    extractor = ExactExtractor(exact)
+
+    def classify(url: str, _title: str) -> set[str]:
+        return (
+            {"grounded_web", "government", "primary_law"}
+            if url == official_url
+            else {"grounded_web"}
+        )
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, publisher_text)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_result),
+        searxng=FakeSearx(discovery(status="empty")),
+        fetcher=fetch,
+        extractor=extractor,
+        source_type_classifier=classify,
+    ).search(server_query(accepted_source_types=["primary_law"]))
+
+    assert fetched == [official_url]
+    assert len(extractor.requests) == 1
+    assert [item.text for item in extractor.requests[0].documents] == [publisher_text]
+    assert primary_result["text"] not in result["text"]
+    expected_hash = hashlib.sha256(publisher_text.encode("utf-8")).hexdigest()
+    assert result["provider_response_hash"] == expected_hash
+    assert result["sources"][0]["citation_metadata"]["content_sha256"] == (
+        expected_hash
+    )
+    assert result["sources"][0]["url"] == official_url
+    claim = result["claims"][0]
+    assert result["text"].encode("utf-8")[
+        claim["segment_start"] : claim["segment_end"]
+    ].decode("utf-8") == exact
+    assert claim["provider_response_hash"] == expected_hash
+    assert claim["source_urls"] == [official_url]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("accepted_source_types", "allowed_hosts", "classified_types"),
+    [
+        (["primary_law"], [], {"grounded_web"}),
+        (["government"], ["other.gov.ee"], {"government"}),
+    ],
+)
+async def test_transient_primary_locator_obeys_type_and_host_gates(
+    accepted_source_types: list[str],
+    allowed_hosts: list[str],
+    classified_types: set[str],
+) -> None:
+    url = "https://pta.agri.ee/pet-food-rules"
+    primary_result = transient("retry_exhausted")
+    primary_result["text"] = f"Possible locator: {url}"
+    fetched: list[str] = []
+
+    async def fetch(candidate_url: str) -> dict:
+        fetched.append(candidate_url)
+        return document(candidate_url, "Publisher text")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_result),
+        searxng=FakeSearx(discovery(status="empty")),
+        fetcher=fetch,
+        extractor=EmptyExtractor(),
+        source_type_classifier=lambda _url, _title: classified_types,
+    ).search(
+        server_query(
+            accepted_source_types=accepted_source_types,
+            allowed_hosts=allowed_hosts,
+        )
+    )
+
+    assert fetched == []
+    assert result["search_performed"] is False
+    assert result.get("claims", []) == []
+    assert result.get("sources", []) == []
+    assert result["runtime_diagnostics"]["fallback"][
+        "rejected_candidate_count"
+    ] == 1
+
+
+@pytest.mark.asyncio
+async def test_transient_primary_response_uses_at_most_three_locator_urls() -> None:
+    urls = [f"https://law-{index}.gov.ee/feed/rules" for index in range(5)]
+    primary_result = transient("retry_exhausted")
+    primary_result["text"] = "\n".join(urls)
+    fetched: list[str] = []
+
+    async def fetch(url: str) -> dict:
+        fetched.append(url)
+        return document(url, f"Publisher bytes for {url}")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_result),
+        searxng=FakeSearx(discovery(status="empty")),
+        fetcher=fetch,
+        extractor=EmptyExtractor(),
+        source_type_classifier=lambda _url, _title: {"government", "primary_law"},
+    ).search(server_query(accepted_source_types=["primary_law"]))
+
+    assert fetched == urls[:3]
+    fallback = result["runtime_diagnostics"]["fallback"]
+    assert fallback["omitted_candidate_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_primary_response_prioritizes_authorities_before_locator_cap() -> None:
+    generic_urls = [f"https://example-{index}.com/feed" for index in range(3)]
+    official_url = "https://eur-lex.europa.eu/eli/reg/2009/767/oj/eng"
+    primary_result = {
+        "search_performed": True,
+        "provider": "gemini_google_search",
+        "text": "\n".join([*generic_urls, official_url]),
+        "claims": [],
+        "sources": [],
+    }
+
+    def classify(url: str, _title: str) -> set[str]:
+        if url == official_url:
+            return {"grounded_web", "government", "primary_law"}
+        return {"grounded_web"}
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_result),
+        searxng=FakeSearx(discovery()),
+        source_type_classifier=classify,
+    ).search(
+        server_query(accepted_source_types=["grounded_web", "primary_law"])
+    )
+
+    assert [row["url"] for row in result["same_operation_locators"]] == [
+        official_url,
+        *generic_urls[:2],
+    ]
 
 
 @pytest.mark.asyncio

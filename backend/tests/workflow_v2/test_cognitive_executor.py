@@ -6378,7 +6378,11 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
                     "provider": "gemini_google_search",
                     "text": generated,
                     "claims": [{"text": generated, "source_urls": [official_url]}],
-                    "sources": [
+                    # These URLs were parsed from unverified provider prose by
+                    # the resilient runner. They are repair locators only and
+                    # must not validate the primary claim above.
+                    "sources": [],
+                    "same_operation_locators": [
                         {"title": "Agriculture and Food Board", "url": official_url},
                         {
                             "title": "Copied guidance",
@@ -6451,6 +6455,189 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     assert "PTA guidance says" not in prompt_json
     assert claim["text"] in prompt_json
     assert official_url in prompt_json
+
+
+def test_cognitive_research_view_exposes_only_selected_and_verified_claims() -> None:
+    selected_id = "a" * 64
+    verified_id = "b" * 64
+    missing_id = "c" * 64
+    second_verified_id = "d" * 64
+
+    def claim(claim_id: str, text: str, url: str) -> dict:
+        return {"claimId": claim_id, "text": text, "sourceUrls": [url]}
+
+    selected_claim = claim(
+        selected_id,
+        "The owner selected an immutable product fact.",
+        "https://owner.example/product-fact",
+    )
+    verified_claim = claim(
+        verified_id,
+        "The accepted market source reports a current market observation.",
+        "https://statistics.example/market",
+    )
+    missing_claim = claim(
+        missing_id,
+        "The rejected provider prose asserts an unverified statutory obligation.",
+        "https://blog.example/copied-law",
+    )
+    second_verified_claim = claim(
+        second_verified_id,
+        "A separate accepted source reports a second verified requirement.",
+        "https://statistics.example/second-market",
+    )
+    research_payload = {
+        "schemaVersion": "axwise.research.v2",
+        "readiness": "ready_with_gaps",
+        "findings": [
+            {
+                "requirementId": "ev-market",
+                "status": "verified",
+                "blocking": False,
+                "note": "Verified provider narrative must not be copied wholesale.",
+            },
+            {
+                "requirementId": "ev-law",
+                "status": "missing",
+                "blocking": False,
+                "note": "Rejected statutory provider narrative must remain private.",
+            },
+            {
+                "requirementId": "ev-second-market",
+                "status": "verified",
+                "blocking": False,
+                "note": "Second verified provider narrative must not be copied wholesale.",
+            },
+        ],
+        "selectedClaims": [selected_claim],
+        "claimLedger": [
+            {
+                "requirementId": "ev-market",
+                "passNumber": 0,
+                "providerResponseText": "Raw accepted-provider response wrapper.",
+                "claims": [verified_claim],
+            },
+            {
+                "requirementId": "ev-law",
+                "passNumber": 0,
+                "providerResponseText": "Raw rejected statutory provider response.",
+                "claims": [missing_claim],
+            },
+            {
+                "requirementId": "ev-second-market",
+                "passNumber": 1,
+                "providerResponseText": "Raw second accepted-provider response wrapper.",
+                "claims": [second_verified_claim],
+            },
+        ],
+        "sourceCatalogue": [
+            {
+                "sourceId": "selected-source",
+                "sourceTitle": "Owner evidence",
+                "canonicalUrl": "https://owner.example/product-fact",
+                "sourceClasses": ["selected_evidence"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [selected_id],
+            },
+            {
+                "sourceId": "verified-source",
+                "sourceTitle": "Official statistics",
+                "canonicalUrl": "https://statistics.example/market",
+                "sourceClasses": ["official_statistics"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [verified_id, missing_id],
+            },
+            {
+                "sourceId": "missing-source",
+                "sourceTitle": "Copied legal blog",
+                "canonicalUrl": "https://blog.example/copied-law",
+                "sourceClasses": ["grounded_web"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [missing_id],
+            },
+            {
+                "sourceId": "second-verified-source",
+                "sourceTitle": "Second official statistics source",
+                "canonicalUrl": "https://statistics.example/second-market",
+                "sourceClasses": ["official_statistics"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [second_verified_id],
+            },
+        ],
+        "gaps": ["Raw missing-evidence narrative."],
+        "conflicts": [],
+        "assumptions": [],
+    }
+    scope_payload = {
+        "evidenceRequirements": [
+            {
+                "id": "ev-law",
+                "description": "Applicable Estonian statutory labeling obligations.",
+                "evidenceRole": "grounded_claim",
+                "verificationBasis": "grounded_claims",
+                "acceptedSourceTypes": ["government", "primary_law"],
+                "allowedSourceHosts": [],
+            }
+        ]
+    }
+    original = json.loads(json.dumps(research_payload))
+
+    prompt_view = PydanticAISynthesisWriter._research_prompt_view(
+        research_payload, scope_payload
+    )
+    prompt_json = json.dumps(prompt_view)
+
+    assert research_payload == original
+    assert "claimLedger" not in prompt_view
+    assert "gaps" not in prompt_view
+    assert "conflicts" not in prompt_view
+    assert "providerResponseText" not in prompt_json
+    assert "Raw accepted-provider response wrapper." not in prompt_json
+    assert "Raw rejected statutory provider response." not in prompt_json
+    assert "Rejected statutory provider narrative" not in prompt_json
+    assert missing_claim["text"] not in prompt_json
+    assert verified_claim["text"] in prompt_json
+    assert second_verified_claim["text"] in prompt_json
+    assert selected_claim["text"] in prompt_json
+    assert prompt_view["verifiedEvidence"] == [
+        {
+            "requirementId": "ev-market",
+            "passNumber": 0,
+            "claims": [verified_claim],
+        },
+        {
+            "requirementId": "ev-second-market",
+            "passNumber": 1,
+            "claims": [second_verified_claim],
+        },
+    ]
+    assert prompt_view["unresolvedEvidence"] == [
+        {
+            "requirementId": "ev-law",
+            "status": "missing",
+            "blocking": False,
+            "requiredAction": "acquire_accepted_evidence",
+            "description": "Applicable Estonian statutory labeling obligations.",
+            "evidenceRole": "grounded_claim",
+            "verificationBasis": "grounded_claims",
+            "acceptedSourceTypes": ["government", "primary_law"],
+            "allowedSourceHosts": [],
+        }
+    ]
+    assert [source["sourceId"] for source in prompt_view["sourceCatalogue"]] == [
+        "selected-source",
+        "verified-source",
+        "second-verified-source",
+    ]
+    assert prompt_view["sourceCatalogue"][1]["supportedClaimIds"] == [verified_id]
+    assert PydanticAISynthesisWriter._allowed_claim_ids(research_payload) == [
+        selected_id,
+        verified_id,
+        second_verified_id,
+    ]
+    assert set(
+        PydanticAISynthesisWriter._allowed_claim_texts(research_payload)
+    ) == {selected_id, verified_id, second_verified_id}
 
 
 @pytest.mark.asyncio
