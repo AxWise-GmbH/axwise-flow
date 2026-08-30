@@ -6870,10 +6870,39 @@ async def test_final_writer_repairs_stale_deterministic_evaluator_quality_defect
 
 
 @pytest.mark.asyncio
-async def test_final_writer_does_not_mask_evaluator_only_quality_defect(
+@pytest.mark.parametrize(
+    "terminal_error",
+    [
+        "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID",
+        "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+    ],
+)
+async def test_final_writer_publishes_strict_fallback_after_critic_only_repair_exhausts(
     monkeypatch: pytest.MonkeyPatch,
+    terminal_error: str,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "final_markdown"
+        and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    empty_subheading = (
+        "## Product thesis, scope, and non-goals\n\n"
+        "### Product Thesis\n\n"
+        "### Product Scope\n\n"
+    )
+    contents[core_index] = core.model_copy(
+        update={
+            "markdown": core.markdown.replace(
+                "## Product thesis, scope, and non-goals\n\n",
+                empty_subheading,
+                1,
+            )
+        }
+    )
     evaluation_index = next(
         index
         for index, item in enumerate(contents)
@@ -6885,22 +6914,53 @@ async def test_final_writer_does_not_mask_evaluator_only_quality_defect(
             "payload": {
                 **evaluation_content.payload,
                 "substantiveContentDefects": [
-                    "The candidate has an evaluator-only coherence defect."
+                    "The Product Thesis subsection is empty, omitting the core value "
+                    "proposition."
+                ],
+                "practicalityDefects": [
+                    "Markdown section 'Product Thesis' is empty or too thin."
                 ],
                 "outputContractSatisfied": False,
                 "promotedArtifact": None,
                 "repairRequired": True,
-                "repairInstructions": ["Resolve the coherence defect."],
+                "repairInstructions": ["Fill the empty Product Thesis subsection."],
             }
         }
     )
     writer = object.__new__(PydanticAISynthesisWriter)
     writer.final_agent = object()
+    context = writer._context(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+    changed_core = contents[core_index]
+    projected = cognitive_executor_module._project_final_repair_base(
+        context,
+        title=changed_core.payload["title"],
+        markdown=changed_core.markdown,
+    )
+    canonical = _with_canonical_acceptance_criteria(context, projected)
+    normalized = cognitive_executor_module._without_empty_noncontract_subheadings(
+        context, canonical
+    )
+    fallback_context = context.model_copy(
+        update={
+            "final_repair_topology": cognitive_executor_module._final_repair_topology(
+                normalized.markdown
+            )
+        }
+    )
+    expected = cognitive_executor_module._project_strict_final_fallback(
+        fallback_context, normalized
+    )
+    _validate_synthesis(fallback_context, expected)
 
     async def exhausted(_agent, _prompt, _context, *, phase):
         assert phase == "FINAL"
         raise CognitiveExecutionFailure(
-            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            terminal_error,
             retryable=True,
         )
 
@@ -6910,16 +6970,16 @@ async def test_final_writer_does_not_mask_evaluator_only_quality_defect(
         staticmethod(exhausted),
     )
 
-    with pytest.raises(CognitiveExecutionFailure) as raised:
-        await writer.write(
-            input_value,
-            compiled.artifact.payload,
-            research.artifact.payload,
-            contents,
-        )
-    assert raised.value.error_class.startswith(
-        "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_"
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
     )
+
+    assert result.value == expected
+    assert "### Product Thesis" not in result.value.markdown
+    assert (result.input_tokens, result.output_tokens) == (0, 0)
 
 
 @pytest.mark.asyncio
