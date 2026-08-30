@@ -929,9 +929,7 @@ def _with_narrowed_statutory_source_types(
         )
 
     return [
-        requirement.model_copy(
-            update={"accepted_source_types": narrowed_types.copy()}
-        )
+        requirement.model_copy(update={"accepted_source_types": narrowed_types.copy()})
         if is_unambiguous_statutory_requirement(requirement)
         and set(requirement.accepted_source_types) != _STATUTORY_SOURCE_TYPES
         else requirement
@@ -1840,8 +1838,10 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
     allowed = set(context.allowed_claim_ids)
     if citations - allowed:
         raise ValueError("Markdown cites evidence outside the immutable claim ledger")
-    if allowed and not citations and not (
-        context.purpose == "execute_task" and not context.required_sections
+    if (
+        allowed
+        and not citations
+        and not (context.purpose == "execute_task" and not context.required_sections)
     ):
         raise ValueError("evidence-backed Markdown must cite immutable claim IDs")
     if context.evidence_readiness in {"ready_with_gaps", "blocked"}:
@@ -1907,6 +1907,25 @@ _IMMUTABLE_GAP_SECTION_HEADINGS = frozenset(
 )
 
 
+def _is_immutable_gap_heading(value: str) -> bool:
+    """Recognize the exact server gap section without exact casing/numbering."""
+
+    identities = _markdown_heading_identities(value)
+    canonical = {item.casefold() for item in _IMMUTABLE_GAP_SECTION_HEADINGS}
+    return bool(identities.intersection(canonical))
+
+
+def _is_semantic_gap_heading(value: str) -> bool:
+    """Recognize a reader-facing evidence-gap host section."""
+
+    identities = _markdown_heading_identities(value)
+    return any(
+        ("evidence" in identity or "evidentiary" in identity)
+        and ("gap" in identity or "assumption" in identity)
+        for identity in identities
+    )
+
+
 def _immutable_gap_bullet(label: str) -> str:
     return f"- {label}"
 
@@ -1919,7 +1938,13 @@ def _has_server_owned_immutable_gap_bullet(markdown: str, bullet: str) -> bool:
         if heading:
             current_heading = heading.group(1).strip()
             continue
-        if current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS and stripped == bullet:
+        if (
+            _is_immutable_gap_heading(current_heading)
+            or _is_semantic_gap_heading(current_heading)
+        ) and stripped in {
+            bullet,
+            bullet.replace("- ", "- **Pending verification:** ", 1),
+        }:
             return True
     return False
 
@@ -1950,10 +1975,7 @@ def _with_immutable_gap_labels(
     for index, line in enumerate(lines):
         stripped = line.strip()
         heading = _MARKDOWN_HEADING.fullmatch(stripped)
-        if (
-            heading is None
-            or heading.group(1).strip() not in _IMMUTABLE_GAP_SECTION_HEADINGS
-        ):
+        if heading is None or not _is_immutable_gap_heading(heading.group(1).strip()):
             continue
         insert_at = len(lines)
         for later_index in range(index + 1, len(lines)):
@@ -1965,6 +1987,37 @@ def _with_immutable_gap_labels(
         additions = [*(_immutable_gap_bullet(label) for label in missing)]
         if insert_at > 0 and lines[insert_at - 1].strip():
             additions.insert(0, "")
+        if insert_at < len(lines) and lines[insert_at].strip():
+            additions.append("")
+        lines[insert_at:insert_at] = additions
+        return draft.model_copy(update={"markdown": "\n".join(lines)})
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        heading = _MARKDOWN_HEADING.fullmatch(stripped)
+        if heading is None or not _is_semantic_gap_heading(heading.group(1).strip()):
+            continue
+        host_level = _markdown_heading_level(line)
+        insert_at = len(lines)
+        for later_index in range(index + 1, len(lines)):
+            later_heading = _MARKDOWN_HEADING.fullmatch(lines[later_index].strip())
+            if (
+                later_heading is not None
+                and _markdown_heading_level(lines[later_index]) <= host_level
+            ):
+                insert_at = later_index
+                break
+        nested_level = min(host_level + 1, 6)
+        additions = [
+            "",
+            f"{'#' * nested_level} Immutable evidence gaps and assumptions",
+            "",
+            (
+                "These immutable gaps remain unresolved. They do not establish launch, "
+                "legal, safety, certification, or market clearance."
+            ),
+            "",
+            *(_immutable_gap_bullet(label) for label in missing),
+        ]
         if insert_at < len(lines) and lines[insert_at].strip():
             additions.append("")
         lines[insert_at:insert_at] = additions
@@ -3190,9 +3243,12 @@ def _unresolved_evidence_requirement_descriptions(
 def _split_unresolved_assertions(fragment: str) -> list[str]:
     """Separate an unresolved status clause from an unrelated positive assertion."""
 
-    if _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
-        re.sub(r"[`]", "", fragment).strip()
-    ) is not None:
+    if (
+        _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
+            re.sub(r"[`]", "", fragment).strip()
+        )
+        is not None
+    ):
         return [fragment.strip()]
     controlled_prefix = _PUBLICATION_UNKNOWN_PENDING_PREFIX.search(fragment)
     if controlled_prefix is not None:
@@ -3470,13 +3526,9 @@ def _deterministic_evidence_integrity_defects(
                 continue
             if exact_explicit_gap_fragment(fragment):
                 expanded_fragments.append((fragment, fragment_context))
-            elif (
-                _SERVER_VALIDATION_ACTION.fullmatch(
-                    re.sub(r"[*_`]", "", fragment).strip()
-                )
-                is not None
-                and _is_bounded_unresolved_requirement_action(fragment)
-            ):
+            elif _SERVER_VALIDATION_ACTION.fullmatch(
+                re.sub(r"[*_`]", "", fragment).strip()
+            ) is not None and _is_bounded_unresolved_requirement_action(fragment):
                 # The complete proposition is inside one bounded verification
                 # question. Keep it intact so conjunctions in the question cannot be
                 # misread as independently asserted factual tails.
@@ -3533,14 +3585,15 @@ def _deterministic_evidence_integrity_defects(
                 not conditional_ui_behavior
                 and not safe_non_authority_planning_directive
                 and (
-                _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
-                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
-                or gwt_authority_execution
-                or (
-                    raw_conditional_then_candidate
-                    and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                    _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
+                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
                     is not None
-                )
+                    or gwt_authority_execution
+                    or (
+                        raw_conditional_then_candidate
+                        and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                        is not None
+                    )
                 )
             )
             conditional_then_candidate = (
@@ -3605,17 +3658,12 @@ def _deterministic_evidence_integrity_defects(
                 for requirement in unresolved_evidence_requirements
             )
             exact_explicit_gap_label = exact_explicit_gap_fragment(without_markers)
-            hard_authority = (
-                not safe_non_authority_planning_directive
-                and (
-                    _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers)
-                    is not None
-                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
-                    is not None
-                    or planning_target_authority_assertion
-                    or validation_action_authority_execution
-                    or conditional_then_candidate
-                )
+            hard_authority = not safe_non_authority_planning_directive and (
+                _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers) is not None
+                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+                or planning_target_authority_assertion
+                or validation_action_authority_execution
+                or conditional_then_candidate
             )
             if not precise_values and not sensitive and not unresolved_alignment:
                 continue
@@ -4973,8 +5021,7 @@ def _with_canonical_acceptance_criteria(
                 f"- **Then** {criterion.then}",
                 "- **Supports** "
                 + ", ".join(
-                    f"`{requirement_id}`"
-                    for requirement_id in criterion.supports
+                    f"`{requirement_id}`" for requirement_id in criterion.supports
                 ),
                 "",
             ]
@@ -5609,9 +5656,7 @@ def _project_server_validation_scaffolding(
                     trial_pieces[piece_index] = replacement
                     line_changed = True
                     continue
-                replacement = _publication_unknown_item_inline(
-                    pieces[piece_index]
-                )
+                replacement = _publication_unknown_item_inline(pieces[piece_index])
                 if replacement != pieces[piece_index]:
                     trial_pieces[piece_index] = replacement
                     line_changed = True
@@ -5673,8 +5718,7 @@ def _project_fenced_ascii_roadmaps(
             for match in _FENCED_ROADMAP_LABEL.finditer(body)
         ]
         is_ascii_table = (
-            "|" in body
-            and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
+            "|" in body and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
         )
         table_recognized = (
             is_ascii_table
@@ -5902,11 +5946,7 @@ def _project_remaining_evidence_defects(
                             for fragment in fragments
                             if any(excerpt in fragment for excerpt in excerpts)
                         ],
-                        *[
-                            excerpt
-                            for excerpt in excerpts
-                            if excerpt in piece
-                        ],
+                        *[excerpt for excerpt in excerpts if excerpt in piece],
                         *parsed_candidates,
                     ]
                     for candidate in candidates:
@@ -6199,8 +6239,7 @@ def _without_unbound_task_evidence_markers(
 
     allowed = set(context.allowed_claim_ids)
     heading_positions = [
-        position
-        for position, _name, _folded in _markdown_headings(draft.markdown)
+        position for position, _name, _folded in _markdown_headings(draft.markdown)
     ]
     first_heading = min(heading_positions) if heading_positions else len(draft.markdown)
 
@@ -6239,12 +6278,229 @@ _EXPLICIT_LAUNCH_DISPOSITION = re.compile(
     re.IGNORECASE,
 )
 _PUBLICATION_LABEL_AUTHORITY_ASSERTION = re.compile(
-    r"\b(?:label|labelling|labeling|packaging|declaration)\b[^.;\n]{0,160}\b"
+    r"\b(?:labels?|labelling|labeling|packaging|declarations?)\b[^.;\n]{0,160}\b"
     r"(?:legal|mandatory|statutory|required\s+(?:by|under)|compl(?:y|ies|iant|iance))\b|"
     r"\b(?:legal|mandatory|statutory|required\s+(?:by|under)|"
     r"compl(?:y|ies|iant|iance))\b[^.;\n]{0,160}\b"
-    r"(?:label|labelling|labeling|packaging|declaration)\b",
+    r"(?:labels?|labelling|labeling|packaging|declarations?)\b",
     re.IGNORECASE,
+)
+_PUBLICATION_LABEL_REQUIREMENT_ANSWER = re.compile(
+    r"\b(?:labels?|labelling|labeling|packaging|declarations?|on-pack)\b"
+    r"[^.;\n]{0,160}\b(?:must|shall|required\s+to)\b[^.;\n]{0,160}\b"
+    r"(?:legal|mandatory|regulatory|statutory)\b|"
+    r"\b(?:legal|mandatory|regulatory|statutory)\b[^.;\n]{0,160}\b"
+    r"(?:must|shall|required\s+to)\b[^.;\n]{0,160}\b"
+    r"(?:labels?|labelling|labeling|packaging|declarations?|on-pack)\b|"
+    r"\b(?:includes?|displays?|carries?|states?|identifies?|lists?|declares?)\b"
+    r"[^.;\n]{0,160}\b(?:mandatory|statutory)\b[^.;\n]{0,160}\b"
+    r"(?:text|declarations?|information|language|wording)\b|"
+    r"\bmust\s+(?:include|mandate|specify)\b[^.;\n]{0,160}\b"
+    r"(?:mandatory|statutory)\b[^.;\n]{0,160}\b"
+    r"(?:declarations?|label|labelling|labeling|text|wording)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL = (
+    "Proposed validation target — requires authoritative verification"
+)
+_PUBLICATION_LABEL_VALIDATION_ACTION = (
+    "Confirm the applicable labelling requirement with primary legal evidence "
+    "before approving copy."
+)
+_PUBLICATION_PROCESS_VALIDATION_ACTION = (
+    "Confirm the applicable filing or registration process with the responsible "
+    "authority before execution."
+)
+_PUBLICATION_SAFETY_VALIDATION_ACTION = (
+    "Define the safety validation protocol and adopt limits only after authoritative "
+    "evidence and test results are accepted."
+)
+_PUBLICATION_HEALTH_VALIDATION_ACTION = (
+    "Treat the claimed health or nutritional effect as an unverified product "
+    "hypothesis until appropriate evidence validates it."
+)
+_PUBLICATION_BENCHMARK_VALIDATION_ACTION = (
+    "Confirm the applicable nutritional or safety benchmark with accepted "
+    "authoritative evidence before adopting a numeric specification."
+)
+_PUBLICATION_FACT_VALIDATION_ACTION = (
+    "Confirm the exact external figure with accepted immutable evidence before "
+    "publishing it."
+)
+_PUBLICATION_LEGAL_VALIDATION_ACTION = (
+    "Confirm the applicable legal or authorization requirement from the controlling "
+    "primary source before adoption."
+)
+_PUBLICATION_CANONICAL_VALIDATION_ACTIONS = frozenset(
+    {
+        _PUBLICATION_LABEL_VALIDATION_ACTION,
+        _PUBLICATION_PROCESS_VALIDATION_ACTION,
+        _PUBLICATION_SAFETY_VALIDATION_ACTION,
+        _PUBLICATION_HEALTH_VALIDATION_ACTION,
+        _PUBLICATION_BENCHMARK_VALIDATION_ACTION,
+        _PUBLICATION_FACT_VALIDATION_ACTION,
+        _PUBLICATION_LEGAL_VALIDATION_ACTION,
+    }
+)
+_PUBLICATION_PENDING_PREFIX = re.compile(
+    r"^(?:(?:\*\*|__)?pending\s+verification(?:\s*:)?(?:\*\*|__)?\s*:?[ \t]*)+",
+    re.IGNORECASE,
+)
+_PUBLICATION_PENDING_INLINE = re.compile(
+    r"(?:\*\*|__)?pending\s+verification(?:\s*:)?(?:\*\*|__)?\s*:?[ \t]*",
+    re.IGNORECASE,
+)
+_PUBLICATION_NUMBERED_INSTRUMENT = re.compile(
+    r"\b(?:act|code|decision|directive|reg(?:ulation)?\.?|statute)\b\s*"
+    r"(?:\([A-Z]{2,8}\)\s*)?(?:no\.?\s*)?\d[\w./()\-]*",
+    re.IGNORECASE,
+)
+_PUBLICATION_AUTHORITY_STATUS_ANSWER = re.compile(
+    r"\b(?:is|are|was|were|will\s+be|has\s+been|have\s+been)\s+"
+    r"(?:fully\s+)?(?:legally\s+)?(?:approved|authori[sz]ed|certified|compliant|"
+    r"permitted|safe)\b|"
+    r"\b(?:complies?|compliant)\s+with\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_AUTHORITY_PROCESS_MECHANICS = re.compile(
+    r"\b(?:complete|file|register|submit)\b[^.;\n]{0,140}\b"
+    r"(?:application|dossier|filing|form|notification|registration)\b|"
+    r"\b(?:application|dossier|filing|form|notification|registration)\b"
+    r"[^.;\n]{0,140}\b(?:complete|file|register|submit(?:ted)?)\b|"
+    r"\b(?:obtain|receive)\b[^.;\n]{0,140}\b"
+    r"(?:acknowledgement|approval|clearance|licen[cs]e|permit)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_AUTHORITY_PROCESS_CONTEXT = re.compile(
+    r"\b(?:agency|authority|board|dossier|filing|government|law|legal|licen[cs]e|"
+    r"notification|official|permit|regulator|regulatory|statutory)\b|"
+    r"\bregister(?:ed|ing)?\s+with\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_SAFETY_RULE_ANSWER = re.compile(
+    r"\b(?:animal\s+by-products?|abp)\b[^.;\n]{0,100}\bcategory\s+\d+\b|"
+    r"\bcategory\s+\d+\b[^.;\n]{0,100}\b(?:animal\s+by-products?|abp)\b|"
+    r"\b(?:enterobacteriaceae|microbiolog(?:y|ical)|pathogens?|salmonella)\b"
+    r"[^.;\n]{0,120}\b(?:absence|ceilings?|limits?|mandatory|must|required|rules?|"
+    r"standards?|thresholds?|tolerances?|zero)\b|"
+    r"\b(?:absence|ceilings?|limits?|mandatory|must|required|rules?|standards?|"
+    r"thresholds?|tolerances?|zero)\b[^.;\n]{0,120}\b"
+    r"(?:enterobacteriaceae|microbiolog(?:y|ical)|pathogens?|salmonella)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_NAMED_CERTIFICATION_DETAIL = re.compile(
+    r"\b(?:certification|certifications|certified|standards?)\b"
+    r"[^.;\n]{0,140}\b[A-Z]{2,8}\+?\b[^.;\n]{0,80}"
+    r"(?:/|\band\b)[^.;\n]{0,40}\b[A-Z]{2,8}\+?\b|"
+    r"\b[A-Z]{2,8}\+?\b[^.;\n]{0,80}(?:/|\band\b)"
+    r"[^.;\n]{0,40}\b[A-Z]{2,8}\+?\b[^.;\n]{0,140}"
+    r"\b(?:certification|certifications|certified|standards?)\b"
+)
+_PUBLICATION_SAFETY_DOMAIN = re.compile(
+    r"\b(?:animal\s+by-products?|feed\s+hygiene|food\s+safety|microbiolog(?:y|ical)|"
+    r"pathogens?|safety|spoilage|water\s+activity)\b|\ba[_ ]?w\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_HEALTH_EFFECT_ANSWER = re.compile(
+    r"\b(?:ensure(?:s|d|ing)?|improv(?:e|es|ed|ing)|maintain(?:s|ed|ing)?|"
+    r"prevent(?:s|ed|ing)?|reduc(?:e|es|ed|ing)?|support(?:s|ed|ing)?)\b"
+    r"[^.;\n]{0,140}\b(?:condition|disease|digest(?:ion|ive)|gastrointestinal|"
+    r"hairball|health|inflammation|physiolog(?:y|ical)|renal|urinary|vitality|"
+    r"well[- ]?being|wellness)\b|"
+    r"\b(?:anti-inflammatory|digestive\s+balance|hairball\s+(?:control|management)|"
+    r"urinary\s+(?:care|support|wellness))\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_EXACT_TRANSLATION_ANSWER = re.compile(
+    r"\b(?:additives?|declarations?|designation|feeding|instructions?|label|"
+    r"labelling|labeling|language|packaging|translation)\b"
+    r"[^.;\n]{0,180}\([^)]*[^\x00-\x7f][^)]*\)",
+    re.IGNORECASE,
+)
+_PUBLICATION_FOREIGN_LABEL_EXAMPLE = re.compile(
+    r"(?:\([^)]*[\u00c0-\u024f][^)]*\)|" r"[*_][^*_\n]*[\u00c0-\u024f][^*_\n]*[*_])"
+)
+_PUBLICATION_NONASCII_LATIN_LETTER = re.compile(r"[\u00c0-\u024f]")
+_PUBLICATION_LABEL_DOMAIN = re.compile(
+    r"\b(?:additives?|declarations?|designation|feeding|instructions?|label|"
+    r"labelling|labeling|language|on-pack|packaging|translation)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_AUTHORITATIVE_LABEL_SECTION = re.compile(
+    r"\b(?:statutory|regulatory|legal|required)\b[^\n]{0,100}\b"
+    r"(?:declarations?|labels?|labelling|labeling|on-pack|packaging)\b|"
+    r"\b(?:declarations?|labels?|labelling|labeling|on-pack|packaging)\b"
+    r"[^\n]{0,100}\b(?:architecture|statutory|regulatory|legal|required)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_LABEL_DETAIL_ANSWER = re.compile(
+    r"\b(?:approval\s+number|batch|best[- ]before|declarations?|legibility|"
+    r"net\s+quantity|producer\s+contact|registration\s+number|translation)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_EXTERNAL_FACT_CONTEXT = re.compile(
+    r"\b(?:benchmark|consumer|demographic|household|market|penetration|population|"
+    r"research|survey)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_FEEDING_INSTRUCTION_CONTEXT = re.compile(
+    r"\b(?:daily\s+ration|feed(?:ing)?\s+(?:guide|instruction|schedule|use)|"
+    r"grams?\s+per\s+day|g/day)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_AUTHORITATIVE_BENCHMARK_CONTEXT = re.compile(
+    r"\b(?:evidence[- ]backed|grounded|mandatory|minimum|statutory|verified)\b"
+    r"[^\n]{0,120}\b(?:benchmark|declaration|feeding|limit|nutrition|requirement|"
+    r"rule|safety|specification|standard|threshold|tolerance)\b|"
+    r"\b(?:benchmark|declaration|feeding|limit|nutrition|requirement|rule|safety|"
+    r"specification|standard|threshold|tolerance)\b[^\n]{0,120}"
+    r"\b(?:evidence[- ]backed|grounded|mandatory|minimum|statutory|verified)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_SAFE_EVIDENCE_POLICY = re.compile(
+    r"^(?:(?:the\s+(?:artifact|document|prd)\s+)?(?:must\s+)?"
+    r"(?:base|cite|document|record|separate|track)\b[^.;\n]{0,220}\b"
+    r"(?:assumptions?|evidence|gaps?|sources?|unresolved|verification)\b|"
+    r"(?:assumptions?|evidence|gaps?)\b[^.;\n]{0,180}\b"
+    r"(?:documented|recorded|tracked|unresolved)\b)",
+    re.IGNORECASE,
+)
+_PUBLICATION_SAFE_NONAUTHORIZATION = re.compile(
+    r"\b(?:artifact|document|prd)\b[^\n]{0,100}\b(?:does|is)\s+not\b"
+    r"[^\n]{0,140}\b(?:approval|authori[sz]ation|clearance|launch|sign[- ]?off)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_INTERNAL_REVIEW_ACTION = re.compile(
+    r"^(?:(?:[a-z][a-z -]{1,50})\s+to\s+)?"
+    r"(?:audit|check|cite|confirm|consult|determine|document|inspect|record|review|"
+    r"track|validate|verify)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_COUNT_WITH_MODIFIER = re.compile(
+    r"(?<![\w])(?P<number>\d[\d,]*)\s+(?:[a-z-]+\s+){0,2}"
+    r"(?P<unit>cats?|customers?|households?|participants?|people|respondents?|users?)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_UNSUPPORTED_INFERENCE = re.compile(
+    r"\b(?:consequently|demonstrates?|hence|indicates?|proves?|shows?|suggests?|"
+    r"therefore|thus)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_NEUTRAL_CLAIM_JOIN_TOKENS = frozenset(
+    {
+        "combined",
+        "density",
+        "estimate",
+        "estimated",
+        "feline",
+        "overall",
+        "ownership",
+        "rate",
+        "representing",
+        "respectively",
+        "share",
+        "total",
+    }
 )
 
 
@@ -6273,6 +6529,171 @@ def _immutable_claim_covers_publication_assertion(
     )
 
 
+def _publication_precision_values(value: str) -> set[str]:
+    """Return publication precision, including counts with short modifiers."""
+
+    values = set(_precision_values(value))
+    markerless = _RAW_EVIDENCE_MARKER.sub("", value)
+    for match in _PUBLICATION_COUNT_WITH_MODIFIER.finditer(markerless):
+        number = match.group("number").replace(",", "")
+        unit = match.group("unit").casefold().rstrip("s")
+        values.add(f"{number}{unit}")
+    return values
+
+
+def _claims_collectively_cover_publication_assertion(
+    assertion: str, claim_texts: Sequence[str]
+) -> bool:
+    """Require the selected immutable claims to cover most local content."""
+
+    assertion_tokens = _expanded_support_tokens(assertion)
+    claim_tokens = set().union(
+        *(_expanded_support_tokens(text) for text in claim_texts)
+    )
+    if not assertion_tokens or not claim_tokens:
+        return False
+    matched = {
+        left
+        for left in assertion_tokens
+        if any(
+            left == right
+            or (len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6])
+            for right in claim_tokens
+        )
+    }
+    return len(matched) >= 2 and len(matched) * 3 >= len(assertion_tokens) * 2
+
+
+def _claims_safely_cover_marker_restoration(
+    assertion: str, claim_texts: Sequence[str]
+) -> bool:
+    """Do not synthesize a marker over a changed conclusion.
+
+    Restoration is stricter than preserving a marker the model already placed: every
+    content token must come from the immutable claims, apart from a small set of
+    neutral joining words used to combine exact statistics.
+    """
+
+    assertion_tokens = _expanded_support_tokens(assertion)
+    claim_tokens = set().union(
+        *(_expanded_support_tokens(text) for text in claim_texts)
+    )
+    if not assertion_tokens or not claim_tokens:
+        return False
+    matched = {
+        left
+        for left in assertion_tokens
+        if any(
+            left == right
+            or (len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6])
+            for right in claim_tokens
+        )
+    }
+    unmatched = assertion_tokens.difference(matched)
+    return len(matched) >= 2 and unmatched.issubset(
+        _PUBLICATION_NEUTRAL_CLAIM_JOIN_TOKENS
+    )
+
+
+def _with_exact_supported_precision_markers(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Restore omitted markers only when immutable claims cover exact precision."""
+
+    def marked_fragment(fragment: str) -> str:
+        if _RAW_EVIDENCE_MARKER.search(fragment) is not None:
+            return fragment
+        assertion = re.sub(r"[*_`]", "", fragment).strip()
+        values = _publication_precision_values(assertion)
+        if (
+            not assertion
+            or not values
+            or _EXPLICIT_NONFACTUAL_QUALIFIER.search(assertion) is not None
+            or _PUBLICATION_UNSUPPORTED_INFERENCE.search(assertion) is not None
+        ):
+            return fragment
+        candidates = [
+            (
+                claim_id,
+                claim_text,
+                values.intersection(_publication_precision_values(claim_text)),
+            )
+            for claim_id, claim_text in context.allowed_claim_texts.items()
+            if _assertions_share_explicit_polarity(assertion, claim_text)
+            and values.intersection(_publication_precision_values(claim_text))
+            and _claims_align_with_assertion(
+                assertion,
+                [claim_text],
+                minimum_matches=min(2, max(1, len(_support_tokens(assertion)))),
+            )
+        ]
+        covered: set[str] = set()
+        selected: list[tuple[str, str]] = []
+        for claim_id, claim_text, shared in sorted(
+            candidates, key=lambda item: (-len(item[2]), item[0])
+        ):
+            if not shared.difference(covered):
+                continue
+            selected.append((claim_id, claim_text))
+            covered.update(shared)
+        if covered != values or not _claims_safely_cover_marker_restoration(
+            assertion, [text for _claim_id, text in selected]
+        ):
+            return fragment
+        markers = " ".join(
+            f"[evidence:{claim_id}]" for claim_id, _claim_text in selected
+        )
+        trailing = re.search(r"(?P<punct>[.!?;])(?P<space>\s*)$", fragment)
+        if trailing is None:
+            return f"{fragment.rstrip()} {markers}{fragment[len(fragment.rstrip()):]}"
+        return (
+            fragment[: trailing.start()].rstrip()
+            + f" {markers}{trailing.group('punct')}{trailing.group('space')}"
+        )
+
+    lines = draft.markdown.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    for line_index, line in enumerate(lines):
+        if line_index in fenced_indexes or _MARKDOWN_HEADING.fullmatch(line.strip()):
+            continue
+        table_units = re.split(r"((?<!\\)\|)", line)
+        for unit_index in range(0, len(table_units), 2):
+            pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
+            for piece_index in range(0, len(pieces), 2):
+                piece = re.sub(
+                    r"(?P<punct>[.!?;])(?P<spacing>[ \t]*)"
+                    r"(?P<markers>\[evidence:[^\]\r\n]+\]"
+                    r"(?:[ \t]+\[evidence:[^\]\r\n]+\])*)"
+                    r"(?P<after>[ \t]*)"
+                    r"(?=$|(?=[A-Z0-9*_(`]))",
+                    lambda match: (
+                        f"{match.group('spacing')}{match.group('markers')}"
+                        f"{match.group('punct')}{match.group('after')}"
+                    ),
+                    pieces[piece_index],
+                )
+                rebuilt: list[str] = []
+                cursor = 0
+                for fragment in _evidence_clause_fragments(piece):
+                    fragment_start = piece.find(fragment, cursor)
+                    if fragment_start < 0:
+                        continue
+                    fragment_end = fragment_start + len(fragment)
+                    rebuilt.append(piece[cursor:fragment_start])
+                    rebuilt.append(marked_fragment(fragment))
+                    cursor = fragment_end
+                rebuilt.append(piece[cursor:])
+                pieces[piece_index] = "".join(rebuilt)
+            table_units[unit_index] = "".join(pieces)
+        lines[line_index] = "".join(table_units)
+    markdown = "\n".join(lines)
+    return (
+        draft
+        if markdown == draft.markdown
+        else draft.model_copy(update={"markdown": markdown})
+    )
+
+
 def _without_mismatched_publication_evidence_markers(
     context: SynthesisContext, draft: SynthesisDraft
 ) -> SynthesisDraft:
@@ -6289,7 +6710,7 @@ def _without_mismatched_publication_evidence_markers(
         if not marker_ids:
             return fragment
         assertion = _RAW_EVIDENCE_MARKER.sub("", fragment)
-        assertion_values = _precision_values(assertion)
+        assertion_values = _publication_precision_values(assertion)
         sensitive = bool(
             _EVIDENCE_SENSITIVE_ASSERTION.search(assertion)
             or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(assertion)
@@ -6304,27 +6725,51 @@ def _without_mismatched_publication_evidence_markers(
             if sensitive
             else 1
         )
-        retained_ids = [
+        candidate_ids = [
             claim_id
             for claim_id in marker_ids
             if claim_id in context.allowed_claim_texts
             and _assertions_share_explicit_polarity(
                 assertion, context.allowed_claim_texts[claim_id]
             )
-            and _immutable_claim_covers_publication_assertion(
-                assertion, context.allowed_claim_texts[claim_id]
+            and (
+                _immutable_claim_covers_publication_assertion(
+                    assertion, context.allowed_claim_texts[claim_id]
+                )
+                or (
+                    assertion_values.intersection(
+                        _publication_precision_values(
+                            context.allowed_claim_texts[claim_id]
+                        )
+                    )
+                    and _claims_align_with_assertion(
+                        assertion,
+                        [context.allowed_claim_texts[claim_id]],
+                        minimum_matches=minimum_matches,
+                    )
+                )
             )
         ]
-        retained_texts = [context.allowed_claim_texts[item] for item in retained_ids]
-        collectively_supported = bool(retained_texts) and not assertion_values.difference(
-            set().union(*(_precision_values(text) for text in retained_texts))
+        retained_texts = [context.allowed_claim_texts[item] for item in candidate_ids]
+        collectively_supported = bool(
+            retained_texts
+        ) and not assertion_values.difference(
+            set().union(
+                *(_publication_precision_values(text) for text in retained_texts)
+            )
         )
-        collectively_supported = collectively_supported and _claims_align_with_assertion(
-            assertion,
-            retained_texts,
-            minimum_matches=minimum_matches,
+        collectively_supported = (
+            collectively_supported
+            and _claims_align_with_assertion(
+                assertion,
+                retained_texts,
+                minimum_matches=minimum_matches,
+            )
+            and _claims_collectively_cover_publication_assertion(
+                assertion, retained_texts
+            )
         )
-        retained = set(retained_ids if collectively_supported else [])
+        retained = set(candidate_ids if collectively_supported else [])
         cleaned = _RAW_EVIDENCE_MARKER.sub(
             lambda match: match.group(0) if match.group(1) in retained else "",
             fragment,
@@ -6332,7 +6777,9 @@ def _without_mismatched_publication_evidence_markers(
         cleaned = re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
         if sensitive and not retained:
             list_prefix, role_prefix, _role, body = _task_fragment_parts(cleaned)
-            if body.strip() and not body.lstrip().startswith("**Pending verification:**"):
+            if body.strip() and not body.lstrip().startswith(
+                "**Pending verification:**"
+            ):
                 return (
                     f"{list_prefix}{role_prefix}**Pending verification:** "
                     f"{body.strip()}"
@@ -6397,29 +6844,233 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
     context: SynthesisContext,
     draft: SynthesisDraft,
 ) -> SynthesisDraft:
-    """Label an uncited high-stakes proposition without deleting its content.
+    """Redact only concrete unsupported high-stakes answers, without retrying.
 
-    This is the sole non-rejecting publication boundary: it does not score prose,
-    retry the model, synthesize replacement claims, or collapse repeated content. It
-    only makes an uncited legal, safety, health, certification, or authority assertion
-    visibly provisional while preserving its complete Markdown cell or line.
+    The final artifact remains model-authored. This one-way boundary replaces a
+    concrete unsupported legal, safety, labelling, filing or health answer with a
+    bounded verification action while retaining Markdown topology and traceability.
     """
 
-    def is_unqualified_high_stakes_assertion(value: str) -> bool:
-        cleaned = re.sub(r"[*_`]", "", value).strip()
-        return bool(
-            cleaned
-            and "pending verification" not in cleaned.casefold()
-            and _EXPLICIT_NONFACTUAL_QUALIFIER.search(cleaned) is None
-            and not _is_pure_evidence_status_or_withholding(cleaned)
-            and not _is_safe_nonauthority_planning_directive(cleaned)
+    def stripped_assertion(value: str) -> str:
+        cleaned = _RAW_EVIDENCE_MARKER.sub("", value).strip()
+        cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", cleaned)
+        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", cleaned)
+        cleaned = _PUBLICATION_PENDING_PREFIX.sub("", cleaned)
+        return re.sub(r"[*_`]", "", cleaned).strip()
+
+    def without_descriptive_label(value: str) -> str:
+        cleaned = value
+        for _index in range(2):
+            reduced = re.sub(
+                r"^[A-Z][^:\n]{1,100}:\s+(?=\S)",
+                "",
+                cleaned,
+                count=1,
+            ).strip()
+            if reduced == cleaned:
+                break
+            cleaned = reduced
+        return cleaned
+
+    def validation_action(value: str, structural_context: str = "") -> str | None:
+        cleaned = stripped_assertion(value)
+        _list_prefix, _role_prefix, _role, cleaned = _task_fragment_parts(cleaned)
+        cleaned = cleaned.strip()
+        classified = without_descriptive_label(cleaned)
+        if not classified or any(
+            action in value for action in _PUBLICATION_CANONICAL_VALIDATION_ACTIONS
+        ):
+            return None
+        normalized_candidates = {
+            _normalized_semantic_text(cleaned),
+            _normalized_semantic_text(classified),
+        }
+        if any(
+            _normalized_semantic_text(label) in normalized_candidates
+            for label in context.required_gap_labels
+        ):
+            return None
+        if (
+            _is_pure_evidence_status_or_withholding(classified)
+            or _is_safe_nonauthority_planning_directive(classified)
+            or _PUBLICATION_SAFE_EVIDENCE_POLICY.search(classified)
+            or _PUBLICATION_SAFE_NONAUTHORIZATION.search(classified)
+        ):
+            return None
+
+        combined = " ".join(item for item in (structural_context, classified) if item)
+        explicit_proposal = _EXPLICIT_NONFACTUAL_QUALIFIER.search(combined) is not None
+        internal_review = _PUBLICATION_INTERNAL_REVIEW_ACTION.search(classified)
+        numbered_instrument = _PUBLICATION_NUMBERED_INSTRUMENT.search(classified)
+        process_mechanics = (
+            _PUBLICATION_AUTHORITY_PROCESS_MECHANICS.search(classified)
+            if _PUBLICATION_AUTHORITY_PROCESS_CONTEXT.search(combined)
+            else None
+        )
+        exact_translation = _PUBLICATION_EXACT_TRANSLATION_ANSWER.search(cleaned)
+        foreign_label_example = bool(
+            (
+                _PUBLICATION_FOREIGN_LABEL_EXAMPLE.search(cleaned)
+                or _PUBLICATION_NONASCII_LATIN_LETTER.search(cleaned)
+            )
+            and _PUBLICATION_LABEL_DOMAIN.search(combined)
+        )
+        label_answer = (
+            _PUBLICATION_LABEL_REQUIREMENT_ANSWER.search(classified)
+            if not explicit_proposal
+            else None
+        )
+        contextual_mandatory_label_note = bool(
+            re.search(r"\bmandatory\s+(?:note|text|wording)\b", classified, re.I)
+            and re.search(
+                r"\b(?:label|labelling|labeling|packaging|on-pack)\b",
+                structural_context,
+                re.I,
+            )
+        )
+        contextual_label_detail = bool(
+            internal_review is None
+            and _PUBLICATION_AUTHORITATIVE_LABEL_SECTION.search(combined)
+            and _PUBLICATION_LABEL_DETAIL_ANSWER.search(classified)
+        )
+        safety_rule = _PUBLICATION_SAFETY_RULE_ANSWER.search(classified)
+        certification_detail = _PUBLICATION_NAMED_CERTIFICATION_DETAIL.search(
+            classified
+        )
+        contextual_safety_category = bool(
+            re.search(r"\bcategory\s+\d+\b", classified, re.IGNORECASE)
+            and re.search(
+                r"\b(?:animal\s+by-products?|abp)\b",
+                structural_context,
+                re.IGNORECASE,
+            )
+        )
+        contextual_safety_precision = bool(
+            _publication_precision_values(classified)
+            and _PUBLICATION_SAFETY_DOMAIN.search(combined)
+        )
+        contextual_feeding_precision = bool(
+            _publication_precision_values(classified)
+            and not explicit_proposal
+            and _PUBLICATION_FEEDING_INSTRUCTION_CONTEXT.search(combined)
+        )
+        precision_values = _publication_precision_values(classified)
+        contextual_external_precision = bool(
+            precision_values
+            and not explicit_proposal
             and (
-                has_positive_launch_readiness_claim(cleaned)
-                or (
-                    _EVIDENCE_SENSITIVE_ASSERTION.search(cleaned) is not None
-                    and _ASSERTIVE_HEADING_PREDICATE.search(cleaned) is not None
+                _PUBLICATION_EXTERNAL_FACT_CONTEXT.search(structural_context)
+                or any(
+                    precision_values.intersection(
+                        _publication_precision_values(claim_text)
+                    )
+                    for claim_text in context.allowed_claim_texts.values()
                 )
             )
+        )
+        health_effect = _PUBLICATION_HEALTH_EFFECT_ANSWER.search(classified)
+        authority_status = _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(classified)
+        benchmark_precision = bool(
+            _publication_precision_values(classified)
+            and not explicit_proposal
+            and _PUBLICATION_AUTHORITATIVE_BENCHMARK_CONTEXT.search(combined)
+        )
+        if (
+            internal_review is not None
+            and numbered_instrument is None
+            and process_mechanics is None
+            and exact_translation is None
+            and not foreign_label_example
+            and label_answer is None
+            and not contextual_mandatory_label_note
+            and not contextual_label_detail
+            and safety_rule is None
+            and certification_detail is None
+            and not contextual_safety_category
+            and not contextual_safety_precision
+            and not contextual_feeding_precision
+            and not contextual_external_precision
+            and health_effect is None
+        ):
+            return None
+        if not any(
+            (
+                numbered_instrument,
+                process_mechanics,
+                exact_translation,
+                foreign_label_example,
+                label_answer,
+                contextual_mandatory_label_note,
+                contextual_label_detail,
+                safety_rule,
+                certification_detail,
+                contextual_safety_category,
+                contextual_safety_precision,
+                contextual_feeding_precision,
+                contextual_external_precision,
+                health_effect,
+                authority_status,
+                benchmark_precision,
+            )
+        ):
+            return None
+        if (
+            label_answer is not None
+            or exact_translation is not None
+            or foreign_label_example
+            or contextual_mandatory_label_note
+            or contextual_label_detail
+        ):
+            return _PUBLICATION_LABEL_VALIDATION_ACTION
+        if process_mechanics is not None:
+            return _PUBLICATION_PROCESS_VALIDATION_ACTION
+        if (
+            safety_rule is not None
+            or contextual_safety_category
+            or contextual_safety_precision
+            or (
+                certification_detail is not None
+                and _PUBLICATION_SAFETY_DOMAIN.search(combined)
+            )
+        ):
+            return _PUBLICATION_SAFETY_VALIDATION_ACTION
+        if health_effect is not None:
+            return _PUBLICATION_HEALTH_VALIDATION_ACTION
+        if benchmark_precision:
+            return _PUBLICATION_BENCHMARK_VALIDATION_ACTION
+        if contextual_feeding_precision:
+            return _PUBLICATION_BENCHMARK_VALIDATION_ACTION
+        if contextual_external_precision:
+            return _PUBLICATION_FACT_VALIDATION_ACTION
+        return _PUBLICATION_LEGAL_VALIDATION_ACTION
+
+    def render_replacement(fragment: str, action: str) -> str:
+        markerless = _RAW_EVIDENCE_MARKER.sub("", fragment)
+        list_prefix, role_prefix, _role, body = _task_fragment_parts(markerless)
+        body = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", body.strip())
+        body = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", body)
+        body = _PUBLICATION_PENDING_PREFIX.sub("", body)
+        label_match = re.match(r"^(?P<label>\*\*[^*\n]{1,120}:\*\*)\s*", body)
+        label = label_match.group("label") if label_match is not None else ""
+        if not label:
+            whole_bold = re.fullmatch(
+                r"\*\*(?P<label>[^:*\n]{1,80}):\s*[^\n]+\*\*", body
+            )
+            if whole_bold is not None:
+                label = f"**{whole_bold.group('label')}:**"
+        if "pending verification" in label.casefold():
+            label = ""
+        requirement_ids = utf16_ordinal_sorted(
+            {match.group(0) for match in _DISPLAY_REQUIREMENT_ID.finditer(body)}
+        )
+        references = (
+            " " + ", ".join(f"`{item}`" for item in requirement_ids)
+            if requirement_ids
+            else ""
+        )
+        target = f"**{_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL}:** {action}"
+        return f"{list_prefix}{role_prefix}{label} {target}{references}".replace(
+            "  ", " ", 1
         )
 
     authorization_claim_allowed = (
@@ -6427,29 +7078,116 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
         and context.artifact_type == "launch_authorization"
     )
     title = draft.title
-    if not authorization_claim_allowed and is_unqualified_high_stakes_assertion(title):
-        title = f"Pending verification — {title}"
+    if not authorization_claim_allowed and (
+        has_positive_launch_readiness_claim(title)
+        or _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(title)
+    ):
+        title = "Planning artifact — authorization remains unresolved"
 
     lines = draft.markdown.splitlines()
     fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    current_heading = ""
+    pending_table_context = ""
+    active_table_context = ""
+    suppress_authoritative_label_sublist = False
     for line_index, line in enumerate(lines):
         if line_index in fenced_indexes:
             continue
         if heading := re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line):
             body = heading.group("body")
-            if (
-                not authorization_claim_allowed
-                and is_unqualified_high_stakes_assertion(body)
+            current_heading = body
+            if not authorization_claim_allowed and (
+                has_positive_launch_readiness_claim(body)
+                or _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(body)
             ):
                 lines[line_index] = (
-                    f"{heading.group('prefix')}Pending verification — {body}"
+                    f"{heading.group('prefix')}"
+                    "Planning artifact — authorization remains unresolved"
                 )
+            elif _PUBLICATION_NUMBERED_INSTRUMENT.search(body) is not None:
+                lines[line_index] = (
+                    f"{heading.group('prefix')}"
+                    + _PUBLICATION_NUMBERED_INSTRUMENT.sub(
+                        "authoritative legal reference pending verification", body
+                    )
+                )
+            pending_table_context = ""
+            active_table_context = ""
+            suppress_authoritative_label_sublist = False
             continue
-        units = line.split("|") if "|" in line else [line]
-        for unit_index, unit in enumerate(units):
-            pieces = re.split(r"(<br\s*/?>)", unit, flags=re.IGNORECASE)
+
+        stripped = line.strip()
+        if (
+            _PUBLICATION_AUTHORITATIVE_LABEL_SECTION.search(current_heading)
+            and re.match(r"^\s*\d+[.)]\s+", line) is not None
+            and _RAW_EVIDENCE_MARKER.search(line) is None
+        ):
+            if not any(
+                action in line for action in _PUBLICATION_CANONICAL_VALIDATION_ACTIONS
+            ):
+                lines[line_index] = render_replacement(
+                    line, _PUBLICATION_LABEL_VALIDATION_ACTION
+                )
+            suppress_authoritative_label_sublist = True
+            pending_table_context = ""
+            active_table_context = ""
+            continue
+        if suppress_authoritative_label_sublist and re.match(r"^\s+[-+*]\s+", line):
+            lines[line_index] = ""
+            continue
+        if stripped:
+            suppress_authoritative_label_sublist = False
+        if "|" in line:
+            cells = [
+                re.sub(r"[*_`]", "", item).strip()
+                for item in re.split(r"(?<!\\)\|", stripped.strip("|"))
+            ]
+            if cells and all(
+                _MARKDOWN_TABLE_SEPARATOR_CELL.fullmatch(cell) is not None
+                for cell in cells
+            ):
+                active_table_context = pending_table_context
+                continue
+            next_line = lines[line_index + 1] if line_index + 1 < len(lines) else ""
+            next_cells = [
+                item.strip()
+                for item in re.split(r"(?<!\\)\|", next_line.strip().strip("|"))
+                if item.strip()
+            ]
+            if next_cells and all(
+                _MARKDOWN_TABLE_SEPARATOR_CELL.fullmatch(cell) is not None
+                for cell in next_cells
+            ):
+                pending_table_context = " ".join(cells)
+                continue
+            row_label = next((cell for cell in cells if cell), "")
+        else:
+            pending_table_context = ""
+            active_table_context = ""
+            row_label = ""
+
+        structural_context = " ".join(
+            item for item in (current_heading, active_table_context, row_label) if item
+        )
+        table_units = re.split(r"((?<!\\)\|)", line)
+        for unit_index in range(0, len(table_units), 2):
+            pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
             for piece_index in range(0, len(pieces), 2):
                 piece = pieces[piece_index]
+                piece_without_pending = _PUBLICATION_PENDING_INLINE.sub(
+                    "", piece, count=1
+                )
+                piece_cleaned = stripped_assertion(piece_without_pending)
+                (
+                    _piece_list,
+                    _piece_role_prefix,
+                    _piece_role,
+                    piece_body,
+                ) = _task_fragment_parts(piece_cleaned)
+                if _PUBLICATION_SAFE_NONAUTHORIZATION.search(
+                    without_descriptive_label(piece_body.strip())
+                ):
+                    piece = piece_without_pending
                 rebuilt: list[str] = []
                 cursor = 0
                 for fragment in _evidence_clause_fragments(piece):
@@ -6458,38 +7196,35 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
                         continue
                     fragment_end = fragment_start + len(fragment)
                     rebuilt.append(piece[cursor:fragment_start])
-                    markerless = _RAW_EVIDENCE_MARKER.sub("", fragment)
-                    list_prefix, role_prefix, _role, body = _task_fragment_parts(
-                        markerless
+                    publication_fragment = fragment
+                    without_pending = _PUBLICATION_PENDING_INLINE.sub(
+                        "", publication_fragment, count=1
                     )
-                    cleaned = re.sub(r"[*_`]", "", body).strip()
-                    if (
-                        not cleaned
-                        or _RAW_EVIDENCE_MARKER.search(fragment) is not None
-                        or "**Pending verification:**" in fragment
-                        or _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.search(fragment)
-                        is not None
-                        or _PUBLICATION_UNKNOWN_PENDING_PREFIX.search(fragment)
-                        is not None
-                        or _EXPLICIT_NONFACTUAL_QUALIFIER.search(cleaned) is not None
-                        or _is_pure_evidence_status_or_withholding(cleaned)
-                        or _is_safe_nonauthority_planning_directive(cleaned)
-                        or _EVIDENCE_SENSITIVE_ASSERTION.search(cleaned) is None
+                    pending_cleaned = stripped_assertion(without_pending)
+                    (
+                        _pending_list,
+                        _pending_role_prefix,
+                        _pending_role,
+                        pending_body,
+                    ) = _task_fragment_parts(pending_cleaned)
+                    if _PUBLICATION_SAFE_NONAUTHORIZATION.search(
+                        without_descriptive_label(pending_body.strip())
                     ):
-                        rebuilt.append(fragment)
-                        cursor = fragment_end
-                        continue
-                    leading = body[: len(body) - len(body.lstrip())]
-                    labelled = (
-                        f"{list_prefix}{role_prefix}{leading}"
-                        f"**Pending verification:** {body.lstrip()}"
-                    )
-                    rebuilt.append(labelled)
+                        publication_fragment = without_pending
+                    action = validation_action(publication_fragment, structural_context)
+                    if (
+                        _RAW_EVIDENCE_MARKER.search(publication_fragment) is not None
+                        or action is None
+                    ):
+                        rebuilt.append(publication_fragment)
+                    else:
+                        rebuilt.append(render_replacement(publication_fragment, action))
                     cursor = fragment_end
                 rebuilt.append(piece[cursor:])
                 pieces[piece_index] = "".join(rebuilt)
-            units[unit_index] = "".join(pieces)
-        lines[line_index] = "|".join(units)
+            table_units[unit_index] = "".join(pieces)
+        lines[line_index] = "".join(table_units)
+
     markdown = "\n".join(lines)
     return (
         draft
@@ -6513,6 +7248,7 @@ def _normalize_publication_draft(
         _without_model_owned_task_appendix(prepared)
     )
     if context.purpose != "blocked_report":
+        prepared = _with_exact_supported_precision_markers(context, prepared)
         prepared = _without_mismatched_publication_evidence_markers(context, prepared)
     prepared = SynthesisDraft.model_validate(
         _without_unbound_task_evidence_markers(context, prepared)
@@ -6526,10 +7262,6 @@ def _normalize_publication_draft(
             )
         }
     )
-    if context.purpose != "blocked_report":
-        prepared = _with_local_pending_labels_for_unsupported_high_stakes(
-            context, prepared
-        )
     prepared = _with_reader_facing_unverified_labels(prepared)
     markdown = prepared.markdown
 
@@ -6566,6 +7298,10 @@ def _normalize_publication_draft(
             ).strip()
 
     prepared = prepared.model_copy(update={"markdown": markdown})
+    if context.purpose != "blocked_report":
+        prepared = _with_local_pending_labels_for_unsupported_high_stakes(
+            context, prepared
+        )
     prepared = SynthesisDraft.model_validate(
         _with_immutable_gap_labels(context, prepared)
     )
@@ -7177,15 +7913,12 @@ class PydanticAISynthesisWriter:
             if isinstance(claim.get("claimId"), str)
         }
         return [
-            claims_by_id[claim_id]
-            for claim_id in utf16_ordinal_sorted(claims_by_id)
+            claims_by_id[claim_id] for claim_id in utf16_ordinal_sorted(claims_by_id)
         ]
 
     @classmethod
     def _allowed_claim_ids(cls, research_payload: dict[str, Any]) -> list[str]:
-        return [
-            claim["claimId"] for claim in cls._accepted_claims(research_payload)
-        ]
+        return [claim["claimId"] for claim in cls._accepted_claims(research_payload)]
 
     @classmethod
     def _allowed_claim_texts(cls, research_payload: dict[str, Any]) -> dict[str, str]:
@@ -7441,8 +8174,7 @@ class PydanticAISynthesisWriter:
         requirement_by_id = {
             requirement.get("id"): requirement
             for requirement in (scope_payload or {}).get("evidenceRequirements", [])
-            if isinstance(requirement, dict)
-            and isinstance(requirement.get("id"), str)
+            if isinstance(requirement, dict) and isinstance(requirement.get("id"), str)
         }
         projected["unresolvedEvidence"] = []
         for finding in findings:
@@ -7757,9 +8489,7 @@ class PydanticAISynthesisWriter:
                 markdown=core.markdown,
             )
             context = context.model_copy(
-                update={
-                    "final_repair_topology": _final_repair_topology(core.markdown)
-                }
+                update={"final_repair_topology": _final_repair_topology(core.markdown)}
             )
         prompt = self._final_repair_prompt(
             input_value,
