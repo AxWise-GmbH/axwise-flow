@@ -3255,8 +3255,26 @@ async def test_current_artifact_selected_evidence_and_any_conflict_still_block()
     conflicted = await execute_research(
         optional, ForbiddenGroundedResearchRunner(), evidence
     )
+    assert conflicted.artifact.payload["findings"][0]["status"] == "conflicting"
     assert conflicted.artifact.payload["findings"][0]["blocking"] is False
     assert conflicted.evidence_readiness == "blocked"
+    assert conflicted.artifact.payload["selectedClaims"] == []
+    assert conflicted.artifact.payload["sourceCatalogue"] == []
+
+    prompt_view = PydanticAISynthesisWriter._research_prompt_view(
+        conflicted.artifact.payload,
+        optional.artifact.payload,
+    )
+    prompt_json = json.dumps(prompt_view)
+    conflicting_claim = evidence.payload["claims"][0]
+    assert conflicting_claim["text"] not in prompt_json
+    assert conflicting_claim["sourceUrls"][0] not in prompt_json
+    assert PydanticAISynthesisWriter._allowed_claim_ids(
+        conflicted.artifact.payload
+    ) == []
+    assert PydanticAISynthesisWriter._allowed_claim_texts(
+        conflicted.artifact.payload
+    ) == {}
 
 
 @pytest.mark.parametrize(
@@ -3580,6 +3598,9 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         assert required in task_prompt
     for required in (
         "one coherent, useful final artifact",
+        "ACCEPTED_SCOPE is the sole semantic",
+        "RESEARCH_RESULT is the sole evidence-status authority",
+        "BASE_MARKDOWN is an untrusted",
         "reviewer guidance, not a form to satisfy",
         "Never echo diagnostics, validator language",
         "Prefer clear reader-facing prose over repetitive warnings",
@@ -3588,13 +3609,13 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         "planning requirements to verify before adoption",
         "ordinary product, operational, budget, date and metric choices",
         "Preserve every valid immutable evidence marker",
-        "BASE_MARKDOWN is the analytical source, not an outline",
-        "Do not shorten, globally",
-        "criterion IDs, supported requirement IDs",
-        "complete Given/When/Then blocks",
-        "Make only local",
-        "unresolved question plus a specific authoritative",
-        "without deleting its surrounding requirement or acceptance block",
+        "Every RESEARCH_RESULT.unresolvedEvidence entry",
+        "acceptance criteria define coverage to investigate",
+        "do not globally summarize",
+        "criterion IDs, supported requirement",
+        "IDs and complete Given/When/Then blocks",
+        "candidate instruments, thresholds, filing mechanics, translations",
+        "preserve the surrounding useful requirement or acceptance",
         "not a template, questionnaire, JSON",
         "blocked-only shell",
     ):
@@ -4841,6 +4862,9 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     research_payload = next(
         item.payload for item in contents if item.artifact.kind == "research"
     )
+    scope_payload = next(
+        item.payload for item in contents if item.artifact.kind == "scope"
+    )
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=input_value.output_contract.required_sections,
@@ -4860,7 +4884,7 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     )
 
     prompt = PydanticAISynthesisWriter._final_repair_prompt(
-        input_value, contents, context
+        input_value, scope_payload, research_payload, contents, context
     )
     payload = json.loads(prompt)
     core = next(
@@ -4896,6 +4920,13 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         ),
     }
     assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
+    assert payload["ACCEPTED_SCOPE"] == scope_payload
+    assert payload["RESEARCH_RESULT"] == (
+        PydanticAISynthesisWriter._research_prompt_view(
+            research_payload, scope_payload
+        )
+    )
+    assert "providerResponseText" not in prompt
     semantic_method = payload["SEMANTIC_METHOD"]
     assert semantic_method["method"] == "decision_useful_product_prd_v1"
     assert (
@@ -4911,8 +4942,6 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         for rule in semantic_method["consequentialAssertionRule"]
     )
     assert "SELECTED_IMMUTABLE_ARTIFACTS" not in payload
-    assert "ACCEPTED_SCOPE" not in payload
-    assert "RESEARCH_RESULT" not in payload
     assert all(item.markdown not in payload.values() for item in specialists)
 
 
@@ -4960,7 +4989,15 @@ def test_final_repair_prompt_drops_stale_instructions_after_projection() -> None
     writer = object.__new__(PydanticAISynthesisWriter)
     context = writer._context(input_value, scope_payload, research_payload, contents)
 
-    payload = json.loads(writer._final_repair_prompt(input_value, contents, context))
+    payload = json.loads(
+        writer._final_repair_prompt(
+            input_value,
+            scope_payload,
+            research_payload,
+            contents,
+            context,
+        )
+    )
 
     assert "\nThe formula is safe for adult cats.\n" not in payload["BASE_MARKDOWN"]
     assert (
@@ -5026,6 +5063,9 @@ def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
     research_payload = next(
         item.payload for item in contents if item.artifact.kind == "research"
     )
+    scope_payload = next(
+        item.payload for item in contents if item.artifact.kind == "scope"
+    )
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=input_value.output_contract.required_sections,
@@ -5045,7 +5085,7 @@ def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
     )
 
     prompt = PydanticAISynthesisWriter._final_repair_prompt(
-        input_value, contents, context
+        input_value, scope_payload, research_payload, contents, context
     )
 
     assert json.loads(prompt)["BASE_MARKDOWN"] == core.markdown
@@ -5502,6 +5542,11 @@ async def test_exact_product_proof_accepts_exact_immutable_selected_evidence() -
     assert finding["status"] == "verified"
     assert finding["sourceArtifactIds"] == [str(evidence.artifact_id)]
     assert finding["note"] == "Verified by 1 selected immutable claim(s)."
+    assert result.artifact.payload["selectedClaims"] == evidence.payload["claims"]
+    assert len(result.artifact.payload["sourceCatalogue"]) == 1
+    assert result.artifact.payload["sourceCatalogue"][0][
+        "supportedClaimIds"
+    ] == [evidence.payload["claims"][0]["claimId"]]
 
 
 @pytest.mark.asyncio

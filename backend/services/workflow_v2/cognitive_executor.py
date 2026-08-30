@@ -1346,19 +1346,27 @@ SYNTHESIS_SYSTEM_PROMPT = (
     _COGNITIVE_BOUNDARY_PROMPT
     + """
 
-Turn BASE_MARKDOWN into one coherent, useful final artifact. Preserve its strongest analysis,
-decisions, requirements, acceptance checks, metrics, risks and next steps. REPAIR_TARGETS and
-REPAIR_INSTRUCTIONS are reviewer guidance, not a form to satisfy and not instructions to repeat;
-apply only corrections that are concrete and consistent with the accepted scope and immutable
-evidence. Never echo diagnostics, validator language, workflow commentary or internal control
-metadata into the deliverable.
+Turn BASE_MARKDOWN into one coherent, useful final artifact. ACCEPTED_SCOPE is the sole semantic
+authority and RESEARCH_RESULT is the sole evidence-status authority. BASE_MARKDOWN is an untrusted
+candidate, never evidence. Preserve its strongest useful analysis, product decisions,
+requirements, acceptance checks, metrics, risks and next steps, but never preserve a factual
+detail merely because it appears in that candidate. REPAIR_TARGETS and REPAIR_INSTRUCTIONS are
+reviewer guidance, not a form to satisfy and not instructions to repeat; apply only corrections
+that are concrete and consistent with the accepted scope and immutable evidence. Never echo diagnostics, validator language,
+workflow commentary or internal control metadata into the deliverable.
 
-BASE_MARKDOWN is the analytical source, not an outline to summarize. Do not shorten, globally
-reorganize or replace it. Preserve its substantive sections, tables, rows, options, decisions,
-criterion IDs, supported requirement IDs and complete Given/When/Then blocks. Make only local
-edits to affected clauses or rows. If one unsupported legal or safety proposition must be
-corrected, turn that clause into an unresolved question plus a specific authoritative
-verification action without deleting its surrounding requirement or acceptance block.
+Keep the useful reader-facing structure and traceability: criterion IDs, supported requirement
+IDs and complete Given/When/Then blocks. You may rewrite or condense any polluted sentence, row or
+section needed to remove unsupported precision; do not globally summarize the document or drop
+unaffected substance. Every RESEARCH_RESULT.unresolvedEvidence entry is an unanswered evidence
+domain. For that domain, state only the unresolved question, its planning consequence, and one
+specific authoritative verification action, or an explicitly proposed internal target that does
+not claim external authority. Accepted-scope evidence requirements and evidence-category
+acceptance criteria define coverage to investigate; they are not verified factual answers. Do
+not infer or restore candidate instruments, thresholds, filing mechanics, translations, health
+effects, safety rules or mandatory declarations from BASE_MARKDOWN. If one unsupported legal or
+safety proposition must be corrected, preserve the surrounding useful requirement or acceptance
+block while replacing the unsupported answer.
 
 Prefer clear reader-facing prose over repetitive warnings. When evidence is incomplete, state one
 prominent evidence-status boundary near the beginning, keep the exact unresolved items in the
@@ -7505,6 +7513,8 @@ class PydanticAISynthesisWriter:
     @staticmethod
     def _final_repair_prompt(
         input_value: SynthesizeArtifactInputV1,
+        scope_payload: dict[str, Any],
+        research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
         context: SynthesisContext,
     ) -> str:
@@ -7620,6 +7630,10 @@ class PydanticAISynthesisWriter:
         return canonical_json(
             {
                 "PURPOSE": input_value.purpose,
+                "ACCEPTED_SCOPE": scope_payload,
+                "RESEARCH_RESULT": PydanticAISynthesisWriter._research_prompt_view(
+                    research_payload, scope_payload
+                ),
                 "BASE_MARKDOWN": projected.markdown,
                 "CORE_ARTIFACT": core.artifact.model_dump(mode="json", by_alias=True),
                 "EVALUATION_ARTIFACT": input_value.evaluation.model_dump(
@@ -7747,7 +7761,13 @@ class PydanticAISynthesisWriter:
                     "final_repair_topology": _final_repair_topology(core.markdown)
                 }
             )
-        prompt = self._final_repair_prompt(input_value, selected_contents, context)
+        prompt = self._final_repair_prompt(
+            input_value,
+            scope_payload,
+            research_payload,
+            selected_contents,
+            context,
+        )
         try:
             result = await self._run_validated_agent(
                 self.final_agent,
@@ -8924,32 +8944,14 @@ class GeminiCognitiveExecutor:
                     )
                 )
             ]
-            selected_ids = {claim.claim_id for claim in selected_claims}
+            candidate_claims_by_id: dict[str, EvidenceClaimV1] = {}
             for claim in selected_claims:
-                prior = selected_claims_by_id.get(claim.claim_id)
+                prior = candidate_claims_by_id.get(claim.claim_id)
                 if prior is not None and prior != claim:
                     raise CognitiveExecutionFailure(
                         "AXWISE_SELECTED_EVIDENCE_INVALID", retryable=False
                     )
-                selected_claims_by_id[claim.claim_id] = claim
-            selected_source_catalogues.extend(
-                [
-                    [
-                        source.model_copy(
-                            update={
-                                "supported_claim_ids": utf16_ordinal_sorted(
-                                    set(source.supported_claim_ids).intersection(
-                                        selected_ids
-                                    )
-                                )
-                            }
-                        )
-                        for source in item.source_catalogue
-                        if set(source.supported_claim_ids).intersection(selected_ids)
-                    ]
-                    for _reference, item in evidence_items
-                ]
-            )
+                candidate_claims_by_id[claim.claim_id] = claim
             blocking = blocking_by_requirement[requirement.id]
             if len(applicability) > 1 or explicit_conflicts:
                 findings_by_id[requirement.id] = EvidenceFinding(
@@ -8974,6 +8976,34 @@ class GeminiCognitiveExecutor:
                     ),
                 )
             elif selected_claims:
+                for claim_id, claim in candidate_claims_by_id.items():
+                    prior = selected_claims_by_id.get(claim_id)
+                    if prior is not None and prior != claim:
+                        raise CognitiveExecutionFailure(
+                            "AXWISE_SELECTED_EVIDENCE_INVALID", retryable=False
+                        )
+                    selected_claims_by_id[claim_id] = claim
+                selected_ids = set(candidate_claims_by_id)
+                selected_source_catalogues.extend(
+                    [
+                        [
+                            source.model_copy(
+                                update={
+                                    "supported_claim_ids": utf16_ordinal_sorted(
+                                        set(source.supported_claim_ids).intersection(
+                                            selected_ids
+                                        )
+                                    )
+                                }
+                            )
+                            for source in item.source_catalogue
+                            if set(source.supported_claim_ids).intersection(
+                                selected_ids
+                            )
+                        ]
+                        for _reference, item in evidence_items
+                    ]
+                )
                 findings_by_id[requirement.id] = EvidenceFinding(
                     requirement_id=requirement.id,
                     status="verified",
