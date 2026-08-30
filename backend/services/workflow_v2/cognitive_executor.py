@@ -397,6 +397,9 @@ class SynthesisContext(_DraftModel):
     accepted_requirements: list[AcceptedDeliverableRequirementV1] = Field(
         default_factory=list
     )
+    accepted_acceptance_criteria: list[DeliverableAcceptanceCriterionV1] = Field(
+        default_factory=list
+    )
     repair_pass: int = Field(default=0, ge=0, le=1)
     quality_gate_required: bool = False
     practical_output_required: bool = False
@@ -4803,6 +4806,71 @@ def _with_accepted_requirement_traceability(
     return draft.model_copy(update={"markdown": repaired})
 
 
+def _with_canonical_acceptance_criteria(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Render the accepted typed G/W/T contract for the strict final fallback.
+
+    Model-authored operational scenarios may be richer, so the normal bounded repair
+    keeps them. If that repair exhausts, however, the fallback must not fail because a
+    model omitted a role or formatted the accepted criteria inconsistently. Replace
+    only the Acceptance criteria section body with the exact Gate-1-bound criteria;
+    never infer a mapping from prose back to a typed criterion.
+    """
+
+    if (
+        context.purpose != "final_synthesis"
+        or context.artifact_type not in {"product_prd", "software_prd"}
+        or not context.accepted_acceptance_criteria
+    ):
+        return draft
+    heading_matches = list(_MARKDOWN_HEADING.finditer(draft.markdown))
+    acceptance_matches = [
+        (index, match)
+        for index, match in enumerate(heading_matches)
+        if "acceptance criteria"
+        in _markdown_heading_identities(
+            match.group(1), artifact_type=context.artifact_type
+        )
+    ]
+    if len(acceptance_matches) != 1:
+        return draft
+    heading_index, heading = acceptance_matches[0]
+    heading_level = _markdown_heading_level(heading)
+    section_end = len(draft.markdown)
+    for later in heading_matches[heading_index + 1 :]:
+        if _markdown_heading_level(later) <= heading_level:
+            section_end = later.start()
+            break
+
+    criterion_level = min(heading_level + 1, 6)
+    rows: list[str] = []
+    for criterion in context.accepted_acceptance_criteria:
+        rows.extend(
+            [
+                f"{'#' * criterion_level} `{criterion.id}`",
+                "",
+                f"- **Given** {criterion.given}",
+                f"- **When** {criterion.when}",
+                f"- **Then** {criterion.then}",
+                "- **Supports** "
+                + ", ".join(
+                    f"`{requirement_id}`"
+                    for requirement_id in criterion.supports
+                ),
+                "",
+            ]
+        )
+    canonical_body = "\n".join(rows).rstrip()
+    suffix = draft.markdown[section_end:].lstrip("\n")
+    repaired = draft.markdown[: heading.end()].rstrip() + "\n\n" + canonical_body
+    if suffix:
+        repaired += "\n\n" + suffix
+    if repaired == draft.markdown:
+        return draft
+    return draft.model_copy(update={"markdown": repaired})
+
+
 _STATUTORY_LOCATOR_COLUMN = re.compile(
     r"(?=.*\b(?:statutory|legal|regulatory)\b)"
     r"(?=.*\b(?:basis|citation|grounding|locator|reference)\b)",
@@ -5747,7 +5815,8 @@ def _project_strict_final_fallback(
 ) -> SynthesisDraft:
     """Build a conservative fallback while keeping normal validation authoritative."""
 
-    fallback = _project_server_validation_scaffolding(context, projected)
+    fallback = _with_canonical_acceptance_criteria(context, projected)
+    fallback = _project_server_validation_scaffolding(context, fallback)
     fallback = _project_fenced_ascii_roadmaps(context, fallback)
     fallback = _project_remaining_evidence_defects(context, fallback)
     fallback = _with_immutable_gap_labels(context, fallback)
@@ -6531,6 +6600,7 @@ class PydanticAISynthesisWriter:
             None,
         )
         work_shape = plan_payload.get("workShape") if plan_payload else None
+        scope = ScopeArtifactV2.model_validate(scope_payload)
         return SynthesisContext(
             purpose=input_value.purpose,
             required_sections=required_sections,
@@ -6548,9 +6618,10 @@ class PydanticAISynthesisWriter:
             acceptance_requirement_ids=(
                 task.acceptance_requirement_ids if task is not None else []
             ),
-            accepted_requirements=ScopeArtifactV2.model_validate(
-                scope_payload
-            ).requirements,
+            accepted_requirements=scope.requirements,
+            accepted_acceptance_criteria=(
+                input_value.output_contract.acceptance_criteria
+            ),
             repair_pass=input_value.repair_pass or 0,
             # Execution artifacts are immutable drafts, not publishable outcomes. Their
             # structure, scope, launch boundary, marker membership, gap labels and task
@@ -6893,12 +6964,24 @@ class PydanticAISynthesisWriter:
                 title=str(core.payload.get("title") or "Final artifact"),
                 markdown=core.markdown,
             )
-            context = context.model_copy(
+            model_context = context.model_copy(
                 update={
                     "final_repair_topology": _final_repair_topology(projected.markdown)
                 }
             )
-            fallback = _project_strict_final_fallback(context, projected)
+            canonical_projected = _with_canonical_acceptance_criteria(
+                context, projected
+            )
+            fallback_context = context.model_copy(
+                update={
+                    "final_repair_topology": _final_repair_topology(
+                        canonical_projected.markdown
+                    )
+                }
+            )
+            fallback = _project_strict_final_fallback(
+                fallback_context, canonical_projected
+            )
             core_substantive, core_practical = _deterministic_quality_defects(
                 core.markdown,
                 practical_output_required=context.practical_output_required,
@@ -6921,11 +7004,12 @@ class PydanticAISynthesisWriter:
             )
             if not any(hard_semantic_defects) and not any(evaluator_only_quality):
                 try:
-                    _validate_synthesis(context, fallback)
+                    _validate_synthesis(fallback_context, fallback)
                 except ValueError:
                     pass
                 else:
                     validated_fallback = fallback
+            context = model_context
         prompt = self._final_repair_prompt(input_value, selected_contents, context)
         try:
             result = await self._run_validated_agent(
@@ -8946,6 +9030,9 @@ class GeminiCognitiveExecutor:
                 )
             ),
             accepted_requirements=scope.requirements,
+            accepted_acceptance_criteria=(
+                input_value.output_contract.acceptance_criteria
+            ),
             repair_pass=input_value.repair_pass or 0,
             quality_gate_required=input_value.purpose
             in {"final_synthesis", "blocked_report"},
