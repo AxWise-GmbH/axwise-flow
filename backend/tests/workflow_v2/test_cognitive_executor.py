@@ -298,7 +298,7 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(
 
 
 @pytest.mark.asyncio
-async def test_task_output_validator_bounds_composite_only_for_full_contract(
+async def test_task_output_validator_bounds_composite_for_non_launch_tasks(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -356,8 +356,18 @@ async def test_task_output_validator_bounds_composite_only_for_full_contract(
     class SpecialistContext:
         deps = specialist_context
 
+    specialist = await validator(SpecialistContext(), draft)
+    assert _contains_server_unverified_validation_target(specialist.markdown)
+
+    launch_context = specialist_context.model_copy(
+        update={"artifact_type": "launch_authorization"}
+    )
+
+    class LaunchContext:
+        deps = launch_context
+
     with pytest.raises(ModelRetry, match="contradicts unresolved evidence"):
-        await validator(SpecialistContext(), draft)
+        await validator(LaunchContext(), draft)
 
 
 def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
@@ -2557,6 +2567,40 @@ def test_final_repair_projection_preserves_required_section_and_safety_action() 
     )
     with pytest.raises(ValueError, match="substantive/practical quality"):
         _validate_synthesis(context, projected)
+
+
+def test_final_repair_projection_leaves_composite_authority_tail_for_model() -> None:
+    gap = "PTA notification filing procedures remain unresolved."
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Authority boundary", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[gap],
+        unresolved_evidence_requirements=[gap],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    unsafe = "PTA notification must be filed because the agency approved the product."
+    markdown = (
+        f"# Product plan\n\n## Authority boundary\n\n{unsafe}\n\n"
+        f"## Evidence gaps\n\n{gap}"
+    )
+
+    projected = cognitive_executor_module._project_final_repair_base(
+        context, title="Product plan", markdown=markdown
+    )
+
+    assert unsafe in projected.markdown
+    assert not _contains_server_unverified_validation_target(projected.markdown)
+    assert _deterministic_evidence_integrity_defects(
+        projected.markdown,
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+    )
 
 
 def test_final_repair_projection_preserves_table_and_acceptance_topology() -> None:
@@ -5948,7 +5992,9 @@ class UnresolvedAuthorityTaskWriter(QualityWriter):
             update={
                 "markdown": (
                     draft.markdown + "\n\n## Authority assumption\n\n"
-                    "Applicable pet-food safety obligations are mandatory."
+                    "Because applicable pet-food safety obligations remain unresolved, "
+                    "no safe-to-market, approved, or launch-ready claims may be made "
+                    "until physical laboratory evidence is verified."
                 )
             }
         )
@@ -5987,14 +6033,25 @@ async def test_task_operation_preserves_prd_by_reclassifying_unresolved_fact() -
     )
 
     assert result.result_type == "task_completed"
-    assert "\nApplicable pet-food safety obligations are mandatory.\n" not in (
+    assert result.artifact.kind == "task_result"
+    assert "\nBecause applicable pet-food safety obligations remain unresolved" not in (
         result.artifact.markdown or ""
     )
     assert (
         "Validation target (all following content is unverified until pre-adoption "
         "review): "
-        "Applicable pet-food safety obligations are mandatory."
+        "Because applicable pet-food safety obligations remain unresolved, no "
+        "safe-to-market, approved, or launch-ready claims may be made until physical "
+        "laboratory evidence is verified."
     ) in (result.artifact.markdown or "")
+    assert not _deterministic_evidence_integrity_defects(
+        result.artifact.markdown or "",
+        {},
+        artifact_type="product_prd",
+        unresolved_evidence_requirements=[
+            "Verify applicable pet-food safety obligations."
+        ],
+    )
 
 
 @pytest.mark.asyncio

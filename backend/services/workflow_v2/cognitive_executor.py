@@ -5175,7 +5175,7 @@ class PydanticAISynthesisWriter:
             output = _prepare_task_unresolved_actions(
                 ctx.deps,
                 output,
-                allow_composite_authority_targets=bool(ctx.deps.required_sections),
+                allow_composite_authority_targets=True,
             )
             output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
@@ -5619,7 +5619,7 @@ class PydanticAISynthesisWriter:
         output = _prepare_task_unresolved_actions(
             context,
             output,
-            allow_composite_authority_targets=bool(context.required_sections),
+            allow_composite_authority_targets=True,
         )
         output = _with_accepted_requirement_traceability(context, output)
         _validate_task_draft(context, output)
@@ -7846,7 +7846,7 @@ class GeminiCognitiveExecutor:
             draft = _prepare_task_unresolved_actions(
                 context,
                 draft,
-                allow_composite_authority_targets=input_value.task.produces_full_contract,
+                allow_composite_authority_targets=True,
             )
             draft = _with_accepted_requirement_traceability(context, draft)
             _validate_task_draft(context, draft)
