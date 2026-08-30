@@ -2897,6 +2897,157 @@ def test_final_projection_repairs_every_duplicate_evidence_defect_occurrence() -
     )
 
 
+def test_strict_final_fallback_repairs_scaffolding_and_ascii_roadmap() -> None:
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[],
+        unresolved_evidence_requirements=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="operational_plan",
+    )
+    filler = " ".join(
+        [
+            "The plan defines a user problem, bounded outcome, accountable owner, "
+            "measurable acceptance check, reversible decision, risk control, and next "
+            "review action."
+        ]
+        * 14
+    )
+    legacy = (
+        "Validation target (all following content is unverified until pre-adoption "
+        "review): the external facility must hold certification (e.g. ISO) and the "
+        "proposed threshold is 0.60."
+    )
+    markdown = (
+        f"# Operational plan\n\n{filler}\n\n"
+        f"## Evidence boundary\n\n{legacy}\n\n"
+        "| ID | Acceptance check |\n"
+        "| --- | --- |\n"
+        f"| OP-01 | **Given** {legacy}<br>**When** the evidence is reviewed,<br>"
+        "**Then** retain the criterion only if independently verified. |\n\n"
+        "## Roadmap\n\n"
+        "```text\n"
+        "+-----------------------------------------------------------+\n"
+        "| [ Month 1: Scope ] ---> [ Month 2: Pilot ] ---> [ Month 3: Review ] |\n"
+        "| - Draft baseline          - Commission pilot       - Inspect result |\n"
+        "| [ Stage 6: Release ] <-- [ Stage 5: Decision ] <-- [ Stage 4: Audit ] |\n"
+        "| - Dispatch output          - Record decision        - Submit filing |\n"
+        "+-----------------------------------------------------------+\n"
+        "```\n\n"
+        "## Evidence, assumptions, and gaps\n\n"
+        "- External certification and authority requirements remain unresolved."
+    )
+
+    projected = cognitive_executor_module._project_final_repair_base(
+        context, title="Operational plan", markdown=markdown
+    )
+    fallback_context = context.model_copy(
+        update={
+            "final_repair_topology": cognitive_executor_module._final_repair_topology(
+                projected.markdown
+            )
+        }
+    )
+    fallback = cognitive_executor_module._project_strict_final_fallback(
+        fallback_context, projected
+    )
+
+    _validate_synthesis(fallback_context, fallback)
+    assert not _contains_server_unverified_validation_target(fallback.markdown)
+    assert "ASCII-art table" not in " ".join(
+        _deterministic_quality_defects(
+            fallback.markdown,
+            practical_output_required=True,
+            artifact_type="operational_plan",
+        )[0]
+    )
+    assert "0.60" in fallback.markdown
+    assert "e.g. ISO" in fallback.markdown
+    assert fallback.markdown.count("OP-01") == 1
+    assert fallback.markdown.count("Given") == 1
+    assert fallback.markdown.count("When") == 1
+    assert fallback.markdown.count("Then") == 1
+    assert fallback.markdown.index("Month 1: Scope") < fallback.markdown.index(
+        "Month 2: Pilot"
+    )
+    assert fallback.markdown.index("Month 3: Review") < fallback.markdown.index(
+        "Stage 6: Release"
+    )
+    assert fallback.markdown.index("Stage 6: Release") < fallback.markdown.index(
+        "Stage 5: Decision"
+    )
+    assert fallback.markdown.index("Stage 5: Decision") < fallback.markdown.index(
+        "Stage 4: Audit"
+    )
+    for retained in (
+        "Draft baseline",
+        "Commission pilot",
+        "Inspect result",
+        "Dispatch output",
+        "Record decision",
+        "Submit filing",
+    ):
+        assert retained in fallback.markdown
+    assert (
+        cognitive_executor_module._final_repair_topology_defects(
+            fallback_context.final_repair_topology, fallback.markdown
+        )
+        == []
+    )
+    assert (
+        cognitive_executor_module._project_strict_final_fallback(
+            fallback_context, fallback
+        )
+        == fallback
+    )
+
+
+def test_publication_unknown_item_does_not_shield_a_later_assertion() -> None:
+    markdown = (
+        "Unknown pending evidence (the complete following item is unverified and not "
+        "approved for execution): the external facility is certified.\n"
+        "The product is safe for adult cats."
+    )
+
+    defects = _deterministic_evidence_integrity_defects(
+        markdown, {}, artifact_type="operational_plan"
+    )
+
+    assert len(defects) == 1
+    assert "The product is safe for adult cats" in defects[0]
+
+
+def test_publication_unknown_item_does_not_shield_across_html_break() -> None:
+    markdown = (
+        "Unknown pending evidence (the complete following item is unverified and not "
+        "approved for execution): the external facility is certified.<br>"
+        "The product is safe for adult cats."
+    )
+
+    defects = _deterministic_evidence_integrity_defects(
+        markdown, {}, artifact_type="operational_plan"
+    )
+
+    assert len(defects) == 1
+    assert "The product is safe for adult cats" in defects[0]
+
+
+def test_proposed_target_cannot_launder_authority_execution() -> None:
+    defects = _deterministic_evidence_integrity_defects(
+        "Proposed target: submit the statutory registration filing.",
+        {},
+        artifact_type="operational_plan",
+    )
+
+    assert defects
+    assert "statutory registration filing" in defects[0]
+
+
 def test_statutory_locator_table_projection_is_narrow_and_idempotent() -> None:
     supported_id = "1" * 64
     source_only_id = "2" * 64
@@ -6039,6 +6190,157 @@ async def test_final_writer_uses_strict_projection_after_model_validation_exhaus
     # The fallback itself adds no tokens. Failed provider-attempt cost is captured from
     # provider logs during release verification, not inferred from this zero value.
     assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_repairs_stale_deterministic_evaluator_quality_defect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    ascii_defect = (
+        "The candidate uses an ASCII-art table inside a code fence instead of valid "
+        "Markdown."
+    )
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "final_markdown"
+        and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    contents[core_index] = core.model_copy(
+        update={
+            "markdown": (
+                core.markdown
+                + "\n\n## Delivery roadmap\n\n```text\n"
+                "+-----------------------------------------------+\n"
+                "| [ Month 1: Draft ] ---> [ Month 2: Review ] |\n"
+                "| - Draft output             - Inspect result |\n"
+                "+-----------------------------------------------+\n"
+                "```"
+            )
+        }
+    )
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={
+            "payload": {
+                **evaluation_content.payload,
+                "substantiveContentDefects": [ascii_defect],
+                "outputContractSatisfied": False,
+                "promotedArtifact": None,
+                "repairRequired": True,
+                "repairInstructions": ["Convert the ASCII roadmap to Markdown."],
+            }
+        }
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+    context = writer._context(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+    changed_core = contents[core_index]
+    projected = cognitive_executor_module._project_final_repair_base(
+        context,
+        title=changed_core.payload["title"],
+        markdown=changed_core.markdown,
+    )
+    fallback_context = context.model_copy(
+        update={
+            "final_repair_topology": cognitive_executor_module._final_repair_topology(
+                projected.markdown
+            )
+        }
+    )
+    expected = cognitive_executor_module._project_strict_final_fallback(
+        fallback_context, projected
+    )
+    _validate_synthesis(fallback_context, expected)
+
+    async def exhausted(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+
+    assert result.value == expected
+    assert "ASCII-art table" not in result.value.markdown
+    assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_final_writer_does_not_mask_evaluator_only_quality_defect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={
+            "payload": {
+                **evaluation_content.payload,
+                "substantiveContentDefects": [
+                    "The candidate has an evaluator-only coherence defect."
+                ],
+                "outputContractSatisfied": False,
+                "promotedArtifact": None,
+                "repairRequired": True,
+                "repairInstructions": ["Resolve the coherence defect."],
+            }
+        }
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+
+    async def exhausted(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await writer.write(
+            input_value,
+            compiled.artifact.payload,
+            research.artifact.payload,
+            contents,
+        )
+    assert raised.value.error_class.startswith(
+        "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_"
+    )
 
 
 @pytest.mark.asyncio
