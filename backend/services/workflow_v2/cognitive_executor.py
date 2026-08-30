@@ -7,6 +7,7 @@ import os
 import re
 import time
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Generic, Literal, Protocol, Sequence, TypeVar
@@ -373,6 +374,15 @@ class EvaluationDraft(_DraftModel):
     note: str = Field(min_length=1, max_length=2000)
 
 
+class FinalRepairTopology(_DraftModel):
+    heading_levels: list[int] = Field(default_factory=list)
+    table_rows_by_header: dict[str, int] = Field(default_factory=dict)
+    list_item_count: int = Field(default=0, ge=0)
+    gwt_roles: list[str] = Field(default_factory=list)
+    requirement_ids: list[str] = Field(default_factory=list)
+    numbered_labels: list[str] = Field(default_factory=list)
+
+
 class SynthesisContext(_DraftModel):
     purpose: Literal[
         "execute_task", "evaluate_output", "final_synthesis", "blocked_report"
@@ -391,6 +401,7 @@ class SynthesisContext(_DraftModel):
     quality_gate_required: bool = False
     practical_output_required: bool = False
     artifact_type: str | None = None
+    final_repair_topology: FinalRepairTopology | None = None
 
 
 class SynthesisWriter(Protocol):
@@ -1272,17 +1283,26 @@ in BASE_MARKDOWN; never turn those fragments back into verified claims or citati
 Preserve unaffected evidence-backed analysis, requirements, decisions, acceptance checks,
 metrics and next steps.
 Resolve every listed contradiction and
-remove every unsupported or stale assertion. Prefer deleting an unsupported sentence or table
-cell over paraphrasing it. A mismatched citation must be narrowed to the exact text in
-ALLOWED_CLAIMS or removed with the unsupported assertion; never invent support. Preserve useful
+remove every unsupported or stale assertion without damaging the artifact's structure. Preserve
+the surrounding heading, list item, table row, requirement ID and sequence position while
+rewriting only the unsupported fragment. Reclassify an unsupported internal product or design
+choice as `Proposed target: ...`. Reclassify an unsupported legal, safety, certification or
+applicability assertion as `Validation action: verify whether ... before treating it as settled.`
+Reclassify any other unknown external or product-status fact as `Unknown pending evidence: ...`
+using a neutral description of what remains unknown, never the original affirmative claim. In a
+Markdown table cell, separate multiple entries with `<br>` so each label remains independently
+scoped. Never disguise an external fact as a proposal. A mismatched citation must be narrowed to
+the exact text in
+ALLOWED_CLAIMS or removed from the rewritten fragment; never invent support. Preserve useful
 product, operational, budget, date and metric choices as explicit proposals or validation
 targets, but do not mix them in the same sentence or table cell as an evidence marker. Remove
 invented persona names, ages, neighbourhoods and demographic facts; retain neutral user
 archetypes and jobs. Never remove a valid evidence marker while retaining the factual assertion
 it supported. Preserve matching prioritized-requirement and acceptance-criterion IDs and every
-leading/interior item in explicit JTBD and Phase sequences; replace an unsafe structured row
-coherently rather than leaving a hole. If validator feedback names a remaining unsupported
-assertion, delete that entire Markdown line on the next retry. Use ordinary Markdown tables,
+leading/interior item in every explicit numbered sequence; replace an unsafe structured row or
+list item coherently rather than leaving a hole. If validator feedback names a remaining
+unsupported assertion, rewrite that exact line in place using the controlled forms above; do not
+delete a structured row or sequence item. Use ordinary Markdown tables,
 never ASCII-art tables inside code fences. Keep level-two section headings unique, and never
 leave a heading or subsection without substantive content. Cover every required section as a
 Markdown heading. Treat product
@@ -1795,10 +1815,19 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
         )
-        if evidence_integrity or substantive or practicality:
+        topology = (
+            _final_repair_topology_defects(
+                context.final_repair_topology, draft.markdown
+            )
+            if context.final_repair_topology is not None
+            else []
+        )
+        if evidence_integrity or substantive or practicality or topology:
             raise ValueError(
                 "final artifact failed substantive/practical quality: "
-                + "; ".join([*evidence_integrity, *substantive, *practicality])
+                + "; ".join(
+                    [*evidence_integrity, *substantive, *practicality, *topology]
+                )
             )
 
 
@@ -3885,139 +3914,16 @@ def _prepare_task_unresolved_actions(
     return draft.model_copy(update={"markdown": current})
 
 
-def _canonical_immutable_gap_bullet_indexes(
-    markdown: str, immutable_gap_labels: Sequence[str]
-) -> set[int]:
-    """Locate only exact server-owned immutable-gap bullets.
-
-    The same immutable text can also appear in model prose and legitimately be selected
-    for removal by the evidence validator. Protecting by line value alone would preserve
-    that unsafe copy, so protection is scoped to the canonical server-owned section.
-    """
-
-    canonical_bullets = {_immutable_gap_bullet(label) for label in immutable_gap_labels}
-    protected: set[int] = set()
-    current_heading = ""
-    for index, line in enumerate(markdown.splitlines()):
-        stripped = line.strip()
-        heading = _MARKDOWN_HEADING.fullmatch(stripped)
-        if heading is not None:
-            current_heading = heading.group(1).strip()
-            continue
-        if (
-            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
-            and stripped in canonical_bullets
-        ):
-            protected.add(index)
-    return protected
-
-
-def _prune_final_unsupported_evidence_lines(
-    markdown: str,
-    allowed_claim_texts: dict[str, str],
-    *,
-    artifact_type: str | None,
-    immutable_gap_labels: Sequence[str],
-    unresolved_evidence_requirements: Sequence[str] = (),
-    accepted_requirement_ids: Sequence[str] = (),
-) -> str:
-    """Conservatively delete final-output lines named by the evidence validator.
-
-    A model repair may correctly remove a mismatched marker but accidentally retain the
-    unsupported factual line. Deleting that whole line is safer than trying to rewrite or
-    recite it, and the normal synthesis validator still enforces headings, substance,
-    citations, immutable gaps, and practicality after this bounded cleanup. Remove one
-    exact line at a time so an unsafe acceptance-role or traceability row cannot prevent
-    unrelated residual assertions from being pruned. Repeat only while a safe pass removes
-    text and never more times than the original line count.
-    """
-
-    current = markdown
-    protected_requirement_ids = {
-        requirement_id.casefold() for requirement_id in accepted_requirement_ids
-    }
-    for _pass in range(max(1, len(markdown.splitlines()))):
-        defects = _deterministic_evidence_integrity_defects(
-            current,
-            allowed_claim_texts,
-            artifact_type=artifact_type,
-            immutable_gap_labels=immutable_gap_labels,
-            unresolved_evidence_requirements=unresolved_evidence_requirements,
-            defect_limit=None,
-            excerpt_limit=None,
-            preserve_duplicate_occurrences=True,
-        )
-        excerpts = [
-            excerpt
-            for defect in defects
-            for _, separator, excerpt in [defect.partition(": ")]
-            if separator and excerpt
-        ]
-        if not excerpts:
-            return current
-        lines = current.splitlines()
-        protected = _canonical_immutable_gap_bullet_indexes(
-            current, immutable_gap_labels
-        )
-        fenced = _fenced_markdown_line_indexes(current)
-        before_structural = _deterministic_structural_integrity_defects(current)
-        before_gwt = _incomplete_given_when_then_acceptance_blocks(current)
-        changed = False
-        for index, line in enumerate(lines):
-            line_requirement_ids = {
-                match.group(0).casefold()
-                for match in _DISPLAY_REQUIREMENT_ID.finditer(line)
-            }
-            if (
-                index in protected
-                or index in fenced
-                or re.match(r"^#{1,6}\s+", line.strip())
-                or line_requirement_ids.intersection(protected_requirement_ids)
-            ):
-                continue
-            normalized = re.sub(r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", line)).strip()
-            if not any(excerpt in normalized for excerpt in excerpts):
-                continue
-            repaired = "\n".join([*lines[:index], *lines[index + 1 :]])
-            if set(_deterministic_structural_integrity_defects(repaired)).difference(
-                before_structural
-            ) or set(
-                _incomplete_given_when_then_acceptance_blocks(repaired)
-            ).difference(before_gwt):
-                continue
-            repaired_defects = _deterministic_evidence_integrity_defects(
-                repaired,
-                allowed_claim_texts,
-                artifact_type=artifact_type,
-                immutable_gap_labels=immutable_gap_labels,
-                unresolved_evidence_requirements=unresolved_evidence_requirements,
-                defect_limit=None,
-                excerpt_limit=None,
-                preserve_duplicate_occurrences=True,
-            )
-            if len(repaired_defects) >= len(defects) or set(
-                repaired_defects
-            ).difference(defects):
-                continue
-            current = repaired
-            changed = True
-            break
-        if not changed:
-            return current
-    return current
-
-
 def _repair_final_gwt_evidence_assertions(
     context: SynthesisContext, draft: SynthesisDraft
 ) -> SynthesisDraft:
     """Keep acceptance topology while turning a residual unsafe role into a check.
 
-    Final line pruning deliberately skips a Given/When/Then role whose removal would make
-    an acceptance block incomplete. For non-authorizing artifacts, reclassify only an
-    unsafe ``When`` action as a bounded verification step. Never rewrite ``Given`` input
-    semantics or a ``Then`` expected outcome. The evidence, structure and quality validators
-    must all improve or remain unchanged; repeated server phrasing still trips the existing
-    deliverable-placeholder quality gate.
+    Final validation never deletes a Given/When/Then role. For non-authorizing artifacts,
+    reclassify only an unsafe ``When`` action as a bounded verification step. Never rewrite
+    ``Given`` input semantics or a ``Then`` expected outcome. The evidence, structure and
+    quality validators must all improve or remain unchanged; repeated server phrasing still
+    trips the existing deliverable-placeholder quality gate.
     """
 
     if context.artifact_type == "launch_authorization":
@@ -4116,116 +4022,6 @@ def _repair_final_gwt_evidence_assertions(
         if current == draft.markdown
         else draft.model_copy(update={"markdown": current})
     )
-
-
-def _remove_newly_orphaned_optional_sections(
-    before_pruning: str,
-    after_pruning: str,
-    *,
-    required_sections: Sequence[str],
-) -> str:
-    """Remove only optional subsections orphaned by deterministic evidence pruning.
-
-    The thin-section quality gate remains authoritative. An originally thin section and
-    every required section are retained so validation still rejects them. This cleanup
-    only removes an optional heading whose substantive body was deleted by the server's
-    conservative unsafe-line pruning in this exact pass.
-    """
-
-    def sections(markdown: str) -> list[dict[str, Any]]:
-        headings: list[dict[str, Any]] = []
-        fence_character = ""
-        fence_length = 0
-        offset = 0
-        for line in markdown.splitlines(keepends=True):
-            raw_line = line.rstrip("\r\n")
-            fence = re.match(r"^\s*(`{3,}|~{3,})", raw_line)
-            if fence is not None:
-                marker = fence.group(1)
-                if not fence_character:
-                    fence_character = marker[0]
-                    fence_length = len(marker)
-                elif marker[0] == fence_character and len(marker) >= fence_length:
-                    fence_character = ""
-                    fence_length = 0
-                offset += len(line)
-                continue
-            if not fence_character:
-                heading = _MARKDOWN_HEADING.fullmatch(raw_line)
-                if heading is not None:
-                    headings.append(
-                        {
-                            "start": offset,
-                            "content_start": offset + len(raw_line),
-                            "level": _markdown_heading_level(raw_line),
-                            "normalized": _normalized_semantic_text(heading.group(1)),
-                            "semantic_identities": _markdown_heading_identities(
-                                heading.group(1)
-                            ),
-                        }
-                    )
-            offset += len(line)
-        occurrences: dict[tuple[int, str], int] = {}
-        result: list[dict[str, Any]] = []
-        for index, heading in enumerate(headings):
-            level = heading["level"]
-            normalized = heading["normalized"]
-            occurrence_key = (level, normalized)
-            occurrence = occurrences.get(occurrence_key, 0)
-            occurrences[occurrence_key] = occurrence + 1
-            content_end = len(markdown)
-            descendants = False
-            for later in headings[index + 1 :]:
-                if later["level"] <= level:
-                    content_end = later["start"]
-                    break
-                descendants = True
-            body = markdown[heading["content_start"] : content_end]
-            result.append(
-                {
-                    "identity": (level, normalized, occurrence),
-                    "level": level,
-                    "normalized": normalized,
-                    "semantic_identities": heading["semantic_identities"],
-                    "start": heading["start"],
-                    "end": content_end,
-                    "words": len(re.findall(r"\b[\w'-]+\b", body)),
-                    "leaf": not descendants,
-                }
-            )
-        return result
-
-    before_by_identity = {item["identity"]: item for item in sections(before_pruning)}
-    required = {
-        identity
-        for section in required_sections
-        for identity in _required_section_identities(section)
-    }
-    removable: list[tuple[int, int]] = []
-    for item in sections(after_pruning):
-        prior = before_by_identity.get(item["identity"])
-        if (
-            item["level"] >= 2
-            and item["leaf"]
-            and not item["semantic_identities"].intersection(required)
-            and item["words"] < 3
-            and prior is not None
-            and prior["words"] >= 3
-        ):
-            removable.append((item["start"], item["end"]))
-    if not removable:
-        return after_pruning
-
-    merged: list[tuple[int, int]] = []
-    for start, end in sorted(removable):
-        if merged and start <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
-        else:
-            merged.append((start, end))
-    repaired = after_pruning
-    for start, end in reversed(merged):
-        repaired = repaired[:start] + repaired[end:]
-    return re.sub(r"\n{3,}", "\n\n", repaired).rstrip()
 
 
 _GIVEN_WHEN_THEN_ROLE_LINE = re.compile(
@@ -4487,6 +4283,134 @@ def _markdown_with_fenced_bodies_blanked(markdown: str) -> str:
                 continue
         result.append(blank(line) if fence_character else line)
     return "".join(result)
+
+
+_FINAL_REPAIR_NUMBERED_LABEL = re.compile(
+    r"\b(?P<label>gate|phase|requirement|risk|step)\s+" r"(?P<number>[1-9]\d*)\b",
+    re.IGNORECASE,
+)
+
+
+def _final_repair_table_rows_by_header(markdown: str) -> dict[str, int]:
+    rows_by_header: dict[str, int] = {}
+    pending_header: str | None = None
+    active_header: str | None = None
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if not (stripped.startswith("|") and stripped.endswith("|")):
+            pending_header = None
+            active_header = None
+            continue
+        cells = [
+            re.sub(r"[*_`]", "", cell.replace(r"\|", "|")).strip()
+            for cell in re.split(r"(?<!\\)\|", stripped.strip("|"))
+        ]
+        if cells and all(
+            _MARKDOWN_TABLE_SEPARATOR_CELL.fullmatch(cell) is not None for cell in cells
+        ):
+            active_header = pending_header
+            pending_header = None
+            if active_header is not None:
+                rows_by_header.setdefault(active_header, 0)
+            continue
+        if active_header is not None:
+            rows_by_header[active_header] += 1
+            continue
+        pending_header = _normalized_semantic_text(" | ".join(cells)) or None
+    return dict(sorted(rows_by_header.items()))
+
+
+def _final_repair_topology(markdown: str) -> FinalRepairTopology:
+    """Capture only the Markdown structure the bounded final repair must retain."""
+
+    unfenced = _markdown_with_fenced_bodies_blanked(markdown)
+    gwt_roles: list[str] = []
+    list_item_count = 0
+    for line in unfenced.splitlines():
+        if _MARKDOWN_LIST_ITEM.match(line) is not None:
+            list_item_count += 1
+        role_line = _GIVEN_WHEN_THEN_ROLE_LINE.match(line)
+        if role_line is None:
+            continue
+        gwt_roles.append(role_line.group("role").casefold())
+        gwt_roles.extend(
+            match.group("role").casefold()
+            for match in _GIVEN_WHEN_THEN_INLINE_ROLE.finditer(line[role_line.end() :])
+        )
+    return FinalRepairTopology(
+        heading_levels=sorted(
+            _markdown_heading_level(match)
+            for match in _MARKDOWN_HEADING.finditer(unfenced)
+        ),
+        table_rows_by_header=_final_repair_table_rows_by_header(unfenced),
+        list_item_count=list_item_count,
+        gwt_roles=sorted(gwt_roles),
+        requirement_ids=sorted(
+            match.group(0).casefold()
+            for match in _DISPLAY_REQUIREMENT_ID.finditer(unfenced)
+        ),
+        numbered_labels=sorted(
+            f"{match.group('label').casefold()} {int(match.group('number'))}"
+            for match in _FINAL_REPAIR_NUMBERED_LABEL.finditer(unfenced)
+        ),
+    )
+
+
+def _final_repair_topology_defects(
+    baseline: FinalRepairTopology, markdown: str
+) -> list[str]:
+    """Reject a final retry that removes structure from its immutable repair base."""
+
+    candidate = _final_repair_topology(markdown)
+    defects: list[str] = []
+
+    def missing_values(expected: Sequence[Any], actual: Sequence[Any]) -> list[str]:
+        missing = Counter(expected) - Counter(actual)
+        return [
+            f"{value} ({count} missing)" if count > 1 else str(value)
+            for value, count in sorted(missing.items(), key=lambda item: str(item[0]))
+        ]
+
+    missing_headings = missing_values(baseline.heading_levels, candidate.heading_levels)
+    if missing_headings:
+        defects.append(
+            "Final repair removed Markdown headings at levels: "
+            + ", ".join(missing_headings)
+            + "."
+        )
+    for header, expected_rows in baseline.table_rows_by_header.items():
+        actual_rows = candidate.table_rows_by_header.get(header, 0)
+        if actual_rows < expected_rows:
+            defects.append(
+                f"Final repair removed table rows under {header!r}: expected at least "
+                f"{expected_rows}, found {actual_rows}."
+            )
+    if candidate.list_item_count < baseline.list_item_count:
+        defects.append(
+            "Final repair removed Markdown list items: expected at least "
+            f"{baseline.list_item_count}, found {candidate.list_item_count}."
+        )
+    for label, expected, actual in (
+        (
+            "Given/When/Then roles",
+            baseline.gwt_roles,
+            candidate.gwt_roles,
+        ),
+        (
+            "requirement IDs",
+            baseline.requirement_ids,
+            candidate.requirement_ids,
+        ),
+        (
+            "numbered sequence labels",
+            baseline.numbered_labels,
+            candidate.numbered_labels,
+        ),
+    ):
+        missing = missing_values(expected, actual)
+        if missing:
+            defects.append(f"Final repair removed {label}: {', '.join(missing)}.")
+    return defects
 
 
 def _deterministic_structural_integrity_defects(markdown: str) -> list[str]:
@@ -5777,25 +5701,6 @@ class PydanticAISynthesisWriter:
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
         ) -> SynthesisDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
-            before_pruning = output.markdown
-            after_pruning = _prune_final_unsupported_evidence_lines(
-                before_pruning,
-                ctx.deps.allowed_claim_texts,
-                artifact_type=ctx.deps.artifact_type,
-                immutable_gap_labels=ctx.deps.required_gap_labels,
-                unresolved_evidence_requirements=(
-                    ctx.deps.unresolved_evidence_requirements
-                ),
-                accepted_requirement_ids=[
-                    requirement.id for requirement in ctx.deps.accepted_requirements
-                ],
-            )
-            after_pruning = _remove_newly_orphaned_optional_sections(
-                before_pruning,
-                after_pruning,
-                required_sections=ctx.deps.required_sections,
-            )
-            output = output.model_copy(update={"markdown": after_pruning})
             output = _repair_final_gwt_evidence_assertions(ctx.deps, output)
             output = _with_immutable_gap_labels(ctx.deps, output)
             output = _with_accepted_requirement_traceability(ctx.deps, output)
@@ -6286,41 +6191,46 @@ class PydanticAISynthesisWriter:
             evaluation.substantive_content_defects,
             evaluation.practicality_defects,
         )
+        core_candidates = [
+            item
+            for item in selected_contents
+            if item.content_type == "text/markdown"
+            and (
+                (
+                    item.artifact.kind == "task_result"
+                    and isinstance(item.payload.get("task"), dict)
+                    and item.payload["task"].get("taskKind") == "core_draft"
+                    and item.payload["task"].get("producesFullContract") is True
+                )
+                or (
+                    item.artifact.kind == "final_markdown"
+                    and isinstance(item.payload.get("candidateAttestation"), dict)
+                    and isinstance(
+                        item.payload["candidateAttestation"].get("task"), dict
+                    )
+                    and item.payload["candidateAttestation"]["task"].get("taskKind")
+                    == "core_draft"
+                    and item.payload["candidateAttestation"]["task"].get(
+                        "producesFullContract"
+                    )
+                    is True
+                )
+            )
+        ]
         validated_fallback: SynthesisDraft | None = None
-        if not any(semantic_or_quality_defects):
-            core_candidates = [
-                item
-                for item in selected_contents
-                if item.content_type == "text/markdown"
-                and (
-                    (
-                        item.artifact.kind == "task_result"
-                        and isinstance(item.payload.get("task"), dict)
-                        and item.payload["task"].get("taskKind") == "core_draft"
-                        and item.payload["task"].get("producesFullContract") is True
-                    )
-                    or (
-                        item.artifact.kind == "final_markdown"
-                        and isinstance(item.payload.get("candidateAttestation"), dict)
-                        and isinstance(
-                            item.payload["candidateAttestation"].get("task"), dict
-                        )
-                        and item.payload["candidateAttestation"]["task"].get("taskKind")
-                        == "core_draft"
-                        and item.payload["candidateAttestation"]["task"].get(
-                            "producesFullContract"
-                        )
-                        is True
-                    )
-                )
-            ]
-            if len(core_candidates) == 1:
-                core = core_candidates[0]
-                projected = _project_final_repair_base(
-                    context,
-                    title=str(core.payload.get("title") or "Final artifact"),
-                    markdown=core.markdown,
-                )
+        if len(core_candidates) == 1:
+            core = core_candidates[0]
+            projected = _project_final_repair_base(
+                context,
+                title=str(core.payload.get("title") or "Final artifact"),
+                markdown=core.markdown,
+            )
+            context = context.model_copy(
+                update={
+                    "final_repair_topology": _final_repair_topology(projected.markdown)
+                }
+            )
+            if not any(semantic_or_quality_defects):
                 try:
                     _validate_synthesis(context, projected)
                 except ValueError:

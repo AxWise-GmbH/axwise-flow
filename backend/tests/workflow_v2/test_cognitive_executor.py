@@ -525,8 +525,50 @@ async def test_final_quality_failure_is_a_bounded_model_output_retry(
         )
 
 
+def _final_validator_topology_fixture(*, claim_id: str, requirement_three: str) -> str:
+    research = {
+        "assumptions": [],
+        "gaps": [],
+        "conflicts": [],
+        "findings": [],
+        "selectedClaims": [],
+        "claimLedger": [],
+    }
+    return (
+        quality_markdown(research)
+        + "\n\n## Regulatory validation topology\n\n"
+        + f"The pilot plan assigns the Quality Lead [evidence:{claim_id}].\n\n"
+        + "### Complete requirement table\n\n"
+        + "| ID | Priority | Requirement |\n"
+        + "| --- | --- | --- |\n"
+        + "| REQ-P0-01 | P0 | Proposed target: compare two candidate formula options. |\n"
+        + "| REQ-P0-02 | P0 | Validation action: verify whether national labelling "
+        + "rules apply before treating them as settled. |\n"
+        + requirement_three
+        + "\n| REQ-P0-04 | P0 | Proposed target: test two candidate pouch formats. |\n"
+        + "| REQ-P0-05 | P0 | Proposed target: record a reversible pilot decision. |\n\n"
+        + "### Complete workflow sequence\n\n"
+        + "1. Step 1: draft the bounded product options.\n"
+        + "2. Step 2: validate the evidence-sensitive constraints.\n"
+        + "3. Step 3: record the planning decision and remaining gaps.\n\n"
+        + "### Complete verification gates\n\n"
+        + "| Gate | Check |\n"
+        + "| --- | --- |\n"
+        + "| Gate 1 | Confirm the accepted scope. |\n"
+        + "| Gate 2 | Compare the candidate options. |\n"
+        + "| Gate 3 | Run the bounded evidence review. |\n"
+        + "| Gate 4 | Record unresolved requirements. |\n"
+        + "| Gate 5 | Approve only the planning artifact. |\n\n"
+        + "### AC-REG-01\n\n"
+        + "- **Given** the accepted planning scope,\n"
+        + "- **When** the formula-safety evidence is independently reviewed,\n"
+        + "- **Then** record the criterion as pass only if the requirement is "
+        + "independently verified; otherwise record it as unresolved."
+    )
+
+
 @pytest.mark.asyncio
-async def test_final_validator_prunes_only_safe_residual_unsupported_rows(
+async def test_final_validator_retries_unsupported_rows_without_deleting_them(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -551,46 +593,160 @@ async def test_final_validator_prunes_only_safe_residual_unsupported_rows(
     )
     writer = PydanticAISynthesisWriter(object())
     validator = validators[writer.final_agent.system_prompt]
+    claim_id = "0123456789abcdef" * 4
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=[],
         evidence_readiness="ready",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: "The pilot plan assigns the Quality Lead"},
         required_gap_labels=[],
         quality_gate_required=True,
         practical_output_required=True,
         artifact_type="product_prd",
     )
-    unsafe_row = "| REQ-P0-01 | Quality Lead | The formula is safe for adult cats. |"
-    candidate = (
-        quality_markdown(
-            {
-                "assumptions": [],
-                "gaps": [],
-                "conflicts": [],
-                "findings": [],
-                "selectedClaims": [],
-                "claimLedger": [],
-            }
+    unsafe_row = (
+        "| REQ-P0-03 | P0 | The formula is safe for adult cats "
+        f"[evidence:{claim_id}]. |"
+    )
+    candidate = _final_validator_topology_fixture(
+        claim_id=claim_id, requirement_three=unsafe_row
+    )
+    context = context.model_copy(
+        update={
+            "final_repair_topology": cognitive_executor_module._final_repair_topology(
+                candidate
+            )
+        }
+    )
+
+    class Context:
+        deps = context
+
+    with pytest.raises(ModelRetry, match="substantive/practical quality"):
+        await validator(
+            Context(), SynthesisDraft(title="Unsafe row", markdown=candidate)
         )
-        + f"\n\n{unsafe_row}"
+
+    assert unsafe_row in seen[-1]
+    assert "Decision-useful physical product requirements." in seen[-1]
+    for expected in (
+        "REQ-P0-01",
+        "REQ-P0-02",
+        "REQ-P0-03",
+        "REQ-P0-04",
+        "REQ-P0-05",
+        "Step 1",
+        "Step 2",
+        "Step 3",
+        "Gate 1",
+        "Gate 2",
+        "Gate 3",
+        "Gate 4",
+        "Gate 5",
+    ):
+        assert expected in seen[-1]
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            seen[-1]
+        )
+        == []
+    )
+
+
+@pytest.mark.asyncio
+async def test_final_validator_accepts_in_place_downgrade_without_losing_row(
+    monkeypatch,
+) -> None:
+    validators = {}
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    writer = PydanticAISynthesisWriter(object())
+    validator = validators[writer.final_agent.system_prompt]
+    claim_id = "0123456789abcdef" * 4
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready",
+        allowed_claim_ids=[claim_id],
+        allowed_claim_texts={claim_id: "The pilot plan assigns the Quality Lead"},
+        required_gap_labels=[],
+        quality_gate_required=True,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+    downgraded_row = (
+        "| REQ-P0-03 | P0 | Validation action: verify whether the candidate "
+        "formula meets adult-cat "
+        "safety requirements before treating it as settled. |"
+    )
+    candidate = _final_validator_topology_fixture(
+        claim_id=claim_id, requirement_three=downgraded_row
+    )
+    context = context.model_copy(
+        update={
+            "final_repair_topology": cognitive_executor_module._final_repair_topology(
+                candidate
+            )
+        }
     )
 
     class Context:
         deps = context
 
     result = await validator(
-        Context(), SynthesisDraft(title="Unsafe row", markdown=candidate)
+        Context(), SynthesisDraft(title="Downgraded row", markdown=candidate)
     )
 
-    assert seen[-1] == result.markdown
-    assert unsafe_row not in result.markdown
-    assert "Decision-useful physical product requirements." in result.markdown
+    assert downgraded_row in result.markdown
+    assert "Validation action: verify whether" in result.markdown
+    assert result.markdown.count(f"[evidence:{claim_id}]") == 1
+    for expected in (
+        "REQ-P0-01",
+        "REQ-P0-02",
+        "REQ-P0-03",
+        "REQ-P0-04",
+        "REQ-P0-05",
+        "Step 1",
+        "Step 2",
+        "Step 3",
+        "Gate 1",
+        "Gate 2",
+        "Gate 3",
+        "Gate 4",
+        "Gate 5",
+    ):
+        assert expected in result.markdown
+    assert (
+        cognitive_executor_module._incomplete_given_when_then_acceptance_blocks(
+            result.markdown
+        )
+        == []
+    )
+
+    reduced = (
+        candidate.replace(downgraded_row + "\n", "")
+        .replace("1. Step 1: draft the bounded product options.\n", "")
+        .replace("2. Step 2: validate the evidence-sensitive constraints.\n", "")
+        .replace("| Gate 2 | Compare the candidate options. |\n", "")
+        .replace("| Gate 4 | Record unresolved requirements. |\n", "")
+    )
+    with pytest.raises(ModelRetry, match="Final repair removed"):
+        await validator(
+            Context(), SynthesisDraft(title="Structurally reduced", markdown=reduced)
+        )
 
 
 @pytest.mark.asyncio
-async def test_final_validator_never_prunes_an_accepted_requirement_row(
+async def test_final_validator_never_deletes_an_accepted_requirement_row(
     monkeypatch,
 ) -> None:
     validators = {}
@@ -2374,11 +2530,19 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
     for required in (
         "one surgical repair of BASE_MARKDOWN",
         "every exact item in REPAIR_TARGETS",
-        "Prefer deleting an unsupported sentence or table",
-        "cell over paraphrasing it",
+        "without damaging the artifact's structure",
+        "Reclassify an unsupported internal product or design",
+        "choice as `Proposed target: ...`",
+        "Reclassify an unsupported legal, safety, certification or",
+        "as `Validation action: verify whether ... before treating it as settled.`",
+        "Reclassify any other unknown external or product-status fact",
+        "as `Unknown pending evidence: ...`",
+        "Never disguise an",
+        "external fact as a proposal",
         "persona names, ages, neighbourhoods and demographic facts",
-        "delete that entire",
-        "Markdown line on the next retry",
+        "rewrite that exact line in place",
+        "do not",
+        "delete a structured row or sequence item",
         "Parenthetical labels",
         "Given states only the accepted input",
         "Then records",
@@ -2387,139 +2551,6 @@ def test_product_prd_prompts_prevent_invented_precision_and_broad_rewrites() -> 
         "never propose executing the process before its applicability is verified",
     ):
         assert required in final_prompt
-
-
-def test_final_repair_prunes_only_validator_named_unsupported_lines() -> None:
-    claim_id = "claim-0123456789abcdef"
-    supported = (
-        "Estonia has an official pet-food labelling framework " f"[evidence:{claim_id}]"
-    )
-    unsupported = (
-        "* **Treats & Functional Snacks:** Treats & Functional Snacks comprises "
-        "~3% of volume"
-    )
-    markdown = "\n".join(
-        [
-            "# Market context",
-            "",
-            supported,
-            unsupported,
-            "",
-            "# Next steps",
-            "",
-            "- Validate the proposed segment before making a product decision.",
-        ]
-    )
-
-    repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
-        markdown,
-        {claim_id: "Estonia has an official pet-food labelling framework"},
-        artifact_type="product_prd",
-        immutable_gap_labels=[],
-    )
-
-    assert unsupported not in repaired
-    assert supported in repaired
-    assert "# Market context" in repaired
-    assert "# Next steps" in repaired
-
-
-def test_final_pruning_preserves_only_canonical_server_gap_bullet() -> None:
-    label = (
-        "Independent ISO/IEC 17025 laboratory assays verifying microbiological "
-        "safety are missing."
-    )
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=[],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=[label],
-        quality_gate_required=True,
-        practical_output_required=True,
-        artifact_type="product_prd",
-    )
-    base = quality_markdown(
-        {
-            "assumptions": [],
-            "gaps": [],
-            "conflicts": [],
-            "findings": [],
-            "selectedClaims": [],
-            "claimLedger": [],
-        }
-    )
-    model_copy = f"- {label} Therefore the formula is certified safe."
-    injected = _with_immutable_gap_labels(
-        context,
-        SynthesisDraft(
-            title="Useful PRD",
-            markdown=base + "\n\n## Model-authored status\n\n" + model_copy,
-        ),
-    )
-    canonical_bullet = f"- {label}"
-    assert injected.markdown.count(label) == 2
-
-    pruned = cognitive_executor_module._prune_final_unsupported_evidence_lines(
-        injected.markdown,
-        {},
-        artifact_type="product_prd",
-        immutable_gap_labels=[label],
-    )
-    pruned = cognitive_executor_module._remove_newly_orphaned_optional_sections(
-        injected.markdown,
-        pruned,
-        required_sections=[],
-    )
-
-    assert model_copy not in pruned
-    assert pruned.count(label) == 1
-    assert canonical_bullet in pruned
-    _validate_synthesis(context, SynthesisDraft(title="Useful PRD", markdown=pruned))
-
-
-def test_final_pruning_reaches_fixed_point_beyond_validator_page() -> None:
-    unsafe_lines = [
-        f"- The formula is certified safe at {temperature}°C."
-        for temperature in range(40, 85)
-    ]
-    unsafe_heading = "## The product is FEDIAF compliant"
-    markdown = "\n".join(
-        [
-            "# Product requirements document",
-            "",
-            "This safe planning context and validation action must remain intact.",
-            "",
-            unsafe_heading,
-            "",
-            *unsafe_lines,
-        ]
-    )
-    assert (
-        len(
-            _deterministic_evidence_integrity_defects(
-                markdown, {}, artifact_type="product_prd"
-            )
-        )
-        == 40
-    )
-
-    repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
-        markdown,
-        {},
-        artifact_type="product_prd",
-        immutable_gap_labels=[],
-    )
-
-    assert all(line not in repaired for line in unsafe_lines)
-    assert "This safe planning context and validation action" in repaired
-    assert unsafe_heading in repaired
-    remaining = _deterministic_evidence_integrity_defects(
-        repaired, {}, artifact_type="product_prd"
-    )
-    assert len(remaining) == 1
-    assert "Unsupported factual precision" in remaining[0]
 
 
 def test_structural_guard_rejects_priority_acceptance_traceability_drift() -> None:
@@ -2654,53 +2685,6 @@ def test_structural_guard_does_not_treat_a_phase_reference_as_a_phase_label() ->
     )
 
 
-@pytest.mark.parametrize(
-    "markdown",
-    [
-        (
-            "# Planning artifact\n\n"
-            "## Prioritized requirements\n\n"
-            "| ID | Priority | Requirement |\n"
-            "| --- | --- | --- |\n"
-            "| REQ-PLAN-01 | P0 | Keep this bounded requirement. |\n"
-            "| REQ-PLAN-02 | P0 | The product is certified safe. |\n\n"
-            "## Acceptance criteria\n\n"
-            "### REQ-PLAN-01\n\nGiven input, When checked, Then retain it.\n\n"
-            "### REQ-PLAN-02\n\nGiven input, When checked, Then verify safety."
-        ),
-        (
-            "# Planning artifact\n\n"
-            "## Users, jobs, and pains\n\n"
-            "**Proposed Jobs-to-be-Done (JTBD):**\n"
-            "1. The product is certified safe.\n"
-            "2. Validate the proposed workflow."
-        ),
-        (
-            "# Planning artifact\n\n"
-            "## Next steps\n\n"
-            "| Execution Phase | Action |\n"
-            "| --- | --- |\n"
-            "| Phase 1 | The product is certified safe. |\n"
-            "| Phase 2 | Run the bounded validation. |"
-        ),
-    ],
-)
-def test_final_pruning_does_not_publish_structurally_damaged_markdown(
-    markdown: str,
-) -> None:
-    repaired = cognitive_executor_module._prune_final_unsupported_evidence_lines(
-        markdown,
-        {},
-        artifact_type="product_prd",
-        immutable_gap_labels=[],
-    )
-
-    assert repaired == markdown
-    assert _deterministic_evidence_integrity_defects(
-        repaired, {}, artifact_type="product_prd"
-    )
-
-
 def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
     label = "Product-specific safety clearance remains unresolved."
     context = SynthesisContext(
@@ -2727,74 +2711,6 @@ def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
     assert merged.markdown.index(label) < merged.markdown.index("### Owner notes")
     assert merged.markdown.index(label) < merged.markdown.index("## Next steps")
     assert _with_immutable_gap_labels(context, merged) == merged
-
-
-def test_final_pruning_removes_only_new_optional_orphan_sections() -> None:
-    before = (
-        "# PRD\n\nUseful overview.\n\n"
-        "## Required section\n\nRequired body before pruning.\n\n"
-        "### Newly orphaned\n\nUnsafe factual precision was here.\n\n"
-        "### Originally thin\n\n\n"
-        "### Neighbor\n\nNeighboring content remains useful."
-    )
-    after = before.replace("Unsafe factual precision was here.", "").replace(
-        "Required body before pruning.", ""
-    )
-
-    repaired = cognitive_executor_module._remove_newly_orphaned_optional_sections(
-        before,
-        after,
-        required_sections=["Required section"],
-    )
-
-    assert "### Newly orphaned" not in repaired
-    assert "## Required section" in repaired
-    assert "### Originally thin" in repaired
-    assert "### Neighbor" in repaired
-    assert "Neighboring content remains useful." in repaired
-
-
-def test_final_pruning_does_not_hide_nested_or_fenced_thin_sections() -> None:
-    nested_before = (
-        "# PRD\n\nUseful overview.\n\n"
-        "## Optional parent\n\nUnsafe parent content was removed.\n\n"
-        "### Required child\n\n"
-        "## Neighbor\n\nNeighboring content remains useful."
-    )
-    nested_after = nested_before.replace("Unsafe parent content was removed.", "")
-
-    nested_repaired = (
-        cognitive_executor_module._remove_newly_orphaned_optional_sections(
-            nested_before,
-            nested_after,
-            required_sections=["Required child"],
-        )
-    )
-
-    assert "## Optional parent" in nested_repaired
-    assert "### Required child" in nested_repaired
-    fenced_before = (
-        "# PRD\n\nUseful overview.\n\n"
-        "```text\n## Repeated name\nSubstantive pseudo-heading content.\n```\n\n"
-        "## Repeated name\n\n"
-        "## Neighbor\n\nNeighboring content remains useful."
-    )
-    fenced_after = (
-        "# PRD\n\nUseful overview.\n\n"
-        "## Repeated name\n\n"
-        "## Neighbor\n\nNeighboring content remains useful."
-    )
-
-    fenced_repaired = (
-        cognitive_executor_module._remove_newly_orphaned_optional_sections(
-            fenced_before,
-            fenced_after,
-            required_sections=[],
-        )
-    )
-
-    assert "## Repeated name" in fenced_repaired
-    assert "## Neighbor" in fenced_repaired
 
 
 def test_final_repair_projection_preserves_required_section_and_safety_action() -> None:
@@ -6116,6 +6032,9 @@ async def test_final_writer_uses_strict_projection_after_model_validation_exhaus
 
     assert len(calls) == 1
     assert calls[0][3] == "FINAL"
+    assert calls[0][2].final_repair_topology == (
+        cognitive_executor_module._final_repair_topology(expected.markdown)
+    )
     assert result.value == expected
     # The fallback itself adds no tokens. Failed provider-attempt cost is captured from
     # provider logs during release verification, not inferred from this zero value.
