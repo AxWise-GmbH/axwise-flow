@@ -5332,6 +5332,11 @@ _FENCED_ROADMAP_LABEL = re.compile(
 _FENCED_ROADMAP_ACTIVITY = re.compile(
     r"(?:^|\s{2,})-\s+(.+?)(?=(?:\s{2,}-\s+)|\s*\|?\s*$)"
 )
+_FENCED_TREE_ROADMAP_PERIOD = re.compile(
+    r"^\s*((?:month|stage|step|phase)\s+([1-9]\d*)\b[^\n]*)\s*$",
+    re.IGNORECASE,
+)
+_FENCED_TREE_ROADMAP_ACTIVITY = re.compile(r"^\s*[├└](?:─{2}|--)+\s+(.+?)\s*$")
 
 
 def _project_redundant_unsupported_gate_diagrams(
@@ -5600,13 +5605,39 @@ def _project_fenced_ascii_roadmaps(
             "|" in body
             and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
         )
-        recognized = (
+        table_recognized = (
             is_ascii_table
             and _ASCII_DECISION_DIAGRAM.search(body) is not None
             and _RAW_EVIDENCE_MARKER.search(body) is None
             and len(labels) >= 2
             and len(re.findall(r"\[[^\]]+\]", body)) == len(labels)
         )
+        tree_periods = [
+            match
+            for line in body.splitlines()
+            if (match := _FENCED_TREE_ROADMAP_PERIOD.fullmatch(line)) is not None
+        ]
+        tree_activities = [
+            match
+            for line in body.splitlines()
+            if (match := _FENCED_TREE_ROADMAP_ACTIVITY.fullmatch(line)) is not None
+        ]
+        tree_numbers = sorted({int(match.group(2)) for match in tree_periods})
+        tree_lines_are_bounded = all(
+            not line.strip()
+            or _FENCED_TREE_ROADMAP_PERIOD.fullmatch(line) is not None
+            or _FENCED_TREE_ROADMAP_ACTIVITY.fullmatch(line) is not None
+            for line in body.splitlines()
+        )
+        tree_recognized = (
+            _ASCII_DECISION_DIAGRAM.search(body) is not None
+            and _RAW_EVIDENCE_MARKER.search(body) is None
+            and len(tree_periods) >= 2
+            and len(tree_activities) >= 2
+            and tree_numbers == list(range(1, max(tree_numbers) + 1))
+            and tree_lines_are_bounded
+        )
+        recognized = table_recognized or tree_recognized
         if not recognized:
             index = end + 1
             continue
@@ -5616,6 +5647,17 @@ def _project_fenced_ascii_roadmaps(
             stripped = body_line.strip()
             if not stripped or re.fullmatch(r"\+[-+]+\+", stripped) is not None:
                 continue
+            if tree_recognized:
+                period = _FENCED_TREE_ROADMAP_PERIOD.fullmatch(body_line)
+                if period is not None:
+                    retained_semantic_lines.append(period.group(1))
+                    replacement.append(f"- **{period.group(1)}**")
+                    continue
+                activity = _FENCED_TREE_ROADMAP_ACTIVITY.fullmatch(body_line)
+                if activity is not None:
+                    retained_semantic_lines.append(activity.group(1))
+                    replacement.append(f"  - {activity.group(1)}")
+                    continue
             content = stripped.strip("|").strip()
             if not content or re.fullmatch(r"[|vV^<>+\-=\s]+", content) is not None:
                 continue
@@ -5666,11 +5708,24 @@ def _project_fenced_ascii_roadmaps(
             "The candidate uses an ASCII-art table inside a code fence instead of "
             "valid Markdown."
         )
+
+        def evidence_signature(defect: str) -> tuple[str, ...]:
+            _prefix, separator, excerpt = defect.partition(": ")
+            return tuple(sorted(_support_tokens(excerpt if separator else defect)))
+
+        evidence_regressed = (
+            bool(set(trial_evidence).difference(before_evidence))
+            if not tree_recognized
+            else bool(
+                Counter(map(evidence_signature, trial_evidence))
+                - Counter(map(evidence_signature, before_evidence))
+            )
+        )
         if (
-            set(trial_evidence).difference(before_evidence)
+            evidence_regressed
             or set(trial_substantive).difference(before_substantive)
             or set(trial_practical).difference(before_practical)
-            or ascii_defect not in before_substantive
+            or (not tree_recognized and ascii_defect not in before_substantive)
             or ascii_defect in trial_substantive
             or set(_deterministic_structural_integrity_defects(trial)).difference(
                 _deterministic_structural_integrity_defects(current)
