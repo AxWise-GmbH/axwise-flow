@@ -7138,33 +7138,53 @@ class PydanticAISynthesisWriter:
             raise failure from error
 
     @staticmethod
-    def _allowed_claim_ids(research_payload: dict[str, Any]) -> list[str]:
-        selected = {
-            claim["claimId"] for claim in research_payload.get("selectedClaims", [])
-        }
-        acquired = {
-            claim["claimId"]
-            for entry in research_payload.get("claimLedger", [])
-            for claim in entry.get("claims", [])
-        }
-        return utf16_ordinal_sorted(selected.union(acquired))
+    def _accepted_claims(research_payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Project only selected facts and dynamically verified claim spans."""
 
-    @staticmethod
-    def _allowed_claim_texts(research_payload: dict[str, Any]) -> dict[str, str]:
+        verified_requirement_ids = {
+            finding.get("requirementId")
+            for finding in research_payload.get("findings", [])
+            if isinstance(finding, dict)
+            and finding.get("status") == "verified"
+            and isinstance(finding.get("requirementId"), str)
+        }
         claims = [
-            *research_payload.get("selectedClaims", []),
+            *[
+                claim
+                for claim in research_payload.get("selectedClaims", [])
+                if isinstance(claim, dict)
+            ],
             *[
                 claim
                 for entry in research_payload.get("claimLedger", [])
+                if isinstance(entry, dict)
+                and entry.get("requirementId") in verified_requirement_ids
                 for claim in entry.get("claims", [])
+                if isinstance(claim, dict)
             ],
         ]
+        claims_by_id = {
+            claim["claimId"]: claim
+            for claim in claims
+            if isinstance(claim.get("claimId"), str)
+        }
+        return [
+            claims_by_id[claim_id]
+            for claim_id in utf16_ordinal_sorted(claims_by_id)
+        ]
+
+    @classmethod
+    def _allowed_claim_ids(cls, research_payload: dict[str, Any]) -> list[str]:
+        return [
+            claim["claimId"] for claim in cls._accepted_claims(research_payload)
+        ]
+
+    @classmethod
+    def _allowed_claim_texts(cls, research_payload: dict[str, Any]) -> dict[str, str]:
         return {
             claim["claimId"]: claim["text"]
-            for claim in claims
-            if isinstance(claim, dict)
-            and isinstance(claim.get("claimId"), str)
-            and isinstance(claim.get("text"), str)
+            for claim in cls._accepted_claims(research_payload)
+            if isinstance(claim.get("text"), str)
         }
 
     @staticmethod
@@ -7296,9 +7316,13 @@ class PydanticAISynthesisWriter:
             artifact_type=input_value.output_contract.artifact_type,
         )
 
-    @staticmethod
-    def _research_prompt_view(research_payload: dict[str, Any]) -> dict[str, Any]:
-        """Expose accepted evidence and decisions, never rejected provider prose."""
+    @classmethod
+    def _research_prompt_view(
+        cls,
+        research_payload: dict[str, Any],
+        scope_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Expose accepted evidence and typed gaps, never rejected provider prose."""
 
         projected = {
             key: research_payload[key]
@@ -7308,26 +7332,136 @@ class PydanticAISynthesisWriter:
                 "acceptedScopeHash",
                 "researchInputHash",
                 "readiness",
-                "findings",
-                "selectedClaims",
-                "sourceCatalogue",
                 "assumptions",
-                "gaps",
-                "conflicts",
                 "boundedRepairPasses",
                 "claimLedgerArtifactId",
             )
             if key in research_payload
         }
-        projected["claimLedger"] = [
+        findings = [
             {
-                key: entry[key]
-                for key in ("requirementId", "passNumber", "claims")
-                if key in entry
+                key: finding[key]
+                for key in (
+                    "requirementId",
+                    "status",
+                    "blocking",
+                    "sourceArtifactIds",
+                )
+                if key in finding
             }
-            for entry in research_payload.get("claimLedger", [])
-            if isinstance(entry, dict) and entry.get("claims")
+            for finding in research_payload.get("findings", [])
+            if isinstance(finding, dict)
         ]
+        projected["findings"] = findings
+
+        selected_claims = [
+            claim
+            for claim in research_payload.get("selectedClaims", [])
+            if isinstance(claim, dict)
+        ]
+        selected_claim_ids = {
+            claim.get("claimId")
+            for claim in selected_claims
+            if isinstance(claim.get("claimId"), str)
+        }
+        accepted_claims = cls._accepted_claims(research_payload)
+        accepted_claim_ids = {
+            claim["claimId"]
+            for claim in accepted_claims
+            if isinstance(claim.get("claimId"), str)
+        }
+        projected["selectedClaims"] = selected_claims
+        verified_requirement_ids = {
+            finding.get("requirementId")
+            for finding in findings
+            if finding.get("status") == "verified"
+            and isinstance(finding.get("requirementId"), str)
+        }
+        verified_evidence = []
+        for entry in research_payload.get("claimLedger", []):
+            if (
+                not isinstance(entry, dict)
+                or entry.get("requirementId") not in verified_requirement_ids
+            ):
+                continue
+            claims = [
+                claim
+                for claim in entry.get("claims", [])
+                if isinstance(claim, dict)
+                and claim.get("claimId") in accepted_claim_ids
+                and claim.get("claimId") not in selected_claim_ids
+            ]
+            if not claims:
+                continue
+            verified_evidence.append(
+                {
+                    "requirementId": entry["requirementId"],
+                    "passNumber": entry.get("passNumber"),
+                    "claims": claims,
+                }
+            )
+        projected["verifiedEvidence"] = verified_evidence
+
+        projected_sources = []
+        for source in research_payload.get("sourceCatalogue", []):
+            if not isinstance(source, dict):
+                continue
+            supported_claim_ids = utf16_ordinal_sorted(
+                {
+                    claim_id
+                    for claim_id in source.get("supportedClaimIds", [])
+                    if claim_id in accepted_claim_ids
+                }
+            )
+            if not supported_claim_ids:
+                continue
+            projected_source = {
+                key: source[key]
+                for key in (
+                    "sourceId",
+                    "sourceTitle",
+                    "canonicalUrl",
+                    "sourceClasses",
+                    "retrievalDate",
+                )
+                if key in source
+            }
+            projected_source["supportedClaimIds"] = supported_claim_ids
+            projected_sources.append(projected_source)
+        projected["sourceCatalogue"] = projected_sources
+
+        requirement_by_id = {
+            requirement.get("id"): requirement
+            for requirement in (scope_payload or {}).get("evidenceRequirements", [])
+            if isinstance(requirement, dict)
+            and isinstance(requirement.get("id"), str)
+        }
+        projected["unresolvedEvidence"] = []
+        for finding in findings:
+            if finding.get("status") not in {"missing", "conflicting"}:
+                continue
+            requirement_id = finding.get("requirementId")
+            requirement = requirement_by_id.get(requirement_id, {})
+            unresolved = {
+                "requirementId": requirement_id,
+                "status": finding.get("status"),
+                "blocking": finding.get("blocking"),
+                "requiredAction": (
+                    "resolve_conflict_with_accepted_evidence"
+                    if finding.get("status") == "conflicting"
+                    else "acquire_accepted_evidence"
+                ),
+            }
+            for key in (
+                "description",
+                "evidenceRole",
+                "verificationBasis",
+                "acceptedSourceTypes",
+                "allowedSourceHosts",
+            ):
+                if key in requirement:
+                    unresolved[key] = requirement[key]
+            projected["unresolvedEvidence"].append(unresolved)
         return projected
 
     @staticmethod
@@ -7343,7 +7477,7 @@ class PydanticAISynthesisWriter:
                 "PURPOSE": input_value.purpose,
                 "ACCEPTED_SCOPE": scope_payload,
                 "RESEARCH_RESULT": PydanticAISynthesisWriter._research_prompt_view(
-                    research_payload
+                    research_payload, scope_payload
                 ),
                 "TASK": (
                     input_value.task.model_dump(mode="json", by_alias=True)
@@ -8908,7 +9042,9 @@ class GeminiCognitiveExecutor:
         deadline = _research_time() + deadline_seconds
         ledger: list[EvidenceAcquisitionPassV1] = []
         acquired_source_catalogues: list[list[ResearchSourceV1]] = []
-        acquired_source_locator_catalogues: list[list[_ResearchSourceLocator]] = []
+        acquired_source_locator_catalogues: dict[
+            str, list[list[_ResearchSourceLocator]]
+        ] = {}
         input_tokens = 0
         output_tokens = 0
         total_tokens = 0
@@ -8969,7 +9105,7 @@ class GeminiCognitiveExecutor:
                 reusable_sources = _repair_source_candidates(
                     requirement,
                     acquired_source_catalogues,
-                    acquired_source_locator_catalogues,
+                    acquired_source_locator_catalogues.get(requirement.id, []),
                 )
                 if reusable_sources:
                     query_payload["fallbackCandidateSources"] = reusable_sources
@@ -9072,11 +9208,20 @@ class GeminiCognitiveExecutor:
             if pass_number == 0:
                 source_locators = [
                     locator
-                    for item in sources
+                    for item in [
+                        *sources,
+                        *[
+                            item
+                            for item in raw.get("same_operation_locators", [])
+                            if isinstance(item, dict)
+                        ],
+                    ]
                     if (locator := _source_locator(item)) is not None
                 ]
                 if source_locators:
-                    acquired_source_locator_catalogues.append(source_locators)
+                    acquired_source_locator_catalogues.setdefault(
+                        requirement.id, []
+                    ).append(source_locators)
             usage_input, usage_output, usage_total, calls = _usage_from_search(raw)
             return (
                 claims,
@@ -9611,39 +9756,26 @@ class GeminiCognitiveExecutor:
                 )
 
         selected_contents = input_value.artifact_contents
+        research_context_payload = research.model_dump(mode="json", by_alias=True)
+        scope_context_payload = scope.model_dump(mode="json", by_alias=True)
         common_context = SynthesisContext(
             purpose=input_value.purpose,
             required_sections=input_value.output_contract.required_sections,
             evidence_readiness=research.readiness,
-            allowed_claim_ids=utf16_ordinal_sorted(
-                {
-                    *[claim.claim_id for claim in research.selected_claims],
-                    *[
-                        claim.claim_id
-                        for entry in research.claim_ledger
-                        for claim in entry.claims
-                    ],
-                }
+            allowed_claim_ids=PydanticAISynthesisWriter._allowed_claim_ids(
+                research_context_payload
             ),
-            allowed_claim_texts={
-                claim.claim_id: claim.text
-                for claim in [
-                    *research.selected_claims,
-                    *[
-                        claim
-                        for entry in research.claim_ledger
-                        for claim in entry.claims
-                    ],
-                ]
-            },
+            allowed_claim_texts=PydanticAISynthesisWriter._allowed_claim_texts(
+                research_context_payload
+            ),
             required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
-                research.model_dump(mode="json", by_alias=True),
-                scope.model_dump(mode="json", by_alias=True),
+                research_context_payload,
+                scope_context_payload,
             ),
             unresolved_evidence_requirements=(
                 _unresolved_evidence_requirement_descriptions(
-                    research.model_dump(mode="json", by_alias=True),
-                    scope.model_dump(mode="json", by_alias=True),
+                    research_context_payload,
+                    scope_context_payload,
                 )
             ),
             accepted_requirements=scope.requirements,

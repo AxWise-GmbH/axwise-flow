@@ -99,6 +99,8 @@ _LOCATOR_STOP_WORDS = frozenset(
         "with",
     }
 )
+_HTTPS_LOCATOR_IN_TEXT = re.compile(r"https://[^\s<>{}\[\]\"'`]+")
+_HTTPS_LOCATOR_TRAILING_PUNCTUATION = ".,;:!?)]}"
 
 
 @dataclass(frozen=True)
@@ -869,6 +871,104 @@ def _candidate_rows(
     )
 
 
+def _primary_response_locator_rows(
+    raw: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+    accepted_source_types: frozenset[str],
+    source_type_classifier: SourceTypeClassifier | None,
+    maximum: int,
+) -> tuple[list[_Candidate], int, int, int]:
+    """Extract bounded authority locators from one provider response.
+
+    Provider prose is never evidence and is never supplied to the exact-span
+    extractor. A URL written in that prose may only locate a publisher document
+    when it is already canonical and the server-owned classifier and host gates
+    independently accept it. The publisher is then refetched and validated by
+    the same immutable exact-span path as every SearX discovery candidate.
+    """
+
+    response_text = raw.get("text")
+    if not isinstance(response_text, str) or not response_text:
+        return [], 0, 0, 0
+
+    rejected = 0
+    eligible: list[tuple[_Candidate, frozenset[str]]] = []
+    seen_urls: set[str] = set()
+    for match in _HTTPS_LOCATOR_IN_TEXT.finditer(response_text):
+        raw_url = match.group(0).rstrip(_HTTPS_LOCATOR_TRAILING_PUNCTUATION)
+        if not raw_url or raw_url in seen_urls:
+            continue
+        seen_urls.add(raw_url)
+        canonical_url = _canonical_candidate_url(raw_url)
+        if (
+            canonical_url is None
+            or canonical_url != raw_url
+            or not _url_matches_allowed_hosts(canonical_url, allowed_hosts)
+            or source_type_classifier is None
+        ):
+            rejected += 1
+            continue
+        title = urlsplit(canonical_url).hostname or "Publisher"
+        try:
+            classified_types = frozenset(
+                source_type_classifier(canonical_url, title)
+            )
+        except (TypeError, ValueError):
+            classified_types = frozenset()
+        matched_types = classified_types.intersection(accepted_source_types)
+        if not matched_types:
+            rejected += 1
+            continue
+        eligible.append(
+            (
+                _Candidate(
+                    canonical_url=canonical_url,
+                    title=title,
+                    # Never copy provider prose into a locator snippet. Windowing
+                    # remains driven only by the accepted requirement semantics.
+                    snippets=(),
+                ),
+                matched_types,
+            )
+        )
+
+    specific_source_types = accepted_source_types.difference({"grounded_web"})
+    if specific_source_types:
+        eligible = [
+            *(row for row in eligible if row[1].intersection(specific_source_types)),
+            *(row for row in eligible if not row[1].intersection(specific_source_types)),
+        ]
+    omitted = max(0, len(eligible) - maximum)
+    return [candidate for candidate, _types in eligible[:maximum]], rejected, 0, omitted
+
+
+def _with_primary_response_locators(
+    primary: Mapping[str, Any], candidates: list[_Candidate]
+) -> dict[str, Any]:
+    """Expose accepted response URLs as locator-only source rows.
+
+    The cognitive executor records this separate field only as operation-local
+    repair candidates. The rows never enter grounding ``sources`` and carry no
+    claim, span, content hash, or verification state; a later targeted repair
+    must still refetch and validate publisher bytes.
+    """
+
+    if not candidates and isinstance(primary, dict):
+        return primary
+    result = dict(primary)
+    locator_sources = []
+    for candidate in candidates:
+        locator_sources.append(
+            {
+                "title": candidate.title,
+                "url": candidate.canonical_url,
+            }
+        )
+    result["same_operation_locators"] = locator_sources
+    return result
+
+
 def _reusable_candidate_rows(
     raw: Any, *, allowed_hosts: frozenset[str], maximum: int
 ) -> tuple[list[_Candidate], int, int, int]:
@@ -1540,8 +1640,26 @@ class ResilientResearchRunner:
             }
         else:
             primary = await self._search_primary(query)
+        (
+            primary_locator_candidates,
+            primary_locator_rejected,
+            primary_locator_malformed,
+            primary_locator_omitted,
+        ) = _primary_response_locator_rows(
+            primary,
+            allowed_hosts=(context.allowed_hosts if context else frozenset()),
+            accepted_source_types=(
+                frozenset(context.accepted_source_types)
+                if context
+                else frozenset()
+            ),
+            source_type_classifier=self.source_type_classifier,
+            maximum=_MAX_REUSABLE_SOURCE_CANDIDATES,
+        )
         if primary.get("search_performed") is True and not locator_refetch:
-            return primary
+            return _with_primary_response_locators(
+                primary, primary_locator_candidates
+            )
         raw_primary_diagnostics = primary.get("runtime_diagnostics")
         primary_diagnostics = (
             raw_primary_diagnostics
@@ -1590,7 +1708,11 @@ class ResilientResearchRunner:
             async with asyncio.timeout_at(discovery_deadline):
                 discovery = await self._discover(context.discovery_query)
         except TimeoutError:
-            if not context.reusable_candidates and not context.authority_candidates:
+            if (
+                not context.reusable_candidates
+                and not context.authority_candidates
+                and not primary_locator_candidates
+            ):
                 return finish_fallback(
                     _primary_with_failed_fallback(
                         primary,
@@ -1609,7 +1731,11 @@ class ResilientResearchRunner:
                 "retry_count": 0,
             }
         except Exception:
-            if not context.reusable_candidates and not context.authority_candidates:
+            if (
+                not context.reusable_candidates
+                and not context.authority_candidates
+                and not primary_locator_candidates
+            ):
                 return finish_fallback(
                     _primary_with_failed_fallback(
                         primary,
@@ -1655,6 +1781,7 @@ class ResilientResearchRunner:
             not discovery_healthy
             and not context.reusable_candidates
             and not context.authority_candidates
+            and not primary_locator_candidates
         ):
             return finish_fallback(
                 _primary_with_failed_fallback(
@@ -1682,8 +1809,12 @@ class ResilientResearchRunner:
         else:
             search_candidates = []
             rejected_count = malformed_count = omitted_count = 0
+        rejected_count += primary_locator_rejected
+        malformed_count += primary_locator_malformed
+        omitted_count += primary_locator_omitted
         discovered_candidates = [
             *context.authority_candidates,
+            *primary_locator_candidates,
             *search_candidates,
         ]
         merged_candidates_by_url: dict[str, _Candidate] = {}
