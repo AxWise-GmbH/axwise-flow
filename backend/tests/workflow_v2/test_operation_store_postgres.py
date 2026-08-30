@@ -30,6 +30,16 @@ def role_url(role: str) -> str:
     )
 
 
+def grant_owner_visibility(connection) -> None:
+    """Expose FORCE-RLS rows to Cloud SQL's non-superuser test administrator."""
+
+    connection.exec_driver_sql("GRANT axwise_v2_owner TO CURRENT_USER")
+
+
+def revoke_owner_visibility(connection) -> None:
+    connection.exec_driver_sql("REVOKE axwise_v2_owner FROM CURRENT_USER")
+
+
 @pytest.fixture(scope="session")
 def engines():
     admin = create_engine(DATABASE_URL)
@@ -194,7 +204,8 @@ def test_expired_lease_reclaims_same_operation_and_stale_owner_cannot_finalize(s
     )
 
     with admin.begin() as connection:
-        connection.execute(
+        grant_owner_visibility(connection)
+        expired = connection.execute(
             text(
                 "UPDATE axwise.cognitive_operations "
                 "SET lease_expires_at = clock_timestamp() "
@@ -202,6 +213,8 @@ def test_expired_lease_reclaims_same_operation_and_stale_owner_cannot_finalize(s
             ),
             {"operation_id": operation.operation_id},
         )
+        assert expired.rowcount == 1
+        revoke_owner_visibility(connection)
     second_token = uuid4()
     second = worker.claim_next(second_token, 30)
     assert second.envelope.operation_id == operation.operation_id
@@ -222,14 +235,17 @@ def test_expired_lease_reclaims_same_operation_and_stale_owner_cannot_finalize(s
     adopted = api.adopt_or_create(operation)
     assert adopted.status == "completed"
     assert adopted.result_payload == completion_result()
-    with admin.connect() as connection:
-        assert connection.execute(
+    with admin.begin() as connection:
+        grant_owner_visibility(connection)
+        execution_count = connection.execute(
             text(
                 "SELECT execution_count FROM axwise.cognitive_operations "
                 "WHERE operation_id = :operation_id"
             ),
             {"operation_id": operation.operation_id},
-        ).scalar_one() == 2
+        ).scalar_one()
+        revoke_owner_visibility(connection)
+    assert execution_count == 2
 
 
 def test_schema_treats_exact_lease_boundary_as_expired(stores) -> None:
@@ -322,8 +338,10 @@ def test_terminal_row_and_result_are_immutable(stores) -> None:
             token,
             completion_result(),
         )
-    with admin.begin() as connection, pytest.raises(DBAPIError):
-        connection.execute(
-            text("DELETE FROM axwise.cognitive_operations WHERE operation_id = :id"),
-            {"id": operation.operation_id},
-        )
+    with pytest.raises(DBAPIError):
+        with admin.begin() as connection:
+            grant_owner_visibility(connection)
+            connection.execute(
+                text("DELETE FROM axwise.cognitive_operations WHERE operation_id = :id"),
+                {"id": operation.operation_id},
+            )
