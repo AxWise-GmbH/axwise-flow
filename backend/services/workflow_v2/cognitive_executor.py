@@ -869,7 +869,6 @@ def _validate_atomic_evidence_requirements(
         if (
             requirement.evidence_role == "grounded_claim"
             and requirement.verification_basis == "grounded_claims"
-            and "primary_law" in source_types
             and len(explicit_regulations) > 1
         ):
             raise ValueError(
@@ -886,6 +885,58 @@ def _requirement_has_statutory_force(requirement: EvidenceRequirement) -> bool:
         or claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
         or _STATUTORY_SEMANTICS.search(description) is not None
     )
+
+
+def _with_narrowed_statutory_source_types(
+    requirements: Sequence[EvidenceRequirement],
+) -> list[EvidenceRequirement]:
+    """Keep statutory research on official or primary-law sources.
+
+    A model may describe an unmistakably legal requirement while leaving the broad
+    ``grounded_web`` source class in its draft.  The accepted scope is the durable
+    research authority, so compile and revise deterministically narrow that class before
+    sealing the scope.  Official source records can still carry ``grounded_web`` as an
+    additional classifier; their government/primary-law class is what satisfies the
+    accepted requirement.
+    """
+
+    narrowed_types = utf16_ordinal_sorted(_STATUTORY_SOURCE_TYPES)
+
+    def is_unambiguous_statutory_requirement(
+        requirement: EvidenceRequirement,
+    ) -> bool:
+        claim_type = re.sub(
+            r"[^a-z0-9]+", "_", requirement.claim_type.casefold()
+        ).strip("_")
+        claim_type_tokens = set(claim_type.split("_"))
+        source_types = set(requirement.accepted_source_types)
+        return (
+            claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
+            or bool(
+                claim_type_tokens.intersection(
+                    {
+                        "legal",
+                        "law",
+                        "laws",
+                        "regulation",
+                        "regulations",
+                        "regulatory",
+                        "statutory",
+                    }
+                )
+            )
+            or "primary_law" in source_types
+        )
+
+    return [
+        requirement.model_copy(
+            update={"accepted_source_types": narrowed_types.copy()}
+        )
+        if is_unambiguous_statutory_requirement(requirement)
+        and set(requirement.accepted_source_types) != _STATUTORY_SOURCE_TYPES
+        else requirement
+        for requirement in requirements
+    ]
 
 
 def _explicit_eu_regulation_identities(value: str) -> set[tuple[str, str]]:
@@ -6158,22 +6209,8 @@ _PUBLICATION_EVIDENCE_STATUS_BLOCK = (
     "verification** and the explicit legal, safety, product, or market gaps "
     "below must be resolved before relying on them for execution or launch."
 )
-_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL = (
-    "Proposed validation target — requires authoritative verification"
-)
-_PUBLICATION_HIGH_STAKES_DOMAIN = re.compile(
-    r"\b(?:act|authorization|certification|clinical|disease|directive|haccp|"
-    r"hygiene|law|legal|legislation|microbiolog(?:y|ical)|pathogens?|"
-    r"regulation|regulatory|statute|statutory|therapeutic)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_SAFETY_PRECISION_ASSERTION = re.compile(
-    r"\b(?:health|safety)\s+(?:limit|threshold|tolerance|specification)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_UNSUPPORTED_AUTHORITY_LANGUAGE = re.compile(
-    r"\b(?:must|shall|required|mandatory|statutory|"
-    r"compl(?:y|ies|ied|iance|iant)|approved|authori[sz]ed|permitted|prohibited)\b",
+_EXPLICIT_LAUNCH_DISPOSITION = re.compile(
+    r"\b(?:launch|production(?:\s+deployment)?|market(?:\s+entry)?|go[- ]live)\b",
     re.IGNORECASE,
 )
 _PUBLICATION_LABEL_AUTHORITY_ASSERTION = re.compile(
@@ -6184,54 +6221,6 @@ _PUBLICATION_LABEL_AUTHORITY_ASSERTION = re.compile(
     r"(?:label|labelling|labeling|packaging|declaration)\b",
     re.IGNORECASE,
 )
-_PUBLICATION_VALIDATION_DOMAINS = (
-    (
-        re.compile(r"\b(?:label|labelling|labeling|packaging|declaration)\b", re.I),
-        "Confirm the applicable labelling evidence and constraint before adoption.",
-    ),
-    (
-        re.compile(
-            r"\b(?:haccp|hygiene|manufactur(?:e|er|ing)|microbiolog(?:y|ical)|"
-            r"pathogens?|production)\b",
-            re.I,
-        ),
-        "Confirm the applicable hygiene and safety control before adoption.",
-    ),
-    (
-        re.compile(
-            r"\b(?:composition|formula|formulation|ingredient|nutrient|nutrition)\b",
-            re.I,
-        ),
-        "Confirm the applicable composition evidence and constraint before adoption.",
-    ),
-    (
-        re.compile(r"\b(?:clinical|disease|health|therapeutic)\b", re.I),
-        "Confirm the health claim and its authoritative evidence before adoption.",
-    ),
-    (
-        re.compile(
-            r"\b(?:approval|authori[sz]ation|certification|clearance|licen[cs]e|"
-            r"registration)\b",
-            re.I,
-        ),
-        "Confirm whether authorization or certification evidence applies before adoption.",
-    ),
-    (
-        re.compile(r"\b(?:safe|safety)\b", re.I),
-        "Confirm the product-specific safety evidence before adoption.",
-    ),
-    (
-        re.compile(
-            r"\b(?:act|directive|law|legal|legislation|regulation|regulatory|"
-            r"statute|statutory)\b",
-            re.I,
-        ),
-        "Confirm which legal constraint applies before adoption.",
-    ),
-)
-_PUBLICATION_VALIDATION_ACTIONS = tuple(
-    action for _pattern, action in _PUBLICATION_VALIDATION_DOMAINS
-) + ("Confirm the applicable high-stakes constraint before adoption.",)
 
 
 def _immutable_claim_covers_publication_assertion(
@@ -6315,7 +6304,15 @@ def _without_mismatched_publication_evidence_markers(
             lambda match: match.group(0) if match.group(1) in retained else "",
             fragment,
         )
-        return re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
+        cleaned = re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
+        if sensitive and not retained:
+            list_prefix, role_prefix, _role, body = _task_fragment_parts(cleaned)
+            if body.strip() and not body.lstrip().startswith("**Pending verification:**"):
+                return (
+                    f"{list_prefix}{role_prefix}**Pending verification:** "
+                    f"{body.strip()}"
+                )
+        return cleaned
 
     lines: list[str] = []
     for line in draft.markdown.splitlines():
@@ -6349,47 +6346,131 @@ def _without_mismatched_publication_evidence_markers(
     )
 
 
-def _reader_facing_publication_target(body: str, *, heading: bool = False) -> str:
-    """Render one internal repair target without publishing unsupported authority."""
+def _with_reader_facing_unverified_labels(draft: SynthesisDraft) -> SynthesisDraft:
+    """Shorten exact internal wrappers while preserving their complete local text."""
 
-    cleaned = re.sub(r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", body)).strip()
-    high_stakes = (
-        not _is_pure_evidence_status_or_withholding(cleaned)
-        and not _is_safe_nonauthority_planning_directive(cleaned)
-        and bool(
-            _EVIDENCE_SENSITIVE_ASSERTION.search(cleaned)
-            or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(cleaned)
-            or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned)
-            or _AUTHORITY_PROCESS_EXECUTION.search(cleaned)
-            or _PUBLICATION_LABEL_AUTHORITY_ASSERTION.search(cleaned)
-            or (
-                _PUBLICATION_SAFETY_PRECISION_ASSERTION.search(cleaned)
-                and _precision_values(cleaned)
-            )
-            or (
-                _PUBLICATION_HIGH_STAKES_DOMAIN.search(cleaned)
-                and (
-                    _precision_values(cleaned)
-                    or _PUBLICATION_UNSUPPORTED_AUTHORITY_LANGUAGE.search(cleaned)
-                    or _PLANNING_TARGET_OBLIGATION_ASSERTION.search(cleaned)
-                    or _UNRESOLVED_REQUIREMENT_ACTION.search(cleaned)
+    lines = draft.markdown.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    for line_index, line in enumerate(lines):
+        if line_index in fenced_indexes:
+            continue
+        labelled = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub(
+            "**Pending verification:** ", line
+        )
+        lines[line_index] = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
+            "**Pending verification:** ", labelled
+        )
+    markdown = "\n".join(lines)
+    return (
+        draft
+        if markdown == draft.markdown
+        else draft.model_copy(update={"markdown": markdown})
+    )
+
+
+def _with_local_pending_labels_for_unsupported_high_stakes(
+    context: SynthesisContext,
+    draft: SynthesisDraft,
+) -> SynthesisDraft:
+    """Label an uncited high-stakes proposition without deleting its content.
+
+    This is the sole non-rejecting publication boundary: it does not score prose,
+    retry the model, synthesize replacement claims, or collapse repeated content. It
+    only makes an uncited legal, safety, health, certification, or authority assertion
+    visibly provisional while preserving its complete Markdown cell or line.
+    """
+
+    def is_unqualified_high_stakes_assertion(value: str) -> bool:
+        cleaned = re.sub(r"[*_`]", "", value).strip()
+        return bool(
+            cleaned
+            and "pending verification" not in cleaned.casefold()
+            and _EXPLICIT_NONFACTUAL_QUALIFIER.search(cleaned) is None
+            and not _is_pure_evidence_status_or_withholding(cleaned)
+            and not _is_safe_nonauthority_planning_directive(cleaned)
+            and (
+                has_positive_launch_readiness_claim(cleaned)
+                or (
+                    _EVIDENCE_SENSITIVE_ASSERTION.search(cleaned) is not None
+                    and _ASSERTIVE_HEADING_PREDICATE.search(cleaned) is not None
                 )
             )
         )
+
+    authorization_claim_allowed = (
+        context.evidence_readiness == "ready"
+        and context.artifact_type == "launch_authorization"
     )
-    if high_stakes:
-        label = _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL
-        rendered_label = label if heading else f"**{label}:**"
-        action = next(
-            (
-                candidate
-                for pattern, candidate in _PUBLICATION_VALIDATION_DOMAINS
-                if pattern.search(cleaned)
-            ),
-            "Confirm the applicable high-stakes constraint before adoption.",
-        )
-        return f"{rendered_label} {action}"
-    return cleaned if heading else f"**Pending verification:** {cleaned}"
+    title = draft.title
+    if not authorization_claim_allowed and is_unqualified_high_stakes_assertion(title):
+        title = f"Pending verification — {title}"
+
+    lines = draft.markdown.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    for line_index, line in enumerate(lines):
+        if line_index in fenced_indexes:
+            continue
+        if heading := re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line):
+            body = heading.group("body")
+            if (
+                not authorization_claim_allowed
+                and is_unqualified_high_stakes_assertion(body)
+            ):
+                lines[line_index] = (
+                    f"{heading.group('prefix')}Pending verification — {body}"
+                )
+            continue
+        units = line.split("|") if "|" in line else [line]
+        for unit_index, unit in enumerate(units):
+            pieces = re.split(r"(<br\s*/?>)", unit, flags=re.IGNORECASE)
+            for piece_index in range(0, len(pieces), 2):
+                piece = pieces[piece_index]
+                rebuilt: list[str] = []
+                cursor = 0
+                for fragment in _evidence_clause_fragments(piece):
+                    fragment_start = piece.find(fragment, cursor)
+                    if fragment_start < 0:
+                        continue
+                    fragment_end = fragment_start + len(fragment)
+                    rebuilt.append(piece[cursor:fragment_start])
+                    markerless = _RAW_EVIDENCE_MARKER.sub("", fragment)
+                    list_prefix, role_prefix, _role, body = _task_fragment_parts(
+                        markerless
+                    )
+                    cleaned = re.sub(r"[*_`]", "", body).strip()
+                    if (
+                        not cleaned
+                        or _RAW_EVIDENCE_MARKER.search(fragment) is not None
+                        or "**Pending verification:**" in fragment
+                        or _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.search(fragment)
+                        is not None
+                        or _PUBLICATION_UNKNOWN_PENDING_PREFIX.search(fragment)
+                        is not None
+                        or _EXPLICIT_NONFACTUAL_QUALIFIER.search(cleaned) is not None
+                        or _is_pure_evidence_status_or_withholding(cleaned)
+                        or _is_safe_nonauthority_planning_directive(cleaned)
+                        or _EVIDENCE_SENSITIVE_ASSERTION.search(cleaned) is None
+                    ):
+                        rebuilt.append(fragment)
+                        cursor = fragment_end
+                        continue
+                    leading = body[: len(body) - len(body.lstrip())]
+                    labelled = (
+                        f"{list_prefix}{role_prefix}{leading}"
+                        f"**Pending verification:** {body.lstrip()}"
+                    )
+                    rebuilt.append(labelled)
+                    cursor = fragment_end
+                rebuilt.append(piece[cursor:])
+                pieces[piece_index] = "".join(rebuilt)
+            units[unit_index] = "".join(pieces)
+        lines[line_index] = "|".join(units)
+    markdown = "\n".join(lines)
+    return (
+        draft
+        if markdown == draft.markdown and title == draft.title
+        else draft.model_copy(update={"title": title, "markdown": markdown})
+    )
 
 
 def _normalize_publication_draft(
@@ -6406,6 +6487,8 @@ def _normalize_publication_draft(
     prepared = SynthesisDraft.model_validate(
         _without_model_owned_task_appendix(prepared)
     )
+    if context.purpose != "blocked_report":
+        prepared = _without_mismatched_publication_evidence_markers(context, prepared)
     prepared = SynthesisDraft.model_validate(
         _without_unbound_task_evidence_markers(context, prepared)
     )
@@ -6419,123 +6502,11 @@ def _normalize_publication_draft(
         }
     )
     if context.purpose != "blocked_report":
-        prepared = _without_mismatched_publication_evidence_markers(context, prepared)
-        prepared = _project_remaining_evidence_defects(
-            context,
-            prepared,
-            defect_selector=_is_hard_task_evidence_defect,
+        prepared = _with_local_pending_labels_for_unsupported_high_stakes(
+            context, prepared
         )
-
-    lines: list[str] = []
-    seen_authoritative_targets: set[str] = set()
-    fenced_indexes = _fenced_markdown_line_indexes(prepared.markdown)
-
-    def replace_internal_wrappers(
-        value: str, pattern: re.Pattern[str], *, heading: bool
-    ) -> str:
-        for _pass in range(max(1, len(value.split(". ")) + 1)):
-            match = pattern.search(value)
-            if match is None:
-                break
-            tail = value[match.end() :]
-            body = next(
-                (
-                    fragment
-                    for fragment in _evidence_clause_fragments(tail)
-                    if fragment.strip()
-                ),
-                tail,
-            )
-            body_start = tail.find(body)
-            if body_start < 0:
-                break
-            body_end = body_start + len(body)
-            value = (
-                value[: match.start()]
-                + tail[:body_start]
-                + _reader_facing_publication_target(body, heading=heading)
-                + tail[body_end:]
-            )
-        return value
-
-    for line_index, line in enumerate(prepared.markdown.splitlines()):
-        if line_index in fenced_indexes:
-            lines.append(line)
-            continue
-        heading_line = line.lstrip().startswith("#")
-        units = line.split("|") if "|" in line else [line]
-        for unit_index, unit in enumerate(units):
-            pieces = re.split(r"(<br\s*/?>)", unit, flags=re.IGNORECASE)
-            for piece_index in range(0, len(pieces), 2):
-                piece = replace_internal_wrappers(
-                    pieces[piece_index],
-                    _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX,
-                    heading=heading_line,
-                )
-                piece = replace_internal_wrappers(
-                    piece,
-                    _PUBLICATION_UNKNOWN_PENDING_PREFIX,
-                    heading=heading_line,
-                )
-                if not heading_line:
-                    for fragment in _evidence_clause_fragments(piece):
-                        if (
-                            _RAW_EVIDENCE_MARKER.search(fragment) is not None
-                            or _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL in fragment
-                        ):
-                            continue
-                        list_prefix, role_prefix, _role, body = _task_fragment_parts(
-                            fragment
-                        )
-                        rendered = _reader_facing_publication_target(body)
-                        if _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in rendered:
-                            continue
-                        piece = piece.replace(
-                            fragment,
-                            f"{list_prefix}{role_prefix}{rendered}",
-                            1,
-                        )
-                pieces[piece_index] = piece
-            units[unit_index] = "".join(pieces)
-        cleaned = "|".join(units)
-        standalone_body = re.sub(
-            r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?", "", cleaned
-        ).strip()
-        drop_line = False
-        for action in _PUBLICATION_VALIDATION_ACTIONS:
-            target = (
-                f"**{_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL}:** {action}"
-            )
-            occurrences = cleaned.count(target)
-            if occurrences == 0:
-                continue
-            already_seen = action in seen_authoritative_targets
-            if (
-                already_seen
-                and occurrences == 1
-                and "|" not in cleaned
-                and standalone_body == target
-            ):
-                drop_line = True
-                break
-            reference = (
-                "**Pending verification:** See the corresponding validation "
-                "requirement stated earlier."
-            )
-            if already_seen:
-                cleaned = cleaned.replace(target, reference)
-            elif occurrences > 1:
-                first = cleaned.find(target)
-                suffix_start = first + len(target)
-                cleaned = (
-                    cleaned[:suffix_start]
-                    + cleaned[suffix_start:].replace(target, reference)
-                )
-            seen_authoritative_targets.add(action)
-        if drop_line:
-            continue
-        lines.append(cleaned)
-    markdown = "\n".join(lines)
+    prepared = _with_reader_facing_unverified_labels(prepared)
+    markdown = prepared.markdown
 
     def replace_overbroad_grounding_claim(match: re.Match[str]) -> str:
         subject = match.group("subject").capitalize()
@@ -6556,9 +6527,17 @@ def _normalize_publication_draft(
         context.evidence_readiness == "ready"
         and context.artifact_type == "launch_authorization"
     ):
-        if has_positive_launch_readiness_claim(markdown):
+        if any(
+            _EXPLICIT_LAUNCH_DISPOSITION.search(line)
+            and has_positive_launch_readiness_claim(line)
+            and "pending verification" not in line.casefold()
+            for line in markdown.splitlines()
+        ):
             markdown = _markdown_without_matching_lines(
-                markdown, has_positive_launch_readiness_claim
+                markdown,
+                lambda line: bool(_EXPLICIT_LAUNCH_DISPOSITION.search(line))
+                and has_positive_launch_readiness_claim(line)
+                and "pending verification" not in line.casefold(),
             ).strip()
 
     prepared = prepared.model_copy(update={"markdown": markdown})
@@ -8381,6 +8360,14 @@ class GeminiCognitiveExecutor:
         drafted = await self.scope_drafter.draft(input_value, objective_context)
         draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
         _validate_draft(input_value.request, draft)
+        draft = draft.model_copy(
+            update={
+                "evidence_requirements": _with_narrowed_statutory_source_types(
+                    draft.evidence_requirements
+                )
+            }
+        )
+        _validate_draft(input_value.request, draft)
         objective_spans = [
             _source_span(input_value.request, span)
             for span in draft.objective_source_spans
@@ -8511,6 +8498,14 @@ class GeminiCognitiveExecutor:
         )
         revised = await self.scope_reviser.revise(input_value, accepted_scope)
         draft, input_tokens, output_tokens = _unwrap_model_output(revised)
+        _validate_revision_draft(input_value.correction, draft, accepted_scope)
+        draft = draft.model_copy(
+            update={
+                "evidence_requirements": _with_narrowed_statutory_source_types(
+                    draft.evidence_requirements
+                )
+            }
+        )
         _validate_revision_draft(input_value.correction, draft, accepted_scope)
         objective = (
             draft.objective if draft.objective_changed else accepted_scope.objective
