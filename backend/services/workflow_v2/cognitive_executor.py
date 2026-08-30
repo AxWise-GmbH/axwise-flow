@@ -3213,13 +3213,17 @@ def _prepare_task_unresolved_actions(
     draft: TaskDraft | SynthesisDraft,
     *,
     include_generic: bool = False,
+    allow_composite_authority_targets: bool = False,
 ) -> TaskDraft | SynthesisDraft:
     """Withhold unsupported task claims without discarding the useful artifact.
 
     Non-authorizing, evidence-gapped work may retain an uncited unresolved-authority
     proposition only as an explicit verification action. Generic precision and citation
-    defects remain unchanged for evaluation and final repair. A causal or coordinator
-    tail that could assert an independent fact is left for the bounded model retry.
+    defects remain unchanged for evaluation and final repair. Final-artifact repair leaves
+    a causal or coordinator tail for the bounded model retry. Task drafting may instead
+    wrap the entire composite authority proposition in one server-owned validation target;
+    every following clause is then explicitly unverified and remains available to later
+    evaluation and synthesis.
     Strict validation and promotion checks remain authoritative when exact targeting
     cannot be proven safe.
     """
@@ -3350,7 +3354,10 @@ def _prepare_task_unresolved_actions(
                     if adjacent_marker is not None:
                         target_end += adjacent_marker.end()
                     _target_excerpt, unresolved_authority, _cited_defect = target
-                    if _ACTION_ASSERTED_TAIL.search(markerless):
+                    if (
+                        _ACTION_ASSERTED_TAIL.search(markerless)
+                        and not allow_composite_authority_targets
+                    ):
                         # A wrapper must not retain an independently asserted causal or
                         # coordinator tail. Strict validation requests a coherent retry.
                         continue
@@ -4746,6 +4753,29 @@ def _contains_server_deliverable_placeholder(markdown: str) -> bool:
     return False
 
 
+def _contains_server_unverified_validation_target(markdown: str) -> bool:
+    """Keep server-projected unverified authority content out of direct promotion."""
+
+    unfenced = _markdown_with_fenced_bodies_blanked(markdown)
+    server_marker = (
+        "validation target (all following content is unverified until pre-adoption "
+        "review):"
+    )
+    for line in unfenced.splitlines():
+        units = line.split("|") if "|" in line else [line]
+        for unit in units:
+            candidate = unit.strip()
+            heading = _MARKDOWN_HEADING.fullmatch(candidate)
+            if heading is not None:
+                candidate = heading.group(1).strip()
+            normalized = (
+                re.sub(r"\s+", " ", re.sub(r"[*_`]", "", candidate)).strip().casefold()
+            )
+            if server_marker in normalized:
+                return True
+    return False
+
+
 def _deterministic_quality_defects(
     markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
 ) -> tuple[list[str], list[str]]:
@@ -5142,7 +5172,11 @@ class PydanticAISynthesisWriter:
         ) -> TaskDraft:
             output = _with_immutable_gap_labels(ctx.deps, output)
             output = _without_forbidden_task_launch_claim_lines(ctx.deps, output)
-            output = _prepare_task_unresolved_actions(ctx.deps, output)
+            output = _prepare_task_unresolved_actions(
+                ctx.deps,
+                output,
+                allow_composite_authority_targets=bool(ctx.deps.required_sections),
+            )
             output = _with_accepted_requirement_traceability(ctx.deps, output)
             try:
                 _validate_task_draft(ctx.deps, output)
@@ -5582,7 +5616,11 @@ class PydanticAISynthesisWriter:
         )
         output = _with_immutable_gap_labels(context, result.output)
         output = _without_forbidden_task_launch_claim_lines(context, output)
-        output = _prepare_task_unresolved_actions(context, output)
+        output = _prepare_task_unresolved_actions(
+            context,
+            output,
+            allow_composite_authority_targets=bool(context.required_sections),
+        )
         output = _with_accepted_requirement_traceability(context, output)
         _validate_task_draft(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
@@ -7805,7 +7843,11 @@ class GeminiCognitiveExecutor:
             draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
             draft = _with_immutable_gap_labels(context, draft)
             draft = _without_forbidden_task_launch_claim_lines(context, draft)
-            draft = _prepare_task_unresolved_actions(context, draft)
+            draft = _prepare_task_unresolved_actions(
+                context,
+                draft,
+                allow_composite_authority_targets=input_value.task.produces_full_contract,
+            )
             draft = _with_accepted_requirement_traceability(context, draft)
             _validate_task_draft(context, draft)
             task_markdown = draft.markdown.rstrip()
@@ -7849,6 +7891,7 @@ class GeminiCognitiveExecutor:
                 and not local_evidence_integrity
                 and not local_substantive
                 and not local_practicality
+                and not _contains_server_unverified_validation_target(draft.markdown)
             ):
                 markdown = _markdown_with_source_appendix(
                     task_markdown,
