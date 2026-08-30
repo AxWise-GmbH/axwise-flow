@@ -44,6 +44,41 @@ def test_malformed_discovery_response_is_not_reported_as_healthy_empty(
     }
 
 
+def test_adapter_preserves_bounded_rows_for_downstream_authority_filtering() -> None:
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "results": [
+            {
+                "title": f"Generic result {index}",
+                "url": f"https://generic-{index}.example.org/source",
+                "content": f"Generic discovery snippet {index}.",
+            }
+            for index in range(35)
+        ]
+    }
+    response.status_code = 200
+    response.content = b"bounded discovery response"
+
+    with patch(
+        "backend.services.generative.searxng_search_service.httpx.get",
+        return_value=response,
+    ):
+        result = SearxngSearchService(
+            "https://search.example.run.app"
+        ).search_web_general("bounded accepted-scope query")
+
+    assert result["runtime_diagnostics"]["status"] == "ok"
+    assert result["runtime_diagnostics"]["result_count"] == 30
+    assert len(result["sources"]) == 30
+    assert result["sources"][10]["url"] == (
+        "https://generic-10.example.org/source"
+    )
+    assert result["sources"][-1]["url"] == (
+        "https://generic-29.example.org/source"
+    )
+
+
 @pytest.mark.asyncio
 async def test_async_adapter_requests_the_bounded_json_search_endpoint() -> None:
     requests: list[httpx.Request] = []
