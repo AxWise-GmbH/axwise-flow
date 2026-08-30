@@ -743,6 +743,7 @@ def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
         "product_prd",
         [
             "Acceptance Criteria",
+            "Acceptance Criteria (Given/When/Then)",
             "Concrete Next Steps",
             "Explicit Open Gaps & Pre-Launch Roadmap",
             "Given/When/Then Acceptance Criteria",
@@ -766,6 +767,7 @@ def test_prd_required_sections_canonicalize_only_known_aliases() -> None:
     assert "Market Risks & Mitigations" in canonical
     for alias in (
         "Acceptance Criteria",
+        "Acceptance Criteria (Given/When/Then)",
         "Concrete Next Steps",
         "Explicit Open Gaps & Pre-Launch Roadmap",
         "Given/When/Then Acceptance Criteria",
@@ -6671,6 +6673,105 @@ async def test_final_writer_fallback_replaces_incomplete_model_criteria_with_typ
 
 
 @pytest.mark.asyncio
+async def test_final_writer_fallback_consolidates_duplicate_acceptance_sections(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiled, research, input_value, contents = await _final_writer_fixture()
+    core_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact.kind == "final_markdown"
+        and item.payload["candidateAttestation"]["task"]["taskKind"] == "core_draft"
+    )
+    core = contents[core_index]
+    contents[core_index] = core.model_copy(
+        update={
+            "markdown": (
+                core.markdown
+                + "\n\n## Acceptance Criteria (Given/When/Then)\n\n"
+                "### Duplicated model-authored scenario\n\n"
+                "- **Given** a second acceptance section\n"
+                "- **When** the same PRD is reviewed\n"
+                "- **Then** redundant criteria are presented"
+            )
+        }
+    )
+    duplicate_defect = "The candidate repeats level-two sections: acceptance criteria."
+    assert duplicate_defect in _deterministic_quality_defects(
+        contents[core_index].markdown,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )[0]
+    evaluation_index = next(
+        index
+        for index, item in enumerate(contents)
+        if item.artifact == input_value.evaluation
+    )
+    evaluation_content = contents[evaluation_index]
+    contents[evaluation_index] = evaluation_content.model_copy(
+        update={
+            "payload": {
+                **evaluation_content.payload,
+                "substantiveContentDefects": [duplicate_defect],
+                "outputContractSatisfied": False,
+                "promotedArtifact": None,
+                "repairRequired": True,
+                "repairInstructions": [
+                    "Consolidate the duplicate acceptance-criteria sections."
+                ],
+            }
+        }
+    )
+    writer = object.__new__(PydanticAISynthesisWriter)
+    writer.final_agent = object()
+
+    async def exhausted(_agent, _prompt, _context, *, phase):
+        assert phase == "FINAL"
+        raise CognitiveExecutionFailure(
+            "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_QUALITY_GATE_FAILED",
+            retryable=True,
+        )
+
+    monkeypatch.setattr(
+        PydanticAISynthesisWriter,
+        "_run_validated_agent",
+        staticmethod(exhausted),
+    )
+
+    result = await writer.write(
+        input_value,
+        compiled.artifact.payload,
+        research.artifact.payload,
+        contents,
+    )
+
+    acceptance_headings = [
+        match
+        for match in cognitive_executor_module._MARKDOWN_HEADING.finditer(
+            result.value.markdown
+        )
+        if cognitive_executor_module._markdown_heading_level(match) == 2
+        and "acceptance criteria"
+        in cognitive_executor_module._markdown_heading_identities(
+            match.group(1), artifact_type="product_prd"
+        )
+    ]
+    assert len(acceptance_headings) == 1
+    assert "Duplicated model-authored scenario" not in result.value.markdown
+    for criterion in input_value.output_contract.acceptance_criteria:
+        assert f"### `{criterion.id}`" in result.value.markdown
+    assert not any(
+        "repeats level-two sections" in item
+        for item in _deterministic_quality_defects(
+            result.value.markdown,
+            practical_output_required=True,
+            artifact_type="product_prd",
+        )[0]
+    )
+    assert (result.input_tokens, result.output_tokens) == (0, 0)
+
+
+@pytest.mark.asyncio
 async def test_final_writer_repairs_stale_deterministic_evaluator_quality_defect(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -10682,6 +10783,66 @@ def test_strict_fallback_renders_exact_typed_acceptance_contract() -> None:
         )
         == []
     )
+    assert _with_canonical_acceptance_criteria(context, rendered) == rendered
+
+
+def test_strict_fallback_consolidates_duplicate_acceptance_sections() -> None:
+    semantic = {
+        "given": "the accepted product scope is approved",
+        "when": "the planning PRD is reviewed",
+        "then": "the exact accepted requirement is traceable to a decision",
+        "supports": ["req-1a890d58097d14f0"],
+    }
+    criterion = DeliverableAcceptanceCriterionV1(
+        id=f"acc-{canonical_hash(semantic)[:16]}", **semantic
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        accepted_acceptance_criteria=[criterion],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Planning PRD",
+        markdown=(
+            "# Planning PRD\n\n"
+            "## Acceptance Criteria (Given/When/Then)\n\n"
+            "### Model-authored scenario\n\n"
+            "- **When** the draft is reviewed\n"
+            "- **Then** a result is recorded\n\n"
+            "## Metrics and validation\n\n"
+            "- Measure completion and record the review outcome.\n\n"
+            "## Acceptance criteria\n\n"
+            "### Additional scope checks\n\n"
+            "- **Given** a second model-authored block\n"
+            "- **When** it is reviewed\n"
+            "- **Then** it duplicates the required section\n\n"
+            "## Next steps\n\n"
+            "- Assign an owner and schedule the accepted review."
+        ),
+    )
+
+    rendered = _with_canonical_acceptance_criteria(context, draft)
+    rendered_substantive, rendered_practicality = _deterministic_quality_defects(
+        rendered.markdown,
+        practical_output_required=True,
+        artifact_type="product_prd",
+    )
+
+    assert rendered.markdown.count("## Acceptance Criteria") == 1
+    assert "## Acceptance criteria" not in rendered.markdown
+    assert f"### `{criterion.id}`" in rendered.markdown
+    assert "Model-authored scenario" not in rendered.markdown
+    assert "Additional scope checks" not in rendered.markdown
+    assert "## Metrics and validation" in rendered.markdown
+    assert "## Next steps" in rendered.markdown
+    assert not any(
+        "repeats level-two sections" in item for item in rendered_substantive
+    )
+    assert not any("acceptance" in item.casefold() for item in rendered_practicality)
     assert _with_canonical_acceptance_criteria(context, rendered) == rendered
 
 

@@ -553,6 +553,7 @@ def _normalized_semantic_text(value: str) -> str:
 
 _PRD_REQUIRED_SECTION_ALIASES = {
     "acceptance criteria": "Acceptance criteria",
+    "acceptance criteria (given/when/then)": "Acceptance criteria",
     "concrete next steps": "Next steps",
     "explicit open gaps & pre-launch roadmap": "Evidence, assumptions, and gaps",
     "explicit open gaps and pre-launch roadmap": "Evidence, assumptions, and gaps",
@@ -4833,9 +4834,55 @@ def _with_canonical_acceptance_criteria(
             match.group(1), artifact_type=context.artifact_type
         )
     ]
-    if len(acceptance_matches) != 1:
+    if not acceptance_matches:
         return draft
-    heading_index, heading = acceptance_matches[0]
+
+    # A model may split the same required PRD section into two level-two
+    # sections (for example, authored scenarios followed by additional scope
+    # checks). The strict fallback renders the exact accepted typed contract, so
+    # retaining both model-authored bodies would be both redundant and capable
+    # of preserving contradictory acceptance semantics. Consolidate only
+    # semantically identified peer sections; nested headings and every other
+    # section remain untouched.
+    acceptance_level = (
+        2
+        if any(_markdown_heading_level(match) == 2 for _, match in acceptance_matches)
+        else min(_markdown_heading_level(match) for _, match in acceptance_matches)
+    )
+    peer_matches = [
+        (index, match)
+        for index, match in acceptance_matches
+        if _markdown_heading_level(match) == acceptance_level
+    ]
+    if len(peer_matches) > 1:
+        section_ranges: list[tuple[int, int]] = []
+        for heading_index, heading in peer_matches:
+            section_end = len(draft.markdown)
+            for later in heading_matches[heading_index + 1 :]:
+                if _markdown_heading_level(later) <= acceptance_level:
+                    section_end = later.start()
+                    break
+            section_ranges.append((heading.start(), section_end))
+        consolidated = draft.markdown
+        for section_start, section_end in reversed(section_ranges[1:]):
+            prefix = consolidated[:section_start].rstrip()
+            suffix = consolidated[section_end:].lstrip("\n")
+            consolidated = prefix + (("\n\n" + suffix) if suffix else "")
+        draft = draft.model_copy(update={"markdown": consolidated})
+        heading_matches = list(_MARKDOWN_HEADING.finditer(draft.markdown))
+        peer_matches = [
+            (index, match)
+            for index, match in enumerate(heading_matches)
+            if _markdown_heading_level(match) == acceptance_level
+            and "acceptance criteria"
+            in _markdown_heading_identities(
+                match.group(1), artifact_type=context.artifact_type
+            )
+        ]
+    if len(peer_matches) != 1:
+        return draft
+
+    heading_index, heading = peer_matches[0]
     heading_level = _markdown_heading_level(heading)
     section_end = len(draft.markdown)
     for later in heading_matches[heading_index + 1 :]:
