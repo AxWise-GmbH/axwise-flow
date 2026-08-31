@@ -115,6 +115,103 @@ async def test_fetch_checks_and_canonicalizes_each_redirect() -> None:
 
 
 @pytest.mark.asyncio
+async def test_fetch_uses_official_cellar_transport_for_exact_celex_locator() -> None:
+    seen: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        assert request.headers["accept"] == "application/xhtml+xml,text/html;q=0.9"
+        assert request.headers["accept-language"] == "eng"
+        assert request.headers["accept-max-cs-size"] == "1000000"
+        assert request.headers["user-agent"] == "AxWiseWorkflowV2Research/1.0"
+        if request.url.path == "/resource/celex/32011R0142":
+            return httpx.Response(
+                302,
+                headers={
+                    "location": (
+                        "http://publications.europa.eu/resource/cellar/"
+                        "official-expression/DOC_1"
+                    )
+                },
+                request=request,
+            )
+        return httpx.Response(
+            200,
+            headers={"content-type": "application/xhtml+xml;charset=UTF-8"},
+            text="<html><body><p>Exact official legal passage.</p></body></html>",
+            request=request,
+        )
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), follow_redirects=False
+    ) as client:
+        result = await subject.fetch_direct_source(
+            "https://EUR-LEX.EUROPA.EU/legal-content/EN/TXT/"
+            "?uri=CELEX%3A32011r0142#annex",
+            client=client,
+        )
+
+    assert seen == [
+        "https://publications.europa.eu/resource/celex/32011R0142",
+        "https://publications.europa.eu/resource/cellar/official-expression/DOC_1",
+    ]
+    assert result["final_url"] == (
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+        "?uri=CELEX%3A32011r0142"
+    )
+    assert result["text"] == "Exact official legal passage."
+
+
+@pytest.mark.asyncio
+async def test_fetch_does_not_infer_non_celex_or_upgrade_other_http_redirects() -> None:
+    seen: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(
+            302,
+            headers={"location": "http://publisher.example/rule"},
+            request=request,
+        )
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), follow_redirects=False
+    ) as client:
+        with pytest.raises(ValueError, match="unsafe direct source redirect"):
+            await subject.fetch_direct_source(
+                "https://eur-lex.europa.eu/eli/reg/2011/142/oj/eng",
+                client=client,
+            )
+
+    assert seen == ["https://eur-lex.europa.eu/eli/reg/2011/142/oj/eng"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_rejects_cross_host_redirect_from_celex_transport() -> None:
+    seen: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(
+            302,
+            headers={"location": "https://attacker.example/substituted-law"},
+            request=request,
+        )
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), follow_redirects=False
+    ) as client:
+        with pytest.raises(ValueError, match="unsafe direct source redirect"):
+            await subject.fetch_direct_source(
+                "https://eur-lex.europa.eu/legal-content/EN/TXT/"
+                "?uri=CELEX:32011R0142",
+                client=client,
+            )
+
+    assert seen == ["https://publications.europa.eu/resource/celex/32011R0142"]
+
+
+@pytest.mark.asyncio
 async def test_fetch_rejects_oversize_nontext_and_challenge_responses() -> None:
     responses = iter(
         [
