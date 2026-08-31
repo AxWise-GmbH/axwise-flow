@@ -37,6 +37,15 @@ COMPILE_SCOPE_ENVELOPE = (
 SYNTHESIZE_ARTIFACT_GOLDEN = (
     Path(__file__).with_name("fixtures") / "synthesize_artifact_v1_golden.json"
 )
+ASSISTANT_MIGRATION = (
+    Path(__file__).parents[2] / "database" / "workflow_v2" / "002_assistant_turn.sql"
+)
+
+
+def test_assistant_migration_does_not_use_reserved_constraint_alias() -> None:
+    migration = ASSISTANT_MIGRATION.read_text(encoding="utf-8")
+    assert "FROM pg_constraint AS candidate" in migration
+    assert "AS constraint" not in migration
 
 
 def test_canonical_v1_shared_golden_vectors_and_utf16_span() -> None:
@@ -84,6 +93,39 @@ def test_compile_scope_envelope_matches_shared_javascript_fixture() -> None:
         "policies": [],
     }
     assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+
+
+def test_assistant_turn_envelope_is_typed_and_canonically_bound() -> None:
+    input_payload = {
+        "type": "AssistantTurnV1",
+        "responseMode": "one_shot",
+        "message": "Compare two bounded options.",
+        "conversation": [
+            {"role": "user", "content": "I care most about reliability."}
+        ],
+    }
+    envelope = AxWiseOperationEnvelope.model_validate(
+        {
+            "operationId": "00000000-0000-4000-8000-000000000921",
+            "operationType": "AssistantTurnV1",
+            "owner": {
+                "tenantId": "00000000-0000-4000-8000-000000000922",
+                "organizationId": None,
+                "userId": "user_assistantcontract123",
+            },
+            "workflow": {
+                "runId": "00000000-0000-4000-8000-000000000923",
+                "stageId": "00000000-0000-4000-8000-000000000924",
+                "stageAttemptId": "00000000-0000-4000-8000-000000000925",
+            },
+            "contractVersion": "axwise.operation.v2",
+            "canonicalInputHash": canonical_hash(input_payload),
+            "input": input_payload,
+        }
+    )
+
+    assert envelope.operation_type == "AssistantTurnV1"
+    assert envelope.model_dump(mode="json", by_alias=True)["input"] == input_payload
 
 
 def test_synthesize_artifact_inputs_and_results_match_shared_javascript_golden() -> None:

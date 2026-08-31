@@ -6,12 +6,15 @@ PROJECT_ID="axwise-v2-preview-001"
 SQL_INSTANCE="orqaly-v2-preview-001-pg"
 DATABASE_NAME="axwise_v2_preview_001"
 MIGRATION_PATH="backend/database/workflow_v2/001_cognitive_operations.sql"
+ASSISTANT_MIGRATION_PATH="backend/database/workflow_v2/002_assistant_turn.sql"
 BINDINGS_PATH="deploy/workflow-v2/preview-role-bindings.sql"
 EXPECTED_CHECKSUM="ae8881b1e734e2fcd059895611d94b2127772131083c55299cf9c6be7657c7c8"
+EXPECTED_ASSISTANT_CHECKSUM="4329c8188d9c62f745bdaaac9dcd0f9428f72a0217b6144a53900487188aa333"
 EXPECTED_BINDINGS_CHECKSUM="2b885c6089b0b3c45030fc2e88e950cb582ecd617d2af293066041f277f0f48b"
 ADMIN_DB_SECRET_VERSION="${ADMIN_DB_SECRET_VERSION:?numeric Preview 001 admin-password version is required}"
 REPOSITORY_ROOT="$(git -C "$(dirname "$0")/../.." rev-parse --show-toplevel)"
 MIGRATION="${REPOSITORY_ROOT}/${MIGRATION_PATH}"
+ASSISTANT_MIGRATION="${REPOSITORY_ROOT}/${ASSISTANT_MIGRATION_PATH}"
 BINDINGS="${REPOSITORY_ROOT}/${BINDINGS_PATH}"
 
 if test -n "$(git -C "${REPOSITORY_ROOT}" status --porcelain=v1 --untracked-files=all)"; then
@@ -27,6 +30,11 @@ fi
 actual_checksum="$(shasum -a 256 "${MIGRATION}" | awk '{print $1}')"
 if test "${actual_checksum}" != "${EXPECTED_CHECKSUM}"; then
   echo "Refusing Preview migration: AxWise schema checksum changed." >&2
+  exit 1
+fi
+actual_assistant_checksum="$(shasum -a 256 "${ASSISTANT_MIGRATION}" | awk '{print $1}')"
+if test "${actual_assistant_checksum}" != "${EXPECTED_ASSISTANT_CHECKSUM}"; then
+  echo "Refusing Preview migration: AxWise Assistant schema checksum changed." >&2
   exit 1
 fi
 actual_bindings_checksum="$(shasum -a 256 "${BINDINGS}" | awk '{print $1}')"
@@ -72,20 +80,37 @@ database_query() {
     --set=ON_ERROR_STOP=1 --command="$1"
 }
 
-# Baseline 001 is permitted only on a genuinely empty database or as an exact
-# no-op adoption of the already-marked baseline. A marker never excuses extra
-# schemas/tables, and an unmarked partial/legacy schema is never repaired.
+# The clean 001 baseline remains immutable. Additive migration 002 is permitted
+# only on that exact marked baseline or in the same transaction as a fresh 001.
 user_schemas="$(database_query "SELECT string_agg(nspname, ',' ORDER BY nspname) FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname NOT IN ('information_schema', 'cloudsqladmin')")"
 user_relations="$(database_query "SELECT string_agg(name, ',' ORDER BY name) FROM (SELECT DISTINCT n.nspname || '.' || c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace LEFT JOIN pg_depend d ON d.classid = 'pg_class'::regclass AND d.objid = c.oid AND d.deptype = 'e' WHERE c.relkind IN ('r','p','v','m','S','f') AND n.nspname !~ '^pg_' AND n.nspname NOT IN ('information_schema', 'cloudsqladmin') AND NOT (n.nspname = 'public' AND d.objid IS NOT NULL)) inventory")"
 marker_exists="$(database_query "SELECT (to_regclass('workflow_v2_release.applied_baseline') IS NOT NULL)::text")"
 expected_relations="axwise.cognitive_operations,workflow_v2_release.applied_baseline"
-expected_marker="${MIGRATION_PATH}:${EXPECTED_CHECKSUM}:${BINDINGS_PATH}:${EXPECTED_BINDINGS_CHECKSUM}:${source_commit}"
+expected_marker="${MIGRATION_PATH}:${EXPECTED_CHECKSUM}:${BINDINGS_PATH}:${EXPECTED_BINDINGS_CHECKSUM}"
 if test "${marker_exists}" = true; then
-  applied_marker="$(database_query "SELECT migration_path || ':' || sha256 || ':' || bindings_path || ':' || bindings_sha256 || ':' || source_commit FROM workflow_v2_release.applied_baseline WHERE component = 'axwise' AND migration_number = 1")"
+  applied_marker="$(database_query "SELECT migration_path || ':' || sha256 || ':' || bindings_path || ':' || bindings_sha256 FROM workflow_v2_release.applied_baseline WHERE component = 'axwise' AND migration_number = 1")"
+  applied_source_commit="$(database_query "SELECT source_commit FROM workflow_v2_release.applied_baseline WHERE component = 'axwise' AND migration_number = 1")"
+  assistant_allowed="$(database_query "SELECT (pg_get_constraintdef(oid) LIKE '%AssistantTurnV1%')::text FROM pg_constraint WHERE conrelid = 'axwise.cognitive_operations'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%operation_type%'")"
   if test "${user_schemas}" = "axwise,public,workflow_v2_release" \
     && test "${user_relations}" = "${expected_relations}" \
-    && test "${applied_marker}" = "${expected_marker}"; then
-    echo "Exact AxWise Preview baseline is already applied; no database mutation was needed."
+    && test "${applied_marker}" = "${expected_marker}" \
+    && test "${assistant_allowed}" = true; then
+    if test "${applied_source_commit}" != "${source_commit}"; then
+      database_query "UPDATE workflow_v2_release.applied_baseline SET source_commit = '${source_commit}' WHERE component = 'axwise' AND migration_number = 1" >/dev/null
+    fi
+    echo "Exact AxWise Preview baseline is already applied with the Assistant migration; no schema mutation was needed."
+    exit 0
+  fi
+  if test "${user_schemas}" = "axwise,public,workflow_v2_release" \
+    && test "${user_relations}" = "${expected_relations}" \
+    && test "${applied_marker}" = "${expected_marker}" \
+    && test "${assistant_allowed}" = false; then
+    psql --host=127.0.0.1 --port="${proxy_port}" --username=postgres \
+      --dbname="${DATABASE_NAME}" --no-password --set=ON_ERROR_STOP=1 \
+      --single-transaction \
+      --file=<(sed -e '1{/^BEGIN;$/d;}' -e '${/^COMMIT;$/d;}' "${ASSISTANT_MIGRATION}") \
+      --command="UPDATE workflow_v2_release.applied_baseline SET source_commit = '${source_commit}' WHERE component = 'axwise' AND migration_number = 1"
+    echo "Applied exact AxWise Assistant migration ${EXPECTED_ASSISTANT_CHECKSUM}."
     exit 0
   fi
   echo "Refusing Preview migration: marked database is not the exact current baseline." >&2
@@ -106,6 +131,7 @@ psql --host=127.0.0.1 --port="${proxy_port}" \
   --set=source_commit="${source_commit}" \
   --set=database_name="${DATABASE_NAME}" \
   --file=<(sed -e '1{/^BEGIN;$/d;}' -e '${/^COMMIT;$/d;}' "${MIGRATION}") \
+  --file=<(sed -e '1{/^BEGIN;$/d;}' -e '${/^COMMIT;$/d;}' "${ASSISTANT_MIGRATION}") \
   --file="${BINDINGS}"
 
-echo "Applied exact AxWise Preview schema ${EXPECTED_CHECKSUM}."
+echo "Applied exact AxWise Preview schema ${EXPECTED_CHECKSUM}:${EXPECTED_ASSISTANT_CHECKSUM}."
