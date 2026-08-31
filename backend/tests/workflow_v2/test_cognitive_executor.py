@@ -4622,6 +4622,72 @@ def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
     assert _with_immutable_gap_labels(context, merged) == merged
 
 
+def test_immutable_gap_injection_merges_numbered_register_alias_once() -> None:
+    existing = "Product-specific safety clearance remains unresolved."
+    missing = "Estonian operator requirements remain unresolved."
+    context = SynthesisContext(
+        required_sections=[],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=[existing, missing],
+        artifact_type="product_prd",
+    )
+    original = SynthesisDraft(
+        title="PRD",
+        markdown=(
+            "# PRD\n\nUseful planning content.\n\n"
+            "## Evidence, assumptions, and gaps\n\n"
+            "### 14. IMMUTABLE GAPS AND ASSUMPTIONS REGISTER\n\n"
+            f"- {existing}\n\n"
+            "## Next steps\n\n- Obtain and verify the missing records."
+        ),
+    )
+
+    merged = _with_immutable_gap_labels(context, original)
+
+    assert merged.markdown.count("IMMUTABLE GAPS AND ASSUMPTIONS REGISTER") == 1
+    assert "Immutable evidence gaps and assumptions" not in merged.markdown
+    assert merged.markdown.count(existing) == 1
+    assert merged.markdown.count(missing) == 1
+    assert merged.markdown.index(missing) < merged.markdown.index("## Next steps")
+    assert _with_immutable_gap_labels(context, merged) == merged
+    assert (
+        _deterministic_evidence_integrity_defects(
+            merged.markdown,
+            {},
+            artifact_type="product_prd",
+            immutable_gap_labels=context.required_gap_labels,
+        )
+        == []
+    )
+    assert (
+        cognitive_executor_module._is_immutable_gap_heading("Assumptions register")
+        is False
+    )
+
+
+def test_final_repair_recognizes_narrowed_authority_marker_mismatch() -> None:
+    claim = "The responsible operator must file the proposed notice."
+    defect = (
+        "Cited immutable claims do not support this narrowed authority process "
+        f"assertion: {claim}"
+    )
+
+    assert cognitive_executor_module._handled_task_evidence_defect(
+        defect, include_generic=True
+    ) == (claim, False, True)
+
+
+def test_precision_values_distinguish_inline_latex_from_currency() -> None:
+    assert cognitive_executor_module._precision_values(
+        r"Taurine: $\ge 1,000\text{ mg/kg DM}$"
+    ) == {"1000", ">=1000mg/kg"}
+    assert cognitive_executor_module._precision_values(
+        "Budget: $1,000 monthly and $5,000 annual"
+    ) == {"$1000", "$5000"}
+
+
 def test_final_repair_projection_preserves_required_section_and_safety_action() -> None:
     gap = "Product-specific safety clearance remains unresolved."
     context = SynthesisContext(
@@ -5679,10 +5745,108 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     final_case = next(item for item in cases if item["name"] == "final_synthesis")
     input_value = SynthesizeArtifactInputV1.model_validate(final_case["input"])
     contents = list(input_value.artifact_contents)
-    unsafe_locator = (
-        "The batch is legally safe when cadmium stays below 77 mg/kg."
+    scope_payload = next(
+        item.payload for item in contents if item.artifact.kind == "scope"
+    )
+    accepted_definition_id = "req-cccccccccccccccc"
+    accepted_definition = "Mandatory Estonian statutory labeling is required."
+    accepted_policy = (
+        "Use only the accepted Estonia market boundary for this planning artifact."
+    )
+    accepted_assumption = (
+        "NorthPaw is EU-certified for this explicitly bounded planning scenario"
+    )
+    scope_payload = {
+        **scope_payload,
+        "assumptions": [*scope_payload["assumptions"], accepted_assumption],
+        "policies": [*scope_payload["policies"], accepted_policy],
+        "requirements": [
+            *scope_payload["requirements"],
+            {
+                "id": accepted_definition_id,
+                "category": "policy",
+                "priority": "P0",
+                "authority": "axwise_derived",
+                "description": accepted_definition,
+            },
+        ],
+    }
+    unsafe_locator = "The batch is legally safe when cadmium stays below 77 mg/kg."
+    marker_claim = "The proposed pouch is 1.5 kg"
+    wrong_marker_id = "4" * 64
+    correct_marker_id = "5" * 64
+    mixed_wrong_marker_id = "6" * 64
+    paragraph_wrong_marker_id = "7" * 64
+    eu_wrong_marker_id = "8" * 64
+    valid_protein_marker_id = "9" * 64
+    wrong_protein_marker_id = "a" * 64
+    valid_taurine_marker_id = "b" * 64
+    marker_locator = marker_claim + f" [evidence:{wrong_marker_id}]."
+    supported_marker_locator = marker_claim + f" [evidence:{correct_marker_id}]."
+    mixed_marker_claim = "The proposed trial pouch is 85 g"
+    mixed_marker_cell = mixed_marker_claim + f" [evidence:{mixed_wrong_marker_id}]."
+    mixed_authority_cell = "NorthPaw is approved by PTA."
+    mixed_table_line = f"| {mixed_marker_cell} | {mixed_authority_cell} |"
+    paragraph_marker_claim = "The proposed refill pouch is 1.2 kg"
+    paragraph_marker = (
+        paragraph_marker_claim + f" [evidence:{paragraph_wrong_marker_id}]."
+    )
+    paragraph_authority = "NorthPaw is certified by PTA."
+    mixed_paragraph_line = f"{paragraph_marker} {paragraph_authority}"
+    eu_planning_claim = "The checkout must support EU customers within 2 seconds"
+    eu_planning_marker = eu_planning_claim + f" [evidence:{eu_wrong_marker_id}]."
+    valid_protein_cell = f">= 25.0% DM [evidence:{valid_protein_marker_id}]."
+    wrong_protein_cell = f">= 25.0% DM [evidence:{wrong_protein_marker_id}]."
+    valid_protein_line = f"| Crude Protein | {valid_protein_cell} |"
+    wrong_protein_line = f"| Crude Protein | {wrong_protein_cell} |"
+    valid_taurine_line = (
+        r"Taurine: $\ge 1,000\text{ mg/kg DM}$ "
+        f"[evidence:{valid_taurine_marker_id}]."
+    )
+    accepted_definition_locator = (
+        f"* **[{accepted_definition_id}]:** {accepted_definition}"
     )
     table_following_locator = "The product is approved by the Estonian authority."
+    acceptance_authority = "PTA has approved NorthPaw for sale."
+    acceptance_line = f"| {accepted_definition_id} | {acceptance_authority} |"
+    accepted_definition_table_line = (
+        f"| {accepted_definition_id} | {accepted_definition} |"
+    )
+    internal_worker_requirement = (
+        "The worker must prevent duplicate dispatches within 5 seconds."
+    )
+    internal_legal_review = "The workflow must require legal review before publishing."
+    internal_training_certificate = (
+        "The training workflow lets a user obtain a completion certificate."
+    )
+    pure_nonauthorization = "This PRD does not constitute regulatory approval."
+    bulleted_nonauthorization = "- This PRD does not constitute regulatory approval."
+    labeled_nonauthorization = (
+        "* **No Launch Authorization:** This PRD does not authorize regulatory launch."
+    )
+    mixed_nonauthorization = (
+        "This PRD does not constitute regulatory approval, but Estonian law "
+        "requires PTA registration."
+    )
+    policy_authority = "The Estonian label must display a PTA approval number."
+    review_authority = "Regulatory review confirms NorthPaw is legally approved."
+    health_prevention = "Kibble aw remains <=0.60 to prevent microbial growth."
+    disease_prevention = "The diet prevents urinary disease."
+    lab_confirmation = (
+        "Laboratory results confirm taurine is >= 1,000 mg/kg dry matter and "
+        "all analytical constituents comply with complete adult feline nutrition."
+    )
+    safe_distinguish = (
+        "Strictly distinguish Estonian national mandates from EU supranational rules."
+    )
+    safe_exclusion = (
+        "Explicitly forbid medical disease treatment or therapeutic prevention claims."
+    )
+    eu_authority = "NorthPaw is EU-certified and compliant with feed hygiene rules."
+    accepted_policy_laundering = f"PTA approves commercial launch; {accepted_policy}"
+    structural_gap_label = (
+        "* **GAP-REG-03: Estonian Language & Distributor Trade Mandates**"
+    )
     unsafe_heading = "Safety plan: NorthPaw is legally compliant"
     core_index = next(
         index
@@ -5696,15 +5860,69 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         f"{contents[core_index].markdown}\n\n## {unsafe_heading}\n\n"
         f"| `{table_anchor}` | Proposed safety requirement |\n\n"
         f"{table_following_locator}\n\n"
-        f"### Criterion {unsafe_anchor}\n\n{unsafe_locator}"
+        f"{marker_locator}\n\n"
+        f"{supported_marker_locator}\n\n"
+        f"### Criterion {unsafe_anchor}\n\n{unsafe_locator}\n\n"
+        f"## Mixed evidence cells\n\n{mixed_table_line}\n\n"
+        f"{mixed_paragraph_line}\n\n{eu_planning_marker}\n\n"
+        f"{valid_protein_line}\n\n{wrong_protein_line}\n\n"
+        f"{valid_taurine_line}\n\n"
+        f"## Prioritized Requirements\n\n{accepted_definition_locator}\n\n"
+        f"{accepted_definition_table_line}\n\n"
+        f"## Acceptance criteria\n\n{accepted_definition_locator}\n\n"
+        f"{acceptance_line}\n\n"
+        f"## Operational requirements\n\n{internal_worker_requirement}\n\n"
+        f"{internal_legal_review}\n\n{internal_training_certificate}\n\n"
+        f"## Policy\n\n{policy_authority}\n\n{review_authority}\n\n"
+        f"{pure_nonauthorization}\n\n{bulleted_nonauthorization}\n\n"
+        f"{labeled_nonauthorization}\n\n{mixed_nonauthorization}\n\n"
+        f"{eu_authority}\n\n{accepted_policy_laundering}\n\n"
+        f"{structural_gap_label}\n\n"
+        f"## Launch Assumption Register\n\n1. {accepted_assumption}.\n\n"
+        f"{safe_distinguish}\n\n{safe_exclusion}\n\n"
+        f"## Health boundaries\n\n{health_prevention}\n\n{disease_prevention}\n\n"
+        f"{lab_confirmation}"
     )
-    unsafe_section_line = (
-        unsafe_markdown.splitlines().index(f"## {unsafe_heading}") + 1
-    )
-    unsafe_line = unsafe_markdown.splitlines().index(unsafe_locator) + 1
+    unsafe_section_line = unsafe_markdown.splitlines().index(f"## {unsafe_heading}") + 1
     table_following_line = (
         unsafe_markdown.splitlines().index(table_following_locator) + 1
     )
+    marker_line = unsafe_markdown.splitlines().index(marker_locator) + 1
+    unsafe_line = unsafe_markdown.splitlines().index(unsafe_locator) + 1
+    mixed_section_line = (
+        unsafe_markdown.splitlines().index("## Mixed evidence cells") + 1
+    )
+    mixed_line = unsafe_markdown.splitlines().index(mixed_table_line) + 1
+    mixed_paragraph_line_number = (
+        unsafe_markdown.splitlines().index(mixed_paragraph_line) + 1
+    )
+    eu_planning_marker_line = unsafe_markdown.splitlines().index(eu_planning_marker) + 1
+    wrong_protein_line_number = (
+        unsafe_markdown.splitlines().index(wrong_protein_line) + 1
+    )
+    acceptance_section_line = (
+        unsafe_markdown.splitlines().index("## Acceptance criteria") + 1
+    )
+    acceptance_authority_line = unsafe_markdown.splitlines().index(acceptance_line) + 1
+    acceptance_definition_line = [
+        index + 1
+        for index, line in enumerate(unsafe_markdown.splitlines())
+        if line == accepted_definition_locator
+    ][1]
+    policy_section_line = unsafe_markdown.splitlines().index("## Policy") + 1
+    policy_authority_line = unsafe_markdown.splitlines().index(policy_authority) + 1
+    review_authority_line = unsafe_markdown.splitlines().index(review_authority) + 1
+    mixed_nonauthorization_line = (
+        unsafe_markdown.splitlines().index(mixed_nonauthorization) + 1
+    )
+    eu_authority_line = unsafe_markdown.splitlines().index(eu_authority) + 1
+    accepted_policy_laundering_line = (
+        unsafe_markdown.splitlines().index(accepted_policy_laundering) + 1
+    )
+    health_section_line = unsafe_markdown.splitlines().index("## Health boundaries") + 1
+    health_prevention_line = unsafe_markdown.splitlines().index(health_prevention) + 1
+    disease_prevention_line = unsafe_markdown.splitlines().index(disease_prevention) + 1
+    lab_confirmation_line = unsafe_markdown.splitlines().index(lab_confirmation) + 1
     contents[core_index] = contents[core_index].model_copy(
         update={"markdown": unsafe_markdown}
     )
@@ -5729,9 +5947,149 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
                     f"assertion: {unsafe_locator}"
                 ),
                 (
+                    "Cited immutable claims do not support every exact value in this "
+                    f"assertion (1.5kg): {marker_claim}"
+                ),
+                (
+                    "Cited immutable claims do not support every exact value in this "
+                    f"assertion (85g): {mixed_marker_claim}"
+                ),
+                (
+                    "Cited immutable claims do not support every exact value in this "
+                    f"assertion (1.2kg): {paragraph_marker_claim}"
+                ),
+                (
+                    "Cited immutable claims do not support every exact value in this "
+                    f"assertion (2seconds): {eu_planning_claim}"
+                ),
+                (
+                    "Cited immutable claims do not semantically support this exact "
+                    "assertion: >= 25.0% DM"
+                ),
+                (
+                    "Cited immutable claims do not support every exact value in this "
+                    r"assertion (1000, >=1000mg/kg): Taurine: $\ge 1,000\text{ "
+                    "mg/kg DM}$"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{table_following_locator}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{mixed_authority_cell}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{paragraph_authority}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{acceptance_authority}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{policy_authority}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{review_authority}"
+                ),
+                (
                     "Unsupported factual precision requires an exact evidence marker "
                     "or an explicit proposal/assumption/validation label: "
-                    f"{table_following_locator}"
+                    f"{accepted_definition_locator}"
+                ),
+                (
+                    "Unsupported factual precision requires an exact evidence marker "
+                    "or an explicit proposal/assumption/validation label: "
+                    f"{accepted_definition}"
+                ),
+                (
+                    "Unsupported factual precision requires an exact evidence marker "
+                    "or an explicit proposal/assumption/validation label: "
+                    f"{internal_worker_requirement}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{internal_legal_review}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{internal_training_certificate}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{pure_nonauthorization}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{bulleted_nonauthorization}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{labeled_nonauthorization}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{mixed_nonauthorization}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{eu_authority}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{accepted_policy_laundering}"
+                ),
+                (
+                    "Unsupported factual precision requires an exact evidence marker "
+                    "or an explicit proposal/assumption/validation label: "
+                    "Estonian Language & Distributor Trade Mandates"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{health_prevention}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{disease_prevention}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{accepted_assumption}"
+                ),
+                (
+                    "An unresolved evidence requirement is asserted as fact without "
+                    "exact immutable support or provisional/verification language: "
+                    f"{lab_confirmation}"
+                ),
+                (
+                    "Unsupported factual precision requires an exact evidence marker "
+                    "or an explicit proposal/assumption/validation label: "
+                    f"{safe_distinguish}"
+                ),
+                (
+                    "Unsupported factual precision requires an exact evidence marker "
+                    "or an explicit proposal/assumption/validation label: "
+                    f"{safe_exclusion}"
                 ),
                 "Unsupported processing temperature.",
             ]
@@ -5747,19 +6105,34 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     research_payload = next(
         item.payload for item in contents if item.artifact.kind == "research"
     )
-    scope_payload = next(
-        item.payload for item in contents if item.artifact.kind == "scope"
-    )
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=input_value.output_contract.required_sections,
         evidence_readiness=input_value.output_contract.evidence_readiness,
-        allowed_claim_ids=PydanticAISynthesisWriter._allowed_claim_ids(
-            research_payload
-        ),
-        allowed_claim_texts=PydanticAISynthesisWriter._allowed_claim_texts(
-            research_payload
-        ),
+        allowed_claim_ids=[
+            *PydanticAISynthesisWriter._allowed_claim_ids(research_payload),
+            wrong_marker_id,
+            correct_marker_id,
+            mixed_wrong_marker_id,
+            paragraph_wrong_marker_id,
+            eu_wrong_marker_id,
+            valid_protein_marker_id,
+            wrong_protein_marker_id,
+            valid_taurine_marker_id,
+        ],
+        allowed_claim_texts={
+            **PydanticAISynthesisWriter._allowed_claim_texts(research_payload),
+            wrong_marker_id: "The proposed pouch is 2.0 kg.",
+            correct_marker_id: marker_claim + ".",
+            mixed_wrong_marker_id: "The proposed trial pouch is 90 g.",
+            paragraph_wrong_marker_id: "The proposed refill pouch is 1.3 kg.",
+            eu_wrong_marker_id: (
+                "The checkout must support EU customers within 3 seconds."
+            ),
+            valid_protein_marker_id: ("Crude protein baseline is at least 25.0% DM."),
+            wrong_protein_marker_id: ("Crude fat baseline is at least 25.0% DM."),
+            valid_taurine_marker_id: ("Taurine minimum is at least 1,000 mg/kg DM."),
+        },
         required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
             research_payload
         ),
@@ -5791,13 +6164,136 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
         {
             "line": table_following_line,
+            "unitIndex": 0,
             "sectionLine": unsafe_section_line,
             "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": marker_line,
+            "unitIndex": 0,
+            "sectionLine": unsafe_section_line,
+            "anchorId": None,
+            "kind": "marker_mismatch",
         },
         {
             "line": unsafe_line,
+            "unitIndex": 0,
             "sectionLine": unsafe_section_line,
             "anchorId": unsafe_anchor,
+            "kind": "authority_answer",
+        },
+        {
+            "line": mixed_line,
+            "unitIndex": 1,
+            "sectionLine": mixed_section_line,
+            "anchorId": None,
+            "kind": "marker_mismatch",
+        },
+        {
+            "line": mixed_line,
+            "unitIndex": 2,
+            "sectionLine": mixed_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": mixed_paragraph_line_number,
+            "unitIndex": 0,
+            "sectionLine": mixed_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": mixed_paragraph_line_number,
+            "unitIndex": 0,
+            "sectionLine": mixed_section_line,
+            "anchorId": None,
+            "kind": "marker_mismatch",
+        },
+        {
+            "line": eu_planning_marker_line,
+            "unitIndex": 0,
+            "sectionLine": mixed_section_line,
+            "anchorId": None,
+            "kind": "marker_mismatch",
+        },
+        {
+            "line": wrong_protein_line_number,
+            "unitIndex": 2,
+            "sectionLine": mixed_section_line,
+            "anchorId": None,
+            "kind": "marker_mismatch",
+        },
+        {
+            "line": acceptance_definition_line,
+            "unitIndex": 0,
+            "sectionLine": acceptance_section_line,
+            "anchorId": accepted_definition_id,
+            "kind": "authority_answer",
+        },
+        {
+            "line": acceptance_authority_line,
+            "unitIndex": 2,
+            "sectionLine": acceptance_section_line,
+            "anchorId": accepted_definition_id,
+            "kind": "authority_answer",
+        },
+        {
+            "line": policy_authority_line,
+            "unitIndex": 0,
+            "sectionLine": policy_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": review_authority_line,
+            "unitIndex": 0,
+            "sectionLine": policy_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": mixed_nonauthorization_line,
+            "unitIndex": 0,
+            "sectionLine": policy_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": eu_authority_line,
+            "unitIndex": 0,
+            "sectionLine": policy_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": accepted_policy_laundering_line,
+            "unitIndex": 0,
+            "sectionLine": policy_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": health_prevention_line,
+            "unitIndex": 0,
+            "sectionLine": health_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": disease_prevention_line,
+            "unitIndex": 0,
+            "sectionLine": health_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
+        },
+        {
+            "line": lab_confirmation_line,
+            "unitIndex": 0,
+            "sectionLine": health_section_line,
+            "anchorId": None,
+            "kind": "authority_answer",
         },
     ]
     assert payload["REPAIR_TARGETS"]["contradictions"] == [
@@ -5814,10 +6310,17 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
             "document."
         ),
         (
-            "At each REPAIR_TARGETS.unsupportedPrecision location, remove the "
-            "unsupported external answer or recast only its surrounding requirement "
-            "as a neutral internal review condition; preserve IDs and topology and "
-            "never quote, relocate, or wrap the answer in a warning."
+            "At each authority_answer locator, remove the unsupported external answer "
+            "or recast only its surrounding requirement as a neutral internal review "
+            "condition; preserve IDs and topology and never quote, relocate, or wrap "
+            "the answer in a warning."
+        ),
+        (
+            "At each marker_mismatch locator, preserve ordinary planning prose and "
+            "targets; remove only the invalid marker or split the exact supported "
+            "claim into its own clause with its allowed marker. If the remaining "
+            "clause asserts external authority without exact support, apply "
+            "authorityFactRule."
         ),
         (
             "Repair every named substantive or practicality defect "
@@ -5827,9 +6330,10 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     }
     assert payload["PUBLICATION_CONTRACT"] == {
         "authorityFactRule": (
-            "An external legal, safety, certification, health, filing or authority "
-            "fact may appear only when ALLOWED_CLAIMS contains its exact support and "
-            "the same clause carries that evidence marker."
+            "Across the entire document, not only locator lines, an external legal, "
+            "safety, certification, health, filing or authority fact may appear only "
+            "when ALLOWED_CLAIMS contains its exact support and the same clause carries "
+            "that evidence marker."
         ),
         "evidenceStatusBoundary": "one_document_level_boundary_near_the_start",
         "genericWarningPrefixBudget": 0,
@@ -5846,8 +6350,13 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
             "given_when_then_roles",
         ],
         "unsupportedLocatorRule": (
-            "Each line/sectionLine/anchorId tuple identifies candidate prose to "
-            "repair, not evidence or reader-facing text."
+            "Each line/unitIndex/sectionLine/anchorId/kind tuple identifies "
+            "high-signal candidate prose to repair, not evidence or reader-facing "
+            "text. unitIndex 0 means a whole prose line; a positive value is the "
+            "1-based Markdown table-cell index on that line. "
+            "authority_answer and marker_mismatch require their distinct repair "
+            "instructions. Locators are not exhaustive and do not exempt other text "
+            "from authorityFactRule."
         ),
         "unresolvedRequirementStatusRule": (
             "A requirement whose applicable legal, safety, nutrition, lab or "
@@ -5873,6 +6382,8 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     assert "Unsupported nutritional threshold." not in prompt_context
     assert "Unsupported processing temperature." not in prompt_context
     assert unsafe_locator not in prompt_context
+    assert marker_locator not in prompt_context
+    assert accepted_definition_locator not in prompt_context
     assert table_following_locator not in prompt_context
     assert unsafe_heading not in prompt_context
     assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
@@ -5972,8 +6483,10 @@ def test_final_repair_prompt_keeps_raw_core_as_untrusted_data_without_wrappers()
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
         {
             "line": unsafe.splitlines().index("The formula is safe for adult cats.") + 1,
+            "unitIndex": 0,
             "sectionLine": unsafe.splitlines().index("## Formula safety") + 1,
             "anchorId": None,
+            "kind": "authority_answer",
         }
     ]
     prompt_without_base = {**payload}
