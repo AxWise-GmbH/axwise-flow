@@ -9878,14 +9878,14 @@ def _claim_from_grounding(
         ):
             return None
         claim_provider = str(provider or raw_claim.get("provider") or "")
-        if _requirement_has_statutory_force(requirement) and claim_provider not in {
-            "gemini_google_search",
-            "searxng_direct_fetch",
-        }:
-            # Statutory claims may come from Gemini's native grounding supports or
-            # the independently fetched fallback, never from untyped provider prose.
-            # Both admitted paths are still checked below for an exact immutable
-            # response span, accepted official source classes, and instrument identity.
+        if (
+            _requirement_has_statutory_force(requirement)
+            and claim_provider != "searxng_direct_fetch"
+        ):
+            # Grounded provider prose and citations remain useful operation-local
+            # locators, but they are not the publisher's legal text. Every statutory
+            # assertion must therefore be refetched from the publisher and bound to an
+            # exact immutable byte span before it can become evidence.
             return None
     if allowed_source_hosts and any(
         not _url_matches_allowed_hosts(url, allowed_source_hosts) for url in urls
