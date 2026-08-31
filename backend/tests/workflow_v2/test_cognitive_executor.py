@@ -50,8 +50,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _deterministic_evidence_integrity_defects,
     _operation_metrics,
     _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL,
-    _PUBLICATION_LABEL_VALIDATION_ACTION,
-    _PUBLICATION_LEGAL_VALIDATION_ACTION,
+    _PUBLICATION_PENDING_SENTINEL,
     _deterministic_quality_defects,
     _citation_sections,
     _claim_from_grounding,
@@ -1548,7 +1547,8 @@ def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> 
     assert "Cats prefer chicken-flavoured kibble." in normalized.markdown
     assert "Fresh kibble improves palatability." in normalized.markdown
     assert "EU law guarantees this formula is safe." not in normalized.markdown
-    assert _PUBLICATION_LEGAL_VALIDATION_ACTION in normalized.markdown
+    assert _PUBLICATION_PENDING_SENTINEL in normalized.markdown
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
 
 
 def test_scope_prompt_splits_broad_regulatory_domains_without_inventing_law() -> None:
@@ -1603,7 +1603,8 @@ def test_final_publication_preserves_authored_structure_and_body_text() -> None:
     assert "Product lead" in normalized.markdown
     assert "Review by day 14" in normalized.markdown
     assert "The label is legally compliant" not in normalized.markdown
-    assert normalized.markdown.count(_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL) == 2
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 2
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert "**Given** `req-label-01` remains open" in normalized.markdown
     assert "**When** the legal owner reviews the label" in normalized.markdown
     assert "**Then** the owner records the decision and evidence" in normalized.markdown
@@ -1647,7 +1648,8 @@ def test_final_publication_does_not_semantically_rewrite_or_dedupe_body() -> Non
     assert "The product is safe for cats." not in normalized.markdown
     assert "The food is safe for cats." not in normalized.markdown
     assert "Keep the resealable pack requirement." in normalized.markdown
-    assert normalized.markdown.count(_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL) == 2
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 2
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert "See the corresponding validation requirement" not in normalized.markdown
     assert (
         cognitive_executor_module._normalize_publication_draft(context, normalized)
@@ -1683,7 +1685,8 @@ def test_final_publication_preserves_repeated_table_cells_without_cross_referenc
 
     assert "Product is safe for cats." not in normalized.markdown
     assert "Food is safe for cats." not in normalized.markdown
-    assert normalized.markdown.count(_PUBLICATION_LEGAL_VALIDATION_ACTION) == 2
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 2
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert "See the corresponding validation requirement" not in normalized.markdown
     assert "| First check | Second check |" in normalized.markdown
     assert (
@@ -1778,7 +1781,8 @@ def test_final_publication_labels_uncited_or_foreign_high_stakes_claims() -> Non
 
     assert "NorthPaw is legally compliant." not in normalized.markdown
     assert "Regulation (EC) No. 767/2009" not in normalized.markdown
-    assert normalized.markdown.count(_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL) == 2
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 2
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert foreign_marker not in normalized.markdown
     assert "See the corresponding validation requirement" not in normalized.markdown
     assert (
@@ -1817,7 +1821,8 @@ def test_final_publication_applies_evidence_and_qualifiers_per_clause() -> None:
     assert "NorthPaw is legally compliant." not in normalized.markdown
     assert "Proposed target: 35% protein." in normalized.markdown
     assert "The formula is legally compliant." not in normalized.markdown
-    assert normalized.markdown.count(_PUBLICATION_LEGAL_VALIDATION_ACTION) == 2
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 2
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert (
         cognitive_executor_module._normalize_publication_draft(context, normalized)
         == normalized
@@ -1845,7 +1850,8 @@ def test_final_publication_labels_duplicate_clauses_once_each() -> None:
     normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
     assert "NorthPaw is legally compliant." not in normalized.markdown
-    assert normalized.markdown.count(_PUBLICATION_LEGAL_VALIDATION_ACTION) == 2
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 2
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert (
         cognitive_executor_module._normalize_publication_draft(context, normalized)
         == normalized
@@ -1943,9 +1949,9 @@ def test_final_publication_preserves_scope_semantics_while_rewriting_unsafe_then
     ):
         assert requirement_id in normalized.markdown
     assert "mandatory Estonian-language text" not in normalized.markdown
-    assert "microbiological limits and pathogen thresholds" not in normalized.markdown
-    assert _PUBLICATION_LABEL_VALIDATION_ACTION in normalized.markdown
-    assert cognitive_executor_module._PUBLICATION_SAFETY_VALIDATION_ACTION in (
+    assert "microbiological limits and pathogen thresholds" in normalized.markdown
+    assert _PUBLICATION_PENDING_SENTINEL in normalized.markdown
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in (
         normalized.markdown
     )
     assert (
@@ -2047,12 +2053,10 @@ def test_final_publication_keeps_evidence_fragment_local_and_rejects_changed_con
 
     assert normalized.markdown.count(marker) == 1
     assert normalized.markdown.count(penetration_marker) == 1
-    assert "300,400 domestic cats are underserved" not in normalized.markdown
-    assert cognitive_executor_module._PUBLICATION_FACT_VALIDATION_ACTION in (
-        normalized.markdown
-    )
+    assert "300,400 domestic cats are underserved" in normalized.markdown
     assert "Regulation (EC) No 767/2009" not in normalized.markdown
-    assert _PUBLICATION_LEGAL_VALIDATION_ACTION in normalized.markdown
+    assert _PUBLICATION_PENDING_SENTINEL in normalized.markdown
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert normalized.markdown.count("|") == draft.markdown.count("|")
     assert cognitive_executor_module._normalize_publication_draft(
         context, normalized
@@ -2120,8 +2124,8 @@ def test_final_publication_narrows_legal_redaction_to_authoritative_context() ->
     assert "Mandatory Estonian-language declarations" not in normalized.markdown
     assert "Submit the product notification" not in normalized.markdown
     assert "Reg (EU) 939/2010" not in normalized.markdown
-    assert "**Option 3:**" in normalized.markdown
-    assert "Candidate Urinary Care" not in normalized.markdown
+    assert "**Option 3: Candidate Urinary Care**" in normalized.markdown
+    assert "Candidate Urinary Care" in normalized.markdown
     assert (
         normalized.markdown.count(
             "The official label example is Täissööt täiskasvanud kassidele"
@@ -2129,7 +2133,7 @@ def test_final_publication_narrows_legal_redaction_to_authoritative_context() ->
         == 1
     )
     assert marker in normalized.markdown
-    assert "Täissööt täiskasvanud kassidele (Complete feed" not in normalized.markdown
+    assert "Täissööt täiskasvanud kassidele (Complete feed" in normalized.markdown
     assert "NorthPaw Café is the working brand." in normalized.markdown
     for exact_label_copy in (
         "Netokogus",
@@ -2138,19 +2142,81 @@ def test_final_publication_narrows_legal_redaction_to_authoritative_context() ->
         "Toorvalk",
         "Toortuhk",
     ):
-        assert exact_label_copy not in normalized.markdown
-    assert "3 kg: 40–50 g/day" not in normalized.markdown
-    assert "Technical officer to verify Category 3" not in normalized.markdown
+        assert exact_label_copy in normalized.markdown
+    assert "3 kg: 40–50 g/day" in normalized.markdown
+    assert "Technical officer to verify Category 3" in normalized.markdown
     assert "GMP/IFS/BRCGS" not in normalized.markdown
     assert "aw <= 0.60" not in normalized.markdown
     assert "Priority category 3 covers later experiments." in normalized.markdown
     assert "### 6.2 Feed Marketing & Labeling" in normalized.markdown
     assert "767/2009" not in normalized.markdown
     assert "Keep the useful section body." in normalized.markdown
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
     assert normalized.markdown.count("|") == draft.markdown.count("|")
     assert cognitive_executor_module._normalize_publication_draft(
         context, normalized
     ) == (normalized)
+
+
+def test_final_publication_uses_one_local_sentinel_without_erasing_prd_targets() -> (
+    None
+):
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Personas", "Product requirements", "Evidence gaps"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        allowed_claim_texts={},
+        required_gap_labels=["Primary statutory evidence remains open."],
+        artifact_type="product_prd",
+    )
+    draft = SynthesisDraft(
+        title="Useful PRD",
+        markdown=(
+            "# Useful PRD\n\n"
+            "## Personas\n\n"
+            "- Quality-conscious owner prioritizes digestive wellbeing and vitality.\n\n"
+            "## Product requirements\n\n"
+            "- `req-target-01` Proposed target: run a 30-day trial with a >=65% "
+            "preference threshold for the 2 kg pack.\n"
+            "- **Proposed validation target — requires authoritative verification:** "
+            "Conduct the 30-day palatability trial and record the decision.\n\n"
+            "| Requirement ID | Requirement | Owner |\n"
+            "| --- | --- | --- |\n"
+            "| `req-law-01` | Statutory notification must be submitted to PTA before "
+            "sale. | Legal |\n"
+            "| `req-law-02` | **Product thesis:** mandatory Feed Business Operator "
+            "notification. | Legal |\n"
+            "| `req-safety-01` | The formula is safe for cats. | Product |\n\n"
+            "## Evidence gaps\n\nPrimary statutory evidence remains open."
+        ),
+    )
+
+    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
+
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
+    assert "Quality-conscious owner prioritizes digestive wellbeing" in (
+        normalized.markdown
+    )
+    assert "30-day trial" in normalized.markdown
+    assert ">=65%" in normalized.markdown
+    assert "2 kg pack" in normalized.markdown
+    assert "Conduct the 30-day palatability trial" in normalized.markdown
+    assert "Statutory notification must be submitted" not in normalized.markdown
+    assert "mandatory Feed Business Operator notification" not in normalized.markdown
+    assert "The formula is safe for cats" not in normalized.markdown
+    assert normalized.markdown.count(_PUBLICATION_PENDING_SENTINEL) == 3
+    for requirement_id in (
+        "req-target-01",
+        "req-law-01",
+        "req-law-02",
+        "req-safety-01",
+    ):
+        assert requirement_id in normalized.markdown
+    assert normalized.markdown.count("|") == draft.markdown.count("|")
+    assert cognitive_executor_module._normalize_publication_draft(
+        context, normalized
+    ) == normalized
 
 
 def test_final_publication_preserves_proposed_target_but_redacts_uncited_benchmark() -> (
@@ -2183,10 +2249,8 @@ def test_final_publication_preserves_proposed_target_but_redacts_uncited_benchma
 
     normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
-    assert "9.0 g / 100 g DM" not in normalized.markdown
-    assert cognitive_executor_module._PUBLICATION_BENCHMARK_VALIDATION_ACTION in (
-        normalized.markdown
-    )
+    assert "9.0 g / 100 g DM" in normalized.markdown
+    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
     assert ">=32%" in normalized.markdown
     assert normalized.markdown.count("|") == draft.markdown.count("|")
     assert cognitive_executor_module._normalize_publication_draft(

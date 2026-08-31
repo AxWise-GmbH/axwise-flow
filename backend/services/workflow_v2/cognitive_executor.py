@@ -1384,11 +1384,10 @@ complete Given/When/Then acceptance checks and substantive section content. Neve
 Sources appendix because the server appends it from immutable claim metadata.
 
 Omit unsupported high-stakes legal, safety or health precision. When the useful document
-needs to retain such an unresolved item, rewrite it as `Proposed validation target — requires
-authoritative verification` followed by one short domain- or decision-specific verification
-action. Do not repeat the unverified number, instrument identity, or
-mandatory/statutory/compliant/must authority language after that label, and do not repeat an
-identical validation target throughout the document.
+needs to retain such an unresolved item, keep its reader-facing label or requirement ID and
+mark it once as `Pending authoritative verification.` Do not emit generic validation-target
+boilerplate, repeat the unverified number or instrument identity, or preserve
+mandatory/statutory/compliant/must authority language after that marker.
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
@@ -6303,6 +6302,12 @@ _PUBLICATION_LABEL_REQUIREMENT_ANSWER = re.compile(
 _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL = (
     "Proposed validation target — requires authoritative verification"
 )
+_PUBLICATION_PENDING_SENTINEL = "**Pending authoritative verification.**"
+_PUBLICATION_LEGACY_VALIDATION_PREFIX = re.compile(
+    r"(?:\*\*|__)?proposed\s+validation\s+target\s+[—-]\s+requires\s+"
+    r"authoritative\s+verification(?:\s*:)?(?:\*\*|__)?\s*:?[ \t]*",
+    re.IGNORECASE,
+)
 _PUBLICATION_LABEL_VALIDATION_ACTION = (
     "Confirm the applicable labelling requirement with primary legal evidence "
     "before approving copy."
@@ -6362,11 +6367,26 @@ _PUBLICATION_AUTHORITY_STATUS_ANSWER = re.compile(
     r"\b(?:complies?|compliant)\s+with\b",
     re.IGNORECASE,
 )
+_PUBLICATION_LOCAL_AUTHORITY_TERM = re.compile(
+    r"\b(?:law|legal|mandatory|regulatory|statute|statutory)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_LOCAL_OBLIGATION_PREDICATE = re.compile(
+    r"\b(?:must|shall|mandates?|obliges?|prohibits?|requires?|required\s+to)\b",
+    re.IGNORECASE,
+)
+_PUBLICATION_LOCAL_HEALTH_EFFECT_PREDICATE = re.compile(
+    r"\b(?:ensure(?:s|d|ing)?|improv(?:e|es|ed|ing)|maintain(?:s|ed|ing)?|"
+    r"prevent(?:s|ed|ing)?|reduc(?:e|es|ed|ing)?|support(?:s|ed|ing)?)\b",
+    re.IGNORECASE,
+)
 _PUBLICATION_AUTHORITY_PROCESS_MECHANICS = re.compile(
     r"\b(?:complete|file|register|submit)\b[^.;\n]{0,140}\b"
     r"(?:application|dossier|filing|form|notification|registration)\b|"
     r"\b(?:application|dossier|filing|form|notification|registration)\b"
     r"[^.;\n]{0,140}\b(?:complete|file|register|submit(?:ted)?)\b|"
+    r"\b(?:mandatory|statutory|required)\b[^.;\n]{0,100}\b"
+    r"(?:filing|licen[cs]e|notification|permit|registration)\b|"
     r"\b(?:obtain|receive)\b[^.;\n]{0,140}\b"
     r"(?:acknowledgement|approval|clearance|licen[cs]e|permit)\b",
     re.IGNORECASE,
@@ -6856,6 +6876,7 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
         cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", cleaned)
         cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", cleaned)
         cleaned = _PUBLICATION_PENDING_PREFIX.sub("", cleaned)
+        cleaned = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", cleaned)
         return re.sub(r"[*_`]", "", cleaned).strip()
 
     def without_descriptive_label(value: str) -> str:
@@ -6872,15 +6893,17 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
             cleaned = reduced
         return cleaned
 
-    def validation_action(value: str, structural_context: str = "") -> str | None:
+    def validation_action(value: str, _structural_context: str = "") -> str | None:
+        if _PUBLICATION_PENDING_SENTINEL in value:
+            return None
         cleaned = stripped_assertion(value)
         _list_prefix, _role_prefix, _role, cleaned = _task_fragment_parts(cleaned)
         cleaned = cleaned.strip()
         classified = without_descriptive_label(cleaned)
-        if not classified or any(
-            action in value for action in _PUBLICATION_CANONICAL_VALIDATION_ACTIONS
-        ):
+        if not classified:
             return None
+        if any(action in value for action in _PUBLICATION_CANONICAL_VALIDATION_ACTIONS):
+            return _PUBLICATION_PENDING_SENTINEL
         normalized_candidates = {
             _normalized_semantic_text(cleaned),
             _normalized_semantic_text(classified),
@@ -6898,13 +6921,17 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
         ):
             return None
 
-        combined = " ".join(item for item in (structural_context, classified) if item)
-        explicit_proposal = _EXPLICIT_NONFACTUAL_QUALIFIER.search(combined) is not None
+        # Publication decisions are local. A heading that happens to mention safety,
+        # markets or labels must not turn every number or product choice below it into
+        # an external factual claim.
+        explicit_proposal = (
+            _EXPLICIT_NONFACTUAL_QUALIFIER.search(classified) is not None
+        )
         internal_review = _PUBLICATION_INTERNAL_REVIEW_ACTION.search(classified)
         numbered_instrument = _PUBLICATION_NUMBERED_INSTRUMENT.search(classified)
         process_mechanics = (
             _PUBLICATION_AUTHORITY_PROCESS_MECHANICS.search(classified)
-            if _PUBLICATION_AUTHORITY_PROCESS_CONTEXT.search(combined)
+            if _PUBLICATION_AUTHORITY_PROCESS_CONTEXT.search(classified)
             else None
         )
         exact_translation = _PUBLICATION_EXACT_TRANSLATION_ANSWER.search(cleaned)
@@ -6913,67 +6940,52 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
                 _PUBLICATION_FOREIGN_LABEL_EXAMPLE.search(cleaned)
                 or _PUBLICATION_NONASCII_LATIN_LETTER.search(cleaned)
             )
-            and _PUBLICATION_LABEL_DOMAIN.search(combined)
+            and _PUBLICATION_LABEL_DOMAIN.search(classified)
         )
         label_answer = (
             _PUBLICATION_LABEL_REQUIREMENT_ANSWER.search(classified)
             if not explicit_proposal
             else None
         )
-        contextual_mandatory_label_note = bool(
-            re.search(r"\bmandatory\s+(?:note|text|wording)\b", classified, re.I)
-            and re.search(
-                r"\b(?:label|labelling|labeling|packaging|on-pack)\b",
-                structural_context,
-                re.I,
-            )
-        )
-        contextual_label_detail = bool(
-            internal_review is None
-            and _PUBLICATION_AUTHORITATIVE_LABEL_SECTION.search(combined)
-            and _PUBLICATION_LABEL_DETAIL_ANSWER.search(classified)
+        local_label_duty = bool(
+            not explicit_proposal
+            and _PUBLICATION_LABEL_DOMAIN.search(classified)
+            and _PUBLICATION_LOCAL_AUTHORITY_TERM.search(classified)
+            and _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
         )
         safety_rule = _PUBLICATION_SAFETY_RULE_ANSWER.search(classified)
         certification_detail = _PUBLICATION_NAMED_CERTIFICATION_DETAIL.search(
             classified
         )
-        contextual_safety_category = bool(
-            re.search(r"\bcategory\s+\d+\b", classified, re.IGNORECASE)
-            and re.search(
-                r"\b(?:animal\s+by-products?|abp)\b",
-                structural_context,
-                re.IGNORECASE,
-            )
-        )
-        contextual_safety_precision = bool(
-            _publication_precision_values(classified)
-            and _PUBLICATION_SAFETY_DOMAIN.search(combined)
-        )
-        contextual_feeding_precision = bool(
-            _publication_precision_values(classified)
-            and not explicit_proposal
-            and _PUBLICATION_FEEDING_INSTRUCTION_CONTEXT.search(combined)
-        )
         precision_values = _publication_precision_values(classified)
-        contextual_external_precision = bool(
+        local_safety_precision = bool(
             precision_values
             and not explicit_proposal
+            and _PUBLICATION_SAFETY_DOMAIN.search(classified)
             and (
-                _PUBLICATION_EXTERNAL_FACT_CONTEXT.search(structural_context)
-                or any(
-                    precision_values.intersection(
-                        _publication_precision_values(claim_text)
-                    )
-                    for claim_text in context.allowed_claim_texts.values()
-                )
+                _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
+                or _PUBLICATION_LOCAL_HEALTH_EFFECT_PREDICATE.search(classified)
+                or _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(classified)
             )
         )
-        health_effect = _PUBLICATION_HEALTH_EFFECT_ANSWER.search(classified)
+        concrete_safety_rule = bool(
+            safety_rule
+            and (
+                precision_values
+                or re.search(r"\bcategory\s+\d+\b", classified, re.IGNORECASE)
+                or _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
+            )
+        )
+        health_effect = bool(
+            not explicit_proposal
+            and _PUBLICATION_HEALTH_EFFECT_ANSWER.search(classified)
+            and _PUBLICATION_LOCAL_HEALTH_EFFECT_PREDICATE.search(classified)
+        )
         authority_status = _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(classified)
-        benchmark_precision = bool(
-            _publication_precision_values(classified)
-            and not explicit_proposal
-            and _PUBLICATION_AUTHORITATIVE_BENCHMARK_CONTEXT.search(combined)
+        local_statutory_duty = bool(
+            not explicit_proposal
+            and _PUBLICATION_LOCAL_AUTHORITY_TERM.search(classified)
+            and _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
         )
         if (
             internal_review is not None
@@ -6982,15 +6994,13 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
             and exact_translation is None
             and not foreign_label_example
             and label_answer is None
-            and not contextual_mandatory_label_note
-            and not contextual_label_detail
-            and safety_rule is None
+            and not local_label_duty
+            and not concrete_safety_rule
             and certification_detail is None
-            and not contextual_safety_category
-            and not contextual_safety_precision
-            and not contextual_feeding_precision
-            and not contextual_external_precision
-            and health_effect is None
+            and not local_safety_precision
+            and not health_effect
+            and authority_status is None
+            and not local_statutory_duty
         ):
             return None
         if not any(
@@ -7000,49 +7010,17 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
                 exact_translation,
                 foreign_label_example,
                 label_answer,
-                contextual_mandatory_label_note,
-                contextual_label_detail,
-                safety_rule,
+                local_label_duty,
+                concrete_safety_rule,
                 certification_detail,
-                contextual_safety_category,
-                contextual_safety_precision,
-                contextual_feeding_precision,
-                contextual_external_precision,
+                local_safety_precision,
                 health_effect,
                 authority_status,
-                benchmark_precision,
+                local_statutory_duty,
             )
         ):
             return None
-        if (
-            label_answer is not None
-            or exact_translation is not None
-            or foreign_label_example
-            or contextual_mandatory_label_note
-            or contextual_label_detail
-        ):
-            return _PUBLICATION_LABEL_VALIDATION_ACTION
-        if process_mechanics is not None:
-            return _PUBLICATION_PROCESS_VALIDATION_ACTION
-        if (
-            safety_rule is not None
-            or contextual_safety_category
-            or contextual_safety_precision
-            or (
-                certification_detail is not None
-                and _PUBLICATION_SAFETY_DOMAIN.search(combined)
-            )
-        ):
-            return _PUBLICATION_SAFETY_VALIDATION_ACTION
-        if health_effect is not None:
-            return _PUBLICATION_HEALTH_VALIDATION_ACTION
-        if benchmark_precision:
-            return _PUBLICATION_BENCHMARK_VALIDATION_ACTION
-        if contextual_feeding_precision:
-            return _PUBLICATION_BENCHMARK_VALIDATION_ACTION
-        if contextual_external_precision:
-            return _PUBLICATION_FACT_VALIDATION_ACTION
-        return _PUBLICATION_LEGAL_VALIDATION_ACTION
+        return _PUBLICATION_PENDING_SENTINEL
 
     def render_replacement(fragment: str, action: str) -> str:
         markerless = _RAW_EVIDENCE_MARKER.sub("", fragment)
@@ -7050,6 +7028,7 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
         body = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", body.strip())
         body = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", body)
         body = _PUBLICATION_PENDING_PREFIX.sub("", body)
+        body = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", body)
         label_match = re.match(r"^(?P<label>\*\*[^*\n]{1,120}:\*\*)\s*", body)
         label = label_match.group("label") if label_match is not None else ""
         if not label:
@@ -7068,8 +7047,7 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
             if requirement_ids
             else ""
         )
-        target = f"**{_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL}:** {action}"
-        return f"{list_prefix}{role_prefix}{label} {target}{references}".replace(
+        return f"{list_prefix}{role_prefix}{label} {action}{references}".replace(
             "  ", " ", 1
         )
 
@@ -7089,12 +7067,13 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
     current_heading = ""
     pending_table_context = ""
     active_table_context = ""
-    suppress_authoritative_label_sublist = False
     for line_index, line in enumerate(lines):
         if line_index in fenced_indexes:
             continue
         if heading := re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line):
-            body = heading.group("body")
+            body = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub(
+                "", heading.group("body")
+            )
             current_heading = body
             if not authorization_claim_allowed and (
                 has_positive_launch_readiness_claim(body)
@@ -7111,32 +7090,13 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
                         "authoritative legal reference pending verification", body
                     )
                 )
+            elif body != heading.group("body"):
+                lines[line_index] = f"{heading.group('prefix')}{body}"
             pending_table_context = ""
             active_table_context = ""
-            suppress_authoritative_label_sublist = False
             continue
 
         stripped = line.strip()
-        if (
-            _PUBLICATION_AUTHORITATIVE_LABEL_SECTION.search(current_heading)
-            and re.match(r"^\s*\d+[.)]\s+", line) is not None
-            and _RAW_EVIDENCE_MARKER.search(line) is None
-        ):
-            if not any(
-                action in line for action in _PUBLICATION_CANONICAL_VALIDATION_ACTIONS
-            ):
-                lines[line_index] = render_replacement(
-                    line, _PUBLICATION_LABEL_VALIDATION_ACTION
-                )
-            suppress_authoritative_label_sublist = True
-            pending_table_context = ""
-            active_table_context = ""
-            continue
-        if suppress_authoritative_label_sublist and re.match(r"^\s+[-+*]\s+", line):
-            lines[line_index] = ""
-            continue
-        if stripped:
-            suppress_authoritative_label_sublist = False
         if "|" in line:
             cells = [
                 re.sub(r"[*_`]", "", item).strip()
@@ -7173,7 +7133,9 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
         for unit_index in range(0, len(table_units), 2):
             pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
             for piece_index in range(0, len(pieces), 2):
-                piece = pieces[piece_index]
+                piece = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub(
+                    "", pieces[piece_index]
+                )
                 piece_without_pending = _PUBLICATION_PENDING_INLINE.sub(
                     "", piece, count=1
                 )
