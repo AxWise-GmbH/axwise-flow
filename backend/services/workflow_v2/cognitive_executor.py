@@ -459,9 +459,20 @@ use launch_authorization only when the artifact itself makes a go/no-go legal, s
 launch decision. Each criterion supports exact accepted-list descriptions or one of the seven
 requirement categories; the server generates stable requirement/criterion IDs and exact
 priority/authority. For product_prd, return 5-12 high-value observable product or operational
-scenarios with an action and a measurable pass/fail outcome. One criterion may support multiple
-exact descriptions or categories; cover the accepted requirements through this compact set, not
-one criterion per list item. Never merely restate a requirement or test that document text exists.
+scenarios with an action and a measurable outcome. One criterion may support multiple exact
+descriptions or categories; cover the accepted requirements through this compact set, not one
+criterion per list item. Never merely restate a requirement or test that document text exists.
+Scope compilation happens before research: identify what must be decided or verified, but do not
+answer an unresolved evidence question. If REQUEST_TEXT supplies an exact high-stakes value or duty,
+preserve it only as an owner-supplied proposed constraint or claim that still requires accepted
+evidence; never present it as verified authority during scope compilation. Otherwise never invent or
+assert a legal instrument, legal duty, filing mechanic,
+mandatory label field, certification, safety/nutrition/health/scientific threshold, test method,
+sample size, or pass/fail value in requirements, assumptions, policies or acceptanceCriteria.
+Make those scenarios observable by requiring exact accepted evidence to be bound and an identified
+accountable role to record the adopted rule or threshold; when that evidence is missing, the
+outcome is an explicit unresolved gap. Product, business, budget, schedule, UX and performance
+targets may be explicit proposals, but must not imply external authority.
 Evidence requirements must be claim-specific;
 mark only essential legal/safety evidence as blocking. Optional statistics, offers, or
 commercial details are nonblocking. Give every requirement one typed evidenceRole.
@@ -771,8 +782,9 @@ def _project_deliverable_contract(
             ),
             "then": (
                 "Every remaining requirement is bound to an observable product or "
-                "operational decision, test, and pass/fail threshold, or kept as an "
-                "explicit unresolved gap before affected work advances."
+                "operational decision or test. A high-stakes threshold is adopted only "
+                "after exact accepted evidence and qualified-owner review; otherwise it "
+                "remains an explicit unresolved gap before affected work advances."
             ),
             "supports": utf16_ordinal_sorted(uncovered),
         }
@@ -1151,10 +1163,18 @@ complete revised values, including deliverableProfile and acceptanceCriteria. Ke
 distinct from software_prd; use launch_authorization only for an actual go/no-go legal, safety
 or launch decision. Criterion supports name exact accepted-list descriptions or requirement
 categories; the server generates semantic IDs. For product_prd, return 5-12 high-value observable
-product or operational scenarios with measurable pass/fail outcomes; let each support multiple
-requirements where appropriate instead of emitting one criterion per list item. Never use chat
-history or unrelated context. Evidence requirements remain claim-specific; only essential
-legal/safety evidence may block.
+product or operational scenarios with measurable outcomes; let each support multiple requirements
+where appropriate instead of emitting one criterion per list item. Scope revision still happens
+before research resumes. If OWNER_CORRECTION supplies an exact high-stakes value or duty, preserve
+it only as an owner-supplied proposed constraint or claim that still requires accepted evidence;
+never present it as verified authority during scope revision. Otherwise do not introduce an
+unsupported legal instrument, legal duty, filing mechanic,
+mandatory label field, certification, safety/nutrition/health/scientific threshold, test method,
+sample size or pass/fail value. Make an unresolved high-stakes scenario observable by requiring
+exact accepted evidence and adoption by an identified accountable role, with an explicit gap when evidence is
+missing. Product, business, budget, schedule, UX and performance targets may be explicit proposals
+without implying external authority. Never use chat history or unrelated context. Evidence
+requirements remain claim-specific; only essential legal/safety evidence may block.
 For an explicit publisher or official-documentation restriction in OWNER_CORRECTION or the
 accepted requirement, preserve or set the minimal sorted lowercase allowedSourceHosts;
 otherwise keep it empty. Never broaden a nonempty host allowlist.
