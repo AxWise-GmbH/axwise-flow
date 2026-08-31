@@ -3548,6 +3548,15 @@ class VerifiedResearchRunner:
         }
 
 
+class VerifiedGeminiGroundedResearchRunner(VerifiedResearchRunner):
+    async def search(self, query):
+        result = await super().search(query)
+        result["provider"] = "gemini_google_search"
+        for source in result["sources"]:
+            source["provider"] = "gemini_google_search"
+        return result
+
+
 class TransientThenVerifiedRunner(VerifiedResearchRunner):
     def __init__(self) -> None:
         self.queries = []
@@ -7185,7 +7194,7 @@ def test_grounded_claim_rejects_a_different_legal_instrument_and_appendix_mappin
     assert catalogue == []
 
 
-def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evidence() -> (
+def test_provision_specific_google_grounding_and_direct_span_are_evidence() -> (
     None
 ):
     text = "Article 29 of Regulation (EC) No 1069/2009 requires documented controls."
@@ -7215,14 +7224,35 @@ def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evid
         provider="searxng_direct_fetch",
     )
 
-    assert google is None
+    assert google is not None
+    assert google.segment_start == 0
+    assert google.segment_end == len(text.encode("utf-8"))
+    assert google.provider_response_hash == response_hash
     assert direct is not None
     assert direct.segment_start == 0
     assert direct.segment_end == len(text.encode("utf-8"))
     assert direct.provider_response_hash == response_hash
 
 
-def test_every_google_statutory_claim_is_locator_only_without_a_provision_number() -> (
+def test_statutory_claim_rejects_an_untyped_provider_even_on_an_official_host() -> None:
+    text = "Regulation (EC) No 1069/2009 establishes operational controls."
+    url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009R1069"
+
+    claim = _claim_from_grounding(
+        {"text": text, "source_urls": [url]},
+        {url: {"title": "Official legal text", "url": url}},
+        {"primary_law"},
+        set(),
+        hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        text,
+        requirement=_generic_statutory_requirement(),
+        provider="unknown_provider",
+    )
+
+    assert claim is None
+
+
+def test_exact_google_statutory_grounding_is_evidence_without_a_provision_number() -> (
     None
 ):
     text = "Regulation (EC) No 1069/2009 establishes operational controls."
@@ -7240,14 +7270,13 @@ def test_every_google_statutory_claim_is_locator_only_without_a_provision_number
         text,
     )
 
-    assert (
-        _claim_from_grounding(
-            *arguments,
-            requirement=_generic_statutory_requirement(),
-            provider="gemini_google_search",
-        )
-        is None
+    google = _claim_from_grounding(
+        *arguments,
+        requirement=_generic_statutory_requirement(),
+        provider="gemini_google_search",
     )
+    assert google is not None
+    assert google.text == text
     assert (
         _claim_from_grounding(
             *arguments,
@@ -7272,7 +7301,7 @@ def test_every_google_statutory_claim_is_locator_only_without_a_provision_number
         "§ 5",
     ],
 )
-def test_every_statutory_provision_form_requires_a_direct_exact_span(
+def test_every_statutory_provision_form_accepts_exact_grounding_or_direct_span(
     provision: str,
 ) -> None:
     text = f"{provision} of Regulation (EC) No 1069/2009 establishes a control."
@@ -7290,14 +7319,13 @@ def test_every_statutory_provision_form_requires_a_direct_exact_span(
         text,
     )
 
-    assert (
-        _claim_from_grounding(
-            *arguments,
-            requirement=_generic_statutory_requirement(),
-            provider="gemini_google_search",
-        )
-        is None
+    google = _claim_from_grounding(
+        *arguments,
+        requirement=_generic_statutory_requirement(),
+        provider="gemini_google_search",
     )
+    assert google is not None
+    assert google.text == text
     assert (
         _claim_from_grounding(
             *arguments,
@@ -7393,6 +7421,29 @@ async def test_grounded_claim_basis_keeps_bounded_dynamic_acquisition(
     assert result.artifact.payload["boundedRepairPasses"] == 0
     assert result.artifact.payload["findings"][0]["status"] == "verified"
     assert len(result.artifact.payload["claimLedger"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_exact_gemini_grounding_satisfies_statutory_research_without_refetch() -> (
+    None
+):
+    compiled = await compiled_scope(
+        verification_basis="grounded_claims",
+        claim_type="applicable_law",
+        accepted_source_types=["government", "primary_law"],
+    )
+    runner = VerifiedGeminiGroundedResearchRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["boundedRepairPasses"] == 0
+    assert result.artifact.payload["findings"][0]["status"] == "verified"
+    ledger = result.artifact.payload["claimLedger"]
+    assert len(ledger) == 1
+    assert ledger[0]["passNumber"] == 0
+    assert len(ledger[0]["claims"]) == 1
+    assert len(result.artifact.payload["sourceCatalogue"]) == 1
 
 
 @pytest.mark.asyncio
