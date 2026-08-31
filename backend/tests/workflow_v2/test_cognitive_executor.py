@@ -109,6 +109,22 @@ def compile_input(request: str = REQUEST) -> dict:
     }
 
 
+def draft_statements(
+    values: list[str],
+    *,
+    disposition: str = "internal_target",
+    evidence_requirement_ids: list[str] | None = None,
+) -> list[dict]:
+    return [
+        {
+            "text": value,
+            "disposition": disposition,
+            "evidence_requirement_ids": evidence_requirement_ids or [],
+        }
+        for value in values
+    ]
+
+
 def envelope_for(
     input_payload: dict | None = None,
     *,
@@ -156,6 +172,8 @@ class FakeDrafter:
         accepted_source_types: list[str] | None = None,
         deliverables: list[str] | None = None,
         artifact_type: str | None = None,
+        statement_disposition: str = "internal_target",
+        assumption_disposition: str = "internal_target",
     ) -> None:
         self.criticality = criticality
         self.claim_type = claim_type
@@ -179,6 +197,8 @@ class FakeDrafter:
         ]
         self.deliverables = deliverables or ["Product requirements document"]
         self.artifact_type = artifact_type
+        self.statement_disposition = statement_disposition
+        self.assumption_disposition = assumption_disposition
 
     async def draft(self, input_value, objective_context):
         assert objective_context == []
@@ -234,8 +254,17 @@ class FakeDrafter:
                 geography=["Estonia"],
                 evidence_requirements=requirements,
                 deliverables=self.deliverables,
-                prd_requirements=["Label evidence gaps at claim level"],
-                policies=self.policies,
+                prd_requirements=draft_statements(
+                    ["Label evidence gaps at claim level"],
+                    disposition=self.statement_disposition,
+                    evidence_requirement_ids=(
+                        ["food-safety-law"]
+                        if self.evidence
+                        and self.statement_disposition == "evidence_question"
+                        else []
+                    ),
+                ),
+                policies=draft_statements(self.policies),
                 deliverable_profile={
                     "artifact_type": artifact_type,
                     "domain": "Physical pet-food product planning in Estonia",
@@ -258,7 +287,16 @@ class FakeDrafter:
                         ],
                     }
                 ],
-                assumptions=self.assumptions,
+                assumptions=draft_statements(
+                    self.assumptions,
+                    disposition=self.assumption_disposition,
+                    evidence_requirement_ids=(
+                        ["food-safety-law"]
+                        if self.evidence
+                        and self.assumption_disposition == "evidence_question"
+                        else []
+                    ),
+                ),
             ),
             input_tokens=11,
             output_tokens=13,
@@ -280,6 +318,996 @@ def ref(fact: ArtifactFact) -> dict:
         "artifactHash": fact.artifact_hash,
         "kind": fact.kind,
     }
+
+
+@pytest.mark.asyncio
+async def test_scope_projection_discards_pre_research_legal_answers() -> None:
+    class PollutedDrafter:
+        async def draft(self, input_value, objective_context):
+            request = input_value.request
+            topic_start = request.index("NorthPaw")
+            return ScopeDraft(
+                objective=request,
+                objective_source_spans=[DraftSpan(start=0, end=len(request))],
+                topic_anchors=[
+                    DraftTopicAnchor(
+                        value="NorthPaw",
+                        source_spans=[
+                            DraftSpan(start=topic_start, end=topic_start + 8)
+                        ],
+                    )
+                ],
+                geography=["Estonia"],
+                evidence_requirements=[
+                    {
+                        "id": "eu-label-law",
+                        "claimType": "legal_requirement",
+                        "description": (
+                            "EU pet-food labeling law applicable to the accepted "
+                            "Estonia planning scope."
+                        ),
+                        "criticality": "blocking",
+                        "evidenceRole": "grounded_claim",
+                        "verificationBasis": "grounded_claims",
+                        "appliesWhen": "The PRD discusses product labeling.",
+                        "acceptedSourceTypes": ["government", "primary_law"],
+                        "allowedSourceHosts": [],
+                    },
+                    {
+                        "id": "estonia-safety-law",
+                        "claimType": "legal_safety",
+                        "description": (
+                            "Estonian product-safety law applicable to the accepted "
+                            "planning scope."
+                        ),
+                        "criticality": "blocking",
+                        "evidenceRole": "grounded_claim",
+                        "verificationBasis": "grounded_claims",
+                        "appliesWhen": "The PRD discusses future distribution.",
+                        "acceptedSourceTypes": ["government", "primary_law"],
+                        "allowedSourceHosts": [],
+                    },
+                ],
+                deliverables=["Product requirements document"],
+                prd_requirements=[
+                    {
+                        "text": (
+                            "Mandatory label fields include feed type, analytical "
+                            "constituents, batch identifier, and Estonian translation."
+                        ),
+                        "disposition": "evidence_question",
+                        "evidence_requirement_ids": ["eu-label-law"],
+                    },
+                    {
+                        "text": (
+                            "Target a 12-18 month shelf life, subject to validation."
+                        ),
+                        "disposition": "internal_target",
+                        "evidence_requirement_ids": [],
+                    },
+                ],
+                limits=[
+                    {
+                        "text": (
+                            "Commercial distribution cannot occur without Estonian "
+                            "competent-authority registration."
+                        ),
+                        "disposition": "evidence_question",
+                        "evidence_requirement_ids": ["estonia-safety-law"],
+                    }
+                ],
+                policies=[],
+                deliverable_profile={
+                    "artifact_type": "product_prd",
+                    "domain": "Physical pet-food product planning in Estonia",
+                    "problem": "Define a useful evidence-aware cat-food product.",
+                    "desired_outcome": "A decision-useful physical product PRD.",
+                    "audiences": ["Product team"],
+                    "non_goals": ["Launch authorization"],
+                    "required_sections": ["Product requirements document"],
+                },
+                acceptance_criteria=[
+                    {
+                        "given": "A launch candidate enters review",
+                        "when": "Its mandatory legal fields are checked",
+                        "then": (
+                            "Registration and every mandatory label field are confirmed."
+                        ),
+                        "supports": ["prd", "limit", "evidence"],
+                    }
+                ],
+                assumptions=[
+                    {
+                        "text": "Production uses an EU-approved HACCP facility.",
+                        "disposition": "evidence_question",
+                        "evidence_requirement_ids": ["estonia-safety-law"],
+                    }
+                ],
+            )
+
+    executor = GeminiCognitiveExecutor(PollutedDrafter(), AUTHORITY_KEY)
+    result = await executor.execute(envelope_for(compile_input(B01_REQUEST)))
+    repeated = await executor.execute(envelope_for(compile_input(B01_REQUEST)))
+    payload = result.artifact.payload
+    serialized = json.dumps(payload)
+
+    for invented_answer in (
+        "Mandatory label fields include",
+        "competent-authority registration",
+        "EU-approved HACCP facility",
+        "Registration and every mandatory label field",
+    ):
+        assert invented_answer not in serialized
+    assert any(
+        item.startswith("Candidate internal proposal") and "12-18 month" in item
+        for item in payload["prdRequirements"]
+    )
+    assert any(
+        item.startswith("Unresolved evidence gate") for item in payload["limits"]
+    )
+    assert payload["assumptions"] == []
+    assert all(
+        "external authority" in criterion["then"]
+        for criterion in payload["acceptanceCriteria"]
+    )
+    assert repeated.artifact.artifact_hash == result.artifact.artifact_hash
+
+
+def test_scope_projection_preserves_owner_targets_only_as_proposals() -> None:
+    owner_text = "Prepare an operational plan with RTO 15 minutes and budget EUR 2,000."
+    projected = cognitive_executor_module._project_scope_statements(
+        authority_text=owner_text,
+        evidence_requirements=[],
+        prd_requirements=[],
+        limits=[
+            cognitive_executor_module.DraftScopeStatement.model_validate(item)
+            for item in draft_statements(
+                ["RTO 15 minutes", "budget EUR 2,000"],
+                disposition="owner_proposed_constraint",
+            )
+        ],
+        policies=[],
+        assumptions=[],
+    )
+
+    assert projected.limits == [
+        "Owner-proposed constraint (pending accepted evidence where external authority "
+        "applies): RTO 15 minutes",
+        "Owner-proposed constraint (pending accepted evidence where external authority "
+        "applies): budget EUR 2,000",
+    ]
+    assert set(projected.authority_overrides.values()) == {"owner"}
+
+
+def test_acceptance_support_description_keeps_cross_category_evidence_edge() -> None:
+    profile = cognitive_executor_module.DraftDeliverableProfile(
+        artifact_type="operational_plan",
+        domain="Incident recovery",
+        problem="Define the recovery decision boundary.",
+        desired_outcome="An evidence-aware recovery plan.",
+        audiences=["Operations"],
+        required_sections=["Recovery plan"],
+    )
+    description = "Determine the applicable recovery obligation."
+    evidence = EvidenceRequirement.model_validate(
+        {
+            "id": "recovery-law",
+            "claimType": "legal_requirement",
+            "description": description,
+            "criticality": "blocking",
+            "evidenceRole": "grounded_claim",
+            "verificationBasis": "grounded_claims",
+            "appliesWhen": "The plan describes mandatory recovery duties.",
+            "acceptedSourceTypes": ["government", "primary_law"],
+            "allowedSourceHosts": [],
+        }
+    )
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Prepare a recovery plan.",
+        profile=profile,
+        evidence_requirements=[evidence],
+        deliverables=["Recovery plan"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=[description],
+        limits=[],
+        policies=[],
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="A recovery plan",
+                when="The obligation is reviewed",
+                then="The invented threshold is treated as mandatory.",
+                supports=[description],
+            )
+        ],
+    )
+
+    duplicated_description_ids = {
+        item.id for item in requirements if item.description == description
+    }
+    supported_ids = {
+        requirement_id
+        for criterion in criteria
+        for requirement_id in criterion.supports
+    }
+    assert len(duplicated_description_ids) == 2
+    assert duplicated_description_ids <= supported_ids
+    assert all("invented threshold" not in item.then for item in criteria)
+
+
+def test_projected_statement_alias_retains_exact_evidence_edge() -> None:
+    evidence = EvidenceRequirement.model_validate(
+        {
+            "id": "label-law",
+            "claimType": "legal_requirement",
+            "description": "Applicable labeling law for the accepted scope.",
+            "criticality": "blocking",
+            "evidenceRole": "grounded_claim",
+            "verificationBasis": "grounded_claims",
+            "appliesWhen": "The artifact discusses labeling.",
+            "acceptedSourceTypes": ["government", "primary_law"],
+            "allowedSourceHosts": [],
+        }
+    )
+    raw_statement = "Every mandatory label field is already known."
+    projected = cognitive_executor_module._project_scope_statements(
+        authority_text="Create a labeling plan.",
+        evidence_requirements=[evidence],
+        prd_requirements=[
+            cognitive_executor_module.DraftScopeStatement(
+                text=raw_statement,
+                disposition="evidence_question",
+                evidence_requirement_ids=[evidence.id],
+            )
+        ],
+        limits=[],
+        policies=[],
+        assumptions=[],
+    )
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Create a labeling plan.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="operational_plan",
+            domain="Labeling plan",
+            problem="Determine the evidence boundary.",
+            desired_outcome="A usable plan with explicit gaps.",
+            audiences=["Operations"],
+            required_sections=["Plan"],
+        ),
+        evidence_requirements=[evidence],
+        deliverables=["Labeling plan"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=projected.prd_requirements,
+        limits=[],
+        policies=[],
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="The label is drafted",
+                when="Mandatory fields are asserted",
+                then="Every invented field is treated as law.",
+                supports=[raw_statement],
+            )
+        ],
+        authority_overrides=projected.authority_overrides,
+        support_aliases=projected.support_aliases,
+        evidence_links=projected.evidence_links,
+    )
+
+    statement_id = next(item.id for item in requirements if item.category == "prd")
+    evidence_id = next(item.id for item in requirements if item.category == "evidence")
+    evidence_gate = next(item for item in criteria if statement_id in item.supports)
+    assert {statement_id, evidence_id} <= set(evidence_gate.supports)
+    assert "Every invented field" not in evidence_gate.then
+
+
+def test_max_bound_projection_never_merges_distinct_evidence_edges() -> None:
+    evidence = [
+        EvidenceRequirement.model_validate(
+            {
+                "id": f"law-{index}",
+                "claimType": "legal_requirement",
+                "description": f"Applicable law {index} for the accepted scope.",
+                "criticality": "blocking",
+                "evidenceRole": "grounded_claim",
+                "verificationBasis": "grounded_claims",
+                "appliesWhen": f"Decision {index} is made.",
+                "acceptedSourceTypes": ["government", "primary_law"],
+                "allowedSourceHosts": [],
+            }
+        )
+        for index in range(2)
+    ]
+    raw_statements = [f"Invented answer 0-{index}" for index in range(2)]
+    projected = cognitive_executor_module._project_scope_statements(
+        authority_text="Create a plan.",
+        evidence_requirements=evidence,
+        prd_requirements=[
+            cognitive_executor_module.DraftScopeStatement(
+                text=text,
+                disposition="evidence_question",
+                evidence_requirement_ids=[f"law-{index}"],
+            )
+            for index, text in enumerate(raw_statements)
+        ],
+        limits=[],
+        policies=[],
+        assumptions=[],
+    )
+    selected_indices = (
+        9528,
+        9662,
+        110,
+        2960,
+        6144,
+        6541,
+        910,
+        2185,
+        5453,
+        1678,
+        2032,
+        2329,
+        9772,
+        6504,
+        2123,
+        1213,
+        5283,
+        3448,
+        3507,
+        4340,
+        1272,
+        6952,
+        5421,
+        4683,
+        1552,
+        8698,
+        1544,
+        3206,
+        2109,
+        4222,
+        4982,
+        3807,
+        4694,
+        4280,
+        9945,
+        848,
+        6469,
+        2241,
+        5699,
+        6987,
+        1747,
+        413,
+        2161,
+        2526,
+        6033,
+        1220,
+        4056,
+        3810,
+        4784,
+        5398,
+        7854,
+        2263,
+        8179,
+        1016,
+        3539,
+        6442,
+        2624,
+        5104,
+        6284,
+        5117,
+        9520,
+        6259,
+        2501,
+        9252,
+        6949,
+        356,
+        2399,
+        9280,
+        2385,
+        4865,
+        1944,
+        2387,
+        8719,
+        1206,
+        7803,
+        7749,
+        5075,
+        8543,
+        3694,
+        8280,
+        963,
+        2870,
+        6148,
+        6475,
+        7058,
+        806,
+        5884,
+        7280,
+        1900,
+        6063,
+        4129,
+        5183,
+        9164,
+        7901,
+        7678,
+        1699,
+        7964,
+        7497,
+        3075,
+        9176,
+        4531,
+        1969,
+        4096,
+        9776,
+        2914,
+        1343,
+        5645,
+        9061,
+        770,
+        9647,
+        6511,
+        603,
+        1504,
+        415,
+        3698,
+        7821,
+        5926,
+        7969,
+    )
+    internal_criteria = [
+        cognitive_executor_module.DraftAcceptanceCriterion(
+            given=f"Internal scenario {index}",
+            when=f"Action {index}",
+            then=f"Outcome {index}",
+            supports=["Plan"],
+        )
+        for index in selected_indices
+    ]
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Create a plan.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="operational_plan",
+            domain="Exact evidence edges",
+            problem="Keep unrelated legal questions separate at the size boundary.",
+            desired_outcome="A useful plan with exact evidence gates.",
+            audiences=["Owner"],
+            required_sections=["Plan"],
+        ),
+        evidence_requirements=evidence,
+        deliverables=["Plan"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=projected.prd_requirements,
+        limits=[],
+        policies=[],
+        draft_criteria=[
+            *internal_criteria,
+            *[
+                cognitive_executor_module.DraftAcceptanceCriterion(
+                    given=f"Evidence question {index}",
+                    when=f"Law {index} is researched",
+                    then=f"Only supported conclusion {index} is adopted",
+                    supports=[text],
+                )
+                for index, text in enumerate(raw_statements)
+            ],
+        ],
+        authority_overrides=projected.authority_overrides,
+        support_aliases=projected.support_aliases,
+        evidence_links=projected.evidence_links,
+    )
+
+    requirement_id_by_description = {item.description: item.id for item in requirements}
+    assert len(criteria) <= 120
+    for index, raw_text in enumerate(raw_statements):
+        projected_text = projected.support_aliases[raw_text][0][1]
+        statement_id = requirement_id_by_description[projected_text]
+        own_evidence_id = requirement_id_by_description[evidence[index].description]
+        other_evidence_id = requirement_id_by_description[
+            evidence[1 - index].description
+        ]
+        gates = [item for item in criteria if statement_id in item.supports]
+        assert len(gates) == 1
+        assert own_evidence_id in gates[0].supports
+        assert other_evidence_id not in gates[0].supports
+
+
+def test_scope_statement_invalid_evidence_links_fail_safe_without_retry() -> None:
+    evidence = EvidenceRequirement.model_validate(
+        {
+            "id": "known-proof",
+            "claimType": "external_proof",
+            "description": "Evidence for the affected decision.",
+            "criticality": "nonblocking",
+            "evidenceRole": "grounded_claim",
+            "verificationBasis": "grounded_claims",
+            "appliesWhen": "The decision uses an external claim.",
+            "acceptedSourceTypes": ["government"],
+            "allowedSourceHosts": [],
+        }
+    )
+    missing = cognitive_executor_module._project_scope_statements(
+        authority_text="Prepare the plan.",
+        evidence_requirements=[evidence],
+        prd_requirements=[
+            cognitive_executor_module.DraftScopeStatement(
+                text="Resolve the external claim.",
+                disposition="evidence_question",
+            )
+        ],
+        limits=[],
+        policies=[],
+        assumptions=[],
+    )
+    unknown = cognitive_executor_module._project_scope_statements(
+        authority_text="Prepare the plan.",
+        evidence_requirements=[evidence],
+        prd_requirements=[
+            cognitive_executor_module.DraftScopeStatement(
+                text="Resolve the external claim.",
+                disposition="evidence_question",
+                evidence_requirement_ids=["unknown-proof"],
+            )
+        ],
+        limits=[],
+        policies=[],
+        assumptions=[],
+    )
+    partly_valid = cognitive_executor_module._project_scope_statements(
+        authority_text="Prepare the plan.",
+        evidence_requirements=[evidence],
+        prd_requirements=[
+            cognitive_executor_module.DraftScopeStatement(
+                text="Resolve the external claim.",
+                disposition="evidence_question",
+                evidence_requirement_ids=["unknown-proof", "known-proof"],
+            )
+        ],
+        limits=[],
+        policies=[],
+        assumptions=[],
+    )
+
+    assert missing.prd_requirements == []
+    assert unknown.prd_requirements == []
+    assert len(partly_valid.prd_requirements) == 1
+    projected_text = partly_valid.prd_requirements[0]
+    assert partly_valid.evidence_links[("prd", projected_text)] == ["known-proof"]
+
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Prepare the plan.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="operational_plan",
+            domain="Fail-safe evidence planning",
+            problem="Discard malformed provider links without retrying.",
+            desired_outcome="A covered accepted contract.",
+            audiences=["Owner"],
+            required_sections=["Plan"],
+        ),
+        evidence_requirements=[evidence],
+        deliverables=["Plan"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=unknown.prd_requirements,
+        limits=[],
+        policies=[],
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="A malformed provider hint exists",
+                when="Its unknown support is projected",
+                then="The server covers the accepted contract without trusting it",
+                supports=["Resolve the external claim."],
+            )
+        ],
+        authority_overrides=unknown.authority_overrides,
+        support_aliases=unknown.support_aliases,
+        evidence_links=unknown.evidence_links,
+    )
+    assert {item.id for item in requirements} == {
+        support for item in criteria for support in item.supports
+    }
+
+
+def test_mixed_category_support_does_not_gate_internal_target_on_law() -> None:
+    evidence = EvidenceRequirement.model_validate(
+        {
+            "id": "legal-proof",
+            "claimType": "legal_requirement",
+            "description": "Applicable law for the accepted scope.",
+            "criticality": "blocking",
+            "evidenceRole": "grounded_claim",
+            "verificationBasis": "grounded_claims",
+            "appliesWhen": "The artifact makes an external legal claim.",
+            "acceptedSourceTypes": ["government", "primary_law"],
+            "allowedSourceHosts": [],
+        }
+    )
+    projected = cognitive_executor_module._project_scope_statements(
+        authority_text="Prepare a plan with budget EUR 2,000.",
+        evidence_requirements=[evidence],
+        prd_requirements=[],
+        limits=[
+            cognitive_executor_module.DraftScopeStatement(
+                text="The exact legal duty is already known.",
+                disposition="evidence_question",
+                evidence_requirement_ids=[evidence.id],
+            ),
+            cognitive_executor_module.DraftScopeStatement(
+                text="budget EUR 2,000",
+                disposition="owner_proposed_constraint",
+            ),
+        ],
+        policies=[],
+        assumptions=[],
+    )
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Prepare a plan with budget EUR 2,000.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="operational_plan",
+            domain="Budgeted plan",
+            problem="Separate internal targets from external evidence.",
+            desired_outcome="A usable operating plan.",
+            audiences=["Operations"],
+            required_sections=["Plan"],
+        ),
+        evidence_requirements=[evidence],
+        deliverables=["Operating plan"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=[],
+        limits=projected.limits,
+        policies=[],
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="The plan is reviewed",
+                when="The limits are evaluated",
+                then="The invented legal duty and budget both pass.",
+                supports=["limit"],
+            )
+        ],
+        authority_overrides=projected.authority_overrides,
+        support_aliases=projected.support_aliases,
+        evidence_links=projected.evidence_links,
+    )
+    evidence_id = next(item.id for item in requirements if item.category == "evidence")
+    budget_id = next(
+        item.id for item in requirements if "budget EUR 2,000" in item.description
+    )
+    assert all(
+        not ({evidence_id, budget_id} <= set(item.supports)) for item in criteria
+    )
+    budget_criterion = next(item for item in criteria if budget_id in item.supports)
+    assert "invented legal duty" not in budget_criterion.then
+
+
+def test_raw_statement_alias_unions_with_same_text_deliverable() -> None:
+    raw_text = "Shared text"
+    projected = cognitive_executor_module._project_scope_statements(
+        authority_text="Create an artifact.",
+        evidence_requirements=[],
+        prd_requirements=[],
+        limits=[
+            cognitive_executor_module.DraftScopeStatement(
+                text=raw_text,
+                disposition="internal_target",
+            )
+        ],
+        policies=[],
+        assumptions=[],
+    )
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Create an artifact.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="general_artifact",
+            domain="Alias collision",
+            problem="Retain both semantic references.",
+            desired_outcome="A deterministic artifact.",
+            audiences=["Owner"],
+            required_sections=["Result"],
+        ),
+        evidence_requirements=[],
+        deliverables=[raw_text],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=[],
+        limits=projected.limits,
+        policies=[],
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="The shared semantics are reviewed",
+                when="The artifact is evaluated",
+                then="Both accepted meanings remain covered",
+                supports=[raw_text],
+            )
+        ],
+        authority_overrides=projected.authority_overrides,
+        support_aliases=projected.support_aliases,
+        evidence_links=projected.evidence_links,
+    )
+    shared_ids = {
+        item.id for item in requirements if item.category in {"deliverable", "limit"}
+    }
+    assert len(shared_ids) == 2
+    assert any(shared_ids <= set(item.supports) for item in criteria)
+
+
+def test_two_internal_scenarios_with_same_support_remain_useful() -> None:
+    _, _, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Create a prototype plan.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="operational_plan",
+            domain="Prototype planning",
+            problem="Test two distinct user interactions.",
+            desired_outcome="A useful prototype plan.",
+            audiences=["Product team"],
+            required_sections=["Plan"],
+        ),
+        evidence_requirements=[],
+        deliverables=["Prototype plan"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=["Users can complete the prototype task"],
+        limits=[],
+        policies=[],
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="A first-time user opens the prototype",
+                when="They complete the primary task",
+                then="The task is completed without assistance",
+                supports=["prd"],
+            ),
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="A returning user opens the prototype",
+                when="They repeat the primary task",
+                then="The task is completed using the saved state",
+                supports=["prd"],
+            ),
+        ],
+    )
+    authored = [
+        item
+        for item in criteria
+        if "first-time user" in item.given or "returning user" in item.given
+    ]
+    assert len(authored) == 2
+    assert any("first-time user" in item.given for item in authored)
+    assert any("returning user" in item.given for item in authored)
+
+
+def test_scope_statement_projection_is_order_stable_and_owner_first() -> None:
+    evidence = EvidenceRequirement.model_validate(
+        {
+            "id": "proof",
+            "claimType": "external_proof",
+            "description": "Exact evidence needed for the affected decision.",
+            "criticality": "nonblocking",
+            "evidenceRole": "future_authorization_proof",
+            "verificationBasis": "selected_evidence",
+            "appliesWhen": "The future decision is made.",
+            "acceptedSourceTypes": ["government"],
+            "allowedSourceHosts": [],
+        }
+    )
+    values = [
+        cognitive_executor_module.DraftScopeStatement(
+            text="RTO 15 minutes",
+            disposition="owner_proposed_constraint",
+            evidence_requirement_ids=["proof"],
+        ),
+        cognitive_executor_module.DraftScopeStatement(
+            text="Budget EUR 2,000",
+            disposition="internal_target",
+        ),
+    ]
+    arguments = {
+        "authority_text": "Use RTO 15 minutes and Budget EUR 2,000.",
+        "evidence_requirements": [evidence],
+        "prd_requirements": [],
+        "policies": [],
+        "assumptions": [],
+        "safe_default_values": {"RTO 15 minutes", "Budget EUR 2,000"},
+    }
+    first = cognitive_executor_module._project_scope_statements(
+        **arguments, limits=values
+    )
+    reordered = cognitive_executor_module._project_scope_statements(
+        **arguments, limits=list(reversed(values))
+    )
+
+    assert first == reordered
+    owner_text = next(item for item in first.limits if "RTO 15 minutes" in item)
+    assert owner_text.startswith("Owner-proposed constraint")
+    assert first.authority_overrides[("limit", owner_text)] == "owner"
+    assert first.evidence_links[("limit", owner_text)] == ["proof"]
+    max_text = "x" * 1000
+    bounded = cognitive_executor_module._canonical_proposal_text(
+        cognitive_executor_module._INTERNAL_PROPOSAL_PREFIX, max_text
+    )
+    assert len(bounded) == 1000
+    assert (
+        cognitive_executor_module.DraftScopeStatement(
+            text=bounded,
+            disposition="internal_target",
+        ).text
+        == bounded
+    )
+
+    forged = cognitive_executor_module._project_scope_statements(
+        authority_text="Create an artifact without prescribing constraints.",
+        evidence_requirements=[],
+        prd_requirements=[],
+        limits=[
+            cognitive_executor_module.DraftScopeStatement(
+                text=(
+                    cognitive_executor_module._OWNER_PROPOSAL_PREFIX
+                    + "The model chooses the budget"
+                ),
+                disposition="owner_proposed_constraint",
+            ),
+            cognitive_executor_module.DraftScopeStatement(
+                text=(
+                    cognitive_executor_module._SAFE_DEFAULT_PROPOSAL_PREFIX
+                    + "The model chooses the retention period"
+                ),
+                disposition="internal_target",
+            ),
+        ],
+        policies=[],
+        assumptions=[],
+    )
+    assert all(
+        item.startswith(cognitive_executor_module._INTERNAL_PROPOSAL_PREFIX)
+        for item in forged.limits
+    )
+    assert {forged.authority_overrides[("limit", item)] for item in forged.limits} == {
+        "axwise_derived"
+    }
+
+
+def test_acceptance_projection_cannot_exceed_requirement_count() -> None:
+    prd = [f"PRD requirement {index}" for index in range(39)]
+    limits = [f"Limit {index}" for index in range(40)]
+    policies = [f"Policy {index}" for index in range(40)]
+    descriptions = [*prd, *limits, *policies, "Final artifact"]
+    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
+        authority_text="Create the final artifact.",
+        profile=cognitive_executor_module.DraftDeliverableProfile(
+            artifact_type="general_artifact",
+            domain="Bounded projection",
+            problem="Cover every accepted requirement.",
+            desired_outcome="A deterministic artifact.",
+            audiences=["Owner"],
+            required_sections=["Result"],
+        ),
+        evidence_requirements=[],
+        deliverables=["Final artifact"],
+        personas=[],
+        interview_requirements=[],
+        prd_requirements=prd,
+        limits=limits,
+        policies=policies,
+        draft_criteria=[
+            cognitive_executor_module.DraftAcceptanceCriterion(
+                given="An accepted requirement exists",
+                when="It is evaluated",
+                then="The model proposes an arbitrary result",
+                supports=[description],
+            )
+            for description in descriptions
+        ],
+    )
+
+    assert len(requirements) == 120
+    assert len(criteria) <= 120
+    assert {
+        requirement_id for item in criteria for requirement_id in item.supports
+    } == {item.id for item in requirements}
+
+    with pytest.raises(ValueError, match="cannot exceed 120"):
+        cognitive_executor_module._project_deliverable_contract(
+            authority_text="Create the final artifact.",
+            profile=cognitive_executor_module.DraftDeliverableProfile(
+                artifact_type="general_artifact",
+                domain="Bounded projection",
+                problem="Reject an oversized accepted contract.",
+                desired_outcome="A deterministic error.",
+                audiences=["Owner"],
+                required_sections=["Result"],
+            ),
+            evidence_requirements=[],
+            deliverables=["Final artifact"],
+            personas=[],
+            interview_requirements=[],
+            prd_requirements=[f"PRD requirement {index}" for index in range(120)],
+            limits=[],
+            policies=[],
+            draft_criteria=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_noop_scope_revision_preserves_semantic_hash_and_contract() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            statement_disposition="evidence_question",
+            assumptions=["The external requirement is already satisfied."],
+            assumption_disposition="evidence_question",
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for())
+    assert compiled.artifact.payload["assumptions"] == []
+    assert compiled.artifact.payload["prdRequirements"][0].startswith(
+        "Unresolved evidence gate"
+    )
+
+    class NoOpReviser:
+        async def revise(self, input_value, accepted_scope):
+            def semantic_bodies(values):
+                return [
+                    cognitive_executor_module.DraftScopeStatement(
+                        text=cognitive_executor_module._scope_statement_body(value),
+                        disposition="internal_target",
+                    )
+                    for value in values
+                ]
+
+            return ScopeRevisionDraft(
+                objective_changed=False,
+                topic_changed=False,
+                geography=list(accepted_scope.geography),
+                evidence_requirements=list(accepted_scope.evidence_requirements),
+                deliverables=list(accepted_scope.deliverables),
+                personas=list(accepted_scope.personas),
+                interview_requirements=list(accepted_scope.interview_requirements),
+                prd_requirements=semantic_bodies(accepted_scope.prd_requirements),
+                limits=semantic_bodies(accepted_scope.limits),
+                policies=semantic_bodies(accepted_scope.policies),
+                deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
+                acceptance_criteria=[
+                    item.model_dump() for item in accepted_scope.acceptance_criteria
+                ],
+                assumptions=semantic_bodies(accepted_scope.assumptions),
+            )
+
+    correction = "Keep the accepted scope unchanged."
+    revised = await GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=Resolver(compiled.artifact),
+        scope_reviser=NoOpReviser(),
+    ).execute(
+        envelope_for(
+            {
+                "type": "ReviseScopeV2",
+                "acceptedScope": ref(compiled.artifact),
+                "correction": correction,
+                "correctionSourceSpans": [
+                    {
+                        "start": 0,
+                        "end": len(correction),
+                        "offsetUnit": "utf16_code_units",
+                        "text": correction,
+                        "sha256": hashlib.sha256(correction.encode()).hexdigest(),
+                    }
+                ],
+            },
+            operation_id="00000000-0000-4000-8000-000000000099",
+            operation_type="ReviseScopeV2",
+        )
+    )
+
+    assert (
+        revised.artifact.payload["researchInputHash"]
+        == compiled.artifact.payload["researchInputHash"]
+    )
+    assert (
+        revised.artifact.payload["requirements"]
+        == compiled.artifact.payload["requirements"]
+    )
+    assert (
+        revised.artifact.payload["acceptanceCriteria"]
+        == compiled.artifact.payload["acceptanceCriteria"]
+    )
 
 
 def test_complex_outputs_use_provider_compatible_prompted_transport(
@@ -1453,7 +2481,9 @@ async def _legacy_final_validator_rejects_server_validation_scaffolding(
         )
 
 
-def test_final_publication_normalizer_keeps_authored_prose_and_global_boundary() -> None:
+def test_final_publication_normalizer_keeps_authored_prose_and_global_boundary() -> (
+    None
+):
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=["Product requirements", "Evidence gaps"],
@@ -1668,9 +2698,10 @@ def test_final_publication_removes_narrowed_notice_marker_without_rewriting() ->
     assert marker not in normalized.markdown
     assert "Submit notice of economic activities to PTA" in normalized.markdown
     assert "Verify with the responsible authority whether" not in normalized.markdown
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == normalized
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
+    )
 
 
 def test_final_publication_removes_broadened_notice_marker_without_rewriting() -> None:
@@ -1741,9 +2772,10 @@ def test_final_publication_does_not_rewrite_direct_external_authority_processes(
 
     assert unsupported_process in normalized.markdown
     assert "Verify with the responsible authority whether" not in normalized.markdown
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == normalized
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
+    )
 
 
 def test_scope_prompt_splits_broad_regulatory_domains_without_inventing_law() -> None:
@@ -2065,10 +3097,13 @@ def test_final_publication_keeps_supported_marker_without_qualifier_rewrite() ->
     assert "NorthPaw is legally compliant." not in normalized.markdown
     assert "Proposed target: 35% protein." in normalized.markdown
     assert "The formula is legally compliant." not in normalized.markdown
-    assert normalized.markdown.count(
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    ) == 2
+    assert (
+        normalized.markdown.count(
+            "This planning artifact does not authorize launch; authorization remains "
+            "unresolved."
+        )
+        == 2
+    )
     assert "**Pending verification:**" not in normalized.markdown
     assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
     assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
@@ -2099,10 +3134,13 @@ def test_final_publication_preserves_duplicate_clauses_without_labels() -> None:
     normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
     assert "NorthPaw is legally compliant." not in normalized.markdown
-    assert normalized.markdown.count(
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    ) == 2
+    assert (
+        normalized.markdown.count(
+            "This planning artifact does not authorize launch; authorization remains "
+            "unresolved."
+        )
+        == 2
+    )
     assert "**Pending verification:**" not in normalized.markdown
     assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
     assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
@@ -2206,17 +3244,14 @@ def test_final_publication_preserves_scope_semantics_while_rewriting_unsafe_then
     assert "microbiological limits and pathogen thresholds" in normalized.markdown
     assert "**Pending verification:**" in normalized.markdown
     assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in (
-        normalized.markdown
-    )
+    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in (normalized.markdown)
     assert (
         "Must base regulatory and safety constraints on grounded primary evidence"
         in normalized.markdown
     )
     assert (
         "Planning artifact only; **Pending verification:** does not provide formal "
-        "regulatory sign-off"
-        in normalized.markdown
+        "regulatory sign-off" in normalized.markdown
     )
     assert cognitive_executor_module._normalize_publication_draft(
         context, normalized
@@ -2267,9 +3302,7 @@ def test_final_publication_does_not_synthesize_numeric_evidence_markers() -> Non
     ) == (normalized)
 
 
-def test_final_publication_keeps_authored_evidence_and_legal_fragment_local() -> (
-    None
-):
+def test_final_publication_keeps_authored_evidence_and_legal_fragment_local() -> None:
     market_claim = "4" * 64
     penetration_claim = "6" * 64
     marker = f"[evidence:{market_claim}]"
@@ -2318,7 +3351,9 @@ def test_final_publication_keeps_authored_evidence_and_legal_fragment_local() ->
     ) == (normalized)
 
 
-def test_final_publication_preserves_legal_and_product_content_without_rewrite() -> None:
+def test_final_publication_preserves_legal_and_product_content_without_rewrite() -> (
+    None
+):
     label_claim = "5" * 64
     marker = f"[evidence:{label_claim}]"
     supported_label = "The official label example is Täissööt täiskasvanud kassidele."
@@ -2480,9 +3515,10 @@ def test_final_publication_preserves_existing_sentinel_without_erasing_prd_targe
     ):
         assert requirement_id in normalized.markdown
     assert normalized.markdown.count("|") == draft.markdown.count("|")
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == normalized
+    assert (
+        cognitive_executor_module._normalize_publication_draft(context, normalized)
+        == normalized
+    )
 
 
 def test_final_publication_preserves_proposed_target_but_redacts_uncited_benchmark() -> (
@@ -3199,14 +4235,14 @@ async def test_revise_narrows_generic_statutory_sources_before_sealing() -> None
                 deliverables=list(accepted_scope.deliverables),
                 personas=list(accepted_scope.personas),
                 interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=list(accepted_scope.prd_requirements),
-                limits=list(accepted_scope.limits),
-                policies=list(accepted_scope.policies),
+                prd_requirements=draft_statements(accepted_scope.prd_requirements),
+                limits=draft_statements(accepted_scope.limits),
+                policies=draft_statements(accepted_scope.policies),
                 deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
                 acceptance_criteria=[
                     item.model_dump() for item in accepted_scope.acceptance_criteria
                 ],
-                assumptions=list(accepted_scope.assumptions),
+                assumptions=draft_statements(accepted_scope.assumptions),
             )
 
     revised = await GeminiCognitiveExecutor(
@@ -3274,14 +4310,14 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
                 deliverables=list(accepted_scope.deliverables),
                 personas=list(accepted_scope.personas),
                 interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=list(accepted_scope.prd_requirements),
-                limits=list(accepted_scope.limits),
-                policies=list(accepted_scope.policies),
+                prd_requirements=draft_statements(accepted_scope.prd_requirements),
+                limits=draft_statements(accepted_scope.limits),
+                policies=draft_statements(accepted_scope.policies),
                 deliverable_profile=profile,
                 acceptance_criteria=[
                     item.model_dump() for item in accepted_scope.acceptance_criteria
                 ],
-                assumptions=list(accepted_scope.assumptions),
+                assumptions=draft_statements(accepted_scope.assumptions),
             )
 
     executor = GeminiCognitiveExecutor(
@@ -3344,14 +4380,14 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
                     dict.fromkeys([*accepted_scope.personas, "Retail distributors"])
                 ),
                 interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=list(accepted_scope.prd_requirements),
-                limits=list(accepted_scope.limits),
-                policies=list(accepted_scope.policies),
+                prd_requirements=draft_statements(accepted_scope.prd_requirements),
+                limits=draft_statements(accepted_scope.limits),
+                policies=draft_statements(accepted_scope.policies),
                 deliverable_profile=profile,
                 acceptance_criteria=[
                     item.model_dump() for item in accepted_scope.acceptance_criteria
                 ],
-                assumptions=list(accepted_scope.assumptions),
+                assumptions=draft_statements(accepted_scope.assumptions),
             )
 
     async def revise(scope_result, correction: str, operation_id: str):
@@ -3392,7 +4428,14 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
         AUTHORITY_KEY,
         artifact_resolver=Resolver(revised.artifact),
     ).execute(research_operation(revised))
-    assert revised.artifact.payload["policies"] == owner_policies
+    expected_policies = sorted(
+        [
+            "Candidate internal proposal (not verified external authority): " + value
+            for value in owner_policies
+        ],
+        key=lambda value: value.encode("utf-16-be"),
+    )
+    assert revised.artifact.payload["policies"] == expected_policies
     assert (
         revised.artifact.payload["evidenceRequirements"][0]["criticality"] == "blocking"
     )
@@ -3409,7 +4452,7 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
         AUTHORITY_KEY,
         artifact_resolver=Resolver(decision.artifact),
     ).execute(research_operation(decision))
-    assert decision.artifact.payload["policies"] == owner_policies
+    assert decision.artifact.payload["policies"] == expected_policies
     assert decision_research.artifact.payload["findings"][0]["blocking"] is True
     assert decision_research.evidence_readiness == "blocked"
 
@@ -3980,7 +5023,9 @@ def test_product_prd_compacts_uncovered_requirements_into_one_stable_gate() -> N
         ],
         "personas": ["A buyer deciding whether the proposed product meets their job"],
         "interview_requirements": ["Interview representative buyers"],
-        "prd_requirements": ["The package remains intact during the defined handling test"],
+        "prd_requirements": [
+            "The package remains intact during the defined handling test"
+        ],
         "limits": ["Planning only; no launch authorization"],
         "policies": ["Unsupported safety claims cannot advance"],
         "draft_criteria": [
@@ -3994,53 +5039,45 @@ def test_product_prd_compacts_uncovered_requirements_into_one_stable_gate() -> N
     _, requirements, criteria = first
 
     assert first == repeated
-    assert len(criteria) == len(explicit_semantics) + 1
+    assert len(criteria) == len(explicit_semantics) + 2
     requirement_by_description = {item.description: item for item in requirements}
-    expected_semantics = {
-        canonical_hash(
-            {
-                **{key: value for key, value in semantic.items() if key != "supports"},
-                "supports": sorted(
-                    requirement_by_description[description].id
-                    for description in semantic["supports"]
-                ),
-            }
-        )
-        for semantic in explicit_semantics
-    }
     authored_supports = {
         requirement_by_description[description].id
         for semantic in explicit_semantics
         for description in semantic["supports"]
     }
-    aggregate = next(
-        item
-        for item in criteria
-        if item.given.startswith("The accepted product plan has requirements")
+    evidence_ids = {item.id for item in requirements if item.category == "evidence"}
+    aggregate_supports = {item.id for item in requirements}.difference(
+        authored_supports, evidence_ids
     )
-    assert set(aggregate.supports) == {
-        item.id for item in requirements
-    }.difference(authored_supports)
+    aggregate = next(
+        item for item in criteria if set(item.supports) == aggregate_supports
+    )
     aggregate_semantic = aggregate.model_dump(
         mode="json", by_alias=True, exclude={"id"}
     )
     assert aggregate.id == f"acc-{canonical_hash(aggregate_semantic)[:16]}"
-    assert {item.id for item in criteria} == {
-        f"acc-{semantic_hash[:16]}" for semantic_hash in expected_semantics
-    } | {aggregate.id}
     supported = {
         requirement_id for item in criteria for requirement_id in item.supports
     }
     assert supported == {item.id for item in requirements}
-    assert "observable product or operational decision" in aggregate.then
-    assert "A high-stakes threshold is adopted only" in aggregate.then
-    assert "exact accepted evidence and qualified-owner review" in aggregate.then
+    assert "Record the supported proposals" in aggregate.then
+    assert all(
+        any(semantic["then"] in item.then for item in criteria)
+        for semantic in explicit_semantics
+    )
+    evidence_gate = next(
+        item for item in criteria if set(item.supports) == evidence_ids
+    )
+    assert "does not itself establish external authority" in evidence_gate.then
     assert "pass/fail threshold" not in aggregate.then
     assert all(
-        item.given
-        != "The accepted deliverable profile and immutable evidence boundary"
-        and item.when
-        != "The candidate artifact is evaluated against the accepted scope"
+        item.given != "The accepted deliverable profile and immutable evidence boundary"
+        and (
+            "not verified external authority" in item.given
+            or "unresolved evidence-dependent" in item.given
+            or "candidate product" in item.given
+        )
         for item in criteria
     )
 
@@ -6447,9 +7484,8 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         "user segments, jobs to be done, pains, and buying roles"
         in semantic_method["analysisAreas"]
     )
-    assert (
-        "measurable validation experiments with owners and decision thresholds"
-        in (semantic_method["analysisAreas"])
+    assert "measurable validation experiments with owners and decision thresholds" in (
+        semantic_method["analysisAreas"]
     )
     assert any(
         "explicit hypothesis or proposal" in rule
@@ -6531,7 +7567,8 @@ def test_final_repair_prompt_keeps_raw_core_as_untrusted_data_without_wrappers()
     )
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
         {
-            "line": unsafe.splitlines().index("The formula is safe for adult cats.") + 1,
+            "line": unsafe.splitlines().index("The formula is safe for adult cats.")
+            + 1,
             "unitIndex": 0,
             "sectionLine": unsafe.splitlines().index("## Formula safety") + 1,
             "anchorId": None,
@@ -6540,9 +7577,7 @@ def test_final_repair_prompt_keeps_raw_core_as_untrusted_data_without_wrappers()
     ]
     prompt_without_base = {**payload}
     prompt_without_base.pop("BASE_MARKDOWN")
-    assert "The formula is safe for adult cats." not in json.dumps(
-        prompt_without_base
-    )
+    assert "The formula is safe for adult cats." not in json.dumps(prompt_without_base)
     assert "An unresolved evidence requirement is asserted" not in json.dumps(
         prompt_without_base
     )
@@ -6971,7 +8006,13 @@ async def test_owner_policies_are_preserved_without_hidden_planning_marker() -> 
     ).execute(envelope_for(compile_input(B01_REQUEST)))
 
     policies = compiled.artifact.payload["policies"]
-    assert policies == owner_policies
+    assert policies == sorted(
+        [
+            "Candidate internal proposal (not verified external authority): " + value
+            for value in owner_policies
+        ],
+        key=lambda value: value.encode("utf-16-be"),
+    )
     assert len(policies) == 40
 
 
@@ -7602,9 +8643,7 @@ async def test_nonstatutory_google_locator_becomes_evidence_only_after_direct_re
                     "search_performed": True,
                     "provider": "gemini_google_search",
                     "text": generated,
-                    "claims": [
-                        {"text": generated, "source_urls": [source_url]}
-                    ],
+                    "claims": [{"text": generated, "source_urls": [source_url]}],
                     "sources": [{"title": "Market report", "url": source_url}],
                     "provider_queries": ["bounded market query"],
                     "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
@@ -7616,9 +8655,7 @@ async def test_nonstatutory_google_locator_becomes_evidence_only_after_direct_re
                 "search_performed": True,
                 "provider": "searxng_direct_fetch",
                 "text": publisher_exact,
-                "claims": [
-                    {"text": publisher_exact, "source_urls": [source_url]}
-                ],
+                "claims": [{"text": publisher_exact, "source_urls": [source_url]}],
                 "sources": [{"title": "Market report", "url": source_url}],
                 "provider_queries": ["same-operation locator refetch"],
                 "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
@@ -7643,9 +8680,10 @@ async def test_nonstatutory_google_locator_becomes_evidence_only_after_direct_re
     assert generated not in json.dumps(result.artifact.payload["sourceCatalogue"])
     repaired_claim = ledger[1]["claims"][0]
     assert repaired_claim["text"] == publisher_exact
-    assert repaired_claim["providerResponseHash"] == hashlib.sha256(
-        publisher_exact.encode("utf-8")
-    ).hexdigest()
+    assert (
+        repaired_claim["providerResponseHash"]
+        == hashlib.sha256(publisher_exact.encode("utf-8")).hexdigest()
+    )
     assert repaired_claim["segmentStart"] == 0
     assert repaired_claim["segmentEnd"] == len(publisher_exact.encode("utf-8"))
 
@@ -8237,12 +9275,13 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     assert claim["segmentEnd"] == len(exact.encode("utf-8"))
     assert claim["sourceUrls"] == [official_url]
     assert [
-        source["canonicalUrl"]
-        for source in result.artifact.payload["sourceCatalogue"]
+        source["canonicalUrl"] for source in result.artifact.payload["sourceCatalogue"]
     ] == [official_url]
     response_bytes = repaired["providerResponseText"].encode("utf-8")
     exact_span = response_bytes[claim["segmentStart"] : claim["segmentEnd"]]
-    assert hashlib.sha256(response_bytes).hexdigest() == repaired["providerResponseHash"]
+    assert (
+        hashlib.sha256(response_bytes).hexdigest() == repaired["providerResponseHash"]
+    )
     assert exact_span.decode("utf-8") == claim["text"]
     assert hashlib.sha256(exact_span).hexdigest() == claim["textSha256"]
 
@@ -8620,14 +9659,14 @@ async def test_compile_and_revise_cannot_invent_publisher_restrictions() -> None
         "deliverables": accepted.deliverables,
         "personas": accepted.personas,
         "interview_requirements": accepted.interview_requirements,
-        "prd_requirements": accepted.prd_requirements,
-        "limits": accepted.limits,
-        "policies": accepted.policies,
+        "prd_requirements": draft_statements(accepted.prd_requirements),
+        "limits": draft_statements(accepted.limits),
+        "policies": draft_statements(accepted.policies),
         "deliverable_profile": accepted.deliverable_profile.model_dump(),
         "acceptance_criteria": [
             item.model_dump() for item in accepted.acceptance_criteria
         ],
-        "assumptions": accepted.assumptions,
+        "assumptions": draft_statements(accepted.assumptions),
         "material_clarification": accepted.material_clarification,
     }
     preserved = ScopeRevisionDraft.model_validate(base)
@@ -8728,6 +9767,7 @@ async def test_scope_assumption_never_yields_launch_ready() -> None:
     assert result.evidence_readiness == "ready_with_gaps"
     assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["assumptions"] == [
+        "Candidate internal proposal (not verified external authority): "
         "Pricing is an unverified owner assumption."
     ]
 
@@ -12285,8 +13325,7 @@ def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
     shared = (
         "PTA notification filing is mandatory before distribution for the applicable "
         "authority procedure and the responsible operator review "
-        + "within the documented compliance boundary "
-        * 4
+        + "within the documented compliance boundary " * 4
     )
     cited = shared + "with exact immutable support"
     context = SynthesisContext(
@@ -12337,8 +13376,7 @@ def test_task_preserves_supported_line_before_long_uncited_prefix_collision() ->
     shared = (
         "PTA notification filing is mandatory before distribution for the applicable "
         "authority procedure and the responsible operator review "
-        + "within the documented compliance boundary "
-        * 4
+        + "within the documented compliance boundary " * 4
     )
     cited = shared + "with exact immutable support"
     unsupported = shared + "without evidence"
@@ -13438,8 +14476,7 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
         "# Product requirements document\n\n"
         + "Accepted scope, accepted plan, evidence status, PRD requirements, and source "
         "artifacts are listed without doing the requested work. "
-        + "Context only. "
-        * 115
+        + "Context only. " * 115
     )
     substantive, practicality = _deterministic_quality_defects(
         shell, practical_output_required=True
