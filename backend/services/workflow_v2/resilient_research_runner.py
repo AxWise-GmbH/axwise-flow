@@ -51,7 +51,10 @@ _FALLBACK_PRIMARY_STATUSES = frozenset(
 )
 _HEALTHY_DISCOVERY_STATUSES = frozenset({"ok", "empty"})
 _CONFIGURED_DISCOVERY_ENGINES = frozenset({"bing", "brave", "duckduckgo", "google"})
-_MAX_DOCUMENT_CHARACTERS = MAX_DOCUMENT_CODE_POINTS
+# Keep the exact-span model input compact enough to finish inside the existing
+# fallback extraction deadline. The fetcher still hashes the complete publisher
+# document; only the deterministic, relevance-ranked extraction window is bounded.
+_MAX_DOCUMENT_CHARACTERS = 40_000
 _MAX_DISCOVERY_QUERY_CHARACTERS = 2_000
 _MAX_DIAGNOSTIC_CALLS = 100
 _MAX_DIAGNOSTIC_ELAPSED_MS = 900_000

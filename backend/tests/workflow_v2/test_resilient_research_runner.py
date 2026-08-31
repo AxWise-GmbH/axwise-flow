@@ -1907,6 +1907,38 @@ async def test_requirement_terms_locate_reused_evidence_beyond_prefix() -> None:
 
 
 @pytest.mark.asyncio
+async def test_default_relevant_window_is_compact_for_long_legal_documents() -> None:
+    reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
+    exact = "Mandatory labeling includes declarations of analytical constituents."
+    raw_text = "Unrelated publisher preface. " * 2_500 + exact + " Final annex."
+    extractor = ExactExtractor(exact)
+
+    async def fetch(url: str) -> dict:
+        assert url == reused_url
+        return document(url, raw_text)
+
+    result = await ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(discovery(status="empty", search_performed=False)),
+        fetcher=fetch,
+        extractor=extractor,
+    ).search(
+        server_query(
+            description=(
+                "Verify mandatory labeling declarations of analytical constituents."
+            ),
+            fallback_candidates=[{"url": reused_url, "title": "EUR-Lex"}],
+        )
+    )
+
+    assert result["claims"][0]["text"] == exact
+    selected_text = extractor.requests[0].documents[0].text
+    assert len(selected_text) == 40_000
+    assert exact in selected_text
+    assert not selected_text.startswith("Unrelated publisher preface")
+
+
+@pytest.mark.asyncio
 async def test_requirement_window_avoids_repetitive_early_locator_decoy() -> None:
     reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
     locator_terms = "labeling rules assessing Estonia market entry "
