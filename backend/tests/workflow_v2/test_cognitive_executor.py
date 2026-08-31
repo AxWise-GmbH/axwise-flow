@@ -7194,7 +7194,7 @@ def test_grounded_claim_rejects_a_different_legal_instrument_and_appendix_mappin
     assert catalogue == []
 
 
-def test_provision_specific_google_grounding_and_direct_span_are_evidence() -> (
+def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evidence() -> (
     None
 ):
     text = "Article 29 of Regulation (EC) No 1069/2009 requires documented controls."
@@ -7224,10 +7224,7 @@ def test_provision_specific_google_grounding_and_direct_span_are_evidence() -> (
         provider="searxng_direct_fetch",
     )
 
-    assert google is not None
-    assert google.segment_start == 0
-    assert google.segment_end == len(text.encode("utf-8"))
-    assert google.provider_response_hash == response_hash
+    assert google is None
     assert direct is not None
     assert direct.segment_start == 0
     assert direct.segment_end == len(text.encode("utf-8"))
@@ -7252,7 +7249,7 @@ def test_statutory_claim_rejects_an_untyped_provider_even_on_an_official_host() 
     assert claim is None
 
 
-def test_exact_google_statutory_grounding_is_evidence_without_a_provision_number() -> (
+def test_every_google_statutory_claim_is_locator_only_without_a_provision_number() -> (
     None
 ):
     text = "Regulation (EC) No 1069/2009 establishes operational controls."
@@ -7270,13 +7267,14 @@ def test_exact_google_statutory_grounding_is_evidence_without_a_provision_number
         text,
     )
 
-    google = _claim_from_grounding(
-        *arguments,
-        requirement=_generic_statutory_requirement(),
-        provider="gemini_google_search",
+    assert (
+        _claim_from_grounding(
+            *arguments,
+            requirement=_generic_statutory_requirement(),
+            provider="gemini_google_search",
+        )
+        is None
     )
-    assert google is not None
-    assert google.text == text
     assert (
         _claim_from_grounding(
             *arguments,
@@ -7301,7 +7299,7 @@ def test_exact_google_statutory_grounding_is_evidence_without_a_provision_number
         "§ 5",
     ],
 )
-def test_every_statutory_provision_form_accepts_exact_grounding_or_direct_span(
+def test_every_statutory_provision_form_requires_a_direct_exact_span(
     provision: str,
 ) -> None:
     text = f"{provision} of Regulation (EC) No 1069/2009 establishes a control."
@@ -7319,13 +7317,14 @@ def test_every_statutory_provision_form_accepts_exact_grounding_or_direct_span(
         text,
     )
 
-    google = _claim_from_grounding(
-        *arguments,
-        requirement=_generic_statutory_requirement(),
-        provider="gemini_google_search",
+    assert (
+        _claim_from_grounding(
+            *arguments,
+            requirement=_generic_statutory_requirement(),
+            provider="gemini_google_search",
+        )
+        is None
     )
-    assert google is not None
-    assert google.text == text
     assert (
         _claim_from_grounding(
             *arguments,
@@ -7424,7 +7423,7 @@ async def test_grounded_claim_basis_keeps_bounded_dynamic_acquisition(
 
 
 @pytest.mark.asyncio
-async def test_exact_gemini_grounding_satisfies_statutory_research_without_refetch() -> (
+async def test_exact_gemini_grounding_cannot_satisfy_statutory_research_without_refetch() -> (
     None
 ):
     compiled = await compiled_scope(
@@ -7436,14 +7435,13 @@ async def test_exact_gemini_grounding_satisfies_statutory_research_without_refet
 
     result = await execute_research(compiled, runner)
 
-    assert result.evidence_readiness == "ready"
-    assert result.artifact.payload["boundedRepairPasses"] == 0
-    assert result.artifact.payload["findings"][0]["status"] == "verified"
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert result.artifact.payload["findings"][0]["status"] == "missing"
     ledger = result.artifact.payload["claimLedger"]
-    assert len(ledger) == 1
-    assert ledger[0]["passNumber"] == 0
-    assert len(ledger[0]["claims"]) == 1
-    assert len(result.artifact.payload["sourceCatalogue"]) == 1
+    assert [entry["passNumber"] for entry in ledger] == [0, 1]
+    assert all(entry["claims"] == [] for entry in ledger)
+    assert result.artifact.payload["sourceCatalogue"] == []
 
 
 @pytest.mark.asyncio
@@ -7944,6 +7942,7 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     None
 ):
     official_url = "https://pta.agri.ee/en/feed"
+    exact = "Feed business operators must register their feed establishments."
 
     class RawLocatorThenVerifiedRunner:
         def __init__(self) -> None:
@@ -7963,10 +7962,15 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
                     "provider": "gemini_google_search",
                     "text": generated,
                     "claims": [{"text": generated, "source_urls": [official_url]}],
-                    # These URLs were parsed from unverified provider prose by
-                    # the resilient runner. They are repair locators only and
-                    # must not validate the primary claim above.
-                    "sources": [],
+                    # Even an otherwise admissible official Google source is a
+                    # repair locator only. It must not validate provider-written
+                    # statutory prose without an independent publisher refetch.
+                    "sources": [
+                        {
+                            "title": "Agriculture and Food Board",
+                            "url": official_url,
+                        }
+                    ],
                     "same_operation_locators": [
                         {"title": "Agriculture and Food Board", "url": official_url},
                         {
@@ -7981,7 +7985,6 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
             assert payload["fallbackCandidateSources"] == [
                 {"title": "Agriculture and Food Board", "url": official_url}
             ]
-            exact = "Feed business operators must register their feed establishments."
             return {
                 "search_performed": True,
                 "provider": "searxng_direct_fetch",
@@ -8013,22 +8016,27 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     assert result.evidence_readiness == "ready"
     assert result.artifact.payload["findings"][0]["status"] == "verified"
     assert result.artifact.payload["boundedRepairPasses"] == 1
-    assert len(result.artifact.payload["claimLedger"]) == 2
-    initial, ledger = result.artifact.payload["claimLedger"]
-    assert initial["passNumber"] == 0
+    ledger_entries = result.artifact.payload["claimLedger"]
+    assert [entry["passNumber"] for entry in ledger_entries] == [0, 1]
+    initial, repaired = ledger_entries
     assert initial["claims"] == []
-    assert ledger["passNumber"] == 1
-    assert ledger["providerResponseText"] == (
-        "Feed business operators must register their feed establishments."
-    )
-    assert ledger["claims"][0]["segmentStart"] == 0
-    assert ledger["claims"][0]["segmentEnd"] == len(
-        ledger["providerResponseText"].encode("utf-8")
-    )
-    response_bytes = ledger["providerResponseText"].encode("utf-8")
-    claim = ledger["claims"][0]
+    assert repaired["providerResponseText"] == exact
+    expected_hash = hashlib.sha256(exact.encode("utf-8")).hexdigest()
+    assert repaired["providerResponseHash"] == expected_hash
+    claim = repaired["claims"][0]
+    assert claim["text"] == exact
+    assert claim["textSha256"] == expected_hash
+    assert claim["providerResponseHash"] == expected_hash
+    assert claim["segmentStart"] == 0
+    assert claim["segmentEnd"] == len(exact.encode("utf-8"))
+    assert claim["sourceUrls"] == [official_url]
+    assert [
+        source["canonicalUrl"]
+        for source in result.artifact.payload["sourceCatalogue"]
+    ] == [official_url]
+    response_bytes = repaired["providerResponseText"].encode("utf-8")
     exact_span = response_bytes[claim["segmentStart"] : claim["segmentEnd"]]
-    assert hashlib.sha256(response_bytes).hexdigest() == ledger["providerResponseHash"]
+    assert hashlib.sha256(response_bytes).hexdigest() == repaired["providerResponseHash"]
     assert exact_span.decode("utf-8") == claim["text"]
     assert hashlib.sha256(exact_span).hexdigest() == claim["textSha256"]
 
