@@ -1943,6 +1943,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
 _IMMUTABLE_GAP_SECTION_HEADINGS = frozenset(
     {
         "Immutable evidence gaps and assumptions",
+        "Immutable Gaps and Assumptions Register",
         "Other immutable gaps and assumptions",
     }
 )
@@ -3182,7 +3183,17 @@ def _precision_values(value: str) -> set[str]:
     normalized = unicodedata.normalize("NFKC", value)
     normalized = re.sub(r"\\text\{([^}]*)\}", r"\1", normalized)
     normalized = re.sub(
-        r"\b(?:at\s+least|no\s+less\s+than)\s+(?=\d)",
+        r"\$(?P<formula>[^$\n]{1,200})\$",
+        lambda match: (
+            match.group("formula")
+            if "\\" in match.group("formula")
+            else match.group(0)
+        ),
+        normalized,
+    )
+    normalized = re.sub(r"(?<!\\)[*_`]", "", normalized)
+    normalized = re.sub(
+        r"\b(?:at\s+least|no\s+less\s+than|(?:a\s+)?minimum(?:\s+of)?)\s+(?=\d)",
         ">=",
         normalized,
         flags=re.IGNORECASE,
@@ -3584,7 +3595,7 @@ def _deterministic_evidence_integrity_defects(
                 # authority claim still pass through the exact same checks below.
                 continue
         elif (
-            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
+            _is_immutable_gap_heading(current_heading)
             and stripped in immutable_gap_bullets
         ):
             # This exact line is appended by AxWise to preserve an immutable unresolved
@@ -4057,6 +4068,7 @@ def _handled_task_evidence_defect(
             "Unsupported factual precision requires an exact evidence marker",
             "Cited immutable claims do not support every exact value in this assertion",
             "Cited immutable claims do not semantically support this exact assertion",
+            "Cited immutable claims do not support this narrowed authority process assertion",
         )
     ):
         return None
@@ -8582,11 +8594,12 @@ class PydanticAISynthesisWriter:
         # diagnostic prose and not a server-rewritten draft. Stale diagnostics are
         # discarded so they cannot cause the model to recreate absent text.
         base_lines = base.markdown.splitlines()
-        normalized_lines = [re.sub(r"\s+", " ", line).strip() for line in base_lines]
         line_section_lines: list[int | None] = []
         line_anchors: list[str | None] = []
+        line_context_titles: list[str] = []
         section_line: int | None = None
         structural_anchor: str | None = None
+        structural_context_title = ""
         for line_number, line in enumerate(base_lines, start=1):
             heading_match = re.match(
                 r"^\s*(?P<marks>#{2,6})\s+(?P<title>.+?)\s*$", line
@@ -8600,51 +8613,517 @@ class PydanticAISynthesisWriter:
                     section_line = line_number
                 if heading_level <= 3:
                     structural_anchor = None
+                    structural_context_title = heading_match.group("title")
                 if heading_level == 3 and anchors:
                     structural_anchor = anchors[0]
             line_section_lines.append(section_line)
             line_anchors.append(anchors[0] if anchors else structural_anchor)
+            line_context_titles.append(structural_context_title)
 
-        unsupported_locators: list[dict[str, Any]] = []
-        seen_locators: set[tuple[int, str | None]] = set()
+        accepted_requirement_definitions = [
+            (
+                item.get("id", "").casefold(),
+                _normalized_semantic_text(item.get("description", "")),
+            )
+            for item in scope_payload.get("requirements", [])
+            if isinstance(item, dict)
+            and isinstance(item.get("id"), str)
+            and isinstance(item.get("description"), str)
+        ]
+        accepted_bounded_statements = {
+            field: {
+                _normalized_semantic_text(item).rstrip(".")
+                for item in scope_payload.get(field, [])
+                if isinstance(item, str) and _normalized_semantic_text(item)
+            }
+            for field in ("assumptions", "limits", "policies")
+        }
+
+        def is_accepted_bounded_context(value: str, line_index: int) -> bool:
+            normalized_context = _normalized_semantic_text(
+                line_context_titles[line_index]
+            )
+            requirement_definition_context = (
+                "requirement" in normalized_context
+                and "acceptance" not in normalized_context
+                and "criterion" not in normalized_context
+            )
+            if requirement_definition_context:
+                for requirement_id, description in accepted_requirement_definitions:
+                    if not requirement_id or not description:
+                        continue
+                    definition_match = re.match(
+                        rf"^\s*(?:[-+*]\s*)?(?:\*\*)?\[?"
+                        rf"{re.escape(requirement_id)}\]?(?:\*\*)?\s*:?[\s*]*"
+                        r"(?P<description>.+?)\s*$",
+                        value,
+                        re.IGNORECASE,
+                    )
+                    if definition_match is not None and (
+                        _normalized_semantic_text(
+                            definition_match.group("description").strip("*_` ")
+                        ).rstrip(".")
+                        == description.rstrip(".")
+                    ):
+                        return True
+            bounded_value = re.sub(r"^\s*(?:(?:[-+*]|\d+[.)])\s+)", "", value).strip()
+            semantic = _normalized_semantic_text(bounded_value).rstrip(".")
+            labeled = re.match(
+                r"^(?P<label>assumption|limit|policy)\s*:\s*(?P<value>.+)$",
+                bounded_value,
+                re.IGNORECASE,
+            )
+            if labeled is not None:
+                field = {
+                    "assumption": "assumptions",
+                    "limit": "limits",
+                    "policy": "policies",
+                }[labeled.group("label").casefold()]
+                return (
+                    _normalized_semantic_text(labeled.group("value")).rstrip(".")
+                    in accepted_bounded_statements[field]
+                )
+            if "acceptance" in normalized_context or "criterion" in normalized_context:
+                return False
+            field_context_tokens = {
+                "assumptions": ("assumption", "evidence gap", "open gap"),
+                "limits": ("boundary", "limit", "non goal", "scope"),
+                "policies": ("constraint", "guardrail", "policy", "requirement"),
+            }
+            return any(
+                semantic in accepted_bounded_statements[field]
+                and any(token in normalized_context for token in context_tokens)
+                for field, context_tokens in field_context_tokens.items()
+            )
+
+        def line_units(line: str) -> list[tuple[int, str]]:
+            if "|" not in line:
+                return [(0, line)]
+            return [
+                (unit_index, cell.replace(r"\|", "|").strip())
+                for unit_index, cell in enumerate(
+                    re.split(r"(?<!\\)\|", line.strip("|")), start=1
+                )
+                if cell.strip()
+            ]
+
+        def is_pure_publication_nonauthorization(value: str) -> bool:
+            cleaned = re.sub(r"[*_`]", "", value).strip()
+            cleaned = re.sub(r"^(?:[-+]\s+|\d+[.)]\s+)", "", cleaned).strip()
+            cleaned = re.sub(
+                r"^(?:no\s+launch\s+authorization|launch\s+status)\s*:\s*",
+                "",
+                cleaned,
+                flags=re.IGNORECASE,
+            )
+            match = _PUBLICATION_SAFE_NONAUTHORIZATION.search(cleaned)
+            if match is None:
+                return False
+            prefix = cleaned[: match.start()].strip().casefold()
+            suffix = cleaned[match.end() :].strip(" .;:")
+            return prefix in {"", "the", "this"} and not suffix
+
+        def is_authority_answer(line_index: int, unit_index: int, value: str) -> bool:
+            cleaned = re.sub(r"[*_`]", "", value).strip()
+            if re.match(
+                r"^(?:[-+]\s*)?(?:evidence[- ]gap|gap)-[a-z0-9-]+\s*:",
+                cleaned,
+                re.IGNORECASE,
+            ):
+                return False
+            if not cleaned or is_accepted_bounded_context(cleaned, line_index):
+                return False
+            if _is_pure_evidence_status_or_withholding(
+                cleaned
+            ) or is_pure_publication_nonauthorization(cleaned):
+                return False
+            if re.match(
+                r"^(?:[-+]\s*)?(?:strictly\s+)?distinguish\b",
+                cleaned,
+                re.IGNORECASE,
+            ):
+                return False
+            if re.match(
+                r"^(?:[-+]\s*)?(?:(?:exclusion|boundary)\s+of\s+[^:]{1,80}:\s*)?"
+                r"(?:explicitly\s+)?(?:exclude|excludes|forbid|forbids|prohibit|"
+                r"prohibits)\b[^.;\n]{0,180}\b(?:claims?|diet|prescription|"
+                r"therapeutic|treatment)\b",
+                cleaned,
+                re.IGNORECASE,
+            ):
+                return False
+            if unit_index == 0 and re.match(r"^\s*#{1,6}\s+", value):
+                return False
+            normalized_context = _normalized_semantic_text(
+                line_context_titles[line_index]
+            )
+            explicit_requirement_ids = {
+                match.group(0).casefold()
+                for match in re.finditer(
+                    r"\breq-[a-f0-9]{16}\b",
+                    base_lines[line_index],
+                    re.IGNORECASE,
+                )
+            }
+            requirement_definition_context = (
+                "requirement" in normalized_context
+                and "acceptance" not in normalized_context
+                and "criterion" not in normalized_context
+            )
+            if requirement_definition_context:
+                semantic = _normalized_semantic_text(cleaned).rstrip(".")
+                accepted_row_definitions = {
+                    description.rstrip(".")
+                    for requirement_id, description in accepted_requirement_definitions
+                    if requirement_id in explicit_requirement_ids
+                }
+                if semantic in accepted_row_definitions:
+                    return False
+            if re.search(r"\?\s*$", cleaned):
+                return False
+            if re.search(
+                r"\b(?:social|functional)\s+job\b|"
+                r"\bjurisdictional\s+boundary\b|"
+                r"\bcontext\s*&\s*segment\b",
+                cleaned,
+                re.IGNORECASE,
+            ):
+                return False
+            external_process = _has_external_authority_process_execution(cleaned)
+            process_outcome = re.search(
+                r"\b(?:issue|obtain|receive|secure)\b[^.;\n]{0,120}\b"
+                r"(?:certificate|confirmation)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            external_duty = _has_external_authority_duty_assertion(cleaned)
+            label_duty = _has_label_authority_duty_assertion(cleaned)
+            authority_predicate = bool(
+                re.search(
+                    r"\b(?:approv(?:e|es|ed|al)|authori[sz](?:e|ed|ation)|"
+                    r"certif(?:y|ied|ication)|compl(?:y|ies|iant|iance)|legally|"
+                    r"mandat(?:e|es|ed|ory)|requir(?:e|es|ed|ing)|shall|statutory|"
+                    r"must)\b",
+                    cleaned,
+                    re.IGNORECASE,
+                )
+                or re.search(r"\b(?:not\s+)?safe\b|\bunsafe\b", cleaned, re.IGNORECASE)
+            )
+            external_context = (
+                _EXTERNAL_AUTHORITY_CONTEXT.search(cleaned) is not None
+                or _LABEL_AUTHORITY_DUTY_CONTEXT.search(cleaned) is not None
+                or re.search(
+                    r"\bfeed\s+hygiene\b|"
+                    r"\b(?:eu|european\s+union)\b[^.;\n]{0,120}\b"
+                    r"(?:approv(?:e|es|ed|al)|authori[sz]|certif|compli|"
+                    r"law|legal|regulat)|"
+                    r"\b(?:approv(?:e|es|ed|al)|authori[sz]|certif|compli|"
+                    r"law|legal|regulat)\w*\b[^.;\n]{0,120}\b"
+                    r"(?:eu|european\s+union)\b",
+                    cleaned,
+                    re.IGNORECASE,
+                )
+                is not None
+            )
+            high_stakes_domain = re.search(
+                r"\b(?:clinical|disease|fediaf|haccp|health|laborator(?:y|ies)|"
+                r"legal(?:ly)?|microbi(?:al|ological)|nutrition(?:al)?|pathogen|"
+                r"regulat(?:ion|ory)|safe(?:ty)?|salmonella|statutory|therapeutic|"
+                r"toxic(?:ity|ological)|urinary)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            high_stakes_causality = re.search(
+                r"\b(?:causes?|leads?\s+to|results?\s+in)\b[^.;\n]{0,160}\b"
+                r"(?:disease|harm|injury|microbi(?:al|ological)|pathogen|"
+                r"salmonella|unsafe)\b|"
+                r"\b(?:disease|harm|injury|microbi(?:al|ological)|pathogen|"
+                r"salmonella|unsafe)\b[^.;\n]{0,160}\b"
+                r"(?:causes?|leads?\s+to|results?\s+in)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            high_stakes_effect = re.search(
+                r"\b(?:cures?|prevents?|protects?\s+against|"
+                r"reduces?\s+(?:the\s+)?risk\s+of|treats?)\b"
+                r"[^.;\n]{0,160}\b(?:disease|harm|injury|microbi(?:al|ological)|"
+                r"pathogen|salmonella|toxicity|urinary)\b|"
+                r"\b(?:disease|harm|injury|microbi(?:al|ological)|pathogen|"
+                r"salmonella|toxicity|urinary)\b[^.;\n]{0,160}\b"
+                r"(?:cures?|prevents?|protects?\s+against|"
+                r"reduces?\s+(?:the\s+)?risk\s+of|treats?)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            internal_review_control = re.search(
+                r"\b(?:application|platform|system|team|training|user|workflow|worker)\b"
+                r"[^.;\n]{0,100}\b(?:must|shall|require(?:s|d)?)\b"
+                r"[^.;\n]{0,100}\b(?:check|review|screen|validate|verify)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            if (
+                internal_review_control is not None
+                and not external_process
+                and not external_duty
+                and not label_duty
+            ):
+                return False
+            strong_authority = bool(
+                external_process
+                or (process_outcome and (external_context or high_stakes_domain))
+                or external_duty
+                or label_duty
+                or (authority_predicate and (external_context or high_stakes_domain))
+                or high_stakes_causality
+                or high_stakes_effect
+            )
+            if (
+                any(
+                    token in normalized_context
+                    for token in ("assumption", "evidence gap", "open gap")
+                )
+                and not strong_authority
+            ):
+                return False
+            if (
+                re.search(
+                    r"\b(?:actionable mitigation|authoritative (?:verification )?action|"
+                    r"audit|consult|distinguish|execute|finalize|implement|outline|perform|"
+                    r"review|screen|submit (?:pilot|samples?))\b",
+                    cleaned,
+                    re.IGNORECASE,
+                )
+                and not strong_authority
+            ):
+                return False
+            return strong_authority
+
+        def marker_defect_class(value: str) -> str:
+            prefix = value.partition(": ")[0]
+            return re.sub(r"\s*\([^()]*\)\s*$", "", prefix)
+
+        marker_unit_defects: dict[str, list[str]] = {}
+
+        def marker_unit_is_exactly_supported(
+            value: str, *, minimum_matches: int | None = None
+        ) -> bool:
+            markers = [
+                match.group(1)
+                for match in _RAW_EVIDENCE_MARKER.finditer(value)
+                if match.group(1) in context.allowed_claim_texts
+            ]
+            if not markers:
+                return False
+            cited_texts = [
+                context.allowed_claim_texts[claim_id] for claim_id in markers
+            ]
+            assertion = _RAW_EVIDENCE_MARKER.sub("", value)
+            assertion_values = _precision_values(assertion)
+            supported_values: set[str] = set()
+            for text in cited_texts:
+                claim_values = _precision_values(text)
+                supported_values.update(claim_values)
+                for claim_value in claim_values:
+                    if numeric_prefix := re.match(
+                        r"^(?:[<>]=?)?(?P<number>\d+(?:\.\d+)?)", claim_value
+                    ):
+                        supported_values.add(numeric_prefix.group("number"))
+                    if re.search(r"\bminimum\b", text, re.IGNORECASE):
+                        supported_values.add(">=" + re.sub(r"^[<>]=?", "", claim_value))
+            if assertion_values - supported_values:
+                return False
+            assertion_tokens = _support_tokens(assertion)
+            return _claims_align_with_assertion(
+                assertion,
+                cited_texts,
+                minimum_matches=(
+                    minimum_matches
+                    if minimum_matches is not None
+                    else min(2, max(1, len(assertion_tokens)))
+                ),
+            )
+
+        def marker_validation_unit(line_index: int, unit_index: int, value: str) -> str:
+            if unit_index == 0:
+                return value
+            preceding = [
+                candidate
+                for candidate_index, candidate in line_units(base_lines[line_index])
+                if candidate_index < unit_index
+            ]
+            for candidate in reversed(preceding):
+                descriptor = re.sub(
+                    r"\s+",
+                    " ",
+                    _RAW_EVIDENCE_MARKER.sub("", re.sub(r"[*_`]", "", candidate)),
+                ).strip()
+                if (
+                    not re.search(r"[A-Za-z]", descriptor)
+                    or _precision_values(descriptor)
+                    or re.fullmatch(r":?-{3,}:?", descriptor)
+                ):
+                    continue
+                return f"{descriptor}: {value}"
+            return value
+
+        def unit_reproduces_marker_defect(
+            line_index: int,
+            unit_index: int,
+            value: str,
+            defect: str,
+            probe: str,
+        ) -> bool:
+            if _RAW_EVIDENCE_MARKER.search(value) is None:
+                return False
+            validation_value = marker_validation_unit(line_index, unit_index, value)
+            if (unit_index > 0 or "$" in value) and marker_unit_is_exactly_supported(
+                validation_value,
+                minimum_matches=1 if "$" in value else None,
+            ):
+                return False
+            if validation_value not in marker_unit_defects:
+                marker_unit_defects[validation_value] = (
+                    _deterministic_evidence_integrity_defects(
+                        validation_value,
+                        context.allowed_claim_texts,
+                        artifact_type=context.artifact_type,
+                        immutable_gap_labels=context.required_gap_labels,
+                        unresolved_evidence_requirements=(
+                            context.unresolved_evidence_requirements
+                        ),
+                        defect_limit=None,
+                        excerpt_limit=None,
+                    )
+                )
+            expected_class = marker_defect_class(defect)
+            for candidate in marker_unit_defects[validation_value]:
+                handled_candidate = _handled_task_evidence_defect(
+                    candidate, include_generic=True
+                )
+                if (
+                    handled_candidate is None
+                    or not handled_candidate[2]
+                    or marker_defect_class(candidate) != expected_class
+                ):
+                    continue
+                candidate_probe = re.sub(r"\s+", " ", handled_candidate[0]).strip()
+                if probe in candidate_probe or candidate_probe in probe:
+                    return True
+            return False
+
+        def matching_units(
+            probe: str, *, citation_mismatch: bool, defect: str
+        ) -> list[tuple[int, int, str]]:
+            matches: list[tuple[int, int, str]] = []
+            for line_index, line in enumerate(base_lines):
+                for unit_index, unit in line_units(line):
+                    haystack = re.sub(
+                        r"\s+",
+                        " ",
+                        (
+                            _RAW_EVIDENCE_MARKER.sub("", unit)
+                            if citation_mismatch
+                            else unit
+                        ),
+                    ).strip()
+                    if probe not in haystack:
+                        continue
+                    if citation_mismatch and not unit_reproduces_marker_defect(
+                        line_index,
+                        unit_index,
+                        unit,
+                        defect,
+                        probe,
+                    ):
+                        continue
+                    matches.append((line_index, unit_index, unit))
+            return matches
+
+        def matching_fragment(value: str, probe: str) -> str:
+            fragments = re.split(
+                r"(?<=[.!?])\s+(?=(?:[-+*]\s*)?(?:[*_`]*[A-Z0-9]))",
+                value,
+            )
+            for fragment in fragments:
+                haystack = re.sub(
+                    r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", fragment)
+                ).strip()
+                if probe in haystack or haystack in probe:
+                    return fragment
+            return probe
+
+        unsupported_locators_by_key: dict[
+            tuple[int, int, str | None, str], dict[str, Any]
+        ] = {}
         for defect in evaluation.unsupported_precision:
             handled = _handled_task_evidence_defect(defect, include_generic=True)
             if handled is None:
                 continue
-            excerpt, _unresolved, _citation_mismatch = handled
+            excerpt, _unresolved, citation_mismatch = handled
             probe = re.sub(r"\s+", " ", excerpt).strip()
-            if _PUBLICATION_SAFE_NONAUTHORIZATION.search(
-                re.sub(r"[*_`]", "", probe)
-            ):
+            if is_pure_publication_nonauthorization(probe):
                 continue
-            matched_lines = [
-                index for index, line in enumerate(normalized_lines) if probe in line
-            ]
-            while len(probe) > 48 and not matched_lines:
+            matched_units = matching_units(
+                probe,
+                citation_mismatch=citation_mismatch,
+                defect=defect,
+            )
+            while len(probe) > 48 and not matched_units:
                 probe = probe.rsplit(" ", maxsplit=1)[0].rstrip(" ,.;:…")
-                matched_lines = [
-                    index
-                    for index, line in enumerate(normalized_lines)
-                    if probe in line
-                ]
-            if not matched_lines:
-                continue
-            for line_index in matched_lines:
-                locator_key = (line_index, line_anchors[line_index])
-                if locator_key in seen_locators:
-                    continue
-                seen_locators.add(locator_key)
-                unsupported_locators.append(
-                    {
-                        "line": line_index + 1,
-                        "sectionLine": line_section_lines[line_index],
-                        "anchorId": line_anchors[line_index],
-                    }
+                matched_units = matching_units(
+                    probe,
+                    citation_mismatch=citation_mismatch,
+                    defect=defect,
                 )
+            if not matched_units:
+                continue
+            for line_index, unit_index, unit in matched_units:
+                authority_answer = is_authority_answer(
+                    line_index,
+                    unit_index,
+                    matching_fragment(unit, probe),
+                )
+                if citation_mismatch:
+                    locator_kind = (
+                        "authority_answer" if authority_answer else "marker_mismatch"
+                    )
+                elif authority_answer:
+                    locator_kind = "authority_answer"
+                else:
+                    continue
+                locator_key = (
+                    line_index,
+                    unit_index,
+                    line_anchors[line_index],
+                    locator_kind,
+                )
+                unsupported_locators_by_key[locator_key] = {
+                    "line": line_index + 1,
+                    "unitIndex": unit_index,
+                    "sectionLine": line_section_lines[line_index],
+                    "anchorId": line_anchors[line_index],
+                    "kind": locator_kind,
+                }
+        unsupported_locators = list(unsupported_locators_by_key.values())
         unsupported_locators.sort(
-            key=lambda item: (item["line"], item["anchorId"] or "")
+            key=lambda item: (
+                item["kind"] != "authority_answer",
+                item["line"],
+                item["unitIndex"],
+                item["anchorId"] or "",
+                item["kind"],
+            )
         )
         unsupported_locators = unsupported_locators[:40]
+        unsupported_locators.sort(
+            key=lambda item: (
+                item["line"],
+                item["unitIndex"],
+                item["anchorId"] or "",
+                item["kind"],
+            )
+        )
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
@@ -8662,14 +9141,25 @@ class PydanticAISynthesisWriter:
         repair_instructions = [
             "Apply each structured repair target only when its referenced issue is "
             "still observable in BASE_MARKDOWN; never recreate absent text.",
-            "At each REPAIR_TARGETS.unsupportedPrecision location, remove the "
-            "unsupported external answer or recast only its surrounding requirement "
-            "as a neutral internal review condition; preserve IDs and topology and "
-            "never quote, relocate, or wrap the answer in a warning.",
             "Follow PUBLICATION_CONTRACT for every rewrite; never copy diagnostics, "
             "evaluator instructions, or an unsupported candidate answer into the final "
             "document.",
         ]
+        if any(item["kind"] == "authority_answer" for item in unsupported_locators):
+            repair_instructions.append(
+                "At each authority_answer locator, remove the unsupported external "
+                "answer or recast only its surrounding requirement as a neutral internal "
+                "review condition; preserve IDs and topology and never quote, relocate, "
+                "or wrap the answer in a warning."
+            )
+        if any(item["kind"] == "marker_mismatch" for item in unsupported_locators):
+            repair_instructions.append(
+                "At each marker_mismatch locator, preserve ordinary planning prose and "
+                "targets; remove only the invalid marker or split the exact supported "
+                "claim into its own clause with its allowed marker. If the remaining "
+                "clause asserts external authority without exact support, apply "
+                "authorityFactRule."
+            )
         if base_substantive or base_practicality:
             repair_instructions.append(
                 "Repair every named substantive or practicality defect "
@@ -8679,9 +9169,10 @@ class PydanticAISynthesisWriter:
         repair_instructions = utf16_ordinal_sorted(set(repair_instructions))
         publication_contract = {
             "authorityFactRule": (
-                "An external legal, safety, certification, health, filing or authority "
-                "fact may appear only when ALLOWED_CLAIMS contains its exact support and "
-                "the same clause carries that evidence marker."
+                "Across the entire document, not only locator lines, an external legal, "
+                "safety, certification, health, filing or authority fact may appear only "
+                "when ALLOWED_CLAIMS contains its exact support and the same clause carries "
+                "that evidence marker."
             ),
             "evidenceStatusBoundary": "one_document_level_boundary_near_the_start",
             "genericWarningPrefixBudget": 0,
@@ -8698,8 +9189,13 @@ class PydanticAISynthesisWriter:
                 "given_when_then_roles",
             ],
             "unsupportedLocatorRule": (
-                "Each line/sectionLine/anchorId tuple identifies candidate prose to "
-                "repair, not evidence or reader-facing text."
+                "Each line/unitIndex/sectionLine/anchorId/kind tuple identifies "
+                "high-signal candidate prose to repair, not evidence or reader-facing "
+                "text. unitIndex 0 means a whole prose line; a positive value is the "
+                "1-based Markdown table-cell index on that line. "
+                "authority_answer and marker_mismatch require their distinct repair "
+                "instructions. Locators are not exhaustive and do not exempt other text "
+                "from authorityFactRule."
             ),
             "unresolvedRequirementStatusRule": (
                 "A requirement whose applicable legal, safety, nutrition, lab or "
