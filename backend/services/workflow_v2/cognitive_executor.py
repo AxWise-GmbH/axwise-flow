@@ -257,6 +257,19 @@ class DraftAcceptanceCriterion(_DraftModel):
     supports: list[str] = Field(min_length=1, max_length=120)
 
 
+class DraftScopeStatement(_DraftModel):
+    text: str = Field(min_length=1, max_length=1000)
+    disposition: Literal[
+        "internal_target",
+        "evidence_question",
+        "owner_proposed_constraint",
+    ]
+    # These are draft-only links to EvidenceRequirement.id values. They let the
+    # server distinguish an unresolved evidence question from an internal target
+    # without trying to infer authority from arbitrary prose.
+    evidence_requirement_ids: list[str] = Field(default_factory=list, max_length=12)
+
+
 class ScopeDraft(_DraftModel):
     objective: str = Field(min_length=1, max_length=6000)
     objective_source_spans: list[DraftSpan] = Field(min_length=1, max_length=24)
@@ -268,14 +281,16 @@ class ScopeDraft(_DraftModel):
     deliverables: list[str] = Field(min_length=1, max_length=24)
     personas: list[str] = Field(default_factory=list, max_length=24)
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
-    prd_requirements: list[str] = Field(default_factory=list, max_length=40)
-    limits: list[str] = Field(default_factory=list, max_length=40)
-    policies: list[str] = Field(default_factory=list, max_length=40)
+    prd_requirements: list[DraftScopeStatement] = Field(
+        default_factory=list, max_length=40
+    )
+    limits: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
+    policies: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
     deliverable_profile: DraftDeliverableProfile
     acceptance_criteria: list[DraftAcceptanceCriterion] = Field(
         min_length=1, max_length=120
     )
-    assumptions: list[str] = Field(default_factory=list, max_length=24)
+    assumptions: list[DraftScopeStatement] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(
         default=None, min_length=1, max_length=1000
     )
@@ -314,14 +329,16 @@ class ScopeRevisionDraft(_DraftModel):
     deliverables: list[str] = Field(min_length=1, max_length=24)
     personas: list[str] = Field(default_factory=list, max_length=24)
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
-    prd_requirements: list[str] = Field(default_factory=list, max_length=40)
-    limits: list[str] = Field(default_factory=list, max_length=40)
-    policies: list[str] = Field(default_factory=list, max_length=40)
+    prd_requirements: list[DraftScopeStatement] = Field(
+        default_factory=list, max_length=40
+    )
+    limits: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
+    policies: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
     deliverable_profile: DraftDeliverableProfile
     acceptance_criteria: list[DraftAcceptanceCriterion] = Field(
         min_length=1, max_length=120
     )
-    assumptions: list[str] = Field(default_factory=list, max_length=24)
+    assumptions: list[DraftScopeStatement] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(
         default=None, min_length=1, max_length=1000
     )
@@ -458,10 +475,27 @@ product PRD (food, hardware, packaged goods) and software_prd only for software/
 use launch_authorization only when the artifact itself makes a go/no-go legal, safety or
 launch decision. Each criterion supports exact accepted-list descriptions or one of the seven
 requirement categories; the server generates stable requirement/criterion IDs and exact
-priority/authority. For product_prd, return 5-12 high-value observable product or operational
-scenarios with an action and a measurable outcome. One criterion may support multiple exact
-descriptions or categories; cover the accepted requirements through this compact set, not one
-criterion per list item. Never merely restate a requirement or test that document text exists.
+priority/authority. Return 3-8 compact requirement groupings as acceptanceCriteria. Keep their
+Given/When/Then prose brief because it is only a draft grouping hint; the server emits the exact
+canonical criteria. One criterion may support multiple exact descriptions or categories; cover
+the accepted requirements through this compact set, not one criterion per list item.
+Every prdRequirements, limits, policies, and assumptions item is a typed draft statement.
+Use disposition internal_target only for a candidate product, business, budget, schedule,
+UX, performance, or technical target; it will remain explicitly a proposal. Use
+owner_proposed_constraint only when the statement is literal in REQUEST_TEXT. Use
+evidence_question for anything whose truth depends on law, regulation, safety, nutrition,
+health, science, certification, filing, authorization, or other external evidence, and link
+the exact evidence_requirement_ids. A proposed product, business, or technical target may remain
+internal_target even when later validation is needed; an assertion that it is externally correct
+must be evidence_question. Evidence questions must describe only the jurisdiction and
+broad research domain present in REQUEST_TEXT; never enumerate an authority, filing, label
+field, hazard, nutrient, certification, method, proof type, or value absent from REQUEST_TEXT.
+AcceptanceCriteria prose is a grouping hint only; the server replaces it with exact canonical
+internal-decision or evidence gates before sealing the scope.
+Apply the same evidence-neutral rule to every nested free-text field, including evidence
+descriptions/appliesWhen, deliverables, personas, interviews, deliverableProfile and
+materialClarification. Those fields may identify a broad research domain or accountable role,
+but cannot answer the unresolved evidence question.
 Scope compilation happens before research: identify what must be decided or verified, but do not
 answer an unresolved evidence question. If REQUEST_TEXT supplies an exact high-stakes value or duty,
 preserve it only as an owner-supplied proposed constraint or claim that still requires accepted
@@ -617,9 +651,7 @@ def _canonical_required_sections(
     baseline_sections = (
         _SOFTWARE_PRD_BASELINE_SECTIONS
         if artifact_type == "software_prd"
-        else _PRD_BASELINE_SECTIONS
-        if artifact_type == "product_prd"
-        else frozenset()
+        else _PRD_BASELINE_SECTIONS if artifact_type == "product_prd" else frozenset()
     )
     if not baseline_sections:
         return utf16_ordinal_sorted(set(values))
@@ -638,6 +670,254 @@ def _canonical_required_sections(
     return utf16_ordinal_sorted(sections_by_identity.values())
 
 
+_INTERNAL_PROPOSAL_PREFIX = (
+    "Candidate internal proposal (not verified external authority): "
+)
+_OWNER_PROPOSAL_PREFIX = (
+    "Owner-proposed constraint (pending accepted evidence where external authority "
+    "applies): "
+)
+_SAFE_DEFAULT_PROPOSAL_PREFIX = (
+    "Safe-default proposal (not verified external authority): "
+)
+_EVIDENCE_GATE_PREFIX = "Unresolved evidence gate"
+_INTERNAL_SCENARIO_PREFIX = (
+    "Candidate internal scenario (not verified external authority): "
+)
+_INTERNAL_ACTION_PREFIX = "Proposed internal action (not verified external authority): "
+_INTERNAL_OUTCOME_PREFIX = (
+    "Proposed acceptance outcome (not verified external authority): "
+)
+
+
+@dataclass(frozen=True)
+class _ProjectedScopeStatements:
+    prd_requirements: list[str]
+    limits: list[str]
+    policies: list[str]
+    assumptions: list[str]
+    authority_overrides: dict[tuple[str, str], str]
+    support_aliases: dict[str, list[tuple[str, str]]]
+    evidence_links: dict[tuple[str, str], list[str]]
+
+
+def _scope_statement_body(text: str) -> str:
+    stripped = text.strip()
+    for existing_prefix in (
+        _INTERNAL_PROPOSAL_PREFIX,
+        _OWNER_PROPOSAL_PREFIX,
+        _SAFE_DEFAULT_PROPOSAL_PREFIX,
+    ):
+        if stripped.startswith(existing_prefix):
+            return stripped[len(existing_prefix) :].lstrip()
+    return stripped
+
+
+def _canonical_proposal_text(prefix: str, text: str) -> str:
+    stripped = _scope_statement_body(text)
+    projected = f"{prefix}{stripped}"
+    if len(projected) <= 1000:
+        return projected
+    digest = canonical_hash(stripped)[:16]
+    suffix = f" [content {digest}]"
+    return f"{prefix}{stripped[: 1000 - len(prefix) - len(suffix)].rstrip()}{suffix}"
+
+
+def _canonical_evidence_gate(
+    evidence_requirement_ids: list[str], *, assumption: bool
+) -> str:
+    identity = canonical_hash(evidence_requirement_ids)[:16]
+    noun = "assumption" if assumption else "scope requirement"
+    return (
+        f"{_EVIDENCE_GATE_PREFIX} {identity}: this {noun} is not accepted as a "
+        "rule, fact, threshold, or authorization. Resolve its linked accepted "
+        "evidence requirements from exact source spans and hashes; an accountable "
+        "owner may adopt only supported conclusions and must record an explicit gap "
+        "otherwise."
+    )
+
+
+def _canonical_acceptance_text(prefix: str, text: str) -> str:
+    stripped = text.strip()
+    if stripped.startswith(prefix):
+        return stripped
+    projected = f"{prefix}{stripped}"
+    if len(projected) <= 2000:
+        return projected
+    digest = canonical_hash(stripped)[:16]
+    suffix = f" [content {digest}]"
+    return f"{prefix}{stripped[: 2000 - len(prefix) - len(suffix)].rstrip()}{suffix}"
+
+
+def _project_scope_statements(
+    *,
+    authority_text: str,
+    evidence_requirements: list[EvidenceRequirement],
+    prd_requirements: list[DraftScopeStatement],
+    limits: list[DraftScopeStatement],
+    policies: list[DraftScopeStatement],
+    assumptions: list[DraftScopeStatement],
+    safe_default_values: set[str] | None = None,
+    prior_scope: ScopeArtifactV2 | None = None,
+) -> _ProjectedScopeStatements:
+    """Project draft-only epistemic labels into today's persisted scope contract.
+
+    The model classifies each decision-bearing statement, but it never decides its
+    truth status. Evidence-linked prose is discarded. Everything else is persisted
+    as an explicit proposal, so a mistaken model classification still cannot become
+    verified external authority.
+    """
+
+    evidence_ids = {item.id for item in evidence_requirements}
+    normalized_authority = _normalized_semantic_text(authority_text)
+    normalized_defaults = {
+        _normalized_semantic_text(value) for value in safe_default_values or set()
+    }
+    prior_requirements: dict[tuple[str, str], AcceptedDeliverableRequirementV1] = {}
+    for item in sorted(
+        prior_scope.requirements if prior_scope else [],
+        key=lambda value: value.id.encode("utf-16-be"),
+    ):
+        prior_requirements.setdefault((item.category, item.description), item)
+        prior_requirements.setdefault(
+            (item.category, _scope_statement_body(item.description)), item
+        )
+    prior_assumptions = {
+        key: value
+        for value in (prior_scope.assumptions if prior_scope else [])
+        for key in (value, _scope_statement_body(value))
+    }
+    authority_overrides: dict[tuple[str, str], str] = {}
+    support_aliases: dict[str, set[tuple[str, str]]] = {}
+    evidence_links: dict[tuple[str, str], set[str]] = {}
+    prior_evidence_links: dict[tuple[str, str], set[str]] = {}
+    if prior_scope is not None:
+        prior_requirement_by_id = {item.id: item for item in prior_scope.requirements}
+        prior_evidence_source_by_requirement_id = {
+            item.id: evidence.id
+            for item in prior_scope.requirements
+            if item.category == "evidence"
+            for evidence in prior_scope.evidence_requirements
+            if evidence.description == item.description
+        }
+        for criterion in prior_scope.acceptance_criteria:
+            linked_evidence_ids = {
+                prior_evidence_source_by_requirement_id[item]
+                for item in criterion.supports
+                if item in prior_evidence_source_by_requirement_id
+            }
+            if not linked_evidence_ids:
+                continue
+            for requirement_id in criterion.supports:
+                requirement = prior_requirement_by_id.get(requirement_id)
+                if requirement is None or requirement.category == "evidence":
+                    continue
+                prior_evidence_links.setdefault(
+                    (requirement.category, requirement.description), set()
+                ).update(linked_evidence_ids)
+                prior_evidence_links.setdefault(
+                    (
+                        requirement.category,
+                        _scope_statement_body(requirement.description),
+                    ),
+                    set(),
+                ).update(linked_evidence_ids)
+
+    authority_rank = {"axwise_derived": 0, "safe_default": 1, "owner": 2}
+
+    def project(
+        category: str,
+        statements: list[DraftScopeStatement],
+        *,
+        assumption: bool = False,
+    ) -> list[str]:
+        projected: list[str] = []
+        for statement in statements:
+            text = statement.text.strip()
+            body = _scope_statement_body(text)
+            prior_requirement = prior_requirements.get((category, text))
+            if prior_requirement is None:
+                prior_requirement = prior_requirements.get((category, body))
+            linked_ids = utf16_ordinal_sorted(
+                set(statement.evidence_requirement_ids).intersection(evidence_ids)
+            )
+            if not linked_ids:
+                linked_ids = utf16_ordinal_sorted(
+                    (
+                        prior_evidence_links.get((category, text), set())
+                        or prior_evidence_links.get((category, body), set())
+                    ).intersection(evidence_ids)
+                )
+            normalized_text = _normalized_semantic_text(body)
+            owner_supplied = normalized_text in normalized_authority
+            safe_default = normalized_text in normalized_defaults
+            evidence_question = (
+                statement.disposition == "evidence_question"
+                or text.startswith(_EVIDENCE_GATE_PREFIX)
+            )
+            if evidence_question:
+                # Evidence-dependent assumptions are represented by their typed
+                # evidence requirement, not persisted as permanently unresolved facts.
+                if assumption or not linked_ids:
+                    continue
+                projected_text = _canonical_evidence_gate(linked_ids, assumption=False)
+                authority = "axwise_derived"
+            else:
+                if (
+                    statement.disposition == "owner_proposed_constraint"
+                    and owner_supplied
+                ):
+                    prefix = _OWNER_PROPOSAL_PREFIX
+                    authority = "owner"
+                elif owner_supplied:
+                    prefix = _INTERNAL_PROPOSAL_PREFIX
+                    authority = "owner"
+                elif safe_default:
+                    prefix = _SAFE_DEFAULT_PROPOSAL_PREFIX
+                    authority = "safe_default"
+                elif prior_requirement is not None:
+                    projected_text = prior_requirement.description
+                    authority = prior_requirement.authority
+                    prefix = _INTERNAL_PROPOSAL_PREFIX
+                else:
+                    prefix = _INTERNAL_PROPOSAL_PREFIX
+                    authority = "axwise_derived"
+                if prior_requirement is None or owner_supplied or safe_default:
+                    projected_text = _canonical_proposal_text(prefix, body)
+                if assumption and body in prior_assumptions:
+                    projected_text = prior_assumptions[body]
+            if projected_text not in projected:
+                projected.append(projected_text)
+            if not assumption:
+                key = (category, projected_text)
+                existing_authority = authority_overrides.get(key)
+                if (
+                    existing_authority is None
+                    or authority_rank[authority] > authority_rank[existing_authority]
+                ):
+                    authority_overrides[key] = authority
+                support_aliases.setdefault(text, set()).add(key)
+                support_aliases.setdefault(body, set()).add(key)
+                if linked_ids:
+                    evidence_links.setdefault(key, set()).update(linked_ids)
+        return utf16_ordinal_sorted(projected)
+
+    return _ProjectedScopeStatements(
+        prd_requirements=project("prd", prd_requirements),
+        limits=project("limit", limits),
+        policies=project("policy", policies),
+        assumptions=project("assumption", assumptions, assumption=True),
+        authority_overrides=authority_overrides,
+        support_aliases={
+            reference: sorted(values, key=lambda item: (item[0], item[1]))
+            for reference, values in support_aliases.items()
+        },
+        evidence_links={
+            key: utf16_ordinal_sorted(values) for key, values in evidence_links.items()
+        },
+    )
+
+
 def _project_deliverable_contract(
     *,
     authority_text: str,
@@ -652,6 +932,9 @@ def _project_deliverable_contract(
     draft_criteria: list[DraftAcceptanceCriterion],
     safe_default_values: set[str] | None = None,
     prior_scope: ScopeArtifactV2 | None = None,
+    authority_overrides: dict[tuple[str, str], str] | None = None,
+    support_aliases: dict[str, list[tuple[str, str]]] | None = None,
+    evidence_links: dict[tuple[str, str], list[str]] | None = None,
 ) -> tuple[
     AcceptedDeliverableProfileV1,
     list[AcceptedDeliverableRequirementV1],
@@ -698,20 +981,27 @@ def _project_deliverable_contract(
         {(category, description) for category, description, _ in raw_projection}
     ) != len(raw_projection):
         raise ValueError("accepted scope semantic lists contain duplicate requirements")
+    if len(raw_projection) > 120:
+        raise ValueError("accepted scope cannot exceed 120 semantic requirements")
 
     normalized_authority = _normalized_semantic_text(authority_text)
+    explicit_authority = authority_overrides or {}
     requirements: list[AcceptedDeliverableRequirementV1] = []
     for category, description, inferred_priority in raw_projection:
         prior = prior_by_semantics.get((category, description))
         normalized_description = _normalized_semantic_text(description)
         authority = (
-            "owner"
-            if normalized_description in normalized_authority
-            else "safe_default"
-            if normalized_description in default_values
-            else prior.authority
-            if prior is not None
-            else "axwise_derived"
+            explicit_authority[(category, description)]
+            if (category, description) in explicit_authority
+            else (
+                "owner"
+                if normalized_description in normalized_authority
+                else (
+                    "safe_default"
+                    if normalized_description in default_values
+                    else prior.authority if prior is not None else "axwise_derived"
+                )
+            )
         )
         priority = prior.priority if prior is not None else inferred_priority
         semantic = {
@@ -730,88 +1020,213 @@ def _project_deliverable_contract(
 
     by_id = {item.id: item.id for item in requirements}
     prior_ids = {item.id for item in prior_scope.requirements} if prior_scope else set()
-    by_description = {item.description: item.id for item in requirements}
+    by_description: dict[str, list[str]] = {}
     by_category: dict[str, list[str]] = {}
     for item in requirements:
+        by_description.setdefault(item.description, []).append(item.id)
         by_category.setdefault(item.category, []).append(item.id)
+    evidence_by_description = {item.description: item for item in evidence_requirements}
+    evidence_by_requirement_id = {
+        item.id: evidence_by_description[item.description]
+        for item in requirements
+        if item.category == "evidence"
+    }
+    requirement_id_by_semantics = {
+        (item.category, item.description): item.id for item in requirements
+    }
+    aliased_requirement_ids: dict[str, set[str]] = {}
+    for reference, semantics in (support_aliases or {}).items():
+        for semantic in semantics:
+            requirement_id = requirement_id_by_semantics.get(semantic)
+            if requirement_id is not None:
+                aliased_requirement_ids.setdefault(reference, set()).add(requirement_id)
+    evidence_requirement_id_by_source_id = {
+        evidence.id: requirement.id
+        for requirement in requirements
+        if requirement.category == "evidence"
+        for evidence in evidence_requirements
+        if evidence.description == requirement.description
+    }
+    linked_evidence_by_requirement_id: dict[str, set[str]] = {}
+    for semantic, source_ids in (evidence_links or {}).items():
+        requirement_id = requirement_id_by_semantics.get(semantic)
+        if requirement_id is None:
+            continue
+        linked = {
+            evidence_requirement_id_by_source_id[source_id]
+            for source_id in source_ids
+            if source_id in evidence_requirement_id_by_source_id
+        }
+        if linked:
+            linked_evidence_by_requirement_id.setdefault(requirement_id, set()).update(
+                linked
+            )
+
     criteria: list[DeliverableAcceptanceCriterionV1] = []
+
+    def append_criterion(
+        *, given: str, when: str, then: str, supports: list[str]
+    ) -> None:
+        semantic = {
+            "given": given,
+            "when": when,
+            "then": then,
+            "supports": utf16_ordinal_sorted(set(supports)),
+        }
+        criteria.append(
+            DeliverableAcceptanceCriterionV1(
+                id=f"acc-{canonical_hash(semantic)[:16]}",
+                **semantic,
+            )
+        )
+
+    def append_evidence_criterion(support_ids: list[str]) -> None:
+        evidence_roles = utf16_ordinal_sorted(
+            {
+                evidence_by_requirement_id[item].evidence_role
+                for item in support_ids
+                if item in evidence_by_requirement_id
+            }
+        )
+        append_criterion(
+            given=(
+                "The accepted scope contains unresolved evidence-dependent "
+                f"requirements with typed roles: {', '.join(evidence_roles)}; no "
+                "external rule, fact, threshold, proof, or authorization is accepted "
+                "yet"
+            ),
+            when=(
+                "An accountable owner reviews the exact accepted source spans or "
+                "immutable proof artifacts and their hashes for every linked evidence "
+                "requirement"
+            ),
+            then=(
+                "Adopt only conclusions supported by the linked accepted evidence for "
+                "the affected decision; otherwise record an explicit gap. This "
+                "criterion does not itself establish external authority."
+            ),
+            supports=support_ids,
+        )
+
+    def append_internal_criterion(
+        support_ids: list[str], draft: DraftAcceptanceCriterion | None = None
+    ) -> None:
+        if draft is None:
+            given = _canonical_acceptance_text(
+                _INTERNAL_SCENARIO_PREFIX,
+                "The accepted scope contains candidate product, business, technical, "
+                "or operational requirements",
+            )
+            when = _canonical_acceptance_text(
+                _INTERNAL_ACTION_PREFIX,
+                "The accountable owner evaluates them through an observable decision, "
+                "experiment, prototype, or operating check",
+            )
+            then = _canonical_acceptance_text(
+                _INTERNAL_OUTCOME_PREFIX,
+                "Record the supported proposals as accepted, rejected, or an explicit "
+                "gap without treating this criterion as verification of external "
+                "authority.",
+            )
+        else:
+            given = _canonical_acceptance_text(_INTERNAL_SCENARIO_PREFIX, draft.given)
+            when = _canonical_acceptance_text(_INTERNAL_ACTION_PREFIX, draft.when)
+            then = _canonical_acceptance_text(_INTERNAL_OUTCOME_PREFIX, draft.then)
+        append_criterion(
+            given=given,
+            when=when,
+            then=then,
+            supports=support_ids,
+        )
+
+    # Exact evidence edges are structural, so build their criteria independently
+    # of provider-authored scenarios and never subject them to count trimming.
+    evidence_bound_groups: dict[tuple[str, ...], set[str]] = {}
+    for requirement_id, linked_ids in linked_evidence_by_requirement_id.items():
+        link_tuple = tuple(utf16_ordinal_sorted(linked_ids))
+        if link_tuple:
+            evidence_bound_groups.setdefault(link_tuple, set()).add(requirement_id)
+    consumed_evidence = {
+        evidence_id for links in evidence_bound_groups for evidence_id in links
+    }
+    direct_only_evidence = set(evidence_by_requirement_id).difference(consumed_evidence)
+
     for draft in draft_criteria:
         supports: set[str] = set()
         for reference in draft.supports:
+            matched = False
             if reference in by_id:
                 supports.add(reference)
-            elif reference in by_description:
-                supports.add(by_description[reference])
-            elif reference in by_category:
+                matched = True
+            if reference in by_description:
+                supports.update(by_description[reference])
+                matched = True
+            if reference in aliased_requirement_ids:
+                supports.update(aliased_requirement_ids[reference])
+                matched = True
+            if reference in by_category:
                 supports.update(by_category[reference])
-            elif reference in prior_ids:
+                matched = True
+            if not matched and reference in prior_ids:
                 # A correction may remove or semantically change a prior requirement.
                 # Its stale criterion edge is invalidated rather than retargeted.
                 continue
-            else:
-                raise ValueError(
-                    "acceptance criterion support must name an accepted requirement, "
-                    "description or category"
-                )
-        sorted_supports = utf16_ordinal_sorted(supports)
-        if not sorted_supports:
-            continue
-        semantic = {
-            "given": draft.given.strip(),
-            "when": draft.when.strip(),
-            "then": draft.then.strip(),
-            "supports": sorted_supports,
-        }
-        criteria.append(
-            DeliverableAcceptanceCriterionV1(
-                id=f"acc-{canonical_hash(semantic)[:16]}",
-                **semantic,
-            )
-        )
-    covered = {item for criterion in criteria for item in criterion.supports}
-    uncovered = [item.id for item in requirements if item.id not in covered]
-    if uncovered and accepted_profile.artifact_type == "product_prd":
-        semantic = {
-            "given": (
-                "The accepted product plan has requirements not covered by a more "
-                "specific high-value scenario"
-            ),
-            "when": (
-                "The accountable owner prepares the next product experiment, prototype "
-                "review, or operating gate"
-            ),
-            "then": (
-                "Every remaining requirement is bound to an observable product or "
-                "operational decision or test. A high-stakes threshold is adopted only "
-                "after exact accepted evidence and qualified-owner review; otherwise it "
-                "remains an explicit unresolved gap before affected work advances."
-            ),
-            "supports": utf16_ordinal_sorted(uncovered),
-        }
-        criteria.append(
-            DeliverableAcceptanceCriterionV1(
-                id=f"acc-{canonical_hash(semantic)[:16]}",
-                **semantic,
-            )
-        )
-    elif uncovered:
-        for requirement in requirements:
-            if requirement.id in covered:
+            if not matched:
+                # Provider criteria are grouping hints, not authority. A stale or
+                # malformed edge is discarded and deterministic coverage below fills
+                # any resulting gap without spending another model retry.
                 continue
-            semantic = {
-                "given": (
-                    "The accepted deliverable profile and immutable evidence boundary"
+        direct_evidence = {
+            item for item in supports if item in evidence_by_requirement_id
+        }
+        internal_supports: set[str] = set()
+        for requirement_id in supports.difference(direct_evidence):
+            if requirement_id not in linked_evidence_by_requirement_id:
+                internal_supports.add(requirement_id)
+        if internal_supports:
+            append_internal_criterion(
+                utf16_ordinal_sorted(internal_supports),
+                (
+                    None
+                    if direct_evidence
+                    or supports.intersection(linked_evidence_by_requirement_id)
+                    else draft
                 ),
-                "when": "The candidate artifact is evaluated against the accepted scope",
-                "then": requirement.description,
-                "supports": [requirement.id],
-            }
-            criteria.append(
-                DeliverableAcceptanceCriterionV1(
-                    id=f"acc-{canonical_hash(semantic)[:16]}",
-                    **semantic,
-                )
             )
+
+    authored_internal_criteria = sorted(
+        {item.id: item for item in criteria}.values(),
+        key=lambda item: item.id.encode("utf-16-be"),
+    )
+    criteria = []
+    if direct_only_evidence:
+        append_evidence_criterion(utf16_ordinal_sorted(direct_only_evidence))
+    for links, statement_ids in sorted(evidence_bound_groups.items()):
+        append_evidence_criterion(utf16_ordinal_sorted({*links, *statement_ids}))
+    mandatory_criteria = sorted(
+        {item.id: item for item in criteria}.values(),
+        key=lambda item: item.id.encode("utf-16-be"),
+    )
+    if len(mandatory_criteria) > 120:
+        raise ValueError("accepted evidence contract cannot exceed 120 criteria")
+
+    available_internal_slots = 120 - len(mandatory_criteria)
+    selected_internal = authored_internal_criteria[:available_internal_slots]
+    criteria = [*mandatory_criteria, *selected_internal]
+    all_requirement_ids = {item.id for item in requirements}
+    covered = {item for criterion in criteria for item in criterion.supports}
+    uncovered = all_requirement_ids.difference(covered)
+    if uncovered:
+        # Reserve one deterministic aggregate only by trimming a provider-authored
+        # internal scenario. Mandatory exact-edge evidence criteria are immutable.
+        if len(criteria) == 120:
+            if not selected_internal:
+                raise ValueError("accepted scope criteria cannot cover requirements")
+            selected_internal = selected_internal[:-1]
+            criteria = [*mandatory_criteria, *selected_internal]
+            covered = {item for criterion in criteria for item in criterion.supports}
+            uncovered = all_requirement_ids.difference(covered)
+        append_internal_criterion(utf16_ordinal_sorted(uncovered))
     criteria = sorted(
         {item.id: item for item in criteria}.values(),
         key=lambda item: item.id.encode("utf-16-be"),
@@ -838,6 +1253,14 @@ def _validate_draft(request: str, draft: ScopeDraft) -> None:
         request, draft.evidence_requirements, accepted_hosts=set()
     )
     _validate_atomic_evidence_requirements(draft.evidence_requirements)
+    projected = _project_scope_statements(
+        authority_text=request,
+        evidence_requirements=draft.evidence_requirements,
+        prd_requirements=draft.prd_requirements,
+        limits=draft.limits,
+        policies=draft.policies,
+        assumptions=draft.assumptions,
+    )
     _project_deliverable_contract(
         authority_text=request,
         profile=draft.deliverable_profile,
@@ -845,10 +1268,13 @@ def _validate_draft(request: str, draft: ScopeDraft) -> None:
         deliverables=draft.deliverables,
         personas=draft.personas,
         interview_requirements=draft.interview_requirements,
-        prd_requirements=draft.prd_requirements,
-        limits=draft.limits,
-        policies=draft.policies,
+        prd_requirements=projected.prd_requirements,
+        limits=projected.limits,
+        policies=projected.policies,
         draft_criteria=draft.acceptance_criteria,
+        authority_overrides=projected.authority_overrides,
+        support_aliases=projected.support_aliases,
+        evidence_links=projected.evidence_links,
     )
 
 
@@ -972,10 +1398,14 @@ def _with_narrowed_statutory_source_types(
         )
 
     return [
-        requirement.model_copy(update={"accepted_source_types": narrowed_types.copy()})
-        if is_unambiguous_statutory_requirement(requirement)
-        and set(requirement.accepted_source_types) != _STATUTORY_SOURCE_TYPES
-        else requirement
+        (
+            requirement.model_copy(
+                update={"accepted_source_types": narrowed_types.copy()}
+            )
+            if is_unambiguous_statutory_requirement(requirement)
+            and set(requirement.accepted_source_types) != _STATUTORY_SOURCE_TYPES
+            else requirement
+        )
         for requirement in requirements
     ]
 
@@ -1162,9 +1592,23 @@ to objective_changed and objective offsets. Return all other semantic lists as t
 complete revised values, including deliverableProfile and acceptanceCriteria. Keep product_prd
 distinct from software_prd; use launch_authorization only for an actual go/no-go legal, safety
 or launch decision. Criterion supports name exact accepted-list descriptions or requirement
-categories; the server generates semantic IDs. For product_prd, return 5-12 high-value observable
-product or operational scenarios with measurable outcomes; let each support multiple requirements
-where appropriate instead of emitting one criterion per list item. Scope revision still happens
+categories; the server generates semantic IDs. Return 3-8 compact requirement groupings and keep
+their Given/When/Then prose brief because the server emits the exact canonical criteria. Let each
+support multiple requirements where appropriate. Every prdRequirements, limits,
+policies, and assumptions item is a
+typed draft statement. Use internal_target only for a candidate internal target,
+owner_proposed_constraint only for text literal in OWNER_CORRECTION, and evidence_question
+with exact evidence_requirement_ids for anything dependent on external evidence. A proposed
+product, business, or technical target may remain internal_target even when later validation is
+needed; an assertion that it is externally correct must be evidence_question. Evidence
+questions name only the jurisdiction and broad research domain already present in the accepted
+scope or OWNER_CORRECTION; never introduce an authority, filing, label field, hazard, nutrient,
+certification, method, proof type, or value. AcceptanceCriteria prose is only a grouping hint;
+the server deterministically replaces it with canonical internal-decision or evidence gates.
+Apply the same evidence-neutral rule to every nested free-text field, including evidence
+descriptions/appliesWhen, deliverables, personas, interviews, deliverableProfile and
+materialClarification.
+Scope revision still happens
 before research resumes. If OWNER_CORRECTION supplies an exact high-stakes value or duty, preserve
 it only as an owner-supplied proposed constraint or claim that still requires accepted evidence;
 never present it as verified authority during scope revision. Otherwise do not introduce an
@@ -1248,6 +1692,15 @@ def _validate_revision_draft(
         ),
     )
     _validate_atomic_evidence_requirements(draft.evidence_requirements)
+    projected = _project_scope_statements(
+        authority_text=correction,
+        evidence_requirements=draft.evidence_requirements,
+        prd_requirements=draft.prd_requirements,
+        limits=draft.limits,
+        policies=draft.policies,
+        assumptions=draft.assumptions,
+        prior_scope=accepted_scope,
+    )
     _project_deliverable_contract(
         authority_text=correction,
         profile=draft.deliverable_profile,
@@ -1255,11 +1708,14 @@ def _validate_revision_draft(
         deliverables=draft.deliverables,
         personas=draft.personas,
         interview_requirements=draft.interview_requirements,
-        prd_requirements=draft.prd_requirements,
-        limits=draft.limits,
-        policies=draft.policies,
+        prd_requirements=projected.prd_requirements,
+        limits=projected.limits,
+        policies=projected.policies,
         draft_criteria=draft.acceptance_criteria,
         prior_scope=accepted_scope,
+        authority_overrides=projected.authority_overrides,
+        support_aliases=projected.support_aliases,
+        evidence_links=projected.evidence_links,
     )
 
 
@@ -2982,6 +3438,8 @@ def _authority_process_alternatives(value: str) -> set[str]:
         aliases.get(match.group(0).casefold(), match.group(0).casefold())
         for match in _AUTHORITY_PROCESS_ALTERNATIVE.finditer(value)
     }
+
+
 _UNRESOLVED_REQUIREMENT_CONTEXT = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:"
     r"(?:given|if|when)\b|[^:\n]{1,80}\b(?:gate|precondition)\s*:\s*(?:given|if|when)\b|"
@@ -3214,9 +3672,7 @@ def _precision_values(value: str) -> set[str]:
     normalized = re.sub(
         r"\$(?P<formula>[^$\n]{1,200})\$",
         lambda match: (
-            match.group("formula")
-            if "\\" in match.group("formula")
-            else match.group(0)
+            match.group("formula") if "\\" in match.group("formula") else match.group(0)
         ),
         normalized,
     )
@@ -4269,9 +4725,7 @@ def _prepare_task_unresolved_actions(
                 if separator and excerpt
                 else None
             )
-        return _handled_task_evidence_defect(
-            defect, include_generic=include_generic
-        )
+        return _handled_task_evidence_defect(defect, include_generic=include_generic)
 
     def present_required_headings(markdown: str) -> set[str]:
         headings = {
@@ -4322,9 +4776,7 @@ def _prepare_task_unresolved_actions(
             preserve_duplicate_occurrences=True,
         )
         handled = [
-            value
-            for defect in defects
-            if (value := handled_defect(defect)) is not None
+            value for defect in defects if (value := handled_defect(defect)) is not None
         ]
         if not handled:
             break
@@ -4406,9 +4858,7 @@ def _prepare_task_unresolved_actions(
                             _as_unresolved_verification_question
                             if reader_questions
                             else _as_unresolved_validation_action
-                        )(
-                            markerless, table_cell=is_table_line
-                        )
+                        )(markerless, table_cell=is_table_line)
                         if use_validation_action
                         else _as_unverified_repair_assumption(
                             markerless, table_cell=is_table_line
@@ -7028,9 +7478,7 @@ def _without_mismatched_publication_evidence_markers(
         minimum_matches = (
             min(3, max(1, len(_support_tokens(assertion))))
             if _FORMULA_MARKER.search(assertion)
-            else min(2, max(1, len(_support_tokens(assertion))))
-            if sensitive
-            else 1
+            else min(2, max(1, len(_support_tokens(assertion)))) if sensitive else 1
         )
         candidate_ids = [
             claim_id
@@ -7168,9 +7616,7 @@ def _with_non_authorizing_publication_title_and_headings(
     def neutralize_fragment(value: str) -> str:
         list_prefix, role_prefix, _role, _body = _task_fragment_parts(value)
         trailing = value[len(value.rstrip()) :]
-        return (
-            f"{list_prefix}{role_prefix}{non_authorization_sentence}{trailing}"
-        )
+        return f"{list_prefix}{role_prefix}{non_authorization_sentence}{trailing}"
 
     def requires_reclassification(value: str) -> bool:
         cleaned = re.sub(r"[*_`]", "", value).strip()
@@ -7442,9 +7888,7 @@ def _with_local_pending_labels_for_unsupported_high_stakes(
         if line_index in fenced_indexes:
             continue
         if heading := re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line):
-            body = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub(
-                "", heading.group("body")
-            )
+            body = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", heading.group("body"))
             current_heading = body
             if not authorization_claim_allowed and (
                 has_positive_launch_readiness_claim(body)
@@ -9890,18 +10334,10 @@ def _repair_source_candidates(
     # sources consume the three-candidate cap; global sources still fill every
     # remaining slot. URLs present in both groups inherit locator priority.
     current_requirement_locators = rank_group(
-        [
-            item
-            for item in by_url.items()
-            if item[1]["current_requirement_locator"]
-        ]
+        [item for item in by_url.items() if item[1]["current_requirement_locator"]]
     )
     global_sources = rank_group(
-        [
-            item
-            for item in by_url.items()
-            if not item[1]["current_requirement_locator"]
-        ]
+        [item for item in by_url.items() if not item[1]["current_requirement_locator"]]
     )
     selected = [*current_requirement_locators, *global_sources]
     return [
@@ -10210,7 +10646,19 @@ class GeminiCognitiveExecutor:
             for topic in draft.topic_anchors
         ]
         evidence_requirements = draft.evidence_requirements
-        policies = draft.policies
+        projected_statements = _project_scope_statements(
+            authority_text=input_value.request,
+            evidence_requirements=evidence_requirements,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=draft.policies,
+            assumptions=draft.assumptions,
+            safe_default_values={
+                *input_value.safe_defaults.assumptions,
+                *input_value.safe_defaults.limits,
+                *input_value.safe_defaults.policies,
+            },
+        )
         deliverable_profile, requirements, acceptance_criteria = (
             _project_deliverable_contract(
                 authority_text=input_value.request,
@@ -10219,14 +10667,13 @@ class GeminiCognitiveExecutor:
                 deliverables=draft.deliverables,
                 personas=draft.personas,
                 interview_requirements=draft.interview_requirements,
-                prd_requirements=draft.prd_requirements,
-                limits=draft.limits,
-                policies=policies,
+                prd_requirements=projected_statements.prd_requirements,
+                limits=projected_statements.limits,
+                policies=projected_statements.policies,
                 draft_criteria=draft.acceptance_criteria,
-                safe_default_values={
-                    *input_value.safe_defaults.limits,
-                    *input_value.safe_defaults.policies,
-                },
+                authority_overrides=projected_statements.authority_overrides,
+                support_aliases=projected_statements.support_aliases,
+                evidence_links=projected_statements.evidence_links,
             )
         )
         semantic_payload = _scope_semantics_payload(
@@ -10236,9 +10683,9 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=draft.prd_requirements,
-            limits=draft.limits,
-            policies=policies,
+            prd_requirements=projected_statements.prd_requirements,
+            limits=projected_statements.limits,
+            policies=projected_statements.policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
@@ -10263,13 +10710,13 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=draft.prd_requirements,
-            limits=draft.limits,
-            policies=policies,
+            prd_requirements=projected_statements.prd_requirements,
+            limits=projected_statements.limits,
+            policies=projected_statements.policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
-            assumptions=draft.assumptions,
+            assumptions=projected_statements.assumptions,
             material_clarification=draft.material_clarification,
             research_input_hash=research_input_hash,
             authority=ScopeAuthority(
@@ -10360,7 +10807,15 @@ class GeminiCognitiveExecutor:
             else accepted_scope.topic_anchors
         )
         evidence_requirements = draft.evidence_requirements
-        policies = draft.policies
+        projected_statements = _project_scope_statements(
+            authority_text=input_value.correction,
+            evidence_requirements=evidence_requirements,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=draft.policies,
+            assumptions=draft.assumptions,
+            prior_scope=accepted_scope,
+        )
         deliverable_profile, requirements, acceptance_criteria = (
             _project_deliverable_contract(
                 authority_text=input_value.correction,
@@ -10369,11 +10824,14 @@ class GeminiCognitiveExecutor:
                 deliverables=draft.deliverables,
                 personas=draft.personas,
                 interview_requirements=draft.interview_requirements,
-                prd_requirements=draft.prd_requirements,
-                limits=draft.limits,
-                policies=policies,
+                prd_requirements=projected_statements.prd_requirements,
+                limits=projected_statements.limits,
+                policies=projected_statements.policies,
                 draft_criteria=draft.acceptance_criteria,
                 prior_scope=accepted_scope,
+                authority_overrides=projected_statements.authority_overrides,
+                support_aliases=projected_statements.support_aliases,
+                evidence_links=projected_statements.evidence_links,
             )
         )
         semantic_payload = _scope_semantics_payload(
@@ -10383,9 +10841,9 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=draft.prd_requirements,
-            limits=draft.limits,
-            policies=policies,
+            prd_requirements=projected_statements.prd_requirements,
+            limits=projected_statements.limits,
+            policies=projected_statements.policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
@@ -10410,13 +10868,13 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=draft.prd_requirements,
-            limits=draft.limits,
-            policies=policies,
+            prd_requirements=projected_statements.prd_requirements,
+            limits=projected_statements.limits,
+            policies=projected_statements.policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
-            assumptions=draft.assumptions,
+            assumptions=projected_statements.assumptions,
             material_clarification=draft.material_clarification,
             research_input_hash=research_input_hash,
             authority=ScopeAuthority(
@@ -11055,21 +11513,27 @@ class GeminiCognitiveExecutor:
             note = (
                 "Grounded repair returned conflicting evidence."
                 if conflicts
-                else f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
-                if claims
                 else (
-                    "Grounded acquisition reached the bounded research deadline before "
-                    "the targeted repair pass; no accepted grounded claim was recorded."
+                    f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
+                    if claims
+                    else (
+                        (
+                            "Grounded acquisition reached the bounded research deadline before "
+                            "the targeted repair pass; no accepted grounded claim was recorded."
+                        )
+                        if not repair_performed
+                        else (
+                            (
+                                "Grounded acquisition remained unavailable after the single "
+                                "targeted repair pass "
+                                f"({', '.join(failure_statuses)}); no accepted grounded claim "
+                                "was recorded."
+                            )
+                            if failure_statuses
+                            else "No accepted grounded claim was available after the single repair pass."
+                        )
+                    )
                 )
-                if not repair_performed
-                else (
-                    "Grounded acquisition remained unavailable after the single "
-                    "targeted repair pass "
-                    f"({', '.join(failure_statuses)}); no accepted grounded claim "
-                    "was recorded."
-                )
-                if failure_statuses
-                else "No accepted grounded claim was available after the single repair pass."
             )
             findings_by_id[requirement.id] = EvidenceFinding(
                 requirement_id=requirement.id,
@@ -11105,9 +11569,7 @@ class GeminiCognitiveExecutor:
         readiness = (
             "blocked"
             if unresolved_blocking
-            else "ready_with_gaps"
-            if unresolved_optional or assumptions
-            else "ready"
+            else "ready_with_gaps" if unresolved_optional or assumptions else "ready"
         )
         result = ResearchResultV2(
             accepted_scope_artifact_id=input_value.accepted_scope.artifact_id,
