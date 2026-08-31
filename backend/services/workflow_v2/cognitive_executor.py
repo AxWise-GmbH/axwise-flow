@@ -458,7 +458,11 @@ product PRD (food, hardware, packaged goods) and software_prd only for software/
 use launch_authorization only when the artifact itself makes a go/no-go legal, safety or
 launch decision. Each criterion supports exact accepted-list descriptions or one of the seven
 requirement categories; the server generates stable requirement/criterion IDs and exact
-priority/authority. Evidence requirements must be claim-specific;
+priority/authority. For product_prd, return 5-12 high-value observable product or operational
+scenarios with an action and a measurable pass/fail outcome. One criterion may support multiple
+exact descriptions or categories; cover the accepted requirements through this compact set, not
+one criterion per list item. Never merely restate a requirement or test that document text exists.
+Evidence requirements must be claim-specific;
 mark only essential legal/safety evidence as blocking. Optional statistics, offers, or
 commercial details are nonblocking. Give every requirement one typed evidenceRole.
 Use grounded_claim with verificationBasis grounded_claims for general law, standards,
@@ -754,14 +758,23 @@ def _project_deliverable_contract(
             )
         )
     covered = {item for criterion in criteria for item in criterion.supports}
-    for requirement in requirements:
-        if requirement.id in covered:
-            continue
+    uncovered = [item.id for item in requirements if item.id not in covered]
+    if uncovered and accepted_profile.artifact_type == "product_prd":
         semantic = {
-            "given": "The accepted deliverable profile and immutable evidence boundary",
-            "when": "The candidate artifact is evaluated against the accepted scope",
-            "then": requirement.description,
-            "supports": [requirement.id],
+            "given": (
+                "The accepted product plan has requirements not covered by a more "
+                "specific high-value scenario"
+            ),
+            "when": (
+                "The accountable owner prepares the next product experiment, prototype "
+                "review, or operating gate"
+            ),
+            "then": (
+                "Every remaining requirement is bound to an observable product or "
+                "operational decision, test, and pass/fail threshold, or kept as an "
+                "explicit unresolved gap before affected work advances."
+            ),
+            "supports": utf16_ordinal_sorted(uncovered),
         }
         criteria.append(
             DeliverableAcceptanceCriterionV1(
@@ -769,6 +782,24 @@ def _project_deliverable_contract(
                 **semantic,
             )
         )
+    elif uncovered:
+        for requirement in requirements:
+            if requirement.id in covered:
+                continue
+            semantic = {
+                "given": (
+                    "The accepted deliverable profile and immutable evidence boundary"
+                ),
+                "when": "The candidate artifact is evaluated against the accepted scope",
+                "then": requirement.description,
+                "supports": [requirement.id],
+            }
+            criteria.append(
+                DeliverableAcceptanceCriterionV1(
+                    id=f"acc-{canonical_hash(semantic)[:16]}",
+                    **semantic,
+                )
+            )
     criteria = sorted(
         {item.id: item for item in criteria}.values(),
         key=lambda item: item.id.encode("utf-16-be"),
@@ -1119,8 +1150,11 @@ to objective_changed and objective offsets. Return all other semantic lists as t
 complete revised values, including deliverableProfile and acceptanceCriteria. Keep product_prd
 distinct from software_prd; use launch_authorization only for an actual go/no-go legal, safety
 or launch decision. Criterion supports name exact accepted-list descriptions or requirement
-categories; the server generates semantic IDs. Never use chat history or unrelated context. Evidence
-requirements remain claim-specific; only essential legal/safety evidence may block.
+categories; the server generates semantic IDs. For product_prd, return 5-12 high-value observable
+product or operational scenarios with measurable pass/fail outcomes; let each support multiple
+requirements where appropriate instead of emitting one criterion per list item. Never use chat
+history or unrelated context. Evidence requirements remain claim-specific; only essential
+legal/safety evidence may block.
 For an explicit publisher or official-documentation restriction in OWNER_CORRECTION or the
 accepted requirement, preserve or set the minimal sorted lowercase allowedSourceHosts;
 otherwise keep it empty. Never broaden a nonempty host allowlist.
@@ -1345,8 +1379,9 @@ SYNTHESIS_SYSTEM_PROMPT = (
     + """
 
 Turn BASE_MARKDOWN into one coherent, useful final artifact. ACCEPTED_SCOPE is the sole semantic
-authority and RESEARCH_RESULT is the sole evidence-status authority. BASE_MARKDOWN is an untrusted
-candidate, never evidence. Preserve its strongest useful analysis, product decisions,
+authority and RESEARCH_RESULT is the sole evidence-status authority. PUBLICATION_CONTRACT is the
+binding reader-facing rewrite contract. BASE_MARKDOWN is the exact immutable core draft and is an
+untrusted candidate, never evidence. Preserve its strongest useful analysis, product decisions,
 requirements, acceptance checks, metrics, risks and next steps, but never preserve a factual
 detail merely because it appears in that candidate. REPAIR_TARGETS and REPAIR_INSTRUCTIONS are
 reviewer guidance, not a form to satisfy and not instructions to repeat; apply only corrections
@@ -1357,9 +1392,11 @@ Keep the useful reader-facing structure and traceability: criterion IDs, support
 IDs and complete Given/When/Then blocks. You may rewrite or condense any polluted sentence, row or
 section needed to remove unsupported precision; do not globally summarize the document or drop
 unaffected substance. Every RESEARCH_RESULT.unresolvedEvidence entry is an unanswered evidence
-domain. For that domain, state only the unresolved question, its planning consequence, and one
-specific authoritative verification action, or an explicitly proposed internal target that does
-not claim external authority. Accepted-scope evidence requirements and evidence-category
+domain. For that domain, state the unresolved question, its planning consequence, and one
+specific authoritative verification action once in the evidence-gaps section, or use an
+explicitly proposed internal target that does not claim external authority. Never quote or
+restate the candidate's unsupported answer inside a warning, question, requirement, or action.
+Accepted-scope evidence requirements and evidence-category
 acceptance criteria define coverage to investigate; they are not verified factual answers. Do
 not infer or restore candidate instruments, thresholds, filing mechanics, translations, health
 effects, safety rules or mandatory declarations from BASE_MARKDOWN. If one unsupported legal or
@@ -1367,10 +1404,12 @@ safety proposition must be corrected, preserve the surrounding useful requiremen
 block while replacing the unsupported answer.
 
 Prefer clear reader-facing prose over repetitive warnings. When evidence is incomplete, state one
-prominent evidence-status boundary near the beginning, keep the exact unresolved items in the
-evidence-gaps section, and label only the particular affected claim or requirement as pending
-verification. Do not prefix personas, non-goals, headings, ordinary product choices, or the
-planning-artifact boundary with generic evidence warnings. Keep a useful PRD deliverable even
+prominent evidence-status boundary near the beginning and keep one concise entry for each exact
+unresolved domain in the evidence-gaps section. Do not emit `Pending verification`, `Validation
+target`, `Verify before adoption whether this statement is accurate`, or an equivalent generic
+warning prefix anywhere in the reader-facing body. Do not prefix personas, non-goals, headings,
+ordinary product choices, or the planning-artifact boundary with evidence warnings. Keep a useful
+PRD deliverable even
 when product-specific launch authorization or safety clearance is unavailable; never imply that
 the artifact itself grants launch, legal, safety, certification or market approval.
 
@@ -1384,12 +1423,12 @@ complete Given/When/Then acceptance checks and substantive section content. Neve
 Sources appendix because the server appends it from immutable claim metadata.
 
 Omit unsupported high-stakes legal, safety or health precision as asserted fact. Preserve the
-useful reader-facing label, requirement ID and decision context by rewriting the item as one
-specific verification question or pre-adoption action. Never emit a bare pending-verification
-marker, never erase a persona job, journey step, requirement or Given/When/Then outcome, and
-never recreate an unresolved filing, licensing, registration or mandatory-label answer from the
-candidate. For example, write `Verify with the competent authority whether registration or a
-licence applies before distribution`, not `registration is mandatory` and not an empty warning.
+useful reader-facing label, requirement ID and decision context by rewriting the item as a neutral
+internal review condition that does not contain the candidate answer. Never erase a persona job,
+journey step, requirement or Given/When/Then outcome, and never recreate an unresolved filing,
+licensing, registration or mandatory-label answer from the candidate. For example, write
+`Before distribution, the accountable owner must document the applicable operator requirements
+from an accepted primary source`, not `registration is mandatory` and not a quoted warning.
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
@@ -6475,9 +6514,9 @@ _OVERBROAD_PUBLICATION_GROUNDING_CLAIM = re.compile(
 )
 _PUBLICATION_EVIDENCE_STATUS_BLOCK = (
     "> **Evidence status: completed with evidence gaps.** This is a useful "
-    "planning artifact, not launch authorization. Items marked **Pending "
-    "verification** and the explicit legal, safety, product, or market gaps "
-    "below must be resolved before relying on them for execution or launch."
+    "planning artifact, not launch authorization. Resolve the explicit legal, "
+    "safety, product, and market items in the Evidence gaps section before relying "
+    "on it for execution or launch."
 )
 _EXPLICIT_LAUNCH_DISPOSITION = re.compile(
     r"\b(?:launch|production(?:\s+deployment)?|market(?:\s+entry)?|go[- ]live)\b",
@@ -6956,6 +6995,19 @@ def _without_mismatched_publication_evidence_markers(
             claim_id
             for claim_id in marker_ids
             if claim_id in context.allowed_claim_texts
+            and not (
+                _has_external_authority_process_execution(assertion)
+                and len(
+                    _authority_process_alternatives(
+                        context.allowed_claim_texts[claim_id]
+                    )
+                )
+                > 1
+                and _authority_process_alternatives(assertion)
+                != _authority_process_alternatives(
+                    context.allowed_claim_texts[claim_id]
+                )
+            )
             and _assertions_share_explicit_polarity(
                 assertion, context.allowed_claim_texts[claim_id]
             )
@@ -7002,15 +7054,6 @@ def _without_mismatched_publication_evidence_markers(
             fragment,
         )
         cleaned = re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
-        if sensitive and not retained:
-            list_prefix, role_prefix, _role, body = _task_fragment_parts(cleaned)
-            if body.strip() and not body.lstrip().startswith(
-                "**Pending verification:**"
-            ):
-                return (
-                    f"{list_prefix}{role_prefix}**Pending verification:** "
-                    f"{body.strip()}"
-                )
         return cleaned
 
     lines: list[str] = []
@@ -7045,23 +7088,17 @@ def _without_mismatched_publication_evidence_markers(
     )
 
 
-def _with_reader_facing_unverified_labels(draft: SynthesisDraft) -> SynthesisDraft:
-    """Shorten exact internal wrappers while preserving their complete local text."""
+def _without_internal_publication_wrappers(draft: SynthesisDraft) -> SynthesisDraft:
+    """Remove known server wrapper prefixes while preserving their authored body."""
 
     lines = draft.markdown.splitlines()
     fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
     for line_index, line in enumerate(lines):
         if line_index in fenced_indexes:
             continue
-        labelled = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub(
-            "**Pending verification:** ", line
-        )
-        labelled = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
-            "**Pending verification:** ", labelled
-        )
-        lines[line_index] = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub(
-            "**Pending verification:** ", labelled
-        )
+        unwrapped = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", line)
+        unwrapped = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", unwrapped)
+        lines[line_index] = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", unwrapped)
     markdown = "\n".join(lines)
     return (
         draft
@@ -7081,6 +7118,18 @@ def _with_non_authorizing_publication_title_and_headings(
     )
     if authorization_claim_allowed:
         return draft
+
+    non_authorization_sentence = (
+        "This planning artifact does not authorize launch; authorization remains "
+        "unresolved."
+    )
+
+    def neutralize_fragment(value: str) -> str:
+        list_prefix, role_prefix, _role, _body = _task_fragment_parts(value)
+        trailing = value[len(value.rstrip()) :]
+        return (
+            f"{list_prefix}{role_prefix}{non_authorization_sentence}{trailing}"
+        )
 
     def requires_reclassification(value: str) -> bool:
         cleaned = re.sub(r"[*_`]", "", value).strip()
@@ -7117,10 +7166,7 @@ def _with_non_authorizing_publication_title_and_headings(
                         fragment_end = fragment_start + len(fragment)
                         rebuilt.append(piece[cursor:fragment_start])
                         rebuilt.append(
-                            _as_unresolved_verification_question(
-                                _RAW_EVIDENCE_MARKER.sub("", fragment),
-                                table_cell=table_line,
-                            )
+                            neutralize_fragment(fragment)
                             if requires_reclassification(fragment)
                             else fragment
                         )
@@ -7526,23 +7572,8 @@ def _normalize_publication_draft(
         replace_overbroad_grounding_claim, markdown
     )
     prepared = prepared.model_copy(update={"markdown": markdown})
+    prepared = _without_internal_publication_wrappers(prepared)
     prepared = _with_non_authorizing_publication_title_and_headings(context, prepared)
-    if context.purpose != "blocked_report":
-        # Use the same deterministic evidence-integrity projection that prepared the
-        # final model input. It reclassifies only concretely unsupported assertions as
-        # bounded, reader-visible verification items and retains their complete local
-        # decision context. Publication must never run a second regex editor that drops
-        # persona, requirement, table-cell or Given/When/Then content.
-        prepared = SynthesisDraft.model_validate(
-            _prepare_task_unresolved_actions(
-                context,
-                prepared,
-                authority_only=True,
-                reader_questions=True,
-                allow_composite_authority_targets=True,
-            )
-        )
-    prepared = _with_reader_facing_unverified_labels(prepared)
     prepared = SynthesisDraft.model_validate(
         _with_immutable_gap_labels(context, prepared)
     )
@@ -8491,7 +8522,7 @@ class PydanticAISynthesisWriter:
         selected_contents: list[ImmutableArtifactContent],
         context: SynthesisContext,
     ) -> str:
-        """Project immutable final inputs into one compact, surgical repair prompt."""
+        """Expose one untrusted core draft and a compact reader-facing repair contract."""
 
         if input_value.purpose != "final_synthesis" or input_value.evaluation is None:
             raise ValueError("final repair prompt requires final_synthesis input")
@@ -8536,84 +8567,73 @@ class PydanticAISynthesisWriter:
             )
         evaluation = EvaluationResultV1.model_validate(evaluation_candidates[0].payload)
         core = core_candidates[0]
-        projected = _project_final_repair_base(
-            context,
+        base = SynthesisDraft(
             title=str(core.payload.get("title") or "Final artifact"),
             markdown=core.markdown,
         )
-        projected_evidence_defects = _deterministic_evidence_integrity_defects(
-            projected.markdown,
-            context.allowed_claim_texts,
-            artifact_type=context.artifact_type,
-            immutable_gap_labels=context.required_gap_labels,
-            unresolved_evidence_requirements=(context.unresolved_evidence_requirements),
-            defect_limit=None,
-            excerpt_limit=None,
-        )
-        projected_substantive, projected_practicality = _deterministic_quality_defects(
-            projected.markdown,
+        base_substantive, base_practicality = _deterministic_quality_defects(
+            base.markdown,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
         )
-        normalized_projected_markdown = re.sub(r"\s+", " ", projected.markdown)
-        retained_evaluation_precision = {
-            defect
-            for defect in evaluation.unsupported_precision
-            for _prefix, separator, excerpt in [defect.partition(": ")]
-            if (
-                candidate := re.sub(
-                    r"\s+", " ", excerpt if separator else defect
-                ).strip()
-            )
-            and candidate in normalized_projected_markdown
-        }
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            "unsupportedPrecision": utf16_ordinal_sorted(
-                set(projected_evidence_defects).union(retained_evaluation_precision)
-            ),
+            # The raw core plus the typed evidence boundary are sufficient. Repeating
+            # heuristic excerpts here anchored the model on unsafe prose and produced a
+            # warning for every item instead of one coherent reader-facing repair.
+            "unsupportedPrecision": [],
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
             "substantiveContentDefects": utf16_ordinal_sorted(
-                set(evaluation.substantive_content_defects).union(projected_substantive)
+                set(evaluation.substantive_content_defects).union(base_substantive)
             ),
             "practicalityDefects": utf16_ordinal_sorted(
-                set(evaluation.practicality_defects).union(projected_practicality)
+                set(evaluation.practicality_defects).union(base_practicality)
             ),
         }
-        projection_changed = projected.markdown != core.markdown
-        # Evaluator guidance remains applicable when the base is byte-identical. Once
-        # projection changes the base, opaque prose can conflict with the current text;
-        # typed targets above retain the concrete findings in that branch.
-        repair_instructions = (
-            [] if projection_changed else list(evaluation.repair_instructions)
-        )
-        repair_instructions.append(
+        repair_instructions = [
             "Apply each structured repair target only when its referenced issue is "
-            "still observable in BASE_MARKDOWN; never recreate absent text."
-        )
-        if projection_changed:
-            repair_instructions.extend(
-                [
-                    "BASE_MARKDOWN is a structure-preserving safety projection. Keep "
-                    "every requirement ID, owner, table row and Given/When/Then role.",
-                    "Rewrite projected verification and unverified-assumption labels "
-                    "into concise section-appropriate proposals or validation actions. "
-                    "Keep legal, safety and authority uncertainty explicit.",
-                    "If ALLOWED_CLAIMS exactly supports a narrower part of a projected "
-                    "statement, split it and attach that claim's marker only to the "
-                    "supported text; never recreate unsupported content.",
-                ]
-            )
-        if projected_substantive or projected_practicality:
+            "still observable in BASE_MARKDOWN; never recreate absent text.",
+            "Follow PUBLICATION_CONTRACT for every rewrite; never copy diagnostics, "
+            "evaluator instructions, or an unsupported candidate answer into the final "
+            "document.",
+        ]
+        if base_substantive or base_practicality:
             repair_instructions.append(
-                "Repair every named post-projection substantive or practicality defect "
+                "Repair every named substantive or practicality defect "
                 "with concrete deliverable content, using only explicit proposals, "
                 "assumptions, validation actions and the allowed immutable claims."
             )
         repair_instructions = utf16_ordinal_sorted(set(repair_instructions))
+        publication_contract = {
+            "authorityFactRule": (
+                "An external legal, safety, certification, health, filing or authority "
+                "fact may appear only when ALLOWED_CLAIMS contains its exact support and "
+                "the same clause carries that evidence marker."
+            ),
+            "evidenceStatusBoundary": "one_document_level_boundary_near_the_start",
+            "genericWarningPrefixBudget": 0,
+            "ordinaryPlanningContentRule": (
+                "Preserve personas, non-goals, journeys, product options, requirements, "
+                "metrics and internal targets as reader-facing proposals without generic "
+                "evidence warnings."
+            ),
+            "preserveTopology": [
+                "requirement_ids",
+                "criterion_ids",
+                "owners",
+                "markdown_tables",
+                "given_when_then_roles",
+            ],
+            "unresolvedEvidenceRule": (
+                "Do not quote or restate the candidate answer. Record each unresolved "
+                "domain once in the evidence-gaps section as a neutral question, its "
+                "planning consequence and one authoritative verification action; "
+                "elsewhere use only a neutral internal review condition."
+            ),
+        }
         return canonical_json(
             {
                 "PURPOSE": input_value.purpose,
@@ -8621,13 +8641,14 @@ class PydanticAISynthesisWriter:
                 "RESEARCH_RESULT": PydanticAISynthesisWriter._research_prompt_view(
                     research_payload, scope_payload
                 ),
-                "BASE_MARKDOWN": projected.markdown,
+                "BASE_MARKDOWN": base.markdown,
                 "CORE_ARTIFACT": core.artifact.model_dump(mode="json", by_alias=True),
                 "EVALUATION_ARTIFACT": input_value.evaluation.model_dump(
                     mode="json", by_alias=True
                 ),
                 "REPAIR_TARGETS": repair_targets,
                 "REPAIR_INSTRUCTIONS": repair_instructions,
+                "PUBLICATION_CONTRACT": publication_contract,
                 "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
                     mode="json", by_alias=True
                 ),
