@@ -1758,6 +1758,28 @@ def test_scope_prompt_splits_broad_regulatory_domains_without_inventing_law() ->
     assert "Do not invent an instrument, title or number" in prompt
 
 
+def test_scope_prompts_do_not_answer_high_stakes_questions_before_research() -> None:
+    for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
+        normalized = " ".join(prompt.split())
+        assert "before research" in normalized
+        for forbidden_invention in (
+            "legal duty",
+            "filing mechanic",
+            "mandatory label field",
+            "certification",
+            "safety/nutrition/health/scientific threshold",
+            "test method",
+            "sample size",
+            "pass/fail value",
+        ):
+            assert forbidden_invention in normalized
+        assert "exact accepted evidence" in normalized
+        assert "owner-supplied proposed constraint or claim" in normalized
+        assert "never present it as verified authority" in normalized
+        assert "identified accountable role" in normalized
+        assert "explicit unresolved gap" in normalized or "explicit gap" in normalized
+
+
 def test_final_publication_preserves_structure_and_non_authority_body_text() -> None:
     context = SynthesisContext(
         purpose="final_synthesis",
@@ -4011,7 +4033,9 @@ def test_product_prd_compacts_uncovered_requirements_into_one_stable_gate() -> N
     }
     assert supported == {item.id for item in requirements}
     assert "observable product or operational decision" in aggregate.then
-    assert "pass/fail threshold" in aggregate.then
+    assert "A high-stakes threshold is adopted only" in aggregate.then
+    assert "exact accepted evidence and qualified-owner review" in aggregate.then
+    assert "pass/fail threshold" not in aggregate.then
     assert all(
         item.given
         != "The accepted deliverable profile and immutable evidence boundary"
