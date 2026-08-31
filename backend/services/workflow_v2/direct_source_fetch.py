@@ -16,7 +16,7 @@ import socket
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from typing import Any, Iterable
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urljoin, urlsplit, urlunsplit
 
 import httpcore
 import httpx
@@ -43,6 +43,11 @@ _CHALLENGE_MARKERS = (
     "just a moment...",
     "verify you are human",
 )
+_CELEX_IDENTIFIER = re.compile(
+    r"^[0-9][0-9A-Z]{9,23}(?:-[0-9]{8})?$", re.IGNORECASE
+)
+_EUR_LEX_HOST = "eur-lex.europa.eu"
+_CELLAR_HOST = "publications.europa.eu"
 
 
 class _VisibleTextParser(HTMLParser):
@@ -87,6 +92,78 @@ def canonical_public_url(value: str) -> str | None:
         return None
     canonical = urlunsplit(("https", hostname, parsed.path or "", parsed.query, ""))
     return canonical if is_canonical_public_https_url(canonical) else None
+
+
+def _official_celex_transport_url(value: str) -> str | None:
+    """Map an exact EUR-Lex CELEX locator to the official Cellar content API.
+
+    EUR-Lex's reader-facing endpoint can return a JavaScript WAF challenge to a
+    server fetch. The EU Publications Office documents Cellar's CELEX endpoint
+    as the machine-to-machine source for the same legal work. Only an explicit
+    CELEX identifier is mapped; ELI paths and free-form legal references are
+    deliberately not inferred.
+    """
+
+    parsed = urlsplit(value)
+    if (parsed.hostname or "").casefold() != _EUR_LEX_HOST:
+        return None
+    identifiers = [
+        raw_value
+        for raw_key, raw_value in parse_qsl(parsed.query, keep_blank_values=True)
+        if raw_key.casefold() == "uri"
+    ]
+    if len(identifiers) != 1:
+        return None
+    prefix, separator, identifier = identifiers[0].partition(":")
+    normalized_identifier = identifier.upper()
+    if (
+        separator != ":"
+        or prefix.casefold() != "celex"
+        or _CELEX_IDENTIFIER.fullmatch(normalized_identifier) is None
+    ):
+        return None
+    return f"https://{_CELLAR_HOST}/resource/celex/{normalized_identifier}"
+
+
+def _canonical_redirect_url(current: str, location: str) -> str | None:
+    """Canonicalize a redirect, including Cellar's same-host HTTP links.
+
+    Cellar currently emits absolute ``http://publications.europa.eu`` content
+    links even when its CELEX endpoint is requested over HTTPS. Upgrade only
+    that exact same-host hop and still make the next request over pinned HTTPS.
+    No other clear-text redirect is accepted.
+    """
+
+    joined = urljoin(current, location)
+    redirected = canonical_public_url(joined)
+    if redirected is not None:
+        return redirected
+    try:
+        current_url = urlsplit(current)
+        candidate = urlsplit(joined)
+        candidate_host = (candidate.hostname or "").casefold()
+        if (
+            (current_url.hostname or "").casefold() == _CELLAR_HOST
+            and candidate.scheme.casefold() == "http"
+            and candidate_host == _CELLAR_HOST
+            and candidate.username is None
+            and candidate.password is None
+            and candidate.port in {None, 80}
+        ):
+            return canonical_public_url(
+                urlunsplit(
+                    (
+                        "https",
+                        _CELLAR_HOST,
+                        candidate.path or "",
+                        candidate.query,
+                        "",
+                    )
+                )
+            )
+    except ValueError:
+        return None
+    return None
 
 
 def _approved_ip_address(value: str) -> str:
@@ -279,6 +356,10 @@ async def fetch_direct_source(
     current = canonical_public_url(url)
     if current is None:
         raise ValueError("unsafe direct source URL")
+    source_identity = current
+    celex_transport = _official_celex_transport_url(current)
+    if celex_transport is not None:
+        current = celex_transport
     loop = asyncio.get_running_loop()
     deadline = loop.time() + max(1.0, operation_seconds)
     owns_client = client is None
@@ -303,14 +384,23 @@ async def fetch_direct_source(
         )
         try:
             async with asyncio.timeout(remaining):
+                request_headers = {
+                    "Accept": "text/html,application/xhtml+xml,application/json,text/plain,application/xml;q=0.9",
+                    "Accept-Encoding": "identity",
+                    "User-Agent": "AxWiseWorkflowV2Research/1.0",
+                }
+                if hostname.casefold() == _CELLAR_HOST:
+                    request_headers.update(
+                        {
+                            "Accept": "application/xhtml+xml,text/html;q=0.9",
+                            "Accept-Language": "eng",
+                            "Accept-Max-Cs-Size": str(maximum_bytes),
+                        }
+                    )
                 async with active_client.stream(
                     "GET",
                     current,
-                    headers={
-                        "Accept": "text/html,application/xhtml+xml,application/json,text/plain,application/xml;q=0.9",
-                        "Accept-Encoding": "identity",
-                        "User-Agent": "AxWiseWorkflowV2Research/1.0",
-                    },
+                    headers=request_headers,
                     follow_redirects=False,
                     timeout=min(max(1.0, attempt_seconds), remaining),
                 ) as response:
@@ -328,8 +418,12 @@ async def fetch_direct_source(
                         target = response.headers.get("location")
                         if not target:
                             raise ValueError("direct source redirect omitted location")
-                        redirected = canonical_public_url(urljoin(current, target))
-                        if redirected is None:
+                        redirected = _canonical_redirect_url(current, target)
+                        if redirected is None or (
+                            celex_transport is not None
+                            and (urlsplit(redirected).hostname or "").casefold()
+                            != _CELLAR_HOST
+                        ):
                             raise ValueError("unsafe direct source redirect")
                         current = redirected
                         continue
@@ -383,7 +477,9 @@ async def fetch_direct_source(
                         .replace(".000000Z", "Z")
                     )
                     return {
-                        "final_url": final_url,
+                        "final_url": (
+                            source_identity if celex_transport is not None else final_url
+                        ),
                         "text": normalized,
                         "retrieved_at": retrieved_at,
                         "content_sha256": hashlib.sha256(
