@@ -1383,11 +1383,13 @@ ages, neighbourhoods, demographics, interviews or quotations. Use ordinary Markd
 complete Given/When/Then acceptance checks and substantive section content. Never author a
 Sources appendix because the server appends it from immutable claim metadata.
 
-Omit unsupported high-stakes legal, safety or health precision. When the useful document
-needs to retain such an unresolved item, keep its reader-facing label or requirement ID and
-mark it once as `Pending authoritative verification.` Do not emit generic validation-target
-boilerplate, repeat the unverified number or instrument identity, or preserve
-mandatory/statutory/compliant/must authority language after that marker.
+Omit unsupported high-stakes legal, safety or health precision as asserted fact. Preserve the
+useful reader-facing label, requirement ID and decision context by rewriting the item as one
+specific verification question or pre-adoption action. Never emit a bare pending-verification
+marker, never erase a persona job, journey step, requirement or Given/When/Then outcome, and
+never recreate an unresolved filing, licensing, registration or mandatory-label answer from the
+candidate. For example, write `Verify with the competent authority whether registration or a
+licence applies before distribution`, not `registration is mandatory` and not an empty warning.
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
@@ -1506,7 +1508,8 @@ def _launch_claim_is_negated_or_conditional(clause: str, match: re.Match[str]) -
     )
     negative_predicate = (
         r"(?:(?:is|are|was|were|remains?)\s+(?:unsupported|unverified|"
-        r"unestablished|forbidden|prohibited|excluded|rejected|disallowed|denied)|"
+        r"unresolved|unestablished|forbidden|prohibited|excluded|rejected|"
+        r"disallowed|denied)|"
         r"(?:is|are|was|were|remains?|has|have|had)\s+(?:not|never)"
         r"(?:\s+been)?\s+(?:asserted|established|supported|verified|validated|"
         r"approved|authorized|authorised|confirmed|made|granted|allowed|"
@@ -2363,6 +2366,7 @@ _EVIDENCE_SENSITIVE_ASSERTION = re.compile(
     r"fediaf|complies?\s+with|compliant\s+with|compliance\s+with|"
     r"certif(?:y|ied|ication)|authori[sz](?:e|es|ed|ation)|"
     r"approved|legally|required\s+(?:by|under)|regulation\s*\(|"
+    r"\b(?:legal|statutory|regulatory)\s+standard\b|"
     r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
     r"(?:mandates?|requires?|prohibits?|obliges?|must)\b|"
     r"meet(?:s|ing)?\s+[^.;]{0,80}\b(?:standard|requirements?)\b|"
@@ -2378,6 +2382,7 @@ _NONPROVISIONAL_AUTHORITY_ASSERTION = re.compile(
     r"disease|fediaf|complies?\s+with|compliant\s+with|compliance\s+with|"
     r"certif(?:y|ied|ication)|authori[sz](?:e|es|ed|ation)|approved|legally|"
     r"required\s+(?:by|under)|regulation\s*\(|"
+    r"\b(?:legal|statutory|regulatory)\s+standard\b|"
     r"(?:is|are|was|were)\s+(?:not\s+)?safe\b|"
     r"(?:not\s+safe|unsafe|safe)\s+(?:for|to)|"
     r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
@@ -2555,7 +2560,7 @@ _PLANNING_TARGET_EXTERNAL_STATUS_ASSERTION = re.compile(
 )
 _AUTHORITY_PROCESS_OBJECT = re.compile(
     r"\b(?:approval|authori[sz]ation|certification|clearance|dossier|filing|"
-    r"notification|registration|permit|licen[cs]e|sign[- ]?off)\b|"
+    r"notice|notification|registration|permit|licen[cs]e|sign[- ]?off)\b|"
     r"\b(?:authority|agency|board|legal|official|pta|regulatory|statutory)\b"
     r"[^.;\n]{0,60}\b(?:application|fee|forms?|paperwork)\b|"
     r"\b(?:application|fee|forms?|paperwork)\b[^.;\n]{0,60}"
@@ -2807,9 +2812,107 @@ _UNRESOLVED_POSITIVE_AUTHORITY_ASSERTION = re.compile(
 _AUTHORITY_PROCESS_EXECUTION = re.compile(
     r"\b(?:obtain|file|notify|register|submit|prepare|assemble|execute|complete|"
     r"secure|request)\b[^.;\n]{0,120}\b(?:approval|authori[sz]ation|certification|"
-    r"clearance|dossier|filing|notification|registration|permit|licen[cs]e)\b",
+    r"clearance|dossier|filing|notice|notification|registration|permit|licen[cs]e)\b|"
+    r"\b(?:apply\s+for\s+(?:(?:an?|the)\s+)?(?:approval|authori[sz]ation|"
+    r"certification|clearance|registration|permit|licen[cs]e)|register\s+with|"
+    r"notify|file\s+with|submit\s+to)\b",
     re.IGNORECASE,
 )
+_EXTERNAL_AUTHORITY_CONTEXT = re.compile(
+    r"\b(?:agency|agriculture\s+and\s+food\s+board|authorit(?:y|ies)|"
+    r"competent\s+authority|economic\s+activit(?:y|ies)|feed\s+business\s+operator|"
+    r"food\s+board|"
+    r"accreditation|certification|fbo|government|haccp|law|legal|licen[cs]e|"
+    r"official|permit|pta|regulat(?:or|ory)|statutory)\b",
+    re.IGNORECASE,
+)
+_AUTHORITY_DUTY_PREDICATE = re.compile(
+    r"\b(?:mandat(?:e|es|ed|ory)|must|shall|required)\b",
+    re.IGNORECASE,
+)
+_AUTHORITY_DUTY_OBJECT = re.compile(
+    r"\b(?:declarations?|filing|information|labels?|labelling|labeling|licen[cs]e|"
+    r"notice|notification|on-pack|pack(?:age)?|particulars?|permit|registration|"
+    r"text|wording)\b",
+    re.IGNORECASE,
+)
+_AUTHORITY_IDENTIFIER_ASSERTION = re.compile(
+    r"\b(?:registration|licen[cs]e|permit|approval)\s+(?:number|code)\b",
+    re.IGNORECASE,
+)
+_LABEL_AUTHORITY_DUTY_CONTEXT = re.compile(
+    r"\b(?:estonian|european\s+union|eu|national)\b[^.;\n]{0,140}\b"
+    r"(?:declarations?|labels?|labelling|labeling|language|on-pack|packaging|"
+    r"particulars?)\b|"
+    r"\b(?:declarations?|labels?|labelling|labeling|language|on-pack|packaging|"
+    r"particulars?)\b[^.;\n]{0,140}\b"
+    r"(?:estonian|european\s+union|eu|national)\b|"
+    r"\b(?:estonian|european\s+union|eu|national)\b[^.;\n]{0,100}\b"
+    r"(?:information|text|wording)\b[^.;\n]{0,100}\b(?:pack(?:age)?|packaging)\b|"
+    r"\b(?:pack(?:age)?|packaging)\b[^.;\n]{0,100}\b"
+    r"(?:estonian|european\s+union|eu|national)\b[^.;\n]{0,100}\b"
+    r"(?:information|text|wording)\b",
+    re.IGNORECASE,
+)
+_AUTHORITY_PROCESS_ALTERNATIVE = re.compile(
+    r"\b(?:approval|licen[cs]e|notice|notification|permit|registration)\b",
+    re.IGNORECASE,
+)
+_INTERNAL_WORKFLOW_STATUS = re.compile(
+    r"\b(?:account|form|manager|onboarding|pull\s+request|request|screen|task|user|"
+    r"workflow)\b[^.;\n]{0,120}\b(?:approval|approved|registration|registered)\b|"
+    r"\b(?:approval|approved|registration|registered)\b[^.;\n]{0,120}\b"
+    r"(?:account|form|manager|onboarding|pull\s+request|request|screen|task|user|"
+    r"workflow)\b",
+    re.IGNORECASE,
+)
+
+
+def _has_external_authority_process_execution(value: str) -> bool:
+    return bool(
+        _AUTHORITY_PROCESS_EXECUTION.search(value)
+        and _EXTERNAL_AUTHORITY_CONTEXT.search(value)
+    )
+
+
+def _has_external_authority_duty_assertion(value: str) -> bool:
+    return bool(
+        (
+            _EXTERNAL_AUTHORITY_CONTEXT.search(value)
+            or _LABEL_AUTHORITY_DUTY_CONTEXT.search(value)
+        )
+        and (
+            (
+                _AUTHORITY_DUTY_PREDICATE.search(value)
+                and _AUTHORITY_DUTY_OBJECT.search(value)
+            )
+            or _AUTHORITY_IDENTIFIER_ASSERTION.search(value)
+        )
+    )
+
+
+def _has_label_authority_duty_assertion(value: str) -> bool:
+    return bool(
+        _LABEL_AUTHORITY_DUTY_CONTEXT.search(value)
+        and _AUTHORITY_DUTY_PREDICATE.search(value)
+        and _AUTHORITY_DUTY_OBJECT.search(value)
+    )
+
+
+def _is_internal_workflow_status(value: str) -> bool:
+    return bool(
+        _INTERNAL_WORKFLOW_STATUS.search(value)
+        and _EXTERNAL_AUTHORITY_CONTEXT.search(value) is None
+        and re.search(r"\b(?:health|medical|safety)\b", value, re.IGNORECASE) is None
+    )
+
+
+def _authority_process_alternatives(value: str) -> set[str]:
+    aliases = {"notification": "notice"}
+    return {
+        aliases.get(match.group(0).casefold(), match.group(0).casefold())
+        for match in _AUTHORITY_PROCESS_ALTERNATIVE.finditer(value)
+    }
 _UNRESOLVED_REQUIREMENT_CONTEXT = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:"
     r"(?:given|if|when)\b|[^:\n]{1,80}\b(?:gate|precondition)\s*:\s*(?:given|if|when)\b|"
@@ -3318,7 +3421,7 @@ def _is_safe_nonauthority_planning_directive(value: str) -> bool:
         or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(tail)
         or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(tail)
         or _INDEPENDENT_SENSITIVE_FACT.search(tail)
-        or _AUTHORITY_PROCESS_EXECUTION.search(tail)
+        or _has_external_authority_process_execution(tail)
         or (_precision_values(tail) and not precise_tail_is_bounded_sample)
     )
 
@@ -3567,7 +3670,10 @@ def _deterministic_evidence_integrity_defects(
             gwt_role = _task_fragment_parts(cleaned_without_markers)[2]
             gwt_authority_execution = (
                 gwt_role == "when"
-                and _AUTHORITY_PROCESS_OBJECT.search(without_markers) is not None
+                and (
+                    _has_external_authority_process_execution(without_markers)
+                    or _has_external_authority_duty_assertion(without_markers)
+                )
                 and (
                     _PLANNING_TARGET_OBLIGATION_ASSERTION.search(without_markers)
                     is not None
@@ -3579,6 +3685,7 @@ def _deterministic_evidence_integrity_defects(
             )
             safe_non_authority_planning_directive = (
                 _is_safe_nonauthority_planning_directive(cleaned_without_markers)
+                or _is_internal_workflow_status(cleaned_without_markers)
             )
             evidence_sensitive = (
                 not conditional_ui_behavior
@@ -3587,6 +3694,8 @@ def _deterministic_evidence_integrity_defects(
                     _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
                     or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
                     is not None
+                    or _has_external_authority_process_execution(without_markers)
+                    or _has_external_authority_duty_assertion(without_markers)
                     or gwt_authority_execution
                     or (
                         raw_conditional_then_candidate
@@ -3615,6 +3724,7 @@ def _deterministic_evidence_integrity_defects(
             )
             planning_process_object = (
                 _AUTHORITY_PROCESS_OBJECT.search(planning_payload) is not None
+                and _EXTERNAL_AUTHORITY_CONTEXT.search(planning_payload) is not None
             )
             planning_target_authority_assertion = planning_prefix is not None and (
                 _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION.search(planning_payload)
@@ -3629,7 +3739,8 @@ def _deterministic_evidence_integrity_defects(
                         or _INTERNAL_PLANNING_TARGET.search(planning_payload) is None
                     )
                 )
-                or _AUTHORITY_PROCESS_EXECUTION.search(without_markers) is not None
+                or _has_external_authority_process_execution(without_markers)
+                or _has_external_authority_duty_assertion(without_markers)
             )
             validation_action_authority_execution = (
                 _EXPLICIT_VALIDATION_ACTION_PREFIX.search(
@@ -3637,7 +3748,7 @@ def _deterministic_evidence_integrity_defects(
                 )
                 is not None
                 and (
-                    _AUTHORITY_PROCESS_EXECUTION.search(without_markers) is not None
+                    _has_external_authority_process_execution(without_markers)
                     or not _is_bounded_unresolved_requirement_action(without_markers)
                 )
             )
@@ -3660,9 +3771,21 @@ def _deterministic_evidence_integrity_defects(
             hard_authority = not safe_non_authority_planning_directive and (
                 _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers) is not None
                 or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+                or _has_external_authority_process_execution(without_markers)
+                or _has_external_authority_duty_assertion(without_markers)
                 or planning_target_authority_assertion
                 or validation_action_authority_execution
                 or conditional_then_candidate
+            )
+            explicit_pending_gap_cell = bool(
+                table_gap_context
+                and re.search(
+                    r"\b(?:gap|status|next\s+step)\b",
+                    fragment_context,
+                    re.IGNORECASE,
+                )
+                and not _has_external_authority_process_execution(without_markers)
+                and not _has_external_authority_duty_assertion(without_markers)
             )
             if not precise_values and not sensitive and not unresolved_alignment:
                 continue
@@ -3671,6 +3794,7 @@ def _deterministic_evidence_integrity_defects(
                 and sensitive
                 and not precise_values
                 and not markers
+                and (not hard_authority or explicit_pending_gap_cell)
                 and not _POSITIVE_AUTHORITY_PREDICATE.search(without_markers)
             ):
                 continue
@@ -3692,7 +3816,7 @@ def _deterministic_evidence_integrity_defects(
                 and _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION.search(cleaned_action)
                 is None
                 and not planning_target_authority_assertion
-                and _AUTHORITY_PROCESS_EXECUTION.search(cleaned_action) is None
+                and not _has_external_authority_process_execution(cleaned_action)
             ):
                 continue
             if not markers and (
@@ -3705,7 +3829,7 @@ def _deterministic_evidence_integrity_defects(
                 not markers
                 and _EXPLICIT_VALIDATION_ACTION_PREFIX.search(cleaned_action)
                 and _is_bounded_unresolved_requirement_action(cleaned_action)
-                and _AUTHORITY_PROCESS_EXECUTION.search(cleaned_action) is None
+                and not _has_external_authority_process_execution(cleaned_action)
             ):
                 continue
             if (
@@ -3724,6 +3848,7 @@ def _deterministic_evidence_integrity_defects(
             if (
                 unresolved_alignment
                 and not markers
+                and not hard_authority
                 and (
                     _UNRESOLVED_LABELED_ACTION.search(
                         re.sub(r"[*_`]", "", without_markers)
@@ -3778,6 +3903,29 @@ def _deterministic_evidence_integrity_defects(
             ]
             if not cited_texts:
                 # Marker membership is reported by the existing citation validator.
+                continue
+            assertion_authority_alternatives = _authority_process_alternatives(
+                without_markers
+            )
+            cited_authority_alternatives = [
+                _authority_process_alternatives(text) for text in cited_texts
+            ]
+            if (
+                _has_external_authority_process_execution(without_markers)
+                and any(
+                    len(alternatives) > 1
+                    for alternatives in cited_authority_alternatives
+                )
+                and not any(
+                    alternatives == assertion_authority_alternatives
+                    for alternatives in cited_authority_alternatives
+                    if len(alternatives) > 1
+                )
+            ):
+                add_defect(
+                    "Cited immutable claims do not support this narrowed authority "
+                    f"process assertion: {excerpt}"
+                )
                 continue
             if unresolved_alignment:
                 assertion_negated = (
@@ -3890,13 +4038,24 @@ def _is_hard_task_evidence_defect(defect: str) -> bool:
     if not separator or not excerpt:
         return False
     cleaned = re.sub(r"[*_`]", "", excerpt).strip()
-    if _is_safe_nonauthority_planning_directive(cleaned):
+    artifact_non_authorization_boundary = re.search(
+        r"\b(?:(?:this|the)\s+)?(?:artifact|deliverable|document|prd|plan|it)\b"
+        r"[^.;\n]{0,120}\b(?:do(?:es)?|is|are|can)\s+not\b[^.;\n]{0,80}\b"
+        r"(?:constitute|grant|provide|authori[sz]e)\b",
+        cleaned,
+        re.IGNORECASE,
+    )
+    if artifact_non_authorization_boundary is not None:
+        return False
+    if _is_safe_nonauthority_planning_directive(
+        cleaned
+    ) or _is_internal_workflow_status(cleaned):
         return False
     return (
         _NONPROVISIONAL_AUTHORITY_ASSERTION.search(cleaned) is not None
         or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned) is not None
-        or _AUTHORITY_PROCESS_EXECUTION.search(cleaned) is not None
-        or _PUBLICATION_LABEL_AUTHORITY_ASSERTION.search(cleaned) is not None
+        or _has_external_authority_process_execution(cleaned)
+        or _has_external_authority_duty_assertion(cleaned)
     )
 
 
@@ -3939,6 +4098,39 @@ def _as_unresolved_validation_action(fragment: str, *, table_cell: bool = False)
     return f"{list_prefix}{action}"
 
 
+def _as_unresolved_verification_question(
+    fragment: str, *, table_cell: bool = False
+) -> str:
+    """Preserve an unsafe publication assertion only as a review question."""
+
+    list_prefix, role_prefix, role, body = _task_fragment_parts(fragment)
+    body = body.strip()
+    quoted_body = body if re.search(r"[.!?]$", body) else f"{body}."
+    if _has_label_authority_duty_assertion(body):
+        question = (
+            "Verify from the controlling primary source which declarations, language, "
+            "and wording are required before approving packaging"
+        )
+    elif _has_external_authority_process_execution(
+        body
+    ) or _has_external_authority_duty_assertion(body):
+        question = (
+            "Verify with the responsible authority whether a notice, registration, "
+            "licence, permit, or another authorization applies before adoption"
+        )
+    else:
+        question = "Verify before adoption whether this statement is accurate"
+    action = (
+        "Validation target (all following content is unverified until pre-adoption "
+        f"review): {question}: “{quoted_body}”"
+    )
+    if role:
+        return f"{list_prefix}{role_prefix}{action}"
+    if table_cell:
+        return action
+    return f"{list_prefix}{action}"
+
+
 def _as_unverified_repair_assumption(fragment: str, *, table_cell: bool = False) -> str:
     """Preserve a non-authority proposition without presenting it as verified fact."""
 
@@ -3957,6 +4149,8 @@ def _prepare_task_unresolved_actions(
     draft: TaskDraft | SynthesisDraft,
     *,
     include_generic: bool = False,
+    authority_only: bool = False,
+    reader_questions: bool = False,
     allow_composite_authority_targets: bool = False,
 ) -> TaskDraft | SynthesisDraft:
     """Withhold unsupported task claims without discarding the useful artifact.
@@ -3974,13 +4168,30 @@ def _prepare_task_unresolved_actions(
 
     if context.artifact_type == "launch_authorization":
         return draft
-    if include_generic:
+    if include_generic or authority_only:
         if context.evidence_readiness not in {"ready", "ready_with_gaps"}:
             return draft
     elif context.evidence_readiness != "ready_with_gaps":
         return draft
 
     current = draft.markdown
+
+    def handled_defect(defect: str) -> tuple[str, bool, bool] | None:
+        unresolved = _handled_task_evidence_defect(defect, include_generic=False)
+        if unresolved is not None:
+            return unresolved
+        if authority_only:
+            if not _is_hard_task_evidence_defect(defect):
+                return None
+            _prefix, separator, excerpt = defect.partition(": ")
+            return (
+                (excerpt, True, defect.startswith("Cited immutable claims"))
+                if separator and excerpt
+                else None
+            )
+        return _handled_task_evidence_defect(
+            defect, include_generic=include_generic
+        )
 
     def present_required_headings(markdown: str) -> set[str]:
         headings = {
@@ -4033,12 +4244,7 @@ def _prepare_task_unresolved_actions(
         handled = [
             value
             for defect in defects
-            if (
-                value := _handled_task_evidence_defect(
-                    defect, include_generic=include_generic
-                )
-            )
-            is not None
+            if (value := handled_defect(defect)) is not None
         ]
         if not handled:
             break
@@ -4072,6 +4278,8 @@ def _prepare_task_unresolved_actions(
                     if candidate
                 ]
                 for candidate in candidates:
+                    if _PUBLICATION_PENDING_INLINE.search(candidate) is not None:
+                        continue
                     candidate_index = unit.find(candidate)
                     if candidate_index < 0:
                         continue
@@ -4114,7 +4322,11 @@ def _prepare_task_unresolved_actions(
                         )
                     )
                     replacement = (
-                        _as_unresolved_validation_action(
+                        (
+                            _as_unresolved_verification_question
+                            if reader_questions
+                            else _as_unresolved_validation_action
+                        )(
                             markerless, table_cell=is_table_line
                         )
                         if use_validation_action
@@ -4159,12 +4371,7 @@ def _prepare_task_unresolved_actions(
                     trial_handled = [
                         value
                         for defect in trial_defects
-                        if (
-                            value := _handled_task_evidence_defect(
-                                defect, include_generic=include_generic
-                            )
-                        )
-                        is not None
+                        if (value := handled_defect(defect)) is not None
                     ]
                     if len(trial_handled) >= len(handled):
                         continue
@@ -6849,7 +7056,10 @@ def _with_reader_facing_unverified_labels(draft: SynthesisDraft) -> SynthesisDra
         labelled = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub(
             "**Pending verification:** ", line
         )
-        lines[line_index] = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
+        labelled = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
+            "**Pending verification:** ", labelled
+        )
+        lines[line_index] = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub(
             "**Pending verification:** ", labelled
         )
     markdown = "\n".join(lines)
@@ -6857,6 +7067,81 @@ def _with_reader_facing_unverified_labels(draft: SynthesisDraft) -> SynthesisDra
         draft
         if markdown == draft.markdown
         else draft.model_copy(update={"markdown": markdown})
+    )
+
+
+def _with_non_authorizing_publication_title_and_headings(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Reclassify launch claims without deleting useful publication content."""
+
+    authorization_claim_allowed = (
+        context.evidence_readiness == "ready"
+        and context.artifact_type == "launch_authorization"
+    )
+    if authorization_claim_allowed:
+        return draft
+
+    def requires_reclassification(value: str) -> bool:
+        cleaned = re.sub(r"[*_`]", "", value).strip()
+        return bool(
+            has_positive_launch_readiness_claim(cleaned)
+            and _PUBLICATION_PENDING_INLINE.search(cleaned) is None
+            and _UNRESOLVED_AUTHORITY_QUALIFIER.search(cleaned) is None
+            and not _is_pure_evidence_status_or_withholding(cleaned)
+        )
+
+    title = draft.title
+    if requires_reclassification(title):
+        title = "Planning artifact — authorization remains unresolved"
+
+    lines = draft.markdown.splitlines()
+    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
+    for line_index, line in enumerate(lines):
+        if line_index in fenced_indexes:
+            continue
+        heading = re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line)
+        if heading is None:
+            table_line = "|" in line
+            table_units = re.split(r"((?<!\\)\|)", line)
+            for unit_index in range(0, len(table_units), 2):
+                pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
+                for piece_index in range(0, len(pieces), 2):
+                    piece = pieces[piece_index]
+                    rebuilt: list[str] = []
+                    cursor = 0
+                    for fragment in _evidence_clause_fragments(piece):
+                        fragment_start = piece.find(fragment, cursor)
+                        if fragment_start < 0:
+                            continue
+                        fragment_end = fragment_start + len(fragment)
+                        rebuilt.append(piece[cursor:fragment_start])
+                        rebuilt.append(
+                            _as_unresolved_verification_question(
+                                _RAW_EVIDENCE_MARKER.sub("", fragment),
+                                table_cell=table_line,
+                            )
+                            if requires_reclassification(fragment)
+                            else fragment
+                        )
+                        cursor = fragment_end
+                    rebuilt.append(piece[cursor:])
+                    pieces[piece_index] = "".join(rebuilt)
+                table_units[unit_index] = "".join(pieces)
+            lines[line_index] = "".join(table_units)
+            continue
+        body = heading.group("body")
+        if requires_reclassification(body):
+            lines[line_index] = (
+                f"{heading.group('prefix')}"
+                "Planning artifact — authorization remains unresolved"
+            )
+
+    markdown = "\n".join(lines)
+    return (
+        draft
+        if markdown == draft.markdown and title == draft.title
+        else draft.model_copy(update={"title": title, "markdown": markdown})
     )
 
 
@@ -7210,7 +7495,6 @@ def _normalize_publication_draft(
         _without_model_owned_task_appendix(prepared)
     )
     if context.purpose != "blocked_report":
-        prepared = _with_exact_supported_precision_markers(context, prepared)
         prepared = _without_mismatched_publication_evidence_markers(context, prepared)
     prepared = SynthesisDraft.model_validate(
         _without_unbound_task_evidence_markers(context, prepared)
@@ -7224,7 +7508,6 @@ def _normalize_publication_draft(
             )
         }
     )
-    prepared = _with_reader_facing_unverified_labels(prepared)
     markdown = prepared.markdown
 
     def replace_overbroad_grounding_claim(match: re.Match[str]) -> str:
@@ -7242,28 +7525,24 @@ def _normalize_publication_draft(
     markdown = _OVERBROAD_PUBLICATION_GROUNDING_CLAIM.sub(
         replace_overbroad_grounding_claim, markdown
     )
-    if not (
-        context.evidence_readiness == "ready"
-        and context.artifact_type == "launch_authorization"
-    ):
-        if any(
-            _EXPLICIT_LAUNCH_DISPOSITION.search(line)
-            and has_positive_launch_readiness_claim(line)
-            and "pending verification" not in line.casefold()
-            for line in markdown.splitlines()
-        ):
-            markdown = _markdown_without_matching_lines(
-                markdown,
-                lambda line: bool(_EXPLICIT_LAUNCH_DISPOSITION.search(line))
-                and has_positive_launch_readiness_claim(line)
-                and "pending verification" not in line.casefold(),
-            ).strip()
-
     prepared = prepared.model_copy(update={"markdown": markdown})
+    prepared = _with_non_authorizing_publication_title_and_headings(context, prepared)
     if context.purpose != "blocked_report":
-        prepared = _with_local_pending_labels_for_unsupported_high_stakes(
-            context, prepared
+        # Use the same deterministic evidence-integrity projection that prepared the
+        # final model input. It reclassifies only concretely unsupported assertions as
+        # bounded, reader-visible verification items and retains their complete local
+        # decision context. Publication must never run a second regex editor that drops
+        # persona, requirement, table-cell or Given/When/Then content.
+        prepared = SynthesisDraft.model_validate(
+            _prepare_task_unresolved_actions(
+                context,
+                prepared,
+                authority_only=True,
+                reader_questions=True,
+                allow_composite_authority_targets=True,
+            )
         )
+    prepared = _with_reader_facing_unverified_labels(prepared)
     prepared = SynthesisDraft.model_validate(
         _with_immutable_gap_labels(context, prepared)
     )
@@ -8276,10 +8555,24 @@ class PydanticAISynthesisWriter:
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
         )
+        normalized_projected_markdown = re.sub(r"\s+", " ", projected.markdown)
+        retained_evaluation_precision = {
+            defect
+            for defect in evaluation.unsupported_precision
+            for _prefix, separator, excerpt in [defect.partition(": ")]
+            if (
+                candidate := re.sub(
+                    r"\s+", " ", excerpt if separator else defect
+                ).strip()
+            )
+            and candidate in normalized_projected_markdown
+        }
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            "unsupportedPrecision": projected_evidence_defects,
+            "unsupportedPrecision": utf16_ordinal_sorted(
+                set(projected_evidence_defects).union(retained_evaluation_precision)
+            ),
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
