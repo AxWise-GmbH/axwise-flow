@@ -21,6 +21,12 @@ from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 from backend.domain.workflow_v2.contracts import (
     AcceptedDeliverableProfileV1,
     AcceptedDeliverableRequirementV1,
+    AssistantFactV1,
+    AssistantRecommendationV1,
+    AssistantSourceV1,
+    AssistantTurnCompletedResult,
+    AssistantTurnInputV1,
+    AssistantTurnV1,
     ArtifactFact,
     ArtifactRef,
     ArtifactSynthesizedResult,
@@ -257,19 +263,6 @@ class DraftAcceptanceCriterion(_DraftModel):
     supports: list[str] = Field(min_length=1, max_length=120)
 
 
-class DraftScopeStatement(_DraftModel):
-    text: str = Field(min_length=1, max_length=1000)
-    disposition: Literal[
-        "internal_target",
-        "evidence_question",
-        "owner_proposed_constraint",
-    ]
-    # These are draft-only links to EvidenceRequirement.id values. They let the
-    # server distinguish an unresolved evidence question from an internal target
-    # without trying to infer authority from arbitrary prose.
-    evidence_requirement_ids: list[str] = Field(default_factory=list, max_length=12)
-
-
 class ScopeDraft(_DraftModel):
     objective: str = Field(min_length=1, max_length=6000)
     objective_source_spans: list[DraftSpan] = Field(min_length=1, max_length=24)
@@ -281,16 +274,14 @@ class ScopeDraft(_DraftModel):
     deliverables: list[str] = Field(min_length=1, max_length=24)
     personas: list[str] = Field(default_factory=list, max_length=24)
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
-    prd_requirements: list[DraftScopeStatement] = Field(
-        default_factory=list, max_length=40
-    )
-    limits: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
-    policies: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
+    prd_requirements: list[str] = Field(default_factory=list, max_length=40)
+    limits: list[str] = Field(default_factory=list, max_length=40)
+    policies: list[str] = Field(default_factory=list, max_length=40)
     deliverable_profile: DraftDeliverableProfile
     acceptance_criteria: list[DraftAcceptanceCriterion] = Field(
         min_length=1, max_length=120
     )
-    assumptions: list[DraftScopeStatement] = Field(default_factory=list, max_length=24)
+    assumptions: list[str] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(
         default=None, min_length=1, max_length=1000
     )
@@ -329,16 +320,14 @@ class ScopeRevisionDraft(_DraftModel):
     deliverables: list[str] = Field(min_length=1, max_length=24)
     personas: list[str] = Field(default_factory=list, max_length=24)
     interview_requirements: list[str] = Field(default_factory=list, max_length=24)
-    prd_requirements: list[DraftScopeStatement] = Field(
-        default_factory=list, max_length=40
-    )
-    limits: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
-    policies: list[DraftScopeStatement] = Field(default_factory=list, max_length=40)
+    prd_requirements: list[str] = Field(default_factory=list, max_length=40)
+    limits: list[str] = Field(default_factory=list, max_length=40)
+    policies: list[str] = Field(default_factory=list, max_length=40)
     deliverable_profile: DraftDeliverableProfile
     acceptance_criteria: list[DraftAcceptanceCriterion] = Field(
         min_length=1, max_length=120
     )
-    assumptions: list[DraftScopeStatement] = Field(default_factory=list, max_length=24)
+    assumptions: list[str] = Field(default_factory=list, max_length=24)
     material_clarification: str | None = Field(
         default=None, min_length=1, max_length=1000
     )
@@ -475,39 +464,7 @@ product PRD (food, hardware, packaged goods) and software_prd only for software/
 use launch_authorization only when the artifact itself makes a go/no-go legal, safety or
 launch decision. Each criterion supports exact accepted-list descriptions or one of the seven
 requirement categories; the server generates stable requirement/criterion IDs and exact
-priority/authority. Return 3-8 compact requirement groupings as acceptanceCriteria. Keep their
-Given/When/Then prose brief because it is only a draft grouping hint; the server emits the exact
-canonical criteria. One criterion may support multiple exact descriptions or categories; cover
-the accepted requirements through this compact set, not one criterion per list item.
-Every prdRequirements, limits, policies, and assumptions item is a typed draft statement.
-Use disposition internal_target only for a candidate product, business, budget, schedule,
-UX, performance, or technical target; it will remain explicitly a proposal. Use
-owner_proposed_constraint only when the statement is literal in REQUEST_TEXT. Use
-evidence_question for anything whose truth depends on law, regulation, safety, nutrition,
-health, science, certification, filing, authorization, or other external evidence, and link
-the exact evidence_requirement_ids. A proposed product, business, or technical target may remain
-internal_target even when later validation is needed; an assertion that it is externally correct
-must be evidence_question. Evidence questions must describe only the jurisdiction and
-broad research domain present in REQUEST_TEXT; never enumerate an authority, filing, label
-field, hazard, nutrient, certification, method, proof type, or value absent from REQUEST_TEXT.
-AcceptanceCriteria prose is a grouping hint only; the server replaces it with exact canonical
-internal-decision or evidence gates before sealing the scope.
-Apply the same evidence-neutral rule to every nested free-text field, including evidence
-descriptions/appliesWhen, deliverables, personas, interviews, deliverableProfile and
-materialClarification. Those fields may identify a broad research domain or accountable role,
-but cannot answer the unresolved evidence question.
-Scope compilation happens before research: identify what must be decided or verified, but do not
-answer an unresolved evidence question. If REQUEST_TEXT supplies an exact high-stakes value or duty,
-preserve it only as an owner-supplied proposed constraint or claim that still requires accepted
-evidence; never present it as verified authority during scope compilation. Otherwise never invent or
-assert a legal instrument, legal duty, filing mechanic,
-mandatory label field, certification, safety/nutrition/health/scientific threshold, test method,
-sample size, or pass/fail value in requirements, assumptions, policies or acceptanceCriteria.
-Make those scenarios observable by requiring exact accepted evidence to be bound and an identified
-accountable role to record the adopted rule or threshold; when that evidence is missing, the
-outcome is an explicit unresolved gap. Product, business, budget, schedule, UX and performance
-targets may be explicit proposals, but must not imply external authority.
-Evidence requirements must be claim-specific;
+priority/authority. Evidence requirements must be claim-specific;
 mark only essential legal/safety evidence as blocking. Optional statistics, offers, or
 commercial details are nonblocking. Give every requirement one typed evidenceRole.
 Use grounded_claim with verificationBasis grounded_claims for general law, standards,
@@ -523,11 +480,6 @@ particular, never combine statutory law with a separate standard, trade-body rul
 in one requirement even when both are blocking.
 Give every explicitly named legal instrument its own evidence requirement; never combine
 two named regulations into one assertion.
-For a broad regulatory request, create independently researchable legal-domain evidence
-rows instead of one umbrella requirement. Keep national law separate from supranational
-law, and keep safety, hygiene, composition and labelling obligations in separate rows. Do
-not invent an instrument, title or number: name one only when REQUEST_TEXT names it;
-otherwise describe the jurisdiction and legal domain that research must identify.
 When REQUEST_TEXT explicitly restricts a requirement to named publishers or official
 documentation, set allowedSourceHosts to the minimal sorted lowercase canonical hostnames
 for those publishers. Otherwise return an empty allowedSourceHosts list. Never infer a host
@@ -651,7 +603,9 @@ def _canonical_required_sections(
     baseline_sections = (
         _SOFTWARE_PRD_BASELINE_SECTIONS
         if artifact_type == "software_prd"
-        else _PRD_BASELINE_SECTIONS if artifact_type == "product_prd" else frozenset()
+        else _PRD_BASELINE_SECTIONS
+        if artifact_type == "product_prd"
+        else frozenset()
     )
     if not baseline_sections:
         return utf16_ordinal_sorted(set(values))
@@ -670,254 +624,6 @@ def _canonical_required_sections(
     return utf16_ordinal_sorted(sections_by_identity.values())
 
 
-_INTERNAL_PROPOSAL_PREFIX = (
-    "Candidate internal proposal (not verified external authority): "
-)
-_OWNER_PROPOSAL_PREFIX = (
-    "Owner-proposed constraint (pending accepted evidence where external authority "
-    "applies): "
-)
-_SAFE_DEFAULT_PROPOSAL_PREFIX = (
-    "Safe-default proposal (not verified external authority): "
-)
-_EVIDENCE_GATE_PREFIX = "Unresolved evidence gate"
-_INTERNAL_SCENARIO_PREFIX = (
-    "Candidate internal scenario (not verified external authority): "
-)
-_INTERNAL_ACTION_PREFIX = "Proposed internal action (not verified external authority): "
-_INTERNAL_OUTCOME_PREFIX = (
-    "Proposed acceptance outcome (not verified external authority): "
-)
-
-
-@dataclass(frozen=True)
-class _ProjectedScopeStatements:
-    prd_requirements: list[str]
-    limits: list[str]
-    policies: list[str]
-    assumptions: list[str]
-    authority_overrides: dict[tuple[str, str], str]
-    support_aliases: dict[str, list[tuple[str, str]]]
-    evidence_links: dict[tuple[str, str], list[str]]
-
-
-def _scope_statement_body(text: str) -> str:
-    stripped = text.strip()
-    for existing_prefix in (
-        _INTERNAL_PROPOSAL_PREFIX,
-        _OWNER_PROPOSAL_PREFIX,
-        _SAFE_DEFAULT_PROPOSAL_PREFIX,
-    ):
-        if stripped.startswith(existing_prefix):
-            return stripped[len(existing_prefix) :].lstrip()
-    return stripped
-
-
-def _canonical_proposal_text(prefix: str, text: str) -> str:
-    stripped = _scope_statement_body(text)
-    projected = f"{prefix}{stripped}"
-    if len(projected) <= 1000:
-        return projected
-    digest = canonical_hash(stripped)[:16]
-    suffix = f" [content {digest}]"
-    return f"{prefix}{stripped[: 1000 - len(prefix) - len(suffix)].rstrip()}{suffix}"
-
-
-def _canonical_evidence_gate(
-    evidence_requirement_ids: list[str], *, assumption: bool
-) -> str:
-    identity = canonical_hash(evidence_requirement_ids)[:16]
-    noun = "assumption" if assumption else "scope requirement"
-    return (
-        f"{_EVIDENCE_GATE_PREFIX} {identity}: this {noun} is not accepted as a "
-        "rule, fact, threshold, or authorization. Resolve its linked accepted "
-        "evidence requirements from exact source spans and hashes; an accountable "
-        "owner may adopt only supported conclusions and must record an explicit gap "
-        "otherwise."
-    )
-
-
-def _canonical_acceptance_text(prefix: str, text: str) -> str:
-    stripped = text.strip()
-    if stripped.startswith(prefix):
-        return stripped
-    projected = f"{prefix}{stripped}"
-    if len(projected) <= 2000:
-        return projected
-    digest = canonical_hash(stripped)[:16]
-    suffix = f" [content {digest}]"
-    return f"{prefix}{stripped[: 2000 - len(prefix) - len(suffix)].rstrip()}{suffix}"
-
-
-def _project_scope_statements(
-    *,
-    authority_text: str,
-    evidence_requirements: list[EvidenceRequirement],
-    prd_requirements: list[DraftScopeStatement],
-    limits: list[DraftScopeStatement],
-    policies: list[DraftScopeStatement],
-    assumptions: list[DraftScopeStatement],
-    safe_default_values: set[str] | None = None,
-    prior_scope: ScopeArtifactV2 | None = None,
-) -> _ProjectedScopeStatements:
-    """Project draft-only epistemic labels into today's persisted scope contract.
-
-    The model classifies each decision-bearing statement, but it never decides its
-    truth status. Evidence-linked prose is discarded. Everything else is persisted
-    as an explicit proposal, so a mistaken model classification still cannot become
-    verified external authority.
-    """
-
-    evidence_ids = {item.id for item in evidence_requirements}
-    normalized_authority = _normalized_semantic_text(authority_text)
-    normalized_defaults = {
-        _normalized_semantic_text(value) for value in safe_default_values or set()
-    }
-    prior_requirements: dict[tuple[str, str], AcceptedDeliverableRequirementV1] = {}
-    for item in sorted(
-        prior_scope.requirements if prior_scope else [],
-        key=lambda value: value.id.encode("utf-16-be"),
-    ):
-        prior_requirements.setdefault((item.category, item.description), item)
-        prior_requirements.setdefault(
-            (item.category, _scope_statement_body(item.description)), item
-        )
-    prior_assumptions = {
-        key: value
-        for value in (prior_scope.assumptions if prior_scope else [])
-        for key in (value, _scope_statement_body(value))
-    }
-    authority_overrides: dict[tuple[str, str], str] = {}
-    support_aliases: dict[str, set[tuple[str, str]]] = {}
-    evidence_links: dict[tuple[str, str], set[str]] = {}
-    prior_evidence_links: dict[tuple[str, str], set[str]] = {}
-    if prior_scope is not None:
-        prior_requirement_by_id = {item.id: item for item in prior_scope.requirements}
-        prior_evidence_source_by_requirement_id = {
-            item.id: evidence.id
-            for item in prior_scope.requirements
-            if item.category == "evidence"
-            for evidence in prior_scope.evidence_requirements
-            if evidence.description == item.description
-        }
-        for criterion in prior_scope.acceptance_criteria:
-            linked_evidence_ids = {
-                prior_evidence_source_by_requirement_id[item]
-                for item in criterion.supports
-                if item in prior_evidence_source_by_requirement_id
-            }
-            if not linked_evidence_ids:
-                continue
-            for requirement_id in criterion.supports:
-                requirement = prior_requirement_by_id.get(requirement_id)
-                if requirement is None or requirement.category == "evidence":
-                    continue
-                prior_evidence_links.setdefault(
-                    (requirement.category, requirement.description), set()
-                ).update(linked_evidence_ids)
-                prior_evidence_links.setdefault(
-                    (
-                        requirement.category,
-                        _scope_statement_body(requirement.description),
-                    ),
-                    set(),
-                ).update(linked_evidence_ids)
-
-    authority_rank = {"axwise_derived": 0, "safe_default": 1, "owner": 2}
-
-    def project(
-        category: str,
-        statements: list[DraftScopeStatement],
-        *,
-        assumption: bool = False,
-    ) -> list[str]:
-        projected: list[str] = []
-        for statement in statements:
-            text = statement.text.strip()
-            body = _scope_statement_body(text)
-            prior_requirement = prior_requirements.get((category, text))
-            if prior_requirement is None:
-                prior_requirement = prior_requirements.get((category, body))
-            linked_ids = utf16_ordinal_sorted(
-                set(statement.evidence_requirement_ids).intersection(evidence_ids)
-            )
-            if not linked_ids:
-                linked_ids = utf16_ordinal_sorted(
-                    (
-                        prior_evidence_links.get((category, text), set())
-                        or prior_evidence_links.get((category, body), set())
-                    ).intersection(evidence_ids)
-                )
-            normalized_text = _normalized_semantic_text(body)
-            owner_supplied = normalized_text in normalized_authority
-            safe_default = normalized_text in normalized_defaults
-            evidence_question = (
-                statement.disposition == "evidence_question"
-                or text.startswith(_EVIDENCE_GATE_PREFIX)
-            )
-            if evidence_question:
-                # Evidence-dependent assumptions are represented by their typed
-                # evidence requirement, not persisted as permanently unresolved facts.
-                if assumption or not linked_ids:
-                    continue
-                projected_text = _canonical_evidence_gate(linked_ids, assumption=False)
-                authority = "axwise_derived"
-            else:
-                if (
-                    statement.disposition == "owner_proposed_constraint"
-                    and owner_supplied
-                ):
-                    prefix = _OWNER_PROPOSAL_PREFIX
-                    authority = "owner"
-                elif owner_supplied:
-                    prefix = _INTERNAL_PROPOSAL_PREFIX
-                    authority = "owner"
-                elif safe_default:
-                    prefix = _SAFE_DEFAULT_PROPOSAL_PREFIX
-                    authority = "safe_default"
-                elif prior_requirement is not None:
-                    projected_text = prior_requirement.description
-                    authority = prior_requirement.authority
-                    prefix = _INTERNAL_PROPOSAL_PREFIX
-                else:
-                    prefix = _INTERNAL_PROPOSAL_PREFIX
-                    authority = "axwise_derived"
-                if prior_requirement is None or owner_supplied or safe_default:
-                    projected_text = _canonical_proposal_text(prefix, body)
-                if assumption and body in prior_assumptions:
-                    projected_text = prior_assumptions[body]
-            if projected_text not in projected:
-                projected.append(projected_text)
-            if not assumption:
-                key = (category, projected_text)
-                existing_authority = authority_overrides.get(key)
-                if (
-                    existing_authority is None
-                    or authority_rank[authority] > authority_rank[existing_authority]
-                ):
-                    authority_overrides[key] = authority
-                support_aliases.setdefault(text, set()).add(key)
-                support_aliases.setdefault(body, set()).add(key)
-                if linked_ids:
-                    evidence_links.setdefault(key, set()).update(linked_ids)
-        return utf16_ordinal_sorted(projected)
-
-    return _ProjectedScopeStatements(
-        prd_requirements=project("prd", prd_requirements),
-        limits=project("limit", limits),
-        policies=project("policy", policies),
-        assumptions=project("assumption", assumptions, assumption=True),
-        authority_overrides=authority_overrides,
-        support_aliases={
-            reference: sorted(values, key=lambda item: (item[0], item[1]))
-            for reference, values in support_aliases.items()
-        },
-        evidence_links={
-            key: utf16_ordinal_sorted(values) for key, values in evidence_links.items()
-        },
-    )
-
-
 def _project_deliverable_contract(
     *,
     authority_text: str,
@@ -932,9 +638,6 @@ def _project_deliverable_contract(
     draft_criteria: list[DraftAcceptanceCriterion],
     safe_default_values: set[str] | None = None,
     prior_scope: ScopeArtifactV2 | None = None,
-    authority_overrides: dict[tuple[str, str], str] | None = None,
-    support_aliases: dict[str, list[tuple[str, str]]] | None = None,
-    evidence_links: dict[tuple[str, str], list[str]] | None = None,
 ) -> tuple[
     AcceptedDeliverableProfileV1,
     list[AcceptedDeliverableRequirementV1],
@@ -981,27 +684,20 @@ def _project_deliverable_contract(
         {(category, description) for category, description, _ in raw_projection}
     ) != len(raw_projection):
         raise ValueError("accepted scope semantic lists contain duplicate requirements")
-    if len(raw_projection) > 120:
-        raise ValueError("accepted scope cannot exceed 120 semantic requirements")
 
     normalized_authority = _normalized_semantic_text(authority_text)
-    explicit_authority = authority_overrides or {}
     requirements: list[AcceptedDeliverableRequirementV1] = []
     for category, description, inferred_priority in raw_projection:
         prior = prior_by_semantics.get((category, description))
         normalized_description = _normalized_semantic_text(description)
         authority = (
-            explicit_authority[(category, description)]
-            if (category, description) in explicit_authority
-            else (
-                "owner"
-                if normalized_description in normalized_authority
-                else (
-                    "safe_default"
-                    if normalized_description in default_values
-                    else prior.authority if prior is not None else "axwise_derived"
-                )
-            )
+            "owner"
+            if normalized_description in normalized_authority
+            else "safe_default"
+            if normalized_description in default_values
+            else prior.authority
+            if prior is not None
+            else "axwise_derived"
         )
         priority = prior.priority if prior is not None else inferred_priority
         semantic = {
@@ -1020,58 +716,37 @@ def _project_deliverable_contract(
 
     by_id = {item.id: item.id for item in requirements}
     prior_ids = {item.id for item in prior_scope.requirements} if prior_scope else set()
-    by_description: dict[str, list[str]] = {}
+    by_description = {item.description: item.id for item in requirements}
     by_category: dict[str, list[str]] = {}
     for item in requirements:
-        by_description.setdefault(item.description, []).append(item.id)
         by_category.setdefault(item.category, []).append(item.id)
-    evidence_by_description = {item.description: item for item in evidence_requirements}
-    evidence_by_requirement_id = {
-        item.id: evidence_by_description[item.description]
-        for item in requirements
-        if item.category == "evidence"
-    }
-    requirement_id_by_semantics = {
-        (item.category, item.description): item.id for item in requirements
-    }
-    aliased_requirement_ids: dict[str, set[str]] = {}
-    for reference, semantics in (support_aliases or {}).items():
-        for semantic in semantics:
-            requirement_id = requirement_id_by_semantics.get(semantic)
-            if requirement_id is not None:
-                aliased_requirement_ids.setdefault(reference, set()).add(requirement_id)
-    evidence_requirement_id_by_source_id = {
-        evidence.id: requirement.id
-        for requirement in requirements
-        if requirement.category == "evidence"
-        for evidence in evidence_requirements
-        if evidence.description == requirement.description
-    }
-    linked_evidence_by_requirement_id: dict[str, set[str]] = {}
-    for semantic, source_ids in (evidence_links or {}).items():
-        requirement_id = requirement_id_by_semantics.get(semantic)
-        if requirement_id is None:
-            continue
-        linked = {
-            evidence_requirement_id_by_source_id[source_id]
-            for source_id in source_ids
-            if source_id in evidence_requirement_id_by_source_id
-        }
-        if linked:
-            linked_evidence_by_requirement_id.setdefault(requirement_id, set()).update(
-                linked
-            )
-
     criteria: list[DeliverableAcceptanceCriterionV1] = []
-
-    def append_criterion(
-        *, given: str, when: str, then: str, supports: list[str]
-    ) -> None:
+    for draft in draft_criteria:
+        supports: set[str] = set()
+        for reference in draft.supports:
+            if reference in by_id:
+                supports.add(reference)
+            elif reference in by_description:
+                supports.add(by_description[reference])
+            elif reference in by_category:
+                supports.update(by_category[reference])
+            elif reference in prior_ids:
+                # A correction may remove or semantically change a prior requirement.
+                # Its stale criterion edge is invalidated rather than retargeted.
+                continue
+            else:
+                raise ValueError(
+                    "acceptance criterion support must name an accepted requirement, "
+                    "description or category"
+                )
+        sorted_supports = utf16_ordinal_sorted(supports)
+        if not sorted_supports:
+            continue
         semantic = {
-            "given": given,
-            "when": when,
-            "then": then,
-            "supports": utf16_ordinal_sorted(set(supports)),
+            "given": draft.given.strip(),
+            "when": draft.when.strip(),
+            "then": draft.then.strip(),
+            "supports": sorted_supports,
         }
         criteria.append(
             DeliverableAcceptanceCriterionV1(
@@ -1079,154 +754,22 @@ def _project_deliverable_contract(
                 **semantic,
             )
         )
-
-    def append_evidence_criterion(support_ids: list[str]) -> None:
-        evidence_roles = utf16_ordinal_sorted(
-            {
-                evidence_by_requirement_id[item].evidence_role
-                for item in support_ids
-                if item in evidence_by_requirement_id
-            }
-        )
-        append_criterion(
-            given=(
-                "The accepted scope contains unresolved evidence-dependent "
-                f"requirements with typed roles: {', '.join(evidence_roles)}; no "
-                "external rule, fact, threshold, proof, or authorization is accepted "
-                "yet"
-            ),
-            when=(
-                "An accountable owner reviews the exact accepted source spans or "
-                "immutable proof artifacts and their hashes for every linked evidence "
-                "requirement"
-            ),
-            then=(
-                "Adopt only conclusions supported by the linked accepted evidence for "
-                "the affected decision; otherwise record an explicit gap. This "
-                "criterion does not itself establish external authority."
-            ),
-            supports=support_ids,
-        )
-
-    def append_internal_criterion(
-        support_ids: list[str], draft: DraftAcceptanceCriterion | None = None
-    ) -> None:
-        if draft is None:
-            given = _canonical_acceptance_text(
-                _INTERNAL_SCENARIO_PREFIX,
-                "The accepted scope contains candidate product, business, technical, "
-                "or operational requirements",
-            )
-            when = _canonical_acceptance_text(
-                _INTERNAL_ACTION_PREFIX,
-                "The accountable owner evaluates them through an observable decision, "
-                "experiment, prototype, or operating check",
-            )
-            then = _canonical_acceptance_text(
-                _INTERNAL_OUTCOME_PREFIX,
-                "Record the supported proposals as accepted, rejected, or an explicit "
-                "gap without treating this criterion as verification of external "
-                "authority.",
-            )
-        else:
-            given = _canonical_acceptance_text(_INTERNAL_SCENARIO_PREFIX, draft.given)
-            when = _canonical_acceptance_text(_INTERNAL_ACTION_PREFIX, draft.when)
-            then = _canonical_acceptance_text(_INTERNAL_OUTCOME_PREFIX, draft.then)
-        append_criterion(
-            given=given,
-            when=when,
-            then=then,
-            supports=support_ids,
-        )
-
-    # Exact evidence edges are structural, so build their criteria independently
-    # of provider-authored scenarios and never subject them to count trimming.
-    evidence_bound_groups: dict[tuple[str, ...], set[str]] = {}
-    for requirement_id, linked_ids in linked_evidence_by_requirement_id.items():
-        link_tuple = tuple(utf16_ordinal_sorted(linked_ids))
-        if link_tuple:
-            evidence_bound_groups.setdefault(link_tuple, set()).add(requirement_id)
-    consumed_evidence = {
-        evidence_id for links in evidence_bound_groups for evidence_id in links
-    }
-    direct_only_evidence = set(evidence_by_requirement_id).difference(consumed_evidence)
-
-    for draft in draft_criteria:
-        supports: set[str] = set()
-        for reference in draft.supports:
-            matched = False
-            if reference in by_id:
-                supports.add(reference)
-                matched = True
-            if reference in by_description:
-                supports.update(by_description[reference])
-                matched = True
-            if reference in aliased_requirement_ids:
-                supports.update(aliased_requirement_ids[reference])
-                matched = True
-            if reference in by_category:
-                supports.update(by_category[reference])
-                matched = True
-            if not matched and reference in prior_ids:
-                # A correction may remove or semantically change a prior requirement.
-                # Its stale criterion edge is invalidated rather than retargeted.
-                continue
-            if not matched:
-                # Provider criteria are grouping hints, not authority. A stale or
-                # malformed edge is discarded and deterministic coverage below fills
-                # any resulting gap without spending another model retry.
-                continue
-        direct_evidence = {
-            item for item in supports if item in evidence_by_requirement_id
-        }
-        internal_supports: set[str] = set()
-        for requirement_id in supports.difference(direct_evidence):
-            if requirement_id not in linked_evidence_by_requirement_id:
-                internal_supports.add(requirement_id)
-        if internal_supports:
-            append_internal_criterion(
-                utf16_ordinal_sorted(internal_supports),
-                (
-                    None
-                    if direct_evidence
-                    or supports.intersection(linked_evidence_by_requirement_id)
-                    else draft
-                ),
-            )
-
-    authored_internal_criteria = sorted(
-        {item.id: item for item in criteria}.values(),
-        key=lambda item: item.id.encode("utf-16-be"),
-    )
-    criteria = []
-    if direct_only_evidence:
-        append_evidence_criterion(utf16_ordinal_sorted(direct_only_evidence))
-    for links, statement_ids in sorted(evidence_bound_groups.items()):
-        append_evidence_criterion(utf16_ordinal_sorted({*links, *statement_ids}))
-    mandatory_criteria = sorted(
-        {item.id: item for item in criteria}.values(),
-        key=lambda item: item.id.encode("utf-16-be"),
-    )
-    if len(mandatory_criteria) > 120:
-        raise ValueError("accepted evidence contract cannot exceed 120 criteria")
-
-    available_internal_slots = 120 - len(mandatory_criteria)
-    selected_internal = authored_internal_criteria[:available_internal_slots]
-    criteria = [*mandatory_criteria, *selected_internal]
-    all_requirement_ids = {item.id for item in requirements}
     covered = {item for criterion in criteria for item in criterion.supports}
-    uncovered = all_requirement_ids.difference(covered)
-    if uncovered:
-        # Reserve one deterministic aggregate only by trimming a provider-authored
-        # internal scenario. Mandatory exact-edge evidence criteria are immutable.
-        if len(criteria) == 120:
-            if not selected_internal:
-                raise ValueError("accepted scope criteria cannot cover requirements")
-            selected_internal = selected_internal[:-1]
-            criteria = [*mandatory_criteria, *selected_internal]
-            covered = {item for criterion in criteria for item in criterion.supports}
-            uncovered = all_requirement_ids.difference(covered)
-        append_internal_criterion(utf16_ordinal_sorted(uncovered))
+    for requirement in requirements:
+        if requirement.id in covered:
+            continue
+        semantic = {
+            "given": "The accepted deliverable profile and immutable evidence boundary",
+            "when": "The candidate artifact is evaluated against the accepted scope",
+            "then": requirement.description,
+            "supports": [requirement.id],
+        }
+        criteria.append(
+            DeliverableAcceptanceCriterionV1(
+                id=f"acc-{canonical_hash(semantic)[:16]}",
+                **semantic,
+            )
+        )
     criteria = sorted(
         {item.id: item for item in criteria}.values(),
         key=lambda item: item.id.encode("utf-16-be"),
@@ -1253,14 +796,6 @@ def _validate_draft(request: str, draft: ScopeDraft) -> None:
         request, draft.evidence_requirements, accepted_hosts=set()
     )
     _validate_atomic_evidence_requirements(draft.evidence_requirements)
-    projected = _project_scope_statements(
-        authority_text=request,
-        evidence_requirements=draft.evidence_requirements,
-        prd_requirements=draft.prd_requirements,
-        limits=draft.limits,
-        policies=draft.policies,
-        assumptions=draft.assumptions,
-    )
     _project_deliverable_contract(
         authority_text=request,
         profile=draft.deliverable_profile,
@@ -1268,13 +803,10 @@ def _validate_draft(request: str, draft: ScopeDraft) -> None:
         deliverables=draft.deliverables,
         personas=draft.personas,
         interview_requirements=draft.interview_requirements,
-        prd_requirements=projected.prd_requirements,
-        limits=projected.limits,
-        policies=projected.policies,
+        prd_requirements=draft.prd_requirements,
+        limits=draft.limits,
+        policies=draft.policies,
         draft_criteria=draft.acceptance_criteria,
-        authority_overrides=projected.authority_overrides,
-        support_aliases=projected.support_aliases,
-        evidence_links=projected.evidence_links,
     )
 
 
@@ -1338,6 +870,7 @@ def _validate_atomic_evidence_requirements(
         if (
             requirement.evidence_role == "grounded_claim"
             and requirement.verification_basis == "grounded_claims"
+            and "primary_law" in source_types
             and len(explicit_regulations) > 1
         ):
             raise ValueError(
@@ -1354,60 +887,6 @@ def _requirement_has_statutory_force(requirement: EvidenceRequirement) -> bool:
         or claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
         or _STATUTORY_SEMANTICS.search(description) is not None
     )
-
-
-def _with_narrowed_statutory_source_types(
-    requirements: Sequence[EvidenceRequirement],
-) -> list[EvidenceRequirement]:
-    """Keep statutory research on official or primary-law sources.
-
-    A model may describe an unmistakably legal requirement while leaving the broad
-    ``grounded_web`` source class in its draft.  The accepted scope is the durable
-    research authority, so compile and revise deterministically narrow that class before
-    sealing the scope.  Official source records can still carry ``grounded_web`` as an
-    additional classifier; their government/primary-law class is what satisfies the
-    accepted requirement.
-    """
-
-    narrowed_types = utf16_ordinal_sorted(_STATUTORY_SOURCE_TYPES)
-
-    def is_unambiguous_statutory_requirement(
-        requirement: EvidenceRequirement,
-    ) -> bool:
-        claim_type = re.sub(
-            r"[^a-z0-9]+", "_", requirement.claim_type.casefold()
-        ).strip("_")
-        claim_type_tokens = set(claim_type.split("_"))
-        source_types = set(requirement.accepted_source_types)
-        return (
-            claim_type in _UNAMBIGUOUS_STATUTORY_CLAIM_TYPES
-            or bool(
-                claim_type_tokens.intersection(
-                    {
-                        "legal",
-                        "law",
-                        "laws",
-                        "regulation",
-                        "regulations",
-                        "regulatory",
-                        "statutory",
-                    }
-                )
-            )
-            or "primary_law" in source_types
-        )
-
-    return [
-        (
-            requirement.model_copy(
-                update={"accepted_source_types": narrowed_types.copy()}
-            )
-            if is_unambiguous_statutory_requirement(requirement)
-            and set(requirement.accepted_source_types) != _STATUTORY_SOURCE_TYPES
-            else requirement
-        )
-        for requirement in requirements
-    ]
 
 
 def _explicit_eu_regulation_identities(value: str) -> set[tuple[str, str]]:
@@ -1592,32 +1071,7 @@ to objective_changed and objective offsets. Return all other semantic lists as t
 complete revised values, including deliverableProfile and acceptanceCriteria. Keep product_prd
 distinct from software_prd; use launch_authorization only for an actual go/no-go legal, safety
 or launch decision. Criterion supports name exact accepted-list descriptions or requirement
-categories; the server generates semantic IDs. Return 3-8 compact requirement groupings and keep
-their Given/When/Then prose brief because the server emits the exact canonical criteria. Let each
-support multiple requirements where appropriate. Every prdRequirements, limits,
-policies, and assumptions item is a
-typed draft statement. Use internal_target only for a candidate internal target,
-owner_proposed_constraint only for text literal in OWNER_CORRECTION, and evidence_question
-with exact evidence_requirement_ids for anything dependent on external evidence. A proposed
-product, business, or technical target may remain internal_target even when later validation is
-needed; an assertion that it is externally correct must be evidence_question. Evidence
-questions name only the jurisdiction and broad research domain already present in the accepted
-scope or OWNER_CORRECTION; never introduce an authority, filing, label field, hazard, nutrient,
-certification, method, proof type, or value. AcceptanceCriteria prose is only a grouping hint;
-the server deterministically replaces it with canonical internal-decision or evidence gates.
-Apply the same evidence-neutral rule to every nested free-text field, including evidence
-descriptions/appliesWhen, deliverables, personas, interviews, deliverableProfile and
-materialClarification.
-Scope revision still happens
-before research resumes. If OWNER_CORRECTION supplies an exact high-stakes value or duty, preserve
-it only as an owner-supplied proposed constraint or claim that still requires accepted evidence;
-never present it as verified authority during scope revision. Otherwise do not introduce an
-unsupported legal instrument, legal duty, filing mechanic,
-mandatory label field, certification, safety/nutrition/health/scientific threshold, test method,
-sample size or pass/fail value. Make an unresolved high-stakes scenario observable by requiring
-exact accepted evidence and adoption by an identified accountable role, with an explicit gap when evidence is
-missing. Product, business, budget, schedule, UX and performance targets may be explicit proposals
-without implying external authority. Never use chat history or unrelated context. Evidence
+categories; the server generates semantic IDs. Never use chat history or unrelated context. Evidence
 requirements remain claim-specific; only essential legal/safety evidence may block.
 For an explicit publisher or official-documentation restriction in OWNER_CORRECTION or the
 accepted requirement, preserve or set the minimal sorted lowercase allowedSourceHosts;
@@ -1692,15 +1146,6 @@ def _validate_revision_draft(
         ),
     )
     _validate_atomic_evidence_requirements(draft.evidence_requirements)
-    projected = _project_scope_statements(
-        authority_text=correction,
-        evidence_requirements=draft.evidence_requirements,
-        prd_requirements=draft.prd_requirements,
-        limits=draft.limits,
-        policies=draft.policies,
-        assumptions=draft.assumptions,
-        prior_scope=accepted_scope,
-    )
     _project_deliverable_contract(
         authority_text=correction,
         profile=draft.deliverable_profile,
@@ -1708,14 +1153,11 @@ def _validate_revision_draft(
         deliverables=draft.deliverables,
         personas=draft.personas,
         interview_requirements=draft.interview_requirements,
-        prd_requirements=projected.prd_requirements,
-        limits=projected.limits,
-        policies=projected.policies,
+        prd_requirements=draft.prd_requirements,
+        limits=draft.limits,
+        policies=draft.policies,
         draft_criteria=draft.acceptance_criteria,
         prior_scope=accepted_scope,
-        authority_overrides=projected.authority_overrides,
-        support_aliases=projected.support_aliases,
-        evidence_links=projected.evidence_links,
     )
 
 
@@ -1809,16 +1251,6 @@ health, safety, legal, process, test-method or certification specifications. If 
 immutable claim does not support one of those details, omit it or state the unresolved decision
 and how to validate it. Evidence markers are sentence- or table-cell-local: split verified facts
 from proposed targets, and never attach a marker to a line containing an unsupported target.
-For a full-contract core_draft, use every `SEMANTIC_METHOD.analysisAreas` entry as the
-analytical spine: provide substantive reader-facing analysis for it or state specifically why it
-is not applicable to the accepted scope. Render every item in
-`OUTPUT_CONTRACT.acceptanceCriteria` exactly once in Markdown, showing its criterion ID, every
-supported requirement ID and one complete Given/When/Then block. Typed `requirement_coverage`
-metadata is not a substitute for that reader-facing acceptance section. When a legal or safety
-proposition lacks a clause-local marker from ALLOWED_CLAIM_IDS, do not present the candidate
-obligation, threshold, instrument or clearance as a factual rule. State the unresolved question
-and one specific authoritative verification action instead, while preserving the useful product
-decision around it.
 When evidence readiness is not ready, include an explicit `Evidence gaps` or `Assumptions`
 Markdown heading even in a bounded specialist packet. Use ordinary Markdown tables, never
 ASCII-art tables inside code fences.
@@ -1854,38 +1286,18 @@ SYNTHESIS_SYSTEM_PROMPT = (
     _COGNITIVE_BOUNDARY_PROMPT
     + """
 
-Turn BASE_MARKDOWN into one coherent, useful final artifact. ACCEPTED_SCOPE is the sole semantic
-authority and RESEARCH_RESULT is the sole evidence-status authority. PUBLICATION_CONTRACT is the
-binding reader-facing rewrite contract. BASE_MARKDOWN is the exact immutable core draft and is an
-untrusted candidate, never evidence. Preserve its strongest useful analysis, product decisions,
-requirements, acceptance checks, metrics, risks and next steps, but never preserve a factual
-detail merely because it appears in that candidate. REPAIR_TARGETS and REPAIR_INSTRUCTIONS are
-reviewer guidance, not a form to satisfy and not instructions to repeat; apply only corrections
-that are concrete and consistent with the accepted scope and immutable evidence. Never echo diagnostics, validator language,
-workflow commentary or internal control metadata into the deliverable.
-
-Keep the useful reader-facing structure and traceability: criterion IDs, supported requirement
-IDs and complete Given/When/Then blocks. You may rewrite or condense any polluted sentence, row or
-section needed to remove unsupported precision; do not globally summarize the document or drop
-unaffected substance. Every RESEARCH_RESULT.unresolvedEvidence entry is an unanswered evidence
-domain. For that domain, state the unresolved question, its planning consequence, and one
-specific authoritative verification action once in the evidence-gaps section, or use an
-explicitly proposed internal target that does not claim external authority. Never quote or
-restate the candidate's unsupported answer inside a warning, question, requirement, or action.
-Accepted-scope evidence requirements and evidence-category
-acceptance criteria define coverage to investigate; they are not verified factual answers. Do
-not infer or restore candidate instruments, thresholds, filing mechanics, translations, health
-effects, safety rules or mandatory declarations from BASE_MARKDOWN. If one unsupported legal or
-safety proposition must be corrected, preserve the surrounding useful requirement or acceptance
-block while replacing the unsupported answer.
+Turn BASE_MARKDOWN into one coherent, useful final artifact. Preserve its strongest analysis,
+decisions, requirements, acceptance checks, metrics, risks and next steps. REPAIR_TARGETS and
+REPAIR_INSTRUCTIONS are reviewer guidance, not a form to satisfy and not instructions to repeat;
+apply only corrections that are concrete and consistent with the accepted scope and immutable
+evidence. Never echo diagnostics, validator language, workflow commentary or internal control
+metadata into the deliverable.
 
 Prefer clear reader-facing prose over repetitive warnings. When evidence is incomplete, state one
-prominent evidence-status boundary near the beginning and keep one concise entry for each exact
-unresolved domain in the evidence-gaps section. Do not emit `Pending verification`, `Validation
-target`, `Verify before adoption whether this statement is accurate`, or an equivalent generic
-warning prefix anywhere in the reader-facing body. Do not prefix personas, non-goals, headings,
-ordinary product choices, or the planning-artifact boundary with evidence warnings. Keep a useful
-PRD deliverable even
+prominent evidence-status boundary near the beginning, keep the exact unresolved items in the
+evidence-gaps section, and label only the particular affected claim or requirement as pending
+verification. Do not prefix personas, non-goals, headings, ordinary product choices, or the
+planning-artifact boundary with generic evidence warnings. Keep a useful PRD deliverable even
 when product-specific launch authorization or safety clearance is unavailable; never imply that
 the artifact itself grants launch, legal, safety, certification or market approval.
 
@@ -1898,25 +1310,8 @@ ages, neighbourhoods, demographics, interviews or quotations. Use ordinary Markd
 complete Given/When/Then acceptance checks and substantive section content. Never author a
 Sources appendix because the server appends it from immutable claim metadata.
 
-Omit unsupported high-stakes legal, safety or health precision as asserted fact. Preserve the
-useful reader-facing label, requirement ID and decision context by rewriting the item as a neutral
-internal review condition that does not contain the candidate answer. Never erase a persona job,
-journey step, requirement or Given/When/Then outcome, and never recreate an unresolved filing,
-licensing, registration or mandatory-label answer from the candidate. For example, write
-`Before distribution, the accountable owner must document the applicable operator requirements
-from an accepted primary source`, not `registration is mandatory` and not a quoted warning.
-
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
-
-FINAL READINESS CHECK: When EVIDENCE_READINESS is ready_with_gaps, inspect every requirement,
-Given/When/Then outcome, metric or validation-gate row, and risk decision before returning the
-document. If a legal, safety, health, nutrition or scientific threshold has no exact immutable
-evidence marker in the same clause or table cell, keep any useful test design only as a clearly
-proposed validation hypothesis. It must not read as an adopted pass/fail, release/reject or
-compliance criterion, and authoritative evidence plus qualified-owner approval must precede
-adoption. This does not downgrade ordinary product, business, budget, schedule, UX or
-performance targets that make no high-stakes authority claim.
 """
 ).strip()
 
@@ -2032,8 +1427,7 @@ def _launch_claim_is_negated_or_conditional(clause: str, match: re.Match[str]) -
     )
     negative_predicate = (
         r"(?:(?:is|are|was|were|remains?)\s+(?:unsupported|unverified|"
-        r"unresolved|unestablished|forbidden|prohibited|excluded|rejected|"
-        r"disallowed|denied)|"
+        r"unestablished|forbidden|prohibited|excluded|rejected|disallowed|denied)|"
         r"(?:is|are|was|were|remains?|has|have|had)\s+(?:not|never)"
         r"(?:\s+been)?\s+(?:asserted|established|supported|verified|validated|"
         r"approved|authorized|authorised|confirmed|made|granted|allowed|"
@@ -2364,10 +1758,8 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
     allowed = set(context.allowed_claim_ids)
     if citations - allowed:
         raise ValueError("Markdown cites evidence outside the immutable claim ledger")
-    if (
-        allowed
-        and not citations
-        and not (context.purpose == "execute_task" and not context.required_sections)
+    if allowed and not citations and not (
+        context.purpose == "execute_task" and not context.required_sections
     ):
         raise ValueError("evidence-backed Markdown must cite immutable claim IDs")
     if context.evidence_readiness in {"ready_with_gaps", "blocked"}:
@@ -2428,29 +1820,9 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
 _IMMUTABLE_GAP_SECTION_HEADINGS = frozenset(
     {
         "Immutable evidence gaps and assumptions",
-        "Immutable Gaps and Assumptions Register",
         "Other immutable gaps and assumptions",
     }
 )
-
-
-def _is_immutable_gap_heading(value: str) -> bool:
-    """Recognize the exact server gap section without exact casing/numbering."""
-
-    identities = _markdown_heading_identities(value)
-    canonical = {item.casefold() for item in _IMMUTABLE_GAP_SECTION_HEADINGS}
-    return bool(identities.intersection(canonical))
-
-
-def _is_semantic_gap_heading(value: str) -> bool:
-    """Recognize a reader-facing evidence-gap host section."""
-
-    identities = _markdown_heading_identities(value)
-    return any(
-        ("evidence" in identity or "evidentiary" in identity)
-        and ("gap" in identity or "assumption" in identity)
-        for identity in identities
-    )
 
 
 def _immutable_gap_bullet(label: str) -> str:
@@ -2465,13 +1837,7 @@ def _has_server_owned_immutable_gap_bullet(markdown: str, bullet: str) -> bool:
         if heading:
             current_heading = heading.group(1).strip()
             continue
-        if (
-            _is_immutable_gap_heading(current_heading)
-            or _is_semantic_gap_heading(current_heading)
-        ) and stripped in {
-            bullet,
-            bullet.replace("- ", "- **Pending verification:** ", 1),
-        }:
+        if current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS and stripped == bullet:
             return True
     return False
 
@@ -2502,7 +1868,10 @@ def _with_immutable_gap_labels(
     for index, line in enumerate(lines):
         stripped = line.strip()
         heading = _MARKDOWN_HEADING.fullmatch(stripped)
-        if heading is None or not _is_immutable_gap_heading(heading.group(1).strip()):
+        if (
+            heading is None
+            or heading.group(1).strip() not in _IMMUTABLE_GAP_SECTION_HEADINGS
+        ):
             continue
         insert_at = len(lines)
         for later_index in range(index + 1, len(lines)):
@@ -2514,37 +1883,6 @@ def _with_immutable_gap_labels(
         additions = [*(_immutable_gap_bullet(label) for label in missing)]
         if insert_at > 0 and lines[insert_at - 1].strip():
             additions.insert(0, "")
-        if insert_at < len(lines) and lines[insert_at].strip():
-            additions.append("")
-        lines[insert_at:insert_at] = additions
-        return draft.model_copy(update={"markdown": "\n".join(lines)})
-    for index, line in enumerate(lines):
-        stripped = line.strip()
-        heading = _MARKDOWN_HEADING.fullmatch(stripped)
-        if heading is None or not _is_semantic_gap_heading(heading.group(1).strip()):
-            continue
-        host_level = _markdown_heading_level(line)
-        insert_at = len(lines)
-        for later_index in range(index + 1, len(lines)):
-            later_heading = _MARKDOWN_HEADING.fullmatch(lines[later_index].strip())
-            if (
-                later_heading is not None
-                and _markdown_heading_level(lines[later_index]) <= host_level
-            ):
-                insert_at = later_index
-                break
-        nested_level = min(host_level + 1, 6)
-        additions = [
-            "",
-            f"{'#' * nested_level} Immutable evidence gaps and assumptions",
-            "",
-            (
-                "These immutable gaps remain unresolved. They do not establish launch, "
-                "legal, safety, certification, or market clearance."
-            ),
-            "",
-            *(_immutable_gap_bullet(label) for label in missing),
-        ]
         if insert_at < len(lines) and lines[insert_at].strip():
             additions.append("")
         lines[insert_at:insert_at] = additions
@@ -2891,7 +2229,6 @@ _EVIDENCE_SENSITIVE_ASSERTION = re.compile(
     r"fediaf|complies?\s+with|compliant\s+with|compliance\s+with|"
     r"certif(?:y|ied|ication)|authori[sz](?:e|es|ed|ation)|"
     r"approved|legally|required\s+(?:by|under)|regulation\s*\(|"
-    r"\b(?:legal|statutory|regulatory)\s+standard\b|"
     r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
     r"(?:mandates?|requires?|prohibits?|obliges?|must)\b|"
     r"meet(?:s|ing)?\s+[^.;]{0,80}\b(?:standard|requirements?)\b|"
@@ -2907,7 +2244,6 @@ _NONPROVISIONAL_AUTHORITY_ASSERTION = re.compile(
     r"disease|fediaf|complies?\s+with|compliant\s+with|compliance\s+with|"
     r"certif(?:y|ied|ication)|authori[sz](?:e|es|ed|ation)|approved|legally|"
     r"required\s+(?:by|under)|regulation\s*\(|"
-    r"\b(?:legal|statutory|regulatory)\s+standard\b|"
     r"(?:is|are|was|were)\s+(?:not\s+)?safe\b|"
     r"(?:not\s+safe|unsafe|safe)\s+(?:for|to)|"
     r"(?:law|act|directive|regulation|statute)\b[^.;]{0,100}\b"
@@ -3085,7 +2421,7 @@ _PLANNING_TARGET_EXTERNAL_STATUS_ASSERTION = re.compile(
 )
 _AUTHORITY_PROCESS_OBJECT = re.compile(
     r"\b(?:approval|authori[sz]ation|certification|clearance|dossier|filing|"
-    r"notice|notification|registration|permit|licen[cs]e|sign[- ]?off)\b|"
+    r"notification|registration|permit|licen[cs]e|sign[- ]?off)\b|"
     r"\b(?:authority|agency|board|legal|official|pta|regulatory|statutory)\b"
     r"[^.;\n]{0,60}\b(?:application|fee|forms?|paperwork)\b|"
     r"\b(?:application|fee|forms?|paperwork)\b[^.;\n]{0,60}"
@@ -3193,11 +2529,6 @@ _SERVER_UNVERIFIED_VALIDATION_TARGET_PARTS = re.compile(
 _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE = re.compile(
     r"validation\s+target\s*\(\s*all\s+following\s+content\s+is\s+unverified\s+"
     r"until\s+pre-adoption\s+review\s*\)\s*:\s*(?P<body>\S.+?)\s*$",
-    re.IGNORECASE,
-)
-_SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX = re.compile(
-    r"validation\s+target\s*\(\s*all\s+following\s+content\s+is\s+unverified\s+"
-    r"until\s+pre-adoption\s+review\s*\)\s*:\s*",
     re.IGNORECASE,
 )
 _PUBLICATION_UNKNOWN_PENDING_ITEM = re.compile(
@@ -3337,109 +2668,9 @@ _UNRESOLVED_POSITIVE_AUTHORITY_ASSERTION = re.compile(
 _AUTHORITY_PROCESS_EXECUTION = re.compile(
     r"\b(?:obtain|file|notify|register|submit|prepare|assemble|execute|complete|"
     r"secure|request)\b[^.;\n]{0,120}\b(?:approval|authori[sz]ation|certification|"
-    r"clearance|dossier|filing|notice|notification|registration|permit|licen[cs]e)\b|"
-    r"\b(?:apply\s+for\s+(?:(?:an?|the)\s+)?(?:approval|authori[sz]ation|"
-    r"certification|clearance|registration|permit|licen[cs]e)|register\s+with|"
-    r"notify|file\s+with|submit\s+to)\b",
+    r"clearance|dossier|filing|notification|registration|permit|licen[cs]e)\b",
     re.IGNORECASE,
 )
-_EXTERNAL_AUTHORITY_CONTEXT = re.compile(
-    r"\b(?:agency|agriculture\s+and\s+food\s+board|authorit(?:y|ies)|"
-    r"competent\s+authority|economic\s+activit(?:y|ies)|feed\s+business\s+operator|"
-    r"food\s+board|"
-    r"accreditation|certification|fbo|government|haccp|law|legal|licen[cs]e|"
-    r"official|permit|pta|regulat(?:or|ory)|statutory)\b",
-    re.IGNORECASE,
-)
-_AUTHORITY_DUTY_PREDICATE = re.compile(
-    r"\b(?:mandat(?:e|es|ed|ory)|must|shall|required)\b",
-    re.IGNORECASE,
-)
-_AUTHORITY_DUTY_OBJECT = re.compile(
-    r"\b(?:declarations?|filing|information|labels?|labelling|labeling|licen[cs]e|"
-    r"notice|notification|on-pack|pack(?:age)?|particulars?|permit|registration|"
-    r"text|wording)\b",
-    re.IGNORECASE,
-)
-_AUTHORITY_IDENTIFIER_ASSERTION = re.compile(
-    r"\b(?:registration|licen[cs]e|permit|approval)\s+(?:number|code)\b",
-    re.IGNORECASE,
-)
-_LABEL_AUTHORITY_DUTY_CONTEXT = re.compile(
-    r"\b(?:estonian|european\s+union|eu|national)\b[^.;\n]{0,140}\b"
-    r"(?:declarations?|labels?|labelling|labeling|language|on-pack|packaging|"
-    r"particulars?)\b|"
-    r"\b(?:declarations?|labels?|labelling|labeling|language|on-pack|packaging|"
-    r"particulars?)\b[^.;\n]{0,140}\b"
-    r"(?:estonian|european\s+union|eu|national)\b|"
-    r"\b(?:estonian|european\s+union|eu|national)\b[^.;\n]{0,100}\b"
-    r"(?:information|text|wording)\b[^.;\n]{0,100}\b(?:pack(?:age)?|packaging)\b|"
-    r"\b(?:pack(?:age)?|packaging)\b[^.;\n]{0,100}\b"
-    r"(?:estonian|european\s+union|eu|national)\b[^.;\n]{0,100}\b"
-    r"(?:information|text|wording)\b",
-    re.IGNORECASE,
-)
-_AUTHORITY_PROCESS_ALTERNATIVE = re.compile(
-    r"\b(?:approval|licen[cs]e|notice|notification|permit|registration)\b",
-    re.IGNORECASE,
-)
-_INTERNAL_WORKFLOW_STATUS = re.compile(
-    r"\b(?:account|form|manager|onboarding|pull\s+request|request|screen|task|user|"
-    r"workflow)\b[^.;\n]{0,120}\b(?:approval|approved|registration|registered)\b|"
-    r"\b(?:approval|approved|registration|registered)\b[^.;\n]{0,120}\b"
-    r"(?:account|form|manager|onboarding|pull\s+request|request|screen|task|user|"
-    r"workflow)\b",
-    re.IGNORECASE,
-)
-
-
-def _has_external_authority_process_execution(value: str) -> bool:
-    return bool(
-        _AUTHORITY_PROCESS_EXECUTION.search(value)
-        and _EXTERNAL_AUTHORITY_CONTEXT.search(value)
-    )
-
-
-def _has_external_authority_duty_assertion(value: str) -> bool:
-    return bool(
-        (
-            _EXTERNAL_AUTHORITY_CONTEXT.search(value)
-            or _LABEL_AUTHORITY_DUTY_CONTEXT.search(value)
-        )
-        and (
-            (
-                _AUTHORITY_DUTY_PREDICATE.search(value)
-                and _AUTHORITY_DUTY_OBJECT.search(value)
-            )
-            or _AUTHORITY_IDENTIFIER_ASSERTION.search(value)
-        )
-    )
-
-
-def _has_label_authority_duty_assertion(value: str) -> bool:
-    return bool(
-        _LABEL_AUTHORITY_DUTY_CONTEXT.search(value)
-        and _AUTHORITY_DUTY_PREDICATE.search(value)
-        and _AUTHORITY_DUTY_OBJECT.search(value)
-    )
-
-
-def _is_internal_workflow_status(value: str) -> bool:
-    return bool(
-        _INTERNAL_WORKFLOW_STATUS.search(value)
-        and _EXTERNAL_AUTHORITY_CONTEXT.search(value) is None
-        and re.search(r"\b(?:health|medical|safety)\b", value, re.IGNORECASE) is None
-    )
-
-
-def _authority_process_alternatives(value: str) -> set[str]:
-    aliases = {"notification": "notice"}
-    return {
-        aliases.get(match.group(0).casefold(), match.group(0).casefold())
-        for match in _AUTHORITY_PROCESS_ALTERNATIVE.finditer(value)
-    }
-
-
 _UNRESOLVED_REQUIREMENT_CONTEXT = re.compile(
     r"^\s*(?:(?:[-+*]|\d+[.)])\s+)?(?:"
     r"(?:given|if|when)\b|[^:\n]{1,80}\b(?:gate|precondition)\s*:\s*(?:given|if|when)\b|"
@@ -3560,8 +2791,7 @@ _EXPLICIT_AUTHORITY_NEGATION = re.compile(
     re.IGNORECASE,
 )
 _CLAUSE_BREAK = re.compile(
-    r"(?<!\bNo\.)(?<=[.!?;])\s+|"
-    r",\s*(?:but|however|yet|nevertheless|nonetheless)\s+|"
+    r"(?<=[.!?;])\s+|,\s*(?:but|however|yet|nevertheless|nonetheless)\s+|"
     r"\s+(?:but|however|nevertheless|nonetheless)\s+|(?<!not)\s+yet\s+",
     re.IGNORECASE,
 )
@@ -3670,15 +2900,7 @@ def _precision_values(value: str) -> set[str]:
     normalized = unicodedata.normalize("NFKC", value)
     normalized = re.sub(r"\\text\{([^}]*)\}", r"\1", normalized)
     normalized = re.sub(
-        r"\$(?P<formula>[^$\n]{1,200})\$",
-        lambda match: (
-            match.group("formula") if "\\" in match.group("formula") else match.group(0)
-        ),
-        normalized,
-    )
-    normalized = re.sub(r"(?<!\\)[*_`]", "", normalized)
-    normalized = re.sub(
-        r"\b(?:at\s+least|no\s+less\s+than|(?:a\s+)?minimum(?:\s+of)?)\s+(?=\d)",
+        r"\b(?:at\s+least|no\s+less\s+than)\s+(?=\d)",
         ">=",
         normalized,
         flags=re.IGNORECASE,
@@ -3880,12 +3102,9 @@ def _unresolved_evidence_requirement_descriptions(
 def _split_unresolved_assertions(fragment: str) -> list[str]:
     """Separate an unresolved status clause from an unrelated positive assertion."""
 
-    if (
-        _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
-            re.sub(r"[`]", "", fragment).strip()
-        )
-        is not None
-    ):
+    if _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
+        re.sub(r"[`]", "", fragment).strip()
+    ) is not None:
         return [fragment.strip()]
     controlled_prefix = _PUBLICATION_UNKNOWN_PENDING_PREFIX.search(fragment)
     if controlled_prefix is not None:
@@ -3956,7 +3175,7 @@ def _is_safe_nonauthority_planning_directive(value: str) -> bool:
         or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(tail)
         or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(tail)
         or _INDEPENDENT_SENSITIVE_FACT.search(tail)
-        or _has_external_authority_process_execution(tail)
+        or _AUTHORITY_PROCESS_EXECUTION.search(tail)
         or (_precision_values(tail) and not precise_tail_is_bounded_sample)
     )
 
@@ -4080,7 +3299,7 @@ def _deterministic_evidence_integrity_defects(
                 # authority claim still pass through the exact same checks below.
                 continue
         elif (
-            _is_immutable_gap_heading(current_heading)
+            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
             and stripped in immutable_gap_bullets
         ):
             # This exact line is appended by AxWise to preserve an immutable unresolved
@@ -4163,9 +3382,13 @@ def _deterministic_evidence_integrity_defects(
                 continue
             if exact_explicit_gap_fragment(fragment):
                 expanded_fragments.append((fragment, fragment_context))
-            elif _SERVER_VALIDATION_ACTION.fullmatch(
-                re.sub(r"[*_`]", "", fragment).strip()
-            ) is not None and _is_bounded_unresolved_requirement_action(fragment):
+            elif (
+                _SERVER_VALIDATION_ACTION.fullmatch(
+                    re.sub(r"[*_`]", "", fragment).strip()
+                )
+                is not None
+                and _is_bounded_unresolved_requirement_action(fragment)
+            ):
                 # The complete proposition is inside one bounded verification
                 # question. Keep it intact so conjunctions in the question cannot be
                 # misread as independently asserted factual tails.
@@ -4205,10 +3428,7 @@ def _deterministic_evidence_integrity_defects(
             gwt_role = _task_fragment_parts(cleaned_without_markers)[2]
             gwt_authority_execution = (
                 gwt_role == "when"
-                and (
-                    _has_external_authority_process_execution(without_markers)
-                    or _has_external_authority_duty_assertion(without_markers)
-                )
+                and _AUTHORITY_PROCESS_OBJECT.search(without_markers) is not None
                 and (
                     _PLANNING_TARGET_OBLIGATION_ASSERTION.search(without_markers)
                     is not None
@@ -4220,23 +3440,19 @@ def _deterministic_evidence_integrity_defects(
             )
             safe_non_authority_planning_directive = (
                 _is_safe_nonauthority_planning_directive(cleaned_without_markers)
-                or _is_internal_workflow_status(cleaned_without_markers)
             )
             evidence_sensitive = (
                 not conditional_ui_behavior
                 and not safe_non_authority_planning_directive
                 and (
-                    _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
-                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
+                _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
+                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+                or gwt_authority_execution
+                or (
+                    raw_conditional_then_candidate
+                    and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
                     is not None
-                    or _has_external_authority_process_execution(without_markers)
-                    or _has_external_authority_duty_assertion(without_markers)
-                    or gwt_authority_execution
-                    or (
-                        raw_conditional_then_candidate
-                        and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
-                        is not None
-                    )
+                )
                 )
             )
             conditional_then_candidate = (
@@ -4259,7 +3475,6 @@ def _deterministic_evidence_integrity_defects(
             )
             planning_process_object = (
                 _AUTHORITY_PROCESS_OBJECT.search(planning_payload) is not None
-                and _EXTERNAL_AUTHORITY_CONTEXT.search(planning_payload) is not None
             )
             planning_target_authority_assertion = planning_prefix is not None and (
                 _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION.search(planning_payload)
@@ -4274,8 +3489,7 @@ def _deterministic_evidence_integrity_defects(
                         or _INTERNAL_PLANNING_TARGET.search(planning_payload) is None
                     )
                 )
-                or _has_external_authority_process_execution(without_markers)
-                or _has_external_authority_duty_assertion(without_markers)
+                or _AUTHORITY_PROCESS_EXECUTION.search(without_markers) is not None
             )
             validation_action_authority_execution = (
                 _EXPLICIT_VALIDATION_ACTION_PREFIX.search(
@@ -4283,7 +3497,7 @@ def _deterministic_evidence_integrity_defects(
                 )
                 is not None
                 and (
-                    _has_external_authority_process_execution(without_markers)
+                    _AUTHORITY_PROCESS_EXECUTION.search(without_markers) is not None
                     or not _is_bounded_unresolved_requirement_action(without_markers)
                 )
             )
@@ -4303,24 +3517,17 @@ def _deterministic_evidence_integrity_defects(
                 for requirement in unresolved_evidence_requirements
             )
             exact_explicit_gap_label = exact_explicit_gap_fragment(without_markers)
-            hard_authority = not safe_non_authority_planning_directive and (
-                _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers) is not None
-                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
-                or _has_external_authority_process_execution(without_markers)
-                or _has_external_authority_duty_assertion(without_markers)
-                or planning_target_authority_assertion
-                or validation_action_authority_execution
-                or conditional_then_candidate
-            )
-            explicit_pending_gap_cell = bool(
-                table_gap_context
-                and re.search(
-                    r"\b(?:gap|status|next\s+step)\b",
-                    fragment_context,
-                    re.IGNORECASE,
+            hard_authority = (
+                not safe_non_authority_planning_directive
+                and (
+                    _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                    is not None
+                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
+                    is not None
+                    or planning_target_authority_assertion
+                    or validation_action_authority_execution
+                    or conditional_then_candidate
                 )
-                and not _has_external_authority_process_execution(without_markers)
-                and not _has_external_authority_duty_assertion(without_markers)
             )
             if not precise_values and not sensitive and not unresolved_alignment:
                 continue
@@ -4329,7 +3536,6 @@ def _deterministic_evidence_integrity_defects(
                 and sensitive
                 and not precise_values
                 and not markers
-                and (not hard_authority or explicit_pending_gap_cell)
                 and not _POSITIVE_AUTHORITY_PREDICATE.search(without_markers)
             ):
                 continue
@@ -4351,7 +3557,7 @@ def _deterministic_evidence_integrity_defects(
                 and _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION.search(cleaned_action)
                 is None
                 and not planning_target_authority_assertion
-                and not _has_external_authority_process_execution(cleaned_action)
+                and _AUTHORITY_PROCESS_EXECUTION.search(cleaned_action) is None
             ):
                 continue
             if not markers and (
@@ -4364,7 +3570,7 @@ def _deterministic_evidence_integrity_defects(
                 not markers
                 and _EXPLICIT_VALIDATION_ACTION_PREFIX.search(cleaned_action)
                 and _is_bounded_unresolved_requirement_action(cleaned_action)
-                and not _has_external_authority_process_execution(cleaned_action)
+                and _AUTHORITY_PROCESS_EXECUTION.search(cleaned_action) is None
             ):
                 continue
             if (
@@ -4383,7 +3589,6 @@ def _deterministic_evidence_integrity_defects(
             if (
                 unresolved_alignment
                 and not markers
-                and not hard_authority
                 and (
                     _UNRESOLVED_LABELED_ACTION.search(
                         re.sub(r"[*_`]", "", without_markers)
@@ -4438,29 +3643,6 @@ def _deterministic_evidence_integrity_defects(
             ]
             if not cited_texts:
                 # Marker membership is reported by the existing citation validator.
-                continue
-            assertion_authority_alternatives = _authority_process_alternatives(
-                without_markers
-            )
-            cited_authority_alternatives = [
-                _authority_process_alternatives(text) for text in cited_texts
-            ]
-            if (
-                _has_external_authority_process_execution(without_markers)
-                and any(
-                    len(alternatives) > 1
-                    for alternatives in cited_authority_alternatives
-                )
-                and not any(
-                    alternatives == assertion_authority_alternatives
-                    for alternatives in cited_authority_alternatives
-                    if len(alternatives) > 1
-                )
-            ):
-                add_defect(
-                    "Cited immutable claims do not support this narrowed authority "
-                    f"process assertion: {excerpt}"
-                )
                 continue
             if unresolved_alignment:
                 assertion_negated = (
@@ -4553,7 +3735,6 @@ def _handled_task_evidence_defect(
             "Unsupported factual precision requires an exact evidence marker",
             "Cited immutable claims do not support every exact value in this assertion",
             "Cited immutable claims do not semantically support this exact assertion",
-            "Cited immutable claims do not support this narrowed authority process assertion",
         )
     ):
         return None
@@ -4574,24 +3755,12 @@ def _is_hard_task_evidence_defect(defect: str) -> bool:
     if not separator or not excerpt:
         return False
     cleaned = re.sub(r"[*_`]", "", excerpt).strip()
-    artifact_non_authorization_boundary = re.search(
-        r"\b(?:(?:this|the)\s+)?(?:artifact|deliverable|document|prd|plan|it)\b"
-        r"[^.;\n]{0,120}\b(?:do(?:es)?|is|are|can)\s+not\b[^.;\n]{0,80}\b"
-        r"(?:constitute|grant|provide|authori[sz]e)\b",
-        cleaned,
-        re.IGNORECASE,
-    )
-    if artifact_non_authorization_boundary is not None:
-        return False
-    if _is_safe_nonauthority_planning_directive(
-        cleaned
-    ) or _is_internal_workflow_status(cleaned):
+    if _is_safe_nonauthority_planning_directive(cleaned):
         return False
     return (
         _NONPROVISIONAL_AUTHORITY_ASSERTION.search(cleaned) is not None
         or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned) is not None
-        or _has_external_authority_process_execution(cleaned)
-        or _has_external_authority_duty_assertion(cleaned)
+        or _AUTHORITY_PROCESS_EXECUTION.search(cleaned) is not None
     )
 
 
@@ -4634,39 +3803,6 @@ def _as_unresolved_validation_action(fragment: str, *, table_cell: bool = False)
     return f"{list_prefix}{action}"
 
 
-def _as_unresolved_verification_question(
-    fragment: str, *, table_cell: bool = False
-) -> str:
-    """Preserve an unsafe publication assertion only as a review question."""
-
-    list_prefix, role_prefix, role, body = _task_fragment_parts(fragment)
-    body = body.strip()
-    quoted_body = body if re.search(r"[.!?]$", body) else f"{body}."
-    if _has_label_authority_duty_assertion(body):
-        question = (
-            "Verify from the controlling primary source which declarations, language, "
-            "and wording are required before approving packaging"
-        )
-    elif _has_external_authority_process_execution(
-        body
-    ) or _has_external_authority_duty_assertion(body):
-        question = (
-            "Verify with the responsible authority whether a notice, registration, "
-            "licence, permit, or another authorization applies before adoption"
-        )
-    else:
-        question = "Verify before adoption whether this statement is accurate"
-    action = (
-        "Validation target (all following content is unverified until pre-adoption "
-        f"review): {question}: “{quoted_body}”"
-    )
-    if role:
-        return f"{list_prefix}{role_prefix}{action}"
-    if table_cell:
-        return action
-    return f"{list_prefix}{action}"
-
-
 def _as_unverified_repair_assumption(fragment: str, *, table_cell: bool = False) -> str:
     """Preserve a non-authority proposition without presenting it as verified fact."""
 
@@ -4685,8 +3821,6 @@ def _prepare_task_unresolved_actions(
     draft: TaskDraft | SynthesisDraft,
     *,
     include_generic: bool = False,
-    authority_only: bool = False,
-    reader_questions: bool = False,
     allow_composite_authority_targets: bool = False,
 ) -> TaskDraft | SynthesisDraft:
     """Withhold unsupported task claims without discarding the useful artifact.
@@ -4704,28 +3838,13 @@ def _prepare_task_unresolved_actions(
 
     if context.artifact_type == "launch_authorization":
         return draft
-    if include_generic or authority_only:
+    if include_generic:
         if context.evidence_readiness not in {"ready", "ready_with_gaps"}:
             return draft
     elif context.evidence_readiness != "ready_with_gaps":
         return draft
 
     current = draft.markdown
-
-    def handled_defect(defect: str) -> tuple[str, bool, bool] | None:
-        unresolved = _handled_task_evidence_defect(defect, include_generic=False)
-        if unresolved is not None:
-            return unresolved
-        if authority_only:
-            if not _is_hard_task_evidence_defect(defect):
-                return None
-            _prefix, separator, excerpt = defect.partition(": ")
-            return (
-                (excerpt, True, defect.startswith("Cited immutable claims"))
-                if separator and excerpt
-                else None
-            )
-        return _handled_task_evidence_defect(defect, include_generic=include_generic)
 
     def present_required_headings(markdown: str) -> set[str]:
         headings = {
@@ -4776,7 +3895,14 @@ def _prepare_task_unresolved_actions(
             preserve_duplicate_occurrences=True,
         )
         handled = [
-            value for defect in defects if (value := handled_defect(defect)) is not None
+            value
+            for defect in defects
+            if (
+                value := _handled_task_evidence_defect(
+                    defect, include_generic=include_generic
+                )
+            )
+            is not None
         ]
         if not handled:
             break
@@ -4810,8 +3936,6 @@ def _prepare_task_unresolved_actions(
                     if candidate
                 ]
                 for candidate in candidates:
-                    if _PUBLICATION_PENDING_INLINE.search(candidate) is not None:
-                        continue
                     candidate_index = unit.find(candidate)
                     if candidate_index < 0:
                         continue
@@ -4854,11 +3978,9 @@ def _prepare_task_unresolved_actions(
                         )
                     )
                     replacement = (
-                        (
-                            _as_unresolved_verification_question
-                            if reader_questions
-                            else _as_unresolved_validation_action
-                        )(markerless, table_cell=is_table_line)
+                        _as_unresolved_validation_action(
+                            markerless, table_cell=is_table_line
+                        )
                         if use_validation_action
                         else _as_unverified_repair_assumption(
                             markerless, table_cell=is_table_line
@@ -4901,7 +4023,12 @@ def _prepare_task_unresolved_actions(
                     trial_handled = [
                         value
                         for defect in trial_defects
-                        if (value := handled_defect(defect)) is not None
+                        if (
+                            value := _handled_task_evidence_defect(
+                                defect, include_generic=include_generic
+                            )
+                        )
+                        is not None
                     ]
                     if len(trial_handled) >= len(handled):
                         continue
@@ -5757,7 +4884,8 @@ def _with_canonical_acceptance_criteria(
                 f"- **Then** {criterion.then}",
                 "- **Supports** "
                 + ", ".join(
-                    f"`{requirement_id}`" for requirement_id in criterion.supports
+                    f"`{requirement_id}`"
+                    for requirement_id in criterion.supports
                 ),
                 "",
             ]
@@ -6392,7 +5520,9 @@ def _project_server_validation_scaffolding(
                     trial_pieces[piece_index] = replacement
                     line_changed = True
                     continue
-                replacement = _publication_unknown_item_inline(pieces[piece_index])
+                replacement = _publication_unknown_item_inline(
+                    pieces[piece_index]
+                )
                 if replacement != pieces[piece_index]:
                     trial_pieces[piece_index] = replacement
                     line_changed = True
@@ -6454,7 +5584,8 @@ def _project_fenced_ascii_roadmaps(
             for match in _FENCED_ROADMAP_LABEL.finditer(body)
         ]
         is_ascii_table = (
-            "|" in body and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
+            "|" in body
+            and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
         )
         table_recognized = (
             is_ascii_table
@@ -6682,7 +5813,11 @@ def _project_remaining_evidence_defects(
                             for fragment in fragments
                             if any(excerpt in fragment for excerpt in excerpts)
                         ],
-                        *[excerpt for excerpt in excerpts if excerpt in piece],
+                        *[
+                            excerpt
+                            for excerpt in excerpts
+                            if excerpt in piece
+                        ],
                         *parsed_candidates,
                     ]
                     for candidate in candidates:
@@ -6975,7 +6110,8 @@ def _without_unbound_task_evidence_markers(
 
     allowed = set(context.allowed_claim_ids)
     heading_positions = [
-        position for position, _name, _folded in _markdown_headings(draft.markdown)
+        position
+        for position, _name, _folded in _markdown_headings(draft.markdown)
     ]
     first_heading = min(heading_positions) if heading_positions else len(draft.markdown)
 
@@ -7005,259 +6141,9 @@ _OVERBROAD_PUBLICATION_GROUNDING_CLAIM = re.compile(
 )
 _PUBLICATION_EVIDENCE_STATUS_BLOCK = (
     "> **Evidence status: completed with evidence gaps.** This is a useful "
-    "planning artifact, not launch authorization. Resolve the explicit legal, "
-    "safety, product, and market items in the Evidence gaps section before relying "
-    "on it for execution or launch."
-)
-_EXPLICIT_LAUNCH_DISPOSITION = re.compile(
-    r"\b(?:launch|production(?:\s+deployment)?|market(?:\s+entry)?|go[- ]live)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_LABEL_AUTHORITY_ASSERTION = re.compile(
-    r"\b(?:labels?|labelling|labeling|packaging|declarations?)\b[^.;\n]{0,160}\b"
-    r"(?:legal|mandatory|statutory|required\s+(?:by|under)|compl(?:y|ies|iant|iance))\b|"
-    r"\b(?:legal|mandatory|statutory|required\s+(?:by|under)|"
-    r"compl(?:y|ies|iant|iance))\b[^.;\n]{0,160}\b"
-    r"(?:labels?|labelling|labeling|packaging|declarations?)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_LABEL_REQUIREMENT_ANSWER = re.compile(
-    r"\b(?:labels?|labelling|labeling|packaging|declarations?|on-pack)\b"
-    r"[^.;\n]{0,160}\b(?:must|shall|required\s+to)\b[^.;\n]{0,160}\b"
-    r"(?:legal|mandatory|regulatory|statutory)\b|"
-    r"\b(?:legal|mandatory|regulatory|statutory)\b[^.;\n]{0,160}\b"
-    r"(?:must|shall|required\s+to)\b[^.;\n]{0,160}\b"
-    r"(?:labels?|labelling|labeling|packaging|declarations?|on-pack)\b|"
-    r"\b(?:includes?|displays?|carries?|states?|identifies?|lists?|declares?)\b"
-    r"[^.;\n]{0,160}\b(?:mandatory|statutory)\b[^.;\n]{0,160}\b"
-    r"(?:text|declarations?|information|language|wording)\b|"
-    r"\bmust\s+(?:include|mandate|specify)\b[^.;\n]{0,160}\b"
-    r"(?:mandatory|statutory)\b[^.;\n]{0,160}\b"
-    r"(?:declarations?|label|labelling|labeling|text|wording)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL = (
-    "Proposed validation target — requires authoritative verification"
-)
-_PUBLICATION_PENDING_SENTINEL = "**Pending authoritative verification.**"
-_PUBLICATION_LEGACY_VALIDATION_PREFIX = re.compile(
-    r"(?:\*\*|__)?proposed\s+validation\s+target\s+[—-]\s+requires\s+"
-    r"authoritative\s+verification(?:\s*:)?(?:\*\*|__)?\s*:?[ \t]*",
-    re.IGNORECASE,
-)
-_PUBLICATION_LABEL_VALIDATION_ACTION = (
-    "Confirm the applicable labelling requirement with primary legal evidence "
-    "before approving copy."
-)
-_PUBLICATION_PROCESS_VALIDATION_ACTION = (
-    "Confirm the applicable filing or registration process with the responsible "
-    "authority before execution."
-)
-_PUBLICATION_SAFETY_VALIDATION_ACTION = (
-    "Define the safety validation protocol and adopt limits only after authoritative "
-    "evidence and test results are accepted."
-)
-_PUBLICATION_HEALTH_VALIDATION_ACTION = (
-    "Treat the claimed health or nutritional effect as an unverified product "
-    "hypothesis until appropriate evidence validates it."
-)
-_PUBLICATION_BENCHMARK_VALIDATION_ACTION = (
-    "Confirm the applicable nutritional or safety benchmark with accepted "
-    "authoritative evidence before adopting a numeric specification."
-)
-_PUBLICATION_FACT_VALIDATION_ACTION = (
-    "Confirm the exact external figure with accepted immutable evidence before "
-    "publishing it."
-)
-_PUBLICATION_LEGAL_VALIDATION_ACTION = (
-    "Confirm the applicable legal or authorization requirement from the controlling "
-    "primary source before adoption."
-)
-_PUBLICATION_CANONICAL_VALIDATION_ACTIONS = frozenset(
-    {
-        _PUBLICATION_LABEL_VALIDATION_ACTION,
-        _PUBLICATION_PROCESS_VALIDATION_ACTION,
-        _PUBLICATION_SAFETY_VALIDATION_ACTION,
-        _PUBLICATION_HEALTH_VALIDATION_ACTION,
-        _PUBLICATION_BENCHMARK_VALIDATION_ACTION,
-        _PUBLICATION_FACT_VALIDATION_ACTION,
-        _PUBLICATION_LEGAL_VALIDATION_ACTION,
-    }
-)
-_PUBLICATION_PENDING_PREFIX = re.compile(
-    r"^(?:(?:\*\*|__)?pending\s+verification(?:\s*:)?(?:\*\*|__)?\s*:?[ \t]*)+",
-    re.IGNORECASE,
-)
-_PUBLICATION_PENDING_INLINE = re.compile(
-    r"(?:\*\*|__)?pending\s+verification(?:\s*:)?(?:\*\*|__)?\s*:?[ \t]*",
-    re.IGNORECASE,
-)
-_PUBLICATION_NUMBERED_INSTRUMENT = re.compile(
-    r"\b(?:act|code|decision|directive|reg(?:ulation)?\.?|statute)\b\s*"
-    r"(?:\([A-Z]{2,8}\)\s*)?(?:no\.?\s*)?\d[\w./()\-]*",
-    re.IGNORECASE,
-)
-_PUBLICATION_AUTHORITY_STATUS_ANSWER = re.compile(
-    r"\b(?:is|are|was|were|will\s+be|has\s+been|have\s+been)\s+"
-    r"(?:fully\s+)?(?:legally\s+)?(?:approved|authori[sz]ed|certified|compliant|"
-    r"permitted|safe)\b|"
-    r"\b(?:complies?|compliant)\s+with\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_LOCAL_AUTHORITY_TERM = re.compile(
-    r"\b(?:law|legal|mandatory|regulatory|statute|statutory)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_LOCAL_OBLIGATION_PREDICATE = re.compile(
-    r"\b(?:must|shall|mandates?|obliges?|prohibits?|requires?|required\s+to)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_LOCAL_HEALTH_EFFECT_PREDICATE = re.compile(
-    r"\b(?:ensure(?:s|d|ing)?|improv(?:e|es|ed|ing)|maintain(?:s|ed|ing)?|"
-    r"prevent(?:s|ed|ing)?|reduc(?:e|es|ed|ing)?|support(?:s|ed|ing)?)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_AUTHORITY_PROCESS_MECHANICS = re.compile(
-    r"\b(?:complete|file|register|submit)\b[^.;\n]{0,140}\b"
-    r"(?:application|dossier|filing|form|notification|registration)\b|"
-    r"\b(?:application|dossier|filing|form|notification|registration)\b"
-    r"[^.;\n]{0,140}\b(?:complete|file|register|submit(?:ted)?)\b|"
-    r"\b(?:mandatory|statutory|required)\b[^.;\n]{0,100}\b"
-    r"(?:filing|licen[cs]e|notification|permit|registration)\b|"
-    r"\b(?:obtain|receive)\b[^.;\n]{0,140}\b"
-    r"(?:acknowledgement|approval|clearance|licen[cs]e|permit)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_AUTHORITY_PROCESS_CONTEXT = re.compile(
-    r"\b(?:agency|authority|board|dossier|filing|government|law|legal|licen[cs]e|"
-    r"notification|official|permit|regulator|regulatory|statutory)\b|"
-    r"\bregister(?:ed|ing)?\s+with\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_SAFETY_RULE_ANSWER = re.compile(
-    r"\b(?:animal\s+by-products?|abp)\b[^.;\n]{0,100}\bcategory\s+\d+\b|"
-    r"\bcategory\s+\d+\b[^.;\n]{0,100}\b(?:animal\s+by-products?|abp)\b|"
-    r"\b(?:enterobacteriaceae|microbiolog(?:y|ical)|pathogens?|salmonella)\b"
-    r"[^.;\n]{0,120}\b(?:absence|ceilings?|limits?|mandatory|must|required|rules?|"
-    r"standards?|thresholds?|tolerances?|zero)\b|"
-    r"\b(?:absence|ceilings?|limits?|mandatory|must|required|rules?|standards?|"
-    r"thresholds?|tolerances?|zero)\b[^.;\n]{0,120}\b"
-    r"(?:enterobacteriaceae|microbiolog(?:y|ical)|pathogens?|salmonella)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_NAMED_CERTIFICATION_DETAIL = re.compile(
-    r"\b(?:certification|certifications|certified|standards?)\b"
-    r"[^.;\n]{0,140}\b[A-Z]{2,8}\+?\b[^.;\n]{0,80}"
-    r"(?:/|\band\b)[^.;\n]{0,40}\b[A-Z]{2,8}\+?\b|"
-    r"\b[A-Z]{2,8}\+?\b[^.;\n]{0,80}(?:/|\band\b)"
-    r"[^.;\n]{0,40}\b[A-Z]{2,8}\+?\b[^.;\n]{0,140}"
-    r"\b(?:certification|certifications|certified|standards?)\b"
-)
-_PUBLICATION_SAFETY_DOMAIN = re.compile(
-    r"\b(?:animal\s+by-products?|feed\s+hygiene|food\s+safety|microbiolog(?:y|ical)|"
-    r"pathogens?|safety|spoilage|water\s+activity)\b|\ba[_ ]?w\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_HEALTH_EFFECT_ANSWER = re.compile(
-    r"\b(?:ensure(?:s|d|ing)?|improv(?:e|es|ed|ing)|maintain(?:s|ed|ing)?|"
-    r"prevent(?:s|ed|ing)?|reduc(?:e|es|ed|ing)?|support(?:s|ed|ing)?)\b"
-    r"[^.;\n]{0,140}\b(?:condition|disease|digest(?:ion|ive)|gastrointestinal|"
-    r"hairball|health|inflammation|physiolog(?:y|ical)|renal|urinary|vitality|"
-    r"well[- ]?being|wellness)\b|"
-    r"\b(?:anti-inflammatory|digestive\s+balance|hairball\s+(?:control|management)|"
-    r"urinary\s+(?:care|support|wellness))\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_EXACT_TRANSLATION_ANSWER = re.compile(
-    r"\b(?:additives?|declarations?|designation|feeding|instructions?|label|"
-    r"labelling|labeling|language|packaging|translation)\b"
-    r"[^.;\n]{0,180}\([^)]*[^\x00-\x7f][^)]*\)",
-    re.IGNORECASE,
-)
-_PUBLICATION_FOREIGN_LABEL_EXAMPLE = re.compile(
-    r"(?:\([^)]*[\u00c0-\u024f][^)]*\)|" r"[*_][^*_\n]*[\u00c0-\u024f][^*_\n]*[*_])"
-)
-_PUBLICATION_NONASCII_LATIN_LETTER = re.compile(r"[\u00c0-\u024f]")
-_PUBLICATION_LABEL_DOMAIN = re.compile(
-    r"\b(?:additives?|declarations?|designation|feeding|instructions?|label|"
-    r"labelling|labeling|language|on-pack|packaging|translation)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_AUTHORITATIVE_LABEL_SECTION = re.compile(
-    r"\b(?:statutory|regulatory|legal|required)\b[^\n]{0,100}\b"
-    r"(?:declarations?|labels?|labelling|labeling|on-pack|packaging)\b|"
-    r"\b(?:declarations?|labels?|labelling|labeling|on-pack|packaging)\b"
-    r"[^\n]{0,100}\b(?:architecture|statutory|regulatory|legal|required)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_LABEL_DETAIL_ANSWER = re.compile(
-    r"\b(?:approval\s+number|batch|best[- ]before|declarations?|legibility|"
-    r"net\s+quantity|producer\s+contact|registration\s+number|translation)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_EXTERNAL_FACT_CONTEXT = re.compile(
-    r"\b(?:benchmark|consumer|demographic|household|market|penetration|population|"
-    r"research|survey)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_FEEDING_INSTRUCTION_CONTEXT = re.compile(
-    r"\b(?:daily\s+ration|feed(?:ing)?\s+(?:guide|instruction|schedule|use)|"
-    r"grams?\s+per\s+day|g/day)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_AUTHORITATIVE_BENCHMARK_CONTEXT = re.compile(
-    r"\b(?:evidence[- ]backed|grounded|mandatory|minimum|statutory|verified)\b"
-    r"[^\n]{0,120}\b(?:benchmark|declaration|feeding|limit|nutrition|requirement|"
-    r"rule|safety|specification|standard|threshold|tolerance)\b|"
-    r"\b(?:benchmark|declaration|feeding|limit|nutrition|requirement|rule|safety|"
-    r"specification|standard|threshold|tolerance)\b[^\n]{0,120}"
-    r"\b(?:evidence[- ]backed|grounded|mandatory|minimum|statutory|verified)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_SAFE_EVIDENCE_POLICY = re.compile(
-    r"^(?:(?:the\s+(?:artifact|document|prd)\s+)?(?:must\s+)?"
-    r"(?:base|cite|document|record|separate|track)\b[^.;\n]{0,220}\b"
-    r"(?:assumptions?|evidence|gaps?|sources?|unresolved|verification)\b|"
-    r"(?:assumptions?|evidence|gaps?)\b[^.;\n]{0,180}\b"
-    r"(?:documented|recorded|tracked|unresolved)\b)",
-    re.IGNORECASE,
-)
-_PUBLICATION_SAFE_NONAUTHORIZATION = re.compile(
-    r"\b(?:artifact|document|prd)\b[^\n]{0,100}\b(?:does|is)\s+not\b"
-    r"[^\n]{0,140}\b(?:approval|authori[sz]ation|clearance|launch|sign[- ]?off)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_INTERNAL_REVIEW_ACTION = re.compile(
-    r"^(?:(?:[a-z][a-z -]{1,50})\s+to\s+)?"
-    r"(?:audit|check|cite|confirm|consult|determine|document|inspect|record|review|"
-    r"track|validate|verify)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_COUNT_WITH_MODIFIER = re.compile(
-    r"(?<![\w])(?P<number>\d[\d,]*)\s+(?:[a-z-]+\s+){0,2}"
-    r"(?P<unit>cats?|customers?|households?|participants?|people|respondents?|users?)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_UNSUPPORTED_INFERENCE = re.compile(
-    r"\b(?:consequently|demonstrates?|hence|indicates?|proves?|shows?|suggests?|"
-    r"therefore|thus)\b",
-    re.IGNORECASE,
-)
-_PUBLICATION_NEUTRAL_CLAIM_JOIN_TOKENS = frozenset(
-    {
-        "combined",
-        "density",
-        "estimate",
-        "estimated",
-        "feline",
-        "overall",
-        "ownership",
-        "rate",
-        "representing",
-        "respectively",
-        "share",
-        "total",
-    }
+    "planning artifact, not launch authorization. Items marked **Pending "
+    "verification** and the explicit legal, safety, product, or market gaps "
+    "below must be resolved before relying on them for execution or launch."
 )
 
 
@@ -7286,171 +6172,6 @@ def _immutable_claim_covers_publication_assertion(
     )
 
 
-def _publication_precision_values(value: str) -> set[str]:
-    """Return publication precision, including counts with short modifiers."""
-
-    values = set(_precision_values(value))
-    markerless = _RAW_EVIDENCE_MARKER.sub("", value)
-    for match in _PUBLICATION_COUNT_WITH_MODIFIER.finditer(markerless):
-        number = match.group("number").replace(",", "")
-        unit = match.group("unit").casefold().rstrip("s")
-        values.add(f"{number}{unit}")
-    return values
-
-
-def _claims_collectively_cover_publication_assertion(
-    assertion: str, claim_texts: Sequence[str]
-) -> bool:
-    """Require the selected immutable claims to cover most local content."""
-
-    assertion_tokens = _expanded_support_tokens(assertion)
-    claim_tokens = set().union(
-        *(_expanded_support_tokens(text) for text in claim_texts)
-    )
-    if not assertion_tokens or not claim_tokens:
-        return False
-    matched = {
-        left
-        for left in assertion_tokens
-        if any(
-            left == right
-            or (len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6])
-            for right in claim_tokens
-        )
-    }
-    return len(matched) >= 2 and len(matched) * 3 >= len(assertion_tokens) * 2
-
-
-def _claims_safely_cover_marker_restoration(
-    assertion: str, claim_texts: Sequence[str]
-) -> bool:
-    """Do not synthesize a marker over a changed conclusion.
-
-    Restoration is stricter than preserving a marker the model already placed: every
-    content token must come from the immutable claims, apart from a small set of
-    neutral joining words used to combine exact statistics.
-    """
-
-    assertion_tokens = _expanded_support_tokens(assertion)
-    claim_tokens = set().union(
-        *(_expanded_support_tokens(text) for text in claim_texts)
-    )
-    if not assertion_tokens or not claim_tokens:
-        return False
-    matched = {
-        left
-        for left in assertion_tokens
-        if any(
-            left == right
-            or (len(left) >= 6 and len(right) >= 6 and left[:6] == right[:6])
-            for right in claim_tokens
-        )
-    }
-    unmatched = assertion_tokens.difference(matched)
-    return len(matched) >= 2 and unmatched.issubset(
-        _PUBLICATION_NEUTRAL_CLAIM_JOIN_TOKENS
-    )
-
-
-def _with_exact_supported_precision_markers(
-    context: SynthesisContext, draft: SynthesisDraft
-) -> SynthesisDraft:
-    """Restore omitted markers only when immutable claims cover exact precision."""
-
-    def marked_fragment(fragment: str) -> str:
-        if _RAW_EVIDENCE_MARKER.search(fragment) is not None:
-            return fragment
-        assertion = re.sub(r"[*_`]", "", fragment).strip()
-        values = _publication_precision_values(assertion)
-        if (
-            not assertion
-            or not values
-            or _EXPLICIT_NONFACTUAL_QUALIFIER.search(assertion) is not None
-            or _PUBLICATION_UNSUPPORTED_INFERENCE.search(assertion) is not None
-        ):
-            return fragment
-        candidates = [
-            (
-                claim_id,
-                claim_text,
-                values.intersection(_publication_precision_values(claim_text)),
-            )
-            for claim_id, claim_text in context.allowed_claim_texts.items()
-            if _assertions_share_explicit_polarity(assertion, claim_text)
-            and values.intersection(_publication_precision_values(claim_text))
-            and _claims_align_with_assertion(
-                assertion,
-                [claim_text],
-                minimum_matches=min(2, max(1, len(_support_tokens(assertion)))),
-            )
-        ]
-        covered: set[str] = set()
-        selected: list[tuple[str, str]] = []
-        for claim_id, claim_text, shared in sorted(
-            candidates, key=lambda item: (-len(item[2]), item[0])
-        ):
-            if not shared.difference(covered):
-                continue
-            selected.append((claim_id, claim_text))
-            covered.update(shared)
-        if covered != values or not _claims_safely_cover_marker_restoration(
-            assertion, [text for _claim_id, text in selected]
-        ):
-            return fragment
-        markers = " ".join(
-            f"[evidence:{claim_id}]" for claim_id, _claim_text in selected
-        )
-        trailing = re.search(r"(?P<punct>[.!?;])(?P<space>\s*)$", fragment)
-        if trailing is None:
-            return f"{fragment.rstrip()} {markers}{fragment[len(fragment.rstrip()):]}"
-        return (
-            fragment[: trailing.start()].rstrip()
-            + f" {markers}{trailing.group('punct')}{trailing.group('space')}"
-        )
-
-    lines = draft.markdown.splitlines()
-    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
-    for line_index, line in enumerate(lines):
-        if line_index in fenced_indexes or _MARKDOWN_HEADING.fullmatch(line.strip()):
-            continue
-        table_units = re.split(r"((?<!\\)\|)", line)
-        for unit_index in range(0, len(table_units), 2):
-            pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
-            for piece_index in range(0, len(pieces), 2):
-                piece = re.sub(
-                    r"(?P<punct>[.!?;])(?P<spacing>[ \t]*)"
-                    r"(?P<markers>\[evidence:[^\]\r\n]+\]"
-                    r"(?:[ \t]+\[evidence:[^\]\r\n]+\])*)"
-                    r"(?P<after>[ \t]*)"
-                    r"(?=$|(?=[A-Z0-9*_(`]))",
-                    lambda match: (
-                        f"{match.group('spacing')}{match.group('markers')}"
-                        f"{match.group('punct')}{match.group('after')}"
-                    ),
-                    pieces[piece_index],
-                )
-                rebuilt: list[str] = []
-                cursor = 0
-                for fragment in _evidence_clause_fragments(piece):
-                    fragment_start = piece.find(fragment, cursor)
-                    if fragment_start < 0:
-                        continue
-                    fragment_end = fragment_start + len(fragment)
-                    rebuilt.append(piece[cursor:fragment_start])
-                    rebuilt.append(marked_fragment(fragment))
-                    cursor = fragment_end
-                rebuilt.append(piece[cursor:])
-                pieces[piece_index] = "".join(rebuilt)
-            table_units[unit_index] = "".join(pieces)
-        lines[line_index] = "".join(table_units)
-    markdown = "\n".join(lines)
-    return (
-        draft
-        if markdown == draft.markdown
-        else draft.model_copy(update={"markdown": markdown})
-    )
-
-
 def _without_mismatched_publication_evidence_markers(
     context: SynthesisContext, draft: SynthesisDraft
 ) -> SynthesisDraft:
@@ -7467,7 +6188,7 @@ def _without_mismatched_publication_evidence_markers(
         if not marker_ids:
             return fragment
         assertion = _RAW_EVIDENCE_MARKER.sub("", fragment)
-        assertion_values = _publication_precision_values(assertion)
+        assertion_values = _precision_values(assertion)
         sensitive = bool(
             _EVIDENCE_SENSITIVE_ASSERTION.search(assertion)
             or _NONPROVISIONAL_AUTHORITY_ASSERTION.search(assertion)
@@ -7478,72 +6199,36 @@ def _without_mismatched_publication_evidence_markers(
         minimum_matches = (
             min(3, max(1, len(_support_tokens(assertion))))
             if _FORMULA_MARKER.search(assertion)
-            else min(2, max(1, len(_support_tokens(assertion)))) if sensitive else 1
+            else min(2, max(1, len(_support_tokens(assertion))))
+            if sensitive
+            else 1
         )
-        candidate_ids = [
+        retained_ids = [
             claim_id
             for claim_id in marker_ids
             if claim_id in context.allowed_claim_texts
-            and not (
-                _has_external_authority_process_execution(assertion)
-                and len(
-                    _authority_process_alternatives(
-                        context.allowed_claim_texts[claim_id]
-                    )
-                )
-                > 1
-                and _authority_process_alternatives(assertion)
-                != _authority_process_alternatives(
-                    context.allowed_claim_texts[claim_id]
-                )
-            )
             and _assertions_share_explicit_polarity(
                 assertion, context.allowed_claim_texts[claim_id]
             )
-            and (
-                _immutable_claim_covers_publication_assertion(
-                    assertion, context.allowed_claim_texts[claim_id]
-                )
-                or (
-                    assertion_values.intersection(
-                        _publication_precision_values(
-                            context.allowed_claim_texts[claim_id]
-                        )
-                    )
-                    and _claims_align_with_assertion(
-                        assertion,
-                        [context.allowed_claim_texts[claim_id]],
-                        minimum_matches=minimum_matches,
-                    )
-                )
+            and _immutable_claim_covers_publication_assertion(
+                assertion, context.allowed_claim_texts[claim_id]
             )
         ]
-        retained_texts = [context.allowed_claim_texts[item] for item in candidate_ids]
-        collectively_supported = bool(
-            retained_texts
-        ) and not assertion_values.difference(
-            set().union(
-                *(_publication_precision_values(text) for text in retained_texts)
-            )
+        retained_texts = [context.allowed_claim_texts[item] for item in retained_ids]
+        collectively_supported = bool(retained_texts) and not assertion_values.difference(
+            set().union(*(_precision_values(text) for text in retained_texts))
         )
-        collectively_supported = (
-            collectively_supported
-            and _claims_align_with_assertion(
-                assertion,
-                retained_texts,
-                minimum_matches=minimum_matches,
-            )
-            and _claims_collectively_cover_publication_assertion(
-                assertion, retained_texts
-            )
+        collectively_supported = collectively_supported and _claims_align_with_assertion(
+            assertion,
+            retained_texts,
+            minimum_matches=minimum_matches,
         )
-        retained = set(candidate_ids if collectively_supported else [])
+        retained = set(retained_ids if collectively_supported else [])
         cleaned = _RAW_EVIDENCE_MARKER.sub(
             lambda match: match.group(0) if match.group(1) in retained else "",
             fragment,
         )
-        cleaned = re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
-        return cleaned
+        return re.sub(r"[ \t]+([.!?;])", r"\1", cleaned)
 
     lines: list[str] = []
     for line in draft.markdown.splitlines():
@@ -7577,439 +6262,6 @@ def _without_mismatched_publication_evidence_markers(
     )
 
 
-def _without_internal_publication_wrappers(draft: SynthesisDraft) -> SynthesisDraft:
-    """Remove known server wrapper prefixes while preserving their authored body."""
-
-    lines = draft.markdown.splitlines()
-    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
-    for line_index, line in enumerate(lines):
-        if line_index in fenced_indexes:
-            continue
-        unwrapped = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", line)
-        unwrapped = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", unwrapped)
-        lines[line_index] = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", unwrapped)
-    markdown = "\n".join(lines)
-    return (
-        draft
-        if markdown == draft.markdown
-        else draft.model_copy(update={"markdown": markdown})
-    )
-
-
-def _with_non_authorizing_publication_title_and_headings(
-    context: SynthesisContext, draft: SynthesisDraft
-) -> SynthesisDraft:
-    """Reclassify launch claims without deleting useful publication content."""
-
-    authorization_claim_allowed = (
-        context.evidence_readiness == "ready"
-        and context.artifact_type == "launch_authorization"
-    )
-    if authorization_claim_allowed:
-        return draft
-
-    non_authorization_sentence = (
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    )
-
-    def neutralize_fragment(value: str) -> str:
-        list_prefix, role_prefix, _role, _body = _task_fragment_parts(value)
-        trailing = value[len(value.rstrip()) :]
-        return f"{list_prefix}{role_prefix}{non_authorization_sentence}{trailing}"
-
-    def requires_reclassification(value: str) -> bool:
-        cleaned = re.sub(r"[*_`]", "", value).strip()
-        return bool(
-            has_positive_launch_readiness_claim(cleaned)
-            and _PUBLICATION_PENDING_INLINE.search(cleaned) is None
-            and _UNRESOLVED_AUTHORITY_QUALIFIER.search(cleaned) is None
-            and not _is_pure_evidence_status_or_withholding(cleaned)
-        )
-
-    title = draft.title
-    if requires_reclassification(title):
-        title = "Planning artifact — authorization remains unresolved"
-
-    lines = draft.markdown.splitlines()
-    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
-    for line_index, line in enumerate(lines):
-        if line_index in fenced_indexes:
-            continue
-        heading = re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line)
-        if heading is None:
-            table_units = re.split(r"((?<!\\)\|)", line)
-            for unit_index in range(0, len(table_units), 2):
-                pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
-                for piece_index in range(0, len(pieces), 2):
-                    piece = pieces[piece_index]
-                    rebuilt: list[str] = []
-                    cursor = 0
-                    for fragment in _evidence_clause_fragments(piece):
-                        fragment_start = piece.find(fragment, cursor)
-                        if fragment_start < 0:
-                            continue
-                        fragment_end = fragment_start + len(fragment)
-                        rebuilt.append(piece[cursor:fragment_start])
-                        rebuilt.append(
-                            neutralize_fragment(fragment)
-                            if requires_reclassification(fragment)
-                            else fragment
-                        )
-                        cursor = fragment_end
-                    rebuilt.append(piece[cursor:])
-                    pieces[piece_index] = "".join(rebuilt)
-                table_units[unit_index] = "".join(pieces)
-            lines[line_index] = "".join(table_units)
-            continue
-        body = heading.group("body")
-        if requires_reclassification(body):
-            lines[line_index] = (
-                f"{heading.group('prefix')}"
-                "Planning artifact — authorization remains unresolved"
-            )
-
-    markdown = "\n".join(lines)
-    return (
-        draft
-        if markdown == draft.markdown and title == draft.title
-        else draft.model_copy(update={"title": title, "markdown": markdown})
-    )
-
-
-def _with_local_pending_labels_for_unsupported_high_stakes(
-    context: SynthesisContext,
-    draft: SynthesisDraft,
-) -> SynthesisDraft:
-    """Redact only concrete unsupported high-stakes answers, without retrying.
-
-    The final artifact remains model-authored. This one-way boundary replaces a
-    concrete unsupported legal, safety, labelling, filing or health answer with a
-    bounded verification action while retaining Markdown topology and traceability.
-    """
-
-    def stripped_assertion(value: str) -> str:
-        cleaned = _RAW_EVIDENCE_MARKER.sub("", value).strip()
-        cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", cleaned)
-        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", cleaned)
-        cleaned = _PUBLICATION_PENDING_PREFIX.sub("", cleaned)
-        cleaned = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", cleaned)
-        return re.sub(r"[*_`]", "", cleaned).strip()
-
-    def without_descriptive_label(value: str) -> str:
-        cleaned = value
-        for _index in range(2):
-            reduced = re.sub(
-                r"^[A-Z][^:\n]{1,100}:\s+(?=\S)",
-                "",
-                cleaned,
-                count=1,
-            ).strip()
-            if reduced == cleaned:
-                break
-            cleaned = reduced
-        return cleaned
-
-    def validation_action(value: str, _structural_context: str = "") -> str | None:
-        if _PUBLICATION_PENDING_SENTINEL in value:
-            return None
-        cleaned = stripped_assertion(value)
-        _list_prefix, _role_prefix, _role, cleaned = _task_fragment_parts(cleaned)
-        cleaned = cleaned.strip()
-        classified = without_descriptive_label(cleaned)
-        if not classified:
-            return None
-        if any(action in value for action in _PUBLICATION_CANONICAL_VALIDATION_ACTIONS):
-            return _PUBLICATION_PENDING_SENTINEL
-        normalized_candidates = {
-            _normalized_semantic_text(cleaned),
-            _normalized_semantic_text(classified),
-        }
-        if any(
-            _normalized_semantic_text(label) in normalized_candidates
-            for label in context.required_gap_labels
-        ):
-            return None
-        if (
-            _is_pure_evidence_status_or_withholding(classified)
-            or _is_safe_nonauthority_planning_directive(classified)
-            or _PUBLICATION_SAFE_EVIDENCE_POLICY.search(classified)
-            or _PUBLICATION_SAFE_NONAUTHORIZATION.search(classified)
-        ):
-            return None
-
-        # Publication decisions are local. A heading that happens to mention safety,
-        # markets or labels must not turn every number or product choice below it into
-        # an external factual claim.
-        explicit_proposal = (
-            _EXPLICIT_NONFACTUAL_QUALIFIER.search(classified) is not None
-        )
-        internal_review = _PUBLICATION_INTERNAL_REVIEW_ACTION.search(classified)
-        numbered_instrument = _PUBLICATION_NUMBERED_INSTRUMENT.search(classified)
-        process_mechanics = (
-            _PUBLICATION_AUTHORITY_PROCESS_MECHANICS.search(classified)
-            if _PUBLICATION_AUTHORITY_PROCESS_CONTEXT.search(classified)
-            else None
-        )
-        exact_translation = _PUBLICATION_EXACT_TRANSLATION_ANSWER.search(cleaned)
-        foreign_label_example = bool(
-            (
-                _PUBLICATION_FOREIGN_LABEL_EXAMPLE.search(cleaned)
-                or _PUBLICATION_NONASCII_LATIN_LETTER.search(cleaned)
-            )
-            and _PUBLICATION_LABEL_DOMAIN.search(classified)
-        )
-        label_answer = (
-            _PUBLICATION_LABEL_REQUIREMENT_ANSWER.search(classified)
-            if not explicit_proposal
-            else None
-        )
-        local_label_duty = bool(
-            not explicit_proposal
-            and _PUBLICATION_LABEL_DOMAIN.search(classified)
-            and _PUBLICATION_LOCAL_AUTHORITY_TERM.search(classified)
-            and _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
-        )
-        safety_rule = _PUBLICATION_SAFETY_RULE_ANSWER.search(classified)
-        certification_detail = _PUBLICATION_NAMED_CERTIFICATION_DETAIL.search(
-            classified
-        )
-        precision_values = _publication_precision_values(classified)
-        local_safety_precision = bool(
-            precision_values
-            and not explicit_proposal
-            and _PUBLICATION_SAFETY_DOMAIN.search(classified)
-            and (
-                _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
-                or _PUBLICATION_LOCAL_HEALTH_EFFECT_PREDICATE.search(classified)
-                or _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(classified)
-            )
-        )
-        concrete_safety_rule = bool(
-            safety_rule
-            and (
-                precision_values
-                or re.search(r"\bcategory\s+\d+\b", classified, re.IGNORECASE)
-                or _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
-            )
-        )
-        health_effect = bool(
-            not explicit_proposal
-            and _PUBLICATION_HEALTH_EFFECT_ANSWER.search(classified)
-            and _PUBLICATION_LOCAL_HEALTH_EFFECT_PREDICATE.search(classified)
-        )
-        authority_status = _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(classified)
-        local_statutory_duty = bool(
-            not explicit_proposal
-            and _PUBLICATION_LOCAL_AUTHORITY_TERM.search(classified)
-            and _PUBLICATION_LOCAL_OBLIGATION_PREDICATE.search(classified)
-        )
-        if (
-            internal_review is not None
-            and numbered_instrument is None
-            and process_mechanics is None
-            and exact_translation is None
-            and not foreign_label_example
-            and label_answer is None
-            and not local_label_duty
-            and not concrete_safety_rule
-            and certification_detail is None
-            and not local_safety_precision
-            and not health_effect
-            and authority_status is None
-            and not local_statutory_duty
-        ):
-            return None
-        if not any(
-            (
-                numbered_instrument,
-                process_mechanics,
-                exact_translation,
-                foreign_label_example,
-                label_answer,
-                local_label_duty,
-                concrete_safety_rule,
-                certification_detail,
-                local_safety_precision,
-                health_effect,
-                authority_status,
-                local_statutory_duty,
-            )
-        ):
-            return None
-        return _PUBLICATION_PENDING_SENTINEL
-
-    def render_replacement(fragment: str, action: str) -> str:
-        markerless = _RAW_EVIDENCE_MARKER.sub("", fragment)
-        list_prefix, role_prefix, _role, body = _task_fragment_parts(markerless)
-        body = _SERVER_UNVERIFIED_VALIDATION_TARGET_PREFIX.sub("", body.strip())
-        body = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub("", body)
-        body = _PUBLICATION_PENDING_PREFIX.sub("", body)
-        body = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", body)
-        label_match = re.match(r"^(?P<label>\*\*[^*\n]{1,120}:\*\*)\s*", body)
-        label = label_match.group("label") if label_match is not None else ""
-        if not label:
-            whole_bold = re.fullmatch(
-                r"\*\*(?P<label>[^:*\n]{1,80}):\s*[^\n]+\*\*", body
-            )
-            if whole_bold is not None:
-                label = f"**{whole_bold.group('label')}:**"
-        if "pending verification" in label.casefold():
-            label = ""
-        requirement_ids = utf16_ordinal_sorted(
-            {match.group(0) for match in _DISPLAY_REQUIREMENT_ID.finditer(body)}
-        )
-        references = (
-            " " + ", ".join(f"`{item}`" for item in requirement_ids)
-            if requirement_ids
-            else ""
-        )
-        return f"{list_prefix}{role_prefix}{label} {action}{references}".replace(
-            "  ", " ", 1
-        )
-
-    authorization_claim_allowed = (
-        context.evidence_readiness == "ready"
-        and context.artifact_type == "launch_authorization"
-    )
-    title = draft.title
-    if not authorization_claim_allowed and (
-        has_positive_launch_readiness_claim(title)
-        or _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(title)
-    ):
-        title = "Planning artifact — authorization remains unresolved"
-
-    lines = draft.markdown.splitlines()
-    fenced_indexes = _fenced_markdown_line_indexes(draft.markdown)
-    current_heading = ""
-    pending_table_context = ""
-    active_table_context = ""
-    for line_index, line in enumerate(lines):
-        if line_index in fenced_indexes:
-            continue
-        if heading := re.match(r"^(?P<prefix>\s*#{1,6}\s+)(?P<body>.*)$", line):
-            body = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub("", heading.group("body"))
-            current_heading = body
-            if not authorization_claim_allowed and (
-                has_positive_launch_readiness_claim(body)
-                or _PUBLICATION_AUTHORITY_STATUS_ANSWER.search(body)
-            ):
-                lines[line_index] = (
-                    f"{heading.group('prefix')}"
-                    "Planning artifact — authorization remains unresolved"
-                )
-            elif _PUBLICATION_NUMBERED_INSTRUMENT.search(body) is not None:
-                lines[line_index] = (
-                    f"{heading.group('prefix')}"
-                    + _PUBLICATION_NUMBERED_INSTRUMENT.sub(
-                        "authoritative legal reference pending verification", body
-                    )
-                )
-            elif body != heading.group("body"):
-                lines[line_index] = f"{heading.group('prefix')}{body}"
-            pending_table_context = ""
-            active_table_context = ""
-            continue
-
-        stripped = line.strip()
-        if "|" in line:
-            cells = [
-                re.sub(r"[*_`]", "", item).strip()
-                for item in re.split(r"(?<!\\)\|", stripped.strip("|"))
-            ]
-            if cells and all(
-                _MARKDOWN_TABLE_SEPARATOR_CELL.fullmatch(cell) is not None
-                for cell in cells
-            ):
-                active_table_context = pending_table_context
-                continue
-            next_line = lines[line_index + 1] if line_index + 1 < len(lines) else ""
-            next_cells = [
-                item.strip()
-                for item in re.split(r"(?<!\\)\|", next_line.strip().strip("|"))
-                if item.strip()
-            ]
-            if next_cells and all(
-                _MARKDOWN_TABLE_SEPARATOR_CELL.fullmatch(cell) is not None
-                for cell in next_cells
-            ):
-                pending_table_context = " ".join(cells)
-                continue
-            row_label = next((cell for cell in cells if cell), "")
-        else:
-            pending_table_context = ""
-            active_table_context = ""
-            row_label = ""
-
-        structural_context = " ".join(
-            item for item in (current_heading, active_table_context, row_label) if item
-        )
-        table_units = re.split(r"((?<!\\)\|)", line)
-        for unit_index in range(0, len(table_units), 2):
-            pieces = re.split(r"(<br\s*/?>)", table_units[unit_index], flags=re.I)
-            for piece_index in range(0, len(pieces), 2):
-                piece = _PUBLICATION_LEGACY_VALIDATION_PREFIX.sub(
-                    "", pieces[piece_index]
-                )
-                piece_without_pending = _PUBLICATION_PENDING_INLINE.sub(
-                    "", piece, count=1
-                )
-                piece_cleaned = stripped_assertion(piece_without_pending)
-                (
-                    _piece_list,
-                    _piece_role_prefix,
-                    _piece_role,
-                    piece_body,
-                ) = _task_fragment_parts(piece_cleaned)
-                if _PUBLICATION_SAFE_NONAUTHORIZATION.search(
-                    without_descriptive_label(piece_body.strip())
-                ):
-                    piece = piece_without_pending
-                rebuilt: list[str] = []
-                cursor = 0
-                for fragment in _evidence_clause_fragments(piece):
-                    fragment_start = piece.find(fragment, cursor)
-                    if fragment_start < 0:
-                        continue
-                    fragment_end = fragment_start + len(fragment)
-                    rebuilt.append(piece[cursor:fragment_start])
-                    publication_fragment = fragment
-                    without_pending = _PUBLICATION_PENDING_INLINE.sub(
-                        "", publication_fragment, count=1
-                    )
-                    pending_cleaned = stripped_assertion(without_pending)
-                    (
-                        _pending_list,
-                        _pending_role_prefix,
-                        _pending_role,
-                        pending_body,
-                    ) = _task_fragment_parts(pending_cleaned)
-                    if _PUBLICATION_SAFE_NONAUTHORIZATION.search(
-                        without_descriptive_label(pending_body.strip())
-                    ):
-                        publication_fragment = without_pending
-                    action = validation_action(publication_fragment, structural_context)
-                    if (
-                        _RAW_EVIDENCE_MARKER.search(publication_fragment) is not None
-                        or action is None
-                    ):
-                        rebuilt.append(publication_fragment)
-                    else:
-                        rebuilt.append(render_replacement(publication_fragment, action))
-                    cursor = fragment_end
-                rebuilt.append(piece[cursor:])
-                pieces[piece_index] = "".join(rebuilt)
-            table_units[unit_index] = "".join(pieces)
-        lines[line_index] = "".join(table_units)
-
-    markdown = "\n".join(lines)
-    return (
-        draft
-        if markdown == draft.markdown and title == draft.title
-        else draft.model_copy(update={"title": title, "markdown": markdown})
-    )
-
-
 def _normalize_publication_draft(
     context: SynthesisContext, draft: SynthesisDraft
 ) -> SynthesisDraft:
@@ -8024,8 +6276,6 @@ def _normalize_publication_draft(
     prepared = SynthesisDraft.model_validate(
         _without_model_owned_task_appendix(prepared)
     )
-    if context.purpose != "blocked_report":
-        prepared = _without_mismatched_publication_evidence_markers(context, prepared)
     prepared = SynthesisDraft.model_validate(
         _without_unbound_task_evidence_markers(context, prepared)
     )
@@ -8038,7 +6288,26 @@ def _normalize_publication_draft(
             )
         }
     )
-    markdown = prepared.markdown
+    if context.purpose != "blocked_report":
+        prepared = _without_mismatched_publication_evidence_markers(context, prepared)
+        prepared = _project_remaining_evidence_defects(
+            context,
+            prepared,
+            defect_selector=_is_hard_task_evidence_defect,
+        )
+
+    lines: list[str] = []
+    for line in prepared.markdown.splitlines():
+        heading_line = line.lstrip().startswith("#")
+        replacement_prefix = "" if heading_line else "**Pending verification:** "
+        cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE.sub(
+            lambda match: replacement_prefix + match.group("body"), line
+        )
+        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
+            replacement_prefix, cleaned
+        )
+        lines.append(cleaned)
+    markdown = "\n".join(lines)
 
     def replace_overbroad_grounding_claim(match: re.Match[str]) -> str:
         subject = match.group("subject").capitalize()
@@ -8055,9 +6324,16 @@ def _normalize_publication_draft(
     markdown = _OVERBROAD_PUBLICATION_GROUNDING_CLAIM.sub(
         replace_overbroad_grounding_claim, markdown
     )
+    if not (
+        context.evidence_readiness == "ready"
+        and context.artifact_type == "launch_authorization"
+    ):
+        if has_positive_launch_readiness_claim(markdown):
+            markdown = _markdown_without_matching_lines(
+                markdown, has_positive_launch_readiness_claim
+            ).strip()
+
     prepared = prepared.model_copy(update={"markdown": markdown})
-    prepared = _without_internal_publication_wrappers(prepared)
-    prepared = _with_non_authorizing_publication_title_and_headings(context, prepared)
     prepared = SynthesisDraft.model_validate(
         _with_immutable_gap_labels(context, prepared)
     )
@@ -8669,12 +6945,15 @@ class PydanticAISynthesisWriter:
             if isinstance(claim.get("claimId"), str)
         }
         return [
-            claims_by_id[claim_id] for claim_id in utf16_ordinal_sorted(claims_by_id)
+            claims_by_id[claim_id]
+            for claim_id in utf16_ordinal_sorted(claims_by_id)
         ]
 
     @classmethod
     def _allowed_claim_ids(cls, research_payload: dict[str, Any]) -> list[str]:
-        return [claim["claimId"] for claim in cls._accepted_claims(research_payload)]
+        return [
+            claim["claimId"] for claim in cls._accepted_claims(research_payload)
+        ]
 
     @classmethod
     def _allowed_claim_texts(cls, research_payload: dict[str, Any]) -> dict[str, str]:
@@ -8930,7 +7209,8 @@ class PydanticAISynthesisWriter:
         requirement_by_id = {
             requirement.get("id"): requirement
             for requirement in (scope_payload or {}).get("evidenceRequirements", [])
-            if isinstance(requirement, dict) and isinstance(requirement.get("id"), str)
+            if isinstance(requirement, dict)
+            and isinstance(requirement.get("id"), str)
         }
         projected["unresolvedEvidence"] = []
         for finding in findings:
@@ -9001,12 +7281,10 @@ class PydanticAISynthesisWriter:
     @staticmethod
     def _final_repair_prompt(
         input_value: SynthesizeArtifactInputV1,
-        scope_payload: dict[str, Any],
-        research_payload: dict[str, Any],
         selected_contents: list[ImmutableArtifactContent],
         context: SynthesisContext,
     ) -> str:
-        """Expose one untrusted core draft and a compact reader-facing repair contract."""
+        """Project immutable final inputs into one compact, surgical repair prompt."""
 
         if input_value.purpose != "final_synthesis" or input_value.evaluation is None:
             raise ValueError("final repair prompt requires final_synthesis input")
@@ -9051,661 +7329,80 @@ class PydanticAISynthesisWriter:
             )
         evaluation = EvaluationResultV1.model_validate(evaluation_candidates[0].payload)
         core = core_candidates[0]
-        base = SynthesisDraft(
+        projected = _project_final_repair_base(
+            context,
             title=str(core.payload.get("title") or "Final artifact"),
             markdown=core.markdown,
         )
-        base_substantive, base_practicality = _deterministic_quality_defects(
-            base.markdown,
+        projected_evidence_defects = _deterministic_evidence_integrity_defects(
+            projected.markdown,
+            context.allowed_claim_texts,
+            artifact_type=context.artifact_type,
+            immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=(context.unresolved_evidence_requirements),
+            defect_limit=None,
+            excerpt_limit=None,
+        )
+        projected_substantive, projected_practicality = _deterministic_quality_defects(
+            projected.markdown,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
-        )
-
-        # Evaluation already identified the unsafe clauses in this exact immutable
-        # core. Give the final writer compact location hints, not the evaluator's
-        # diagnostic prose and not a server-rewritten draft. Stale diagnostics are
-        # discarded so they cannot cause the model to recreate absent text.
-        base_lines = base.markdown.splitlines()
-        line_section_lines: list[int | None] = []
-        line_anchors: list[str | None] = []
-        line_context_titles: list[str] = []
-        section_line: int | None = None
-        structural_anchor: str | None = None
-        structural_context_title = ""
-        for line_number, line in enumerate(base_lines, start=1):
-            heading_match = re.match(
-                r"^\s*(?P<marks>#{2,6})\s+(?P<title>.+?)\s*$", line
-            )
-            anchors = utf16_ordinal_sorted(
-                set(re.findall(r"\b(?:req|acc)-[a-f0-9]{16}\b", line, re.I))
-            )
-            if heading_match is not None:
-                heading_level = len(heading_match.group("marks"))
-                if heading_level == 2:
-                    section_line = line_number
-                if heading_level <= 3:
-                    structural_anchor = None
-                    structural_context_title = heading_match.group("title")
-                if heading_level == 3 and anchors:
-                    structural_anchor = anchors[0]
-            line_section_lines.append(section_line)
-            line_anchors.append(anchors[0] if anchors else structural_anchor)
-            line_context_titles.append(structural_context_title)
-
-        accepted_requirement_definitions = [
-            (
-                item.get("id", "").casefold(),
-                _normalized_semantic_text(item.get("description", "")),
-            )
-            for item in scope_payload.get("requirements", [])
-            if isinstance(item, dict)
-            and isinstance(item.get("id"), str)
-            and isinstance(item.get("description"), str)
-        ]
-        accepted_bounded_statements = {
-            field: {
-                _normalized_semantic_text(item).rstrip(".")
-                for item in scope_payload.get(field, [])
-                if isinstance(item, str) and _normalized_semantic_text(item)
-            }
-            for field in ("assumptions", "limits", "policies")
-        }
-
-        def is_accepted_bounded_context(value: str, line_index: int) -> bool:
-            normalized_context = _normalized_semantic_text(
-                line_context_titles[line_index]
-            )
-            requirement_definition_context = (
-                "requirement" in normalized_context
-                and "acceptance" not in normalized_context
-                and "criterion" not in normalized_context
-            )
-            if requirement_definition_context:
-                for requirement_id, description in accepted_requirement_definitions:
-                    if not requirement_id or not description:
-                        continue
-                    definition_match = re.match(
-                        rf"^\s*(?:[-+*]\s*)?(?:\*\*)?\[?"
-                        rf"{re.escape(requirement_id)}\]?(?:\*\*)?\s*:?[\s*]*"
-                        r"(?P<description>.+?)\s*$",
-                        value,
-                        re.IGNORECASE,
-                    )
-                    if definition_match is not None and (
-                        _normalized_semantic_text(
-                            definition_match.group("description").strip("*_` ")
-                        ).rstrip(".")
-                        == description.rstrip(".")
-                    ):
-                        return True
-            bounded_value = re.sub(r"^\s*(?:(?:[-+*]|\d+[.)])\s+)", "", value).strip()
-            semantic = _normalized_semantic_text(bounded_value).rstrip(".")
-            labeled = re.match(
-                r"^(?P<label>assumption|limit|policy)\s*:\s*(?P<value>.+)$",
-                bounded_value,
-                re.IGNORECASE,
-            )
-            if labeled is not None:
-                field = {
-                    "assumption": "assumptions",
-                    "limit": "limits",
-                    "policy": "policies",
-                }[labeled.group("label").casefold()]
-                return (
-                    _normalized_semantic_text(labeled.group("value")).rstrip(".")
-                    in accepted_bounded_statements[field]
-                )
-            if "acceptance" in normalized_context or "criterion" in normalized_context:
-                return False
-            field_context_tokens = {
-                "assumptions": ("assumption", "evidence gap", "open gap"),
-                "limits": ("boundary", "limit", "non goal", "scope"),
-                "policies": ("constraint", "guardrail", "policy", "requirement"),
-            }
-            return any(
-                semantic in accepted_bounded_statements[field]
-                and any(token in normalized_context for token in context_tokens)
-                for field, context_tokens in field_context_tokens.items()
-            )
-
-        def line_units(line: str) -> list[tuple[int, str]]:
-            if "|" not in line:
-                return [(0, line)]
-            return [
-                (unit_index, cell.replace(r"\|", "|").strip())
-                for unit_index, cell in enumerate(
-                    re.split(r"(?<!\\)\|", line.strip("|")), start=1
-                )
-                if cell.strip()
-            ]
-
-        def is_pure_publication_nonauthorization(value: str) -> bool:
-            cleaned = re.sub(r"[*_`]", "", value).strip()
-            cleaned = re.sub(r"^(?:[-+]\s+|\d+[.)]\s+)", "", cleaned).strip()
-            cleaned = re.sub(
-                r"^(?:no\s+launch\s+authorization|launch\s+status)\s*:\s*",
-                "",
-                cleaned,
-                flags=re.IGNORECASE,
-            )
-            match = _PUBLICATION_SAFE_NONAUTHORIZATION.search(cleaned)
-            if match is None:
-                return False
-            prefix = cleaned[: match.start()].strip().casefold()
-            suffix = cleaned[match.end() :].strip(" .;:")
-            return prefix in {"", "the", "this"} and not suffix
-
-        def is_authority_answer(line_index: int, unit_index: int, value: str) -> bool:
-            cleaned = re.sub(r"[*_`]", "", value).strip()
-            if re.match(
-                r"^(?:[-+]\s*)?(?:evidence[- ]gap|gap)-[a-z0-9-]+\s*:",
-                cleaned,
-                re.IGNORECASE,
-            ):
-                return False
-            if not cleaned or is_accepted_bounded_context(cleaned, line_index):
-                return False
-            if _is_pure_evidence_status_or_withholding(
-                cleaned
-            ) or is_pure_publication_nonauthorization(cleaned):
-                return False
-            if re.match(
-                r"^(?:[-+]\s*)?(?:strictly\s+)?distinguish\b",
-                cleaned,
-                re.IGNORECASE,
-            ):
-                return False
-            if re.match(
-                r"^(?:[-+]\s*)?(?:(?:exclusion|boundary)\s+of\s+[^:]{1,80}:\s*)?"
-                r"(?:explicitly\s+)?(?:exclude|excludes|forbid|forbids|prohibit|"
-                r"prohibits)\b[^.;\n]{0,180}\b(?:claims?|diet|prescription|"
-                r"therapeutic|treatment)\b",
-                cleaned,
-                re.IGNORECASE,
-            ):
-                return False
-            if unit_index == 0 and re.match(r"^\s*#{1,6}\s+", value):
-                return False
-            normalized_context = _normalized_semantic_text(
-                line_context_titles[line_index]
-            )
-            explicit_requirement_ids = {
-                match.group(0).casefold()
-                for match in re.finditer(
-                    r"\breq-[a-f0-9]{16}\b",
-                    base_lines[line_index],
-                    re.IGNORECASE,
-                )
-            }
-            requirement_definition_context = (
-                "requirement" in normalized_context
-                and "acceptance" not in normalized_context
-                and "criterion" not in normalized_context
-            )
-            if requirement_definition_context:
-                semantic = _normalized_semantic_text(cleaned).rstrip(".")
-                accepted_row_definitions = {
-                    description.rstrip(".")
-                    for requirement_id, description in accepted_requirement_definitions
-                    if requirement_id in explicit_requirement_ids
-                }
-                if semantic in accepted_row_definitions:
-                    return False
-            if re.search(r"\?\s*$", cleaned):
-                return False
-            if re.search(
-                r"\b(?:social|functional)\s+job\b|"
-                r"\bjurisdictional\s+boundary\b|"
-                r"\bcontext\s*&\s*segment\b",
-                cleaned,
-                re.IGNORECASE,
-            ):
-                return False
-            external_process = _has_external_authority_process_execution(cleaned)
-            process_outcome = re.search(
-                r"\b(?:issue|obtain|receive|secure)\b[^.;\n]{0,120}\b"
-                r"(?:certificate|confirmation)\b",
-                cleaned,
-                re.IGNORECASE,
-            )
-            external_duty = _has_external_authority_duty_assertion(cleaned)
-            label_duty = _has_label_authority_duty_assertion(cleaned)
-            authority_predicate = bool(
-                re.search(
-                    r"\b(?:approv(?:e|es|ed|al)|authori[sz](?:e|ed|ation)|"
-                    r"certif(?:y|ied|ication)|compl(?:y|ies|iant|iance)|legally|"
-                    r"mandat(?:e|es|ed|ory)|requir(?:e|es|ed|ing)|shall|statutory|"
-                    r"must)\b",
-                    cleaned,
-                    re.IGNORECASE,
-                )
-                or re.search(r"\b(?:not\s+)?safe\b|\bunsafe\b", cleaned, re.IGNORECASE)
-            )
-            external_context = (
-                _EXTERNAL_AUTHORITY_CONTEXT.search(cleaned) is not None
-                or _LABEL_AUTHORITY_DUTY_CONTEXT.search(cleaned) is not None
-                or re.search(
-                    r"\bfeed\s+hygiene\b|"
-                    r"\b(?:eu|european\s+union)\b[^.;\n]{0,120}\b"
-                    r"(?:approv(?:e|es|ed|al)|authori[sz]|certif|compli|"
-                    r"law|legal|regulat)|"
-                    r"\b(?:approv(?:e|es|ed|al)|authori[sz]|certif|compli|"
-                    r"law|legal|regulat)\w*\b[^.;\n]{0,120}\b"
-                    r"(?:eu|european\s+union)\b",
-                    cleaned,
-                    re.IGNORECASE,
-                )
-                is not None
-            )
-            high_stakes_domain = re.search(
-                r"\b(?:clinical|disease|fediaf|haccp|health|laborator(?:y|ies)|"
-                r"legal(?:ly)?|microbi(?:al|ological)|nutrition(?:al)?|pathogen|"
-                r"regulat(?:ion|ory)|safe(?:ty)?|salmonella|statutory|therapeutic|"
-                r"toxic(?:ity|ological)|urinary)\b",
-                cleaned,
-                re.IGNORECASE,
-            )
-            high_stakes_causality = re.search(
-                r"\b(?:causes?|leads?\s+to|results?\s+in)\b[^.;\n]{0,160}\b"
-                r"(?:disease|harm|injury|microbi(?:al|ological)|pathogen|"
-                r"salmonella|unsafe)\b|"
-                r"\b(?:disease|harm|injury|microbi(?:al|ological)|pathogen|"
-                r"salmonella|unsafe)\b[^.;\n]{0,160}\b"
-                r"(?:causes?|leads?\s+to|results?\s+in)\b",
-                cleaned,
-                re.IGNORECASE,
-            )
-            high_stakes_effect = re.search(
-                r"\b(?:cures?|prevents?|protects?\s+against|"
-                r"reduces?\s+(?:the\s+)?risk\s+of|treats?)\b"
-                r"[^.;\n]{0,160}\b(?:disease|harm|injury|microbi(?:al|ological)|"
-                r"pathogen|salmonella|toxicity|urinary)\b|"
-                r"\b(?:disease|harm|injury|microbi(?:al|ological)|pathogen|"
-                r"salmonella|toxicity|urinary)\b[^.;\n]{0,160}\b"
-                r"(?:cures?|prevents?|protects?\s+against|"
-                r"reduces?\s+(?:the\s+)?risk\s+of|treats?)\b",
-                cleaned,
-                re.IGNORECASE,
-            )
-            internal_review_control = re.search(
-                r"\b(?:application|platform|system|team|training|user|workflow|worker)\b"
-                r"[^.;\n]{0,100}\b(?:must|shall|require(?:s|d)?)\b"
-                r"[^.;\n]{0,100}\b(?:check|review|screen|validate|verify)\b",
-                cleaned,
-                re.IGNORECASE,
-            )
-            if (
-                internal_review_control is not None
-                and not external_process
-                and not external_duty
-                and not label_duty
-            ):
-                return False
-            strong_authority = bool(
-                external_process
-                or (process_outcome and (external_context or high_stakes_domain))
-                or external_duty
-                or label_duty
-                or (authority_predicate and (external_context or high_stakes_domain))
-                or high_stakes_causality
-                or high_stakes_effect
-            )
-            if (
-                any(
-                    token in normalized_context
-                    for token in ("assumption", "evidence gap", "open gap")
-                )
-                and not strong_authority
-            ):
-                return False
-            if (
-                re.search(
-                    r"\b(?:actionable mitigation|authoritative (?:verification )?action|"
-                    r"audit|consult|distinguish|execute|finalize|implement|outline|perform|"
-                    r"review|screen|submit (?:pilot|samples?))\b",
-                    cleaned,
-                    re.IGNORECASE,
-                )
-                and not strong_authority
-            ):
-                return False
-            return strong_authority
-
-        def marker_defect_class(value: str) -> str:
-            prefix = value.partition(": ")[0]
-            return re.sub(r"\s*\([^()]*\)\s*$", "", prefix)
-
-        marker_unit_defects: dict[str, list[str]] = {}
-
-        def marker_unit_is_exactly_supported(
-            value: str, *, minimum_matches: int | None = None
-        ) -> bool:
-            markers = [
-                match.group(1)
-                for match in _RAW_EVIDENCE_MARKER.finditer(value)
-                if match.group(1) in context.allowed_claim_texts
-            ]
-            if not markers:
-                return False
-            cited_texts = [
-                context.allowed_claim_texts[claim_id] for claim_id in markers
-            ]
-            assertion = _RAW_EVIDENCE_MARKER.sub("", value)
-            assertion_values = _precision_values(assertion)
-            supported_values: set[str] = set()
-            for text in cited_texts:
-                claim_values = _precision_values(text)
-                supported_values.update(claim_values)
-                for claim_value in claim_values:
-                    if numeric_prefix := re.match(
-                        r"^(?:[<>]=?)?(?P<number>\d+(?:\.\d+)?)", claim_value
-                    ):
-                        supported_values.add(numeric_prefix.group("number"))
-                    if re.search(r"\bminimum\b", text, re.IGNORECASE):
-                        supported_values.add(">=" + re.sub(r"^[<>]=?", "", claim_value))
-            if assertion_values - supported_values:
-                return False
-            assertion_tokens = _support_tokens(assertion)
-            return _claims_align_with_assertion(
-                assertion,
-                cited_texts,
-                minimum_matches=(
-                    minimum_matches
-                    if minimum_matches is not None
-                    else min(2, max(1, len(assertion_tokens)))
-                ),
-            )
-
-        def marker_validation_unit(line_index: int, unit_index: int, value: str) -> str:
-            if unit_index == 0:
-                return value
-            preceding = [
-                candidate
-                for candidate_index, candidate in line_units(base_lines[line_index])
-                if candidate_index < unit_index
-            ]
-            for candidate in reversed(preceding):
-                descriptor = re.sub(
-                    r"\s+",
-                    " ",
-                    _RAW_EVIDENCE_MARKER.sub("", re.sub(r"[*_`]", "", candidate)),
-                ).strip()
-                if (
-                    not re.search(r"[A-Za-z]", descriptor)
-                    or _precision_values(descriptor)
-                    or re.fullmatch(r":?-{3,}:?", descriptor)
-                ):
-                    continue
-                return f"{descriptor}: {value}"
-            return value
-
-        def unit_reproduces_marker_defect(
-            line_index: int,
-            unit_index: int,
-            value: str,
-            defect: str,
-            probe: str,
-        ) -> bool:
-            if _RAW_EVIDENCE_MARKER.search(value) is None:
-                return False
-            validation_value = marker_validation_unit(line_index, unit_index, value)
-            if (unit_index > 0 or "$" in value) and marker_unit_is_exactly_supported(
-                validation_value,
-                minimum_matches=1 if "$" in value else None,
-            ):
-                return False
-            if validation_value not in marker_unit_defects:
-                marker_unit_defects[validation_value] = (
-                    _deterministic_evidence_integrity_defects(
-                        validation_value,
-                        context.allowed_claim_texts,
-                        artifact_type=context.artifact_type,
-                        immutable_gap_labels=context.required_gap_labels,
-                        unresolved_evidence_requirements=(
-                            context.unresolved_evidence_requirements
-                        ),
-                        defect_limit=None,
-                        excerpt_limit=None,
-                    )
-                )
-            expected_class = marker_defect_class(defect)
-            for candidate in marker_unit_defects[validation_value]:
-                handled_candidate = _handled_task_evidence_defect(
-                    candidate, include_generic=True
-                )
-                if (
-                    handled_candidate is None
-                    or not handled_candidate[2]
-                    or marker_defect_class(candidate) != expected_class
-                ):
-                    continue
-                candidate_probe = re.sub(r"\s+", " ", handled_candidate[0]).strip()
-                if probe in candidate_probe or candidate_probe in probe:
-                    return True
-            return False
-
-        def matching_units(
-            probe: str, *, citation_mismatch: bool, defect: str
-        ) -> list[tuple[int, int, str]]:
-            matches: list[tuple[int, int, str]] = []
-            for line_index, line in enumerate(base_lines):
-                for unit_index, unit in line_units(line):
-                    haystack = re.sub(
-                        r"\s+",
-                        " ",
-                        (
-                            _RAW_EVIDENCE_MARKER.sub("", unit)
-                            if citation_mismatch
-                            else unit
-                        ),
-                    ).strip()
-                    if probe not in haystack:
-                        continue
-                    if citation_mismatch and not unit_reproduces_marker_defect(
-                        line_index,
-                        unit_index,
-                        unit,
-                        defect,
-                        probe,
-                    ):
-                        continue
-                    matches.append((line_index, unit_index, unit))
-            return matches
-
-        def matching_fragment(value: str, probe: str) -> str:
-            fragments = re.split(
-                r"(?<=[.!?])\s+(?=(?:[-+*]\s*)?(?:[*_`]*[A-Z0-9]))",
-                value,
-            )
-            for fragment in fragments:
-                haystack = re.sub(
-                    r"\s+", " ", _RAW_EVIDENCE_MARKER.sub("", fragment)
-                ).strip()
-                if probe in haystack or haystack in probe:
-                    return fragment
-            return probe
-
-        unsupported_locators_by_key: dict[
-            tuple[int, int, str | None, str], dict[str, Any]
-        ] = {}
-        for defect in evaluation.unsupported_precision:
-            handled = _handled_task_evidence_defect(defect, include_generic=True)
-            if handled is None:
-                continue
-            excerpt, _unresolved, citation_mismatch = handled
-            probe = re.sub(r"\s+", " ", excerpt).strip()
-            if is_pure_publication_nonauthorization(probe):
-                continue
-            matched_units = matching_units(
-                probe,
-                citation_mismatch=citation_mismatch,
-                defect=defect,
-            )
-            while len(probe) > 48 and not matched_units:
-                probe = probe.rsplit(" ", maxsplit=1)[0].rstrip(" ,.;:…")
-                matched_units = matching_units(
-                    probe,
-                    citation_mismatch=citation_mismatch,
-                    defect=defect,
-                )
-            if not matched_units:
-                continue
-            for line_index, unit_index, unit in matched_units:
-                authority_answer = is_authority_answer(
-                    line_index,
-                    unit_index,
-                    matching_fragment(unit, probe),
-                )
-                if citation_mismatch:
-                    locator_kind = (
-                        "authority_answer" if authority_answer else "marker_mismatch"
-                    )
-                elif authority_answer:
-                    locator_kind = "authority_answer"
-                else:
-                    continue
-                locator_key = (
-                    line_index,
-                    unit_index,
-                    line_anchors[line_index],
-                    locator_kind,
-                )
-                unsupported_locators_by_key[locator_key] = {
-                    "line": line_index + 1,
-                    "unitIndex": unit_index,
-                    "sectionLine": line_section_lines[line_index],
-                    "anchorId": line_anchors[line_index],
-                    "kind": locator_kind,
-                }
-        unsupported_locators = list(unsupported_locators_by_key.values())
-        unsupported_locators.sort(
-            key=lambda item: (
-                item["kind"] != "authority_answer",
-                item["line"],
-                item["unitIndex"],
-                item["anchorId"] or "",
-                item["kind"],
-            )
-        )
-        unsupported_locators = unsupported_locators[:40]
-        unsupported_locators.sort(
-            key=lambda item: (
-                item["line"],
-                item["unitIndex"],
-                item["anchorId"] or "",
-                item["kind"],
-            )
         )
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            "unsupportedPrecision": unsupported_locators,
+            "unsupportedPrecision": projected_evidence_defects,
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
             "substantiveContentDefects": utf16_ordinal_sorted(
-                set(evaluation.substantive_content_defects).union(base_substantive)
+                set(evaluation.substantive_content_defects).union(projected_substantive)
             ),
             "practicalityDefects": utf16_ordinal_sorted(
-                set(evaluation.practicality_defects).union(base_practicality)
+                set(evaluation.practicality_defects).union(projected_practicality)
             ),
         }
-        repair_instructions = [
+        projection_changed = projected.markdown != core.markdown
+        # Evaluator guidance remains applicable when the base is byte-identical. Once
+        # projection changes the base, opaque prose can conflict with the current text;
+        # typed targets above retain the concrete findings in that branch.
+        repair_instructions = (
+            [] if projection_changed else list(evaluation.repair_instructions)
+        )
+        repair_instructions.append(
             "Apply each structured repair target only when its referenced issue is "
-            "still observable in BASE_MARKDOWN; never recreate absent text.",
-            "Follow PUBLICATION_CONTRACT for every rewrite; never copy diagnostics, "
-            "evaluator instructions, or an unsupported candidate answer into the final "
-            "document.",
-        ]
-        if any(item["kind"] == "authority_answer" for item in unsupported_locators):
-            repair_instructions.append(
-                "At each authority_answer locator, remove the unsupported external "
-                "answer or recast only its surrounding requirement as a neutral internal "
-                "review condition; preserve IDs and topology and never quote, relocate, "
-                "or wrap the answer in a warning."
+            "still observable in BASE_MARKDOWN; never recreate absent text."
+        )
+        if projection_changed:
+            repair_instructions.extend(
+                [
+                    "BASE_MARKDOWN is a structure-preserving safety projection. Keep "
+                    "every requirement ID, owner, table row and Given/When/Then role.",
+                    "Rewrite projected verification and unverified-assumption labels "
+                    "into concise section-appropriate proposals or validation actions. "
+                    "Keep legal, safety and authority uncertainty explicit.",
+                    "If ALLOWED_CLAIMS exactly supports a narrower part of a projected "
+                    "statement, split it and attach that claim's marker only to the "
+                    "supported text; never recreate unsupported content.",
+                ]
             )
-        if any(item["kind"] == "marker_mismatch" for item in unsupported_locators):
+        if projected_substantive or projected_practicality:
             repair_instructions.append(
-                "At each marker_mismatch locator, preserve ordinary planning prose and "
-                "targets; remove only the invalid marker or split the exact supported "
-                "claim into its own clause with its allowed marker. If the remaining "
-                "clause asserts external authority without exact support, apply "
-                "authorityFactRule."
-            )
-        if base_substantive or base_practicality:
-            repair_instructions.append(
-                "Repair every named substantive or practicality defect "
+                "Repair every named post-projection substantive or practicality defect "
                 "with concrete deliverable content, using only explicit proposals, "
                 "assumptions, validation actions and the allowed immutable claims."
             )
         repair_instructions = utf16_ordinal_sorted(set(repair_instructions))
-        publication_contract = {
-            "authorityFactRule": (
-                "Across the entire document, not only locator lines, an external legal, "
-                "safety, certification, health, filing or authority fact may appear only "
-                "when ALLOWED_CLAIMS contains its exact support and the same clause carries "
-                "that evidence marker."
-            ),
-            "evidenceStatusBoundary": "one_document_level_boundary_near_the_start",
-            "genericWarningPrefixBudget": 0,
-            "ordinaryPlanningContentRule": (
-                "Preserve personas, non-goals, journeys, product options, requirements, "
-                "metrics and internal targets as reader-facing proposals without generic "
-                "evidence warnings."
-            ),
-            "preserveTopology": [
-                "requirement_ids",
-                "criterion_ids",
-                "owners",
-                "markdown_tables",
-                "given_when_then_roles",
-            ],
-            "unsupportedLocatorRule": (
-                "Each line/unitIndex/sectionLine/anchorId/kind tuple identifies "
-                "high-signal candidate prose to repair, not evidence or reader-facing "
-                "text. unitIndex 0 means a whole prose line; a positive value is the "
-                "1-based Markdown table-cell index on that line. "
-                "authority_answer and marker_mismatch require their distinct repair "
-                "instructions. Locators are not exhaustive and do not exempt other text "
-                "from authorityFactRule."
-            ),
-            "unresolvedRequirementStatusRule": (
-                "A requirement whose applicable legal, safety, nutrition, lab or "
-                "authority evidence remains unresolved cannot be labelled satisfied, "
-                "compliant, cleared or approved. Keep the useful requirement and mark "
-                "it proposed or gap-bound."
-            ),
-            "unverifiedHighStakesDecisionRule": (
-                "When evidence readiness is ready_with_gaps, a legal, safety, health, "
-                "nutrition or scientific threshold without an exact clause-local "
-                "immutable evidence marker may remain only as a proposed validation "
-                "hypothesis. It cannot be an adopted pass/fail, release/reject or "
-                "compliance criterion until authoritative evidence and qualified-owner "
-                "approval are recorded. Preserve ordinary non-authority planning "
-                "targets."
-            ),
-            "unresolvedEvidenceRule": (
-                "Do not quote or restate the candidate answer. Record each unresolved "
-                "domain once in the evidence-gaps section as a neutral question, its "
-                "planning consequence and one authoritative verification action; "
-                "elsewhere use only a neutral internal review condition."
-            ),
-        }
         return canonical_json(
             {
                 "PURPOSE": input_value.purpose,
-                "ACCEPTED_SCOPE": scope_payload,
-                "RESEARCH_RESULT": PydanticAISynthesisWriter._research_prompt_view(
-                    research_payload, scope_payload
-                ),
-                "BASE_MARKDOWN": base.markdown,
+                "BASE_MARKDOWN": projected.markdown,
                 "CORE_ARTIFACT": core.artifact.model_dump(mode="json", by_alias=True),
                 "EVALUATION_ARTIFACT": input_value.evaluation.model_dump(
                     mode="json", by_alias=True
                 ),
                 "REPAIR_TARGETS": repair_targets,
                 "REPAIR_INSTRUCTIONS": repair_instructions,
-                "PUBLICATION_CONTRACT": publication_contract,
                 "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
                     mode="json", by_alias=True
                 ),
@@ -9822,15 +7519,11 @@ class PydanticAISynthesisWriter:
                 markdown=core.markdown,
             )
             context = context.model_copy(
-                update={"final_repair_topology": _final_repair_topology(core.markdown)}
+                update={
+                    "final_repair_topology": _final_repair_topology(core.markdown)
+                }
             )
-        prompt = self._final_repair_prompt(
-            input_value,
-            scope_payload,
-            research_payload,
-            selected_contents,
-            context,
-        )
+        prompt = self._final_repair_prompt(input_value, selected_contents, context)
         try:
             result = await self._run_validated_agent(
                 self.final_agent,
@@ -10366,19 +8059,6 @@ def _claim_from_grounding(
         return None
     if _has_explicit_enumeration_mismatch(text):
         return None
-    # Only the server-owned top-level route can establish retrieval provenance.
-    # ``raw_claim`` is provider/model output and must not be allowed to self-label
-    # generated prose as a direct publisher fetch.
-    claim_provider = str(provider or "")
-    if claim_provider != "searxng_direct_fetch":
-        # Search-provider prose is useful only as an operation-local URL locator.
-        # It is not publisher content, even when its citation metadata names an
-        # authoritative host and the prose happens to be an exact byte span of the
-        # model response. Dynamic evidence becomes admissible only after the existing
-        # bounded repair pass independently refetches the publisher document and the
-        # exact-span extractor binds the claim to those immutable bytes. Selected
-        # immutable evidence is admitted separately and never enters this function.
-        return None
     if requirement is not None:
         expected_instruments = _explicit_eu_regulation_identities(
             requirement.description
@@ -10397,6 +8077,16 @@ def _claim_from_grounding(
             and source_instruments
             and not (claim_instruments & source_instruments)
         ):
+            return None
+        claim_provider = str(provider or raw_claim.get("provider") or "")
+        if (
+            _requirement_has_statutory_force(requirement)
+            and claim_provider != "searxng_direct_fetch"
+        ):
+            # Grounded provider prose and citations remain useful operation-local
+            # locators, but they are not the publisher's legal text. Every statutory
+            # assertion must therefore be refetched from the publisher and bound to an
+            # exact immutable byte span before it can become evidence.
             return None
     if allowed_source_hosts and any(
         not _url_matches_allowed_hosts(url, allowed_source_hosts) for url in urls
@@ -10519,6 +8209,7 @@ class GeminiCognitiveExecutor:
         artifact_resolver: ArtifactResolver | None = None,
         synthesis_writer: SynthesisWriter | None = None,
         scope_reviser: ScopeReviser | None = None,
+        assistant_runner: ResearchRunner | None = None,
     ) -> None:
         if len(authority_key) < 32:
             raise RuntimeError(
@@ -10530,11 +8221,17 @@ class GeminiCognitiveExecutor:
         self.artifact_resolver = artifact_resolver
         self.synthesis_writer = synthesis_writer
         self.scope_reviser = scope_reviser
+        self.assistant_runner = assistant_runner
 
     async def close(self) -> None:
-        close = getattr(self.research_runner, "close", None)
-        if callable(close):
-            await close()
+        closed: set[int] = set()
+        for runner in (self.research_runner, self.assistant_runner):
+            if runner is None or id(runner) in closed:
+                continue
+            closed.add(id(runner))
+            close = getattr(runner, "close", None)
+            if callable(close):
+                await close()
 
     async def execute(self, envelope: AxWiseOperationEnvelope):
         started = time.monotonic()
@@ -10556,6 +8253,12 @@ class GeminiCognitiveExecutor:
         )
 
     async def _execute_operation(self, envelope: AxWiseOperationEnvelope):
+        if envelope.operation_type == "AssistantTurnV1":
+            if not isinstance(envelope.input, AssistantTurnInputV1):
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
+            return await self._assistant_turn(envelope.input)
         if envelope.operation_type == "ReviseScopeV2":
             if not isinstance(envelope.input, ReviseScopeInputV2):
                 raise CognitiveExecutionFailure(
@@ -10623,14 +8326,6 @@ class GeminiCognitiveExecutor:
         drafted = await self.scope_drafter.draft(input_value, objective_context)
         draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
         _validate_draft(input_value.request, draft)
-        draft = draft.model_copy(
-            update={
-                "evidence_requirements": _with_narrowed_statutory_source_types(
-                    draft.evidence_requirements
-                )
-            }
-        )
-        _validate_draft(input_value.request, draft)
         objective_spans = [
             _source_span(input_value.request, span)
             for span in draft.objective_source_spans
@@ -10646,19 +8341,7 @@ class GeminiCognitiveExecutor:
             for topic in draft.topic_anchors
         ]
         evidence_requirements = draft.evidence_requirements
-        projected_statements = _project_scope_statements(
-            authority_text=input_value.request,
-            evidence_requirements=evidence_requirements,
-            prd_requirements=draft.prd_requirements,
-            limits=draft.limits,
-            policies=draft.policies,
-            assumptions=draft.assumptions,
-            safe_default_values={
-                *input_value.safe_defaults.assumptions,
-                *input_value.safe_defaults.limits,
-                *input_value.safe_defaults.policies,
-            },
-        )
+        policies = draft.policies
         deliverable_profile, requirements, acceptance_criteria = (
             _project_deliverable_contract(
                 authority_text=input_value.request,
@@ -10667,13 +8350,14 @@ class GeminiCognitiveExecutor:
                 deliverables=draft.deliverables,
                 personas=draft.personas,
                 interview_requirements=draft.interview_requirements,
-                prd_requirements=projected_statements.prd_requirements,
-                limits=projected_statements.limits,
-                policies=projected_statements.policies,
+                prd_requirements=draft.prd_requirements,
+                limits=draft.limits,
+                policies=policies,
                 draft_criteria=draft.acceptance_criteria,
-                authority_overrides=projected_statements.authority_overrides,
-                support_aliases=projected_statements.support_aliases,
-                evidence_links=projected_statements.evidence_links,
+                safe_default_values={
+                    *input_value.safe_defaults.limits,
+                    *input_value.safe_defaults.policies,
+                },
             )
         )
         semantic_payload = _scope_semantics_payload(
@@ -10683,9 +8367,9 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=projected_statements.prd_requirements,
-            limits=projected_statements.limits,
-            policies=projected_statements.policies,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
@@ -10710,13 +8394,13 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=projected_statements.prd_requirements,
-            limits=projected_statements.limits,
-            policies=projected_statements.policies,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
-            assumptions=projected_statements.assumptions,
+            assumptions=draft.assumptions,
             material_clarification=draft.material_clarification,
             research_input_hash=research_input_hash,
             authority=ScopeAuthority(
@@ -10735,6 +8419,119 @@ class GeminiCognitiveExecutor:
             ),
             metrics=_operation_metrics(
                 input_tokens=input_tokens, output_tokens=output_tokens
+            ),
+        )
+
+    async def _assistant_turn(
+        self, input_value: AssistantTurnInputV1
+    ) -> AssistantTurnCompletedResult:
+        if self.assistant_runner is None:
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_UNAVAILABLE", retryable=True
+            )
+        mode_instruction = {
+            "direct_answer": (
+                "Answer the user's request directly and conversationally. Keep simple "
+                "information simple; do not turn it into a project or questionnaire."
+            ),
+            "discover": (
+                "Help the user clarify the outcome. Ask at most one material question in "
+                "this response. Accept informal or partial context, acknowledge corrections, "
+                "and never present a questionnaire."
+            ),
+            "one_shot": (
+                "Complete the bounded research, comparison, investigation, memo, analysis, "
+                "PRD, or other artifact inline as useful Markdown. Include concrete findings "
+                "and source-aware caveats; do not suggest that a Goal was created."
+            ),
+        }[input_value.response_mode]
+        conversation = [
+            item.model_dump(mode="json", by_alias=True)
+            for item in input_value.conversation
+        ]
+        query = canonical_json(
+            {
+                "instruction": (
+                    "You are AxWise assisting inside Orqaly Assistant. Return only the "
+                    "reader-facing response in Markdown. Orqaly alone decides whether durable "
+                    "Goals exist, so never claim to create, start, open, or continue one. "
+                    "Respect the user's latest correction or elaboration. "
+                    + mode_instruction
+                ),
+                "conversation": conversation,
+                "message": input_value.message,
+            }
+        )
+        raw = await self.assistant_runner.search(query)
+        markdown = str(raw.get("text") or "").strip()
+        if not markdown:
+            status = str((raw.get("runtime_diagnostics") or {}).get("status") or "")
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EMPTY_RESPONSE",
+                retryable=status
+                in {
+                    "deadline_exceeded",
+                    "retry_exhausted",
+                    "unavailable",
+                    "response_processing_error",
+                },
+            )
+        sources_by_url: dict[str, AssistantSourceV1] = {}
+        for raw_source in raw.get("sources", [])[:10]:
+            if not isinstance(raw_source, dict):
+                continue
+            url = str(raw_source.get("url") or "")
+            if not is_canonical_public_https_url(url):
+                continue
+            title = str(raw_source.get("title") or url)[:500]
+            source_types = utf16_ordinal_sorted(_classify_source_types(url, title))
+            sources_by_url.setdefault(
+                url,
+                AssistantSourceV1(
+                    title=title,
+                    canonical_url=url,
+                    source_types=source_types,
+                ),
+            )
+        facts: list[AssistantFactV1] = []
+        seen_facts: set[tuple[str, tuple[str, ...]]] = set()
+        for raw_claim in raw.get("claims", [])[:50]:
+            if not isinstance(raw_claim, dict):
+                continue
+            statement = str(raw_claim.get("text") or "").strip()
+            urls = utf16_ordinal_sorted(
+                {
+                    str(value)
+                    for value in raw_claim.get("source_urls", [])
+                    if str(value) in sources_by_url
+                }
+            )
+            identity = (statement, tuple(urls))
+            if not statement or not urls or identity in seen_facts:
+                continue
+            seen_facts.add(identity)
+            facts.append(AssistantFactV1(statement=statement[:4000], source_urls=urls))
+        input_tokens, output_tokens, _total_tokens, search_calls = _usage_from_search(raw)
+        recommendation = AssistantRecommendationV1(
+            kind="continue_conversation",
+            summary=(
+                "Answer the material clarification and continue here."
+                if input_value.response_mode == "discover"
+                else "Continue in Assistant unless the work becomes dependent or long-running."
+            ),
+        )
+        return AssistantTurnCompletedResult(
+            result_type="assistant_turn_completed",
+            response=AssistantTurnV1(
+                markdown=markdown,
+                sources=[sources_by_url[url] for url in utf16_ordinal_sorted(sources_by_url)],
+                facts=facts,
+                recommendations=[recommendation],
+            ),
+            metrics=_operation_metrics(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                search_calls=search_calls,
             ),
         )
 
@@ -10773,14 +8570,6 @@ class GeminiCognitiveExecutor:
         revised = await self.scope_reviser.revise(input_value, accepted_scope)
         draft, input_tokens, output_tokens = _unwrap_model_output(revised)
         _validate_revision_draft(input_value.correction, draft, accepted_scope)
-        draft = draft.model_copy(
-            update={
-                "evidence_requirements": _with_narrowed_statutory_source_types(
-                    draft.evidence_requirements
-                )
-            }
-        )
-        _validate_revision_draft(input_value.correction, draft, accepted_scope)
         objective = (
             draft.objective if draft.objective_changed else accepted_scope.objective
         )
@@ -10807,15 +8596,7 @@ class GeminiCognitiveExecutor:
             else accepted_scope.topic_anchors
         )
         evidence_requirements = draft.evidence_requirements
-        projected_statements = _project_scope_statements(
-            authority_text=input_value.correction,
-            evidence_requirements=evidence_requirements,
-            prd_requirements=draft.prd_requirements,
-            limits=draft.limits,
-            policies=draft.policies,
-            assumptions=draft.assumptions,
-            prior_scope=accepted_scope,
-        )
+        policies = draft.policies
         deliverable_profile, requirements, acceptance_criteria = (
             _project_deliverable_contract(
                 authority_text=input_value.correction,
@@ -10824,14 +8605,11 @@ class GeminiCognitiveExecutor:
                 deliverables=draft.deliverables,
                 personas=draft.personas,
                 interview_requirements=draft.interview_requirements,
-                prd_requirements=projected_statements.prd_requirements,
-                limits=projected_statements.limits,
-                policies=projected_statements.policies,
+                prd_requirements=draft.prd_requirements,
+                limits=draft.limits,
+                policies=policies,
                 draft_criteria=draft.acceptance_criteria,
                 prior_scope=accepted_scope,
-                authority_overrides=projected_statements.authority_overrides,
-                support_aliases=projected_statements.support_aliases,
-                evidence_links=projected_statements.evidence_links,
             )
         )
         semantic_payload = _scope_semantics_payload(
@@ -10841,9 +8619,9 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=projected_statements.prd_requirements,
-            limits=projected_statements.limits,
-            policies=projected_statements.policies,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
@@ -10868,13 +8646,13 @@ class GeminiCognitiveExecutor:
             deliverables=draft.deliverables,
             personas=draft.personas,
             interview_requirements=draft.interview_requirements,
-            prd_requirements=projected_statements.prd_requirements,
-            limits=projected_statements.limits,
-            policies=projected_statements.policies,
+            prd_requirements=draft.prd_requirements,
+            limits=draft.limits,
+            policies=policies,
             deliverable_profile=deliverable_profile,
             requirements=requirements,
             acceptance_criteria=acceptance_criteria,
-            assumptions=projected_statements.assumptions,
+            assumptions=draft.assumptions,
             material_clarification=draft.material_clarification,
             research_input_hash=research_input_hash,
             authority=ScopeAuthority(
@@ -11513,27 +9291,21 @@ class GeminiCognitiveExecutor:
             note = (
                 "Grounded repair returned conflicting evidence."
                 if conflicts
+                else f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
+                if claims
                 else (
-                    f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
-                    if claims
-                    else (
-                        (
-                            "Grounded acquisition reached the bounded research deadline before "
-                            "the targeted repair pass; no accepted grounded claim was recorded."
-                        )
-                        if not repair_performed
-                        else (
-                            (
-                                "Grounded acquisition remained unavailable after the single "
-                                "targeted repair pass "
-                                f"({', '.join(failure_statuses)}); no accepted grounded claim "
-                                "was recorded."
-                            )
-                            if failure_statuses
-                            else "No accepted grounded claim was available after the single repair pass."
-                        )
-                    )
+                    "Grounded acquisition reached the bounded research deadline before "
+                    "the targeted repair pass; no accepted grounded claim was recorded."
                 )
+                if not repair_performed
+                else (
+                    "Grounded acquisition remained unavailable after the single "
+                    "targeted repair pass "
+                    f"({', '.join(failure_statuses)}); no accepted grounded claim "
+                    "was recorded."
+                )
+                if failure_statuses
+                else "No accepted grounded claim was available after the single repair pass."
             )
             findings_by_id[requirement.id] = EvidenceFinding(
                 requirement_id=requirement.id,
@@ -11569,7 +9341,9 @@ class GeminiCognitiveExecutor:
         readiness = (
             "blocked"
             if unresolved_blocking
-            else "ready_with_gaps" if unresolved_optional or assumptions else "ready"
+            else "ready_with_gaps"
+            if unresolved_optional or assumptions
+            else "ready"
         )
         result = ResearchResultV2(
             accepted_scope_artifact_id=input_value.accepted_scope.artifact_id,
@@ -12498,4 +10272,5 @@ def build_cognitive_executor(
         artifact_resolver,
         PydanticAISynthesisWriter(model),
         PydanticAIScopeReviser(model),
+        GeminiGroundedResearchRunner(api_key),
     )

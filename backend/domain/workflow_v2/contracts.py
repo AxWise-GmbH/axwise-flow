@@ -1389,8 +1389,23 @@ class SynthesizeArtifactInputV1(ContractModel):
         return self
 
 
+class AssistantConversationMessageV1(ContractModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=24_000)
+
+
+class AssistantTurnInputV1(ContractModel):
+    type: Literal["AssistantTurnV1"]
+    response_mode: Literal["direct_answer", "discover", "one_shot"]
+    message: str = Field(min_length=1, max_length=24_000)
+    conversation: list[AssistantConversationMessageV1] = Field(
+        default_factory=list, max_length=20
+    )
+
+
 OperationInput = Annotated[
     Union[
+        AssistantTurnInputV1,
         CompileScopeInputV2,
         ReviseScopeInputV2,
         ExecuteResearchInputV2,
@@ -1415,6 +1430,7 @@ class WorkflowReference(ContractModel):
 class AxWiseOperationEnvelope(ContractModel):
     operation_id: UUID
     operation_type: Literal[
+        "AssistantTurnV1",
         "CompileScopeV2",
         "ReviseScopeV2",
         "ExecuteResearchV2",
@@ -1562,6 +1578,54 @@ class OperationMetrics(ContractModel):
     estimated_cost_micros: int | None = Field(default=None, ge=0)
 
 
+class AssistantSourceV1(ContractModel):
+    title: Text500
+    canonical_url: str = Field(min_length=1, max_length=4000)
+    source_types: list[EvidenceSourceType] = Field(min_length=1, max_length=7)
+
+    @model_validator(mode="after")
+    def canonical_source(self) -> "AssistantSourceV1":
+        if not is_canonical_public_https_url(self.canonical_url):
+            raise ValueError("assistant source URL must be canonical public HTTPS")
+        if self.source_types != utf16_ordinal_sorted(set(self.source_types)):
+            raise ValueError("assistant source types must be sorted and unique")
+        return self
+
+
+class AssistantFactV1(ContractModel):
+    statement: Text4000
+    source_urls: list[str] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="after")
+    def canonical_sources(self) -> "AssistantFactV1":
+        if self.source_urls != utf16_ordinal_sorted(set(self.source_urls)):
+            raise ValueError("assistant fact sources must be sorted and unique")
+        if any(not is_canonical_public_https_url(value) for value in self.source_urls):
+            raise ValueError("assistant fact sources must be canonical public HTTPS")
+        return self
+
+
+class AssistantRecommendationV1(ContractModel):
+    kind: Literal["continue_conversation", "consider_goal"]
+    summary: Text1000
+
+
+class AssistantTurnV1(ContractModel):
+    schema_version: Literal["axwise.assistant-turn.v1"] = "axwise.assistant-turn.v1"
+    markdown: str = Field(min_length=1, max_length=120_000)
+    sources: list[AssistantSourceV1] = Field(default_factory=list, max_length=10)
+    facts: list[AssistantFactV1] = Field(default_factory=list, max_length=50)
+    recommendations: list[AssistantRecommendationV1] = Field(
+        default_factory=list, max_length=5
+    )
+
+
+class AssistantTurnCompletedResult(ContractModel):
+    result_type: Literal["assistant_turn_completed"]
+    response: AssistantTurnV1
+    metrics: OperationMetrics | None = None
+
+
 class ScopeCompiledResult(ContractModel):
     result_type: Literal["scope_compiled"]
     artifact: ScopeArtifactFact
@@ -1639,6 +1703,7 @@ class EvaluationCompletedResult(ContractModel):
 
 CompletionResult = Annotated[
     Union[
+        AssistantTurnCompletedResult,
         ScopeCompiledResult,
         ResearchCompletedResult,
         TaskCompletedResult,
