@@ -4467,6 +4467,13 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         "internal review condition",
         "not a template, questionnaire, JSON",
         "blocked-only shell",
+        "FINAL READINESS CHECK",
+        "no exact immutable",
+        "same clause or table cell",
+        "proposed validation hypothesis",
+        "must not read as an adopted pass/fail",
+        "qualified-owner approval must precede",
+        "does not downgrade ordinary product, business",
     ):
         assert required in final_prompt
 
@@ -6373,6 +6380,15 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
             "compliant, cleared or approved. Keep the useful requirement and mark "
             "it proposed or gap-bound."
         ),
+        "unverifiedHighStakesDecisionRule": (
+            "When evidence readiness is ready_with_gaps, a legal, safety, health, "
+            "nutrition or scientific threshold without an exact clause-local "
+            "immutable evidence marker may remain only as a proposed validation "
+            "hypothesis. It cannot be an adopted pass/fail, release/reject or "
+            "compliance criterion until authoritative evidence and qualified-owner "
+            "approval are recorded. Preserve ordinary non-authority planning "
+            "targets."
+        ),
         "unresolvedEvidenceRule": (
             "Do not quote or restate the candidate answer. Record each unresolved "
             "domain once in the evidence-gaps section as a neutral question, its "
@@ -6796,6 +6812,64 @@ def test_repair_source_titles_are_canonical_across_catalogue_completion_order() 
     assert canonical_hash(forward) == canonical_hash(reverse)
 
 
+def test_current_requirement_locator_cannot_be_crowded_out_by_three_global_sources() -> (
+    None
+):
+    retrieved_at = "2026-08-31T12:00:00Z"
+    global_urls = [
+        "https://example.org/a.html",
+        "https://example.org/b.html",
+        "https://example.org/c.html",
+    ]
+    locator_url = "https://publisher.example.org/current-report.pdf"
+
+    def global_source(index: int, url: str) -> ResearchSourceV1:
+        title = f"Global source {index}"
+        source_identity = {
+            "canonicalUrl": url,
+            "retrievalDate": retrieved_at,
+            "sourceClasses": ["grounded_web"],
+            "sourceTitle": title,
+        }
+        return ResearchSourceV1(
+            source_id=canonical_hash(source_identity),
+            source_title=title,
+            canonical_url=url,
+            source_classes=["grounded_web"],
+            retrieval_date=retrieved_at,
+            supported_claim_ids=[f"{index}" * 64],
+        )
+
+    requirement = EvidenceRequirement(
+        id="current-market-observation",
+        claim_type="market_statistic",
+        description="Verify the current publisher market observation.",
+        criticality="nonblocking",
+        evidence_role="grounded_claim",
+        verification_basis="grounded_claims",
+        applies_when="Adding current market context.",
+        accepted_source_types=["grounded_web"],
+        allowed_source_hosts=[],
+    )
+    locator = cognitive_executor_module._ResearchSourceLocator(
+        canonical_url=locator_url,
+        source_title="Current requirement locator",
+        source_classes=("grounded_web",),
+    )
+
+    candidates = cognitive_executor_module._repair_source_candidates(
+        requirement,
+        [[global_source(index, url) for index, url in enumerate(global_urls, 1)]],
+        [[locator]],
+    )
+
+    assert [candidate["url"] for candidate in candidates] == [
+        locator_url,
+        *global_urls[:2],
+    ]
+    assert candidates[0]["title"] == "Current requirement locator"
+
+
 @pytest.mark.asyncio
 async def test_launch_authorization_keeps_future_proof_blocking() -> None:
     compiled = await GeminiCognitiveExecutor(
@@ -7086,6 +7160,7 @@ def test_fallback_discovery_title_cannot_forge_an_accepted_source_class() -> Non
         set(),
         response_hash,
         text,
+        provider="searxng_direct_fetch",
     )
     grounded = _claim_from_grounding(
         {"text": text, "source_urls": [url]},
@@ -7094,6 +7169,7 @@ def test_fallback_discovery_title_cannot_forge_an_accepted_source_class() -> Non
         set(),
         response_hash,
         text,
+        provider="searxng_direct_fetch",
     )
 
     assert rejected is None
@@ -7119,6 +7195,7 @@ def test_fallback_discovery_hostname_cannot_forge_industry_authority() -> None:
         set(),
         response_hash,
         text,
+        provider="searxng_direct_fetch",
     )
 
     assert claim is None
@@ -7140,6 +7217,7 @@ def test_every_claim_source_must_match_an_accepted_source_class() -> None:
         set(),
         response_hash,
         text,
+        provider="searxng_direct_fetch",
     )
 
     assert claim is None
@@ -7225,6 +7303,41 @@ def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evid
     )
 
     assert google is None
+    assert direct is not None
+    assert direct.segment_start == 0
+    assert direct.segment_end == len(text.encode("utf-8"))
+    assert direct.provider_response_hash == response_hash
+
+
+def test_nonstatutory_google_claim_is_locator_only_and_cannot_forge_direct_route() -> (
+    None
+):
+    text = "The publisher reports a 14 percent year-over-year market increase."
+    url = "https://statistics.example.org/market-report"
+    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    source = {"title": "Market report", "url": url}
+    arguments = (
+        {"text": text, "source_urls": [url]},
+        {url: source},
+        {"grounded_web"},
+        set(),
+        response_hash,
+        text,
+    )
+
+    assert _claim_from_grounding(*arguments, provider="gemini_google_search") is None
+    assert (
+        _claim_from_grounding(
+            {
+                "text": text,
+                "source_urls": [url],
+                "provider": "searxng_direct_fetch",
+            },
+            *arguments[1:],
+        )
+        is None
+    )
+    direct = _claim_from_grounding(*arguments, provider="searxng_direct_fetch")
     assert direct is not None
     assert direct.segment_start == 0
     assert direct.segment_end == len(text.encode("utf-8"))
@@ -7347,7 +7460,7 @@ def test_grounded_claim_rejects_an_explicit_enumeration_count_mismatch() -> None
             set(),
             hashlib.sha256(text.encode("utf-8")).hexdigest(),
             text,
-            provider="gemini_google_search",
+            provider="searxng_direct_fetch",
         )
 
     assert (
@@ -7442,6 +7555,75 @@ async def test_exact_gemini_grounding_cannot_satisfy_statutory_research_without_
     assert [entry["passNumber"] for entry in ledger] == [0, 1]
     assert all(entry["claims"] == [] for entry in ledger)
     assert result.artifact.payload["sourceCatalogue"] == []
+
+
+@pytest.mark.asyncio
+async def test_nonstatutory_google_locator_becomes_evidence_only_after_direct_refetch() -> (
+    None
+):
+    source_url = "https://statistics.example.org/market-report"
+    generated = "The market grew by 27 percent according to the cited report."
+    publisher_exact = "The index increased by 14 percent compared with the prior year."
+
+    class GoogleLocatorThenDirectRunner:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        async def search(self, query: str) -> dict:
+            self.queries.append(query)
+            payload = json.loads(query.rsplit("\n", 1)[1])
+            if len(self.queries) == 1:
+                assert "fallbackCandidateSources" not in payload
+                return {
+                    "search_performed": True,
+                    "provider": "gemini_google_search",
+                    "text": generated,
+                    "claims": [
+                        {"text": generated, "source_urls": [source_url]}
+                    ],
+                    "sources": [{"title": "Market report", "url": source_url}],
+                    "provider_queries": ["bounded market query"],
+                    "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
+                }
+            assert payload["fallbackCandidateSources"] == [
+                {"title": "Market report", "url": source_url}
+            ]
+            return {
+                "search_performed": True,
+                "provider": "searxng_direct_fetch",
+                "text": publisher_exact,
+                "claims": [
+                    {"text": publisher_exact, "source_urls": [source_url]}
+                ],
+                "sources": [{"title": "Market report", "url": source_url}],
+                "provider_queries": ["same-operation locator refetch"],
+                "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
+            }
+
+    compiled = await compiled_scope(
+        criticality="nonblocking",
+        claim_type="market_statistic",
+        description="Verify a current market growth statistic.",
+        accepted_source_types=["grounded_web"],
+    )
+    runner = GoogleLocatorThenDirectRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert len(runner.queries) == 2
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    ledger = result.artifact.payload["claimLedger"]
+    assert [entry["passNumber"] for entry in ledger] == [0, 1]
+    assert ledger[0]["claims"] == []
+    assert generated not in json.dumps(result.artifact.payload["sourceCatalogue"])
+    repaired_claim = ledger[1]["claims"][0]
+    assert repaired_claim["text"] == publisher_exact
+    assert repaired_claim["providerResponseHash"] == hashlib.sha256(
+        publisher_exact.encode("utf-8")
+    ).hexdigest()
+    assert repaired_claim["segmentStart"] == 0
+    assert repaired_claim["segmentEnd"] == len(publisher_exact.encode("utf-8"))
 
 
 @pytest.mark.asyncio

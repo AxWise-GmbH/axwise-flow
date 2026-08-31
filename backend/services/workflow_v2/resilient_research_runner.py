@@ -1840,18 +1840,24 @@ class ResilientResearchRunner:
             candidate.canonical_url for candidate in discovered_candidates
         ]
         selected_urls: list[str] = []
-        # Explicit authorities and the current requirement's ranked discovery
-        # are requirement-specific. Operation-local reusable locators are not
-        # confirmed for this requirement, so they may fill only spare capacity
-        # (or all capacity when discovery is unavailable). A URL present in
-        # both lists is naturally deduplicated here, while the merge above
-        # retains the fresh discovery snippets used to locate the exact span.
-        for url in discovered_urls:
-            if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
-                selected_urls.append(url)
-        for url in reusable_urls:
-            if url not in selected_urls and len(selected_urls) < self.maximum_candidates:
-                selected_urls.append(url)
+        # On the single locator-refetch pass, preserve the operation-local URL's
+        # opportunity to be independently fetched. Fresh discovery can otherwise
+        # fill the bounded candidate cap and silently crowd out the very publisher
+        # locator that caused this repair. Spare capacity still goes to explicit
+        # authorities and ranked discovery. A duplicate URL keeps the fresh snippets
+        # merged above for relevant-window selection.
+        prioritized_url_groups = (
+            (reusable_urls, discovered_urls)
+            if locator_refetch
+            else (discovered_urls, reusable_urls)
+        )
+        for urls in prioritized_url_groups:
+            for url in urls:
+                if (
+                    url not in selected_urls
+                    and len(selected_urls) < self.maximum_candidates
+                ):
+                    selected_urls.append(url)
         merged_candidates = [merged_candidates_by_url[url] for url in selected_urls]
         all_merged_candidate_count = len(merged_candidates_by_url)
         if all_merged_candidate_count > self.maximum_candidates:

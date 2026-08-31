@@ -1432,6 +1432,15 @@ from an accepted primary source`, not `registration is mandatory` and not a quot
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
+
+FINAL READINESS CHECK: When EVIDENCE_READINESS is ready_with_gaps, inspect every requirement,
+Given/When/Then outcome, metric or validation-gate row, and risk decision before returning the
+document. If a legal, safety, health, nutrition or scientific threshold has no exact immutable
+evidence marker in the same clause or table cell, keep any useful test design only as a clearly
+proposed validation hypothesis. It must not read as an adopted pass/fail, release/reject or
+compliance criterion, and authoritative evidence plus qualified-owner approval must precede
+adoption. This does not downgrade ordinary product, business, budget, schedule, UX or
+performance targets that make no high-stakes authority claim.
 """
 ).strip()
 
@@ -9202,6 +9211,15 @@ class PydanticAISynthesisWriter:
                 "compliant, cleared or approved. Keep the useful requirement and mark "
                 "it proposed or gap-bound."
             ),
+            "unverifiedHighStakesDecisionRule": (
+                "When evidence readiness is ready_with_gaps, a legal, safety, health, "
+                "nutrition or scientific threshold without an exact clause-local "
+                "immutable evidence marker may remain only as a proposed validation "
+                "hypothesis. It cannot be an adopted pass/fail, release/reject or "
+                "compliance criterion until authoritative evidence and qualified-owner "
+                "approval are recorded. Preserve ordinary non-authority planning "
+                "targets."
+            ),
             "unresolvedEvidenceRule": (
                 "Do not quote or restate the candidate answer. Record each unresolved "
                 "domain once in the evidence-gaps section as a neutral question, its "
@@ -9767,6 +9785,7 @@ def _repair_source_candidates(
         title: str,
         source_classes: set[str],
         supported_claim_ids: set[str],
+        current_requirement_locator: bool,
     ) -> None:
         if len(url) > 1_000:
             return
@@ -9776,10 +9795,17 @@ def _repair_source_candidates(
             return
         row = by_url.setdefault(
             url,
-            {"titles": set(), "supported_claim_ids": set()},
+            {
+                "titles": set(),
+                "supported_claim_ids": set(),
+                "current_requirement_locator": False,
+            },
         )
         row["titles"].add(title[:500])
         row["supported_claim_ids"].update(supported_claim_ids)
+        row["current_requirement_locator"] = bool(
+            row["current_requirement_locator"] or current_requirement_locator
+        )
 
     for source in (item for catalogue in catalogues for item in catalogue):
         add_candidate(
@@ -9789,6 +9815,7 @@ def _repair_source_candidates(
                 _normalized_source_type(value) for value in source.source_classes
             },
             supported_claim_ids=set(source.supported_claim_ids),
+            current_requirement_locator=False,
         )
     for source in (
         item for catalogue in (locator_catalogues or []) for item in catalogue
@@ -9800,6 +9827,7 @@ def _repair_source_candidates(
                 _normalized_source_type(value) for value in source.source_classes
             },
             supported_claim_ids=set(),
+            current_requirement_locator=True,
         )
 
     def direct_text_rank(url: str) -> int:
@@ -9814,24 +9842,48 @@ def _repair_source_candidates(
         values = {int(value) for value in re.findall(r"\d+", url)}
         return {value for value in values if value >= 100 and not 1900 <= value <= 2100}
 
-    ranked = sorted(
-        by_url.items(),
-        key=lambda item: (
-            direct_text_rank(item[0]),
-            -len(item[1]["supported_claim_ids"]),
-            item[0].encode("utf-16-be"),
-        ),
-    )
-    selected = ranked[:1]
-    if selected:
-        preferred_numbers = document_number_tokens(selected[0][0])
-        selected.extend(
-            item
-            for item in ranked[1:]
-            if preferred_numbers.intersection(document_number_tokens(item[0]))
+    def rank_group(
+        candidates: list[tuple[str, dict[str, Any]]],
+    ) -> list[tuple[str, dict[str, Any]]]:
+        ranked = sorted(
+            candidates,
+            key=lambda item: (
+                direct_text_rank(item[0]),
+                -len(item[1]["supported_claim_ids"]),
+                item[0].encode("utf-16-be"),
+            ),
         )
-    selected_urls = {url for url, _row in selected}
-    selected.extend(item for item in ranked if item[0] not in selected_urls)
+        selected = ranked[:1]
+        if selected:
+            preferred_numbers = document_number_tokens(selected[0][0])
+            selected.extend(
+                item
+                for item in ranked[1:]
+                if preferred_numbers.intersection(document_number_tokens(item[0]))
+            )
+        selected_urls = {url for url, _row in selected}
+        selected.extend(item for item in ranked if item[0] not in selected_urls)
+        return selected
+
+    # The locator catalogue is scoped to this exact requirement. Preserve its
+    # opportunity to reach the direct-fetch runner before global same-operation
+    # sources consume the three-candidate cap; global sources still fill every
+    # remaining slot. URLs present in both groups inherit locator priority.
+    current_requirement_locators = rank_group(
+        [
+            item
+            for item in by_url.items()
+            if item[1]["current_requirement_locator"]
+        ]
+    )
+    global_sources = rank_group(
+        [
+            item
+            for item in by_url.items()
+            if not item[1]["current_requirement_locator"]
+        ]
+    )
+    selected = [*current_requirement_locators, *global_sources]
     return [
         {
             "url": url,
@@ -9858,6 +9910,19 @@ def _claim_from_grounding(
         return None
     if _has_explicit_enumeration_mismatch(text):
         return None
+    # Only the server-owned top-level route can establish retrieval provenance.
+    # ``raw_claim`` is provider/model output and must not be allowed to self-label
+    # generated prose as a direct publisher fetch.
+    claim_provider = str(provider or "")
+    if claim_provider != "searxng_direct_fetch":
+        # Search-provider prose is useful only as an operation-local URL locator.
+        # It is not publisher content, even when its citation metadata names an
+        # authoritative host and the prose happens to be an exact byte span of the
+        # model response. Dynamic evidence becomes admissible only after the existing
+        # bounded repair pass independently refetches the publisher document and the
+        # exact-span extractor binds the claim to those immutable bytes. Selected
+        # immutable evidence is admitted separately and never enters this function.
+        return None
     if requirement is not None:
         expected_instruments = _explicit_eu_regulation_identities(
             requirement.description
@@ -9876,16 +9941,6 @@ def _claim_from_grounding(
             and source_instruments
             and not (claim_instruments & source_instruments)
         ):
-            return None
-        claim_provider = str(provider or raw_claim.get("provider") or "")
-        if (
-            _requirement_has_statutory_force(requirement)
-            and claim_provider != "searxng_direct_fetch"
-        ):
-            # Grounded provider prose and citations remain useful operation-local
-            # locators, but they are not the publisher's legal text. Every statutory
-            # assertion must therefore be refetched from the publisher and bound to an
-            # exact immutable byte span before it can become evidence.
             return None
     if allowed_source_hosts and any(
         not _url_matches_allowed_hosts(url, allowed_source_hosts) for url in urls

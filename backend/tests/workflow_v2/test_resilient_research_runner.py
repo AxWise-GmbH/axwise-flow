@@ -1532,11 +1532,14 @@ async def test_untrusted_snippet_only_locates_a_bounded_fetched_document_window(
 
 
 @pytest.mark.asyncio
-async def test_operation_local_source_fills_remaining_slot_and_is_refetched() -> None:
+async def test_operation_local_source_outranks_three_fresh_distractors_on_refetch() -> (
+    None
+):
     reused_url = "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/"
     irrelevant_urls = [
         "https://irrelevant.example/a",
         "https://irrelevant.example/b",
+        "https://irrelevant.example/c",
     ]
     exact = "The mandatory label shall declare the analytical constituents."
     fetched: list[str] = []
@@ -1564,7 +1567,7 @@ async def test_operation_local_source_fills_remaining_slot_and_is_refetched() ->
         )
     )
 
-    assert fetched == [*irrelevant_urls, reused_url]
+    assert fetched == [reused_url, *irrelevant_urls[:2]]
     assert result["provider"] == "searxng_direct_fetch"
     assert result["sources"][0]["url"] == reused_url
     assert result["claims"][0]["text"] == exact
@@ -1801,7 +1804,7 @@ async def test_operation_local_duplicate_keeps_title_and_merges_fresh_snippet() 
 
 
 @pytest.mark.asyncio
-async def test_current_labeling_discovery_precedes_unrelated_reused_legal_locators() -> None:
+async def test_locator_refetch_keeps_spare_capacity_for_current_discovery() -> None:
     reused_urls = [
         "https://eur-lex.europa.eu/eli/reg/2005/183/oj/eng",
         "https://eur-lex.europa.eu/eli/reg/2009/1069/oj/eng",
@@ -1815,7 +1818,7 @@ async def test_current_labeling_discovery_precedes_unrelated_reused_legal_locato
 
     async def fetch(url: str) -> dict:
         fetched.append(url)
-        if url == current_urls[1]:
+        if url == current_urls[0]:
             return document(url, exact)
         return document(url, "Authoritative but unrelated publisher text.")
 
@@ -1827,7 +1830,7 @@ async def test_current_labeling_discovery_precedes_unrelated_reused_legal_locato
                     {"url": current_urls[0], "title": "General feed guidance"},
                     {"url": current_urls[1], "title": "Exact labeling rules"},
                 ],
-                claims=[{"text": exact, "source_urls": [current_urls[1]]}],
+                claims=[{"text": exact, "source_urls": [current_urls[0]]}],
             )
         ),
         fetcher=fetch,
@@ -1841,8 +1844,8 @@ async def test_current_labeling_discovery_precedes_unrelated_reused_legal_locato
         )
     )
 
-    assert fetched == [*current_urls, reused_urls[0]]
-    assert result["sources"][0]["url"] == current_urls[1]
+    assert fetched == [*reused_urls, current_urls[0]]
+    assert result["sources"][0]["url"] == current_urls[0]
     assert result["claims"][0]["text"] == exact
     assert result["runtime_diagnostics"]["candidate_count"] == 3
     assert result["runtime_diagnostics"]["omitted_candidate_count"] == 1
