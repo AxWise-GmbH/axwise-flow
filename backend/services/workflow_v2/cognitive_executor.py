@@ -8576,13 +8576,79 @@ class PydanticAISynthesisWriter:
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
         )
+
+        # Evaluation already identified the unsafe clauses in this exact immutable
+        # core. Give the final writer compact location hints, not the evaluator's
+        # diagnostic prose and not a server-rewritten draft. Stale diagnostics are
+        # discarded so they cannot cause the model to recreate absent text.
+        base_lines = base.markdown.splitlines()
+        normalized_lines = [re.sub(r"\s+", " ", line).strip() for line in base_lines]
+        line_section_lines: list[int | None] = []
+        line_anchors: list[str | None] = []
+        section_line: int | None = None
+        structural_anchor: str | None = None
+        for line_number, line in enumerate(base_lines, start=1):
+            heading_match = re.match(
+                r"^\s*(?P<marks>#{2,6})\s+(?P<title>.+?)\s*$", line
+            )
+            anchors = utf16_ordinal_sorted(
+                set(re.findall(r"\b(?:req|acc)-[a-f0-9]{16}\b", line, re.I))
+            )
+            if heading_match is not None:
+                heading_level = len(heading_match.group("marks"))
+                if heading_level == 2:
+                    section_line = line_number
+                if heading_level <= 3:
+                    structural_anchor = None
+                if heading_level == 3 and anchors:
+                    structural_anchor = anchors[0]
+            line_section_lines.append(section_line)
+            line_anchors.append(anchors[0] if anchors else structural_anchor)
+
+        unsupported_locators: list[dict[str, Any]] = []
+        seen_locators: set[tuple[int, str | None]] = set()
+        for defect in evaluation.unsupported_precision:
+            handled = _handled_task_evidence_defect(defect, include_generic=True)
+            if handled is None:
+                continue
+            excerpt, _unresolved, _citation_mismatch = handled
+            probe = re.sub(r"\s+", " ", excerpt).strip()
+            if _PUBLICATION_SAFE_NONAUTHORIZATION.search(
+                re.sub(r"[*_`]", "", probe)
+            ):
+                continue
+            matched_lines = [
+                index for index, line in enumerate(normalized_lines) if probe in line
+            ]
+            while len(probe) > 48 and not matched_lines:
+                probe = probe.rsplit(" ", maxsplit=1)[0].rstrip(" ,.;:…")
+                matched_lines = [
+                    index
+                    for index, line in enumerate(normalized_lines)
+                    if probe in line
+                ]
+            if not matched_lines:
+                continue
+            for line_index in matched_lines:
+                locator_key = (line_index, line_anchors[line_index])
+                if locator_key in seen_locators:
+                    continue
+                seen_locators.add(locator_key)
+                unsupported_locators.append(
+                    {
+                        "line": line_index + 1,
+                        "sectionLine": line_section_lines[line_index],
+                        "anchorId": line_anchors[line_index],
+                    }
+                )
+        unsupported_locators.sort(
+            key=lambda item: (item["line"], item["anchorId"] or "")
+        )
+        unsupported_locators = unsupported_locators[:40]
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            # The raw core plus the typed evidence boundary are sufficient. Repeating
-            # heuristic excerpts here anchored the model on unsafe prose and produced a
-            # warning for every item instead of one coherent reader-facing repair.
-            "unsupportedPrecision": [],
+            "unsupportedPrecision": unsupported_locators,
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
@@ -8596,6 +8662,10 @@ class PydanticAISynthesisWriter:
         repair_instructions = [
             "Apply each structured repair target only when its referenced issue is "
             "still observable in BASE_MARKDOWN; never recreate absent text.",
+            "At each REPAIR_TARGETS.unsupportedPrecision location, remove the "
+            "unsupported external answer or recast only its surrounding requirement "
+            "as a neutral internal review condition; preserve IDs and topology and "
+            "never quote, relocate, or wrap the answer in a warning.",
             "Follow PUBLICATION_CONTRACT for every rewrite; never copy diagnostics, "
             "evaluator instructions, or an unsupported candidate answer into the final "
             "document.",
@@ -8627,6 +8697,16 @@ class PydanticAISynthesisWriter:
                 "markdown_tables",
                 "given_when_then_roles",
             ],
+            "unsupportedLocatorRule": (
+                "Each line/sectionLine/anchorId tuple identifies candidate prose to "
+                "repair, not evidence or reader-facing text."
+            ),
+            "unresolvedRequirementStatusRule": (
+                "A requirement whose applicable legal, safety, nutrition, lab or "
+                "authority evidence remains unresolved cannot be labelled satisfied, "
+                "compliant, cleared or approved. Keep the useful requirement and mark "
+                "it proposed or gap-bound."
+            ),
             "unresolvedEvidenceRule": (
                 "Do not quote or restate the candidate answer. Record each unresolved "
                 "domain once in the evidence-gaps section as a neutral question, its "
