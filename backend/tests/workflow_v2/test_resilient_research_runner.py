@@ -462,6 +462,7 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
             "elapsed_ms": 41_669,
             "call_count": 3,
             "retry_count": 2,
+            "upstream_status_code": 400,
         },
     }
     primary = FakePrimary(mixed_failure)
@@ -479,6 +480,7 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
         "elapsed_ms": 41_669,
         "call_count": 3,
         "retry_count": 2,
+        "upstream_status_code": 400,
     }
     assert second["runtime_diagnostics"]["primary"] == {
         "route": "gemini_google_search",
@@ -2452,12 +2454,14 @@ async def test_ranked_candidate_order_dedupe_and_one_document_hash_are_determini
 @pytest.mark.asyncio
 async def test_all_direct_fetch_errors_preserve_primary_transient() -> None:
     url = "https://example.ee/source"
+    primary_failure = transient()
+    primary_failure["runtime_diagnostics"]["upstream_status_code"] = 503
 
     async def unavailable_fetch(_url: str) -> dict:
         raise TimeoutError("temporary fetch outage")
 
     result = await ResilientResearchRunner(
-        FakePrimary(transient()),
+        FakePrimary(primary_failure),
         searxng=FakeSearx(
             discovery(sources=[{"url": url, "title": "Publisher"}])
         ),
@@ -2466,7 +2470,29 @@ async def test_all_direct_fetch_errors_preserve_primary_transient() -> None:
 
     assert result["search_performed"] is False
     assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 503
     assert result["runtime_diagnostics"]["fallback"]["status"] == "direct_fetch_error"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "unsafe_status_code",
+    [True, "503", 503.0, 99, 600, "503\nsensitive provider response"],
+)
+async def test_fallback_diagnostics_reject_unsafe_primary_status_codes(
+    unsafe_status_code: object,
+) -> None:
+    primary_failure = transient()
+    primary_failure["runtime_diagnostics"]["upstream_status_code"] = unsafe_status_code
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_failure),
+        searxng=FakeSearx(discovery()),
+    ).search("not a canonical fallback query")
+
+    assert result["runtime_diagnostics"]["fallback_used"] is False
+    assert "upstream_status_code" not in result["runtime_diagnostics"]
+    assert "sensitive provider response" not in str(result)
 
 
 class BlockingSearx(FakeSearx):
