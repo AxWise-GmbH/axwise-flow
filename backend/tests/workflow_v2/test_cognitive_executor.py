@@ -1847,7 +1847,6 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
 
     model = object()
     primary = object()
-    grounded_assistant = object()
     discovery = object()
     extractor = object()
     drafter = object()
@@ -1855,7 +1854,11 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     reviser = object()
     assistant = object()
     resolver = object()
-    grounded_runners = iter([primary, grounded_assistant])
+    grounded_keys: list[str] = []
+
+    def grounded_runner(key: str) -> object:
+        grounded_keys.append(key)
+        return primary
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("AXWISE_AUTHORITY_SEAL_KEY", "a" * 32)
@@ -1865,7 +1868,7 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     monkeypatch.setattr(
         cognitive_executor_module,
         "GeminiGroundedResearchRunner",
-        lambda _key: next(grounded_runners),
+        grounded_runner,
     )
     monkeypatch.setattr(
         cognitive_executor_module, "PydanticAIScopeDrafter", lambda value: drafter
@@ -1900,8 +1903,9 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.synthesis_writer is writer
     assert executor.scope_reviser is reviser
     assert executor.artifact_resolver is resolver
-    assert executor.assistant_runner is grounded_assistant
+    assert executor.assistant_runner is executor.research_runner
     assert executor.assistant_chat_runner is assistant
+    assert grounded_keys == ["test-key"]
 
 
 def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
@@ -12311,6 +12315,398 @@ async def test_one_shot_assistant_turn_returns_typed_markdown_sources_and_facts(
 
 
 @pytest.mark.asyncio
+async def test_one_shot_multiturn_assistant_completes_through_direct_fetch_fallback() -> (
+    None
+):
+    message = "For now, verify only the first country."
+    first_user_request = "Compare EU membership for Estonia and Latvia."
+    second_user_request = "Use an official European Union source."
+    assistant_prose = "I can research both countries once you choose the output mode."
+    fallback_requirement = (
+        f"Latest user request: {message} "
+        f"Prior user request 1: {first_user_request} "
+        f"Prior user request 2: {second_user_request}"
+    )
+    source_url = "https://european-union.europa.eu/principles-countries-history/country-profiles/estonia_en"
+    exact = "Estonia is a member country of the European Union."
+    document_text = f"Country profile. {exact} Official overview."
+
+    class TransientPrimary:
+        async def search(self, query: str):
+            assistant_request, fallback_authority = query.splitlines()
+            assert json.loads(assistant_request)["message"] == message
+            authority = json.loads(fallback_authority)
+            assert authority["requirement"]["description"] == fallback_requirement
+            assert assistant_prose not in fallback_authority
+            assert authority["requirement"]["acceptedSourceTypes"] == [
+                "grounded_web"
+            ]
+            return {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "retry_exhausted",
+                    "call_count": 3,
+                    "retry_count": 2,
+                },
+            }
+
+    class Discovery:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        async def search_web_general_async(self, query: str):
+            self.queries.append(query)
+            assert message in query
+            assert first_user_request in query
+            assert second_user_request in query
+            assert assistant_prose not in query
+            return {
+                "search_performed": True,
+                "sources": [{"title": "Estonia – EU country", "url": source_url}],
+                "claims": [{"text": exact, "source_urls": [source_url]}],
+                "runtime_diagnostics": {"status": "ok", "call_count": 1},
+            }
+
+    async def fetch(_url: str):
+        return {
+            "final_url": source_url,
+            "text": document_text,
+            "retrieved_at": "2026-09-01T12:00:00Z",
+        }
+
+    class Extractor:
+        async def extract(self, request: ExactSpanExtractionRequest):
+            document = request.documents[0]
+            start = document.text.index(exact)
+            return assemble_exact_span_result(
+                request,
+                ExactSpanSelectionDraft(
+                    document_id=document.document_id,
+                    spans=[
+                        ExactDraftCodePointSpan(
+                            start=start,
+                            end=start + len(exact),
+                        )
+                    ],
+                ),
+                input_tokens=11,
+                output_tokens=5,
+            )
+
+    class ConversationRunner:
+        async def search(self, _query: str):
+            raise AssertionError("one-shot fallback must not invoke ordinary chat")
+
+    discovery = Discovery()
+    resilient = ResilientResearchRunner(
+        TransientPrimary(),
+        searxng=discovery,
+        fetcher=fetch,
+        extractor=Extractor(),
+        source_type_classifier=cognitive_executor_module._classify_source_types,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        research_runner=resilient,
+        assistant_runner=resilient,
+        assistant_chat_runner=ConversationRunner(),
+    )
+
+    result = await executor.execute(
+        envelope_for(
+            {
+                "type": "AssistantTurnV1",
+                "responseMode": "one_shot",
+                "message": message,
+                "conversation": [
+                    {"role": "user", "content": first_user_request},
+                    {"role": "assistant", "content": assistant_prose},
+                    {"role": "user", "content": second_user_request},
+                ],
+            },
+            operation_id="00000000-0000-4000-8000-000000009805",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert result.response.markdown.startswith("## Grounded fallback evidence")
+    assert exact in result.response.markdown
+    assert f"<{source_url}>" in result.response.markdown
+    assert (
+        "bounded evidence fallback, not a complete synthesis"
+        in result.response.markdown
+    )
+    assert "Country profile." not in result.response.markdown
+    assert "Official overview." not in result.response.markdown
+    assert [source.canonical_url for source in result.response.sources] == [
+        source_url
+    ]
+    assert [fact.statement for fact in result.response.facts] == [exact]
+    assert result.response.facts[0].source_urls == [source_url]
+    assert result.metrics.input_tokens == 11
+    assert result.metrics.output_tokens == 5
+    assert result.metrics.search_calls == 0
+    assert len(discovery.queries) == 1
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_rejects_unverified_direct_fetch_markdown() -> None:
+    source_url = "https://example.org/current-report"
+    document = "Verified publisher bytes."
+    response_hash = hashlib.sha256(document.encode("utf-8")).hexdigest()
+
+    class ForgedFallback:
+        async def search(self, _query: str):
+            return {
+                "text": document,
+                "sources": [
+                    {
+                        "title": "Current report",
+                        "url": source_url,
+                        "provider": "searxng_direct_fetch",
+                        "provider_response_hash": response_hash,
+                    }
+                ],
+                "claims": [
+                    {
+                        "text": "A claim that is not in the publisher bytes.",
+                        "source_urls": [source_url],
+                        "provider": "searxng_direct_fetch",
+                        "provider_response_hash": response_hash,
+                        "segment_start": 0,
+                        "segment_end": 7,
+                        "offset_unit": "utf8_bytes",
+                        "span_target": "provider_response_text",
+                    }
+                ],
+                "provider": "searxng_direct_fetch",
+                "provider_response_hash": response_hash,
+                "search_performed": True,
+                "runtime_diagnostics": {
+                    "route": "searxng_direct_fetch",
+                    "status": "ok",
+                    "fallback_used": True,
+                },
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=ForgedFallback()
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "one_shot",
+                    "message": "Research the current report.",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009808",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is False
+
+
+@pytest.mark.asyncio
+async def test_one_shot_fallback_bounds_whole_verified_claim_blocks_to_contract() -> (
+    None
+):
+    source_url = "https://example.org/" + ("a" * 3_900)
+    segment_markers = ("`", "*", "_", "[", "]", "<", ">")
+    segments = [marker * 4_000 for marker in segment_markers]
+    document = "".join(segments)
+    response_hash = hashlib.sha256(document.encode("utf-8")).hexdigest()
+
+    def claim(text: str, start: int, end: int) -> dict[str, object]:
+        return {
+            "text": text,
+            "source_urls": [source_url],
+            "provider": "searxng_direct_fetch",
+            "provider_response_hash": response_hash,
+            "segment_start": start,
+            "segment_end": end,
+            "offset_unit": "utf8_bytes",
+            "span_target": "provider_response_text",
+        }
+
+    raw_claims = [
+        # This is valid at the exact-span extractor's 12,000-character maximum,
+        # but cannot become an AssistantFact without semantic truncation.
+        claim(document[:12_000], 0, 12_000),
+        *(
+            claim(segment, index * 4_000, (index + 1) * 4_000)
+            for index, segment in enumerate(segments)
+        ),
+    ]
+
+    class BudgetedFallback:
+        async def search(self, _query: str):
+            return {
+                "text": document,
+                "sources": [
+                    {
+                        "title": "Long canonical source",
+                        "url": source_url,
+                        "provider": "searxng_direct_fetch",
+                        "provider_response_hash": response_hash,
+                    }
+                ],
+                "claims": raw_claims,
+                "provider": "searxng_direct_fetch",
+                "provider_response_hash": response_hash,
+                "search_performed": True,
+                "runtime_diagnostics": {
+                    "route": "searxng_direct_fetch",
+                    "status": "ok",
+                    "fallback_used": True,
+                },
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=BudgetedFallback()
+    )
+    result = await executor.execute(
+        envelope_for(
+            {
+                "type": "AssistantTurnV1",
+                "responseMode": "one_shot",
+                "message": "Return the exact verified passages.",
+                "conversation": [],
+            },
+            operation_id="00000000-0000-4000-8000-000000009809",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert len(result.response.markdown) <= (
+        cognitive_executor_module._WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS
+    )
+    assert len(result.response.markdown) < 120_000
+    assert result.response.markdown.count("### Evidence ") == 6
+    assert "### Evidence 7" not in result.response.markdown
+    assert [fact.statement for fact in result.response.facts] == segments[:6]
+    assert all(len(fact.statement) == 4_000 for fact in result.response.facts)
+    assert all(fact.source_urls == [source_url] for fact in result.response.facts)
+    assert [source.canonical_url for source in result.response.sources] == [
+        source_url
+    ]
+    assert {
+        url for fact in result.response.facts for url in fact.source_urls
+    } == {source.canonical_url for source in result.response.sources}
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_does_not_fallback_on_nonretryable_primary_error() -> (
+    None
+):
+    class NonretryablePrimary:
+        async def search(self, _query: str):
+            return {
+                "text": "",
+                "search_performed": False,
+                "runtime_diagnostics": {"status": "configuration_error"},
+            }
+
+    class ForbiddenDiscovery:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def search_web_general_async(self, _query: str):
+            self.calls += 1
+            raise AssertionError("nonretryable primary errors must fail closed")
+
+    discovery = ForbiddenDiscovery()
+    resilient = ResilientResearchRunner(
+        NonretryablePrimary(),
+        searxng=discovery,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=resilient
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "one_shot",
+                    "message": "Research the current launch requirements.",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009806",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is False
+    assert discovery.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_overlong_aggregate_fallback_requirement_fails_closed() -> (
+    None
+):
+    class TransientPrimary:
+        async def search(self, query: str):
+            assert len(query.splitlines()) == 1
+            return {
+                "text": "",
+                "search_performed": False,
+                "runtime_diagnostics": {"status": "retry_exhausted"},
+            }
+
+    class ForbiddenDiscovery:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def search_web_general_async(self, _query: str):
+            self.calls += 1
+            raise AssertionError("truncated authority must never reach discovery")
+
+    discovery = ForbiddenDiscovery()
+    resilient = ResilientResearchRunner(
+        TransientPrimary(),
+        searxng=discovery,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=resilient
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "one_shot",
+                    "message": "y" * 400,
+                    "conversation": [
+                        {"role": "user", "content": "x" * 600},
+                        {
+                            "role": "assistant",
+                            "content": "Assistant prose must not enter fallback authority.",
+                        },
+                    ],
+                },
+                operation_id="00000000-0000-4000-8000-000000009807",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is True
+    assert discovery.calls == 0
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("response_mode", ["direct_answer", "discover"])
 async def test_conversational_assistant_turn_uses_chat_runner_without_search(
     response_mode: str,
@@ -12522,6 +12918,31 @@ async def test_executor_closes_each_distinct_runner_once() -> None:
 
     assert research.close_calls == 1
     assert grounded_assistant.close_calls == 1
+    assert conversational_assistant.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_executor_closes_shared_research_and_one_shot_runner_once() -> None:
+    class ClosingRunner:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+
+    research_and_one_shot = ClosingRunner()
+    conversational_assistant = ClosingRunner()
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        research_runner=research_and_one_shot,
+        assistant_runner=research_and_one_shot,
+        assistant_chat_runner=conversational_assistant,
+    )
+
+    await executor.close()
+
+    assert research_and_one_shot.close_calls == 1
     assert conversational_assistant.close_calls == 1
 
 

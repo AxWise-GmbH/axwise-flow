@@ -78,6 +78,12 @@ class BlockingAsyncModels:
             raise
 
 
+class ProviderStatusError(RuntimeError):
+    def __init__(self, code: int | str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def _response(text: str = "Grounded answer") -> SimpleNamespace:
     grounding_metadata = SimpleNamespace(
         web_search_queries=["query one", "query two", "query three"],
@@ -159,12 +165,23 @@ def _async_service(
     return service
 
 
-def _http_status_error(code: int, *, retry_after: str | None = None) -> Exception:
+def _http_status_error(
+    code: int,
+    *,
+    retry_after: str | None = None,
+    message: str | None = None,
+    body: bytes = b"",
+) -> Exception:
     request = httpx.Request("POST", "https://generativelanguage.googleapis.com")
     headers = {"Retry-After": retry_after} if retry_after is not None else {}
-    response = httpx.Response(code, request=request, headers=headers)
+    response = httpx.Response(
+        code,
+        request=request,
+        headers=headers,
+        content=body,
+    )
     return httpx.HTTPStatusError(
-        f"status {code}",
+        message or f"status {code}",
         request=request,
         response=response,
     )
@@ -286,11 +303,18 @@ async def test_async_search_uses_exact_model_and_same_bounded_sdk_config(
 @pytest.mark.asyncio
 async def test_async_transient_retry_uses_cancellable_sleep(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
     models = AsyncSequenceModels(
-        [httpx.RemoteProtocolError("Server disconnected"), _response()]
+        [
+            ProviderStatusError(
+                503,
+                "sensitive async provider message and body",
+            ),
+            _response(),
+        ]
     )
     service = _async_service(models, clock)
 
@@ -301,6 +325,10 @@ async def test_async_transient_retry_uses_cancellable_sleep(
     assert result["runtime_diagnostics"]["status"] == "ok"
     assert result["runtime_diagnostics"]["call_count"] == 2
     assert result["runtime_diagnostics"]["elapsed_ms"] == 1000
+    assert "upstream_status_code" not in result["runtime_diagnostics"]
+    log_output = "\n".join(caplog.messages)
+    assert "upstream_status_code=503" in log_output
+    assert "sensitive async provider" not in log_output
 
 
 @pytest.mark.asyncio
@@ -528,11 +556,20 @@ def test_transient_disconnect_retries_same_model_with_bounded_call_count(
 
 def test_retry_after_is_honored_without_sdk_retry_multiplication(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
     models = SequenceModels(
-        [_http_status_error(429, retry_after="7"), _response()]
+        [
+            _http_status_error(
+                429,
+                retry_after="7",
+                message="sensitive quota message",
+                body=b"sensitive quota response body",
+            ),
+            _response(),
+        ]
     )
     service = _service(models, clock)
 
@@ -546,14 +583,27 @@ def test_retry_after_is_honored_without_sdk_retry_multiplication(
     )
     assert result["runtime_diagnostics"]["call_count"] == 2
     assert result["runtime_diagnostics"]["elapsed_ms"] == 7000
+    assert "upstream_status_code" not in result["runtime_diagnostics"]
+    log_output = "\n".join(caplog.messages)
+    assert "upstream_status_code=429" in log_output
+    assert "sensitive quota" not in log_output
 
 
 def test_non_transient_error_is_not_retried(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
-    models = SequenceModels([_http_status_error(400)])
+    models = SequenceModels(
+        [
+            _http_status_error(
+                400,
+                message="sensitive sync provider message",
+                body=b"sensitive sync provider body",
+            )
+        ]
+    )
     service = _service(models, clock)
 
     result = service.search_web_general("invalid request")
@@ -564,27 +614,45 @@ def test_non_transient_error_is_not_retried(
     assert clock.sleeps == []
     assert result["runtime_diagnostics"]["status"] == "non_retryable_error"
     assert result["runtime_diagnostics"]["call_count"] == 1
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 400
+    log_output = "\n".join(caplog.messages)
+    assert "upstream_status_code=400" in log_output
+    assert "sensitive sync provider" not in log_output
+    assert "sensitive sync provider" not in str(result)
 
 
 @pytest.mark.asyncio
 async def test_async_first_non_transient_error_remains_non_retryable(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
-    models = AsyncSequenceModels([_http_status_error(400)])
+    models = AsyncSequenceModels(
+        [
+            ProviderStatusError(
+                "403",
+                "sensitive async rejection and body",
+            )
+        ]
+    )
     service = _async_service(models, clock)
 
     result = await service.search_web_general_async("invalid async request")
 
     assert result["search_performed"] is False
-    assert result["error"] == "HTTPStatusError"
+    assert result["error"] == "ProviderStatusError"
     assert len(models.calls) == 1
     assert clock.sleeps == []
     assert result["runtime_diagnostics"]["status"] == "non_retryable_error"
     assert result["runtime_diagnostics"]["call_count"] == 1
     assert result["runtime_diagnostics"]["retry_count"] == 0
     assert result["runtime_diagnostics"]["elapsed_ms"] == 0
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 403
+    log_output = "\n".join(caplog.messages)
+    assert "upstream_status_code=403" in log_output
+    assert "sensitive async rejection" not in log_output
+    assert "sensitive async rejection" not in str(result)
 
 
 def test_transient_then_non_transient_failure_remains_fallback_eligible(
@@ -607,6 +675,7 @@ def test_transient_then_non_transient_failure_remains_fallback_eligible(
     assert result["runtime_diagnostics"]["call_count"] == 2
     assert result["runtime_diagnostics"]["retry_count"] == 1
     assert result["runtime_diagnostics"]["elapsed_ms"] == 1000
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 400
 
 
 @pytest.mark.asyncio
@@ -636,6 +705,58 @@ async def test_async_transients_then_non_transient_failure_remain_fallback_eligi
     assert result["runtime_diagnostics"]["call_count"] == 3
     assert result["runtime_diagnostics"]["retry_count"] == 2
     assert result["runtime_diagnostics"]["elapsed_ms"] == 3000
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 400
+
+
+@pytest.mark.parametrize(
+    "invalid_status_code",
+    [True, 99, 600, "099", "600", " 429", "429.0", 429.0],
+)
+def test_invalid_upstream_status_is_omitted_from_diagnostics_and_logs(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    invalid_status_code: Any,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    error = RuntimeError("sensitive invalid-status provider response")
+    error.status_code = invalid_status_code
+    service = _service(SequenceModels([error]), FakeClock())
+
+    result = service.search_web_general("invalid provider status")
+
+    assert result["search_performed"] is False
+    assert "upstream_status_code" not in result["runtime_diagnostics"]
+    log_output = "\n".join(caplog.messages)
+    assert "upstream_status_code" not in log_output
+    assert "sensitive invalid-status" not in log_output
+    assert "sensitive invalid-status" not in str(result)
+
+
+@pytest.mark.asyncio
+async def test_async_retry_retains_last_valid_status_when_terminal_error_has_none(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    models = AsyncSequenceModels(
+        [
+            ProviderStatusError(503, "sensitive first failure"),
+            httpx.RemoteProtocolError("sensitive disconnect two"),
+            httpx.RemoteProtocolError("sensitive disconnect three"),
+        ]
+    )
+    service = _async_service(models, FakeClock())
+
+    result = await service.search_web_general_async("retain provider status")
+
+    assert result["search_performed"] is False
+    assert result["runtime_diagnostics"]["status"] == "retry_exhausted"
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 503
+    log_output = "\n".join(caplog.messages)
+    assert "upstream_status_code=503" in log_output
+    assert "sensitive first failure" not in log_output
+    assert "sensitive disconnect" not in log_output
+    assert "sensitive" not in str(result)
 
 
 def test_retry_delay_cannot_exceed_total_operation_deadline(

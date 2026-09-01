@@ -88,6 +88,9 @@ _WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS = 45
 _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS = 20
 _WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS = 70
 _WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS = 45
+_WORKFLOW_V2_ASSISTANT_FALLBACK_REQUIREMENT_CHARACTERS = 1_000
+_WORKFLOW_V2_ASSISTANT_FALLBACK_FACT_CHARACTERS = 4_000
+_WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS = 80_000
 _TRANSIENT_EVIDENCE_ACQUISITION_STATUSES = frozenset(
     {
         "deadline_exceeded",
@@ -7740,6 +7743,239 @@ class PydanticAIConversationalAssistantRunner:
         }
 
 
+def _assistant_turn_query(
+    input_value: AssistantTurnInputV1,
+    *,
+    mode_instruction: str,
+) -> str:
+    """Build the model prompt and, for one-shot work, bounded fallback authority.
+
+    ResilientResearchRunner accepts fallback discovery semantics only from a
+    server-owned canonical payload on the final prompt line. Ordinary Assistant
+    chat must never carry that payload because it must not acquire web evidence.
+    An overlong one-shot requirement remains usable by the primary model, but is
+    intentionally ineligible for fallback rather than being materially truncated.
+    """
+
+    conversation = [
+        item.model_dump(mode="json", by_alias=True)
+        for item in input_value.conversation
+    ]
+    assistant_request = canonical_json(
+        {
+            "instruction": (
+                "You are AxWise assisting inside Orqaly Assistant. Return only the "
+                "reader-facing response in Markdown. Orqaly alone decides whether durable "
+                "Goals exist, so never claim to create, start, open, or continue one. "
+                "Respect the user's latest correction or elaboration. "
+                + mode_instruction
+            ),
+            "conversation": conversation,
+            "message": input_value.message,
+        }
+    )
+    if input_value.response_mode != "one_shot":
+        return assistant_request
+
+    latest_request = re.sub(r"\s+", " ", input_value.message).strip()
+    prior_user_requests = [
+        normalized
+        for item in input_value.conversation
+        if item.role == "user"
+        and (normalized := re.sub(r"\s+", " ", item.content).strip())
+    ]
+    requirement_parts = (
+        [
+            f"Latest user request: {latest_request}",
+            *(
+                f"Prior user request {index}: {request}"
+                for index, request in enumerate(prior_user_requests, 1)
+            ),
+        ]
+        if prior_user_requests
+        else [latest_request]
+    )
+    requirement = " ".join(requirement_parts)
+    if (
+        not latest_request
+        or len(requirement)
+        > _WORKFLOW_V2_ASSISTANT_FALLBACK_REQUIREMENT_CHARACTERS
+    ):
+        return assistant_request
+
+    fallback_authority = canonical_json(
+        {
+            "acceptedScopeSemantics": {
+                "geography": [],
+                "topicAnchors": [{"value": latest_request[:300]}],
+            },
+            "requirement": {
+                "acceptedSourceTypes": ["grounded_web"],
+                "allowedSourceHosts": [],
+                "appliesWhen": (
+                    "Answering the current bounded one-shot Assistant request."
+                ),
+                "claimType": "assistant_one_shot",
+                "criticality": "nonblocking",
+                "description": requirement,
+                "evidenceRole": "grounded_claim",
+                "id": "assistant-one-shot",
+                "verificationBasis": "grounded_claims",
+            },
+        }
+    )
+    return f"{assistant_request}\n{fallback_authority}"
+
+
+def _assistant_fallback_markdown(
+    raw: dict[str, Any],
+) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]]] | None:
+    """Render only byte-verified direct-fetch claims, never the fetched document."""
+
+    diagnostics = raw.get("runtime_diagnostics")
+    if (
+        raw.get("provider") != "searxng_direct_fetch"
+        or not isinstance(diagnostics, dict)
+        or diagnostics.get("route") != "searxng_direct_fetch"
+        or diagnostics.get("fallback_used") is not True
+    ):
+        return None
+    document = raw.get("text")
+    response_hash = raw.get("provider_response_hash")
+    if (
+        not isinstance(document, str)
+        or not document
+        or not isinstance(response_hash, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", response_hash)
+        or hashlib.sha256(document.encode("utf-8")).hexdigest() != response_hash
+    ):
+        return None
+
+    sources_by_url: dict[str, dict[str, Any]] = {}
+    raw_sources = raw.get("sources")
+    if not isinstance(raw_sources, list):
+        return None
+    for source in raw_sources[:10]:
+        if not isinstance(source, dict):
+            continue
+        url = source.get("url")
+        if (
+            not isinstance(url, str)
+            or not is_canonical_public_https_url(url)
+            or source.get("provider") != "searxng_direct_fetch"
+            or source.get("provider_response_hash") != response_hash
+        ):
+            continue
+        sources_by_url.setdefault(url, source)
+    if not sources_by_url:
+        return None
+
+    document_bytes = document.encode("utf-8")
+    verified_claims: list[dict[str, Any]] = []
+    seen_claims: set[tuple[str, tuple[str, ...]]] = set()
+    raw_claims = raw.get("claims")
+    if not isinstance(raw_claims, list):
+        return None
+    for claim in raw_claims[:50]:
+        if not isinstance(claim, dict):
+            continue
+        text = claim.get("text")
+        urls = claim.get("source_urls")
+        start = claim.get("segment_start")
+        end = claim.get("segment_end")
+        if (
+            not isinstance(text, str)
+            or not text
+            or not text.strip()
+            or len(text) > _WORKFLOW_V2_ASSISTANT_FALLBACK_FACT_CHARACTERS
+            or not isinstance(urls, list)
+            or not urls
+            or any(
+                not isinstance(url, str) or url not in sources_by_url
+                for url in urls
+            )
+            or claim.get("provider") != "searxng_direct_fetch"
+            or claim.get("provider_response_hash") != response_hash
+            or claim.get("offset_unit") != "utf8_bytes"
+            or claim.get("span_target") != "provider_response_text"
+            or not isinstance(start, int)
+            or isinstance(start, bool)
+            or not isinstance(end, int)
+            or isinstance(end, bool)
+            or start < 0
+            or end <= start
+            or end > len(document_bytes)
+        ):
+            continue
+        try:
+            exact = document_bytes[start:end].decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        if exact != text:
+            continue
+        normalized_urls = utf16_ordinal_sorted(set(urls))
+        if len(normalized_urls) > 10:
+            continue
+        identity = (text, tuple(normalized_urls))
+        if identity in seen_claims:
+            continue
+        seen_claims.add(identity)
+        verified_claims.append({**claim, "source_urls": normalized_urls})
+    if not verified_claims:
+        return None
+
+    def quoted(value: str) -> str:
+        escaped = value.replace("\\", "\\\\")
+        for marker in ("`", "*", "_", "[", "]", "<", ">"):
+            escaped = escaped.replace(marker, f"\\{marker}")
+        return "\n".join(f"> {line}" if line else ">" for line in escaped.splitlines())
+
+    lines = [
+        "## Grounded fallback evidence",
+        "",
+        (
+            "The primary grounded-research provider was unavailable. AxWise "
+            "independently fetched publisher sources and verified these exact passages:"
+        ),
+    ]
+    footer = [
+        "",
+        (
+            "This is a bounded evidence fallback, not a complete synthesis. "
+            "Retry the grounded request when the primary provider is available "
+            "for a full researched answer."
+        ),
+    ]
+    claims: list[dict[str, Any]] = []
+    for claim in verified_claims:
+        block = [
+            "",
+            f"### Evidence {len(claims) + 1}",
+            "",
+            quoted(str(claim["text"])),
+            "",
+            "Source: "
+            + ", ".join(f"<{url}>" for url in claim["source_urls"]),
+        ]
+        candidate_markdown = "\n".join([*lines, *block, *footer])
+        if (
+            len(candidate_markdown)
+            > _WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS
+        ):
+            continue
+        lines.extend(block)
+        claims.append(claim)
+    if not claims:
+        return None
+    lines.extend(footer)
+    selected_urls = {url for claim in claims for url in claim["source_urls"]}
+    return (
+        "\n".join(lines),
+        [sources_by_url[url] for url in utf16_ordinal_sorted(selected_urls)],
+        claims,
+    )
+
+
 def _scope_semantics_payload(
     *,
     topic_anchors: list[TopicAnchor],
@@ -8518,25 +8754,24 @@ class GeminiCognitiveExecutor:
                 "and source-aware caveats; do not suggest that a Goal was created."
             ),
         }[input_value.response_mode]
-        conversation = [
-            item.model_dump(mode="json", by_alias=True)
-            for item in input_value.conversation
-        ]
-        query = canonical_json(
-            {
-                "instruction": (
-                    "You are AxWise assisting inside Orqaly Assistant. Return only the "
-                    "reader-facing response in Markdown. Orqaly alone decides whether durable "
-                    "Goals exist, so never claim to create, start, open, or continue one. "
-                    "Respect the user's latest correction or elaboration. "
-                    + mode_instruction
-                ),
-                "conversation": conversation,
-                "message": input_value.message,
-            }
+        query = _assistant_turn_query(
+            input_value,
+            mode_instruction=mode_instruction,
         )
         raw = await runner.search(query)
-        markdown = str(raw.get("text") or "").strip()
+        raw_sources = raw.get("sources", [])
+        raw_claims = raw.get("claims", [])
+        fallback = _assistant_fallback_markdown(raw)
+        verified_fallback = fallback is not None
+        if raw.get("provider") == "searxng_direct_fetch":
+            if fallback is None:
+                markdown = ""
+                raw_sources = []
+                raw_claims = []
+            else:
+                markdown, raw_sources, raw_claims = fallback
+        else:
+            markdown = str(raw.get("text") or "").strip()
         if not markdown:
             status = str((raw.get("runtime_diagnostics") or {}).get("status") or "")
             raise CognitiveExecutionFailure(
@@ -8550,7 +8785,7 @@ class GeminiCognitiveExecutor:
                 },
             )
         sources_by_url: dict[str, AssistantSourceV1] = {}
-        for raw_source in raw.get("sources", [])[:10]:
+        for raw_source in raw_sources[:10]:
             if not isinstance(raw_source, dict):
                 continue
             url = str(raw_source.get("url") or "")
@@ -8568,10 +8803,15 @@ class GeminiCognitiveExecutor:
             )
         facts: list[AssistantFactV1] = []
         seen_facts: set[tuple[str, tuple[str, ...]]] = set()
-        for raw_claim in raw.get("claims", [])[:50]:
+        for raw_claim in raw_claims[:50]:
             if not isinstance(raw_claim, dict):
                 continue
-            statement = str(raw_claim.get("text") or "").strip()
+            raw_statement = raw_claim.get("text")
+            statement = (
+                raw_statement
+                if verified_fallback and isinstance(raw_statement, str)
+                else str(raw_statement or "").strip()
+            )
             urls = utf16_ordinal_sorted(
                 {
                     str(value)
@@ -8583,7 +8823,12 @@ class GeminiCognitiveExecutor:
             if not statement or not urls or identity in seen_facts:
                 continue
             seen_facts.add(identity)
-            facts.append(AssistantFactV1(statement=statement[:4000], source_urls=urls))
+            facts.append(
+                AssistantFactV1(
+                    statement=(statement if verified_fallback else statement[:4000]),
+                    source_urls=urls,
+                )
+            )
         input_tokens, output_tokens, _total_tokens, search_calls = _usage_from_search(raw)
         recommendation = AssistantRecommendationV1(
             kind="continue_conversation",
@@ -10346,6 +10591,6 @@ def build_cognitive_executor(
         artifact_resolver,
         PydanticAISynthesisWriter(model),
         PydanticAIScopeReviser(model),
-        assistant_runner=GeminiGroundedResearchRunner(api_key),
+        assistant_runner=research_runner,
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
     )

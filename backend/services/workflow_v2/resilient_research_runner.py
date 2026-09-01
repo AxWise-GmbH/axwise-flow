@@ -253,6 +253,9 @@ def _finite_phase_diagnostics(
     if diagnostics.get("primary_skipped") is True:
         result["primary_skipped"] = True
         result["circuit_state"] = "open"
+    upstream_status_code = diagnostics.get("upstream_status_code")
+    if type(upstream_status_code) is int and 100 <= upstream_status_code <= 599:
+        result["upstream_status_code"] = upstream_status_code
     return result
 
 

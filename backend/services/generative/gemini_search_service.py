@@ -106,16 +106,27 @@ class _GroundedSearchRuntimeError(RuntimeError):
         self.cause = cause
 
 
+def _validated_http_status_code(value: Any) -> Optional[int]:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        status_code = value
+    elif isinstance(value, str) and re.fullmatch(r"[0-9]{3}", value):
+        status_code = int(value)
+    else:
+        return None
+    return status_code if 100 <= status_code <= 599 else None
+
+
 def _search_status_code(error: BaseException) -> Optional[int]:
     for candidate in (
         getattr(error, "status_code", None),
         getattr(error, "code", None),
         getattr(getattr(error, "response", None), "status_code", None),
     ):
-        if isinstance(candidate, int) and not isinstance(candidate, bool):
-            return candidate
-        if isinstance(candidate, str) and candidate.isdigit():
-            return int(candidate)
+        status_code = _validated_http_status_code(candidate)
+        if status_code is not None:
+            return status_code
     return None
 
 
@@ -160,6 +171,70 @@ def _retry_after_seconds(error: BaseException) -> Optional[float]:
         )
     except (TypeError, ValueError, OverflowError):
         return None
+
+
+def _log_transient_search_retry(
+    *,
+    model: str,
+    call_count: int,
+    retry_in_seconds: float,
+    error: BaseException,
+    upstream_status_code: int | None,
+) -> None:
+    status_code = _validated_http_status_code(upstream_status_code)
+    if status_code is None:
+        logger.warning(
+            "Gemini grounded search transient failure; "
+            "route=gemini_google_search model=%s call_count=%s "
+            "retry_in_seconds=%.3f error_type=%s",
+            model,
+            call_count,
+            retry_in_seconds,
+            type(error).__name__,
+        )
+        return
+    logger.warning(
+        "Gemini grounded search transient failure; "
+        "route=gemini_google_search model=%s call_count=%s "
+        "retry_in_seconds=%.3f error_type=%s upstream_status_code=%s",
+        model,
+        call_count,
+        retry_in_seconds,
+        type(error).__name__,
+        status_code,
+    )
+
+
+def _log_grounded_search_failure(
+    diagnostics: Dict[str, Any],
+    error: BaseException,
+) -> None:
+    status_code = _validated_http_status_code(
+        diagnostics.get("upstream_status_code")
+    )
+    if status_code is None:
+        logger.error(
+            "Gemini grounded search failed; route=%s model=%s status=%s "
+            "elapsed_ms=%s call_count=%s error_type=%s",
+            diagnostics["route"],
+            diagnostics["model"],
+            diagnostics["status"],
+            diagnostics["elapsed_ms"],
+            diagnostics["call_count"],
+            type(error).__name__,
+        )
+        return
+    logger.error(
+        "Gemini grounded search failed; route=%s model=%s status=%s "
+        "elapsed_ms=%s call_count=%s error_type=%s upstream_status_code=%s",
+        diagnostics["route"],
+        diagnostics["model"],
+        diagnostics["status"],
+        diagnostics["elapsed_ms"],
+        diagnostics["call_count"],
+        type(error).__name__,
+        status_code,
+    )
 
 
 def _normalized_usage_metadata(response: Any) -> Dict[str, int]:
@@ -564,6 +639,7 @@ class GeminiSearchService:
         call_count: int,
         model: str = RESEARCH_MODEL,
         deadline_seconds: float | None = None,
+        upstream_status_code: int | str | None = None,
     ) -> Dict[str, Any]:
         clock = getattr(self, "_search_clock", time.monotonic)
         operation_seconds = (
@@ -577,7 +653,7 @@ class GeminiSearchService:
                 )
             )
         )
-        return {
+        diagnostics = {
             "route": "gemini_google_search",
             "model": model,
             "status": status,
@@ -587,6 +663,10 @@ class GeminiSearchService:
             "deadline_ms": round(operation_seconds * 1000),
             "fallback_used": False,
         }
+        validated_status_code = _validated_http_status_code(upstream_status_code)
+        if validated_status_code is not None:
+            diagnostics["upstream_status_code"] = validated_status_code
+        return diagnostics
 
     def _generate_grounded_content(self, query: str) -> tuple[Any, Dict[str, Any]]:
         """Call the exact Google Search model with one bounded retry owner."""
@@ -637,6 +717,7 @@ class GeminiSearchService:
         deadline = started_at + operation_seconds
         call_count = 0
         transient_failure_seen = False
+        last_upstream_status_code: Optional[int] = None
 
         try:
             model = require_search_model()
@@ -661,6 +742,7 @@ class GeminiSearchService:
                     started_at=started_at,
                     call_count=call_count,
                     model=model,
+                    upstream_status_code=last_upstream_status_code,
                 )
                 raise _GroundedSearchRuntimeError(
                     status="deadline_exceeded",
@@ -691,6 +773,9 @@ class GeminiSearchService:
                     config=config,
                 )
             except Exception as error:
+                attempt_status_code = _search_status_code(error)
+                if attempt_status_code is not None:
+                    last_upstream_status_code = attempt_status_code
                 transient = _is_transient_search_error(error)
                 transient_failure_seen = transient_failure_seen or transient
                 remaining = deadline - clock()
@@ -715,14 +800,12 @@ class GeminiSearchService:
                         max(float(2 ** (call_count - 1)), retry_after),
                     )
                     if delay < remaining:
-                        logger.warning(
-                            "Gemini grounded search transient failure; "
-                            "route=gemini_google_search model=%s call_count=%s "
-                            "retry_in_seconds=%.3f error_type=%s",
-                            model,
-                            call_count,
-                            delay,
-                            type(error).__name__,
+                        _log_transient_search_retry(
+                            model=model,
+                            call_count=call_count,
+                            retry_in_seconds=delay,
+                            error=error,
+                            upstream_status_code=attempt_status_code,
                         )
                         sleep(delay)
                         continue
@@ -733,6 +816,7 @@ class GeminiSearchService:
                     started_at=started_at,
                     call_count=call_count,
                     model=model,
+                    upstream_status_code=last_upstream_status_code,
                 )
                 raise _GroundedSearchRuntimeError(
                     status=status,
@@ -803,6 +887,7 @@ class GeminiSearchService:
         wall_clock_deadline = loop.time() + operation_seconds
         call_count = 0
         transient_failure_seen = False
+        last_upstream_status_code: Optional[int] = None
 
         try:
             model = require_search_model()
@@ -845,6 +930,7 @@ class GeminiSearchService:
                     started_at=started_at,
                     call_count=call_count,
                     model=model,
+                    upstream_status_code=last_upstream_status_code,
                 )
                 raise _GroundedSearchRuntimeError(
                     status="deadline_exceeded",
@@ -882,6 +968,9 @@ class GeminiSearchService:
             except asyncio.CancelledError:
                 raise
             except Exception as error:
+                attempt_status_code = _search_status_code(error)
+                if attempt_status_code is not None:
+                    last_upstream_status_code = attempt_status_code
                 transient = _is_transient_search_error(error)
                 transient_failure_seen = transient_failure_seen or transient
                 remaining = min(
@@ -909,14 +998,12 @@ class GeminiSearchService:
                         max(float(2 ** (call_count - 1)), retry_after),
                     )
                     if delay < remaining:
-                        logger.warning(
-                            "Gemini grounded search transient failure; "
-                            "route=gemini_google_search model=%s call_count=%s "
-                            "retry_in_seconds=%.3f error_type=%s",
-                            model,
-                            call_count,
-                            delay,
-                            type(error).__name__,
+                        _log_transient_search_retry(
+                            model=model,
+                            call_count=call_count,
+                            retry_in_seconds=delay,
+                            error=error,
+                            upstream_status_code=attempt_status_code,
                         )
                         await sleep(delay)
                         continue
@@ -927,6 +1014,7 @@ class GeminiSearchService:
                     started_at=started_at,
                     call_count=call_count,
                     model=model,
+                    upstream_status_code=last_upstream_status_code,
                 )
                 raise _GroundedSearchRuntimeError(
                     status=status,
@@ -1588,16 +1676,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     call_count=prior_calls,
                     deadline_seconds=_diagnostic_deadline_seconds,
                 )
-            logger.error(
-                "Gemini grounded search failed; route=%s model=%s status=%s "
-                "elapsed_ms=%s call_count=%s error_type=%s",
-                runtime_diagnostics["route"],
-                runtime_diagnostics["model"],
-                runtime_diagnostics["status"],
-                runtime_diagnostics["elapsed_ms"],
-                runtime_diagnostics["call_count"],
-                type(root_error).__name__,
-            )
+            _log_grounded_search_failure(runtime_diagnostics, root_error)
             return {
                 "text": "",
                 "sources": [],
@@ -1646,16 +1725,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     started_at=started_at,
                     call_count=0,
                 )
-            logger.error(
-                "Gemini grounded search failed; route=%s model=%s status=%s "
-                "elapsed_ms=%s call_count=%s error_type=%s",
-                runtime_diagnostics["route"],
-                runtime_diagnostics["model"],
-                runtime_diagnostics["status"],
-                runtime_diagnostics["elapsed_ms"],
-                runtime_diagnostics["call_count"],
-                type(root_error).__name__,
-            )
+            _log_grounded_search_failure(runtime_diagnostics, root_error)
             return {
                 "text": "",
                 "sources": [],
