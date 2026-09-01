@@ -87,6 +87,7 @@ _MAX_RESEARCH_DEADLINE_SECONDS = 510
 _WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS = 45
 _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS = 20
 _WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS = 70
+_WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS = 45
 _TRANSIENT_EVIDENCE_ACQUISITION_STATUSES = frozenset(
     {
         "deadline_exceeded",
@@ -7678,6 +7679,67 @@ class GeminiGroundedResearchRunner:
         await self.service.aclose()
 
 
+_CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT = """
+You are AxWise assisting inside Orqaly Assistant. The user is having a normal,
+multi-turn conversation, not running a durable Goal and not requesting grounded web
+research. The input is canonical JSON with a system-owned instruction, prior
+conversation, and the latest message. Follow the instruction and the latest user
+message, respect corrections, and return only the reader-facing response in useful
+Markdown. Keep simple questions simple. Never claim to create, start, open, or continue
+a Goal. Do not invent sources or claim that current external facts were verified.
+""".strip()
+
+
+class PydanticAIConversationalAssistantRunner:
+    """Generate ordinary chat turns without forcing a Google Search operation."""
+
+    def __init__(self, model: Any) -> None:
+        self.agent = Agent(
+            model=model,
+            output_type=str,
+            system_prompt=_CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT,
+        )
+
+    async def search(self, query: str) -> dict[str, Any]:
+        try:
+            result = await asyncio.wait_for(
+                self.agent.run(query),
+                timeout=_WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            return {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "provider": "gemini_conversation",
+                "provider_queries": [],
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "deadline_exceeded",
+                    "call_count": 1,
+                },
+            }
+        markdown = str(result.output or "").strip()
+        input_tokens, output_tokens = _usage_from_result(result)
+        return {
+            "text": markdown,
+            "sources": [],
+            "claims": [],
+            "provider": "gemini_conversation",
+            "provider_queries": [],
+            "search_performed": False,
+            "usage_metadata": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+            },
+            "runtime_diagnostics": {
+                "status": "ok" if markdown else "response_processing_error",
+                "call_count": 1,
+            },
+        }
+
+
 def _scope_semantics_payload(
     *,
     topic_anchors: list[TopicAnchor],
@@ -8210,6 +8272,7 @@ class GeminiCognitiveExecutor:
         synthesis_writer: SynthesisWriter | None = None,
         scope_reviser: ScopeReviser | None = None,
         assistant_runner: ResearchRunner | None = None,
+        assistant_chat_runner: ResearchRunner | None = None,
     ) -> None:
         if len(authority_key) < 32:
             raise RuntimeError(
@@ -8222,10 +8285,15 @@ class GeminiCognitiveExecutor:
         self.synthesis_writer = synthesis_writer
         self.scope_reviser = scope_reviser
         self.assistant_runner = assistant_runner
+        self.assistant_chat_runner = assistant_chat_runner
 
     async def close(self) -> None:
         closed: set[int] = set()
-        for runner in (self.research_runner, self.assistant_runner):
+        for runner in (
+            self.research_runner,
+            self.assistant_runner,
+            self.assistant_chat_runner,
+        ):
             if runner is None or id(runner) in closed:
                 continue
             closed.add(id(runner))
@@ -8425,7 +8493,12 @@ class GeminiCognitiveExecutor:
     async def _assistant_turn(
         self, input_value: AssistantTurnInputV1
     ) -> AssistantTurnCompletedResult:
-        if self.assistant_runner is None:
+        runner = (
+            self.assistant_runner
+            if input_value.response_mode == "one_shot"
+            else self.assistant_chat_runner
+        )
+        if runner is None:
             raise CognitiveExecutionFailure(
                 "AXWISE_ASSISTANT_UNAVAILABLE", retryable=True
             )
@@ -8462,7 +8535,7 @@ class GeminiCognitiveExecutor:
                 "message": input_value.message,
             }
         )
-        raw = await self.assistant_runner.search(query)
+        raw = await runner.search(query)
         markdown = str(raw.get("text") or "").strip()
         if not markdown:
             status = str((raw.get("runtime_diagnostics") or {}).get("status") or "")
@@ -8523,6 +8596,7 @@ class GeminiCognitiveExecutor:
         return AssistantTurnCompletedResult(
             result_type="assistant_turn_completed",
             response=AssistantTurnV1(
+                schema_version="axwise.assistant-turn.v1",
                 markdown=markdown,
                 sources=[sources_by_url[url] for url in utf16_ordinal_sorted(sources_by_url)],
                 facts=facts,
@@ -10272,5 +10346,6 @@ def build_cognitive_executor(
         artifact_resolver,
         PydanticAISynthesisWriter(model),
         PydanticAIScopeReviser(model),
-        GeminiGroundedResearchRunner(api_key),
+        assistant_runner=GeminiGroundedResearchRunner(api_key),
+        assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
     )
