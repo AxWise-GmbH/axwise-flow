@@ -1847,12 +1847,15 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
 
     model = object()
     primary = object()
+    grounded_assistant = object()
     discovery = object()
     extractor = object()
     drafter = object()
     writer = object()
     reviser = object()
+    assistant = object()
     resolver = object()
+    grounded_runners = iter([primary, grounded_assistant])
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("AXWISE_AUTHORITY_SEAL_KEY", "a" * 32)
@@ -1860,7 +1863,9 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
         cognitive_executor_module, "get_shared_workflow_model", lambda _key: model
     )
     monkeypatch.setattr(
-        cognitive_executor_module, "GeminiGroundedResearchRunner", lambda _key: primary
+        cognitive_executor_module,
+        "GeminiGroundedResearchRunner",
+        lambda _key: next(grounded_runners),
     )
     monkeypatch.setattr(
         cognitive_executor_module, "PydanticAIScopeDrafter", lambda value: drafter
@@ -1870,6 +1875,11 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     )
     monkeypatch.setattr(
         cognitive_executor_module, "PydanticAIScopeReviser", lambda value: reviser
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "PydanticAIConversationalAssistantRunner",
+        lambda value: assistant,
     )
     monkeypatch.setattr(searx_module, "SearxngSearchService", lambda: discovery)
     monkeypatch.setattr(
@@ -1890,6 +1900,8 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.synthesis_writer is writer
     assert executor.scope_reviser is reviser
     assert executor.artifact_resolver is resolver
+    assert executor.assistant_runner is grounded_assistant
+    assert executor.assistant_chat_runner is assistant
 
 
 def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
@@ -12241,7 +12253,9 @@ def test_current_requirement_locator_cannot_be_crowded_out_by_three_global_sourc
 
 
 @pytest.mark.asyncio
-async def test_assistant_turn_returns_typed_markdown_sources_and_facts() -> None:
+async def test_one_shot_assistant_turn_returns_typed_markdown_sources_and_facts() -> (
+    None
+):
     class AssistantRunner:
         async def search(self, _query: str):
             text = "Estonia is an EU member state."
@@ -12259,14 +12273,21 @@ async def test_assistant_turn_returns_typed_markdown_sources_and_facts() -> None
                 "runtime_diagnostics": {"status": "ok"},
             }
 
+    class ConversationRunner:
+        async def search(self, _query: str):
+            raise AssertionError("one-shot work must use grounded web search")
+
     input_payload = {
         "type": "AssistantTurnV1",
-        "responseMode": "direct_answer",
+        "responseMode": "one_shot",
         "message": "Is Estonia in the EU?",
         "conversation": [],
     }
     executor = GeminiCognitiveExecutor(
-        FakeDrafter(), AUTHORITY_KEY, assistant_runner=AssistantRunner()
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        assistant_runner=AssistantRunner(),
+        assistant_chat_runner=ConversationRunner(),
     )
     result = await executor.execute(
         envelope_for(
@@ -12278,12 +12299,230 @@ async def test_assistant_turn_returns_typed_markdown_sources_and_facts() -> None
 
     assert result.result_type == "assistant_turn_completed"
     assert result.response.markdown == "Estonia is an EU member state."
+    assert result.model_dump(mode="json", by_alias=True, exclude_unset=True)[
+        "response"
+    ]["schemaVersion"] == "axwise.assistant-turn.v1"
     assert result.response.sources[0].source_types == ["government", "grounded_web"]
     assert result.response.facts[0].source_urls == [
         "https://european-union.europa.eu/principles-countries-history/country-profiles/estonia_en"
     ]
     assert result.metrics.total_tokens == 18
     assert result.metrics.search_calls == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("response_mode", ["direct_answer", "discover"])
+async def test_conversational_assistant_turn_uses_chat_runner_without_search(
+    response_mode: str,
+) -> None:
+    class GroundedRunner:
+        async def search(self, _query: str):
+            raise AssertionError("direct chat must not invoke grounded web search")
+
+    class ConversationRunner:
+        async def search(self, _query: str):
+            return {
+                "text": "4",
+                "sources": [],
+                "claims": [],
+                "provider_queries": [],
+                "usage_metadata": {
+                    "input_tokens": 9,
+                    "output_tokens": 1,
+                    "total_tokens": 10,
+                },
+                "runtime_diagnostics": {"status": "ok"},
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        assistant_runner=GroundedRunner(),
+        assistant_chat_runner=ConversationRunner(),
+    )
+    result = await executor.execute(
+        envelope_for(
+            {
+                "type": "AssistantTurnV1",
+                "responseMode": response_mode,
+                "message": "What is 2 + 2?",
+                "conversation": [],
+            },
+            operation_id="00000000-0000-4000-8000-000000009802",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert result.response.markdown == "4"
+    assert result.response.sources == []
+    assert result.response.facts == []
+    assert result.metrics.total_tokens == 10
+    assert result.metrics.search_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("runtime_status", "expected_retryable"),
+    [
+        ("deadline_exceeded", True),
+        ("retry_exhausted", True),
+        ("unavailable", True),
+        ("response_processing_error", True),
+        ("ok", False),
+        ("configuration_error", False),
+        ("non_retryable_error", False),
+        ("", False),
+    ],
+)
+async def test_empty_assistant_provider_response_retryability(
+    runtime_status: str, expected_retryable: bool
+) -> None:
+    class EmptyRunner:
+        async def search(self, _query: str):
+            return {
+                "text": "",
+                "runtime_diagnostics": {"status": runtime_status},
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_chat_runner=EmptyRunner()
+    )
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "direct_answer",
+                    "message": "Hello",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009803",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is expected_retryable
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("response_mode", ["direct_answer", "discover", "one_shot"])
+async def test_assistant_turn_requires_the_mode_specific_runner(
+    response_mode: str,
+) -> None:
+    executor = GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY)
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": response_mode,
+                    "message": "Hello",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009804",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_UNAVAILABLE"
+    assert raised.value.retryable is True
+
+
+@pytest.mark.asyncio
+async def test_conversational_assistant_deadline_cancels_the_model_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cancelled = asyncio.Event()
+
+    class BlockingAgent:
+        async def run(self, _query: str):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+
+    runner = cognitive_executor_module.PydanticAIConversationalAssistantRunner.__new__(
+        cognitive_executor_module.PydanticAIConversationalAssistantRunner
+    )
+    runner.agent = BlockingAgent()
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "_WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS",
+        0.01,
+    )
+
+    result = await runner.search("{}")
+
+    assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
+    assert result["text"] == ""
+    assert cancelled.is_set()
+
+
+@pytest.mark.asyncio
+async def test_conversational_assistant_runner_returns_unsearched_markdown_and_usage(
+) -> None:
+    class Usage:
+        input_tokens = 7
+        output_tokens = 3
+
+    class Result:
+        output = "Hello **there**."
+
+        @staticmethod
+        def usage():
+            return Usage()
+
+    class FakeAgent:
+        async def run(self, query: str):
+            assert query == '{"message":"hello"}'
+            return Result()
+
+    runner = cognitive_executor_module.PydanticAIConversationalAssistantRunner.__new__(
+        cognitive_executor_module.PydanticAIConversationalAssistantRunner
+    )
+    runner.agent = FakeAgent()
+
+    result = await runner.search('{"message":"hello"}')
+
+    assert result["text"] == "Hello **there**."
+    assert result["search_performed"] is False
+    assert result["sources"] == []
+    assert result["claims"] == []
+    assert result["usage_metadata"] == {
+        "input_tokens": 7,
+        "output_tokens": 3,
+        "total_tokens": 10,
+    }
+    assert result["runtime_diagnostics"]["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_executor_closes_each_distinct_runner_once() -> None:
+    class ClosingRunner:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+
+    research = ClosingRunner()
+    grounded_assistant = ClosingRunner()
+    conversational_assistant = ClosingRunner()
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        research_runner=research,
+        assistant_runner=grounded_assistant,
+        assistant_chat_runner=conversational_assistant,
+    )
+
+    await executor.close()
+
+    assert research.close_calls == 1
+    assert grounded_assistant.close_calls == 1
+    assert conversational_assistant.close_calls == 1
 
 
 def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content() -> (
