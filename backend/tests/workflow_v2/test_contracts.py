@@ -280,6 +280,14 @@ def _rebind_compile_scope_v3_fixture(fixture: dict) -> None:
             ]["sourceSpan"].update(start=47),
             "exact rendered content offsets",
         ),
+        (
+            lambda value: value["input"]["assistantContext"].update(
+                currentTurnId=value["input"]["assistantContext"]["turns"][0][
+                    "assistant"
+                ]["turnId"]
+            ),
+            "turn identities must not overlap",
+        ),
     ],
 )
 def test_compile_scope_v3_rejects_noncanonical_context(
