@@ -21,12 +21,7 @@ from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 from backend.domain.workflow_v2.contracts import (
     AcceptedDeliverableProfileV1,
     AcceptedDeliverableRequirementV1,
-    AssistantFactV1,
-    AssistantRecommendationV1,
-    AssistantSourceV1,
-    AssistantTurnCompletedResult,
     AssistantTurnInputV1,
-    AssistantTurnV1,
     ArtifactFact,
     ArtifactRef,
     ArtifactSynthesizedResult,
@@ -73,6 +68,10 @@ from backend.domain.workflow_v2.contracts import (
     utf16_slice,
 )
 from backend.services.llm.gemini_runtime import get_shared_workflow_model
+from backend.services.workflow_v2.assistant import (
+    AssistantTurnService,
+    PydanticAIConversationalAssistantRunner,
+)
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 
 
@@ -87,10 +86,6 @@ _MAX_RESEARCH_DEADLINE_SECONDS = 510
 _WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS = 45
 _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS = 20
 _WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS = 70
-_WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS = 45
-_WORKFLOW_V2_ASSISTANT_FALLBACK_REQUIREMENT_CHARACTERS = 1_000
-_WORKFLOW_V2_ASSISTANT_FALLBACK_FACT_CHARACTERS = 4_000
-_WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS = 80_000
 _TRANSIENT_EVIDENCE_ACQUISITION_STATUSES = frozenset(
     {
         "deadline_exceeded",
@@ -7682,300 +7677,6 @@ class GeminiGroundedResearchRunner:
         await self.service.aclose()
 
 
-_CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT = """
-You are AxWise assisting inside Orqaly Assistant. The user is having a normal,
-multi-turn conversation, not running a durable Goal and not requesting grounded web
-research. The input is canonical JSON with a system-owned instruction, prior
-conversation, and the latest message. Follow the instruction and the latest user
-message, respect corrections, and return only the reader-facing response in useful
-Markdown. Keep simple questions simple. Never claim to create, start, open, or continue
-a Goal. Do not invent sources or claim that current external facts were verified.
-""".strip()
-
-
-class PydanticAIConversationalAssistantRunner:
-    """Generate ordinary chat turns without forcing a Google Search operation."""
-
-    def __init__(self, model: Any) -> None:
-        self.agent = Agent(
-            model=model,
-            output_type=str,
-            system_prompt=_CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT,
-        )
-
-    async def search(self, query: str) -> dict[str, Any]:
-        try:
-            result = await asyncio.wait_for(
-                self.agent.run(query),
-                timeout=_WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS,
-            )
-        except asyncio.TimeoutError:
-            return {
-                "text": "",
-                "sources": [],
-                "claims": [],
-                "provider": "gemini_conversation",
-                "provider_queries": [],
-                "search_performed": False,
-                "runtime_diagnostics": {
-                    "status": "deadline_exceeded",
-                    "call_count": 1,
-                },
-            }
-        markdown = str(result.output or "").strip()
-        input_tokens, output_tokens = _usage_from_result(result)
-        return {
-            "text": markdown,
-            "sources": [],
-            "claims": [],
-            "provider": "gemini_conversation",
-            "provider_queries": [],
-            "search_performed": False,
-            "usage_metadata": {
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": input_tokens + output_tokens,
-            },
-            "runtime_diagnostics": {
-                "status": "ok" if markdown else "response_processing_error",
-                "call_count": 1,
-            },
-        }
-
-
-def _assistant_turn_query(
-    input_value: AssistantTurnInputV1,
-    *,
-    mode_instruction: str,
-) -> str:
-    """Build the model prompt and, for one-shot work, bounded fallback authority.
-
-    ResilientResearchRunner accepts fallback discovery semantics only from a
-    server-owned canonical payload on the final prompt line. Ordinary Assistant
-    chat must never carry that payload because it must not acquire web evidence.
-    An overlong one-shot requirement remains usable by the primary model, but is
-    intentionally ineligible for fallback rather than being materially truncated.
-    """
-
-    conversation = [
-        item.model_dump(mode="json", by_alias=True)
-        for item in input_value.conversation
-    ]
-    assistant_request = canonical_json(
-        {
-            "instruction": (
-                "You are AxWise assisting inside Orqaly Assistant. Return only the "
-                "reader-facing response in Markdown. Orqaly alone decides whether durable "
-                "Goals exist, so never claim to create, start, open, or continue one. "
-                "Respect the user's latest correction or elaboration. "
-                + mode_instruction
-            ),
-            "conversation": conversation,
-            "message": input_value.message,
-        }
-    )
-    if input_value.response_mode != "one_shot":
-        return assistant_request
-
-    latest_request = re.sub(r"\s+", " ", input_value.message).strip()
-    prior_user_requests = [
-        normalized
-        for item in input_value.conversation
-        if item.role == "user"
-        and (normalized := re.sub(r"\s+", " ", item.content).strip())
-    ]
-    requirement_parts = (
-        [
-            f"Latest user request: {latest_request}",
-            *(
-                f"Prior user request {index}: {request}"
-                for index, request in enumerate(prior_user_requests, 1)
-            ),
-        ]
-        if prior_user_requests
-        else [latest_request]
-    )
-    requirement = " ".join(requirement_parts)
-    if (
-        not latest_request
-        or len(requirement)
-        > _WORKFLOW_V2_ASSISTANT_FALLBACK_REQUIREMENT_CHARACTERS
-    ):
-        return assistant_request
-
-    fallback_authority = canonical_json(
-        {
-            "acceptedScopeSemantics": {
-                "geography": [],
-                "topicAnchors": [{"value": latest_request[:300]}],
-            },
-            "requirement": {
-                "acceptedSourceTypes": ["grounded_web"],
-                "allowedSourceHosts": [],
-                "appliesWhen": (
-                    "Answering the current bounded one-shot Assistant request."
-                ),
-                "claimType": "assistant_one_shot",
-                "criticality": "nonblocking",
-                "description": requirement,
-                "evidenceRole": "grounded_claim",
-                "id": "assistant-one-shot",
-                "verificationBasis": "grounded_claims",
-            },
-        }
-    )
-    return f"{assistant_request}\n{fallback_authority}"
-
-
-def _assistant_fallback_markdown(
-    raw: dict[str, Any],
-) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]]] | None:
-    """Render only byte-verified direct-fetch claims, never the fetched document."""
-
-    diagnostics = raw.get("runtime_diagnostics")
-    if (
-        raw.get("provider") != "searxng_direct_fetch"
-        or not isinstance(diagnostics, dict)
-        or diagnostics.get("route") != "searxng_direct_fetch"
-        or diagnostics.get("fallback_used") is not True
-    ):
-        return None
-    document = raw.get("text")
-    response_hash = raw.get("provider_response_hash")
-    if (
-        not isinstance(document, str)
-        or not document
-        or not isinstance(response_hash, str)
-        or not re.fullmatch(r"[0-9a-f]{64}", response_hash)
-        or hashlib.sha256(document.encode("utf-8")).hexdigest() != response_hash
-    ):
-        return None
-
-    sources_by_url: dict[str, dict[str, Any]] = {}
-    raw_sources = raw.get("sources")
-    if not isinstance(raw_sources, list):
-        return None
-    for source in raw_sources[:10]:
-        if not isinstance(source, dict):
-            continue
-        url = source.get("url")
-        if (
-            not isinstance(url, str)
-            or not is_canonical_public_https_url(url)
-            or source.get("provider") != "searxng_direct_fetch"
-            or source.get("provider_response_hash") != response_hash
-        ):
-            continue
-        sources_by_url.setdefault(url, source)
-    if not sources_by_url:
-        return None
-
-    document_bytes = document.encode("utf-8")
-    verified_claims: list[dict[str, Any]] = []
-    seen_claims: set[tuple[str, tuple[str, ...]]] = set()
-    raw_claims = raw.get("claims")
-    if not isinstance(raw_claims, list):
-        return None
-    for claim in raw_claims[:50]:
-        if not isinstance(claim, dict):
-            continue
-        text = claim.get("text")
-        urls = claim.get("source_urls")
-        start = claim.get("segment_start")
-        end = claim.get("segment_end")
-        if (
-            not isinstance(text, str)
-            or not text
-            or not text.strip()
-            or len(text) > _WORKFLOW_V2_ASSISTANT_FALLBACK_FACT_CHARACTERS
-            or not isinstance(urls, list)
-            or not urls
-            or any(
-                not isinstance(url, str) or url not in sources_by_url
-                for url in urls
-            )
-            or claim.get("provider") != "searxng_direct_fetch"
-            or claim.get("provider_response_hash") != response_hash
-            or claim.get("offset_unit") != "utf8_bytes"
-            or claim.get("span_target") != "provider_response_text"
-            or not isinstance(start, int)
-            or isinstance(start, bool)
-            or not isinstance(end, int)
-            or isinstance(end, bool)
-            or start < 0
-            or end <= start
-            or end > len(document_bytes)
-        ):
-            continue
-        try:
-            exact = document_bytes[start:end].decode("utf-8")
-        except UnicodeDecodeError:
-            continue
-        if exact != text:
-            continue
-        normalized_urls = utf16_ordinal_sorted(set(urls))
-        if len(normalized_urls) > 10:
-            continue
-        identity = (text, tuple(normalized_urls))
-        if identity in seen_claims:
-            continue
-        seen_claims.add(identity)
-        verified_claims.append({**claim, "source_urls": normalized_urls})
-    if not verified_claims:
-        return None
-
-    def quoted(value: str) -> str:
-        escaped = value.replace("\\", "\\\\")
-        for marker in ("`", "*", "_", "[", "]", "<", ">"):
-            escaped = escaped.replace(marker, f"\\{marker}")
-        return "\n".join(f"> {line}" if line else ">" for line in escaped.splitlines())
-
-    lines = [
-        "## Grounded fallback evidence",
-        "",
-        (
-            "The primary grounded-research provider was unavailable. AxWise "
-            "independently fetched publisher sources and verified these exact passages:"
-        ),
-    ]
-    footer = [
-        "",
-        (
-            "This is a bounded evidence fallback, not a complete synthesis. "
-            "Retry the grounded request when the primary provider is available "
-            "for a full researched answer."
-        ),
-    ]
-    claims: list[dict[str, Any]] = []
-    for claim in verified_claims:
-        block = [
-            "",
-            f"### Evidence {len(claims) + 1}",
-            "",
-            quoted(str(claim["text"])),
-            "",
-            "Source: "
-            + ", ".join(f"<{url}>" for url in claim["source_urls"]),
-        ]
-        candidate_markdown = "\n".join([*lines, *block, *footer])
-        if (
-            len(candidate_markdown)
-            > _WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS
-        ):
-            continue
-        lines.extend(block)
-        claims.append(claim)
-    if not claims:
-        return None
-    lines.extend(footer)
-    selected_urls = {url for claim in claims for url in claim["source_urls"]}
-    return (
-        "\n".join(lines),
-        [sources_by_url[url] for url in utf16_ordinal_sorted(selected_urls)],
-        claims,
-    )
-
-
 def _scope_semantics_payload(
     *,
     topic_anchors: list[TopicAnchor],
@@ -8522,6 +8223,13 @@ class GeminiCognitiveExecutor:
         self.scope_reviser = scope_reviser
         self.assistant_runner = assistant_runner
         self.assistant_chat_runner = assistant_chat_runner
+        self.assistant_turn_service = AssistantTurnService(
+            grounded_runner=assistant_runner,
+            conversational_runner=assistant_chat_runner,
+            source_type_classifier=_classify_source_types,
+            usage_reader=_usage_from_search,
+            metrics_factory=_operation_metrics,
+        )
 
     async def close(self) -> None:
         closed: set[int] = set()
@@ -8726,133 +8434,8 @@ class GeminiCognitiveExecutor:
             ),
         )
 
-    async def _assistant_turn(
-        self, input_value: AssistantTurnInputV1
-    ) -> AssistantTurnCompletedResult:
-        runner = (
-            self.assistant_runner
-            if input_value.response_mode == "one_shot"
-            else self.assistant_chat_runner
-        )
-        if runner is None:
-            raise CognitiveExecutionFailure(
-                "AXWISE_ASSISTANT_UNAVAILABLE", retryable=True
-            )
-        mode_instruction = {
-            "direct_answer": (
-                "Answer the user's request directly and conversationally. Keep simple "
-                "information simple; do not turn it into a project or questionnaire."
-            ),
-            "discover": (
-                "Help the user clarify the outcome. Ask at most one material question in "
-                "this response. Accept informal or partial context, acknowledge corrections, "
-                "and never present a questionnaire."
-            ),
-            "one_shot": (
-                "Complete the bounded research, comparison, investigation, memo, analysis, "
-                "PRD, or other artifact inline as useful Markdown. Include concrete findings "
-                "and source-aware caveats; do not suggest that a Goal was created."
-            ),
-        }[input_value.response_mode]
-        query = _assistant_turn_query(
-            input_value,
-            mode_instruction=mode_instruction,
-        )
-        raw = await runner.search(query)
-        raw_sources = raw.get("sources", [])
-        raw_claims = raw.get("claims", [])
-        fallback = _assistant_fallback_markdown(raw)
-        verified_fallback = fallback is not None
-        if raw.get("provider") == "searxng_direct_fetch":
-            if fallback is None:
-                markdown = ""
-                raw_sources = []
-                raw_claims = []
-            else:
-                markdown, raw_sources, raw_claims = fallback
-        else:
-            markdown = str(raw.get("text") or "").strip()
-        if not markdown:
-            status = str((raw.get("runtime_diagnostics") or {}).get("status") or "")
-            raise CognitiveExecutionFailure(
-                "AXWISE_ASSISTANT_EMPTY_RESPONSE",
-                retryable=status
-                in {
-                    "deadline_exceeded",
-                    "retry_exhausted",
-                    "unavailable",
-                    "response_processing_error",
-                },
-            )
-        sources_by_url: dict[str, AssistantSourceV1] = {}
-        for raw_source in raw_sources[:10]:
-            if not isinstance(raw_source, dict):
-                continue
-            url = str(raw_source.get("url") or "")
-            if not is_canonical_public_https_url(url):
-                continue
-            title = str(raw_source.get("title") or url)[:500]
-            source_types = utf16_ordinal_sorted(_classify_source_types(url, title))
-            sources_by_url.setdefault(
-                url,
-                AssistantSourceV1(
-                    title=title,
-                    canonical_url=url,
-                    source_types=source_types,
-                ),
-            )
-        facts: list[AssistantFactV1] = []
-        seen_facts: set[tuple[str, tuple[str, ...]]] = set()
-        for raw_claim in raw_claims[:50]:
-            if not isinstance(raw_claim, dict):
-                continue
-            raw_statement = raw_claim.get("text")
-            statement = (
-                raw_statement
-                if verified_fallback and isinstance(raw_statement, str)
-                else str(raw_statement or "").strip()
-            )
-            urls = utf16_ordinal_sorted(
-                {
-                    str(value)
-                    for value in raw_claim.get("source_urls", [])
-                    if str(value) in sources_by_url
-                }
-            )
-            identity = (statement, tuple(urls))
-            if not statement or not urls or identity in seen_facts:
-                continue
-            seen_facts.add(identity)
-            facts.append(
-                AssistantFactV1(
-                    statement=(statement if verified_fallback else statement[:4000]),
-                    source_urls=urls,
-                )
-            )
-        input_tokens, output_tokens, _total_tokens, search_calls = _usage_from_search(raw)
-        recommendation = AssistantRecommendationV1(
-            kind="continue_conversation",
-            summary=(
-                "Answer the material clarification and continue here."
-                if input_value.response_mode == "discover"
-                else "Continue in Assistant unless the work becomes dependent or long-running."
-            ),
-        )
-        return AssistantTurnCompletedResult(
-            result_type="assistant_turn_completed",
-            response=AssistantTurnV1(
-                schema_version="axwise.assistant-turn.v1",
-                markdown=markdown,
-                sources=[sources_by_url[url] for url in utf16_ordinal_sorted(sources_by_url)],
-                facts=facts,
-                recommendations=[recommendation],
-            ),
-            metrics=_operation_metrics(
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                search_calls=search_calls,
-            ),
-        )
+    async def _assistant_turn(self, input_value: AssistantTurnInputV1):
+        return await self.assistant_turn_service.execute(input_value)
 
     async def _revise_scope(
         self,

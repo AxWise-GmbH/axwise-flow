@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from copy import deepcopy
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from backend.domain.workflow_v2.contracts import (
     EvidenceAcquisitionPassV1,
     EvidenceClaimV1,
     EvidenceRequirement,
+    OperationEvent,
+    OperationEventPage,
     PlanningResultV2,
     ResearchResultV2,
     ResearchSourceV1,
@@ -40,12 +43,118 @@ SYNTHESIZE_ARTIFACT_GOLDEN = (
 ASSISTANT_MIGRATION = (
     Path(__file__).parents[2] / "database" / "workflow_v2" / "002_assistant_turn.sql"
 )
+ASSISTANT_RUNTIME_MIGRATION = (
+    Path(__file__).parents[2]
+    / "database"
+    / "workflow_v2"
+    / "003_assistant_runtime.sql"
+)
+OPERATION_EVENTS_MIGRATION = (
+    Path(__file__).parents[2]
+    / "database"
+    / "workflow_v2"
+    / "004_operation_events.sql"
+)
+PREVIEW_SCHEMA_APPLY = (
+    Path(__file__).parents[3]
+    / "deploy"
+    / "workflow-v2"
+    / "apply-preview-schema.sh"
+)
 
 
 def test_assistant_migration_does_not_use_reserved_constraint_alias() -> None:
     migration = ASSISTANT_MIGRATION.read_text(encoding="utf-8")
     assert "FROM pg_constraint AS candidate" in migration
     assert "AS constraint" not in migration
+
+
+def test_assistant_runtime_migration_is_additive_and_content_free() -> None:
+    migration = ASSISTANT_RUNTIME_MIGRATION.read_text(encoding="utf-8")
+
+    assert "ADD COLUMN retry_at timestamptz NULL" in migration
+    assert "ADD COLUMN retry_after_seconds integer NULL" in migration
+    assert "ADD COLUMN failure_diagnostics jsonb NULL" in migration
+    assert (
+        "uuid, uuid, uuid, boolean, text, timestamptz, integer, jsonb"
+        in migration
+    )
+    assert "DROP FUNCTION" not in migration
+    assert "prompt" not in migration.casefold()
+    assert "response_body" not in migration.casefold()
+    assert "p_value ? 'route'" in migration
+    assert "p_value ? 'status'" in migration
+    assert "COALESCE((" in migration
+
+
+def test_operation_events_migration_is_append_only_and_has_no_provider_circuit() -> None:
+    migration = OPERATION_EVENTS_MIGRATION.read_text(encoding="utf-8")
+
+    assert "CREATE TABLE axwise.operation_events" in migration
+    assert "operation lifecycle events are append-only" in migration
+    assert "event_sequence = value.event_sequence + 1" in migration
+    assert "request_cognitive_operation_cancel" in migration
+    assert "cancel_cognitive_operation" in migration
+    assert "ENABLE ROW LEVEL SECURITY" in migration
+    assert "provider_circuit" not in migration
+
+
+def test_preview_schema_apply_advances_and_marks_all_additive_migrations() -> None:
+    script = PREVIEW_SCHEMA_APPLY.read_text(encoding="utf-8")
+    subprocess.run(["bash", "-n", str(PREVIEW_SCHEMA_APPLY)], check=True)
+
+    for migration in (
+        "002_assistant_turn.sql",
+        "003_assistant_runtime.sql",
+        "004_operation_events.sql",
+    ):
+        assert migration in script
+    assert "expected_relations_with_events" in script
+    assert "axwise.operation_events" in script
+    assert "expected_release_marker" in script
+    assert "events_migration_path" in script
+    fresh_apply = script[script.index('if test "${user_schemas}" != public'):]
+    assert fresh_apply.index('"${ASSISTANT_MIGRATION}"') < fresh_apply.index(
+        '"${RUNTIME_MIGRATION}"'
+    )
+    assert fresh_apply.index('"${RUNTIME_MIGRATION}"') < fresh_apply.index(
+        '"${EVENTS_MIGRATION}"'
+    )
+    assert fresh_apply.index('"${EVENTS_MIGRATION}"') < fresh_apply.index(
+        '"${BINDINGS}"'
+    )
+
+
+def test_operation_event_contract_enforces_monotonic_typed_lifecycle() -> None:
+    operation_id = "00000000-0000-4000-8000-000000000777"
+    event = OperationEvent.model_validate(
+        {
+            "operationId": operation_id,
+            "sequence": 3,
+            "eventType": "cancel_requested",
+            "status": "cancel_requested",
+            "occurredAt": "2026-09-02T10:15:30Z",
+        }
+    )
+    page = OperationEventPage(
+        operation_id=operation_id,
+        after=2,
+        next_after=3,
+        has_more=False,
+        events=[event],
+    )
+
+    assert page.next_after == 3
+    with pytest.raises(ValidationError):
+        OperationEvent.model_validate(
+            {
+                "operationId": operation_id,
+                "sequence": 4,
+                "eventType": "completed",
+                "status": "failed",
+                "occurredAt": "2026-09-02T10:15:31Z",
+            }
+        )
 
 
 def test_canonical_v1_shared_golden_vectors_and_utf16_span() -> None:

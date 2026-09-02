@@ -481,6 +481,7 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
         "call_count": 3,
         "retry_count": 2,
         "upstream_status_code": 400,
+        "retry_after_seconds": 450,
     }
     assert second["runtime_diagnostics"]["primary"] == {
         "route": "gemini_google_search",
@@ -490,6 +491,7 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
         "retry_count": 0,
         "primary_skipped": True,
         "circuit_state": "open",
+        "retry_after_seconds": 450,
     }
 
 
@@ -560,6 +562,7 @@ async def test_concurrent_transient_uses_one_primary_probe_and_zero_call_skips()
             "retry_count": 0,
             "primary_skipped": True,
             "circuit_state": "open",
+            "retry_after_seconds": 450,
         }
         assert diagnostics["primary_provider_query_count"] == 0
         assert result["usage_metadata"] == {
@@ -611,6 +614,7 @@ async def test_cooldown_skips_then_reprobes_primary_at_exact_expiry() -> None:
     skipped = await runner.search(server_query())
     assert len(primary.queries) == 1
     assert skipped["runtime_diagnostics"]["primary"]["primary_skipped"] is True
+    assert skipped["runtime_diagnostics"]["primary"]["retry_after_seconds"] == 10
 
     now[0] = 110.0
     reprobed = await runner.search(server_query())

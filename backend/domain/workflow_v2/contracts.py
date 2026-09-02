@@ -1714,9 +1714,28 @@ CompletionResult = Annotated[
 ]
 
 
+OperationStatus = Literal[
+    "accepted",
+    "running",
+    "cancel_requested",
+    "cancelled",
+    "completed",
+    "failed",
+]
+OperationEventType = Literal[
+    "accepted",
+    "running",
+    "heartbeat",
+    "cancel_requested",
+    "cancelled",
+    "completed",
+    "failed",
+]
+
+
 class OperationAccepted(ContractModel):
     operation_id: UUID
-    status: Literal["accepted", "running"]
+    status: Literal["accepted", "running", "cancel_requested"]
     canonical_input_hash: Sha256
     status_url: str
     retry_after_seconds: int = Field(default=2, ge=1, le=300)
@@ -1729,15 +1748,142 @@ class OperationCompleted(ContractModel):
     result: CompletionResult
 
 
+DiagnosticToken = Annotated[
+    str,
+    StringConstraints(pattern=r"^[A-Za-z0-9_:-]{1,100}$"),
+]
+
+
+class OperationFailurePhaseDiagnostics(ContractModel):
+    """Content-free runtime facts safe to return across the API boundary."""
+
+    route: DiagnosticToken
+    status: DiagnosticToken
+    elapsed_ms: int | None = Field(default=None, ge=0, le=900_000)
+    call_count: int | None = Field(default=None, ge=0, le=100)
+    retry_count: int | None = Field(default=None, ge=0, le=100)
+    upstream_status_code: int | None = Field(default=None, ge=100, le=599)
+    primary_skipped: bool | None = None
+    circuit_state: Literal["open"] | None = None
+    retry_after_seconds: int | None = Field(default=None, ge=1, le=900)
+
+    @model_validator(mode="after")
+    def exact_open_circuit_facts(self) -> "OperationFailurePhaseDiagnostics":
+        if self.primary_skipped is True and self.circuit_state != "open":
+            raise ValueError("a skipped primary must identify the open circuit")
+        if self.circuit_state == "open" and self.primary_skipped is not True:
+            raise ValueError("an open circuit must identify the skipped primary")
+        return self
+
+
+class OperationFailureDiagnostics(OperationFailurePhaseDiagnostics):
+    primary_status: DiagnosticToken | None = None
+    fallback_attempted: bool | None = None
+    fallback_used: bool | None = None
+    primary: OperationFailurePhaseDiagnostics | None = None
+    fallback: OperationFailurePhaseDiagnostics | None = None
+    discovery: OperationFailurePhaseDiagnostics | None = None
+
+
 class OperationFailed(ContractModel):
     operation_id: UUID
     status: Literal["failed"]
     canonical_input_hash: Sha256
     retryable: bool
     error_class: str = Field(min_length=1, max_length=200)
+    retry_at: Rfc3339Utc | None = None
+    retry_after_seconds: int | None = Field(default=None, ge=1, le=900)
+    diagnostics: OperationFailureDiagnostics | None = None
+
+    @model_validator(mode="after")
+    def retry_guidance_requires_retryable_failure(self) -> "OperationFailed":
+        if not self.retryable and (
+            self.retry_at is not None or self.retry_after_seconds is not None
+        ):
+            raise ValueError("retry timing requires a retryable failure")
+        return self
+
+
+class OperationCancelled(ContractModel):
+    operation_id: UUID
+    status: Literal["cancelled"]
+    canonical_input_hash: Sha256
+
+
+class OperationEvent(ContractModel):
+    operation_id: UUID
+    sequence: int = Field(ge=1)
+    event_type: OperationEventType
+    status: OperationStatus
+    occurred_at: Rfc3339Utc
+    retryable: bool | None = None
+    error_class: str | None = Field(default=None, min_length=1, max_length=200)
+    retry_at: Rfc3339Utc | None = None
+    retry_after_seconds: int | None = Field(default=None, ge=1, le=900)
+    diagnostics: OperationFailureDiagnostics | None = None
+
+    @model_validator(mode="after")
+    def exact_lifecycle_event(self) -> "OperationEvent":
+        allowed_statuses = {
+            "accepted": {"accepted"},
+            "running": {"running"},
+            "heartbeat": {"running", "cancel_requested"},
+            "cancel_requested": {"cancel_requested"},
+            "cancelled": {"cancelled"},
+            "completed": {"completed"},
+            "failed": {"failed"},
+        }[self.event_type]
+        if self.status not in allowed_statuses:
+            raise ValueError("event type and operation status are inconsistent")
+        failure_fields = (
+            self.retryable,
+            self.error_class,
+            self.retry_at,
+            self.retry_after_seconds,
+            self.diagnostics,
+        )
+        if self.event_type == "failed":
+            if self.retryable is None or self.error_class is None:
+                raise ValueError("failed events require the failure disposition")
+            if not self.retryable and (
+                self.retry_at is not None or self.retry_after_seconds is not None
+            ):
+                raise ValueError("retry timing requires a retryable failed event")
+        elif any(value is not None for value in failure_fields):
+            raise ValueError("only failed events may carry failure details")
+        return self
+
+
+class OperationEventPage(ContractModel):
+    operation_id: UUID
+    after: int = Field(ge=0)
+    next_after: int = Field(ge=0)
+    has_more: bool
+    events: list[OperationEvent] = Field(max_length=200)
+
+    @model_validator(mode="after")
+    def monotonic_cursor_page(self) -> "OperationEventPage":
+        sequences = [event.sequence for event in self.events]
+        if any(event.operation_id != self.operation_id for event in self.events):
+            raise ValueError("event page operation IDs must match")
+        if sequences != sorted(set(sequences)):
+            raise ValueError("event sequences must be strictly increasing")
+        if sequences and sequences[0] <= self.after:
+            raise ValueError("event page must begin after the supplied cursor")
+        expected_next = sequences[-1] if sequences else self.after
+        if self.next_after != expected_next:
+            raise ValueError("nextAfter must equal the last delivered sequence")
+        return self
 
 
 OperationResponse = Annotated[
-    Union[OperationAccepted, OperationCompleted, OperationFailed],
+    Union[
+        OperationAccepted,
+        OperationCompleted,
+        OperationFailed,
+        OperationCancelled,
+    ],
     Field(discriminator="status"),
 ]
+
+OperationCancelResponse = OperationResponse

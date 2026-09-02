@@ -253,6 +253,14 @@ def _finite_phase_diagnostics(
     if diagnostics.get("primary_skipped") is True:
         result["primary_skipped"] = True
         result["circuit_state"] = "open"
+    retry_after_seconds = _finite_diagnostic_int(
+        diagnostics,
+        "retry_after_seconds",
+        "retryAfterSeconds",
+        maximum=int(_MAX_PRIMARY_COOLDOWN_SECONDS),
+    )
+    if retry_after_seconds >= 1:
+        result["retry_after_seconds"] = retry_after_seconds
     upstream_status_code = diagnostics.get("upstream_status_code")
     if type(upstream_status_code) is int and 100 <= upstream_status_code <= 599:
         result["upstream_status_code"] = upstream_status_code
@@ -1371,7 +1379,9 @@ def _fallback_eligible_primary_status(primary: Mapping[str, Any]) -> str | None:
     return status if status in _FALLBACK_PRIMARY_STATUSES else None
 
 
-def _cooldown_primary_result(status: str) -> dict[str, Any]:
+def _cooldown_primary_result(
+    status: str, *, retry_after_seconds: int
+) -> dict[str, Any]:
     """Describe an intentional no-call without inventing provider activity."""
 
     return {
@@ -1388,6 +1398,8 @@ def _cooldown_primary_result(status: str) -> dict[str, Any]:
             "call_count": 0,
             "retry_count": 0,
             "primary_skipped": True,
+            "circuit_state": "open",
+            "retry_after_seconds": retry_after_seconds,
         },
     }
 
@@ -1481,9 +1493,20 @@ class ResilientResearchRunner:
         self._closed = False
 
     def _cooldown_result_if_open(self) -> dict[str, Any] | None:
-        if self._monotonic_clock() >= self._primary_cooldown_until:
+        now = self._monotonic_clock()
+        if now >= self._primary_cooldown_until:
             return None
-        return _cooldown_primary_result(self._primary_cooldown_status)
+        retry_after_seconds = max(
+            1,
+            min(
+                int(_MAX_PRIMARY_COOLDOWN_SECONDS),
+                math.ceil(self._primary_cooldown_until - now),
+            ),
+        )
+        return _cooldown_primary_result(
+            self._primary_cooldown_status,
+            retry_after_seconds=retry_after_seconds,
+        )
 
     async def _enter_search(self) -> None:
         async with self._lifecycle_condition:
@@ -1541,6 +1564,15 @@ class ResilientResearchRunner:
                 )
                 self._primary_cooldown_status = status
                 self._primary_healthy_until = 0.0
+                runtime_diagnostics = primary.get("runtime_diagnostics")
+                if isinstance(runtime_diagnostics, dict):
+                    runtime_diagnostics["retry_after_seconds"] = max(
+                        1,
+                        min(
+                            int(_MAX_PRIMARY_COOLDOWN_SECONDS),
+                            math.ceil(self._primary_cooldown_until - now),
+                        ),
+                    )
                 # Every observed transient invalidates all successes that were
                 # already in flight. Only a call started in this new generation
                 # may later establish provider health.

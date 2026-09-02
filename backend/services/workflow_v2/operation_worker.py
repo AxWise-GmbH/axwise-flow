@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import hashlib
 import inspect
 import logging
@@ -53,6 +52,13 @@ def _log_state(claim: ClaimedOperation, state: str, **values: object) -> None:
     logger.info("axwise_workflow_v2 %s", fields)
 
 
+def _discard_task_result(task: asyncio.Task[CompletionResult]) -> None:
+    try:
+        task.result()
+    except (asyncio.CancelledError, Exception):
+        pass
+
+
 class OperationWorker:
     def __init__(
         self,
@@ -70,23 +76,61 @@ class OperationWorker:
         self.executor = executor
         self.lease_seconds = lease_seconds
         self.heartbeat_seconds = heartbeat_seconds
+        self._detached_executions: set[asyncio.Task[CompletionResult]] = set()
 
     async def close(self) -> None:
+        if self._detached_executions:
+            detached = set(self._detached_executions)
+            for task in detached:
+                task.cancel()
+            done, _pending = await asyncio.wait(
+                detached,
+                timeout=self._cancellation_grace_seconds(),
+            )
+            for task in done:
+                self._finish_detached_execution(task)
+        if self._detached_executions:
+            logger.warning(
+                "axwise_workflow_v2 %s",
+                {
+                    "state": "executor_close_deferred",
+                    "retainedExecutionCount": len(self._detached_executions),
+                    "deploymentRevision": os.getenv("K_REVISION", "local"),
+                },
+            )
+            return
         close = getattr(self.executor, "close", None)
         if callable(close):
             outcome = close()
             if inspect.isawaitable(outcome):
-                await outcome
+                try:
+                    await asyncio.wait_for(
+                        outcome,
+                        timeout=self._cancellation_grace_seconds(),
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        "axwise_workflow_v2 %s",
+                        {
+                            "state": "executor_close_timeout",
+                            "deploymentRevision": os.getenv("K_REVISION", "local"),
+                        },
+                    )
 
     async def run_once(self) -> bool:
+        # A provider coroutine that suppressed cancellation still consumes the
+        # worker's one cognition slot. Never accumulate a second execution.
+        if self._detached_executions:
+            return False
         token = uuid4()
         claim = await asyncio.to_thread(self.store.claim_next, token, self.lease_seconds)
         if claim is None:
             return False
         _log_state(claim, "claimed")
+        if await self._cancel_if_requested(claim):
+            return True
         started = time.monotonic()
         execution = asyncio.create_task(self.executor.execute(claim.envelope))
-        lease_lost = False
         try:
             while not execution.done():
                 try:
@@ -94,6 +138,8 @@ class OperationWorker:
                         asyncio.shield(execution), timeout=self.heartbeat_seconds
                     )
                 except asyncio.TimeoutError:
+                    if await self._cancel_if_requested(claim, execution):
+                        return True
                     renewed = await asyncio.to_thread(
                         self.store.renew,
                         claim.envelope.owner.tenant_id,
@@ -102,24 +148,40 @@ class OperationWorker:
                         self.lease_seconds,
                     )
                     if not renewed:
-                        lease_lost = True
-                        execution.cancel()
-                        with contextlib.suppress(asyncio.CancelledError):
-                            await execution
+                        if await self._cancel_if_requested(claim, execution):
+                            return True
+                        await self._cancel_and_drain_execution(
+                            claim,
+                            execution,
+                            reason="lease_lost",
+                        )
                         _log_state(claim, "lease_lost")
                         return True
                     _log_state(claim, "heartbeat")
             result = await execution
         except asyncio.CancelledError:
-            execution.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await execution
+            await self._cancel_and_drain_execution(
+                claim,
+                execution,
+                reason="worker_cancelled",
+            )
             _log_state(claim, "worker_cancelled")
             raise
         except CognitiveExecutionFailure as error:
-            await self._fail(claim, retryable=error.retryable, error_class=error.error_class)
+            if await self._cancel_if_requested(claim):
+                return True
+            await self._fail(
+                claim,
+                retryable=error.retryable,
+                error_class=error.error_class,
+                retry_at=error.retry_at,
+                retry_after_seconds=error.retry_after_seconds,
+                failure_diagnostics=error.diagnostics,
+            )
             return True
         except ModelHTTPError as error:
+            if await self._cancel_if_requested(claim):
+                return True
             status = error.status_code
             await self._fail(
                 claim,
@@ -129,19 +191,23 @@ class OperationWorker:
             return True
         except Exception as error:
             if not execution.done():
-                execution.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await execution
+                await self._cancel_and_drain_execution(
+                    claim,
+                    execution,
+                    reason="unexpected_failure",
+                )
             _log_state(
                 claim,
                 "unexpected_failure",
                 errorType=type(error).__name__,
             )
+            if await self._cancel_if_requested(claim):
+                return True
             await self._fail(
                 claim, retryable=True, error_class="AXWISE_EXECUTION_ERROR"
             )
             return True
-        if lease_lost:
+        if await self._cancel_if_requested(claim):
             return True
 
         latency_ms = max(1, round((time.monotonic() - started) * 1000))
@@ -157,6 +223,8 @@ class OperationWorker:
                 result.model_dump(mode="json", by_alias=True, exclude_unset=True),
             )
         except StaleOperationLease:
+            if await self._cancel_if_requested(claim):
+                return True
             _log_state(claim, "stale_finalize_rejected", latencyMs=latency_ms)
             return True
         _log_state(
@@ -172,7 +240,14 @@ class OperationWorker:
         return True
 
     async def _fail(
-        self, claim: ClaimedOperation, *, retryable: bool, error_class: str
+        self,
+        claim: ClaimedOperation,
+        *,
+        retryable: bool,
+        error_class: str,
+        retry_at: str | None = None,
+        retry_after_seconds: int | None = None,
+        failure_diagnostics: dict[str, object] | None = None,
     ) -> None:
         try:
             await asyncio.to_thread(
@@ -182,13 +257,92 @@ class OperationWorker:
                 claim.lease_token,
                 retryable=retryable,
                 error_class=error_class,
+                retry_at=retry_at,
+                retry_after_seconds=retry_after_seconds,
+                failure_diagnostics=failure_diagnostics,
             )
         except StaleOperationLease:
+            if await self._cancel_if_requested(claim):
+                return
             _log_state(claim, "stale_failure_rejected", errorClass=error_class)
             return
         _log_state(
-            claim, "failed", retryable=retryable, errorClass=error_class
+            claim,
+            "failed",
+            retryable=retryable,
+            errorClass=error_class,
+            retryAfterSeconds=retry_after_seconds,
         )
+
+    async def _cancel_if_requested(
+        self,
+        claim: ClaimedOperation,
+        execution: asyncio.Task[CompletionResult] | None = None,
+    ) -> bool:
+        requested = claim.record.status == "cancel_requested" or await asyncio.to_thread(
+            self.store.cancellation_requested,
+            claim.envelope.owner.tenant_id,
+            claim.envelope.operation_id,
+            claim.lease_token,
+        )
+        if not requested:
+            return False
+        if execution is not None and not execution.done():
+            await self._cancel_and_drain_execution(
+                claim,
+                execution,
+                reason="cancel_requested",
+            )
+        try:
+            await asyncio.to_thread(
+                self.store.cancel,
+                claim.envelope.owner.tenant_id,
+                claim.envelope.operation_id,
+                claim.lease_token,
+            )
+        except StaleOperationLease:
+            _log_state(claim, "stale_cancel_rejected")
+            return True
+        _log_state(claim, "cancelled")
+        return True
+
+    def _cancellation_grace_seconds(self) -> float:
+        return min(1.0, max(0.01, self.heartbeat_seconds))
+
+    async def _cancel_and_drain_execution(
+        self,
+        claim: ClaimedOperation,
+        execution: asyncio.Task[CompletionResult],
+        *,
+        reason: str,
+    ) -> bool:
+        if execution.done():
+            _discard_task_result(execution)
+            return True
+        execution.cancel()
+        done, _pending = await asyncio.wait(
+            {execution},
+            timeout=self._cancellation_grace_seconds(),
+        )
+        if execution in done:
+            _discard_task_result(execution)
+            return True
+        if execution not in self._detached_executions:
+            self._detached_executions.add(execution)
+            execution.add_done_callback(self._finish_detached_execution)
+        _log_state(
+            claim,
+            "cancellation_grace_expired",
+            cancellationReason=reason,
+        )
+        return False
+
+    def _finish_detached_execution(
+        self,
+        task: asyncio.Task[CompletionResult],
+    ) -> None:
+        self._detached_executions.discard(task)
+        _discard_task_result(task)
 
     async def run_forever(
         self, *, stop: asyncio.Event | None = None, idle_seconds: float = 1.0
