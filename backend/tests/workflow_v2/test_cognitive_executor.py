@@ -299,7 +299,7 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(
     PydanticAIScopeReviser(object())
     PydanticAISynthesisWriter(object())
 
-    assert captured == ["PromptedOutput"] * 6
+    assert captured == ["PromptedOutput"] * 7
 
 
 def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
