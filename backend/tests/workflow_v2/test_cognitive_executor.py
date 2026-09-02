@@ -13,6 +13,8 @@ from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 from pydantic_ai.messages import RetryPromptPart
 
 import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
+import backend.services.workflow_v2.assistant.conversation_runner as assistant_conversation_runner_module
+import backend.services.workflow_v2.assistant.projection as assistant_projection_module
 from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
     ArtifactRef,
@@ -12587,7 +12589,7 @@ async def test_one_shot_fallback_bounds_whole_verified_claim_blocks_to_contract(
     )
 
     assert len(result.response.markdown) <= (
-        cognitive_executor_module._WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS
+        assistant_projection_module.WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS
     )
     assert len(result.response.markdown) < 120_000
     assert result.response.markdown.count("### Evidence ") == 6
@@ -12839,13 +12841,13 @@ async def test_conversational_assistant_deadline_cancels_the_model_call(
             finally:
                 cancelled.set()
 
-    runner = cognitive_executor_module.PydanticAIConversationalAssistantRunner.__new__(
-        cognitive_executor_module.PydanticAIConversationalAssistantRunner
+    runner = assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner.__new__(
+        assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner
     )
     runner.agent = BlockingAgent()
     monkeypatch.setattr(
-        cognitive_executor_module,
-        "_WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS",
+        assistant_conversation_runner_module,
+        "WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS",
         0.01,
     )
 
@@ -12875,8 +12877,8 @@ async def test_conversational_assistant_runner_returns_unsearched_markdown_and_u
             assert query == '{"message":"hello"}'
             return Result()
 
-    runner = cognitive_executor_module.PydanticAIConversationalAssistantRunner.__new__(
-        cognitive_executor_module.PydanticAIConversationalAssistantRunner
+    runner = assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner.__new__(
+        assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner
     )
     runner.agent = FakeAgent()
 

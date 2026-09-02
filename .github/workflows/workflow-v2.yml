@@ -95,11 +95,13 @@ jobs:
           --set=ON_ERROR_STOP=1
           --command="CREATE ROLE axwise_v2_migration_admin LOGIN CREATEROLE;
           ALTER DATABASE axwise_v2_test OWNER TO axwise_v2_migration_admin;"
-      - name: Apply clean baseline 001
+      - name: Apply clean baseline migrations
         run: >-
-          psql "${AXWISE_V2_MIGRATION_DATABASE_URL}"
-          --set=ON_ERROR_STOP=1
+          psql "${AXWISE_V2_MIGRATION_DATABASE_URL}" --set=ON_ERROR_STOP=1
           --file=backend/database/workflow_v2/001_cognitive_operations.sql
+          --file=backend/database/workflow_v2/002_assistant_turn.sql
+          --file=backend/database/workflow_v2/003_assistant_runtime.sql
+          --file=backend/database/workflow_v2/004_operation_events.sql
       - name: Run pure contracts and durable worker/API tests
         run: >-
           python -m pytest -q
