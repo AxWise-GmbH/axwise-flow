@@ -139,6 +139,39 @@ def envelope(
     )
 
 
+def assistant_envelope(
+    *,
+    operation_id: str = "00000000-0000-4000-8000-000000000111",
+    tenant_id: str = "00000000-0000-4000-8000-000000000102",
+    attempt_id: str = "00000000-0000-4000-8000-000000000105",
+):
+    input_payload = {
+        "type": "AssistantTurnV1",
+        "responseMode": "direct_answer",
+        "message": "Explain the launch constraints.",
+        "conversation": [],
+    }
+    return AxWiseOperationEnvelope.model_validate(
+        {
+            "operationId": operation_id,
+            "operationType": "AssistantTurnV1",
+            "owner": {
+                "tenantId": tenant_id,
+                "organizationId": None,
+                "userId": "user_pgstoretest123",
+            },
+            "workflow": {
+                "runId": "00000000-0000-4000-8000-000000000103",
+                "stageId": "00000000-0000-4000-8000-000000000104",
+                "stageAttemptId": attempt_id,
+            },
+            "contractVersion": "axwise.operation.v2",
+            "canonicalInputHash": canonical_hash(input_payload),
+            "input": input_payload,
+        }
+    )
+
+
 def completion_result() -> dict:
     return {
         "resultType": "scope_compiled",
@@ -167,6 +200,41 @@ def test_same_id_and_hash_adopts_while_changed_input_or_stage_slot_conflicts(sto
         api.adopt_or_create(
             envelope(operation_id="00000000-0000-4000-8000-000000000109")
         )
+    with pytest.raises(OperationConflict, match="stage attempt"):
+        api.adopt_or_create(assistant_envelope())
+
+
+def test_latest_schema_allows_compile_scope_v3_and_one_operation_per_attempt(
+    stores,
+) -> None:
+    admin, _api, _worker = stores
+    with admin.connect() as connection:
+        constraints = connection.execute(
+            text(
+                "SELECT contype, pg_get_constraintdef(oid) AS definition "
+                "FROM pg_constraint "
+                "WHERE conrelid = 'axwise.cognitive_operations'::regclass"
+            )
+        ).mappings()
+        definitions = [
+            (row["contype"], row["definition"])
+            for row in constraints
+        ]
+
+    operation_type_checks = [
+        definition
+        for constraint_type, definition in definitions
+        if constraint_type == "c" and "operation_type" in definition
+    ]
+    uniqueness = {
+        definition
+        for constraint_type, definition in definitions
+        if constraint_type == "u"
+    }
+    assert len(operation_type_checks) == 1
+    assert "CompileScopeV3" in operation_type_checks[0]
+    assert "UNIQUE (tenant_id, stage_attempt_id)" in uniqueness
+    assert "UNIQUE (tenant_id, stage_attempt_id, operation_type)" not in uniqueness
 
 
 def test_tenant_b_cannot_read_tenant_a_and_api_worker_cannot_directly_update(stores) -> None:

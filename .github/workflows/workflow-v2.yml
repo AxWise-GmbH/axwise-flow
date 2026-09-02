@@ -102,6 +102,7 @@ jobs:
           --file=backend/database/workflow_v2/002_assistant_turn.sql
           --file=backend/database/workflow_v2/003_assistant_runtime.sql
           --file=backend/database/workflow_v2/004_operation_events.sql
+          --file=backend/database/workflow_v2/005_compile_scope_v3.sql
       - name: Run pure contracts and durable worker/API tests
         run: >-
           python -m pytest -q
