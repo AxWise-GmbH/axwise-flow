@@ -10,8 +10,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-
 Sha256 = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
+AssistantWireUuid = Annotated[
+    str,
+    StringConstraints(
+        pattern=(
+            r"^(?:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[1-8][0-9A-Fa-f]{3}-"
+            r"[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}|"
+            r"00000000-0000-0000-0000-000000000000)$"
+        )
+    ),
+]
 ClerkUserId = Annotated[str, StringConstraints(pattern=r"^user_[A-Za-z0-9]+$")]
 ClerkOrganizationId = Annotated[str, StringConstraints(pattern=r"^org_[A-Za-z0-9]+$")]
 Text120 = Annotated[str, StringConstraints(min_length=1, max_length=120)]
@@ -79,6 +88,19 @@ class ContractModel(BaseModel):
         populate_by_name=True,
         extra="forbid",
     )
+
+
+class StrictWireContractModel(ContractModel):
+    @model_validator(mode="before")
+    @classmethod
+    def camel_case_wire_keys_only(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        for field_name, field in cls.model_fields.items():
+            alias = field.alias
+            if alias and alias != field_name and field_name in value:
+                raise ValueError(f"wire field {field_name!r} must use alias {alias!r}")
+        return value
 
 
 def canonical_json(value: Any) -> str:
@@ -734,6 +756,285 @@ class CompileScopeInputV2(ContractModel):
     request: str = Field(min_length=1, max_length=24_000)
     objective_only_context: list[ArtifactRef] = Field(default_factory=list, max_length=20)
     safe_defaults: SafeScopeDefaultsV2 = Field(default_factory=SafeScopeDefaultsV2)
+
+
+AssistantRouteV1 = Literal[
+    "DIRECT_ANSWER",
+    "DISCOVER",
+    "AXWISE_ONE_SHOT",
+    "PROPOSE_GOAL",
+    "START_GOAL",
+    "CONTINUE_GOAL",
+]
+AssistantContextAuthorityV1 = Literal["owner_prior", "assistant_reference"]
+AssistantContextProvenanceV1 = Literal[
+    "persisted_owner_message",
+    "orqaly_local_output",
+    "axwise_operation_output",
+]
+AssistantContextContentKindV1 = Literal["artifact", "text"]
+ASSISTANT_CONTEXT_TRUNCATION_MARKER = "\n[assistant context truncated]"
+
+
+class AssistantContextSourceSpanV1(StrictWireContractModel):
+    start: int = Field(ge=0, strict=True)
+    end: int = Field(gt=0, strict=True)
+    offset_unit: Literal["utf16_code_units"]
+    text: str = Field(min_length=1)
+    sha256: Sha256
+
+    @model_validator(mode="after")
+    def ordered(self) -> "AssistantContextSourceSpanV1":
+        if self.end <= self.start:
+            raise ValueError("source span end must be greater than start")
+        return self
+
+
+class AssistantContextArtifactRefV1(StrictWireContractModel):
+    artifact_id: AssistantWireUuid
+    artifact_hash: Sha256
+    kind: Annotated[str, StringConstraints(min_length=1, max_length=120)]
+
+    @model_validator(mode="after")
+    def bounded_utf16_kind(self) -> "AssistantContextArtifactRefV1":
+        if utf16_length(self.kind) > 120:
+            raise ValueError("artifact kind exceeds 120 UTF-16 code units")
+        return self
+
+
+class AssistantContextSafeScopeDefaultsV2(StrictWireContractModel):
+    geography: list[Text160] = Field(default_factory=list, max_length=24)
+    accepted_source_types: list[EvidenceSourceType] = Field(
+        default_factory=list, max_length=7
+    )
+    assumptions: list[Text1000] = Field(default_factory=list, max_length=24)
+    limits: list[Text1000] = Field(default_factory=list, max_length=40)
+    policies: list[Text1000] = Field(default_factory=list, max_length=40)
+
+    @model_validator(mode="after")
+    def canonical_source_types(self) -> "AssistantContextSafeScopeDefaultsV2":
+        if self.accepted_source_types != utf16_ordinal_sorted(
+            set(self.accepted_source_types)
+        ):
+            raise ValueError("default accepted source types must be sorted and unique")
+        for value in self.geography:
+            if utf16_length(value) > 160:
+                raise ValueError("default geography exceeds 160 UTF-16 code units")
+        for values, maximum, label in (
+            (self.assumptions, 1000, "assumption"),
+            (self.limits, 1000, "limit"),
+            (self.policies, 1000, "policy"),
+        ):
+            if any(utf16_length(value) > maximum for value in values):
+                raise ValueError(
+                    f"default {label} exceeds {maximum} UTF-16 code units"
+                )
+        return self
+
+
+class AssistantContextMessageV1(StrictWireContractModel):
+    message_id: AssistantWireUuid
+    turn_id: AssistantWireUuid
+    authority: AssistantContextAuthorityV1
+    provenance: AssistantContextProvenanceV1
+    content_kinds: list[AssistantContextContentKindV1] = Field(
+        min_length=1, max_length=2
+    )
+    content: str = Field(min_length=1, max_length=4000)
+    content_sha256: Sha256
+    source_span: AssistantContextSourceSpanV1
+    source_message_hash: Sha256
+    truncated: bool = Field(strict=True)
+
+    @model_validator(mode="after")
+    def exact_projection(self) -> "AssistantContextMessageV1":
+        if utf16_length(self.content) > 4000:
+            raise ValueError("assistant context content exceeds 4000 UTF-16 code units")
+        canonical_kinds = [
+            kind for kind in ("text", "artifact") if kind in set(self.content_kinds)
+        ]
+        if self.content_kinds != canonical_kinds:
+            raise ValueError(
+                "assistant context contentKinds must use canonical text/artifact order"
+            )
+        if self.authority == "owner_prior":
+            if self.provenance != "persisted_owner_message":
+                raise ValueError("owner context must come from a persisted owner message")
+        elif self.provenance not in {
+            "orqaly_local_output",
+            "axwise_operation_output",
+        }:
+            raise ValueError("assistant context must identify its output provenance")
+        try:
+            exact_hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
+        except UnicodeEncodeError as error:
+            raise ValueError("assistant context content must contain Unicode scalars") from error
+        if self.content_sha256 != exact_hash:
+            raise ValueError("assistant context content hash does not match content")
+        if self.source_span.text != self.content:
+            raise ValueError("assistant context source span text must equal content")
+        if self.source_span.sha256 != exact_hash:
+            raise ValueError("assistant context source span hash must equal content hash")
+        if self.truncated != self.content.endswith(
+            ASSISTANT_CONTEXT_TRUNCATION_MARKER
+        ):
+            raise ValueError(
+                "assistant context truncated flag must match its truncation marker"
+            )
+        return self
+
+
+class AssistantContextTurnV1(StrictWireContractModel):
+    root_turn_id: AssistantWireUuid
+    route: AssistantRouteV1
+    user: AssistantContextMessageV1
+    assistant: AssistantContextMessageV1
+
+    @model_validator(mode="after")
+    def exact_completed_pair(self) -> "AssistantContextTurnV1":
+        if self.user.authority != "owner_prior":
+            raise ValueError("assistant context turn user must be owner_prior")
+        if self.assistant.authority != "assistant_reference":
+            raise ValueError(
+                "assistant context turn assistant must be assistant_reference"
+            )
+        if self.root_turn_id != self.user.turn_id:
+            raise ValueError("assistant context rootTurnId must equal the user turnId")
+        if self.user.message_id == self.assistant.message_id:
+            raise ValueError("assistant context pair message IDs must be distinct")
+        expected_provenance = (
+            "axwise_operation_output"
+            if self.route in {"DIRECT_ANSWER", "DISCOVER", "AXWISE_ONE_SHOT"}
+            else "orqaly_local_output"
+        )
+        if self.assistant.provenance != expected_provenance:
+            raise ValueError(
+                "assistant context provenance must match the persisted route"
+            )
+        return self
+
+
+class AssistantContextInstructionV1(StrictWireContractModel):
+    content: str = Field(min_length=1, max_length=24_000)
+    authority: Literal["owner_current"]
+    provenance: Literal["persisted_owner_message_projection"]
+    source_span: AssistantContextSourceSpanV1
+
+    @model_validator(mode="after")
+    def bounded_utf16_content(self) -> "AssistantContextInstructionV1":
+        if utf16_length(self.content) > 24_000:
+            raise ValueError("assistant instruction exceeds 24000 UTF-16 code units")
+        try:
+            exact_hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
+        except UnicodeEncodeError as error:
+            raise ValueError("assistant instruction must contain Unicode scalars") from error
+        if (
+            self.source_span.text != self.content
+            or self.source_span.sha256 != exact_hash
+        ):
+            raise ValueError("assistant instruction source span must match its content")
+        return self
+
+
+class AssistantContextEnvelopeV1(StrictWireContractModel):
+    type: Literal["AssistantContextEnvelopeV1"]
+    source: Literal["orqaly_assistant_thread"]
+    purpose: Literal["resolve_deictic_goal_instruction"]
+    thread_id: AssistantWireUuid
+    current_message_id: AssistantWireUuid
+    current_turn_id: AssistantWireUuid
+    current_message_hash: Sha256
+    instruction: AssistantContextInstructionV1
+    selection_policy: Literal["recent_completed_pairs_retry_folded_utf16_v1"]
+    authority_policy: Literal["current_over_prior_over_assistant_reference_v1"]
+    turns: list[AssistantContextTurnV1] = Field(max_length=6)
+    omitted_turn_count: int = Field(ge=0, strict=True)
+    truncated_message_count: int = Field(ge=0, le=12, strict=True)
+    envelope_hash: Sha256
+
+    @model_validator(mode="after")
+    def exact_envelope(self) -> "AssistantContextEnvelopeV1":
+        message_ids = [
+            message.message_id
+            for turn in self.turns
+            for message in (turn.user, turn.assistant)
+        ]
+        if len(message_ids) != len(set(message_ids)):
+            raise ValueError("assistant context message IDs must be unique")
+        if self.current_message_id in message_ids:
+            raise ValueError("current assistant message cannot also be prior context")
+        root_turn_ids = [turn.root_turn_id for turn in self.turns]
+        if len(root_turn_ids) != len(set(root_turn_ids)):
+            raise ValueError("assistant context root turn IDs must be unique")
+        exact_truncated_count = sum(
+            int(message.truncated)
+            for turn in self.turns
+            for message in (turn.user, turn.assistant)
+        )
+        if self.truncated_message_count != exact_truncated_count:
+            raise ValueError(
+                "truncatedMessageCount must equal truncated projected messages"
+            )
+        payload = self.model_dump(
+            mode="json", by_alias=True, exclude={"envelope_hash"}
+        )
+        if self.envelope_hash != canonical_hash(payload):
+            raise ValueError("assistant context envelope hash does not match envelope")
+        return self
+
+
+def render_assistant_context_request(context: AssistantContextEnvelopeV1) -> str:
+    rendered = context.instruction.content
+    for turn in context.turns:
+        rendered += f"\n\nOWNER_PRIOR\n{turn.user.content}"
+        rendered += f"\n\nASSISTANT_REFERENCE\n{turn.assistant.content}"
+    return rendered
+
+
+class CompileScopeInputV3(StrictWireContractModel):
+    type: Literal["CompileScopeV3"]
+    request: str = Field(min_length=1, max_length=24_000)
+    assistant_context: AssistantContextEnvelopeV1
+    objective_only_context: list[AssistantContextArtifactRefV1] = Field(
+        default_factory=list, max_length=20
+    )
+    safe_defaults: AssistantContextSafeScopeDefaultsV2 = Field(
+        default_factory=AssistantContextSafeScopeDefaultsV2
+    )
+
+    @model_validator(mode="after")
+    def exact_rendered_request(self) -> "CompileScopeInputV3":
+        if utf16_length(self.request) > 24_000:
+            raise ValueError("CompileScopeV3 request exceeds 24000 UTF-16 code units")
+        if self.request != render_assistant_context_request(self.assistant_context):
+            raise ValueError(
+                "CompileScopeV3 request must equal the canonical assistant context rendering"
+            )
+        cursor = 0
+        expected_spans: list[tuple[SourceSpan, int, int]] = []
+        instruction = self.assistant_context.instruction
+        instruction_end = utf16_length(instruction.content)
+        expected_spans.append((instruction.source_span, cursor, instruction_end))
+        cursor = instruction_end
+        for turn in self.assistant_context.turns:
+            cursor += utf16_length("\n\nOWNER_PRIOR\n")
+            user_end = cursor + utf16_length(turn.user.content)
+            expected_spans.append((turn.user.source_span, cursor, user_end))
+            cursor = user_end
+            cursor += utf16_length("\n\nASSISTANT_REFERENCE\n")
+            assistant_end = cursor + utf16_length(turn.assistant.content)
+            expected_spans.append((turn.assistant.source_span, cursor, assistant_end))
+            cursor = assistant_end
+        for span, expected_start, expected_end in expected_spans:
+            if "offset_unit" not in span.model_fields_set:
+                raise ValueError(
+                    "assistant context source spans must declare offsetUnit"
+                )
+            if span.start != expected_start or span.end != expected_end:
+                raise ValueError(
+                    "assistant context source spans must identify exact rendered content offsets"
+                )
+        return self
 
 
 class ReviseScopeInputV2(ContractModel):
@@ -1407,6 +1708,7 @@ OperationInput = Annotated[
     Union[
         AssistantTurnInputV1,
         CompileScopeInputV2,
+        CompileScopeInputV3,
         ReviseScopeInputV2,
         ExecuteResearchInputV2,
         SynthesizeArtifactInputV1,
@@ -1432,6 +1734,7 @@ class AxWiseOperationEnvelope(ContractModel):
     operation_type: Literal[
         "AssistantTurnV1",
         "CompileScopeV2",
+        "CompileScopeV3",
         "ReviseScopeV2",
         "ExecuteResearchV2",
         "SynthesizeArtifactV1",

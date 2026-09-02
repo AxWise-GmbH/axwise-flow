@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import replace
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
-from backend.domain.workflow_v2.contracts import OperationMetrics, ScopeCompiledResult
+from backend.domain.workflow_v2.contracts import (
+    AxWiseOperationEnvelope,
+    OperationMetrics,
+    ScopeCompiledResult,
+)
 from backend.services.workflow_v2.assistant.projection import project_assistant_result
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 from backend.services.workflow_v2.operation_store import (
@@ -18,8 +24,10 @@ from backend.services.workflow_v2.operation_worker import OperationWorker
 from backend.tests.workflow_v2.factories import scope_completion_result
 from backend.tests.workflow_v2.test_operation_service import envelope
 
-
 pytestmark = pytest.mark.contract
+COMPILE_SCOPE_V3_FIXTURE = (
+    Path(__file__).with_name("fixtures") / "compile_scope_envelope_v3.json"
+)
 
 
 def result() -> ScopeCompiledResult:
@@ -150,6 +158,61 @@ async def test_worker_heartbeats_long_execution_and_persists_one_terminal_result
     assert store.completed["artifact"]["markdown"] is None
     assert store.completed["metrics"]["latencyMs"] >= 1
     assert await worker.run_once() is False
+
+
+@pytest.mark.asyncio
+async def test_worker_processes_compile_scope_v2_and_v3_claims_in_one_queue() -> None:
+    class MixedStore(Store):
+        def __init__(self) -> None:
+            super().__init__()
+            v3 = AxWiseOperationEnvelope.model_validate(
+                json.loads(COMPILE_SCOPE_V3_FIXTURE.read_text(encoding="utf-8"))
+            )
+            self.claims = [
+                self.claim,
+                ClaimedOperation(
+                    record=OperationRecord(
+                        operation_id=v3.operation_id,
+                        tenant_id=v3.owner.tenant_id,
+                        canonical_input_hash=v3.canonical_input_hash,
+                        status="running",
+                        result_payload=None,
+                        retryable=None,
+                        error_class=None,
+                    ),
+                    envelope=v3,
+                    lease_token=uuid4(),
+                ),
+            ]
+            self.operation_types_by_id = {
+                str(claim.envelope.operation_id): claim.envelope.operation_type
+                for claim in self.claims
+            }
+            self.completed_types: list[str] = []
+
+        def claim_next(self, _token, _seconds):
+            return self.claims.pop(0) if self.claims else None
+
+        def complete(self, _tenant, operation_id, _token, _value):
+            self.completed_types.append(self.operation_types_by_id[str(operation_id)])
+
+    class RecordingExecutor:
+        def __init__(self) -> None:
+            self.operation_types: list[str] = []
+
+        async def execute(self, operation):
+            self.operation_types.append(operation.operation_type)
+            return result()
+
+    store = MixedStore()
+    executor = RecordingExecutor()
+    worker = OperationWorker(store, executor, lease_seconds=30, heartbeat_seconds=5)
+
+    assert await worker.run_once() is True
+    assert await worker.run_once() is True
+    assert await worker.run_once() is False
+    assert executor.operation_types == ["CompileScopeV2", "CompileScopeV3"]
+    assert store.completed_types == ["CompileScopeV2", "CompileScopeV3"]
 
 
 @pytest.mark.asyncio

@@ -11,6 +11,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
+    CompileScopeInputV3,
     CompletionResult,
     EvidenceAcquisitionPassV1,
     EvidenceClaimV1,
@@ -21,21 +22,25 @@ from backend.domain.workflow_v2.contracts import (
     ResearchResultV2,
     ResearchSourceV1,
     SelectedEvidenceArtifactV1,
-    SynthesizeArtifactInputV1,
     SourceSpan,
+    SynthesizeArtifactInputV1,
     WorkflowOutputContractV1,
     artifact_content_hash,
     canonical_hash,
     canonical_json,
+    render_assistant_context_request,
+    utf16_length,
     utf16_slice,
 )
 from backend.services.workflow_v2.operation_store import _stored_envelope_payload
-
 
 pytestmark = pytest.mark.contract
 GOLDEN = Path(__file__).with_name("fixtures") / "canonical_v1_golden.json"
 COMPILE_SCOPE_ENVELOPE = (
     Path(__file__).with_name("fixtures") / "compile_scope_envelope_v2.json"
+)
+COMPILE_SCOPE_V3_ENVELOPE = (
+    Path(__file__).with_name("fixtures") / "compile_scope_envelope_v3.json"
 )
 SYNTHESIZE_ARTIFACT_GOLDEN = (
     Path(__file__).with_name("fixtures") / "synthesize_artifact_v1_golden.json"
@@ -202,6 +207,135 @@ def test_compile_scope_envelope_matches_shared_javascript_fixture() -> None:
         "policies": [],
     }
     assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+
+
+def test_compile_scope_v3_envelope_matches_shared_javascript_fixture() -> None:
+    fixture_bytes = COMPILE_SCOPE_V3_ENVELOPE.read_bytes()
+    fixture = json.loads(fixture_bytes.decode("utf-8"))
+    envelope = AxWiseOperationEnvelope.model_validate(fixture)
+    input_value = envelope.input
+
+    assert isinstance(input_value, CompileScopeInputV3)
+    assert envelope.operation_type == "CompileScopeV3"
+    assert input_value.assistant_context.envelope_hash == (
+        "2428b5d28b484e28fe38d50d1aba5c72026763faa178dd95736891b3adc50a6e"
+    )
+    assert envelope.canonical_input_hash == (
+        "47f22aaf2746e6add69a7d0c590926dd6130b60baaecdcb100302117114bd7c0"
+    )
+    assert render_assistant_context_request(input_value.assistant_context) == (
+        input_value.request
+    )
+    assert utf16_length(input_value.assistant_context.instruction.content) == 32
+    assert input_value.assistant_context.turns[0].user.source_span.start == 46
+    assert input_value.assistant_context.turns[0].assistant.source_span.start == 103
+    assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+    assert envelope.model_dump(mode="json", by_alias=True) == fixture
+    assert hashlib.sha256(fixture_bytes).hexdigest() == (
+        "5cd46e817322d5193b1d68f99ba93de0669a350547f987e1482bb73d532a8c73"
+    )
+
+
+def test_compile_scope_v3_accepts_canonical_mixed_content_kind_order() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["assistantContext"]["turns"][0]["user"][
+        "contentKinds"
+    ] = ["text", "artifact"]
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    parsed = AxWiseOperationEnvelope.model_validate(fixture)
+
+    assert parsed.input.assistant_context.turns[0].user.content_kinds == [
+        "text",
+        "artifact",
+    ]
+
+
+def _rebind_compile_scope_v3_fixture(fixture: dict) -> None:
+    context = fixture["input"]["assistantContext"]
+    context["envelopeHash"] = canonical_hash(
+        {key: value for key, value in context.items() if key != "envelopeHash"}
+    )
+    fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+
+
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        (
+            lambda value: value["input"]["assistantContext"]["turns"][0][
+                "user"
+            ].update(contentKinds=["artifact", "text"]),
+            "canonical text/artifact order",
+        ),
+        (
+            lambda value: value["input"]["assistantContext"]["turns"][0][
+                "assistant"
+            ].update(provenance="orqaly_local_output"),
+            "provenance must match",
+        ),
+        (
+            lambda value: value["input"]["assistantContext"]["turns"][0][
+                "user"
+            ]["sourceSpan"].update(start=47),
+            "exact rendered content offsets",
+        ),
+    ],
+)
+def test_compile_scope_v3_rejects_noncanonical_context(
+    mutation, message: str
+) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    mutation(fixture)
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    with pytest.raises(ValidationError, match=message):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+def test_compile_scope_v3_rejects_tampered_envelope_and_content_hashes() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["assistantContext"]["turns"][0]["user"][
+        "contentSha256"
+    ] = "f" * 64
+    fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+
+    with pytest.raises(ValidationError, match="content hash does not match"):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["assistantContext"]["omittedTurnCount"] = 1
+    fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+    with pytest.raises(ValidationError, match="envelope hash does not match"):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda value: value["input"].update(
+            assistant_context=value["input"].pop("assistantContext")
+        ),
+        lambda value: value["input"]["assistantContext"]["turns"][0][
+            "user"
+        ]["sourceSpan"].pop("offsetUnit"),
+        lambda value: value["input"]["assistantContext"].update(
+            omittedTurnCount="0"
+        ),
+        lambda value: value["input"]["assistantContext"]["turns"][0][
+            "user"
+        ].update(truncated="false"),
+        lambda value: value["input"]["assistantContext"].update(
+            threadId="urn:uuid:10000000-0000-4000-8000-000000000001"
+        ),
+    ],
+)
+def test_compile_scope_v3_rejects_noncanonical_wire_coercions(mutation) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    mutation(fixture)
+
+    with pytest.raises(ValidationError):
+        AxWiseOperationEnvelope.model_validate(fixture)
 
 
 def test_assistant_turn_envelope_is_typed_and_canonically_bound() -> None:
