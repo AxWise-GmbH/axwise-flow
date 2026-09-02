@@ -966,6 +966,17 @@ class AssistantContextEnvelopeV1(StrictWireContractModel):
         root_turn_ids = [turn.root_turn_id for turn in self.turns]
         if len(root_turn_ids) != len(set(root_turn_ids)):
             raise ValueError("assistant context root turn IDs must be unique")
+        prior_turn_id_sets = [
+            {turn.root_turn_id, turn.user.turn_id, turn.assistant.turn_id}
+            for turn in self.turns
+        ]
+        seen_turn_ids = {self.current_turn_id}
+        for turn_ids in prior_turn_id_sets:
+            if seen_turn_ids.intersection(turn_ids):
+                raise ValueError(
+                    "assistant context current and completed turn identities must not overlap"
+                )
+            seen_turn_ids.update(turn_ids)
         exact_truncated_count = sum(
             int(message.truncated)
             for turn in self.turns

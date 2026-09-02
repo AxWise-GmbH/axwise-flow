@@ -9,6 +9,7 @@ from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
     CompileScopeInputV3,
     artifact_content_hash,
+    canonical_hash,
     utf16_length,
 )
 from backend.services.workflow_v2.cognitive_executor import (
@@ -146,7 +147,7 @@ async def test_compile_scope_v3_rejects_a_source_span_over_an_authority_header(
 
 
 @pytest.mark.asyncio
-async def test_compile_scope_v3_does_not_mark_assistant_only_policy_as_owner() -> None:
+async def test_compile_scope_v3_rejects_assistant_only_policy() -> None:
     class _AssistantPolicyDrafter(_V3Drafter):
         async def draft(self, input_value, objective_context):
             topic = "staged pilot"
@@ -159,17 +160,43 @@ async def test_compile_scope_v3_does_not_mark_assistant_only_policy_as_owner() -
                 )
             )
 
+    with pytest.raises(ValueError, match="policy must be literal owner text"):
+        await GeminiCognitiveExecutor(
+            _AssistantPolicyDrafter(), AUTHORITY_KEY
+        ).execute(_envelope())
+
+
+@pytest.mark.asyncio
+async def test_compile_scope_v3_accepts_an_explicit_safe_default_policy() -> None:
+    policy_text = "Evidence suggests a staged pilot."
+
+    class _SafeDefaultPolicyDrafter(_V3Drafter):
+        async def draft(self, input_value, objective_context):
+            topic = "staged pilot"
+            return ModelOutput(
+                _draft(
+                    input_value.request,
+                    topic=topic,
+                    start=_utf16_index(input_value.request, topic),
+                    policies=[policy_text],
+                )
+            )
+
+    envelope_payload = _envelope().model_dump(mode="json", by_alias=True)
+    envelope_payload["input"]["safeDefaults"]["policies"] = [policy_text]
+    envelope_payload["canonicalInputHash"] = canonical_hash(envelope_payload["input"])
+    envelope = AxWiseOperationEnvelope.model_validate(envelope_payload)
     result = await GeminiCognitiveExecutor(
-        _AssistantPolicyDrafter(), AUTHORITY_KEY
-    ).execute(_envelope())
+        _SafeDefaultPolicyDrafter(), AUTHORITY_KEY
+    ).execute(envelope)
     policy = next(
         requirement
         for requirement in result.artifact.payload["requirements"]
         if requirement["category"] == "policy"
     )
 
-    assert policy["description"] == "Evidence suggests a staged pilot."
-    assert policy["authority"] == "axwise_derived"
+    assert policy["description"] == policy_text
+    assert policy["authority"] == "safe_default"
 
 
 def test_compile_scope_v3_prompt_enforces_authority_and_clarification_boundary(
