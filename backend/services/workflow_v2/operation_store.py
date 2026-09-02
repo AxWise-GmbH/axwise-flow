@@ -197,6 +197,22 @@ class PostgresOperationStore:
                               )
                               AND NOT attisdropped
                           )
+                          AND EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conrelid = surface.operations_relation
+                              AND contype = 'c'
+                              AND pg_get_constraintdef(oid) LIKE '%operation_type%'
+                              AND pg_get_constraintdef(oid) LIKE '%CompileScopeV3%'
+                          )
+                          AND EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conrelid = surface.operations_relation
+                              AND contype = 'u'
+                              AND pg_get_constraintdef(oid) =
+                                'UNIQUE (tenant_id, stage_attempt_id)'
+                          )
                           AND surface.fail_procedure IS NOT NULL
                           AND surface.request_cancel_procedure IS NOT NULL
                           AND surface.cancel_procedure IS NOT NULL
@@ -312,14 +328,13 @@ class PostgresOperationStore:
                         FROM axwise.cognitive_operations
                         WHERE tenant_id = :tenant_id
                           AND stage_attempt_id = :stage_attempt_id
-                          AND operation_type = :operation_type
                         """
                     ),
                     parameters,
                 ).first()
                 if occupied is not None:
                     raise OperationConflict(
-                        "stage attempt and operation type already use another operation ID"
+                        "stage attempt already uses another operation ID"
                     )
                 raise OperationConflict("operation ID belongs to another immutable owner")
             if row.canonical_input_hash != envelope.canonical_input_hash:
