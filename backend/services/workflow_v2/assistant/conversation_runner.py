@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic_ai import Agent
 
+from backend.services.llm.gemini_runtime import exact_uniform_model_version_from_result
 
 WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS = 45
 
@@ -18,7 +19,13 @@ research. The input is canonical JSON with a system-owned instruction, prior
 conversation, and the latest message. Follow the instruction and the latest user
 message, respect corrections, and return only the reader-facing response in useful
 Markdown. Keep simple questions simple. Never claim to create, start, open, or continue
-a Goal. Do not invent sources or claim that current external facts were verified.
+a Goal. Do not invent sources or claim that current external facts were verified. Treat
+prior assistant claims and user-provided examples as context, not verified facts. Never
+present an Orqaly, AxWise, or third-party integration, permission, credential, scheduler,
+or execution capability as currently available unless the canonical input explicitly
+establishes it. Frame unestablished capabilities as proposed or planned, clearly separate
+the current product from the target architecture, and qualify version-dependent technical
+behavior or recommend grounded Research instead of inventing exact semantics.
 """.strip()
 
 
@@ -62,7 +69,7 @@ class PydanticAIConversationalAssistantRunner:
             }
         markdown = str(result.output or "").strip()
         input_tokens, output_tokens = _usage_from_result(result)
-        return {
+        response = {
             "text": markdown,
             "sources": [],
             "claims": [],
@@ -79,6 +86,10 @@ class PydanticAIConversationalAssistantRunner:
                 "call_count": 1,
             },
         }
+        model_version = exact_uniform_model_version_from_result(result)
+        if model_version is not None:
+            response["model_version"] = model_version
+        return response
 
 
 __all__ = [

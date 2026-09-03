@@ -16,10 +16,9 @@ from backend.services.workflow_v2.exact_span_extractor import (
     assemble_exact_span_result,
 )
 from backend.services.workflow_v2.resilient_research_runner import (
-    ResilientResearchRunner,
     WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+    ResilientResearchRunner,
 )
-
 
 pytestmark = pytest.mark.contract
 
@@ -1378,10 +1377,12 @@ class ExactExtractor:
         *,
         input_tokens: int = 0,
         output_tokens: int = 0,
+        model_version: str | None = None,
     ) -> None:
         self.text = text
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
+        self.model_version = model_version
         self.requests: list[ExactSpanExtractionRequest] = []
         self.closed = 0
 
@@ -1403,10 +1404,52 @@ class ExactExtractor:
             ),
             input_tokens=self.input_tokens,
             output_tokens=self.output_tokens,
+            model_version=self.model_version,
         )
 
     async def close(self) -> None:
         self.closed += 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("primary_version", "extractor_version", "expected"),
+    [
+        (None, None, None),
+        ("gemini-3.8-flash-001", None, None),
+        (None, "gemini-3.8-flash-001", None),
+        (
+            "gemini-3.8-flash-001",
+            "gemini-3.8-flash-001",
+            "gemini-3.8-flash-001",
+        ),
+        ("gemini-3.8-flash-001", "gemini-3.8-flash-002", None),
+    ],
+)
+async def test_fallback_model_version_requires_every_call_to_agree(
+    primary_version: str | None,
+    extractor_version: str | None,
+    expected: str | None,
+) -> None:
+    url = "https://pta.agri.ee/model-version"
+    exact = "Feed operators shall retain exact traceability records."
+    primary_result = metered_transient("unavailable")
+    if primary_version is not None:
+        primary_result["model_version"] = primary_version
+
+    async def fetch(_url: str) -> dict:
+        return document(url, f"Preamble. {exact} Annex.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_result),
+        searxng=FakeSearx(
+            discovery(sources=[{"url": url, "title": "Official rules"}])
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact, model_version=extractor_version),
+    ).search(server_query())
+
+    assert result.get("model_version") == expected
 
 
 class EmptyExtractor:

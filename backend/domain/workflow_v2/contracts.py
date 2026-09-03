@@ -1885,6 +1885,10 @@ class OperationMetrics(ContractModel):
     latency_ms: int = Field(ge=0)
     provider: Literal["google"] | None = None
     model: str | None = Field(default=None, min_length=1, max_length=200)
+    # Exact provider-served model identifier when the runtime exposes it. This is
+    # additive so persisted results written before modelVersion was captured still
+    # replay through the same result contracts.
+    model_version: str | None = Field(default=None, min_length=1, max_length=200)
     input_tokens: int | None = Field(default=None, ge=0)
     output_tokens: int | None = Field(default=None, ge=0)
     total_tokens: int | None = Field(default=None, ge=0)

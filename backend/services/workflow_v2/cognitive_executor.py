@@ -71,7 +71,11 @@ from backend.domain.workflow_v2.contracts import (
     utf16_ordinal_sorted,
     utf16_slice,
 )
-from backend.services.llm.gemini_runtime import RESEARCH_MODEL, get_shared_workflow_model
+from backend.services.llm.gemini_runtime import (
+    RESEARCH_MODEL,
+    exact_uniform_model_version_from_result,
+    get_shared_workflow_model,
+)
 from backend.services.workflow_v2.assistant import (
     AssistantTurnService,
     PydanticAIConversationalAssistantRunner,
@@ -316,6 +320,7 @@ class ModelOutput(Generic[TModelOutput]):
     value: TModelOutput
     input_tokens: int = 0
     output_tokens: int = 0
+    model_version: str | None = None
 
 
 class ScopeDrafter(Protocol):
@@ -1120,10 +1125,15 @@ def _usage_from_result(result: Any) -> tuple[int, int]:
 
 def _unwrap_model_output(
     value: ModelOutput[TModelOutput] | TModelOutput,
-) -> tuple[TModelOutput, int, int]:
+) -> tuple[TModelOutput, int, int, str | None]:
     if isinstance(value, ModelOutput):
-        return value.value, value.input_tokens, value.output_tokens
-    return value, 0, 0
+        return (
+            value.value,
+            value.input_tokens,
+            value.output_tokens,
+            value.model_version,
+        )
+    return value, 0, 0, None
 
 
 def _estimated_cost_micros(
@@ -1160,23 +1170,27 @@ def _operation_metrics(
     output_tokens: int = 0,
     total_tokens: int | None = None,
     search_calls: int = 0,
+    model_version: str | None = None,
 ) -> OperationMetrics:
-    return OperationMetrics(
-        latency_ms=0,
-        provider="google",
-        model=RESEARCH_MODEL,
-        input_tokens=input_tokens,
-        output_tokens=output_tokens,
-        total_tokens=(
+    values: dict[str, Any] = {
+        "latency_ms": 0,
+        "provider": "google",
+        "model": RESEARCH_MODEL,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": (
             input_tokens + output_tokens if total_tokens is None else total_tokens
         ),
-        search_calls=search_calls,
-        estimated_cost_micros=_estimated_cost_micros(
+        "search_calls": search_calls,
+        "estimated_cost_micros": _estimated_cost_micros(
             input_tokens,
             output_tokens,
             search_calls,
         ),
-    )
+    }
+    if model_version is not None:
+        values["model_version"] = model_version
+    return OperationMetrics(**values)
 
 
 class PydanticAIScopeDrafter:
@@ -1245,7 +1259,12 @@ class PydanticAIScopeDrafter:
             result = await self.v3_agent.run(prompt, deps=context)
             _validate_v3_draft(input_value, result.output)
             input_tokens, output_tokens = _usage_from_result(result)
-            return ModelOutput(result.output, input_tokens, output_tokens)
+            return ModelOutput(
+                result.output,
+                input_tokens,
+                output_tokens,
+                exact_uniform_model_version_from_result(result),
+            )
 
         prompt = canonical_json(
             {
@@ -1262,7 +1281,12 @@ class PydanticAIScopeDrafter:
         )
         _validate_draft(input_value.request, result.output)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(
+            result.output,
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
+        )
 
 
 SCOPE_REVISION_SYSTEM_PROMPT = """
@@ -1410,7 +1434,12 @@ class PydanticAIScopeReviser:
         )
         _validate_revision_draft(input_value.correction, result.output, accepted_scope)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(
+            result.output,
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
+        )
 
 
 _COGNITIVE_BOUNDARY_PROMPT = """
@@ -7646,7 +7675,12 @@ class PydanticAISynthesisWriter:
             phase="TASK",
         )
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(
+            result.output,
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
+        )
 
     async def evaluate_output(
         self,
@@ -7671,7 +7705,12 @@ class PydanticAISynthesisWriter:
             phase="EVALUATION",
         )
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(result.output, input_tokens, output_tokens)
+        return ModelOutput(
+            result.output,
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
+        )
 
     async def write(
         self,
@@ -7746,7 +7785,10 @@ class PydanticAISynthesisWriter:
             return ModelOutput(core_fallback, 0, 0)
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(
-            SynthesisDraft.model_validate(result.output), input_tokens, output_tokens
+            SynthesisDraft.model_validate(result.output),
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
         )
 
     async def write_blocked(
@@ -7774,7 +7816,12 @@ class PydanticAISynthesisWriter:
         output = _with_immutable_gap_labels(context, result.output)
         _validate_synthesis(context, output)
         input_tokens, output_tokens = _usage_from_result(result)
-        return ModelOutput(output, input_tokens, output_tokens)
+        return ModelOutput(
+            output,
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
+        )
 
 
 def _source_span(request: str, draft: DraftSpan) -> SourceSpan:
@@ -8405,6 +8452,23 @@ def _usage_from_search(result: dict[str, Any]) -> tuple[int, int, int, int]:
     )
 
 
+def _model_version_from_search(result: dict[str, Any]) -> str | None:
+    value = result.get("model_version", result.get("modelVersion"))
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or len(normalized) > 200:
+        return None
+    return normalized
+
+
+def _uniform_model_version(values: list[str | None]) -> str | None:
+    if not values or values[0] is None:
+        return None
+    first = values[0]
+    return first if all(value == first for value in values) else None
+
+
 class GeminiCognitiveExecutor:
     def __init__(
         self,
@@ -8543,7 +8607,9 @@ class GeminiCognitiveExecutor:
                     )
                 objective_context.append(objective)
         drafted = await self.scope_drafter.draft(input_value, objective_context)
-        draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
+        draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
+            drafted
+        )
         if isinstance(input_value, CompileScopeInputV3):
             _validate_v3_draft(input_value, draft)
         else:
@@ -8645,7 +8711,9 @@ class GeminiCognitiveExecutor:
                 source_artifact_ids=[],
             ),
             metrics=_operation_metrics(
-                input_tokens=input_tokens, output_tokens=output_tokens
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                model_version=model_version,
             ),
         )
 
@@ -8685,7 +8753,9 @@ class GeminiCognitiveExecutor:
             artifact_id=input_value.accepted_scope.artifact_id,
         )
         revised = await self.scope_reviser.revise(input_value, accepted_scope)
-        draft, input_tokens, output_tokens = _unwrap_model_output(revised)
+        draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
+            revised
+        )
         _validate_revision_draft(input_value.correction, draft, accepted_scope)
         objective = (
             draft.objective if draft.objective_changed else accepted_scope.objective
@@ -8787,7 +8857,9 @@ class GeminiCognitiveExecutor:
                 source_artifact_ids=[input_value.accepted_scope.artifact_id],
             ),
             metrics=_operation_metrics(
-                input_tokens=input_tokens, output_tokens=output_tokens
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                model_version=model_version,
             ),
         )
 
@@ -9088,6 +9160,7 @@ class GeminiCognitiveExecutor:
         output_tokens = 0
         total_tokens = 0
         search_calls = 0
+        model_versions: list[str | None] = []
 
         async def acquire(
             requirement: EvidenceRequirement, pass_number: Literal[0, 1]
@@ -9101,6 +9174,7 @@ class GeminiCognitiveExecutor:
             int,
             int,
             int,
+            str | None,
         ]:
             accepted_source_classes = utf16_ordinal_sorted(
                 {
@@ -9168,6 +9242,7 @@ class GeminiCognitiveExecutor:
                         usage_output,
                         usage_total,
                         calls,
+                        _model_version_from_search(raw),
                     )
                 retryable = status_value not in {
                     "configuration_error",
@@ -9272,6 +9347,7 @@ class GeminiCognitiveExecutor:
                 usage_output,
                 usage_total,
                 calls,
+                _model_version_from_search(raw),
             )
 
         async def run_round(
@@ -9322,6 +9398,7 @@ class GeminiCognitiveExecutor:
                         used_output,
                         used_total,
                         used_calls,
+                        used_model_version,
                     ) = task.result()
                     if entry is not None:
                         ledger.append(entry)
@@ -9331,10 +9408,12 @@ class GeminiCognitiveExecutor:
                     output_tokens += used_output
                     total_tokens += used_total
                     search_calls += used_calls
+                    model_versions.append(used_model_version)
                     acquired[requirement.id] = (claims, conflicts, failure_status)
                 if deadline_expired:
                     for task in pending:
                         requirement = tasks[task]
+                        model_versions.append(None)
                         acquired[requirement.id] = (
                             [],
                             [],
@@ -9501,6 +9580,7 @@ class GeminiCognitiveExecutor:
                 output_tokens=output_tokens,
                 total_tokens=total_tokens,
                 search_calls=search_calls,
+                model_version=_uniform_model_version(model_versions),
             ),
         )
 
@@ -9923,7 +10003,9 @@ class GeminiCognitiveExecutor:
                 research.model_dump(mode="json", by_alias=True),
                 selected_contents,
             )
-            draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
+            draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
+                drafted
+            )
             draft = _prepare_task_draft_for_execution(context, draft)
             task_markdown = draft.markdown.rstrip()
             appendix = _source_appendix_entries(task_markdown, research)
@@ -10027,7 +10109,9 @@ class GeminiCognitiveExecutor:
                     ),
                     evidence_readiness=research.readiness,
                     metrics=_operation_metrics(
-                        input_tokens=input_tokens, output_tokens=output_tokens
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        model_version=model_version,
                     ),
                 )
             task_result = TaskResultV2(
@@ -10063,7 +10147,9 @@ class GeminiCognitiveExecutor:
                 ),
                 evidence_readiness=research.readiness,
                 metrics=_operation_metrics(
-                    input_tokens=input_tokens, output_tokens=output_tokens
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    model_version=model_version,
                 ),
             )
 
@@ -10092,7 +10178,9 @@ class GeminiCognitiveExecutor:
                 research.model_dump(mode="json", by_alias=True),
                 selected_contents,
             )
-            draft, input_tokens, output_tokens = _unwrap_model_output(drafted)
+            draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
+                drafted
+            )
             core_coverages = [
                 coverages
                 for task, coverages in zip(
@@ -10251,7 +10339,9 @@ class GeminiCognitiveExecutor:
                 execution_output_contract_satisfied=satisfied,
                 direct_promotion_artifact=promoted,
                 metrics=_operation_metrics(
-                    input_tokens=input_tokens, output_tokens=output_tokens
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    model_version=model_version,
                 ),
             )
 
@@ -10306,7 +10396,9 @@ class GeminiCognitiveExecutor:
             )
         else:
             written = ModelOutput(_deterministic_blocked_report(research))
-        draft, input_tokens, output_tokens = _unwrap_model_output(written)
+        draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
+            written
+        )
         draft = _normalize_publication_draft(common_context, draft)
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(
@@ -10352,7 +10444,9 @@ class GeminiCognitiveExecutor:
                 )
                 if input_value.purpose == "blocked_report"
                 else _operation_metrics(
-                    input_tokens=input_tokens, output_tokens=output_tokens
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    model_version=model_version,
                 )
             ),
         )

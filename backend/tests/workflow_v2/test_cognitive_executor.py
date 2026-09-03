@@ -12,9 +12,9 @@ from pydantic_ai import Agent, ModelRetry, PromptedOutput
 from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 from pydantic_ai.messages import RetryPromptPart
 
-import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 import backend.services.workflow_v2.assistant.conversation_runner as assistant_conversation_runner_module
 import backend.services.workflow_v2.assistant.projection as assistant_projection_module
+import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
     ArtifactRef,
@@ -29,48 +29,50 @@ from backend.domain.workflow_v2.contracts import (
     artifact_content_hash,
     canonical_hash,
 )
+from backend.services.llm import gemini_runtime
 from backend.services.workflow_v2.cognitive_executor import (
+    SCOPE_REVISION_SYSTEM_PROMPT,
+    SCOPE_SYSTEM_PROMPT,
     DraftSpan,
     DraftTopicAnchor,
+    EvaluationDraft,
     GeminiCognitiveExecutor,
     ModelOutput,
     PydanticAIScopeDrafter,
     PydanticAIScopeReviser,
     PydanticAISynthesisWriter,
-    SCOPE_REVISION_SYSTEM_PROMPT,
-    SCOPE_SYSTEM_PROMPT,
     ScopeDraft,
     ScopeRevisionDraft,
     SynthesisContext,
     SynthesisDraft,
     TaskDraft,
-    EvaluationDraft,
     _appendix_matches_research,
     _blocked_report_output_contract,
+    _citation_sections,
+    _claim_from_grounding,
     _contains_server_deliverable_placeholder,
     _contains_server_unverified_validation_target,
     _deterministic_evidence_integrity_defects,
-    _operation_metrics,
     _deterministic_quality_defects,
-    _citation_sections,
-    _claim_from_grounding,
     _markdown_with_source_appendix,
     _model_owned_required_sections,
+    _operation_metrics,
     _prepare_task_unresolved_actions,
-    _with_accepted_requirement_traceability,
-    _with_canonical_acceptance_criteria,
     _usage_from_result,
     _usage_from_search,
+    _validate_revision_draft,
     _validate_synthesis,
     _validate_task_draft,
-    _validate_revision_draft,
-    _without_forbidden_task_launch_claim_lines,
+    _with_accepted_requirement_traceability,
+    _with_canonical_acceptance_criteria,
     _with_immutable_gap_labels,
+    _without_forbidden_task_launch_claim_lines,
     has_positive_launch_readiness_claim,
 )
-from backend.services.llm import gemini_runtime
 from backend.services.workflow_v2.exact_span_extractor import (
     DraftCodePointSpan as ExactDraftCodePointSpan,
+)
+from backend.services.workflow_v2.exact_span_extractor import (
     ExactSpanExtractionRequest,
     ExactSpanSelectionDraft,
     assemble_exact_span_result,
@@ -80,7 +82,6 @@ from backend.services.workflow_v2.resilient_research_runner import (
     ResilientResearchRunner,
 )
 from backend.services.workflow_v2.worker_main import cost_configuration_ready
-
 
 REQUEST = "Create an Estonia cat-food launch PRD."
 B01_REQUEST = (
@@ -262,6 +263,7 @@ class FakeDrafter:
             ),
             input_tokens=11,
             output_tokens=13,
+            model_version="gemini-3.8-flash-001",
         )
 
 
@@ -1773,14 +1775,26 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
         assert result.usage.output_reasoning_tokens == 7
         assert result.usage.total_tokens == 22
         assert result.usage.details["thoughts_tokens"] == 7
+        assert (
+            gemini_runtime.exact_uniform_model_version_from_result(result)
+            == "gemini-3.8-flash"
+        )
         input_tokens, output_tokens = _usage_from_result(result)
         assert (input_tokens, output_tokens) == (10, 12)
         metrics = _operation_metrics(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            model_version=gemini_runtime.exact_uniform_model_version_from_result(
+                result
+            ),
         )
         assert metrics.total_tokens == 22
         assert metrics.estimated_cost_micros == 52
+        assert metrics.model == "gemini-3.8-flash"
+        assert metrics.model_version == "gemini-3.8-flash"
+        assert metrics.model_dump(mode="json", by_alias=True)["modelVersion"] == (
+            "gemini-3.8-flash"
+        )
 
         assert len(captured_requests) == 1
         url, body = captured_requests[0]
@@ -1792,6 +1806,91 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
         assert "topP" not in config
         assert "topK" not in config
         assert "candidateCount" not in config
+    finally:
+        await gemini_runtime.close_shared_research_models()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model_versions", "expected"),
+    [
+        ([None], None),
+        (["gemini-3.8-flash-001"], "gemini-3.8-flash-001"),
+        (
+            ["gemini-3.8-flash-001", "gemini-3.8-flash-001"],
+            "gemini-3.8-flash-001",
+        ),
+        (["gemini-3.8-flash-001", "gemini-3.8-flash-002"], None),
+        ([None, "gemini-3.8-flash-001"], None),
+    ],
+)
+async def test_exact_model_version_is_fail_closed_across_provider_responses(
+    monkeypatch: pytest.MonkeyPatch,
+    model_versions: list[str | None],
+    expected: str | None,
+) -> None:
+    class VersionProbe(BaseModel):
+        value: str
+
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        model_version = model_versions[calls]
+        is_final = calls == len(model_versions) - 1
+        calls += 1
+        payload = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"text": '{"value":"ok"}' if is_final else '{"wrong":1}'}
+                        ],
+                        "role": "model",
+                    },
+                    "finishReason": "STOP",
+                }
+            ],
+            "usageMetadata": {
+                "promptTokenCount": 3,
+                "candidatesTokenCount": 1,
+                "totalTokenCount": 4,
+            },
+        }
+        if model_version is not None:
+            payload["modelVersion"] = model_version
+        return httpx.Response(200, json=payload)
+
+    def client_factory(**kwargs):
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setenv("GEMINI_MODEL", gemini_runtime.RESEARCH_MODEL_RESOURCE)
+    monkeypatch.setattr(gemini_runtime, "BoundedRetryAsyncClient", client_factory)
+    await gemini_runtime.close_shared_research_models()
+    try:
+        model = gemini_runtime.get_shared_workflow_model(
+            "model-version-provenance-test-key"
+        )
+        result = await Agent(
+            model=model,
+            output_type=PromptedOutput(VersionProbe),
+            retries={"output": 2},
+        ).run("model version probe")
+
+        response_names = [
+            message.model_name
+            for message in result.new_messages()
+            if getattr(message, "kind", None) == "response"
+        ]
+        assert calls == len(model_versions)
+        assert response_names == [
+            value or gemini_runtime.RESEARCH_MODEL_RESOURCE
+            for value in model_versions
+        ]
+        assert (
+            gemini_runtime.exact_uniform_model_version_from_result(result)
+            == expected
+        )
     finally:
         await gemini_runtime.close_shared_research_models()
 
@@ -1963,6 +2062,8 @@ async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics(
     assert result.metrics.input_tokens == 11
     assert result.metrics.output_tokens == 13
     assert result.metrics.total_tokens == 24
+    assert result.metrics.model == "gemini-3.8-flash"
+    assert result.metrics.model_version == "gemini-3.8-flash-001"
 
 
 @pytest.mark.asyncio
@@ -5566,6 +5667,7 @@ async def test_transient_google_search_uses_exact_fetched_fallback_evidence() ->
                 ),
                 input_tokens=11,
                 output_tokens=5,
+                model_version="gemini-3.8-flash-001",
             )
             return result
 
@@ -5578,6 +5680,10 @@ async def test_transient_google_search_uses_exact_fetched_fallback_evidence() ->
     result = await execute_research(compiled, resilient)
 
     assert result.evidence_readiness == "ready"
+    assert result.metrics.model == "gemini-3.8-flash"
+    # The failed primary call did not expose a provider modelVersion, so the
+    # aggregate cannot truthfully claim the extractor's exact version alone.
+    assert result.metrics.model_version is None
     assert result.artifact.payload["boundedRepairPasses"] == 0
     entry = result.artifact.payload["claimLedger"][0]
     assert entry["providerResponseText"] == document_text
@@ -5678,6 +5784,54 @@ async def test_unavailable_requirement_preserves_completed_sibling_evidence() ->
     ] == ["food-safety-law"]
     assert runner.requirement_ids.count("food-safety-law") == 1
     assert runner.requirement_ids.count("food-safety-law-1") == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("versions", "expected"),
+    [
+        (
+            {
+                "food-safety-law": "gemini-3.8-flash-001",
+                "food-safety-law-1": "gemini-3.8-flash-001",
+            },
+            "gemini-3.8-flash-001",
+        ),
+        (
+            {
+                "food-safety-law": "gemini-3.8-flash-001",
+                "food-safety-law-1": None,
+            },
+            None,
+        ),
+        (
+            {
+                "food-safety-law": "gemini-3.8-flash-001",
+                "food-safety-law-1": "gemini-3.8-flash-002",
+            },
+            None,
+        ),
+    ],
+)
+async def test_research_metrics_require_every_acquisition_version_to_agree(
+    versions: dict[str, str | None], expected: str | None
+) -> None:
+    class VersionedResearchRunner(VerifiedResearchRunner):
+        async def search(self, query):
+            requirement_id = json.loads(query.split("\n", 1)[1])["requirement"]["id"]
+            result = await super().search(query)
+            version = versions[requirement_id]
+            if version is not None:
+                result["model_version"] = version
+            return result
+
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(evidence_count=2), AUTHORITY_KEY
+    ).execute(envelope_for())
+
+    result = await execute_research(compiled, VersionedResearchRunner())
+
+    assert result.metrics.model_version == expected
 
 
 @pytest.mark.asyncio

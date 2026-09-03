@@ -281,6 +281,20 @@ def _normalized_usage_metadata(response: Any) -> Dict[str, int]:
         "output_tokens": output_tokens,
         "total_tokens": total_tokens or input_tokens + output_tokens,
     }
+
+
+def _provider_model_version(response: Any) -> str | None:
+    """Read the exact served model version without copying unbounded metadata."""
+
+    value = getattr(response, "model_version", None)
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or len(normalized) > 200:
+        return None
+    return normalized
+
+
 def parse_news_markdown(text: str) -> List[Dict[str, Any]]:
     """
     Parse Gemini's markdown-formatted news response into structured news items.
@@ -1649,6 +1663,9 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "usage_metadata": _normalized_usage_metadata(response),
                 "runtime_diagnostics": runtime_diagnostics,
             }
+            model_version = _provider_model_version(response)
+            if model_version is not None:
+                result["model_version"] = model_version
             logger.info(
                 "Gemini grounded search completed; route=%s model=%s "
                 "status=%s elapsed_ms=%s call_count=%s",

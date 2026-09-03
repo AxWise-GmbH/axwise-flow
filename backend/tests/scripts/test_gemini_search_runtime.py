@@ -93,6 +93,7 @@ def _response(text: str = "Grounded answer") -> SimpleNamespace:
     )
     return SimpleNamespace(
         text=text,
+        model_version="gemini-3.8-flash-001",
         candidates=[
             SimpleNamespace(
                 content=SimpleNamespace(parts=[SimpleNamespace(text=text)]),
@@ -265,6 +266,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
         "output_tokens": 20,
         "total_tokens": 41,
     }
+    assert result["model_version"] == "gemini-3.8-flash-001"
     assert result["provider_queries"] == ["query one", "query two", "query three"]
 
 

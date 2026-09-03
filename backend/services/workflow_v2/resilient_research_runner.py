@@ -30,13 +30,12 @@ from backend.domain.workflow_v2.contracts import (
 from backend.services.generative.searxng_search_service import SearxngSearchService
 from backend.services.workflow_v2.direct_source_fetch import canonical_public_url
 from backend.services.workflow_v2.exact_span_extractor import (
+    MAX_DOCUMENT_CODE_POINTS,
     BoundedFetchedDocument,
     ExactSpanExtractionRequest,
     ExactSpanExtractionResult,
     ExactSpanRequirementQuery,
-    MAX_DOCUMENT_CODE_POINTS,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -405,6 +404,28 @@ def _primary_provider_queries(primary: Mapping[str, Any]) -> list[str]:
     return [value for value in raw if isinstance(value, str)]
 
 
+def _with_uniform_model_version(
+    result: dict[str, Any], *values: Any
+) -> dict[str, Any]:
+    """Expose one exact served version only when every observed value agrees."""
+
+    normalized: list[str] = []
+    for value in values:
+        if not isinstance(value, str):
+            result.pop("model_version", None)
+            return result
+        candidate = value.strip()
+        if not candidate or len(candidate) > 200:
+            result.pop("model_version", None)
+            return result
+        normalized.append(candidate)
+    if normalized and len(set(normalized)) == 1:
+        result["model_version"] = normalized[0]
+    else:
+        result.pop("model_version", None)
+    return result
+
+
 def _apply_primary_metering(
     result: dict[str, Any],
     primary: Mapping[str, Any],
@@ -423,7 +444,7 @@ def _apply_primary_metering(
     provider_queries = _primary_provider_queries(primary)
     if provider_queries:
         result["provider_queries"] = provider_queries
-    return result
+    return _with_uniform_model_version(result, primary.get("model_version"))
 
 
 def _finite_status(value: Any, *, default: str = "error") -> str:
@@ -2141,6 +2162,16 @@ class ResilientResearchRunner:
                         omitted_candidate_count=omitted_count,
                     )
                 )
+
+            def finish_extraction(result: dict[str, Any]) -> dict[str, Any]:
+                return finish_fallback(
+                    _with_uniform_model_version(
+                        result,
+                        primary.get("model_version"),
+                        extraction.model_version,
+                    )
+                )
+
             if extraction.chosen_document is not None:
                 selected = next(
                     (
@@ -2153,7 +2184,7 @@ class ResilientResearchRunner:
                     None,
                 )
                 if selected is None:
-                    return finish_fallback(
+                    return finish_extraction(
                         _primary_with_failed_fallback(
                             primary,
                             status="extraction_document_mismatch",
@@ -2181,7 +2212,7 @@ class ResilientResearchRunner:
                         fetched_count,
                         len(accepted_spans),
                     )
-                    return finish_fallback(
+                    return finish_extraction(
                         _result_for_document(
                             primary=primary,
                             primary_status=primary_status,
@@ -2202,7 +2233,7 @@ class ResilientResearchRunner:
                             usage_output_tokens=extraction.output_tokens,
                         )
                     )
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="extraction_span_not_unique",
@@ -2219,7 +2250,7 @@ class ResilientResearchRunner:
                     )
                 )
             if incomplete_fetch_count:
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="direct_fetch_incomplete",
@@ -2236,7 +2267,7 @@ class ResilientResearchRunner:
                     )
                 )
             if not context.query_complete:
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="discovery_query_incomplete",
@@ -2253,7 +2284,7 @@ class ResilientResearchRunner:
                     )
                 )
             if rejected_count or malformed_count or omitted_count:
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="discovery_rows_incomplete",
@@ -2269,7 +2300,7 @@ class ResilientResearchRunner:
                         omitted_candidate_count=omitted_count,
                     )
                 )
-            return finish_fallback(
+            return finish_extraction(
                 _empty_fallback_result(
                     primary=primary,
                     primary_status=primary_status,

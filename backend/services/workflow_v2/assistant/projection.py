@@ -27,6 +27,16 @@ WORKFLOW_V2_ASSISTANT_FALLBACK_FACT_CHARACTERS = 4_000
 WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS = 80_000
 
 
+def _model_version(raw: dict[str, Any]) -> str | None:
+    value = raw.get("model_version", raw.get("modelVersion"))
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or len(normalized) > 200:
+        return None
+    return normalized
+
+
 def assistant_fallback_markdown(
     raw: dict[str, Any],
 ) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]]] | None:
@@ -268,6 +278,14 @@ def project_assistant_result(
             else "Continue in Assistant unless the work becomes dependent or long-running."
         ),
     )
+    metric_values: dict[str, Any] = {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "search_calls": search_calls,
+    }
+    model_version = _model_version(raw)
+    if model_version is not None:
+        metric_values["model_version"] = model_version
     return AssistantTurnCompletedResult(
         result_type="assistant_turn_completed",
         response=AssistantTurnV1(
@@ -279,11 +297,7 @@ def project_assistant_result(
             facts=facts,
             recommendations=[recommendation],
         ),
-        metrics=metrics_factory(
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            search_calls=search_calls,
-        ),
+        metrics=metrics_factory(**metric_values),
     )
 
 

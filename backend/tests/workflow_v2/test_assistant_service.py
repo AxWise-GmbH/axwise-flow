@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from types import SimpleNamespace
 
 import pytest
+from pydantic_ai.messages import ModelResponse
 
 import backend.services.workflow_v2.assistant.conversation_runner as conversation_runner_module
 from backend.domain.workflow_v2.contracts import (
@@ -12,12 +14,13 @@ from backend.domain.workflow_v2.contracts import (
     OperationMetrics,
 )
 from backend.services.workflow_v2.assistant.conversation_runner import (
+    CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT,
     PydanticAIConversationalAssistantRunner,
 )
 from backend.services.workflow_v2.assistant.projection import project_assistant_result
+from backend.services.workflow_v2.assistant.prompts import assistant_turn_query
 from backend.services.workflow_v2.assistant.service import AssistantTurnService
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
-
 
 pytestmark = pytest.mark.contract
 
@@ -47,12 +50,17 @@ def usage_reader(raw: dict) -> tuple[int, int, int, int]:
 
 
 def metrics_factory(
-    *, input_tokens: int, output_tokens: int, search_calls: int
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    search_calls: int,
+    model_version: str | None = None,
 ) -> OperationMetrics:
     return OperationMetrics(
         latency_ms=0,
         provider="google",
         model="gemini-3.8-flash",
+        model_version=model_version,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         total_tokens=input_tokens + output_tokens,
@@ -87,6 +95,33 @@ def service(
     )
 
 
+def test_assistant_prompts_preserve_product_and_evidence_truth() -> None:
+    query = json.loads(
+        assistant_turn_query(
+            assistant_input(
+                "direct_answer",
+                message="Can Orqaly execute the CRM update now?",
+                conversation=[
+                    {
+                        "role": "assistant",
+                        "content": "Orqaly already manages every CRM credential.",
+                    }
+                ],
+            )
+        )
+    )
+
+    instruction = query["instruction"]
+    assert "prior assistant claims and user-provided examples as context" in instruction
+    assert "unless the current canonical input explicitly establishes it" in instruction
+    assert "target architecture" in instruction
+    assert "grounded Research" in instruction
+    assert "canonical input explicitly" in CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT
+    assert "current product from the target architecture" in (
+        CONVERSATIONAL_ASSISTANT_SYSTEM_PROMPT
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("response_mode", ["direct_answer", "discover"])
 async def test_conversational_modes_use_only_the_unsearched_runner(
@@ -99,6 +134,7 @@ async def test_conversational_modes_use_only_the_unsearched_runner(
             "sources": [],
             "claims": [],
             "provider_queries": [],
+            "model_version": "gemini-3.8-flash-001",
             "usage_metadata": {"input_tokens": 9, "output_tokens": 1},
             "runtime_diagnostics": {"status": "ok"},
         }
@@ -116,6 +152,8 @@ async def test_conversational_modes_use_only_the_unsearched_runner(
     assert result.metrics is not None
     assert result.metrics.total_tokens == 10
     assert result.metrics.search_calls == 0
+    assert result.metrics.model == "gemini-3.8-flash"
+    assert result.metrics.model_version == "gemini-3.8-flash-001"
 
 
 @pytest.mark.asyncio
@@ -128,6 +166,7 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
             "sources": [],
             "claims": [],
             "provider_queries": ["Estonia EU membership"],
+            "model_version": "gemini-3.8-flash-001",
             "usage_metadata": {"input_tokens": 11, "output_tokens": 7},
             "runtime_diagnostics": {"status": "ok"},
         }
@@ -156,6 +195,8 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
     )
     assert result.metrics is not None
     assert result.metrics.search_calls == 1
+    assert result.metrics.model == "gemini-3.8-flash"
+    assert result.metrics.model_version == "gemini-3.8-flash-001"
 
 
 @pytest.mark.asyncio
@@ -328,3 +369,30 @@ async def test_conversation_runner_deadline_cancels_model_call(
     assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
     assert result["text"] == ""
     assert cancelled.is_set()
+
+
+@pytest.mark.asyncio
+async def test_conversation_runner_exposes_exact_served_model_version() -> None:
+    class VersionedAgent:
+        async def run(self, _query: str):
+            response = ModelResponse(
+                parts=[],
+                model_name="gemini-3.8-flash-001",
+                provider_name="google",
+            )
+            return SimpleNamespace(
+                output="Four.",
+                usage=SimpleNamespace(input_tokens=9, output_tokens=1),
+                response=response,
+                new_messages=lambda: [response],
+            )
+
+    runner = PydanticAIConversationalAssistantRunner.__new__(
+        PydanticAIConversationalAssistantRunner
+    )
+    runner.agent = VersionedAgent()
+
+    result = await runner.search("{}")
+
+    assert result["text"] == "Four."
+    assert result["model_version"] == "gemini-3.8-flash-001"
