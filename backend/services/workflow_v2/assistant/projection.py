@@ -269,6 +269,21 @@ def project_assistant_result(
                 source_urls=urls,
             )
         )
+    if response_mode == "one_shot" and not facts:
+        raw_diagnostics = raw.get("runtime_diagnostics")
+        diagnostics = (
+            {**raw_diagnostics, "status": "response_processing_error"}
+            if isinstance(raw_diagnostics, dict)
+            else {
+                "route": "assistant_one_shot",
+                "status": "response_processing_error",
+            }
+        )
+        raise CognitiveExecutionFailure(
+            "AXWISE_ASSISTANT_UNGROUNDED_RESPONSE",
+            retryable=True,
+            diagnostics=diagnostics,
+        )
     input_tokens, output_tokens, _total_tokens, search_calls = usage_reader(raw)
     recommendation = AssistantRecommendationV1(
         kind="continue_conversation",

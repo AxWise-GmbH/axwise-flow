@@ -26,6 +26,7 @@ from backend.domain.workflow_v2.contracts import (
     SourceSpan,
     SynthesizeArtifactInputV1,
     WorkflowOutputContractV1,
+    WorkflowOutputContractV2,
     artifact_content_hash,
     canonical_hash,
     canonical_json,
@@ -769,6 +770,129 @@ def test_only_ready_launch_authorization_contract_can_allow_launch_readiness() -
                 "launchReadyAllowed": False,
             }
         )
+
+
+def test_output_contract_v2_is_tagged_strict_and_leaves_v1_byte_exact() -> None:
+    requirement_id = "req-0123456789abcdef"
+    criterion_core = {
+        "given": "The owner requests one direct checklist.",
+        "when": "The reader Markdown is published.",
+        "then": "It contains exactly three checklist items within 100 words.",
+        "supports": [requirement_id],
+    }
+    legacy_payload = {
+        "format": "text/markdown",
+        "artifactType": "content_artifact",
+        "requiredSections": ["Checklist"],
+        "requirementIds": [requirement_id],
+        "rubric": ["Honor the accepted reader-facing format."],
+        "acceptanceCriteria": [
+            {
+                "id": f"acc-{canonical_hash(criterion_core)[:16]}",
+                **criterion_core,
+            }
+        ],
+        "evidenceReadiness": "ready",
+        "launchReadyAllowed": False,
+        "sourceAppendixRequired": False,
+    }
+    legacy = WorkflowOutputContractV1.model_validate(legacy_payload)
+    assert legacy.model_dump(
+        mode="json", by_alias=True, exclude_unset=True
+    ) == legacy_payload
+
+    reader_output = {
+        "schemaVersion": "orqaly.reader-output.v1",
+        "readerFormat": {"value": "checklist", "requirementId": requirement_id},
+        "wordLimit": {
+            "maximumWords": 100,
+            "basis": "owner_explicit",
+            "requirementId": requirement_id,
+        },
+        "itemLimit": {
+            "exactItems": 3,
+            "itemKind": "checklist_item",
+            "requirementId": requirement_id,
+        },
+        "measurement": {
+            "scope": "reader_markdown_before_server_disclosures",
+            "wordCounter": "unicode_words_v1",
+            "itemCounter": "top_level_markdown_items_v1",
+        },
+    }
+    current_payload = {
+        **legacy_payload,
+        "schemaVersion": "orqaly.markdown-output-contract.v2",
+        "readerOutput": reader_output,
+    }
+    current = WorkflowOutputContractV2.model_validate(current_payload)
+    assert current.model_dump(mode="json", by_alias=True) == current_payload
+
+    with pytest.raises(ValidationError):
+        WorkflowOutputContractV1.model_validate(current_payload)
+    with pytest.raises(ValidationError, match="requirement IDs"):
+        WorkflowOutputContractV2.model_validate(
+            {
+                **current_payload,
+                "readerOutput": {
+                    **reader_output,
+                    "readerFormat": {
+                        "value": "checklist",
+                        "requirementId": "req-fedcba9876543210",
+                    },
+                },
+            }
+        )
+
+
+def test_plan_v2_reader_output_requires_owner_requirement_provenance() -> None:
+    input_payload = _synthesis_case("execute_task")["input"]
+    plan = deepcopy(
+        next(
+            content["payload"]
+            for content in input_payload["artifactContents"]
+            if content["artifact"]["kind"] == "plan"
+        )
+    )
+    owner_requirement = next(
+        item for item in plan["requirements"] if item["authority"] == "owner"
+    )
+    derived_requirement = next(
+        item for item in plan["requirements"] if item["authority"] != "owner"
+    )
+    plan["workShape"] = "content_artifact"
+    plan["outputContract"] = {
+        **plan["outputContract"],
+        "schemaVersion": "orqaly.markdown-output-contract.v2",
+        "artifactType": "content_artifact",
+        "readerOutput": {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": owner_requirement["id"],
+            },
+            "wordLimit": None,
+            "itemLimit": None,
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        },
+    }
+    plan["planHash"] = canonical_hash(
+        {key: value for key, value in plan.items() if key != "planHash"}
+    )
+    PlanningResultV2.model_validate(plan)
+
+    plan["outputContract"]["readerOutput"]["readerFormat"]["requirementId"] = (
+        derived_requirement["id"]
+    )
+    plan["planHash"] = canonical_hash(
+        {key: value for key, value in plan.items() if key != "planHash"}
+    )
+    with pytest.raises(ValidationError, match="owner-authored"):
+        PlanningResultV2.model_validate(plan)
 
 
 @pytest.mark.parametrize(

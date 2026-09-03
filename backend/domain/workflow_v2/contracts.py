@@ -1164,6 +1164,110 @@ class WorkflowOutputContractV1(ContractModel):
         return self
 
 
+class ReaderOutputFormatV1(ContractModel):
+    value: Literal[
+        "checklist", "template", "email", "message", "post", "script", "faq", "agenda"
+    ]
+    requirement_id: RequirementId
+
+
+class ReaderWordLimitV1(ContractModel):
+    maximum_words: int = Field(ge=1, le=120_000)
+    basis: Literal["owner_explicit", "bounded_content_default_v1"]
+    requirement_id: RequirementId
+
+
+class ReaderItemLimitV1(ContractModel):
+    exact_items: int = Field(ge=1, le=500)
+    item_kind: Literal[
+        "agenda_item",
+        "checklist_item",
+        "email_section",
+        "faq_item",
+        "message_section",
+        "post_section",
+        "script_step",
+        "template_section",
+    ]
+    requirement_id: RequirementId
+
+
+class ReaderOutputMeasurementV1(ContractModel):
+    scope: Literal["reader_markdown_before_server_disclosures"]
+    word_counter: Literal["unicode_words_v1"]
+    item_counter: Literal["top_level_markdown_items_v1"]
+
+
+class ReaderOutputContractV1(ContractModel):
+    schema_version: Literal["orqaly.reader-output.v1"]
+    reader_format: ReaderOutputFormatV1
+    word_limit: ReaderWordLimitV1 | None
+    item_limit: ReaderItemLimitV1 | None
+    measurement: ReaderOutputMeasurementV1
+
+    @model_validator(mode="after")
+    def exact_reader_limits(self) -> "ReaderOutputContractV1":
+        expected_item_kind = {
+            "agenda": "agenda_item",
+            "checklist": "checklist_item",
+            "email": "email_section",
+            "faq": "faq_item",
+            "message": "message_section",
+            "post": "post_section",
+            "script": "script_step",
+            "template": "template_section",
+        }[self.reader_format.value]
+        if (
+            self.item_limit is not None
+            and self.item_limit.item_kind != expected_item_kind
+        ):
+            raise ValueError("reader item kind must match the selected reader format")
+        if (
+            self.word_limit is not None
+            and self.word_limit.basis == "bounded_content_default_v1"
+            and self.word_limit.maximum_words != 250
+        ):
+            raise ValueError("bounded content default v1 is exactly 250 reader words")
+        return self
+
+
+class WorkflowOutputContractV2(WorkflowOutputContractV1):
+    schema_version: Literal["orqaly.markdown-output-contract.v2"]
+    reader_output: ReaderOutputContractV1 | None
+
+    @model_validator(mode="after")
+    def bounded_reader_output(self) -> "WorkflowOutputContractV2":
+        if self.reader_output is not None and self.artifact_type not in {
+            "content_artifact",
+            "general_artifact",
+        }:
+            raise ValueError(
+                "readerOutput is only valid for content or general artifacts"
+            )
+        if self.reader_output is not None:
+            referenced = {
+                self.reader_output.reader_format.requirement_id,
+                *(
+                    [self.reader_output.word_limit.requirement_id]
+                    if self.reader_output.word_limit is not None
+                    else []
+                ),
+                *(
+                    [self.reader_output.item_limit.requirement_id]
+                    if self.reader_output.item_limit is not None
+                    else []
+                ),
+            }
+            if not referenced.issubset(set(self.requirement_ids)):
+                raise ValueError(
+                    "readerOutput requirement IDs must belong to the output contract"
+                )
+        return self
+
+
+WorkflowOutputContract = WorkflowOutputContractV1 | WorkflowOutputContractV2
+
+
 class ExecutionTaskV2(ContractModel):
     stage_id: UUID
     stage_key: Annotated[
@@ -1232,7 +1336,7 @@ class PlanningResultV2(ContractModel):
         "general_artifact",
     ]
     requirements: list[PlanRequirementV2] = Field(min_length=1, max_length=120)
-    output_contract: WorkflowOutputContractV1
+    output_contract: WorkflowOutputContract
     tasks: list[ExecutionTaskV2] = Field(min_length=1, max_length=100)
     plan_hash: Sha256
 
@@ -1248,6 +1352,36 @@ class PlanningResultV2(ContractModel):
             raise ValueError("output contract must cover every plan requirement")
         if self.output_contract.artifact_type != self.work_shape:
             raise ValueError("output contract artifactType must equal plan workShape")
+        if (
+            isinstance(self.output_contract, WorkflowOutputContractV2)
+            and self.output_contract.reader_output is not None
+        ):
+            requirements_by_id = {item.id: item for item in self.requirements}
+            reader_output = self.output_contract.reader_output
+            referenced = {
+                reader_output.reader_format.requirement_id,
+                *(
+                    [reader_output.word_limit.requirement_id]
+                    if reader_output.word_limit is not None
+                    else []
+                ),
+                *(
+                    [reader_output.item_limit.requirement_id]
+                    if reader_output.item_limit is not None
+                    else []
+                ),
+            }
+            if any(
+                requirements_by_id.get(requirement_id) is None
+                or requirements_by_id[requirement_id].authority != "owner"
+                or requirements_by_id[requirement_id].category
+                not in {"deliverable", "limit", "policy"}
+                for requirement_id in referenced
+            ):
+                raise ValueError(
+                    "readerOutput constraints must reference owner-authored "
+                    "deliverable, limit, or policy requirements"
+                )
         if len({task.stage_id for task in self.tasks}) != len(self.tasks):
             raise ValueError("plan task stage IDs must be unique")
         if len({task.stage_key for task in self.tasks}) != len(self.tasks):
@@ -1561,7 +1695,7 @@ class SynthesizeArtifactInputV1(ContractModel):
     evaluation: ArtifactRef | None = None
     repair_pass: Literal[0, 1]
     artifact_contents: list[ImmutableArtifactContent] = Field(min_length=2, max_length=204)
-    output_contract: WorkflowOutputContractV1
+    output_contract: WorkflowOutputContract
 
     @model_validator(mode="after")
     def exact_selected_artifact_contents(self) -> "SynthesizeArtifactInputV1":

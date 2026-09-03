@@ -43,6 +43,7 @@ from backend.domain.workflow_v2.contracts import (
     ImmutableArtifactContent,
     OperationMetrics,
     PlanningResultV2,
+    ReaderOutputContractV1,
     RequirementCoverageV1,
     ResearchArtifactFact,
     ResearchCompletedResult,
@@ -62,6 +63,7 @@ from backend.domain.workflow_v2.contracts import (
     TaskResultV2,
     TopicAnchor,
     WorkflowOutputContractV1,
+    WorkflowOutputContractV2,
     artifact_content_hash,
     canonical_hash,
     canonical_json,
@@ -433,6 +435,7 @@ class SynthesisContext(_DraftModel):
     repair_pass: int = Field(default=0, ge=0, le=1)
     quality_gate_required: bool = False
     practical_output_required: bool = False
+    reader_output: ReaderOutputContractV1 | None = None
     artifact_type: str | None = None
     final_repair_topology: FinalRepairTopology | None = None
 
@@ -489,6 +492,11 @@ use launch_authorization only when the artifact itself makes a go/no-go legal, s
 launch decision. Each criterion supports exact accepted-list descriptions or one of the seven
 requirement categories; the server generates stable requirement/criterion IDs and exact
 priority/authority. Evidence requirements must be claim-specific;
+Use content_artifact for a bounded reader-facing deliverable such as a checklist, template,
+email, message, post, script, FAQ, or agenda. Do not classify a checklist as an
+operational_plan merely because its subject is operational. Use operational_plan only when the
+requested deliverable itself is a plan, procedure, playbook, runbook, or roadmap with broader
+execution guidance.
 mark only essential legal/safety evidence as blocking. Optional statistics, offers, or
 commercial details are nonblocking. Give every requirement one typed evidenceRole.
 Use grounded_claim with verificationBasis grounded_claims for general law, standards,
@@ -696,9 +704,191 @@ def _canonical_required_sections(
     return utf16_ordinal_sorted(sections_by_identity.values())
 
 
+_DIRECT_CHECKLIST_TERM = re.compile(r"\bchecklists?\b", re.IGNORECASE)
+_OPERATIONAL_PLAN_DELIVERABLE_TERM = re.compile(
+    r"\b(?:operational\s+plans?|implementation\s+plans?|execution\s+plans?|"
+    r"launch\s+plans?|plans?|procedures?|playbooks?|runbooks?|roadmaps?)\b",
+    re.IGNORECASE,
+)
+_BROAD_PLAN_DELIVERABLE_TERM = re.compile(
+    r"\b(?:operational\s+plans?|plans?|procedures?|playbooks?|runbooks?|roadmaps?|"
+    r"strateg(?:y|ies)|product\s+requirements\s+documents?|prds?)\b",
+    re.IGNORECASE,
+)
+_OWNER_ARTIFACT_DIRECTIVE = re.compile(
+    r"\b(?:create|write|draft|prepare|provide|produce|generate|build|make|keep|"
+    r"give|want|need)\b"
+    r"(?P<body>[^.!?;\n]{0,180})",
+    re.IGNORECASE,
+)
+_OWNER_ARTIFACT_CONVERSION = re.compile(
+    r"\b(?:turn|convert|change|switch|rework|replace)\b"
+    r"[^.!?;\n]{0,100}?\b(?:into|to|as)\b"
+    r"(?P<body>[^.!?;\n]{0,140})",
+    re.IGNORECASE,
+)
+_OWNER_ARTIFACT_TERMS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
+    (
+        "launch_authorization",
+        False,
+        re.compile(
+            r"\b(?:go\s*/\s*no-go|launch\s+(?:authorization|decision))\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "software_prd",
+        False,
+        re.compile(
+            r"\b(?:software|system|technical)\s+(?:prd|requirements?\s+document)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "product_prd",
+        False,
+        re.compile(
+            r"\b(?:product\s+(?:prd|requirements?\s+document)|prd)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "research_strategy",
+        False,
+        re.compile(r"\bresearch\s+strateg(?:y|ies)\b", re.IGNORECASE),
+    ),
+    (
+        "operational_plan",
+        False,
+        _OPERATIONAL_PLAN_DELIVERABLE_TERM,
+    ),
+    ("content_artifact", True, _DIRECT_CHECKLIST_TERM),
+    (
+        "content_artifact",
+        False,
+        re.compile(
+            r"\b(?:templates?|emails?|messages?|posts?|scripts?|faqs?|agendas?|"
+            r"reports?|documents?)\b",
+            re.IGNORECASE,
+        ),
+    ),
+)
+_CHECKLIST_PLAN_ARTIFACT_TYPES = frozenset(
+    {"content_artifact", "operational_plan"}
+)
+
+
+def _first_owner_artifact_mention(value: str) -> tuple[str, bool] | None:
+    candidates: list[tuple[int, int, str, bool]] = []
+    for priority, (artifact_type, is_checklist, pattern) in enumerate(
+        _OWNER_ARTIFACT_TERMS
+    ):
+        match = pattern.search(value)
+        if match is not None:
+            candidates.append((match.start(), priority, artifact_type, is_checklist))
+    if not candidates:
+        return None
+    _start, _priority, artifact_type, is_checklist = min(candidates)
+    return artifact_type, is_checklist
+
+
+def _explicit_owner_artifact_intent(value: str) -> tuple[str, bool] | None:
+    """Return the last explicit owner request/conversion target in the message."""
+
+    candidates: list[tuple[int, tuple[str, bool]]] = []
+    for pattern in (_OWNER_ARTIFACT_DIRECTIVE, _OWNER_ARTIFACT_CONVERSION):
+        for directive in pattern.finditer(value):
+            intent = _first_owner_artifact_mention(directive.group("body"))
+            if intent is not None:
+                candidates.append((directive.start(), intent))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda candidate: candidate[0])[1]
+
+
+def _standalone_checklist_deliverable(deliverables: Sequence[str]) -> bool:
+    return (
+        len(deliverables) == 1
+        and _DIRECT_CHECKLIST_TERM.search(deliverables[0]) is not None
+        and _BROAD_PLAN_DELIVERABLE_TERM.search(deliverables[0]) is None
+    )
+
+
+def _canonical_artifact_type(
+    current_owner_text: str,
+    profile: DraftDeliverableProfile,
+    deliverables: Sequence[str],
+    *,
+    owner_prior_texts: Sequence[str] = (),
+    prior_artifact_type: str | None = None,
+) -> str:
+    """Resolve checklist/plan type only from validated owner-authority text.
+
+    CompileScopeV3 supplies the exact current/prior owner source-span text and never
+    assistant-reference text. Current owner intent wins. A revision without an explicit
+    artifact intent retains the sealed prior type rather than accepting model drift.
+    """
+
+    current_intent = _explicit_owner_artifact_intent(current_owner_text)
+    if current_intent is not None:
+        artifact_type, is_checklist = current_intent
+        if (
+            is_checklist
+            and profile.artifact_type in _CHECKLIST_PLAN_ARTIFACT_TYPES
+        ):
+            if _standalone_checklist_deliverable(deliverables):
+                return "content_artifact"
+            if any(
+                _OPERATIONAL_PLAN_DELIVERABLE_TERM.search(deliverable) is not None
+                for deliverable in deliverables
+            ):
+                return "operational_plan"
+        elif (
+            artifact_type == "operational_plan"
+            and profile.artifact_type in _CHECKLIST_PLAN_ARTIFACT_TYPES
+        ):
+            return "operational_plan"
+        # Any other explicit artifact request is outside this narrow correction;
+        # retain the typed model classification (including launch authorization).
+        return profile.artifact_type
+
+    if prior_artifact_type is not None:
+        return prior_artifact_type
+
+    for owner_text in reversed(tuple(owner_prior_texts)):
+        prior_intent = _explicit_owner_artifact_intent(owner_text)
+        if prior_intent is None:
+            continue
+        artifact_type, is_checklist = prior_intent
+        if (
+            is_checklist
+            and profile.artifact_type in _CHECKLIST_PLAN_ARTIFACT_TYPES
+            and _standalone_checklist_deliverable(deliverables)
+        ):
+            return "content_artifact"
+        if (
+            is_checklist
+            and profile.artifact_type in _CHECKLIST_PLAN_ARTIFACT_TYPES
+            and any(
+                _OPERATIONAL_PLAN_DELIVERABLE_TERM.search(deliverable) is not None
+                for deliverable in deliverables
+            )
+        ):
+            return "operational_plan"
+        if (
+            artifact_type == "operational_plan"
+            and profile.artifact_type in _CHECKLIST_PLAN_ARTIFACT_TYPES
+        ):
+            return "operational_plan"
+        break
+    return profile.artifact_type
+
+
 def _project_deliverable_contract(
     *,
     authority_text: str,
+    current_owner_text: str | None = None,
+    owner_prior_texts: Sequence[str] = (),
     profile: DraftDeliverableProfile,
     evidence_requirements: list[EvidenceRequirement],
     deliverables: list[str],
@@ -715,16 +905,31 @@ def _project_deliverable_contract(
     list[AcceptedDeliverableRequirementV1],
     list[DeliverableAcceptanceCriterionV1],
 ]:
+    artifact_type = _canonical_artifact_type(
+        authority_text if current_owner_text is None else current_owner_text,
+        profile,
+        deliverables,
+        owner_prior_texts=owner_prior_texts,
+        prior_artifact_type=(
+            prior_scope.deliverable_profile.artifact_type if prior_scope else None
+        ),
+    )
+    direct_checklist = (
+        artifact_type == "content_artifact"
+        and _standalone_checklist_deliverable(deliverables)
+    )
     accepted_profile = AcceptedDeliverableProfileV1(
         schema_version="axwise.deliverable-profile.v1",
-        artifact_type=profile.artifact_type,
+        artifact_type=artifact_type,
         domain=profile.domain.strip(),
         problem=profile.problem.strip(),
         desired_outcome=profile.desired_outcome.strip(),
         audiences=utf16_ordinal_sorted(set(profile.audiences)),
         non_goals=utf16_ordinal_sorted(set(profile.non_goals)),
-        required_sections=_canonical_required_sections(
-            profile.artifact_type, profile.required_sections
+        required_sections=(
+            ["Checklist"]
+            if direct_checklist
+            else _canonical_required_sections(artifact_type, profile.required_sections)
         ),
     )
     default_values = {
@@ -853,7 +1058,9 @@ def _scope_v3_draft_context(input_value: CompileScopeInputV3) -> ScopeV3DraftCon
     context = input_value.assistant_context
     request = render_assistant_context_request(context)
     if request != input_value.request:
-        raise ValueError("CompileScopeV3 request is not the canonical context rendering")
+        raise ValueError(
+            "CompileScopeV3 request is not the canonical context rendering"
+        )
 
     segments: list[ScopeAuthoritySegmentV1] = []
     current_end = utf16_length(context.instruction.content)
@@ -910,6 +1117,8 @@ def _validate_draft(
     *,
     source_segments: Sequence[ScopeAuthoritySegmentV1] | None = None,
     owner_authority_text: str | None = None,
+    current_owner_text: str | None = None,
+    owner_prior_texts: Sequence[str] = (),
     safe_default_constraints: frozenset[str] | None = None,
 ) -> None:
     if len({item.id for item in draft.evidence_requirements}) != len(
@@ -952,6 +1161,10 @@ def _validate_draft(
     _validate_atomic_evidence_requirements(draft.evidence_requirements)
     _project_deliverable_contract(
         authority_text=owner_authority_text or request,
+        current_owner_text=(
+            request if current_owner_text is None else current_owner_text
+        ),
+        owner_prior_texts=owner_prior_texts,
         profile=draft.deliverable_profile,
         evidence_requirements=draft.evidence_requirements,
         deliverables=draft.deliverables,
@@ -966,11 +1179,16 @@ def _validate_draft(
 
 def _validate_v3_draft(input_value: CompileScopeInputV3, draft: ScopeDraft) -> None:
     context = _scope_v3_draft_context(input_value)
+    assistant_context = input_value.assistant_context
     _validate_draft(
         context.request,
         draft,
         source_segments=context.source_segments,
         owner_authority_text=context.owner_authority_text,
+        current_owner_text=assistant_context.instruction.source_span.text,
+        owner_prior_texts=tuple(
+            turn.user.source_span.text for turn in assistant_context.turns
+        ),
         safe_default_constraints=context.safe_default_constraints,
     )
 
@@ -1299,7 +1517,11 @@ return no topic anchors; the server preserves the accepted anchors. Apply the sa
 to objective_changed and objective offsets. Return all other semantic lists as their
 complete revised values, including deliverableProfile and acceptanceCriteria. Keep product_prd
 distinct from software_prd; use launch_authorization only for an actual go/no-go legal, safety
-or launch decision. Criterion supports name exact accepted-list descriptions or requirement
+or launch decision. Use content_artifact for a bounded reader-facing deliverable such as a
+checklist, template, email, message, post, script, FAQ, or agenda; do not classify a checklist
+as an operational_plan merely because its subject is operational. Use operational_plan only
+when the requested deliverable itself is a broader plan, procedure, playbook, runbook, or
+roadmap. Criterion supports name exact accepted-list descriptions or requirement
 categories; the server generates semantic IDs. Never use chat history or unrelated context. Evidence
 requirements remain claim-specific; only essential legal/safety evidence may block.
 For an explicit publisher or official-documentation restriction in OWNER_CORRECTION or the
@@ -1488,6 +1710,11 @@ from proposed targets, and never attach a marker to a line containing an unsuppo
 When evidence readiness is not ready, include an explicit `Evidence gaps` or `Assumptions`
 Markdown heading even in a bounded specialist packet. Use ordinary Markdown tables, never
 ASCII-art tables inside code fences.
+When OUTPUT_CONTRACT.artifactType is content_artifact or general_artifact, honor the requested
+reader-facing length, item-count, and format exactly. Keep requirement proof in the typed
+`requirement_coverage` field. Do not add analysis, risk registers, traceability tables,
+acceptance-test prose, or workflow metadata to the Markdown unless an accepted owner
+requirement or required section explicitly requests it.
 Return typed title, Markdown, coverage, conclusions and unknowns.
 """
 ).strip()
@@ -1510,6 +1737,9 @@ allowed without citations; do not mistake them for verified external facts. Requ
 requirements, requirement-linked Given/When/Then checks, metrics or
 validation and concrete next steps for PRDs. Apply software technical-boundary checks only when
 artifactType is software_prd. Do not treat an explicitly labelled assumption or validation target as a verified fact.
+For content_artifact and general_artifact, treat unrequested analysis or material that violates
+an accepted owner length, item-count, or format constraint as a substantive defect; typed
+coverage metadata does not need to appear in the reader-facing Markdown.
 Return bounded repair instructions only for concrete defects; preserve valid material and never
 request wholesale regeneration. The server deterministically owns requirement coverage,
 citation resolution, satisfaction and direct-promotion facts.
@@ -1543,6 +1773,10 @@ not verified external facts. Preserve neutral persona archetypes and jobs; do no
 ages, neighbourhoods, demographics, interviews or quotations. Use ordinary Markdown tables,
 complete Given/When/Then acceptance checks and substantive section content. Never author a
 Sources appendix because the server appends it from immutable claim metadata.
+For content_artifact and general_artifact, preserve the accepted reader-facing length,
+item-count, and format exactly. Remove unrequested analysis, risk registers, traceability
+tables, acceptance-test prose, and workflow metadata instead of expanding a concise artifact;
+typed coverage remains outside the Markdown.
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
@@ -1992,8 +2226,10 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
     allowed = set(context.allowed_claim_ids)
     if citations - allowed:
         raise ValueError("Markdown cites evidence outside the immutable claim ledger")
-    if allowed and not citations and not (
-        context.purpose == "execute_task" and not context.required_sections
+    if (
+        allowed
+        and not citations
+        and not (context.purpose == "execute_task" and not context.required_sections)
     ):
         raise ValueError("evidence-backed Markdown must cite immutable claim IDs")
     if context.evidence_readiness in {"ready_with_gaps", "blocked"}:
@@ -2034,6 +2270,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             draft.markdown,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         topology = (
             _final_repair_topology_defects(
@@ -3336,9 +3573,12 @@ def _unresolved_evidence_requirement_descriptions(
 def _split_unresolved_assertions(fragment: str) -> list[str]:
     """Separate an unresolved status clause from an unrelated positive assertion."""
 
-    if _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
-        re.sub(r"[`]", "", fragment).strip()
-    ) is not None:
+    if (
+        _PUBLICATION_UNKNOWN_PENDING_ITEM.fullmatch(
+            re.sub(r"[`]", "", fragment).strip()
+        )
+        is not None
+    ):
         return [fragment.strip()]
     controlled_prefix = _PUBLICATION_UNKNOWN_PENDING_PREFIX.search(fragment)
     if controlled_prefix is not None:
@@ -3616,13 +3856,9 @@ def _deterministic_evidence_integrity_defects(
                 continue
             if exact_explicit_gap_fragment(fragment):
                 expanded_fragments.append((fragment, fragment_context))
-            elif (
-                _SERVER_VALIDATION_ACTION.fullmatch(
-                    re.sub(r"[*_`]", "", fragment).strip()
-                )
-                is not None
-                and _is_bounded_unresolved_requirement_action(fragment)
-            ):
+            elif _SERVER_VALIDATION_ACTION.fullmatch(
+                re.sub(r"[*_`]", "", fragment).strip()
+            ) is not None and _is_bounded_unresolved_requirement_action(fragment):
                 # The complete proposition is inside one bounded verification
                 # question. Keep it intact so conjunctions in the question cannot be
                 # misread as independently asserted factual tails.
@@ -3679,14 +3915,15 @@ def _deterministic_evidence_integrity_defects(
                 not conditional_ui_behavior
                 and not safe_non_authority_planning_directive
                 and (
-                _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
-                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
-                or gwt_authority_execution
-                or (
-                    raw_conditional_then_candidate
-                    and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                    _EVIDENCE_SENSITIVE_ASSERTION.search(without_markers) is not None
+                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
                     is not None
-                )
+                    or gwt_authority_execution
+                    or (
+                        raw_conditional_then_candidate
+                        and _CONDITIONAL_AUTHORITY_ASSERTION.search(without_markers)
+                        is not None
+                    )
                 )
             )
             conditional_then_candidate = (
@@ -3751,17 +3988,12 @@ def _deterministic_evidence_integrity_defects(
                 for requirement in unresolved_evidence_requirements
             )
             exact_explicit_gap_label = exact_explicit_gap_fragment(without_markers)
-            hard_authority = (
-                not safe_non_authority_planning_directive
-                and (
-                    _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers)
-                    is not None
-                    or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers)
-                    is not None
-                    or planning_target_authority_assertion
-                    or validation_action_authority_execution
-                    or conditional_then_candidate
-                )
+            hard_authority = not safe_non_authority_planning_directive and (
+                _NONPROVISIONAL_AUTHORITY_ASSERTION.search(without_markers) is not None
+                or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is not None
+                or planning_target_authority_assertion
+                or validation_action_authority_execution
+                or conditional_then_candidate
             )
             if not precise_values and not sensitive and not unresolved_alignment:
                 continue
@@ -4329,6 +4561,7 @@ def _repair_final_gwt_evidence_assertions(
             current,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         changed = False
         for index, line in enumerate(lines):
@@ -4380,6 +4613,7 @@ def _repair_final_gwt_evidence_assertions(
                 trial,
                 practical_output_required=context.practical_output_required,
                 artifact_type=context.artifact_type,
+                reader_output=context.reader_output,
             )
             if set(trial_substantive).difference(before_substantive) or set(
                 trial_practical
@@ -5118,8 +5352,7 @@ def _with_canonical_acceptance_criteria(
                 f"- **Then** {criterion.then}",
                 "- **Supports** "
                 + ", ".join(
-                    f"`{requirement_id}`"
-                    for requirement_id in criterion.supports
+                    f"`{requirement_id}`" for requirement_id in criterion.supports
                 ),
                 "",
             ]
@@ -5663,11 +5896,13 @@ def _project_redundant_unsupported_gate_diagrams(
             current,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         trial_substantive, trial_practical = _deterministic_quality_defects(
             trial,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         if (
             len(trial_defects) >= len(before_defects)
@@ -5754,9 +5989,7 @@ def _project_server_validation_scaffolding(
                     trial_pieces[piece_index] = replacement
                     line_changed = True
                     continue
-                replacement = _publication_unknown_item_inline(
-                    pieces[piece_index]
-                )
+                replacement = _publication_unknown_item_inline(pieces[piece_index])
                 if replacement != pieces[piece_index]:
                     trial_pieces[piece_index] = replacement
                     line_changed = True
@@ -5818,8 +6051,7 @@ def _project_fenced_ascii_roadmaps(
             for match in _FENCED_ROADMAP_LABEL.finditer(body)
         ]
         is_ascii_table = (
-            "|" in body
-            and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
+            "|" in body and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", body) is not None
         )
         table_recognized = (
             is_ascii_table
@@ -5914,11 +6146,13 @@ def _project_fenced_ascii_roadmaps(
             current,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         trial_substantive, trial_practical = _deterministic_quality_defects(
             trial,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         ascii_defect = (
             "The candidate uses an ASCII-art table inside a code fence instead of "
@@ -6014,6 +6248,7 @@ def _project_remaining_evidence_defects(
             current,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         changed = False
         for line_index, line in enumerate(lines):
@@ -6047,11 +6282,7 @@ def _project_remaining_evidence_defects(
                             for fragment in fragments
                             if any(excerpt in fragment for excerpt in excerpts)
                         ],
-                        *[
-                            excerpt
-                            for excerpt in excerpts
-                            if excerpt in piece
-                        ],
+                        *[excerpt for excerpt in excerpts if excerpt in piece],
                         *parsed_candidates,
                     ]
                     for candidate in candidates:
@@ -6094,6 +6325,7 @@ def _project_remaining_evidence_defects(
                                     context.practical_output_required
                                 ),
                                 artifact_type=context.artifact_type,
+                                reader_output=context.reader_output,
                             )
                         )
                         if (
@@ -6344,8 +6576,7 @@ def _without_unbound_task_evidence_markers(
 
     allowed = set(context.allowed_claim_ids)
     heading_positions = [
-        position
-        for position, _name, _folded in _markdown_headings(draft.markdown)
+        position for position, _name, _folded in _markdown_headings(draft.markdown)
     ]
     first_heading = min(heading_positions) if heading_positions else len(draft.markdown)
 
@@ -6379,6 +6610,82 @@ _PUBLICATION_EVIDENCE_STATUS_BLOCK = (
     "verification** and the explicit legal, safety, product, or market gaps "
     "below must be resolved before relying on them for execution or launch."
 )
+_TOP_LEVEL_MARKDOWN_ITEM = re.compile(
+    r"^(?: {0,3})(?:[-+*]|\d+[.)])\s+\S", re.MULTILINE
+)
+_TOP_LEVEL_MARKDOWN_CHECKLIST_ITEM = re.compile(
+    r"^(?: {0,3})[-+*]\s+\[[ xX]\]\s+\S.*$", re.MULTILINE
+)
+
+
+def _reader_output_defects(
+    markdown: str, reader_output: ReaderOutputContractV1 | None
+) -> list[str]:
+    """Validate only the reader-authored body covered by the immutable V2 contract."""
+
+    if reader_output is None:
+        return []
+    defects: list[str] = []
+    word_limit = reader_output.word_limit
+    if word_limit is not None:
+        word_count = len(re.findall(r"\b[\w'-]+\b", markdown, re.UNICODE))
+        if word_count > word_limit.maximum_words:
+            defects.append(
+                "Reader Markdown exceeds the accepted maximum of "
+                f"{word_limit.maximum_words} words ({word_count} measured)."
+            )
+    item_limit = reader_output.item_limit
+    all_items = _TOP_LEVEL_MARKDOWN_ITEM.findall(markdown)
+    measured_items = all_items
+    measured_item_label = "top-level Markdown items"
+    if reader_output.reader_format.value == "checklist":
+        checklist_items = _TOP_LEVEL_MARKDOWN_CHECKLIST_ITEM.findall(markdown)
+        measured_items = checklist_items
+        measured_item_label = "top-level checklist items"
+        if not checklist_items:
+            defects.append(
+                "Reader Markdown must contain at least one top-level checklist item."
+            )
+        if len(all_items) != len(checklist_items):
+            defects.append(
+                "Reader Markdown must use top-level Markdown checklist items only."
+            )
+    if item_limit is not None and len(measured_items) != item_limit.exact_items:
+        defects.append(
+            "Reader Markdown must contain exactly "
+            f"{item_limit.exact_items} {measured_item_label} "
+            f"({len(measured_items)} measured)."
+        )
+    return defects
+
+
+def _project_reader_output_draft(
+    draft: SynthesisDraft, reader_output: ReaderOutputContractV1 | None
+) -> SynthesisDraft:
+    """Project a direct checklist to its requested reader-facing artifact.
+
+    Analysis, traceability, and evidence disclosure remain typed/server-owned data. For a
+    checklist contract the publication body is its title plus the model-authored checkbox
+    items; the server appends any required disclosures after this measured body.
+    """
+
+    if reader_output is None or reader_output.reader_format.value != "checklist":
+        return draft
+    checklist_items = _TOP_LEVEL_MARKDOWN_CHECKLIST_ITEM.findall(draft.markdown)
+    if not checklist_items:
+        return draft
+    heading = f"# {draft.title.strip()}"
+    prior_lines = draft.markdown[: draft.markdown.find(checklist_items[0])].splitlines()
+    checklist_headings = [
+        match.group(1).strip()
+        for line in prior_lines
+        if (match := _MARKDOWN_HEADING.fullmatch(line.strip())) is not None
+        and _DIRECT_CHECKLIST_TERM.search(match.group(1)) is not None
+    ]
+    if checklist_headings:
+        heading = f"# {checklist_headings[-1]}"
+    markdown = "\n\n".join((heading, "\n".join(checklist_items)))
+    return draft.model_copy(update={"markdown": markdown})
 
 
 def _immutable_claim_covers_publication_assertion(
@@ -6449,13 +6756,18 @@ def _without_mismatched_publication_evidence_markers(
             )
         ]
         retained_texts = [context.allowed_claim_texts[item] for item in retained_ids]
-        collectively_supported = bool(retained_texts) and not assertion_values.difference(
+        collectively_supported = bool(
+            retained_texts
+        ) and not assertion_values.difference(
             set().union(*(_precision_values(text) for text in retained_texts))
         )
-        collectively_supported = collectively_supported and _claims_align_with_assertion(
-            assertion,
-            retained_texts,
-            minimum_matches=minimum_matches,
+        collectively_supported = (
+            collectively_supported
+            and _claims_align_with_assertion(
+                assertion,
+                retained_texts,
+                minimum_matches=minimum_matches,
+            )
         )
         retained = set(retained_ids if collectively_supported else [])
         cleaned = _RAW_EVIDENCE_MARKER.sub(
@@ -6496,14 +6808,14 @@ def _without_mismatched_publication_evidence_markers(
     )
 
 
-def _normalize_publication_draft(
+def _normalize_reader_draft(
     context: SynthesisContext, draft: SynthesisDraft
 ) -> SynthesisDraft:
-    """Apply one non-rejecting AxWise publication boundary.
+    """Normalize only the model-authored reader body before server disclosures.
 
-    Typed model parsing remains bounded, but prose is not sent through another semantic
-    retry loop. This normalizer keeps immutable provenance and launch boundaries while
-    preserving the useful document the model authored.
+    This boundary removes model-owned provenance scaffolding and unsafe authority claims.
+    Immutable gaps, traceability, evidence status, and Sources are appended later so V2
+    presentation measurement never counts server-owned disclosure text.
     """
 
     prepared = SynthesisDraft.model_validate(draft)
@@ -6537,9 +6849,7 @@ def _normalize_publication_draft(
         cleaned = _SERVER_UNVERIFIED_VALIDATION_TARGET_INLINE.sub(
             lambda match: replacement_prefix + match.group("body"), line
         )
-        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(
-            replacement_prefix, cleaned
-        )
+        cleaned = _PUBLICATION_UNKNOWN_PENDING_PREFIX.sub(replacement_prefix, cleaned)
         lines.append(cleaned)
     markdown = "\n".join(lines)
 
@@ -6567,7 +6877,17 @@ def _normalize_publication_draft(
                 markdown, has_positive_launch_readiness_claim
             ).strip()
 
-    prepared = prepared.model_copy(update={"markdown": markdown})
+    return SynthesisDraft.model_validate(
+        prepared.model_copy(update={"markdown": markdown})
+    )
+
+
+def _decorate_publication_draft(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Append immutable server-owned disclosure and traceability material."""
+
+    prepared = SynthesisDraft.model_validate(draft)
     prepared = SynthesisDraft.model_validate(
         _with_immutable_gap_labels(context, prepared)
     )
@@ -6599,6 +6919,16 @@ def _normalize_publication_draft(
         prepared = prepared.model_copy(update={"markdown": "\n".join(markdown_lines)})
 
     return SynthesisDraft.model_validate(prepared)
+
+
+def _normalize_publication_draft(
+    context: SynthesisContext, draft: SynthesisDraft
+) -> SynthesisDraft:
+    """Apply the complete non-rejecting AxWise publication boundary."""
+
+    reader_draft = _normalize_reader_draft(context, draft)
+    reader_draft = _project_reader_output_draft(reader_draft, context.reader_output)
+    return _decorate_publication_draft(context, reader_draft)
 
 
 def _prepare_task_draft_for_execution(
@@ -6731,16 +7061,24 @@ def _contains_server_unverified_validation_target(markdown: str) -> bool:
 
 
 def _deterministic_quality_defects(
-    markdown: str, *, practical_output_required: bool, artifact_type: str | None = None
+    markdown: str,
+    *,
+    practical_output_required: bool,
+    artifact_type: str | None = None,
+    reader_output: ReaderOutputContractV1 | None = None,
 ) -> tuple[list[str], list[str]]:
     base = markdown.split("\n\n## Sources\n", 1)[0]
     words = re.findall(r"\b[\w'-]+\b", base)
     substantive: list[str] = []
     practical: list[str] = []
-    if len(words) < 120:
+    if (
+        artifact_type not in {"content_artifact", "general_artifact"}
+        and len(words) < 120
+    ):
         substantive.append(
             "The candidate is too thin to be a substantive full-contract artifact."
         )
+    substantive.extend(_reader_output_defects(base, reader_output))
     shell_labels = sum(
         label in base.casefold()
         for label in (
@@ -7120,6 +7458,23 @@ class PydanticAISynthesisWriter:
             retries={"output": 2},
         )
 
+        @self.final_agent.output_validator
+        async def validate_final_reader_output(
+            ctx: RunContext[SynthesisContext], output: SynthesisDraft
+        ) -> SynthesisDraft:
+            if ctx.deps.reader_output is None:
+                return output
+            reader_draft = _normalize_reader_draft(ctx.deps, output)
+            reader_draft = _project_reader_output_draft(
+                reader_draft, ctx.deps.reader_output
+            )
+            defects = _reader_output_defects(
+                reader_draft.markdown, ctx.deps.reader_output
+            )
+            if defects:
+                raise ModelRetry("; ".join(defects))
+            return reader_draft
+
         @self.blocked_agent.output_validator
         async def validate_blocked_output(
             ctx: RunContext[SynthesisContext], output: SynthesisDraft
@@ -7179,15 +7534,12 @@ class PydanticAISynthesisWriter:
             if isinstance(claim.get("claimId"), str)
         }
         return [
-            claims_by_id[claim_id]
-            for claim_id in utf16_ordinal_sorted(claims_by_id)
+            claims_by_id[claim_id] for claim_id in utf16_ordinal_sorted(claims_by_id)
         ]
 
     @classmethod
     def _allowed_claim_ids(cls, research_payload: dict[str, Any]) -> list[str]:
-        return [
-            claim["claimId"] for claim in cls._accepted_claims(research_payload)
-        ]
+        return [claim["claimId"] for claim in cls._accepted_claims(research_payload)]
 
     @classmethod
     def _allowed_claim_texts(cls, research_payload: dict[str, Any]) -> dict[str, str]:
@@ -7284,6 +7636,11 @@ class PydanticAISynthesisWriter:
         )
         work_shape = plan_payload.get("workShape") if plan_payload else None
         scope = ScopeArtifactV2.model_validate(scope_payload)
+        reader_output = (
+            input_value.output_contract.reader_output
+            if isinstance(input_value.output_contract, WorkflowOutputContractV2)
+            else None
+        )
         return SynthesisContext(
             purpose=input_value.purpose,
             required_sections=required_sections,
@@ -7315,14 +7672,17 @@ class PydanticAISynthesisWriter:
             in {"final_synthesis", "blocked_report"},
             practical_output_required=(
                 input_value.purpose == "blocked_report"
-                or work_shape
-                in {
-                    "product_prd",
-                    "software_prd",
-                    "research_strategy",
-                    "operational_plan",
-                }
+                or (
+                    work_shape
+                    in {
+                        "product_prd",
+                        "software_prd",
+                        "research_strategy",
+                        "operational_plan",
+                    }
+                )
             ),
+            reader_output=reader_output,
             artifact_type=input_value.output_contract.artifact_type,
         )
 
@@ -7443,8 +7803,7 @@ class PydanticAISynthesisWriter:
         requirement_by_id = {
             requirement.get("id"): requirement
             for requirement in (scope_payload or {}).get("evidenceRequirements", [])
-            if isinstance(requirement, dict)
-            and isinstance(requirement.get("id"), str)
+            if isinstance(requirement, dict) and isinstance(requirement.get("id"), str)
         }
         projected["unresolvedEvidence"] = []
         for finding in findings:
@@ -7581,6 +7940,7 @@ class PydanticAISynthesisWriter:
             projected.markdown,
             practical_output_required=context.practical_output_required,
             artifact_type=context.artifact_type,
+            reader_output=context.reader_output,
         )
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
@@ -7763,9 +8123,7 @@ class PydanticAISynthesisWriter:
                 markdown=core.markdown,
             )
             context = context.model_copy(
-                update={
-                    "final_repair_topology": _final_repair_topology(core.markdown)
-                }
+                update={"final_repair_topology": _final_repair_topology(core.markdown)}
             )
         prompt = self._final_repair_prompt(input_value, selected_contents, context)
         try:
@@ -8631,13 +8989,20 @@ class GeminiCognitiveExecutor:
         evidence_requirements = draft.evidence_requirements
         policies = draft.policies
         authority_text = input_value.request
+        current_owner_text = input_value.request
+        owner_prior_texts: tuple[str, ...] = ()
         if isinstance(input_value, CompileScopeInputV3):
-            authority_text = _scope_v3_draft_context(
-                input_value
-            ).owner_authority_text
+            authority_text = _scope_v3_draft_context(input_value).owner_authority_text
+            current_owner_text = input_value.assistant_context.instruction.source_span.text
+            owner_prior_texts = tuple(
+                turn.user.source_span.text
+                for turn in input_value.assistant_context.turns
+            )
         deliverable_profile, requirements, acceptance_criteria = (
             _project_deliverable_contract(
                 authority_text=authority_text,
+                current_owner_text=current_owner_text,
+                owner_prior_texts=owner_prior_texts,
                 profile=draft.deliverable_profile,
                 evidence_requirements=evidence_requirements,
                 deliverables=draft.deliverables,
@@ -9877,6 +10242,11 @@ class GeminiCognitiveExecutor:
         selected_contents = input_value.artifact_contents
         research_context_payload = research.model_dump(mode="json", by_alias=True)
         scope_context_payload = scope.model_dump(mode="json", by_alias=True)
+        reader_output = (
+            input_value.output_contract.reader_output
+            if isinstance(input_value.output_contract, WorkflowOutputContractV2)
+            else None
+        )
         common_context = SynthesisContext(
             purpose=input_value.purpose,
             required_sections=input_value.output_contract.required_sections,
@@ -9917,6 +10287,7 @@ class GeminiCognitiveExecutor:
                     }
                 )
             ),
+            reader_output=reader_output,
             artifact_type=input_value.output_contract.artifact_type,
         )
         permitted_evidence_gap_ids = (
@@ -10017,14 +10388,9 @@ class GeminiCognitiveExecutor:
             }
             local_substantive, local_practicality = _deterministic_quality_defects(
                 draft.markdown,
-                practical_output_required=plan.work_shape
-                in {
-                    "product_prd",
-                    "software_prd",
-                    "research_strategy",
-                    "operational_plan",
-                },
+                practical_output_required=common_context.practical_output_required,
                 artifact_type=plan.work_shape,
+                reader_output=common_context.reader_output,
             )
             local_evidence_integrity = _deterministic_evidence_integrity_defects(
                 draft.markdown,
@@ -10044,6 +10410,7 @@ class GeminiCognitiveExecutor:
             if (
                 input_value.task.task_kind == "core_draft"
                 and input_value.task.produces_full_contract
+                and common_context.reader_output is None
             ):
                 publication_context = context.model_copy(
                     update={
@@ -10241,14 +10608,9 @@ class GeminiCognitiveExecutor:
                     continue
                 content_defects, practical_defects = _deterministic_quality_defects(
                     markdown,
-                    practical_output_required=plan.work_shape
-                    in {
-                        "product_prd",
-                        "software_prd",
-                        "research_strategy",
-                        "operational_plan",
-                    },
+                    practical_output_required=common_context.practical_output_required,
                     artifact_type=plan.work_shape,
+                    reader_output=common_context.reader_output,
                 )
                 deterministic_substantive.extend(content_defects)
                 deterministic_practicality.extend(practical_defects)
@@ -10399,7 +10761,18 @@ class GeminiCognitiveExecutor:
         draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
             written
         )
-        draft = _normalize_publication_draft(common_context, draft)
+        reader_draft = _normalize_reader_draft(common_context, draft)
+        reader_draft = _project_reader_output_draft(
+            reader_draft, common_context.reader_output
+        )
+        reader_defects = _reader_output_defects(
+            reader_draft.markdown, common_context.reader_output
+        )
+        if reader_defects:
+            raise CognitiveExecutionFailure(
+                "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED", retryable=True
+            )
+        draft = _decorate_publication_draft(common_context, reader_draft)
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(
             draft.markdown,

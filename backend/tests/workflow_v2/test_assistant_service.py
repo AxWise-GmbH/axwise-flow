@@ -160,11 +160,20 @@ async def test_conversational_modes_use_only_the_unsearched_runner(
 async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority() -> (
     None
 ):
+    source_url = (
+        "https://european-union.europa.eu/principles-countries-history/"
+        "country-profiles/estonia_en"
+    )
     grounded = RecordingRunner(
         {
             "text": "Grounded answer",
-            "sources": [],
-            "claims": [],
+            "sources": [{"title": "Estonia", "url": source_url}],
+            "claims": [
+                {
+                    "text": "Grounded answer",
+                    "source_urls": [source_url],
+                }
+            ],
             "provider_queries": ["Estonia EU membership"],
             "model_version": "gemini-3.8-flash-001",
             "usage_metadata": {"input_tokens": 11, "output_tokens": 7},
@@ -185,6 +194,8 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
     )
 
     assert result.response.markdown == "Grounded answer"
+    assert [source.canonical_url for source in result.response.sources] == [source_url]
+    assert [fact.statement for fact in result.response.facts] == ["Grounded answer"]
     assert conversation.queries == []
     assistant_request, fallback_authority = grounded.queries[0].splitlines()
     assert json.loads(assistant_request)["message"] == "Verify Estonia's EU membership."
@@ -197,6 +208,40 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
     assert result.metrics.search_calls == 1
     assert result.metrics.model == "gemini-3.8-flash"
     assert result.metrics.model_version == "gemini-3.8-flash-001"
+
+
+def test_projection_rejects_source_only_one_shot_as_ungrounded() -> None:
+    raw = {
+        "text": "Provider prose with no source-backed claim.",
+        "sources": [
+            {
+                "title": "A locator is not evidence",
+                "url": "https://example.org/locator-only",
+            }
+        ],
+        "claims": [],
+        "provider": "gemini_google_search",
+        "runtime_diagnostics": {
+            "route": "gemini_google_search",
+            "status": "ok",
+        },
+    }
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        project_assistant_result(
+            raw,
+            response_mode="one_shot",
+            source_type_classifier=source_types,
+            usage_reader=usage_reader,
+            metrics_factory=metrics_factory,
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_UNGROUNDED_RESPONSE"
+    assert raised.value.retryable is True
+    assert raised.value.diagnostics == {
+        "route": "gemini_google_search",
+        "status": "response_processing_error",
+    }
 
 
 @pytest.mark.asyncio

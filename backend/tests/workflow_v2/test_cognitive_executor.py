@@ -21,6 +21,7 @@ from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
     DeliverableAcceptanceCriterionV1,
     EvidenceRequirement,
+    ReaderOutputContractV1,
     ResearchResultV2,
     ResearchSourceV1,
     ScopeArtifactV2,
@@ -58,6 +59,8 @@ from backend.services.workflow_v2.cognitive_executor import (
     _model_owned_required_sections,
     _operation_metrics,
     _prepare_task_unresolved_actions,
+    _project_reader_output_draft,
+    _reader_output_defects,
     _usage_from_result,
     _usage_from_search,
     _validate_revision_draft,
@@ -304,7 +307,7 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(
     assert captured == ["PromptedOutput"] * 7
 
 
-def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
+def test_only_publishable_agents_have_content_output_validators(monkeypatch) -> None:
     validators = {}
 
     class CapturingAgent:
@@ -319,8 +322,83 @@ def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
     writer = PydanticAISynthesisWriter(object())
 
     assert writer.task_agent.system_prompt not in validators
-    assert writer.final_agent.system_prompt not in validators
+    assert writer.final_agent.system_prompt in validators
     assert writer.blocked_agent.system_prompt in validators
+
+
+@pytest.mark.asyncio
+async def test_final_agent_retries_v2_reader_violation_and_returns_projected_body(
+    monkeypatch,
+) -> None:
+    validators = {}
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    writer = PydanticAISynthesisWriter(object())
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": None,
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "checklist_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Checklist"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        reader_output=reader_output,
+        artifact_type="content_artifact",
+    )
+
+    class ValidatorContext:
+        deps = context
+
+    validator = validators[writer.final_agent.system_prompt]
+    with pytest.raises(ModelRetry, match="exactly 3"):
+        await validator(
+            ValidatorContext(),
+            SynthesisDraft(
+                title="Checklist",
+                markdown="# Checklist\n\n- [ ] First\n- [ ] Second",
+            ),
+        )
+
+    projected = await validator(
+        ValidatorContext(),
+        SynthesisDraft(
+            title="Checklist",
+            markdown=(
+                "# Analysis\n\nUnrequested wrapper.\n\n## Checklist\n\n"
+                "- [ ] First\n- [ ] Second\n- [ ] Third\n\n"
+                "## Risk register\n\n- Extra"
+            ),
+        ),
+    )
+    assert projected.markdown == (
+        "# Checklist\n\n- [ ] First\n- [ ] Second\n- [ ] Third"
+    )
 
 
 def test_full_contract_task_is_prepared_as_draft_not_publication() -> None:
@@ -610,9 +688,7 @@ def test_task_rejects_unprojectable_residual_claim_despite_valid_citation() -> N
         conclusions=["Do not rely on an unverified legal deadline."],
     )
 
-    with pytest.raises(
-        ValueError, match="residual unsupported evidence assertions"
-    ):
+    with pytest.raises(ValueError, match="residual unsupported evidence assertions"):
         cognitive_executor_module._prepare_task_draft_for_validation(context, draft)
 
 
@@ -750,7 +826,9 @@ def test_task_does_not_require_an_unrelated_research_citation() -> None:
     _validate_task_draft(context, prepared)
 
 
-def test_task_preparation_sanitizes_foreign_citations_but_keeps_authority_fatal() -> None:
+def test_task_preparation_sanitizes_foreign_citations_but_keeps_authority_fatal() -> (
+    None
+):
     allowed_claim_id = "b" * 64
     context = SynthesisContext(
         purpose="execute_task",
@@ -1480,13 +1558,12 @@ def test_final_publication_normalizer_is_non_rejecting_and_reader_facing() -> No
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(
-        context, draft
-    )
+    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
-    assert normalized.markdown.count(
-        "**Evidence status: completed with evidence gaps.**"
-    ) == 1
+    assert (
+        normalized.markdown.count("**Evidence status: completed with evidence gaps.**")
+        == 1
+    )
     assert "Validation target (all following content" not in normalized.markdown
     assert "Unknown pending evidence (the complete following item" not in (
         normalized.markdown
@@ -1540,9 +1617,7 @@ def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> 
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(
-        context, draft
-    )
+    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
     assert f"[evidence:{labelling_claim_id}]" in normalized.markdown
     assert f"[evidence:{water_claim_id}]" not in normalized.markdown
@@ -1578,9 +1653,7 @@ def test_final_publication_marker_requires_material_local_claim_coverage() -> No
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(
-        context, draft
-    )
+    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
     assert normalized.markdown.count(marker) == 2
     assert "Cats prefer fresh chicken." in normalized.markdown
@@ -1606,9 +1679,7 @@ def test_final_publication_normalizer_never_authorizes_launch_for_a_prd() -> Non
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(
-        context, draft
-    )
+    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
     assert "launch-ready" not in normalized.markdown
     assert "implementation planning" in normalized.markdown
@@ -1884,12 +1955,10 @@ async def test_exact_model_version_is_fail_closed_across_provider_responses(
         ]
         assert calls == len(model_versions)
         assert response_names == [
-            value or gemini_runtime.RESEARCH_MODEL_RESOURCE
-            for value in model_versions
+            value or gemini_runtime.RESEARCH_MODEL_RESOURCE for value in model_versions
         ]
         assert (
-            gemini_runtime.exact_uniform_model_version_from_result(result)
-            == expected
+            gemini_runtime.exact_uniform_model_version_from_result(result) == expected
         )
     finally:
         await gemini_runtime.close_shared_research_models()
@@ -2941,12 +3010,13 @@ async def test_current_artifact_selected_evidence_and_any_conflict_still_block()
     conflicting_claim = evidence.payload["claims"][0]
     assert conflicting_claim["text"] not in prompt_json
     assert conflicting_claim["sourceUrls"][0] not in prompt_json
-    assert PydanticAISynthesisWriter._allowed_claim_ids(
-        conflicted.artifact.payload
-    ) == []
-    assert PydanticAISynthesisWriter._allowed_claim_texts(
-        conflicted.artifact.payload
-    ) == {}
+    assert (
+        PydanticAISynthesisWriter._allowed_claim_ids(conflicted.artifact.payload) == []
+    )
+    assert (
+        PydanticAISynthesisWriter._allowed_claim_texts(conflicted.artifact.payload)
+        == {}
+    )
 
 
 @pytest.mark.parametrize(
@@ -3133,6 +3203,44 @@ def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
 
 
 @pytest.mark.asyncio
+async def test_scope_normalizes_one_direct_checklist_to_content_artifact() -> None:
+    request = "Create a concise Markdown checklist for opening the café."
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="operational_plan",
+            deliverables=["Concise Markdown checklist for opening the café"],
+            topic_value="checklist",
+            evidence=False,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(compile_input(request)))
+
+    scope = ScopeArtifactV2.model_validate(compiled.artifact.payload)
+
+    assert scope.deliverable_profile.artifact_type == "content_artifact"
+    assert scope.deliverable_profile.required_sections == ["Checklist"]
+
+
+@pytest.mark.asyncio
+async def test_scope_does_not_reclassify_a_broader_operational_plan() -> None:
+    request = "Create an operational plan with an opening checklist for the café."
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="operational_plan",
+            deliverables=["Operational plan with an opening checklist"],
+            topic_value="checklist",
+            evidence=False,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(compile_input(request)))
+
+    assert (
+        compiled.artifact.payload["deliverableProfile"]["artifactType"]
+        == "operational_plan"
+    )
+
+
+@pytest.mark.asyncio
 async def test_scope_rejects_multiple_named_eu_regulations_in_one_requirement() -> None:
     with pytest.raises(
         ValueError,
@@ -3274,6 +3382,11 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         "blocked-only shell",
     ):
         assert required in final_prompt
+
+    assert "content_artifact or general_artifact" in task_prompt
+    assert "reader-facing length, item-count, and format exactly" in task_prompt
+    assert "content_artifact and general_artifact" in final_prompt
+    assert "instead of expanding a concise artifact" in final_prompt
 
 
 def test_structural_guard_rejects_priority_acceptance_traceability_drift() -> None:
@@ -5179,9 +5292,9 @@ async def test_exact_product_proof_accepts_exact_immutable_selected_evidence() -
     assert finding["note"] == "Verified by 1 selected immutable claim(s)."
     assert result.artifact.payload["selectedClaims"] == evidence.payload["claims"]
     assert len(result.artifact.payload["sourceCatalogue"]) == 1
-    assert result.artifact.payload["sourceCatalogue"][0][
-        "supportedClaimIds"
-    ] == [evidence.payload["claims"][0]["claimId"]]
+    assert result.artifact.payload["sourceCatalogue"][0]["supportedClaimIds"] == [
+        evidence.payload["claims"][0]["claimId"]
+    ]
 
 
 @pytest.mark.asyncio
@@ -7056,11 +7169,14 @@ async def _legacy_final_writer_fallback_replaces_incomplete_model_criteria_with_
     defect = (
         f"Acceptance criterion block {scenario_heading!r} is incomplete; missing Given."
     )
-    assert defect in _deterministic_quality_defects(
-        contents[core_index].markdown,
-        practical_output_required=True,
-        artifact_type="product_prd",
-    )[1]
+    assert (
+        defect
+        in _deterministic_quality_defects(
+            contents[core_index].markdown,
+            practical_output_required=True,
+            artifact_type="product_prd",
+        )[1]
+    )
     evaluation_index = next(
         index
         for index, item in enumerate(contents)
@@ -7132,8 +7248,7 @@ async def _legacy_final_writer_fallback_consolidates_duplicate_acceptance_sectio
     contents[core_index] = core.model_copy(
         update={
             "markdown": (
-                core.markdown
-                + "\n\n## Acceptance Criteria (Given/When/Then)\n\n"
+                core.markdown + "\n\n## Acceptance Criteria (Given/When/Then)\n\n"
                 "### Duplicated model-authored scenario\n\n"
                 "- **Given** a second acceptance section\n"
                 "- **When** the same PRD is reviewed\n"
@@ -7142,11 +7257,14 @@ async def _legacy_final_writer_fallback_consolidates_duplicate_acceptance_sectio
         }
     )
     duplicate_defect = "The candidate repeats level-two sections: acceptance criteria."
-    assert duplicate_defect in _deterministic_quality_defects(
-        contents[core_index].markdown,
-        practical_output_required=True,
-        artifact_type="product_prd",
-    )[0]
+    assert (
+        duplicate_defect
+        in _deterministic_quality_defects(
+            contents[core_index].markdown,
+            practical_output_required=True,
+            artifact_type="product_prd",
+        )[0]
+    )
     evaluation_index = next(
         index
         for index, item in enumerate(contents)
@@ -7235,8 +7353,7 @@ async def _legacy_final_writer_repairs_stale_deterministic_evaluator_quality_def
     contents[core_index] = core.model_copy(
         update={
             "markdown": (
-                core.markdown
-                + "\n\n## Delivery roadmap\n\n```text\n"
+                core.markdown + "\n\n## Delivery roadmap\n\n```text\n"
                 "+-----------------------------------------------+\n"
                 "| [ Month 1: Draft ] ---> [ Month 2: Review ] |\n"
                 "| - Draft output             - Inspect result |\n"
@@ -7508,8 +7625,12 @@ async def test_final_writer_returns_typed_output_without_semantic_validation(
         "_run_validated_agent",
         staticmethod(completed),
     )
-    monkeypatch.setattr(cognitive_executor_module, "_validate_synthesis", forbidden_validate)
-    monkeypatch.setattr(cognitive_executor_module, "_usage_from_result", lambda _result: (11, 7))
+    monkeypatch.setattr(
+        cognitive_executor_module, "_validate_synthesis", forbidden_validate
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module, "_usage_from_result", lambda _result: (11, 7)
+    )
 
     result = await writer.write(
         input_value,
@@ -7524,7 +7645,7 @@ async def test_final_writer_returns_typed_output_without_semantic_validation(
 
 
 @pytest.mark.asyncio
-async def test_executor_applies_the_publication_normalizer_exactly_once(
+async def test_executor_applies_reader_normalization_then_server_disclosures_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -7541,18 +7662,30 @@ async def test_executor_applies_the_publication_normalizer_exactly_once(
                 ),
             )
 
-    original_normalize = cognitive_executor_module._normalize_publication_draft
-    calls = 0
+    original_reader = cognitive_executor_module._normalize_reader_draft
+    original_decorate = cognitive_executor_module._decorate_publication_draft
+    reader_calls = 0
+    disclosure_calls = 0
 
-    def counted_normalize(context, draft):
-        nonlocal calls
-        calls += 1
-        return original_normalize(context, draft)
+    def counted_reader(context, draft):
+        nonlocal reader_calls
+        reader_calls += 1
+        return original_reader(context, draft)
+
+    def counted_decorate(context, draft):
+        nonlocal disclosure_calls
+        disclosure_calls += 1
+        return original_decorate(context, draft)
 
     monkeypatch.setattr(
         cognitive_executor_module,
-        "_normalize_publication_draft",
-        counted_normalize,
+        "_normalize_reader_draft",
+        counted_reader,
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "_decorate_publication_draft",
+        counted_decorate,
     )
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
@@ -7612,13 +7745,212 @@ async def test_executor_applies_the_publication_normalizer_exactly_once(
         )
     )
 
-    assert calls == 1
+    assert reader_calls == 1
+    assert disclosure_calls == 1
     assert "**Evidence status: completed with evidence gaps.**" not in (
         result.artifact.markdown
     )
     assert "Validation target (all following content" not in result.artifact.markdown
     assert "**Pending verification:**" in result.artifact.markdown
     assert "Verify the product-specific legal result." in result.artifact.markdown
+
+
+@pytest.mark.asyncio
+async def test_v2_checklist_contract_is_enforced_before_final_publication() -> None:
+    request = (
+        "Create a concise Markdown checklist with exactly three items for opening "
+        "a fictional neighborhood café on Monday."
+    )
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="content_artifact",
+            evidence=False,
+            topic_value="checklist",
+            deliverables=[
+                "Concise Markdown checklist with exactly three items for opening a "
+                "fictional neighborhood café on Monday"
+            ],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(compile_input(request)))
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, legacy_contract, tasks = plan_fixture(compiled, research)
+    deliverable_requirement = next(
+        item
+        for item in compiled.artifact.payload["requirements"]
+        if item["authority"] == "owner" and item["category"] == "deliverable"
+    )
+    reader_output = {
+        "schemaVersion": "orqaly.reader-output.v1",
+        "readerFormat": {
+            "value": "checklist",
+            "requirementId": deliverable_requirement["id"],
+        },
+        "wordLimit": {
+            "maximumWords": 60,
+            "basis": "owner_explicit",
+            "requirementId": deliverable_requirement["id"],
+        },
+        "itemLimit": {
+            "exactItems": 3,
+            "itemKind": "checklist_item",
+            "requirementId": deliverable_requirement["id"],
+        },
+        "measurement": {
+            "scope": "reader_markdown_before_server_disclosures",
+            "wordCounter": "unicode_words_v1",
+            "itemCounter": "top_level_markdown_items_v1",
+        },
+    }
+    output_contract = {
+        **legacy_contract,
+        "schemaVersion": "orqaly.markdown-output-contract.v2",
+        "readerOutput": reader_output,
+    }
+    plan_payload = {
+        **plan_content["payload"],
+        "outputContract": output_contract,
+    }
+    plan_payload["planHash"] = canonical_hash(
+        {key: value for key, value in plan_payload.items() if key != "planHash"}
+    )
+    plan_ref, plan_content = artifact_ref(
+        plan_ref["artifactId"], "plan", "application/json", plan_payload
+    )
+
+    verbose_markdown = (
+        "# Operational dossier\n\n"
+        + " ".join(["Unrequested analysis"] * 80)
+        + "\n\n## Monday opening checklist\n\n"
+        "- [ ] Power on the coffee equipment.\n"
+        "- [ ] Prepare the till and point-of-sale terminal.\n"
+        "- [ ] Switch on the lights and unlock the entrance.\n\n"
+        "## Risk register\n\n- Extra non-checklist material"
+    )
+
+    class VerboseChecklistWriter(QualityWriter):
+        async def execute_task(self, input_value, _scope, _research, _contents):
+            return TaskDraft(
+                title="Monday opening checklist",
+                markdown=verbose_markdown,
+                requirement_coverage=[
+                    {
+                        "requirementId": requirement_id,
+                        "status": "satisfied",
+                        "note": "The accepted checklist requirement is represented.",
+                    }
+                    for requirement_id in input_value.task.acceptance_requirement_ids
+                ],
+                conclusions=["The requested checklist is present."],
+                unknowns=[],
+            )
+
+        async def write(self, *_args, **_kwargs):
+            return SynthesisDraft(
+                title="Monday opening checklist", markdown=verbose_markdown
+            )
+
+    resolver = Resolver(compiled.artifact, research.artifact)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=resolver,
+        synthesis_writer=VerboseChecklistWriter(),
+    )
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=1240,
+    )
+    assert all(item.artifact.kind == "task_result" for item in task_results)
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    task_contents = [exact_content(item.artifact) for item in task_results]
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[plan_content, *task_contents],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000001250",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    final_payload = cognitive_input(
+        purpose="final_synthesis",
+        compiled=compiled,
+        research=research,
+        output_contract=output_contract,
+        extra_refs=[plan_ref, *task_refs, ref(evaluation.artifact)],
+        extra_contents=[
+            plan_content,
+            *task_contents,
+            exact_content(evaluation.artifact),
+        ],
+        repair_pass=1,
+        acceptedPlan=plan_ref,
+        taskArtifacts=task_refs,
+        evaluation=ref(evaluation.artifact),
+    )
+    result = await executor.execute(
+        envelope_for(
+            final_payload,
+            operation_id="00000000-0000-4000-8000-000000001251",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert result.result_type == "artifact_synthesized"
+    assert result.artifact.markdown == (
+        "# Monday opening checklist\n\n"
+        "- [ ] Power on the coffee equipment.\n"
+        "- [ ] Prepare the till and point-of-sale terminal.\n"
+        "- [ ] Switch on the lights and unlock the entrance."
+    )
+    assert "Operational dossier" not in result.artifact.markdown
+    assert "Risk register" not in result.artifact.markdown
+
+    class InvalidChecklistWriter(VerboseChecklistWriter):
+        async def write(self, *_args, **_kwargs):
+            return SynthesisDraft(
+                title="Monday opening checklist",
+                markdown=(
+                    "# Monday opening checklist\n\n"
+                    "- [ ] Power on the coffee equipment.\n"
+                    "- [ ] Unlock the entrance."
+                ),
+            )
+
+    invalid_executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=resolver,
+        synthesis_writer=InvalidChecklistWriter(),
+    )
+    with pytest.raises(
+        CognitiveExecutionFailure,
+        match="AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
+    ):
+        await invalid_executor.execute(
+            envelope_for(
+                final_payload,
+                operation_id="00000000-0000-4000-8000-000000001252",
+                operation_type="SynthesizeArtifactV1",
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -11173,6 +11505,189 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
     )
 
 
+def test_v2_reader_output_projects_and_validates_exact_checklist_body() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": {
+                "maximumWords": 30,
+                "basis": "owner_explicit",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "checklist_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    checklist = (
+        "# Monday opening checklist\n\n"
+        "- [ ] Power on the coffee equipment.\n"
+        "- [ ] Prepare the till and point-of-sale terminal.\n"
+        "- [ ] Switch on the lights and unlock the entrance."
+    )
+
+    assert _deterministic_quality_defects(
+        checklist,
+        practical_output_required=False,
+        artifact_type="content_artifact",
+        reader_output=reader_output,
+    ) == ([], [])
+
+    expanded = (
+        "# Operational dossier\n\n"
+        + " ".join(["unrequested-analysis"] * 40)
+        + "\n\n## Monday opening checklist\n\n"
+        + "\n".join(checklist.splitlines()[2:])
+        + "\n\n## Risk register\n\n- Extra non-checklist item"
+    )
+    projected = _project_reader_output_draft(
+        SynthesisDraft(title="Monday opening checklist", markdown=expanded),
+        reader_output,
+    )
+    assert projected.markdown == checklist
+    assert _reader_output_defects(projected.markdown, reader_output) == []
+
+    over_limit = checklist + "\n\n" + " ".join(["analysis"] * 31)
+    substantive, practicality = _deterministic_quality_defects(
+        over_limit,
+        practical_output_required=False,
+        artifact_type="content_artifact",
+        reader_output=reader_output,
+    )
+    assert substantive == [
+        "Reader Markdown exceeds the accepted maximum of 30 words (53 measured)."
+    ]
+    assert practicality == []
+
+    wrong_count = checklist.rsplit("\n", 1)[0]
+    assert _reader_output_defects(wrong_count, reader_output) == [
+        "Reader Markdown must contain exactly 3 top-level checklist items (2 measured)."
+    ]
+
+    planning_substantive, _planning_practicality = _deterministic_quality_defects(
+        checklist,
+        practical_output_required=True,
+        artifact_type="operational_plan",
+    )
+    assert (
+        "The candidate is too thin to be a substantive full-contract artifact."
+        in planning_substantive
+    )
+
+
+def test_v2_reader_measurement_excludes_server_disclosures() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": {
+                "maximumWords": 30,
+                "basis": "owner_explicit",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "checklist_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    reader = SynthesisDraft(
+        title="Monday opening checklist",
+        markdown=(
+            "# Monday opening checklist\n\n"
+            "- [ ] Power on the coffee equipment.\n"
+            "- [ ] Prepare the till.\n"
+            "- [ ] Unlock the entrance."
+        ),
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Checklist"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[" ".join(["Unresolved owner evidence"] * 30)],
+        reader_output=reader_output,
+        artifact_type="content_artifact",
+    )
+
+    assert _reader_output_defects(reader.markdown, reader_output) == []
+    published = cognitive_executor_module._decorate_publication_draft(context, reader)
+    assert "Evidence status: completed with evidence gaps" in published.markdown
+    assert len(published.markdown.split()) > 30
+
+
+def test_v2_reader_output_counts_non_checklist_top_level_items() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "agenda",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": None,
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "agenda_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    agenda = "# Agenda\n\n1. Welcome\n2. Decisions\n3. Next steps"
+    assert _reader_output_defects(agenda, reader_output) == []
+    assert _reader_output_defects(agenda.rsplit("\n", 1)[0], reader_output) == [
+        "Reader Markdown must contain exactly 3 top-level Markdown items "
+        "(2 measured)."
+    ]
+
+
+def test_v2_checklist_requires_a_checkbox_without_an_explicit_item_limit() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": None,
+            "itemLimit": None,
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    prose = "# Checklist\n\nOpen the shop and prepare the till."
+    assert _reader_output_defects(prose, reader_output) == [
+        "Reader Markdown must contain at least one top-level checklist item."
+    ]
+
+
 @pytest.mark.parametrize(
     "placeholder",
     [
@@ -12349,9 +12864,11 @@ def test_cognitive_research_view_exposes_only_selected_and_verified_claims() -> 
         verified_id,
         second_verified_id,
     ]
-    assert set(
-        PydanticAISynthesisWriter._allowed_claim_texts(research_payload)
-    ) == {selected_id, verified_id, second_verified_id}
+    assert set(PydanticAISynthesisWriter._allowed_claim_texts(research_payload)) == {
+        selected_id,
+        verified_id,
+        second_verified_id,
+    }
 
 
 def test_current_requirement_locator_cannot_be_crowded_out_by_three_global_sources() -> (
@@ -12459,9 +12976,12 @@ async def test_one_shot_assistant_turn_returns_typed_markdown_sources_and_facts(
 
     assert result.result_type == "assistant_turn_completed"
     assert result.response.markdown == "Estonia is an EU member state."
-    assert result.model_dump(mode="json", by_alias=True, exclude_unset=True)[
-        "response"
-    ]["schemaVersion"] == "axwise.assistant-turn.v1"
+    assert (
+        result.model_dump(mode="json", by_alias=True, exclude_unset=True)["response"][
+            "schemaVersion"
+        ]
+        == "axwise.assistant-turn.v1"
+    )
     assert result.response.sources[0].source_types == ["government", "grounded_web"]
     assert result.response.facts[0].source_urls == [
         "https://european-union.europa.eu/principles-countries-history/country-profiles/estonia_en"
@@ -12494,9 +13014,7 @@ async def test_one_shot_multiturn_assistant_completes_through_direct_fetch_fallb
             authority = json.loads(fallback_authority)
             assert authority["requirement"]["description"] == fallback_requirement
             assert assistant_prose not in fallback_authority
-            assert authority["requirement"]["acceptedSourceTypes"] == [
-                "grounded_web"
-            ]
+            assert authority["requirement"]["acceptedSourceTypes"] == ["grounded_web"]
             return {
                 "text": "",
                 "sources": [],
@@ -12598,9 +13116,7 @@ async def test_one_shot_multiturn_assistant_completes_through_direct_fetch_fallb
     )
     assert "Country profile." not in result.response.markdown
     assert "Official overview." not in result.response.markdown
-    assert [source.canonical_url for source in result.response.sources] == [
-        source_url
-    ]
+    assert [source.canonical_url for source in result.response.sources] == [source_url]
     assert [fact.statement for fact in result.response.facts] == [exact]
     assert result.response.facts[0].source_urls == [source_url]
     assert result.metrics.input_tokens == 11
@@ -12751,12 +13267,10 @@ async def test_one_shot_fallback_bounds_whole_verified_claim_blocks_to_contract(
     assert [fact.statement for fact in result.response.facts] == segments[:6]
     assert all(len(fact.statement) == 4_000 for fact in result.response.facts)
     assert all(fact.source_urls == [source_url] for fact in result.response.facts)
-    assert [source.canonical_url for source in result.response.sources] == [
-        source_url
-    ]
-    assert {
-        url for fact in result.response.facts for url in fact.source_urls
-    } == {source.canonical_url for source in result.response.sources}
+    assert [source.canonical_url for source in result.response.sources] == [source_url]
+    assert {url for fact in result.response.facts for url in fact.source_urls} == {
+        source.canonical_url for source in result.response.sources
+    }
 
 
 @pytest.mark.asyncio
@@ -13013,8 +13527,9 @@ async def test_conversational_assistant_deadline_cancels_the_model_call(
 
 
 @pytest.mark.asyncio
-async def test_conversational_assistant_runner_returns_unsearched_markdown_and_usage(
-) -> None:
+async def test_conversational_assistant_runner_returns_unsearched_markdown_and_usage() -> (
+    None
+):
     class Usage:
         input_tokens = 7
         output_tokens = 3
