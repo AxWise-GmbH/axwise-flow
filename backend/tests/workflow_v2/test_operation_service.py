@@ -64,7 +64,12 @@ def terminal_result() -> dict:
     result = scope_completion_result(
         artifact_id="00000000-0000-4000-8000-000000000020"
     )
-    result["metrics"] = {"latencyMs": 7, "provider": "google"}
+    result["metrics"] = {
+        "latencyMs": 7,
+        "provider": "google",
+        "model": "gemini-3.8-flash",
+        "modelVersion": "gemini-3.8-flash-001",
+    }
     return result
 
 

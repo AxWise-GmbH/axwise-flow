@@ -8,7 +8,7 @@ from pydantic_ai import Agent, ModelRetry, PromptedOutput, RunContext
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from backend.domain.workflow_v2.contracts import canonical_json
-
+from backend.services.llm.gemini_runtime import exact_uniform_model_version_from_result
 
 MAX_FETCHED_DOCUMENTS = 6
 MAX_DOCUMENT_CODE_POINTS = 60_000
@@ -116,6 +116,7 @@ class ExactSpanExtractionResult(_StrictModel):
     )
     input_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
+    model_version: str | None = Field(default=None, min_length=1, max_length=200)
 
     @model_validator(mode="after")
     def exact_server_slices(self) -> "ExactSpanExtractionResult":
@@ -209,6 +210,7 @@ def assemble_exact_span_result(
     *,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    model_version: str | None = None,
 ) -> ExactSpanExtractionResult:
     """Derive every claim passage server-side from exact document slices."""
 
@@ -217,6 +219,7 @@ def assemble_exact_span_result(
         return ExactSpanExtractionResult(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            model_version=model_version,
         )
 
     spans = []
@@ -235,6 +238,7 @@ def assemble_exact_span_result(
         spans=spans,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
+        model_version=model_version,
     )
 
 
@@ -308,6 +312,7 @@ class PydanticAIExactSpanExtractor:
                 result.output,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
+                model_version=exact_uniform_model_version_from_result(result),
             )
         except ValueError:
             raise ExactSpanExtractionFailure(

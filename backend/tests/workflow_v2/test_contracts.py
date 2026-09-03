@@ -18,6 +18,7 @@ from backend.domain.workflow_v2.contracts import (
     EvidenceRequirement,
     OperationEvent,
     OperationEventPage,
+    OperationMetrics,
     PlanningResultV2,
     ResearchResultV2,
     ResearchSourceV1,
@@ -72,6 +73,34 @@ def test_assistant_migration_does_not_use_reserved_constraint_alias() -> None:
     migration = ASSISTANT_MIGRATION.read_text(encoding="utf-8")
     assert "FROM pg_constraint AS candidate" in migration
     assert "AS constraint" not in migration
+
+
+def test_operation_metrics_model_version_is_additive_for_legacy_replay() -> None:
+    legacy = OperationMetrics.model_validate(
+        {
+            "latencyMs": 7,
+            "provider": "google",
+            "model": "gemini-3.7-flash",
+        }
+    )
+    current = OperationMetrics.model_validate(
+        {
+            "latencyMs": 9,
+            "provider": "google",
+            "model": "gemini-3.8-flash",
+            "modelVersion": "gemini-3.8-flash-001",
+        }
+    )
+
+    assert legacy.model_version is None
+    assert "modelVersion" not in legacy.model_dump(
+        mode="json", by_alias=True, exclude_unset=True
+    )
+    assert current.model == "gemini-3.8-flash"
+    assert current.model_version == "gemini-3.8-flash-001"
+    assert current.model_dump(mode="json", by_alias=True)["modelVersion"] == (
+        "gemini-3.8-flash-001"
+    )
 
 
 def test_assistant_runtime_migration_is_additive_and_content_free() -> None:

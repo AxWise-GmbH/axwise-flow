@@ -14,9 +14,9 @@ from typing import Any, Optional
 import httpx
 from google.genai import Client as GoogleGenAIClient
 from google.genai.types import HttpOptions, HttpRetryOptions, ThinkingLevel
+from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
 from pydantic_ai.providers.google import GoogleProvider
-
 
 RESEARCH_MODEL = "gemini-3.8-flash"
 RESEARCH_MODEL_RESOURCE = f"models/{RESEARCH_MODEL}"
@@ -196,6 +196,43 @@ class BoundedRetryAsyncClient(httpx.AsyncClient):
 
 def normalized_research_model(value: str) -> str:
     return str(value or "").strip().removeprefix("models/")
+
+
+def exact_uniform_model_version_from_result(result: Any) -> str | None:
+    """Return one proven provider version for every Google response in a run.
+
+    PydanticAI 2.28 sets ``ModelResponse.model_name`` to the configured model
+    resource when Google omits ``modelVersion``. The configured resource is
+    therefore an ambiguity sentinel, not provider provenance. Output-validation
+    retries also create multiple model responses, so a single operation-level
+    version is truthful only when every current-run response exposes the same
+    non-sentinel value.
+    """
+
+    new_messages = getattr(result, "new_messages", None)
+    if not callable(new_messages):
+        return None
+    try:
+        messages = new_messages()
+    except (AttributeError, TypeError, ValueError):
+        return None
+    responses = [message for message in messages if isinstance(message, ModelResponse)]
+    if not responses:
+        return None
+    versions: list[str] = []
+    for response in responses:
+        value = response.model_name
+        if (
+            response.provider_name != "google"
+            or not isinstance(value, str)
+            or not value
+            or value != value.strip()
+            or len(value) > 200
+            or value == RESEARCH_MODEL_RESOURCE
+        ):
+            return None
+        versions.append(value)
+    return versions[0] if len(set(versions)) == 1 else None
 
 
 def _build_research_runtime(api_key: str) -> _SharedResearchRuntime:

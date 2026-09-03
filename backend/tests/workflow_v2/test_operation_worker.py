@@ -31,10 +31,20 @@ COMPILE_SCOPE_V3_FIXTURE = (
 
 
 def result() -> ScopeCompiledResult:
-    return ScopeCompiledResult.model_validate(
+    value = ScopeCompiledResult.model_validate(
         scope_completion_result(
             artifact_id="00000000-0000-4000-8000-000000000301"
         )
+    )
+    return value.model_copy(
+        update={
+            "metrics": OperationMetrics(
+                latency_ms=0,
+                provider="google",
+                model="gemini-3.8-flash",
+                model_version="gemini-3.8-flash-001",
+            )
+        }
     )
 
 
@@ -157,6 +167,8 @@ async def test_worker_heartbeats_long_execution_and_persists_one_terminal_result
     assert store.completed["resultType"] == "scope_compiled"
     assert store.completed["artifact"]["markdown"] is None
     assert store.completed["metrics"]["latencyMs"] >= 1
+    assert store.completed["metrics"]["model"] == "gemini-3.8-flash"
+    assert store.completed["metrics"]["modelVersion"] == "gemini-3.8-flash-001"
     assert await worker.run_once() is False
 
 
