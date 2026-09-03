@@ -52,7 +52,7 @@ def metrics_factory(
     return OperationMetrics(
         latency_ms=0,
         provider="google",
-        model="gemini-3.7-flash",
+        model="gemini-3.8-flash",
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         total_tokens=input_tokens + output_tokens,

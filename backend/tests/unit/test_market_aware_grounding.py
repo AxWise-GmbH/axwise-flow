@@ -4790,7 +4790,7 @@ async def test_missing_statutory_recovery_uses_one_dynamic_route_and_exact_fact(
                 "sources": [{"title": "Current tax authority", "url": direct_url}],
                 "runtime_diagnostics": {
                     "route": "gemini_google_search",
-                    "model": "models/gemini-3.7-flash",
+                    "model": "models/gemini-3.8-flash",
                     "status": "completed",
                     "call_count": 1,
                 },

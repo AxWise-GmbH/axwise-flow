@@ -1,6 +1,6 @@
 {
   "canonicalization": "ecmascript_sorted_json_sha256_v1",
-  "fixture_fingerprint": "34d02f01fea05044b64078cdd532a31940263805f83dcdaf68c0ef5b80776de1",
+  "fixture_fingerprint": "07d1c03b60a970d4094ed65d27881a9ca3cb99a01054a9996d954a3413810b37",
   "fixtures": {
     "clarification": {
       "clarification_hash": "b317c77737fc8dca1e063e088bcf9dc6d807e2b9439cc68fec453133aa1ed1ae",
@@ -193,14 +193,14 @@
       },
       "research": {
         "binding": {
-          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
-          "binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+          "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+          "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
+          "binding_hash": "ff2bb4fc61f02368591d8a078db408bd1a6279c5bf61c70588425e7a8d19ad18",
           "consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
           "correction_id": null,
           "org_id": "00000000-0000-0000-0000-000000000001",
           "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-          "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+          "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
           "purpose": "research",
           "scope_generation": 0,
           "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -208,11 +208,11 @@
           "user_id": "00000000-0000-0000-0000-000000000002",
           "version": "axwise_scope_continuation_v1"
         },
-        "binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+        "binding_hash": "ff2bb4fc61f02368591d8a078db408bd1a6279c5bf61c70588425e7a8d19ad18",
         "consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
         "request": {
-          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+          "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
           "consumer_inputs": {
             "consumer_id": "goal:00000000-0000-0000-0000-000000000003:research:golden-v1",
             "payload": {},
@@ -622,13 +622,13 @@
       }
     },
     "research_acceptance": {
-      "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-      "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+      "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+      "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
       "accepted_at": "2026-08-25T00:00:00.000Z",
       "contract_hash": "5555555555555555555555555555555555555555555555555555555555555555",
       "org_id": "00000000-0000-0000-0000-000000000001",
       "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-      "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+      "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
       "proposal_inputs_hash": "4444444444444444444444444444444444444444444444444444444444444444",
       "research_execution_inputs_hash": "3333333333333333333333333333333333333333333333333333333333333333",
       "scope_generation": 0,
@@ -638,17 +638,17 @@
       "version": "axwise_scope_proposal_acceptance_v1"
     },
     "research_completion": {
-      "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-      "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
-      "completion_hash": "bbf736219b4ee921747e21dbf05aa895db3581c02fe9ec24b7acc309b3db67df",
-      "completion_id": "scope-research-46fadf375934c99ec966a79c6b79315f",
+      "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+      "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
+      "completion_hash": "ecccc1a888965a7d05d1490c162c2be6698ec4810b284c1a4d4b7ae6de49a73f",
+      "completion_id": "scope-research-bc5d6e35a2aa456414b1f4a555c583ef",
       "evidence_catalogue_hash": "2222222222222222222222222222222222222222222222222222222222222222",
       "evidence_count": 3,
       "org_id": "00000000-0000-0000-0000-000000000001",
       "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-      "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+      "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
       "research_consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
-      "research_continuation_binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+      "research_continuation_binding_hash": "ff2bb4fc61f02368591d8a078db408bd1a6279c5bf61c70588425e7a8d19ad18",
       "research_decision_id": "decision-research-golden-v1",
       "research_job_id": "research-job-golden-v1",
       "research_status": "completed",
@@ -678,7 +678,7 @@
         "maximum_research_cost": 25.0,
         "maximum_research_iterations": 1,
         "maximum_research_latency_ms": 600000,
-        "model_resource": "models/gemini-3.7-flash",
+        "model_resource": "models/gemini-3.8-flash",
         "provider": "google",
         "required_outputs": [
           "research_prd"
@@ -690,7 +690,7 @@
       "org_id": "00000000-0000-0000-0000-000000000001",
       "parent_decision_id": null,
       "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-      "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+      "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
       "proposal_inputs_hash": "4444444444444444444444444444444444444444444444444444444444444444",
       "research_execution_inputs_hash": "3333333333333333333333333333333333333333333333333333333333333333",
       "scope_generation": 0,
@@ -702,14 +702,14 @@
     "staged_continuations": {
       "research_planning_to_assignment": {
         "binding": {
-          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
-          "binding_hash": "5d68f678089cf3df06ef9f611bb7352b93da7f3327a461a64abecb46ce689ba6",
-          "consumer_inputs_hash": "3ef3f1c58d9df23530bee36782c3b5795ccd0fe6f7be8862c7fbc18cfd165c05",
+          "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+          "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
+          "binding_hash": "7783b7799f0b49b80602a018fcd7862d6bcc17b3202e12506422360ba0166e39",
+          "consumer_inputs_hash": "cc3bfe361b0c422f8be059c85aa85bfa9c7f7e1f7b418d909136326721f9fc56",
           "correction_id": null,
           "org_id": "00000000-0000-0000-0000-000000000001",
           "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-          "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+          "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
           "purpose": "assignment",
           "scope_generation": 0,
           "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -717,11 +717,11 @@
           "user_id": "00000000-0000-0000-0000-000000000002",
           "version": "axwise_scope_continuation_v1"
         },
-        "binding_hash": "5d68f678089cf3df06ef9f611bb7352b93da7f3327a461a64abecb46ce689ba6",
-        "consumer_inputs_hash": "3ef3f1c58d9df23530bee36782c3b5795ccd0fe6f7be8862c7fbc18cfd165c05",
+        "binding_hash": "7783b7799f0b49b80602a018fcd7862d6bcc17b3202e12506422360ba0166e39",
+        "consumer_inputs_hash": "cc3bfe361b0c422f8be059c85aa85bfa9c7f7e1f7b418d909136326721f9fc56",
         "request": {
-          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+          "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
           "consumer_inputs": {
             "consumer_id": "goal:00000000-0000-0000-0000-000000000003:assignment:golden-v1",
             "payload": {
@@ -731,14 +731,14 @@
                 "available_tools": []
               },
               "planning_projection_ref": {
-                "planning_consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
-                "planning_continuation_binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
+                "planning_consumer_inputs_hash": "65784e612b79467eb9a32d45d208b19dc2f392f65d80d2a7cbbf3f43c6bda659",
+                "planning_continuation_binding_hash": "9e89cadc0ceb9df2d447e50a4579a0f8dc0143fb9abbbea746f29bccb74d8d43",
                 "planning_decision_id": "decision-research-planning-golden-v1",
                 "planning_projection_hash": "9175c7caae74d0d7528c50e5f8c101572b3e67cd07f0e3e73f8908e4ca784260",
                 "version": "axwise_scope_planning_projection_ref_v1"
               }
             },
-            "payload_hash": "98100b4e08e61161298cd7163c32d76132e40806bdc3ac940c661baf0e8d1f0d",
+            "payload_hash": "0d05916fa87cf686aff5474c307a5e78b7a5b92cadc813562b652b7eccb5a267",
             "purpose": "assignment",
             "scope_generation": 0,
             "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -751,14 +751,14 @@
       },
       "research_to_planning": {
         "binding": {
-          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
-          "binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
-          "consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
+          "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+          "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
+          "binding_hash": "9e89cadc0ceb9df2d447e50a4579a0f8dc0143fb9abbbea746f29bccb74d8d43",
+          "consumer_inputs_hash": "65784e612b79467eb9a32d45d208b19dc2f392f65d80d2a7cbbf3f43c6bda659",
           "correction_id": null,
           "org_id": "00000000-0000-0000-0000-000000000001",
           "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-          "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+          "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
           "purpose": "planning",
           "scope_generation": 0,
           "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -766,11 +766,11 @@
           "user_id": "00000000-0000-0000-0000-000000000002",
           "version": "axwise_scope_continuation_v1"
         },
-        "binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
-        "consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
+        "binding_hash": "9e89cadc0ceb9df2d447e50a4579a0f8dc0143fb9abbbea746f29bccb74d8d43",
+        "consumer_inputs_hash": "65784e612b79467eb9a32d45d208b19dc2f392f65d80d2a7cbbf3f43c6bda659",
         "request": {
-          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+          "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
           "consumer_inputs": {
             "consumer_id": "goal:00000000-0000-0000-0000-000000000003:planning:golden-v1",
             "payload": {
@@ -788,17 +788,17 @@
                 ]
               },
               "research_completion_ref": {
-                "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
-                "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
-                "completion_hash": "bbf736219b4ee921747e21dbf05aa895db3581c02fe9ec24b7acc309b3db67df",
-                "completion_id": "scope-research-46fadf375934c99ec966a79c6b79315f",
+                "acceptance_hash": "dcddfbf0b55eef04964c90480c6afe11ff3218ea19272a76d2052a3beac3ae87",
+                "acceptance_id": "scope-acceptance-5e75534fcbe76ca34c2ba29e5c71ee18",
+                "completion_hash": "ecccc1a888965a7d05d1490c162c2be6698ec4810b284c1a4d4b7ae6de49a73f",
+                "completion_id": "scope-research-bc5d6e35a2aa456414b1f4a555c583ef",
                 "evidence_catalogue_hash": "2222222222222222222222222222222222222222222222222222222222222222",
                 "evidence_count": 3,
                 "org_id": "00000000-0000-0000-0000-000000000001",
                 "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
-                "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+                "proposal_hash": "8d9b76bb7e12860dcc502a9e86b8b7baa5f0613e3496a8196a07b590b8b3c408",
                 "research_consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
-                "research_continuation_binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+                "research_continuation_binding_hash": "ff2bb4fc61f02368591d8a078db408bd1a6279c5bf61c70588425e7a8d19ad18",
                 "research_decision_id": "decision-research-golden-v1",
                 "research_job_id": "research-job-golden-v1",
                 "research_status": "completed",
@@ -809,7 +809,7 @@
                 "version": "axwise_scope_research_completion_ref_v1"
               }
             },
-            "payload_hash": "27a8339ad96ed825e04b68bf6280ce6bc24f98092cab0c914be7760ee8dd5742",
+            "payload_hash": "b23e57ec5f1674ba4ec99215f245c300de2b94c84df5ea58acd1ad9179511865",
             "purpose": "planning",
             "scope_generation": 0,
             "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -822,8 +822,8 @@
       }
     }
   },
-  "protocol_fingerprint": "7c06abd13193bc9e34429f58e6447fd5d4280153fff11aa1e7a569bf94427823",
-  "schema_fingerprint": "25e59993b8a4d0649f04dad6cbae3480edc473997499d69f9be68304b890a9f6",
+  "protocol_fingerprint": "da5058d3e57fe4c31ea244257a0d7c4018f6a2fe79765742b64f7446b04969c7",
+  "schema_fingerprint": "de1d56df6346df2e0939ca6007f4b56a6c545f1addd4868508041b71c6747cfb",
   "tamper_cases": [
     {
       "base_fixture": "continuations.execution.request",

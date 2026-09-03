@@ -74,9 +74,9 @@ parsed = parse_json_with_instructor(json_str, context="my_context")
 - **Reduced Code Complexity**: Instructor handles many edge cases automatically
 - **Future-Proof**: Instructor is actively maintained and updated for new LLM capabilities
 
-## Best Practices for JSON with Gemini 3.7 Flash
+## Best Practices for JSON with Gemini 3.8 Flash
 
-When working with Gemini 3.7 Flash and JSON outputs:
+When working with Gemini 3.8 Flash and JSON outputs:
 
 1. **Use Instructor's Structured Output Capabilities**
    - Instructor provides robust handling of JSON responses

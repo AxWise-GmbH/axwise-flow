@@ -47,8 +47,8 @@ def _get_api_key() -> str:
 
 
 async def extract_business_and_stakeholders_hamburg(project_idea: str) -> Dict[str, Any]:
-    """Uses Gemini 3.7 Flash to identify the problem, target customers, and required team hires."""
-    logger.info("Extracting Hamburg HVAC+PV business context, customers, and hiring profiles using Gemini 3.7 Flash...")
+    """Uses Gemini 3.8 Flash to identify the problem, target customers, and required team hires."""
+    logger.info("Extracting Hamburg HVAC+PV business context, customers, and hiring profiles using Gemini 3.8 Flash...")
     api_key = _get_api_key()
     client = genai.Client(api_key=api_key)
 
@@ -93,7 +93,7 @@ Return your response strictly as a JSON object with this exact structure:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.7-flash",
+        model="gemini-3.8-flash",
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
@@ -153,7 +153,7 @@ async def main():
     # 2. Run Forward-Simulation Pipeline with OCEANSampler
     logger.info("Initializing Forward-Simulation Pipeline with dynamic Gaussian age sampling...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.8-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()
@@ -189,7 +189,7 @@ async def main():
     
     report.append(f"\n## ⏱️ Execution Performance Metrics")
     report.append(f"- **E2E Pipeline Processing Time**: `{execution_duration:.2f}` seconds")
-    report.append("- **Core Model Utilized**: `models/gemini-3.7-flash` (PydanticAI & Google GenAI SDK)")
+    report.append("- **Core Model Utilized**: `models/gemini-3.8-flash` (PydanticAI & Google GenAI SDK)")
     report.append("- **Verification Status**: Pass (Gaussian demographic validation complete)")
 
     report.append("\n## I. Extracted Legal & Business Context (Hamburg 2026)")

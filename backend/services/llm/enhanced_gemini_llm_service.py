@@ -62,7 +62,7 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         )
         if normalized_research_model(configured_model) != RESEARCH_MODEL:
             raise ValueError(
-                "Enhanced Gemini research requires exact gemini-3.7-flash; "
+                f"Enhanced Gemini research requires exact {RESEARCH_MODEL}; "
                 "provider/model fallback is disabled"
             )
         self.client = AsyncGenAIClient(
@@ -471,7 +471,7 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         """
         return {
             "provider": "gemini",
-            "model_name": getattr(self.client, "model_name", "gemini-3.7-flash"),
+            "model_name": getattr(self.client, "model_name", "gemini-3.8-flash"),
             "service_class": self.__class__.__name__,
             "underlying_service": "AsyncGenAIClient",
             "temperature": self.temperature,

@@ -489,7 +489,7 @@ export default function SimulationHistoryPage(): JSX.Element {
         },
         body: JSON.stringify({
           llm_provider: 'gemini',
-          llm_model: 'gemini-3.7-flash',
+          llm_model: 'gemini-3.8-flash',
           analysis_type: 'comprehensive_simulation',
           include_stakeholder_breakdown: true,
         }),

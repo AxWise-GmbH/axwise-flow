@@ -150,7 +150,7 @@ class PipelineTestConfig:
         # Combined configuration for GeminiService
         self.config = {
             "api_key": self.api_key,
-            "model": "gemini-3.7-flash",
+            "model": "gemini-3.8-flash",
             "max_output_tokens": 65536,
             "temperature": 0.0,
             "top_p": 0.95,
@@ -160,7 +160,7 @@ class PipelineTestConfig:
 
         # LLM configuration for compatibility with different code paths
         self.llm_config = {
-            "model": "gemini-3.7-flash",
+            "model": "gemini-3.8-flash",
             "max_output_tokens": 65536,
             "temperature": 0.0,
             "top_p": 0.95,

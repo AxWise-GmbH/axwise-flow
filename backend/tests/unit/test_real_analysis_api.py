@@ -202,7 +202,7 @@ async def test_analysis_api(data_id: int) -> Dict[str, Any]:
         analysis_request = {
             "data_id": data_id,
             "llm_provider": "gemini",
-            "llm_model": "gemini-3.7-flash",
+            "llm_model": "gemini-3.8-flash",
             "is_free_text": False,
             "industry": "technology",
         }

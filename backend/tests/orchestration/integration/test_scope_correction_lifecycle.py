@@ -1969,7 +1969,7 @@ def test_live_gemini_clarification_child_compiles_without_parent_context_leakage
     assert compiled.compilation.interpretation.model_resource == (
         correction_module.RESEARCH_MODEL_RESOURCE
     )
-    assert correction_module.RESEARCH_MODEL_RESOURCE == "models/gemini-3.7-flash"
+    assert correction_module.RESEARCH_MODEL_RESOURCE == "models/gemini-3.8-flash"
     assert str(correction_module.RESEARCH_THINKING_LEVEL.value).upper() == "HIGH"
     assert capturing_agent.deps[0].correction_text == answer_text
     assert capturing_agent.deps[0].allowed_fields == frozenset(

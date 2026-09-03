@@ -159,10 +159,10 @@ def test_external_cancellation_propagates_without_retry() -> None:
 def test_research_model_has_one_retry_owner_and_exact_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
     model = build_research_model("test-key")
 
-    assert model.model_name == "models/gemini-3.7-flash"
+    assert model.model_name == "models/gemini-3.8-flash"
     api_client = model._provider.client._api_client
     assert isinstance(api_client._async_httpx_client, BoundedRetryAsyncClient)
     assert api_client._http_options.retry_options.attempts == 1
@@ -175,20 +175,20 @@ def test_research_model_has_one_retry_owner_and_exact_model(
 def test_shared_research_model_reuses_the_caller_owned_transport(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
 
     first = get_shared_research_model("shared-test-key")
     second = get_shared_research_model("shared-test-key")
 
     assert first is second
-    assert first.model_name == "models/gemini-3.7-flash"
+    assert first.model_name == "models/gemini-3.8-flash"
     assert first.settings["max_tokens"] == 65_536
 
 
 def test_shared_research_model_closes_the_injected_http_transport(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
     api_key = "shared-close-test-key"
     model = get_shared_research_model(api_key)
     transport = model.client._api_client._async_httpx_client

@@ -29,7 +29,7 @@ openregister-sdk>=3.5.1
 
 # LLM Services
 openai>=1.52.0
-google-genai==2.17.0  # Gemini 3.7 API/runtime contract; keep in sync with pydantic-ai
+google-genai==2.17.0  # Gemini 3.8 API/runtime contract; keep in sync with pydantic-ai
 google-auth>=2.40.0  # Cloud Run service-to-service identity tokens
 instructor==1.15.4  # Structured-output adapter tested with google-genai 2.17
 jsonref>=1.1.0  # Required by instructor for JSON schema processing
@@ -37,7 +37,7 @@ jsonref>=1.1.0  # Required by instructor for JSON schema processing
 # Data processing
 python-dotenv==1.0.1
 pydantic==2.13.4  # Validated with pydantic-ai 2.28.0 and the production contract models
-pydantic-ai-slim[google]==2.28.0  # Security-patched, validated GoogleModel + Gemini 3.7 runtime
+pydantic-ai-slim[google]==2.28.0  # Security-patched, validated GoogleModel + Gemini 3.8 runtime
 numpy==1.26.3
 pandas==2.1.4
 openpyxl>=3.1.2  # Required for Excel file processing with pandas

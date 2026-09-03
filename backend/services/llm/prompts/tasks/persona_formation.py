@@ -38,7 +38,7 @@ class PersonaFormationPrompts:
 
         # Dynamic sample limit based on content size - Increased to provide more context
         # Original limit was 3500, which is too short for detailed persona extraction.
-        # Gemini 3.7 Flash has a large context window, so we can be more generous.
+        # Gemini 3.8 Flash has a large context window, so we can be more generous.
         if len(original_text_input) > 200000:  # Very large datasets (200K+ chars)
             TEXT_SAMPLE_LIMIT = 100000  # Use first 100K chars
         elif len(original_text_input) > 100000:  # Large datasets (100K+ chars)

@@ -112,7 +112,7 @@ def test_scope_packet_is_order_independent_traceable_and_runtime_truthful():
         for criterion in first.ledger.acceptance
         for requirement_id in criterion.supports
     }
-    assert first.runtime.model == "gemini-3.7-flash"
+    assert first.runtime.model == "gemini-3.8-flash"
     assert first.runtime.reasoning_mode == "high"
     assert first.runtime.context_window == 1_048_576
     assert first.runtime.max_output_tokens == 65_536

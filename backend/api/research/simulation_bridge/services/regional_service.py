@@ -299,7 +299,7 @@ For each company, generate:
         # Initialize GeminiService and StakeholderDetector
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         llm_service = GeminiService({
-            "model": os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash"),
+            "model": os.getenv("GEMINI_MODEL", "models/gemini-3.8-flash"),
             "api_key": api_key
         })
         detector = StakeholderDetector()
