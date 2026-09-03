@@ -1,4 +1,4 @@
-"""Single exact-model runtime for durable Gemini 3.7 research."""
+"""Single exact-model runtime for durable Gemini 3.8 research."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
 from pydantic_ai.providers.google import GoogleProvider
 
 
-RESEARCH_MODEL = "gemini-3.7-flash"
+RESEARCH_MODEL = "gemini-3.8-flash"
 RESEARCH_MODEL_RESOURCE = f"models/{RESEARCH_MODEL}"
 RESEARCH_THINKING_LEVEL = ThinkingLevel.HIGH
 RESEARCH_MAX_OUTPUT_TOKENS = 65_536
@@ -202,7 +202,7 @@ def _build_research_runtime(api_key: str) -> _SharedResearchRuntime:
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Durable research requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"Durable research requires GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     http_client = BoundedRetryAsyncClient(
@@ -262,7 +262,7 @@ def get_shared_research_model(api_key: str) -> GoogleModel:
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Durable research requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"Durable research requires GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
@@ -274,12 +274,12 @@ def get_shared_research_model(api_key: str) -> GoogleModel:
 
 
 def get_shared_workflow_model(api_key: str) -> GoogleModel:
-    """Exact Gemini 3.7 Flash/HIGH model without an application output cap."""
+    """Exact Gemini 3.8 Flash/HIGH model without an application output cap."""
 
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Workflow cognition requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"Workflow cognition requires GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
@@ -339,7 +339,7 @@ def require_search_model() -> str:
     configured = os.getenv("GEMINI_SEARCH_MODEL", RESEARCH_MODEL)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Grounded research requires GEMINI_SEARCH_MODEL=gemini-3.7-flash; "
+            f"Grounded research requires GEMINI_SEARCH_MODEL={RESEARCH_MODEL}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     return RESEARCH_MODEL

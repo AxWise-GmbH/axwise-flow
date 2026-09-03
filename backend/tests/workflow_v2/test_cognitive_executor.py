@@ -1748,14 +1748,14 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
                     "thoughtsTokenCount": 7,
                     "totalTokenCount": 22,
                 },
-                "modelVersion": "gemini-3.7-flash",
+                "modelVersion": "gemini-3.8-flash",
             },
         )
 
     def client_factory(**kwargs):
         return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
 
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
     monkeypatch.setenv("GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS", "750000")
     monkeypatch.setenv("GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS", "3750000")
     monkeypatch.setattr(gemini_runtime, "BoundedRetryAsyncClient", client_factory)
@@ -1784,7 +1784,7 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
 
         assert len(captured_requests) == 1
         url, body = captured_requests[0]
-        assert url.endswith("/v1beta/models/gemini-3.7-flash:generateContent")
+        assert url.endswith("/v1beta/models/gemini-3.8-flash:generateContent")
         config = body["generationConfig"]
         assert config["thinkingConfig"] == {"thinking_level": "HIGH"}
         assert "maxOutputTokens" not in config

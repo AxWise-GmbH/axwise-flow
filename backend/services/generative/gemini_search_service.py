@@ -424,7 +424,7 @@ class GeminiSearchService:
     """
     Service for performing grounded web searches using Gemini's Google Search tool.
 
-    This uses Gemini 3.7 Flash's native integration with Google Search for real-time
+    This uses Gemini 3.8 Flash's native integration with Google Search for real-time
     information retrieval - no external search APIs needed.
     """
 

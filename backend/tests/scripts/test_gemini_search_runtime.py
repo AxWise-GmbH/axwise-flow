@@ -230,7 +230,7 @@ def test_constructor_rejects_unbounded_runtime_limits(
 def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.8-flash")
     clock = FakeClock()
     models = SequenceModels([_response()])
     service = _service(models, clock)
@@ -240,7 +240,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     assert result["search_performed"] is True
     assert len(models.calls) == 1
     call = models.calls[0]
-    assert call["model"] == "gemini-3.7-flash"
+    assert call["model"] == "gemini-3.8-flash"
     config = call["config"]
     assert config.temperature is None
     assert config.top_p is None
@@ -252,7 +252,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     assert config.http_options.retry_options.attempts == 1
     assert result["runtime_diagnostics"] == {
         "route": "gemini_google_search",
-        "model": "gemini-3.7-flash",
+        "model": "gemini-3.8-flash",
         "status": "ok",
         "elapsed_ms": 0,
         "call_count": 1,
@@ -272,7 +272,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
 async def test_async_search_uses_exact_model_and_same_bounded_sdk_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.8-flash")
     clock = FakeClock()
     models = AsyncSequenceModels([_response()])
     service = _async_service(models, clock)
@@ -284,7 +284,7 @@ async def test_async_search_uses_exact_model_and_same_bounded_sdk_config(
     assert result["search_performed"] is True
     assert len(models.calls) == 1
     call = models.calls[0]
-    assert call["model"] == "gemini-3.7-flash"
+    assert call["model"] == "gemini-3.8-flash"
     config = call["config"]
     assert config.temperature is None
     assert config.max_output_tokens is None
@@ -305,7 +305,7 @@ async def test_async_transient_retry_uses_cancellable_sleep(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = AsyncSequenceModels(
         [
@@ -335,7 +335,7 @@ async def test_async_transient_retry_uses_cancellable_sleep(
 async def test_cancelling_async_search_cancels_provider_without_retry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     models = BlockingAsyncModels()
     service = _async_service(models, FakeClock())
     task = asyncio.create_task(service.search_web_general_async("blocking query"))
@@ -353,7 +353,7 @@ async def test_cancelling_async_search_cancels_provider_without_retry(
 async def test_stalled_async_provider_automatically_hits_outer_deadline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     models = BlockingAsyncModels()
     service = _async_service(models, FakeClock())
     service._search_clock = time.monotonic
@@ -533,7 +533,7 @@ async def test_async_cpu_parser_fails_closed_at_its_absolute_deadline() -> None:
 def test_transient_disconnect_retries_same_model_with_bounded_call_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = SequenceModels(
         [httpx.RemoteProtocolError("Server disconnected"), _response()]
@@ -543,8 +543,8 @@ def test_transient_disconnect_retries_same_model_with_bounded_call_count(
     result = service.search_web_general("Estonian authority sources")
 
     assert [call["model"] for call in models.calls] == [
-        "gemini-3.7-flash",
-        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gemini-3.8-flash",
     ]
     assert clock.sleeps == [1.0]
     assert result["runtime_diagnostics"]["status"] == "ok"
@@ -558,7 +558,7 @@ def test_retry_after_is_honored_without_sdk_retry_multiplication(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = SequenceModels(
         [
@@ -593,7 +593,7 @@ def test_non_transient_error_is_not_retried(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = SequenceModels(
         [
@@ -626,7 +626,7 @@ async def test_async_first_non_transient_error_remains_non_retryable(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = AsyncSequenceModels(
         [
@@ -658,7 +658,7 @@ async def test_async_first_non_transient_error_remains_non_retryable(
 def test_transient_then_non_transient_failure_remains_fallback_eligible(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = SequenceModels(
         [_http_status_error(504), _http_status_error(400)]
@@ -682,7 +682,7 @@ def test_transient_then_non_transient_failure_remains_fallback_eligible(
 async def test_async_transients_then_non_transient_failure_remain_fallback_eligible(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = AsyncSequenceModels(
         [
@@ -717,7 +717,7 @@ def test_invalid_upstream_status_is_omitted_from_diagnostics_and_logs(
     caplog: pytest.LogCaptureFixture,
     invalid_status_code: Any,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     error = RuntimeError("sensitive invalid-status provider response")
     error.status_code = invalid_status_code
     service = _service(SequenceModels([error]), FakeClock())
@@ -737,7 +737,7 @@ async def test_async_retry_retains_last_valid_status_when_terminal_error_has_non
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     models = AsyncSequenceModels(
         [
             ProviderStatusError(503, "sensitive first failure"),
@@ -762,7 +762,7 @@ async def test_async_retry_retains_last_valid_status_when_terminal_error_has_non
 def test_retry_delay_cannot_exceed_total_operation_deadline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     clock = FakeClock()
     models = SequenceModels([_http_status_error(429, retry_after="20")])
     service = _service(models, clock)
@@ -799,7 +799,7 @@ def test_wrong_search_model_fails_closed_before_provider_call(
 def test_trusted_google_redirect_is_resolved_once_without_fetching_final_host(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     text = "EU feed law applies."
     provider_url = (
         "https://vertexaisearch.cloud.google.com/grounding-api-redirect/source123"
@@ -875,7 +875,7 @@ def test_grounding_redirect_rejects_untrusted_and_private_destinations() -> None
 def test_direct_grounding_chunks_reject_unsafe_urls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
     metadata = SimpleNamespace(
         web_search_queries=[],
         search_entry_point=None,

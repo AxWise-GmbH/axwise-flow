@@ -1,15 +1,25 @@
-"""Production contracts for the AxWise Gemini 3.7 execution runtime."""
+"""Production contracts for the AxWise Gemini 3.8 execution runtime."""
 
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from instructor.providers.gemini.utils import handle_genai_tools
 
+from backend.domain.orchestration.scope_models import TrustedRuntimeMetadataV1
 from backend.services.generative.gemini_text_service import GeminiTextService
-from backend.services.llm.config.genai_config import GenAIConfigFactory, TaskType
+from backend.services.llm.config.genai_config import (
+    GenAIConfigFactory,
+    TaskType,
+    is_supported_gemini_flash,
+)
+from backend.services.llm.gemini_runtime import (
+    RESEARCH_MODEL,
+    RESEARCH_MODEL_RESOURCE,
+    build_research_model,
+)
 from backend.services.llm.gemini_service import GeminiService
 from backend.services.llm.instructor_gemini_client import (
     EnhancedInstructorGeminiClient,
@@ -34,7 +44,7 @@ ENHANCED_GEMINI_SERVICE = (
     ROOT / "backend" / "services" / "llm" / "enhanced_gemini_llm_service.py"
 )
 
-GEMINI_37_REQUEST_BOUNDARIES = (
+GEMINI_FLASH_REQUEST_BOUNDARIES = (
     "services/generative/gemini_text_service.py",
     "services/llm/providers/gemini.py",
     "services/llm/gemini_service.py",
@@ -52,7 +62,7 @@ class _StructuredReply(BaseModel):
 
 def _new_instructor_client(create, *, max_retries: int = 1):
     client = EnhancedInstructorGeminiClient.__new__(EnhancedInstructorGeminiClient)
-    client.model_name = "models/gemini-3.7-flash"
+    client.model_name = "models/gemini-3.8-flash"
     client.max_retries = max_retries
     client.enable_metrics = False
     client.metrics_history = []
@@ -89,16 +99,16 @@ def _assert_instructor_tools_provider_request(request) -> None:
 
 
 def test_operator_examples_and_local_services_use_exact_research_model() -> None:
-    assert "GEMINI_MODEL=models/gemini-3.7-flash" in (
+    assert "GEMINI_MODEL=models/gemini-3.8-flash" in (
         ROOT / ".env.example"
     ).read_text(encoding="utf-8")
-    assert "GEMINI_MODEL=models/gemini-3.7-flash" in (
+    assert "GEMINI_MODEL=models/gemini-3.8-flash" in (
         ROOT / "backend" / ".env.example"
     ).read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     # Backend, paid research worker, and the isolated scope worker must all
     # share the exact accepted Gemini runtime.
-    assert compose.count("GEMINI_MODEL:-models/gemini-3.7-flash") == 3
+    assert compose.count("GEMINI_MODEL:-models/gemini-3.8-flash") == 3
     assert "gemini-3-flash-preview" not in compose
     assert "gemini-3.6-flash" not in compose
 
@@ -128,7 +138,7 @@ def test_production_gemini_dependencies_are_exact_and_compatible(
         TaskType.PRD_GENERATION,
     ],
 )
-def test_gemini37_config_uses_native_system_instruction_and_supported_limits(
+def test_gemini_flash_config_uses_native_system_instruction_and_supported_limits(
     task: TaskType,
 ) -> None:
     config = GenAIConfigFactory.create_config(
@@ -139,7 +149,7 @@ def test_gemini37_config_uses_native_system_instruction_and_supported_limits(
             "top_p": 0.9,
             "top_k": 12,
         },
-        model="models/gemini-3.7-flash",
+        model="models/gemini-3.8-flash",
         system_instruction="Keep provenance attached to every material claim.",
     )
     dumped = config.model_dump(exclude_none=True)
@@ -151,6 +161,72 @@ def test_gemini37_config_uses_native_system_instruction_and_supported_limits(
     assert dumped["system_instruction"] == (
         "Keep provenance attached to every material claim."
     )
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gemini-3.7-flash",
+        "models/gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "models/gemini-3.8-flash",
+    ],
+)
+def test_sampling_sanitizer_accepts_current_and_persisted_flash_models(
+    model: str,
+) -> None:
+    assert is_supported_gemini_flash(model)
+
+
+def test_persisted_gemini_37_runtime_metadata_still_replays() -> None:
+    legacy_payload = {
+        "runtime_contract_version": "axwise_gemini_runtime_v1",
+        "runtime_authority_id": "axwise.runtime.gemini-research.v1",
+        "provider": "google",
+        "model": "gemini-3.7-flash",
+        "model_resource": "models/gemini-3.7-flash",
+        "reasoning_mode": "high",
+        "context_window": 1_048_576,
+        "max_output_tokens": 65_536,
+        "output_policy": "provider_maximum_no_workflow_cap",
+        "configuration_sources": [
+            "backend.services.llm.gemini_runtime",
+            "backend.services.llm.config.genai_config",
+            "backend.infrastructure.data.config.MODEL_CAPABILITIES",
+        ],
+    }
+
+    assert TrustedRuntimeMetadataV1.model_validate(legacy_payload).model_dump(
+        mode="json"
+    ) == legacy_payload
+
+
+def test_runtime_metadata_rejects_cross_version_model_resource_pair() -> None:
+    with pytest.raises(ValidationError, match="model and resource must match exactly"):
+        TrustedRuntimeMetadataV1(
+            model="gemini-3.8-flash",
+            model_resource="models/gemini-3.7-flash",
+        )
+
+
+def test_current_runtime_defaults_emit_gemini_38_provenance() -> None:
+    runtime = TrustedRuntimeMetadataV1()
+
+    assert runtime.model == RESEARCH_MODEL == "gemini-3.8-flash"
+    assert (
+        runtime.model_resource
+        == RESEARCH_MODEL_RESOURCE
+        == "models/gemini-3.8-flash"
+    )
+
+
+def test_live_runtime_rejects_legacy_gemini_37_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+
+    with pytest.raises(RuntimeError, match="models/gemini-3.8-flash"):
+        build_research_model("test-key")
 
 
 def test_legacy_model_keeps_supported_sampling_controls() -> None:
@@ -207,29 +283,29 @@ def test_structured_research_agents_use_native_output_and_semantic_retries() -> 
         assert 'retries={"output": 2}' in source
 
 
-def test_gemini37_direct_request_boundaries_strip_unsupported_controls() -> None:
-    text_service = (ROOT / "backend" / GEMINI_37_REQUEST_BOUNDARIES[0]).read_text(
+def test_gemini_flash_direct_request_boundaries_strip_unsupported_controls() -> None:
+    text_service = (ROOT / "backend" / GEMINI_FLASH_REQUEST_BOUNDARIES[0]).read_text(
         encoding="utf-8"
     )
     assert "GenerateContentConfig(\n                response_mime_type=" in text_service
 
-    provider = (ROOT / "backend" / GEMINI_37_REQUEST_BOUNDARIES[1]).read_text(
+    provider = (ROOT / "backend" / GEMINI_FLASH_REQUEST_BOUNDARIES[1]).read_text(
         encoding="utf-8"
     )
     assert 'contents.append({"role": "model"' not in provider
     assert 'config_kwargs["system_instruction"] = system_instruction' in provider
-    assert "is_gemini_37_flash(self.config.model)" in provider
+    assert "is_supported_gemini_flash(self.config.model)" in provider
 
     legacy_service = (
-        ROOT / "backend" / GEMINI_37_REQUEST_BOUNDARIES[2]
+        ROOT / "backend" / GEMINI_FLASH_REQUEST_BOUNDARIES[2]
     ).read_text(encoding="utf-8")
     assert "safe_config.pop(parameter, None)" in legacy_service
     for parameter in ("temperature", "top_p", "top_k", "candidate_count"):
         assert f'"{parameter}",' in legacy_service
     assert '"candidate_count",' in legacy_service
-    assert "GEMINI_37_MAX_OUTPUT_TOKENS" in legacy_service
+    assert "GEMINI_FLASH_MAX_OUTPUT_TOKENS" in legacy_service
 
-    for relative_path in GEMINI_37_REQUEST_BOUNDARIES[3:]:
+    for relative_path in GEMINI_FLASH_REQUEST_BOUNDARIES[3:]:
         source = (ROOT / "backend" / relative_path).read_text(encoding="utf-8")
         assert "ModelSettings(timeout=300, temperature=" not in source
 
@@ -240,12 +316,12 @@ def test_gemini37_direct_request_boundaries_strip_unsupported_controls() -> None
     assert '"temperature"' not in request_block.split(")", 1)[0]
 
 
-def test_gemini37_shared_legacy_clients_normalize_at_provider_boundary() -> None:
+def test_gemini_flash_shared_legacy_clients_normalize_at_provider_boundary() -> None:
     instructor = (
         ROOT / "backend" / "services" / "llm" / "instructor_gemini_client.py"
     ).read_text(encoding="utf-8")
-    assert "is_gemini_37_flash(self.model_name)" in instructor
-    assert instructor.count("GEMINI_37_MAX_OUTPUT_TOKENS") >= 2
+    assert "is_supported_gemini_flash(self.model_name)" in instructor
+    assert instructor.count("GEMINI_FLASH_MAX_OUTPUT_TOKENS") >= 2
     assert instructor.count("generation_config=") >= 3
     assert "config=config" not in instructor
     assert "config={**config" not in instructor
@@ -253,8 +329,8 @@ def test_gemini37_shared_legacy_clients_normalize_at_provider_boundary() -> None
     unified = (
         ROOT / "backend" / "services" / "llm" / "unified_llm_client.py"
     ).read_text(encoding="utf-8")
-    assert unified.count("is_gemini_37_flash(self.model_name)") == 2
-    assert unified.count("GEMINI_37_MAX_OUTPUT_TOKENS") >= 3
+    assert unified.count("is_supported_gemini_flash(self.model_name)") == 2
+    assert unified.count("GEMINI_FLASH_MAX_OUTPUT_TOKENS") >= 3
     assert "generation_config=config_params" in unified
     assert all(
         line.strip() != "config=config_params" for line in unified.splitlines()
@@ -281,7 +357,7 @@ def test_legacy_service_provider_boundary_strips_and_clamps() -> None:
             "max_output_tokens": 131_072,
             "response_mime_type": "application/json",
         },
-        "models/gemini-3.7-flash",
+        "models/gemini-3.8-flash",
     )
 
     assert safe == {
@@ -365,7 +441,7 @@ async def test_unified_structured_call_uses_instructor_generation_config() -> No
         return _StructuredReply(answer="ok")
 
     client = UnifiedLLMClient.__new__(UnifiedLLMClient)
-    client.model_name = "models/gemini-3.7-flash"
+    client.model_name = "models/gemini-3.8-flash"
     client.max_retries = 0
     client.current_metrics = None
     client._instructor_client = SimpleNamespace(
@@ -424,7 +500,7 @@ async def test_provider_uses_native_system_instruction_without_prefilled_model_t
     provider = GeminiProvider(
         {
             "api_key": "test-key",
-            "model": "models/gemini-3.7-flash",
+            "model": "models/gemini-3.8-flash",
             "max_tokens": 131_072,
         }
     )

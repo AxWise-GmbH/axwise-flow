@@ -126,7 +126,7 @@ class StakeholderTestSuite:
             analysis_payload = {
                 "data_id": data_id,
                 "llm_provider": "gemini",
-                "llm_model": "models/gemini-3.7-flash",
+                "llm_model": "models/gemini-3.8-flash",
             }
             
             response = requests.post(

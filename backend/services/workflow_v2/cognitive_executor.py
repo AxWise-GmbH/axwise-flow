@@ -71,7 +71,7 @@ from backend.domain.workflow_v2.contracts import (
     utf16_ordinal_sorted,
     utf16_slice,
 )
-from backend.services.llm.gemini_runtime import get_shared_workflow_model
+from backend.services.llm.gemini_runtime import RESEARCH_MODEL, get_shared_workflow_model
 from backend.services.workflow_v2.assistant import (
     AssistantTurnService,
     PydanticAIConversationalAssistantRunner,
@@ -1164,7 +1164,7 @@ def _operation_metrics(
     return OperationMetrics(
         latency_ms=0,
         provider="google",
-        model="gemini-3.7-flash",
+        model=RESEARCH_MODEL,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         total_tokens=(
