@@ -1641,40 +1641,62 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     })
 
             require_normalization_time()
+            # A generated answer is not a grounded-search result merely because
+            # the Google Search tool was enabled. Gemini can return ordinary
+            # model prose without any grounding metadata, or chunks without a
+            # support that binds an exact response span to a source. Treat only
+            # a verified claim/source pair as successful grounded research.
+            has_grounded_evidence = bool(grounding_sources and grounded_claims)
+            grounding_status = (
+                "ok" if has_grounded_evidence else "response_processing_error"
+            )
             prior_call_count = int(runtime_diagnostics.get("call_count", 0))
             prior_model = str(runtime_diagnostics.get("model") or RESEARCH_MODEL)
             runtime_diagnostics = self._search_runtime_diagnostics(
-                status="ok",
+                status=grounding_status,
                 started_at=started_at,
                 call_count=prior_call_count,
                 model=prior_model,
                 deadline_seconds=_diagnostic_deadline_seconds,
             )
             result = {
-                "text": raw_text,
-                "sources": grounding_sources[:10],
-                "claims": grounded_claims[:50],
+                "text": raw_text if has_grounded_evidence else "",
+                "sources": grounding_sources[:10] if has_grounded_evidence else [],
+                "claims": grounded_claims[:50] if has_grounded_evidence else [],
                 "provider": "gemini_google_search",
                 "provider_response_hash": response_hash,
                 "provider_query_ids": provider_query_ids,
                 "provider_queries": provider_queries,
                 "search_entry_point": search_entry_point,
-                "search_performed": True,
+                "search_performed": has_grounded_evidence,
                 "usage_metadata": _normalized_usage_metadata(response),
                 "runtime_diagnostics": runtime_diagnostics,
             }
+            if not has_grounded_evidence:
+                result["error"] = "MissingGroundingEvidence"
             model_version = _provider_model_version(response)
             if model_version is not None:
                 result["model_version"] = model_version
-            logger.info(
-                "Gemini grounded search completed; route=%s model=%s "
-                "status=%s elapsed_ms=%s call_count=%s",
-                runtime_diagnostics["route"],
-                runtime_diagnostics["model"],
-                runtime_diagnostics["status"],
-                runtime_diagnostics["elapsed_ms"],
-                runtime_diagnostics["call_count"],
-            )
+            if has_grounded_evidence:
+                logger.info(
+                    "Gemini grounded search completed; route=%s model=%s "
+                    "status=%s elapsed_ms=%s call_count=%s",
+                    runtime_diagnostics["route"],
+                    runtime_diagnostics["model"],
+                    runtime_diagnostics["status"],
+                    runtime_diagnostics["elapsed_ms"],
+                    runtime_diagnostics["call_count"],
+                )
+            else:
+                logger.warning(
+                    "Gemini grounded search returned no source-backed claim; "
+                    "route=%s model=%s status=%s elapsed_ms=%s call_count=%s",
+                    runtime_diagnostics["route"],
+                    runtime_diagnostics["model"],
+                    runtime_diagnostics["status"],
+                    runtime_diagnostics["elapsed_ms"],
+                    runtime_diagnostics["call_count"],
+                )
             return result
         except Exception as e:
             if isinstance(e, _GroundedSearchRuntimeError):

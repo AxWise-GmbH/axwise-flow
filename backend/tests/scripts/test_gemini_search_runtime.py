@@ -85,11 +85,27 @@ class ProviderStatusError(RuntimeError):
 
 
 def _response(text: str = "Grounded answer") -> SimpleNamespace:
+    source_url = "https://authority.example/grounded-answer"
     grounding_metadata = SimpleNamespace(
         web_search_queries=["query one", "query two", "query three"],
         search_entry_point=None,
-        grounding_chunks=[],
-        grounding_supports=[],
+        grounding_chunks=[
+            SimpleNamespace(
+                web=SimpleNamespace(title="Authority", uri=source_url)
+            )
+        ],
+        grounding_supports=[
+            SimpleNamespace(
+                segment=SimpleNamespace(
+                    text=text,
+                    start_index=0,
+                    end_index=len(text.encode("utf-8")),
+                    part_index=0,
+                ),
+                grounding_chunk_indices=[0],
+                confidence_scores=[0.99],
+            )
+        ],
     )
     return SimpleNamespace(
         text=text,
@@ -122,7 +138,18 @@ def _redirect_response(
             )
             for index, url in enumerate(provider_urls)
         ],
-        grounding_supports=[],
+        grounding_supports=[
+            SimpleNamespace(
+                segment=SimpleNamespace(
+                    text=text,
+                    start_index=0,
+                    end_index=len(text.encode("utf-8")),
+                    part_index=0,
+                ),
+                grounding_chunk_indices=[0],
+                confidence_scores=[0.99],
+            )
+        ],
     )
     return SimpleNamespace(
         text=text,
@@ -300,6 +327,46 @@ async def test_async_search_uses_exact_model_and_same_bounded_sdk_config(
         "output_tokens": 20,
         "total_tokens": 41,
     }
+
+
+@pytest.mark.asyncio
+async def test_async_generated_text_without_grounding_metadata_fails_closed() -> None:
+    response = _response("Ungrounded provider prose must not escape.")
+    response.candidates[0].grounding_metadata = None
+    models = AsyncSequenceModels([response])
+    service = _async_service(models, FakeClock())
+
+    result = await service.search_web_general_async("current facts")
+
+    assert len(models.calls) == 1
+    assert result["search_performed"] is False
+    assert result["text"] == ""
+    assert result["sources"] == []
+    assert result["claims"] == []
+    assert result["error"] == "MissingGroundingEvidence"
+    assert result["runtime_diagnostics"]["status"] == "response_processing_error"
+    assert result["runtime_diagnostics"]["call_count"] == 1
+    assert result["usage_metadata"] == {
+        "input_tokens": 21,
+        "output_tokens": 20,
+        "total_tokens": 41,
+    }
+    assert result["model_version"] == "gemini-3.8-flash-001"
+
+
+def test_grounding_chunks_without_source_backed_support_fail_closed() -> None:
+    response = _response("Unsupported provider prose must not escape.")
+    response.candidates[0].grounding_metadata.grounding_supports = []
+    service = _service(SequenceModels([response]), FakeClock())
+
+    result = service.search_web_general("current facts")
+
+    assert result["search_performed"] is False
+    assert result["text"] == ""
+    assert result["sources"] == []
+    assert result["claims"] == []
+    assert result["error"] == "MissingGroundingEvidence"
+    assert result["runtime_diagnostics"]["status"] == "response_processing_error"
 
 
 @pytest.mark.asyncio
@@ -893,7 +960,18 @@ def test_direct_grounding_chunks_reject_unsafe_urls(
                 web=SimpleNamespace(title="Valid", uri="https://authority.example/x")
             ),
         ],
-        grounding_supports=[],
+        grounding_supports=[
+            SimpleNamespace(
+                segment=SimpleNamespace(
+                    text="Grounded answer",
+                    start_index=0,
+                    end_index=len("Grounded answer".encode("utf-8")),
+                    part_index=0,
+                ),
+                grounding_chunk_indices=[3],
+                confidence_scores=[0.99],
+            )
+        ],
     )
     response = SimpleNamespace(
         text="Grounded answer",
@@ -909,6 +987,8 @@ def test_direct_grounding_chunks_reject_unsafe_urls(
 
     result = service.search_web_general("safe sources")
 
+    assert result["search_performed"] is True
     assert [source["url"] for source in result["sources"]] == [
         "https://authority.example/x"
     ]
+    assert result["claims"][0]["source_urls"] == ["https://authority.example/x"]

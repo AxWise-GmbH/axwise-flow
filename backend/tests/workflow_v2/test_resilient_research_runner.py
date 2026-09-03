@@ -2274,6 +2274,46 @@ async def test_unavailable_searx_preserves_primary_transient_status() -> None:
 
 
 @pytest.mark.asyncio
+async def test_missing_primary_grounding_evidence_attempts_verified_fallback() -> None:
+    url = "https://example.gov.ee/current-rules"
+    exact = "Current rules require the responsible operator to be identified."
+    primary_result = transient("response_processing_error")
+    primary_result.update(
+        {
+            "text": "",
+            "sources": [],
+            "claims": [],
+            "error": "MissingGroundingEvidence",
+        }
+    )
+    primary = FakePrimary(primary_result)
+    searx = FakeSearx(
+        discovery(sources=[{"url": url, "title": "Current rules"}])
+    )
+
+    async def fetch(_url: str) -> dict:
+        return document(url, f"Publisher heading. {exact} Publisher footer.")
+
+    result = await ResilientResearchRunner(
+        primary,
+        searxng=searx,
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    ).search(server_query())
+
+    assert len(primary.queries) == 1
+    assert len(searx.queries) == 1
+    assert result["search_performed"] is True
+    assert result["provider"] == "searxng_direct_fetch"
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["primary_status"] == (
+        "response_processing_error"
+    )
+    assert result["runtime_diagnostics"]["fallback_attempted"] is True
+    assert result["runtime_diagnostics"]["fallback_used"] is True
+
+
+@pytest.mark.asyncio
 async def test_untrusted_search_performed_flag_cannot_override_bad_discovery_status() -> None:
     malformed = discovery(
         sources=[],
