@@ -36,6 +36,7 @@ jsonref>=1.1.0  # Required by instructor for JSON schema processing
 python-dotenv==1.0.1
 pydantic==2.13.4  # Validated with pydantic-ai 2.28.0 and the production contract models
 pydantic-ai-slim[google]==2.28.0  # Security-patched, validated GoogleModel + Gemini 3.7 runtime
+rfc8785==0.1.4  # Shared canonical JSON for signed agentic contracts
 numpy==1.26.3
 pandas==2.1.4
 openpyxl>=3.1.2  # Required for Excel file processing with pandas
