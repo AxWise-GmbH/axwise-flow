@@ -1,0 +1,71 @@
+{
+  "contract_version": "1.0",
+  "canonicalization": "rfc8785_v1",
+  "plan_id": "golden-plan-2026-09-04",
+  "plan_version": 1,
+  "content_hash": "0d527095c77da21716d5e53aef264305c95fa3751885051b2d174094a795354c",
+  "owning_agent_id": "11111111-1111-4111-8111-111111111111",
+  "team_id": "44444444-4444-4444-8444-444444444444",
+  "team_member_ids": [
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222"
+  ],
+  "nodes": [
+    {
+      "node_id": "compare-options",
+      "title": "Compare café delivery options",
+      "objective": "Produce an evidence-based comparison for the current workspace.",
+      "step_kind": "reason",
+      "descriptor": {
+        "contract_version": "1.0",
+        "descriptor_key": "agent_reason_v1",
+        "schema_version": "1.0",
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "executor_binding": {
+        "contract_version": "1.0",
+        "binding_key": "bounded_agent_executor",
+        "binding_version": "1.0",
+        "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "assigned_agent_id": "22222222-2222-4222-8222-222222222222",
+      "persona_version": {
+        "contract_version": "1.0",
+        "persona_id": "worker-persona",
+        "persona_version": "1",
+        "content_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "requires_distinct_reviewer": false,
+      "dependencies": [],
+      "canonical_input_hash": "3323400217c4633ee90dadf85c64110d0da8eba7450e0411ff0a2a19dd87fb8c",
+      "expected_output_schema_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "effect_profile": {
+        "externality": "none",
+        "mutation": "none",
+        "flags": []
+      },
+      "data_egress_profile": {
+        "mode": "deny_all",
+        "destination_classes": [],
+        "provider_classes": [],
+        "region_classes": [],
+        "permitted_input_classifications": [],
+        "permitted_output_classifications": [],
+        "redaction_required": false,
+        "dlp_required": false,
+        "provider_retention_policy_required": false,
+        "provider_training_policy_required": false
+      },
+      "limits": {
+        "maximum_turns": 4,
+        "maximum_tokens": 8000,
+        "maximum_tool_calls": 2,
+        "maximum_runtime_seconds": 120,
+        "maximum_attempts": 1,
+        "maximum_cost_minor": 0,
+        "currency": "EUR"
+      }
+    }
+  ],
+  "created_at": "2026-09-04T10:00:00Z"
+}
