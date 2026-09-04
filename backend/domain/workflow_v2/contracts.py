@@ -8,7 +8,14 @@ from typing import Annotated, Any, Literal, Union
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 Sha256 = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
 AssistantWireUuid = Annotated[
@@ -1002,10 +1009,105 @@ def render_assistant_context_request(context: AssistantContextEnvelopeV1) -> str
     return rendered
 
 
+class ExecutionAgentSourceV1(StrictWireContractModel):
+    thread_id: UUID
+    turn_id: UUID
+    task_hash: Sha256
+
+
+class ExecutionAgentOwnerV1(StrictWireContractModel):
+    tenant_id: UUID
+    user_id: ClerkUserId
+
+
+class ExecutionAgentExecutorPersonaV1(StrictWireContractModel):
+    role: Literal["task_executor"]
+    profile_version: Literal["axwise_executor_persona_v1"]
+    provider: Literal["axwise"]
+    binding: Literal["fixed_profile_contract"]
+
+
+class ExecutionAgentMemoryV1(StrictWireContractModel):
+    scope: Literal["thread_and_goal"]
+    cross_thread: Literal[False]
+
+    @field_validator("cross_thread", mode="before")
+    @classmethod
+    def strict_cross_thread_boolean(cls, value: object) -> object:
+        if type(value) is not bool:
+            raise ValueError("crossThread must be a JSON boolean")
+        return value
+
+
+class ExecutionAgentRuntimeV1(StrictWireContractModel):
+    provider: Literal["orqaly_workflow_v2"]
+    isolation: Literal["tenant_user"]
+
+
+class ExecutionAgentCapabilitiesV1(StrictWireContractModel):
+    research: Literal[True]
+    planning: Literal[True]
+    artifact_production: Literal[True]
+    approval_gates: Literal[True]
+
+    @field_validator(
+        "research",
+        "planning",
+        "artifact_production",
+        "approval_gates",
+        mode="before",
+    )
+    @classmethod
+    def strict_capability_booleans(cls, value: object) -> object:
+        if type(value) is not bool:
+            raise ValueError("execution Agent capabilities must be JSON booleans")
+        return value
+
+
+class ExecutionAgentToolsV1(StrictWireContractModel):
+    external_actions: Literal[False]
+    execution_provider: None
+
+    @field_validator("external_actions", mode="before")
+    @classmethod
+    def strict_external_actions_boolean(cls, value: object) -> object:
+        if type(value) is not bool:
+            raise ValueError("externalActions must be a JSON boolean")
+        return value
+
+
+class ExecutionAgentV1(StrictWireContractModel):
+    """The immutable, truthful Agent identity attached to one Orqaly Goal run.
+
+    This is execution metadata, not owner authority and not a tool grant.  The
+    closed literals deliberately prevent a task Agent from claiming broader
+    memory, isolation, capabilities, or side-effect execution than the current
+    Workflow v2 runtime actually provides.
+    """
+
+    schema_version: Literal["orqaly.execution-agent.v1"]
+    id: UUID
+    run_id: UUID
+    owner: ExecutionAgentOwnerV1
+    lifetime: Literal["temporary", "persistent"]
+    source: ExecutionAgentSourceV1
+    executor_persona: ExecutionAgentExecutorPersonaV1
+    memory: ExecutionAgentMemoryV1
+    runtime: ExecutionAgentRuntimeV1
+    capabilities: ExecutionAgentCapabilitiesV1
+    tools: ExecutionAgentToolsV1
+
+
 class CompileScopeInputV3(StrictWireContractModel):
     type: Literal["CompileScopeV3"]
     request: str = Field(min_length=1, max_length=24_000)
     assistant_context: AssistantContextEnvelopeV1
+    # Rolling recovery must continue to accept persisted pre-Agent V3 inputs.
+    # ``exclude_if`` preserves their exact canonical JSON and replay hashes.
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     objective_only_context: list[AssistantContextArtifactRefV1] = Field(
         default_factory=list, max_length=20
     )
@@ -1045,6 +1147,27 @@ class CompileScopeInputV3(StrictWireContractModel):
                 raise ValueError(
                     "assistant context source spans must identify exact rendered content offsets"
                 )
+        if self.execution_agent is not None:
+            source = self.execution_agent.source
+            instruction = self.assistant_context.instruction.content
+            try:
+                task_hash = hashlib.sha256(instruction.encode("utf-8")).hexdigest()
+            except UnicodeEncodeError as error:
+                raise ValueError(
+                    "execution Agent task must contain Unicode scalars"
+                ) from error
+            if source.thread_id != UUID(self.assistant_context.thread_id):
+                raise ValueError(
+                    "execution Agent source threadId must equal assistant context threadId"
+                )
+            if source.turn_id != UUID(self.assistant_context.current_turn_id):
+                raise ValueError(
+                    "execution Agent source turnId must equal assistant context currentTurnId"
+                )
+            if source.task_hash != task_hash:
+                raise ValueError(
+                    "execution Agent taskHash must match the exact current instruction"
+                )
         return self
 
 
@@ -1053,6 +1176,10 @@ class ReviseScopeInputV2(ContractModel):
     accepted_scope: ArtifactRef
     correction: str = Field(min_length=1, max_length=6000)
     correction_source_spans: list[SourceSpan] = Field(min_length=1, max_length=24)
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
 
     @model_validator(mode="after")
     def exact_correction_spans(self) -> "ReviseScopeInputV2":
@@ -1070,6 +1197,10 @@ class ExecuteResearchInputV2(ContractModel):
     accepted_scope: ArtifactRef
     scope: ScopeArtifactV2
     selected_evidence: list[ArtifactRef] = Field(default_factory=list, max_length=200)
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
 
     @model_validator(mode="after")
     def exact_research_artifact_roles(self) -> "ExecuteResearchInputV2":
@@ -1696,6 +1827,10 @@ class SynthesizeArtifactInputV1(ContractModel):
     repair_pass: Literal[0, 1]
     artifact_contents: list[ImmutableArtifactContent] = Field(min_length=2, max_length=204)
     output_contract: WorkflowOutputContract
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
 
     @model_validator(mode="after")
     def exact_selected_artifact_contents(self) -> "SynthesizeArtifactInputV1":
@@ -1894,6 +2029,20 @@ class AxWiseOperationEnvelope(ContractModel):
     def exact_input_identity(self) -> "AxWiseOperationEnvelope":
         if self.operation_type != self.input.type:
             raise ValueError("operation type must match typed input")
+        execution_agent = getattr(self.input, "execution_agent", None)
+        if execution_agent is not None:
+            if execution_agent.run_id != self.workflow.run_id:
+                raise ValueError(
+                    "execution Agent runId must equal the operation workflow runId"
+                )
+            if execution_agent.owner.tenant_id != self.owner.tenant_id:
+                raise ValueError(
+                    "execution Agent tenantId must equal the operation owner tenantId"
+                )
+            if execution_agent.owner.user_id != self.owner.user_id:
+                raise ValueError(
+                    "execution Agent userId must equal the operation owner userId"
+                )
         input_payload = self.input.model_dump(mode="json", by_alias=True)
         if isinstance(self.input, SynthesizeArtifactInputV1):
             # Only the purpose-discriminated top-level keys are omitted on the wire.

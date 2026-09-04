@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
     CompileScopeInputV3,
@@ -19,6 +20,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     DraftTopicAnchor,
     GeminiCognitiveExecutor,
     ModelOutput,
+    PydanticAIScopeDrafter,
     ScopeDraft,
     _canonical_artifact_type,
 )
@@ -32,6 +34,63 @@ def _envelope() -> AxWiseOperationEnvelope:
     return AxWiseOperationEnvelope.model_validate(
         json.loads(FIXTURE.read_text(encoding="utf-8"))
     )
+
+
+def _execution_agent_contract(
+    *,
+    run_id: str = "00000000-0000-4000-8000-000000000003",
+    tenant_id: str = "00000000-0000-4000-8000-000000000002",
+    user_id: str = "user_axwisetest123",
+    thread_id: str = "10000000-0000-4000-8000-000000000001",
+    turn_id: str = "10000000-0000-4000-8000-000000000012",
+    task: str = "Turn this into a launch plan 🚀.",
+) -> dict:
+    return {
+        "schemaVersion": "orqaly.execution-agent.v1",
+        "id": "10000000-0000-4000-8000-000000000406",
+        "runId": run_id,
+        "owner": {"tenantId": tenant_id, "userId": user_id},
+        "lifetime": "persistent",
+        "source": {
+            "threadId": thread_id,
+            "turnId": turn_id,
+            "taskHash": hashlib.sha256(task.encode("utf-8")).hexdigest(),
+        },
+        "executorPersona": {
+            "role": "task_executor",
+            "profileVersion": "axwise_executor_persona_v1",
+            "provider": "axwise",
+            "binding": "fixed_profile_contract",
+        },
+        "memory": {"scope": "thread_and_goal", "crossThread": False},
+        "runtime": {
+            "provider": "orqaly_workflow_v2",
+            "isolation": "tenant_user",
+        },
+        "capabilities": {
+            "research": True,
+            "planning": True,
+            "artifactProduction": True,
+            "approvalGates": True,
+        },
+        "tools": {"externalActions": False, "executionProvider": None},
+    }
+
+
+def _envelope_with_execution_agent() -> AxWiseOperationEnvelope:
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    context = payload["input"]["assistantContext"]
+    instruction = context["instruction"]["content"]
+    payload["input"]["executionAgent"] = _execution_agent_contract(
+        run_id=payload["workflow"]["runId"],
+        tenant_id=payload["owner"]["tenantId"],
+        user_id=payload["owner"]["userId"],
+        thread_id=context["threadId"],
+        turn_id=context["currentTurnId"],
+        task=instruction,
+    )
+    payload["canonicalInputHash"] = canonical_hash(payload["input"])
+    return AxWiseOperationEnvelope.model_validate(payload)
 
 
 def _content_hash(value: str) -> str:
@@ -214,6 +273,58 @@ async def test_compile_scope_v3_dispatches_and_can_cite_assistant_reference() ->
     )
     assert result.metrics.input_tokens == 7
     assert result.metrics.output_tokens == 11
+
+
+@pytest.mark.asyncio
+async def test_compile_scope_v3_consumes_execution_agent_as_non_authority_prompt_data(
+    monkeypatch,
+) -> None:
+    captured: list[tuple[dict, object]] = []
+
+    class _PromptResult:
+        def __init__(self, output: ScopeDraft) -> None:
+            self.output = output
+
+        def usage(self):
+            return None
+
+    class _CapturingAgent:
+        def __init__(self, **kwargs) -> None:
+            self.is_v3 = kwargs["deps_type"] is cognitive_executor_module.ScopeV3DraftContext
+
+        def output_validator(self, function):
+            return function
+
+        async def run(self, prompt, deps):
+            assert self.is_v3
+            decoded = json.loads(prompt)
+            captured.append((decoded, deps))
+            topic = "staged pilot"
+            return _PromptResult(
+                _draft(
+                    deps.request,
+                    topic=topic,
+                    start=_utf16_index(deps.request, topic),
+                )
+            )
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", _CapturingAgent)
+    envelope = _envelope_with_execution_agent()
+    drafter = PydanticAIScopeDrafter(object())
+
+    await drafter.draft(envelope.input, [])
+
+    prompt, deps = captured[0]
+    expected = envelope.input.execution_agent.model_dump(mode="json", by_alias=True)
+    assert prompt["EXECUTION_AGENT"] == expected
+    assert deps.execution_agent == expected
+    assert expected["id"] not in deps.owner_authority_text
+    assert "owner authority" in cognitive_executor_module.SCOPE_V3_SYSTEM_PROMPT
+    assert "not dynamically generated" in cognitive_executor_module.SCOPE_V3_SYSTEM_PROMPT
+    assert prompt["EXECUTION_AGENT"]["tools"] == {
+        "externalActions": False,
+        "executionProvider": None,
+    }
 
 
 @pytest.mark.asyncio

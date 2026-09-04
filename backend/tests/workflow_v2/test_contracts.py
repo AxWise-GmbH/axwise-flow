@@ -35,6 +35,7 @@ from backend.domain.workflow_v2.contracts import (
     utf16_slice,
 )
 from backend.services.workflow_v2.operation_store import _stored_envelope_payload
+from backend.tests.workflow_v2.factories import scope_payload
 
 pytestmark = pytest.mark.contract
 GOLDEN = Path(__file__).with_name("fixtures") / "canonical_v1_golden.json"
@@ -287,6 +288,238 @@ def _rebind_compile_scope_v3_fixture(fixture: dict) -> None:
         {key: value for key, value in context.items() if key != "envelopeHash"}
     )
     fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+
+
+def _execution_agent_v1(fixture: dict) -> dict:
+    context = fixture["input"]["assistantContext"]
+    instruction = context["instruction"]["content"]
+    return {
+        "schemaVersion": "orqaly.execution-agent.v1",
+        "id": "10000000-0000-4000-8000-000000000406",
+        "runId": fixture["workflow"]["runId"],
+        "owner": {
+            "tenantId": fixture["owner"]["tenantId"],
+            "userId": fixture["owner"]["userId"],
+        },
+        "lifetime": "temporary",
+        "source": {
+            "threadId": context["threadId"],
+            "turnId": context["currentTurnId"],
+            "taskHash": hashlib.sha256(instruction.encode("utf-8")).hexdigest(),
+        },
+        "executorPersona": {
+            "role": "task_executor",
+            "profileVersion": "axwise_executor_persona_v1",
+            "provider": "axwise",
+            "binding": "fixed_profile_contract",
+        },
+        "memory": {"scope": "thread_and_goal", "crossThread": False},
+        "runtime": {
+            "provider": "orqaly_workflow_v2",
+            "isolation": "tenant_user",
+        },
+        "capabilities": {
+            "research": True,
+            "planning": True,
+            "artifactProduction": True,
+            "approvalGates": True,
+        },
+        "tools": {"externalActions": False, "executionProvider": None},
+    }
+
+
+def test_compile_scope_v3_accepts_exact_truthful_execution_agent_contract() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["executionAgent"] = _execution_agent_v1(fixture)
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    envelope = AxWiseOperationEnvelope.model_validate(fixture)
+
+    agent = envelope.input.execution_agent
+    assert agent is not None
+    assert agent.executor_persona.profile_version == "axwise_executor_persona_v1"
+    assert agent.memory.cross_thread is False
+    assert agent.tools.external_actions is False
+    assert agent.tools.execution_provider is None
+    assert envelope.model_dump(mode="json", by_alias=True) == fixture
+    assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            lambda value: value["input"]["executionAgent"]["source"].update(
+                threadId="10000000-0000-4000-8000-000000000999"
+            ),
+            "source threadId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["source"].update(
+                turnId="10000000-0000-4000-8000-000000000999"
+            ),
+            "source turnId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["source"].update(
+                taskHash="0" * 64
+            ),
+            "taskHash must match",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"].update(
+                runId="10000000-0000-4000-8000-000000000999"
+            ),
+            "runId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["owner"].update(
+                tenantId="10000000-0000-4000-8000-000000000999"
+            ),
+            "tenantId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["owner"].update(
+                userId="user_anotherowner123"
+            ),
+            "userId must equal",
+        ),
+    ],
+)
+def test_compile_scope_v3_binds_execution_agent_to_exact_task_and_owner(
+    mutation, message: str
+) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["executionAgent"] = _execution_agent_v1(fixture)
+    mutation(fixture)
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    with pytest.raises(ValidationError, match=message):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda agent: agent["executorPersona"].update(
+            profileVersion="axwise_executor_persona_v2"
+        ),
+        lambda agent: agent["executorPersona"].update(
+            binding="dynamically_generated"
+        ),
+        lambda agent: agent["memory"].update(crossThread=True),
+        lambda agent: agent["memory"].update(crossThread=0),
+        lambda agent: agent["runtime"].update(isolation="shared"),
+        lambda agent: agent["capabilities"].update(research=False),
+        lambda agent: agent["capabilities"].update(research=1),
+        lambda agent: agent["tools"].update(externalActions=True),
+        lambda agent: agent["tools"].update(externalActions=0),
+        lambda agent: agent["tools"].update(executionProvider="n8n"),
+        lambda agent: agent["executorPersona"].update(
+            profile_version=agent["executorPersona"].pop("profileVersion")
+        ),
+    ],
+)
+def test_compile_scope_v3_rejects_execution_agent_capability_or_wire_drift(
+    mutation,
+) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    agent = _execution_agent_v1(fixture)
+    mutation(agent)
+    fixture["input"]["executionAgent"] = agent
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    with pytest.raises(ValidationError):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+def _operation_with_execution_agent(input_payload: dict, operation_type: str) -> dict:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    agent = _execution_agent_v1(fixture)
+    owner = {
+        "tenantId": "20000000-0000-4000-8000-000000000002",
+        "organizationId": None,
+        "userId": "user_executionagentstage123",
+    }
+    workflow = {
+        "runId": "20000000-0000-4000-8000-000000000003",
+        "stageId": "20000000-0000-4000-8000-000000000004",
+        "stageAttemptId": "20000000-0000-4000-8000-000000000005",
+    }
+    agent["runId"] = workflow["runId"]
+    agent["owner"] = {
+        "tenantId": owner["tenantId"],
+        "userId": owner["userId"],
+    }
+    typed_input = {**input_payload, "executionAgent": agent}
+    return {
+        "operationId": "20000000-0000-4000-8000-000000000001",
+        "operationType": operation_type,
+        "owner": owner,
+        "workflow": workflow,
+        "contractVersion": "axwise.operation.v2",
+        "canonicalInputHash": canonical_hash(typed_input),
+        "input": typed_input,
+    }
+
+
+def test_execution_agent_is_canonically_bound_to_every_goal_operation_stage() -> None:
+    correction = "Keep the scope and make the result concise."
+    correction_hash = hashlib.sha256(correction.encode("utf-8")).hexdigest()
+    scope = scope_payload()
+    inputs = [
+        (
+            "ReviseScopeV2",
+            {
+                "type": "ReviseScopeV2",
+                "acceptedScope": {
+                    "artifactId": "20000000-0000-4000-8000-000000000011",
+                    "artifactHash": "a" * 64,
+                    "kind": "scope",
+                },
+                "correction": correction,
+                "correctionSourceSpans": [
+                    {
+                        "start": 0,
+                        "end": len(correction),
+                        "offsetUnit": "utf16_code_units",
+                        "text": correction,
+                        "sha256": correction_hash,
+                    }
+                ],
+            },
+        ),
+        (
+            "ExecuteResearchV2",
+            {
+                "type": "ExecuteResearchV2",
+                "acceptedScope": {
+                    "artifactId": "20000000-0000-4000-8000-000000000011",
+                    "artifactHash": "a" * 64,
+                    "kind": "scope",
+                },
+                "scope": scope,
+                "selectedEvidence": [],
+            },
+        ),
+    ]
+    synthesis_fixture = json.loads(SYNTHESIZE_ARTIFACT_GOLDEN.read_text(encoding="utf-8"))
+    inputs.extend(
+        ("SynthesizeArtifactV1", case["input"])
+        for case in synthesis_fixture["cases"]
+    )
+
+    for operation_type, input_payload in inputs:
+        payload = _operation_with_execution_agent(input_payload, operation_type)
+        envelope = AxWiseOperationEnvelope.model_validate(payload)
+        serialized = envelope.model_dump(
+            mode="json", by_alias=True, exclude_unset=True
+        )
+
+        assert serialized["input"]["executionAgent"] == payload["input"][
+            "executionAgent"
+        ]
+        assert canonical_hash(serialized["input"]) == payload["canonicalInputHash"]
 
 
 @pytest.mark.parametrize(
