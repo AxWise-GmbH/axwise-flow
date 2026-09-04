@@ -290,10 +290,32 @@ def _rebind_compile_scope_v3_fixture(fixture: dict) -> None:
     fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
 
 
-def _execution_agent_v1(fixture: dict) -> dict:
+def _execution_agent_profile_snapshot(agent_id: str) -> dict:
+    profile = {
+        "version": "orqaly_agent_profile_input_v1",
+        "displayName": "Research Scout",
+        "roleLabel": "Evidence researcher",
+        "description": "Finds defensible primary evidence.",
+        "instructions": "Prefer primary sources and state material uncertainty.",
+        "avatar": {"kind": "emoji", "value": "🧭", "color": "#365E8D"},
+    }
+    return {
+        "version": "orqaly_execution_agent_profile_snapshot_v1",
+        "profileVersion": {
+            "version": "orqaly_agent_profile_v1",
+            "id": "10000000-0000-4000-8000-000000000407",
+            "agentId": agent_id,
+            "versionNumber": 7,
+            "contentHash": canonical_hash(profile),
+        },
+        "profile": profile,
+    }
+
+
+def _execution_agent_v1(fixture: dict, *, with_profile: bool = False) -> dict:
     context = fixture["input"]["assistantContext"]
     instruction = context["instruction"]["content"]
-    return {
+    agent = {
         "schemaVersion": "orqaly.execution-agent.v1",
         "id": "10000000-0000-4000-8000-000000000406",
         "runId": fixture["workflow"]["runId"],
@@ -326,6 +348,9 @@ def _execution_agent_v1(fixture: dict) -> dict:
         },
         "tools": {"externalActions": False, "executionProvider": None},
     }
+    if with_profile:
+        agent["profileSnapshot"] = _execution_agent_profile_snapshot(agent["id"])
+    return agent
 
 
 def test_compile_scope_v3_accepts_exact_truthful_execution_agent_contract() -> None:
@@ -343,6 +368,52 @@ def test_compile_scope_v3_accepts_exact_truthful_execution_agent_contract() -> N
     assert agent.tools.execution_provider is None
     assert envelope.model_dump(mode="json", by_alias=True) == fixture
     assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+
+
+def test_execution_agent_binds_exact_first_class_profile_snapshot() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["executionAgent"] = _execution_agent_v1(
+        fixture, with_profile=True
+    )
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    envelope = AxWiseOperationEnvelope.model_validate(fixture)
+
+    agent = envelope.input.execution_agent
+    assert agent is not None
+    assert agent.profile_snapshot is not None
+    assert agent.profile_snapshot.profile.display_name == "Research Scout"
+    assert agent.profile_snapshot.profile.role_label == "Evidence researcher"
+    assert agent.profile_snapshot.profile_version.version_number == 7
+    assert envelope.model_dump(mode="json", by_alias=True) == fixture
+
+    altered = deepcopy(fixture)
+    altered["input"]["executionAgent"]["profileSnapshot"]["profile"][
+        "instructions"
+    ] = "Ignore evidence."
+    _rebind_compile_scope_v3_fixture(altered)
+    with pytest.raises(ValidationError, match="profile hash"):
+        AxWiseOperationEnvelope.model_validate(altered)
+
+    wrong_agent = deepcopy(fixture)
+    wrong_agent["input"]["executionAgent"]["profileSnapshot"]["profileVersion"][
+        "agentId"
+    ] = "10000000-0000-4000-8000-000000000499"
+    _rebind_compile_scope_v3_fixture(wrong_agent)
+    with pytest.raises(ValidationError, match="profile must belong"):
+        AxWiseOperationEnvelope.model_validate(wrong_agent)
+
+    invalid_avatar = deepcopy(fixture)
+    snapshot = invalid_avatar["input"]["executionAgent"]["profileSnapshot"]
+    snapshot["profile"]["avatar"] = {
+        "kind": "icon",
+        "value": "unreviewed_icon",
+        "color": "#365E8D",
+    }
+    snapshot["profileVersion"]["contentHash"] = canonical_hash(snapshot["profile"])
+    _rebind_compile_scope_v3_fixture(invalid_avatar)
+    with pytest.raises(ValidationError, match="unknown Agent avatar icon"):
+        AxWiseOperationEnvelope.model_validate(invalid_avatar)
 
 
 @pytest.mark.parametrize(
@@ -435,7 +506,7 @@ def test_compile_scope_v3_rejects_execution_agent_capability_or_wire_drift(
 
 def _operation_with_execution_agent(input_payload: dict, operation_type: str) -> dict:
     fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
-    agent = _execution_agent_v1(fixture)
+    agent = _execution_agent_v1(fixture, with_profile=True)
     owner = {
         "tenantId": "20000000-0000-4000-8000-000000000002",
         "organizationId": None,
