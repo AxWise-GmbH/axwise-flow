@@ -141,6 +141,43 @@ def envelope_for(
     )
 
 
+def _execution_agent_contract() -> dict:
+    task = "Turn this into a launch plan 🚀."
+    return {
+        "schemaVersion": "orqaly.execution-agent.v1",
+        "id": "10000000-0000-4000-8000-000000000406",
+        "runId": "00000000-0000-4000-8000-000000000003",
+        "owner": {
+            "tenantId": "00000000-0000-4000-8000-000000000002",
+            "userId": "user_axwisetest123",
+        },
+        "lifetime": "persistent",
+        "source": {
+            "threadId": "10000000-0000-4000-8000-000000000001",
+            "turnId": "10000000-0000-4000-8000-000000000012",
+            "taskHash": hashlib.sha256(task.encode("utf-8")).hexdigest(),
+        },
+        "executorPersona": {
+            "role": "task_executor",
+            "profileVersion": "axwise_executor_persona_v1",
+            "provider": "axwise",
+            "binding": "fixed_profile_contract",
+        },
+        "memory": {"scope": "thread_and_goal", "crossThread": False},
+        "runtime": {
+            "provider": "orqaly_workflow_v2",
+            "isolation": "tenant_user",
+        },
+        "capabilities": {
+            "research": True,
+            "planning": True,
+            "artifactProduction": True,
+            "approvalGates": True,
+        },
+        "tools": {"externalActions": False, "executionProvider": None},
+    }
+
+
 class FakeDrafter:
     def __init__(
         self,
@@ -2305,6 +2342,74 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
 
 
 @pytest.mark.asyncio
+async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authority(
+) -> None:
+    compiled = await GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY).execute(
+        envelope_for()
+    )
+    accepted_scope = ScopeArtifactV2.model_validate(compiled.artifact.payload)
+    correction = "Keep the accepted scope unchanged."
+    input_payload = {
+        "type": "ReviseScopeV2",
+        "acceptedScope": ref(compiled.artifact),
+        "correction": correction,
+        "correctionSourceSpans": [
+            {
+                "start": 0,
+                "end": len(correction),
+                "offsetUnit": "utf16_code_units",
+                "text": correction,
+                "sha256": hashlib.sha256(correction.encode("utf-8")).hexdigest(),
+            }
+        ],
+        "executionAgent": _execution_agent_contract(),
+    }
+    envelope = envelope_for(input_payload, operation_type="ReviseScopeV2")
+    captured: list[dict] = []
+
+    class _Result:
+        def __init__(self, output) -> None:
+            self.output = output
+
+        def usage(self):
+            return None
+
+    class _Agent:
+        async def run(self, prompt, deps):
+            captured.append(json.loads(prompt))
+            return _Result(
+                ScopeRevisionDraft(
+                    objective_changed=False,
+                    topic_changed=False,
+                    geography=list(accepted_scope.geography),
+                    evidence_requirements=list(accepted_scope.evidence_requirements),
+                    deliverables=list(accepted_scope.deliverables),
+                    personas=list(accepted_scope.personas),
+                    interview_requirements=list(
+                        accepted_scope.interview_requirements
+                    ),
+                    prd_requirements=list(accepted_scope.prd_requirements),
+                    limits=list(accepted_scope.limits),
+                    policies=list(accepted_scope.policies),
+                    deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
+                    acceptance_criteria=[
+                        item.model_dump()
+                        for item in accepted_scope.acceptance_criteria
+                    ],
+                    assumptions=list(accepted_scope.assumptions),
+                )
+            )
+
+    reviser = object.__new__(PydanticAIScopeReviser)
+    reviser.agent = _Agent()
+    await reviser.revise(envelope.input, accepted_scope)
+
+    assert captured[0]["EXECUTION_AGENT"] == input_payload["executionAgent"]
+    assert "EXECUTION_AGENT" not in captured[0]["OWNER_CORRECTION"]
+    assert "not dynamically generated" in SCOPE_REVISION_SYSTEM_PROMPT
+
+
+@pytest.mark.asyncio
 async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None:
     owner_policies = [f"Owner policy {index}" for index in range(39)]
     compiled = await GeminiCognitiveExecutor(
@@ -2808,6 +2913,37 @@ async def test_execute_research_input_enforces_exact_artifact_roles_and_order() 
             payload(selected=[evidence_a, evidence_a]),
             operation_type="ExecuteResearchV2",
         )
+
+
+@pytest.mark.asyncio
+async def test_research_prompts_carry_fixed_execution_agent_without_tool_authority(
+) -> None:
+    compiled = await compiled_scope()
+    runner = MissingResearchRunner()
+    input_payload = research_operation(compiled).input.model_dump(
+        mode="json", by_alias=True
+    )
+    input_payload["executionAgent"] = _execution_agent_contract()
+    envelope = envelope_for(input_payload, operation_type="ExecuteResearchV2")
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        runner,
+        Resolver(compiled.artifact),
+    )
+
+    await executor.execute(envelope)
+
+    assert runner.queries
+    for query in runner.queries:
+        instruction, encoded = query.split("\n", 1)
+        prompt = json.loads(encoded)
+        assert prompt["EXECUTION_AGENT"] == input_payload["executionAgent"]
+        assert "not dynamically generated" in instruction
+        assert prompt["EXECUTION_AGENT"]["tools"] == {
+            "externalActions": False,
+            "executionProvider": None,
+        }
 
 
 async def execute_research(compiled, runner, *extra_facts):
@@ -4598,13 +4734,61 @@ def test_new_final_projections_never_demote_launch_or_blocked_evidence(
     )
 
 
+@pytest.mark.parametrize(
+    "case_name",
+    ["execute_task", "evaluate_output_repair", "blocked_report"],
+)
+def test_synthesis_prompts_carry_fixed_execution_agent_for_every_standard_path(
+    case_name: str,
+) -> None:
+    fixture_path = (
+        Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
+    )
+    cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    selected = next(item for item in cases if item["name"] == case_name)
+    raw_input = {**selected["input"], "executionAgent": _execution_agent_contract()}
+    input_value = SynthesizeArtifactInputV1.model_validate(raw_input)
+    contents = list(input_value.artifact_contents)
+    scope_payload = next(
+        item.payload for item in contents if item.artifact.kind == "scope"
+    )
+    research_payload = next(
+        item.payload for item in contents if item.artifact.kind == "research"
+    )
+
+    prompt = json.loads(
+        PydanticAISynthesisWriter._prompt(
+            input_value,
+            scope_payload,
+            research_payload,
+            contents,
+            PydanticAISynthesisWriter._allowed_claim_ids(research_payload),
+        )
+    )
+
+    assert prompt["EXECUTION_AGENT"] == raw_input["executionAgent"]
+    assert prompt["EXECUTION_AGENT"]["executorPersona"]["binding"] == (
+        "fixed_profile_contract"
+    )
+    system_prompts = {
+        "execute_task": cognitive_executor_module.TASK_SYSTEM_PROMPT,
+        "evaluate_output_repair": cognitive_executor_module.EVALUATION_SYSTEM_PROMPT,
+        "blocked_report": cognitive_executor_module.BLOCKED_REPORT_SYSTEM_PROMPT,
+    }
+    assert "not dynamically generated" in system_prompts[case_name]
+
+
 def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() -> None:
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
     )
     cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
     final_case = next(item for item in cases if item["name"] == "final_synthesis")
-    input_value = SynthesizeArtifactInputV1.model_validate(final_case["input"])
+    raw_input = {
+        **final_case["input"],
+        "executionAgent": _execution_agent_contract(),
+    }
+    input_value = SynthesizeArtifactInputV1.model_validate(raw_input)
     contents = list(input_value.artifact_contents)
     evaluation_index = next(
         index
@@ -4665,6 +4849,8 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     ]
 
     assert payload["BASE_MARKDOWN"] == core.markdown
+    assert payload["EXECUTION_AGENT"] == raw_input["executionAgent"]
+    assert "not dynamically generated" in cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
     # Stale evaluation diagnostics that do not occur in the projected base are not
     # handed back to the model as instructions to recreate absent claims.
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == []
