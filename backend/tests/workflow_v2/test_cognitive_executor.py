@@ -143,7 +143,7 @@ def envelope_for(
 
 def _execution_agent_contract() -> dict:
     task = "Turn this into a launch plan 🚀."
-    return {
+    agent = {
         "schemaVersion": "orqaly.execution-agent.v1",
         "id": "10000000-0000-4000-8000-000000000406",
         "runId": "00000000-0000-4000-8000-000000000003",
@@ -176,6 +176,26 @@ def _execution_agent_contract() -> dict:
         },
         "tools": {"externalActions": False, "executionProvider": None},
     }
+    profile = {
+        "version": "orqaly_agent_profile_input_v1",
+        "displayName": "Launch Navigator",
+        "roleLabel": "Evidence-led launch operator",
+        "description": "Turns accepted launch scope into verifiable work.",
+        "instructions": "Prefer primary evidence and make uncertainty explicit.",
+        "avatar": {"kind": "emoji", "value": "🧭", "color": "#365E8D"},
+    }
+    agent["profileSnapshot"] = {
+        "version": "orqaly_execution_agent_profile_snapshot_v1",
+        "profileVersion": {
+            "version": "orqaly_agent_profile_v1",
+            "id": "10000000-0000-4000-8000-000000000407",
+            "agentId": agent["id"],
+            "versionNumber": 3,
+            "contentHash": canonical_hash(profile),
+        },
+        "profile": profile,
+    }
+    return agent
 
 
 class FakeDrafter:
@@ -2406,7 +2426,10 @@ async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authori
 
     assert captured[0]["EXECUTION_AGENT"] == input_payload["executionAgent"]
     assert "EXECUTION_AGENT" not in captured[0]["OWNER_CORRECTION"]
-    assert "not dynamically generated" in SCOPE_REVISION_SYSTEM_PROMPT
+    assert "apply its exact roleLabel and" in SCOPE_REVISION_SYSTEM_PROMPT
+    assert captured[0]["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
+        "instructions"
+    ] == "Prefer primary evidence and make uncertainty explicit."
 
 
 @pytest.mark.asyncio
@@ -2939,7 +2962,10 @@ async def test_research_prompts_carry_fixed_execution_agent_without_tool_authori
         instruction, encoded = query.split("\n", 1)
         prompt = json.loads(encoded)
         assert prompt["EXECUTION_AGENT"] == input_payload["executionAgent"]
-        assert "not dynamically generated" in instruction
+        assert "apply its exact roleLabel and" in instruction
+        assert prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
+            "roleLabel"
+        ] == "Evidence-led launch operator"
         assert prompt["EXECUTION_AGENT"]["tools"] == {
             "externalActions": False,
             "executionProvider": None,
@@ -4775,7 +4801,10 @@ def test_synthesis_prompts_carry_fixed_execution_agent_for_every_standard_path(
         "evaluate_output_repair": cognitive_executor_module.EVALUATION_SYSTEM_PROMPT,
         "blocked_report": cognitive_executor_module.BLOCKED_REPORT_SYSTEM_PROMPT,
     }
-    assert "not dynamically generated" in system_prompts[case_name]
+    assert "apply its exact roleLabel and" in system_prompts[case_name]
+    assert prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
+        "instructions"
+    ] == "Prefer primary evidence and make uncertainty explicit."
 
 
 def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() -> None:
@@ -4850,7 +4879,13 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
 
     assert payload["BASE_MARKDOWN"] == core.markdown
     assert payload["EXECUTION_AGENT"] == raw_input["executionAgent"]
-    assert "not dynamically generated" in cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
+    assert (
+        "apply its exact roleLabel and"
+        in cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
+    )
+    assert payload["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
+        "roleLabel"
+    ] == "Evidence-led launch operator"
     # Stale evaluation diagnostics that do not occur in the projected base are not
     # handed back to the model as instructions to recreate absent claims.
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == []

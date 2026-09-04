@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
+import unicodedata
 from datetime import datetime
 from typing import Annotated, Any, Literal, Union
 from urllib.parse import urlsplit
@@ -1020,6 +1021,90 @@ class ExecutionAgentOwnerV1(StrictWireContractModel):
     user_id: ClerkUserId
 
 
+class ExecutionAgentAvatarV1(StrictWireContractModel):
+    kind: Literal["icon", "emoji"]
+    value: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=32),
+    ]
+    color: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True,
+            to_upper=True,
+            pattern=r"^#[0-9A-Fa-f]{6}$",
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def reviewed_avatar(self) -> "ExecutionAgentAvatarV1":
+        icon_keys = {
+            "smart_toy",
+            "bolt",
+            "science",
+            "support_agent",
+            "campaign",
+            "code",
+        }
+        if self.kind == "icon" and self.value not in icon_keys:
+            raise ValueError("unknown Agent avatar icon")
+        if self.kind == "emoji":
+            has_pictograph = any(
+                unicodedata.category(character) == "So" for character in self.value
+            )
+            has_control = any(
+                unicodedata.category(character) in {"Cc", "Cs"}
+                for character in self.value
+            )
+            if not has_pictograph or has_control:
+                raise ValueError("Agent emoji avatar must contain a printable emoji")
+        return self
+
+
+class ExecutionAgentProfileInputV1(StrictWireContractModel):
+    version: Literal["orqaly_agent_profile_input_v1"]
+    display_name: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=160),
+    ]
+    role_label: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=160),
+    ]
+    description: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, max_length=2_000),
+    ]
+    instructions: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, max_length=12_000),
+    ]
+    avatar: ExecutionAgentAvatarV1
+
+
+class ExecutionAgentProfileVersionRefV1(StrictWireContractModel):
+    version: Literal["orqaly_agent_profile_v1"]
+    id: UUID
+    agent_id: UUID
+    version_number: int = Field(gt=0)
+    content_hash: Sha256
+
+
+class ExecutionAgentProfileSnapshotV1(StrictWireContractModel):
+    version: Literal["orqaly_execution_agent_profile_snapshot_v1"]
+    profile_version: ExecutionAgentProfileVersionRefV1
+    profile: ExecutionAgentProfileInputV1
+
+    @model_validator(mode="after")
+    def exact_profile_hash(self) -> "ExecutionAgentProfileSnapshotV1":
+        profile_payload = self.profile.model_dump(mode="json", by_alias=True)
+        if self.profile_version.content_hash != canonical_hash(profile_payload):
+            raise ValueError(
+                "execution Agent profile hash does not match its normalized contents"
+            )
+        return self
+
+
 class ExecutionAgentExecutorPersonaV1(StrictWireContractModel):
     role: Literal["task_executor"]
     profile_version: Literal["axwise_executor_persona_v1"]
@@ -1091,11 +1176,28 @@ class ExecutionAgentV1(StrictWireContractModel):
     owner: ExecutionAgentOwnerV1
     lifetime: Literal["temporary", "persistent"]
     source: ExecutionAgentSourceV1
+    # Optional only for persisted pre-profile Agent runs. New first-class
+    # Agent runs bind the exact immutable control-plane profile version here.
+    profile_snapshot: ExecutionAgentProfileSnapshotV1 | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     executor_persona: ExecutionAgentExecutorPersonaV1
     memory: ExecutionAgentMemoryV1
     runtime: ExecutionAgentRuntimeV1
     capabilities: ExecutionAgentCapabilitiesV1
     tools: ExecutionAgentToolsV1
+
+    @model_validator(mode="after")
+    def profile_belongs_to_agent(self) -> "ExecutionAgentV1":
+        if (
+            self.profile_snapshot is not None
+            and self.profile_snapshot.profile_version.agent_id != self.id
+        ):
+            raise ValueError(
+                "execution Agent profile must belong to the bound Agent identity"
+            )
+        return self
 
 
 class CompileScopeInputV3(StrictWireContractModel):
