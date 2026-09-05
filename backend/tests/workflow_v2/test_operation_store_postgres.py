@@ -233,8 +233,36 @@ def test_latest_schema_allows_compile_scope_v3_and_one_operation_per_attempt(
     }
     assert len(operation_type_checks) == 1
     assert "CompileScopeV3" in operation_type_checks[0]
+    assert "PrepareSolutionV1" in operation_type_checks[0]
     assert "UNIQUE (tenant_id, stage_attempt_id)" in uniqueness
     assert "UNIQUE (tenant_id, stage_attempt_id, operation_type)" not in uniqueness
+
+
+def test_prepare_solution_persists_claims_completes_and_preserves_tenant_isolation(stores):
+    from backend.tests.workflow_v2.test_solution_preparation import (
+        FIXTURE,
+        envelope as solution_envelope,
+    )
+
+    _admin, api, worker = stores
+    operation = solution_envelope()
+    accepted = api.adopt_or_create(operation)
+    assert accepted.status == "accepted"
+    assert api.adopt_or_create(operation).operation_id == operation.operation_id
+    assert api.get(UUID("00000000-0000-4000-8000-000000000199"), operation.operation_id) is None
+    lease = uuid4()
+    claim = worker.claim_next(lease, 30)
+    assert claim.envelope.input == operation.input
+    result = {"resultType": "solution_prepared", "response": FIXTURE["needsInput"]}
+    worker.complete(operation.owner.tenant_id, operation.operation_id, lease, result)
+    completed = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert completed.status == "completed"
+    assert completed.result_payload == result
+    assert worker.claim_next(uuid4(), 30) is None
+    # Resolved answers require a new operation/stage-attempt and cannot overwrite
+    # this completed immutable design attempt using the old idempotency identity.
+    with pytest.raises(OperationConflict, match="changed input"):
+        api.adopt_or_create(solution_envelope(FIXTURE["answeredInput"]))
 
 
 def test_tenant_b_cannot_read_tenant_a_and_api_worker_cannot_directly_update(stores) -> None:
