@@ -2086,9 +2086,158 @@ class AssistantTurnInputV1(ContractModel):
     )
 
 
+SolutionPreparationFieldNameV1 = Annotated[
+    str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+]
+SolutionPreparationQuestionIdV1 = Annotated[
+    str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,79}$")
+]
+SolutionPreparationTransformV1 = Literal["copy", "trim", "lowercase", "uppercase"]
+SolutionPreparationVersionV1 = Annotated[
+    int, Field(strict=True, ge=1, le=9_007_199_254_740_991)
+]
+
+
+class SolutionPreparationFieldV1(ContractModel):
+    source: SolutionPreparationFieldNameV1 | None
+    target: SolutionPreparationFieldNameV1 | None
+    transform: SolutionPreparationTransformV1 | None
+
+    @model_validator(mode="after")
+    def safe_field_names(self) -> "SolutionPreparationFieldV1":
+        if self.source in {"constructor", "prototype", "__proto__"} or self.target in {
+            "constructor",
+            "prototype",
+            "__proto__",
+        }:
+            raise ValueError("Reserved field names are not permitted")
+        return self
+
+
+class SolutionFieldV1(SolutionPreparationFieldV1):
+    source: SolutionPreparationFieldNameV1
+    target: SolutionPreparationFieldNameV1
+    transform: SolutionPreparationTransformV1
+
+
+class SolutionSpecV1(ContractModel):
+    kind: Literal["webhook_transform_v1"]
+    fields: list[SolutionFieldV1] = Field(min_length=1, max_length=12)
+
+    @model_validator(mode="after")
+    def unique_targets(self) -> "SolutionSpecV1":
+        if len({field.target for field in self.fields}) != len(self.fields):
+            raise ValueError("Output field names must be unique")
+        return self
+
+
+class SolutionPreparationDraftV1(ContractModel):
+    kind: Literal["webhook_transform_v1"]
+    fields: list[SolutionPreparationFieldV1] = Field(max_length=12)
+
+
+class SolutionPreparationQuestionV1(ContractModel):
+    id: SolutionPreparationQuestionIdV1
+    kind: Literal["information"]
+    prompt: Text1000
+    reason: Text1000
+
+
+class SolutionPreparationAnswerV1(ContractModel):
+    question_id: SolutionPreparationQuestionIdV1
+    value: Text2000
+
+
+class SolutionPreparationAgentV1(ContractModel):
+    id: UUID
+    name: Text120
+    profile_version: SolutionPreparationVersionV1
+    role_label: Text120
+    description: str = Field(max_length=2000)
+    instructions: str = Field(max_length=12_000)
+    profile_hash: Sha256
+
+
+class SolutionPreparationSourceV1(ContractModel):
+    run_id: UUID
+    task_hash: Sha256
+    title: Text500
+    task_text: str = Field(min_length=1, max_length=24_000)
+    context_hash: Sha256
+
+
+class PrepareSolutionInputV1(ContractModel):
+    type: Literal["PrepareSolutionV1"]
+    build_request_id: UUID
+    input_version: SolutionPreparationVersionV1
+    instruction: str = Field(min_length=1, max_length=24_000)
+    agent: SolutionPreparationAgentV1
+    source: SolutionPreparationSourceV1
+    answers: list[SolutionPreparationAnswerV1] = Field(max_length=32)
+    draft: SolutionPreparationDraftV1 | None
+    supported_capabilities: list[Literal["webhook_transform_v1"]] = Field(
+        min_length=1, max_length=1
+    )
+
+    @model_validator(mode="after")
+    def unique_answers(self) -> "PrepareSolutionInputV1":
+        if len({answer.question_id for answer in self.answers}) != len(self.answers):
+            raise ValueError("Solution answers must have unique question IDs")
+        return self
+
+
+class PrepareSolutionResponseV1(ContractModel):
+    schema_version: Literal["axwise.solution-preparation.v1"]
+    build_request_id: UUID
+    input_version: SolutionPreparationVersionV1
+    outcome: Literal["needs_input", "candidate", "unsupported"]
+    name: Text120
+    purpose: Text2000
+    explanation: Text2000
+    spec: SolutionSpecV1 | None
+    partial_fields: list[SolutionPreparationFieldV1] = Field(max_length=12)
+    questions: list[SolutionPreparationQuestionV1] = Field(max_length=8)
+    unsupported_capabilities: list[Text120] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def exact_state(self) -> "PrepareSolutionResponseV1":
+        if len({question.id for question in self.questions}) != len(self.questions):
+            raise ValueError("Solution questions must have unique IDs")
+        partial = [field.model_dump() for field in self.partial_fields]
+        complete = (
+            [field.model_dump() for field in self.spec.fields] if self.spec else None
+        )
+        candidate = (
+            self.outcome == "candidate"
+            and self.spec is not None
+            and partial == complete
+            and not self.questions
+            and not self.unsupported_capabilities
+        )
+        needs_input = (
+            self.outcome == "needs_input"
+            and self.spec is None
+            and bool(self.questions)
+            and not self.unsupported_capabilities
+        )
+        unsupported = (
+            self.outcome == "unsupported"
+            and self.spec is None
+            and not self.partial_fields
+            and not self.questions
+            and bool(self.unsupported_capabilities)
+        )
+        if not (candidate or needs_input or unsupported):
+            raise ValueError(
+                "Solution preparation state does not match its bounded result"
+            )
+        return self
+
+
 OperationInput = Annotated[
     Union[
         AssistantTurnInputV1,
+        PrepareSolutionInputV1,
         CompileScopeInputV2,
         CompileScopeInputV3,
         ReviseScopeInputV2,
@@ -2115,6 +2264,7 @@ class AxWiseOperationEnvelope(ContractModel):
     operation_id: UUID
     operation_type: Literal[
         "AssistantTurnV1",
+        "PrepareSolutionV1",
         "CompileScopeV2",
         "CompileScopeV3",
         "ReviseScopeV2",
@@ -2131,6 +2281,11 @@ class AxWiseOperationEnvelope(ContractModel):
     def exact_input_identity(self) -> "AxWiseOperationEnvelope":
         if self.operation_type != self.input.type:
             raise ValueError("operation type must match typed input")
+        if (
+            isinstance(self.input, PrepareSolutionInputV1)
+            and self.input.source.run_id != self.workflow.run_id
+        ):
+            raise ValueError("Solution source run must match its workflow envelope")
         execution_agent = getattr(self.input, "execution_agent", None)
         if execution_agent is not None:
             if execution_agent.run_id != self.workflow.run_id:
@@ -2329,6 +2484,12 @@ class AssistantTurnCompletedResult(ContractModel):
     metrics: OperationMetrics | None = None
 
 
+class PrepareSolutionCompletedResult(ContractModel):
+    result_type: Literal["solution_prepared"]
+    response: PrepareSolutionResponseV1
+    metrics: OperationMetrics | None = None
+
+
 class ScopeCompiledResult(ContractModel):
     result_type: Literal["scope_compiled"]
     artifact: ScopeArtifactFact
@@ -2407,6 +2568,7 @@ class EvaluationCompletedResult(ContractModel):
 CompletionResult = Annotated[
     Union[
         AssistantTurnCompletedResult,
+        PrepareSolutionCompletedResult,
         ScopeCompiledResult,
         ResearchCompletedResult,
         TaskCompletedResult,

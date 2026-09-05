@@ -204,6 +204,7 @@ class PostgresOperationStore:
                               AND contype = 'c'
                               AND pg_get_constraintdef(oid) LIKE '%operation_type%'
                               AND pg_get_constraintdef(oid) LIKE '%CompileScopeV3%'
+                              AND pg_get_constraintdef(oid) LIKE '%PrepareSolutionV1%'
                           )
                           AND EXISTS (
                             SELECT 1

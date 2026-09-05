@@ -2080,6 +2080,7 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     writer = object()
     reviser = object()
     assistant = object()
+    solution_preparer = object()
     resolver = object()
     grounded_keys: list[str] = []
 
@@ -2111,12 +2112,23 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
         "PydanticAIConversationalAssistantRunner",
         lambda value: assistant,
     )
+
+    def prepare_solution_with_shared_model(value):
+        assert value is model
+        return solution_preparer
+
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "PydanticAISolutionPreparer",
+        prepare_solution_with_shared_model,
+    )
     monkeypatch.setattr(searx_module, "SearxngSearchService", lambda: discovery)
     monkeypatch.setattr(
         extractor_module, "PydanticAIExactSpanExtractor", lambda value: extractor
     )
 
     executor = cognitive_executor_module.build_cognitive_executor(resolver)
+    assert executor.solution_preparer is solution_preparer
 
     assert isinstance(executor.research_runner, ResilientResearchRunner)
     assert executor.research_runner.primary is primary

@@ -15,7 +15,9 @@ the durable operation queue and least-privilege roles,
 `004_operation_events.sql` adds append-only lifecycle events and cooperative
 cancellation. `005_compile_scope_v3.sql` adds the authority-labelled Assistant
 context input and enforces one cognitive operation per tenant stage attempt,
-regardless of contract version. Every migration SHA-256 must match
+regardless of contract version. `006_prepare_solution.sql` adds the typed,
+non-executing Solution design operation; it does not add connectors, registration,
+credentials, code execution or runtime authority. Every migration SHA-256 must match
 `SCHEMA_SHA256`; skipping or reordering a migration is unsupported. The login
 roles are provisioned outside
 the chain, then `preview-role-bindings.sql` grants the narrow API and worker
@@ -26,6 +28,22 @@ database it installs migrations 001-005, role bindings, and the immutable
 release marker in one transaction; on an exactly marked prior stage it applies
 only the missing ordered additive migrations. It rejects unknown or partially
 marked schema states and revokes public database CONNECT.
+
+For an already marked Preview database through 005, use the separate
+`apply-prepare-solution-preview.py --admin-secret-version <numeric-version>`
+operator for a read-only exact-schema check. Add `--apply` only for an authorized
+rollout from a clean checkout. It applies only SQL006 and its release marker in
+one bounded transaction, preserves the current database/roles/RLS and never logs
+the existing admin credential. It does not provision or grant anything. API and
+worker readiness now require SQL006, so apply it before updating their image.
+The older baseline helper remains scoped to migrations 001–005.
+
+`PrepareSolutionV1` uses the existing shared Google model with a tool-free typed
+output boundary. It returns `needs_input`, `candidate` or `unsupported`; Orqaly
+owns the durable question/answer loop and deterministic workflow compiler. The
+current supported slice is top-level scalar webhook field mapping, with one of
+copy/trim/lowercase/uppercase per field. Native workflow JSON and arbitrary code
+are never model output. A typed candidate is not a deployment or an approval.
 
 Required API configuration:
 
@@ -82,6 +100,6 @@ the canonical endpoint. The coordinated Orqaly deployment owns the worker's
 never mutates the worker service or its container image.
 
 The dedicated image installs `backend/workflow_v2_requirements.lock`. The
-path-scoped workflow-v2 CI gate uses the same lock, verifies the pinned 001-005
+path-scoped workflow-v2 CI gate uses the same lock, verifies the pinned 001-006
 checksums and PostgreSQL invariants, and builds the image without invoking
 deployment.
