@@ -27,6 +27,7 @@ pyasn1==0.6.4
 pyasn1_modules==0.4.2
 pycparser==3.0
 pydantic==2.13.4
+rfc8785==0.1.4
 pydantic-ai-slim==2.28.0
 pydantic-graph==2.28.0
 pydantic_core==2.46.4

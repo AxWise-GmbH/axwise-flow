@@ -3,18 +3,22 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
+import math
+import re
 import unicodedata
 from datetime import datetime
 from typing import Annotated, Any, Literal, Union
 from urllib.parse import urlsplit
 from uuid import UUID
 
+import rfc8785
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     StringConstraints,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -2234,10 +2238,484 @@ class PrepareSolutionResponseV1(ContractModel):
         return self
 
 
+def native_canonical_json(value: Any) -> str:
+    """V2-only RFC8785; native JSON numbers follow JavaScript IEEE754 semantics.
+
+    Python's JSON parser retains large integer literals while JavaScript parses
+    those literals as doubles. Normalize only native JSON numbers here, never
+    identity/version fields or any legacy canonical-v1 payload.
+    """
+
+    def normalize(item: Any) -> Any:
+        if type(item) is int and abs(item) > 9_007_199_254_740_991:
+            return float(item)
+        if type(item) is list:
+            return [normalize(child) for child in item]
+        if type(item) is dict:
+            return {key: normalize(child) for key, child in item.items()}
+        return item
+
+    return rfc8785.dumps(normalize(value)).decode("utf-8")
+
+
+def native_canonical_hash(value: Any) -> str:
+    return hashlib.sha256(native_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+_NATIVE_SECRET = re.compile(
+    r"\b(?:sk[-_](?:live[-_]|test[-_]|proj[-_])?[A-Za-z0-9_-]{12,}|"
+    r"AIza[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{12,}|"
+    r"ya29\.[A-Za-z0-9_-]{12,}|eyJ[A-Za-z0-9_-]{8,}\."
+    r"[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|Bearer\s+[A-Za-z0-9_.-]{12,}|"
+    r"orqaly_app_[A-Za-z0-9_.-]{12,})|-----BEGIN [A-Z ]*PRIVATE KEY-----|"
+    r"(?:password|api[_ -]?key|access[_ -]?token|client[_ -]?secret|authorization)"
+    r"[\"']?\s*(?:[=:]|\bis\b)\s*[\"']?[^\s\"',;]{8,}",
+    re.IGNORECASE,
+)
+_NATIVE_FORBIDDEN_KEYS = {"__proto__", "prototype", "constructor"}
+
+
+def validate_native_json(
+    value: Any,
+    *,
+    max_bytes: int = 512_000,
+    max_depth: int = 24,
+    max_entries: int = 20_000,
+    secret_free: bool = True,
+) -> Any:
+    entries = 0
+    seen: set[int] = set()
+
+    def visit(item: Any, depth: int) -> None:
+        nonlocal entries
+        entries += 1
+        if entries > max_entries or depth > max_depth:
+            raise ValueError("Native JSON exceeds structural limits")
+        if item is None or type(item) is bool:
+            return
+        if type(item) in (int, float):
+            try:
+                if math.isfinite(float(item)):
+                    return
+            except OverflowError:
+                pass
+            raise ValueError("Native JSON numbers must be finite")
+        if type(item) is str:
+            item.encode("utf-8")
+            return
+        if type(item) not in (list, dict) or id(item) in seen:
+            raise ValueError("Expected plain finite native JSON")
+        seen.add(id(item))
+        if type(item) is dict:
+            for key in item:
+                if type(key) is not str or key in _NATIVE_FORBIDDEN_KEYS:
+                    raise ValueError("Unsafe native JSON object key")
+                key.encode("utf-8")
+            children = item.values()
+        else:
+            children = item
+        for child in children:
+            visit(child, depth + 1)
+        seen.remove(id(item))
+
+    visit(value, 0)
+    encoded = native_canonical_json(value)
+    if len(encoded.encode("utf-8")) > max_bytes:
+        raise ValueError("Native JSON exceeds its byte limit")
+    if secret_free and _NATIVE_SECRET.search(encoded):
+        raise ValueError("Native design must not contain embedded secrets")
+    return value
+
+
+NativeIdV2 = Annotated[
+    str,
+    StringConstraints(
+        min_length=1, max_length=120, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    ),
+]
+NativeVersionV2 = Annotated[int, Field(strict=True, ge=0, le=9_007_199_254_740_991)]
+NativeDataTypeV2 = Literal[
+    "object", "array", "string", "number", "integer", "boolean", "null"
+]
+
+
+class NativeContractV2(ContractModel):
+    @model_serializer(mode="wrap")
+    def preserve_omitted_wire_fields(self, handler: Any, info: Any) -> Any:
+        result = handler(self)
+        # Required nulls stay explicit; optional fields absent on the incoming
+        # wire must not appear as null and silently change the immutable hash.
+        for name, field in type(self).model_fields.items():
+            if not field.is_required() and name not in self.model_fields_set:
+                result.pop(field.alias if info.by_alias else name, None)
+        return result
+
+
+def validate_native_data_schema(value: dict[str, Any]) -> dict[str, Any]:
+    validate_native_json(value, max_bytes=64_000, max_depth=20)
+    allowed = {
+        "type",
+        "description",
+        "properties",
+        "required",
+        "additionalProperties",
+        "items",
+        "enum",
+        "const",
+        "minItems",
+        "maxItems",
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+    }
+    types = {"object", "array", "string", "number", "integer", "boolean", "null"}
+
+    def visit(schema: Any) -> None:
+        if (
+            type(schema) is not dict
+            or set(schema) - allowed
+            or schema.get("type") not in types
+        ):
+            raise ValueError("Use the supported native data-schema subset")
+        if "description" in schema and (
+            type(schema["description"]) is not str or len(schema["description"]) > 1000
+        ):
+            raise ValueError("Invalid schema description")
+        properties = schema.get("properties", {})
+        if type(properties) is not dict or any(len(key) > 120 for key in properties):
+            raise ValueError("Invalid schema properties")
+        for child in properties.values():
+            visit(child)
+        required = schema.get("required", [])
+        if (
+            type(required) is not list
+            or len(required) > 100
+            or any(
+                type(key) is not str or len(key) > 120 or key not in properties
+                for key in required
+            )
+        ):
+            raise ValueError("Required keys must have property schemas")
+        if (
+            "additionalProperties" in schema
+            and type(schema["additionalProperties"]) is not bool
+        ):
+            raise ValueError("additionalProperties must be a boolean")
+        if schema["type"] == "array" and "items" not in schema:
+            raise ValueError("Array contracts require an item schema")
+        if "items" in schema:
+            visit(schema["items"])
+        if "enum" in schema and (
+            type(schema["enum"]) is not list or not 1 <= len(schema["enum"]) <= 100
+        ):
+            raise ValueError("Invalid schema enum")
+        for key in ("minItems", "maxItems", "minLength", "maxLength"):
+            if key in schema and (
+                type(schema[key]) is not int
+                or not 0 <= schema[key] <= (10_000 if key.endswith("Items") else 64_000)
+            ):
+                raise ValueError("Invalid schema bound")
+        for key in ("minimum", "maximum"):
+            if key in schema and type(schema[key]) not in (int, float):
+                raise ValueError("Schema number bounds must be numbers")
+        for minimum, maximum in (
+            ("minItems", "maxItems"),
+            ("minLength", "maxLength"),
+            ("minimum", "maximum"),
+        ):
+            if (
+                minimum in schema
+                and maximum in schema
+                and schema[minimum] > schema[maximum]
+            ):
+                raise ValueError("Schema minimum exceeds maximum")
+
+    visit(value)
+    return value
+
+
+class NativeWorkflowAssertionV2(NativeContractV2):
+    path: str = Field(max_length=1000, pattern=r"^(?:/(?:[^~]|~[01])*)*$")
+    operator: Literal[
+        "equals", "exists", "type", "contains", "length_gte", "length_lte"
+    ]
+    value: Any = None
+
+    @model_validator(mode="after")
+    def valid_assertion(self) -> "NativeWorkflowAssertionV2":
+        validate_native_json(self.value)
+        if self.operator != "exists" and "value" not in self.model_fields_set:
+            raise ValueError("Assertion requires a value")
+        if self.operator == "type" and self.value not in (
+            "object",
+            "array",
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "null",
+        ):
+            raise ValueError("Invalid asserted type")
+        if self.operator.startswith("length_") and (
+            type(self.value) is not int or self.value < 0
+        ):
+            raise ValueError("Length assertions require a nonnegative integer")
+        return self
+
+
+class NativeWorkflowAcceptanceCaseV2(NativeContractV2):
+    id: NativeIdV2
+    description: Text1000
+    requirement_ids: list[NativeIdV2] = Field(min_length=1, max_length=40)
+    input: Any
+    expected_output: Any = None
+    expected_status: Annotated[int, Field(strict=True, ge=100, le=599)] | None = None
+    assertions: list[NativeWorkflowAssertionV2] = Field(max_length=30)
+
+    @model_validator(mode="after")
+    def has_expectation(self) -> "NativeWorkflowAcceptanceCaseV2":
+        validate_native_json(self.input)
+        validate_native_json(self.expected_output)
+        if "expected_status" in self.model_fields_set and self.expected_status is None:
+            raise ValueError("Expected status must be a HTTP status code when present")
+        if "expected_output" not in self.model_fields_set and not self.assertions:
+            raise ValueError("A case needs an expected output or assertion")
+        return self
+
+
+class NativeWorkflowRequirementV2(NativeContractV2):
+    id: NativeIdV2
+    description: Text2000
+
+
+class NativeWorkflowConnectionV2(NativeContractV2):
+    id: NativeIdV2
+    provider: Text120
+    operation: Text120
+    purpose: Text1000
+    credential_type: Text120 | None
+    node_ids: list[NativeIdV2] = Field(min_length=1, max_length=100)
+
+
+class NativeWorkflowSpecV2(NativeContractV2):
+    kind: Literal["n8n_workflow_v2"]
+    requirements: list[NativeWorkflowRequirementV2] = Field(min_length=1, max_length=40)
+    input_schema: dict[str, Any]
+    output_schema: dict[str, Any]
+    acceptance_cases: list[NativeWorkflowAcceptanceCaseV2] = Field(
+        min_length=1, max_length=20
+    )
+    connections: list[NativeWorkflowConnectionV2] = Field(max_length=30)
+    runtime_profile: Literal[
+        "request_automation",
+        "durable_automation",
+        "code_processing",
+        "software_development",
+    ]
+
+    @field_validator("input_schema", "output_schema")
+    @classmethod
+    def schema_subset(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return validate_native_data_schema(value)
+
+    @model_validator(mode="after")
+    def consistent_spec(self) -> "NativeWorkflowSpecV2":
+        for values in (self.requirements, self.acceptance_cases, self.connections):
+            if len({item.id for item in values}) != len(values):
+                raise ValueError("Native spec IDs must be unique")
+        ids = {item.id for item in self.requirements}
+        if any(set(case.requirement_ids) - ids for case in self.acceptance_cases):
+            raise ValueError("Acceptance case references an unknown requirement")
+        validate_native_json(
+            self.model_dump(mode="json", by_alias=True), max_bytes=64_000, max_depth=20
+        )
+        return self
+
+
+class NativeWorkflowQuestionV2(NativeContractV2):
+    id: NativeIdV2
+    kind: Literal["information", "connection", "setup"]
+    prompt: Text1000
+    reason: Text1000
+    node_id: NativeIdV2 | None = None
+    connection_id: NativeIdV2 | None = None
+
+
+class NativeWorkflowDependencyV2(NativeContractV2):
+    id: NativeIdV2
+    kind: Literal["node", "connection", "runtime"]
+    description: Text2000
+    node_id: NativeIdV2 | None = None
+
+
+class NativeWorkflowSkillV2(NativeContractV2):
+    id: NativeIdV2
+    source_commit: str = Field(pattern=r"^[a-f0-9]{40}$")
+    content_hash: Sha256
+    content: str = Field(min_length=1, max_length=12_000)
+
+    @model_validator(mode="after")
+    def exact_content_hash(self) -> "NativeWorkflowSkillV2":
+        if (
+            hashlib.sha256(self.content.encode("utf-8")).hexdigest()
+            != self.content_hash
+        ):
+            raise ValueError("Skill content does not match its pinned hash")
+        return self
+
+
+class NativeWorkflowNodeDefinitionV2(NativeContractV2):
+    type: str = Field(min_length=1, max_length=200)
+    type_version: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
+    definition: dict[str, Any]
+
+    @field_validator("definition")
+    @classmethod
+    def safe_definition(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return validate_native_json(value)
+
+
+class NativeWorkflowKnowledgeV2(NativeContractV2):
+    version: Text120
+    skills: list[NativeWorkflowSkillV2] = Field(max_length=8)
+    nodes: list[NativeWorkflowNodeDefinitionV2] = Field(max_length=40)
+    catalog_hash: Sha256
+
+    @model_validator(mode="after")
+    def exact_catalog(self) -> "NativeWorkflowKnowledgeV2":
+        nodes = [item.model_dump(mode="json", by_alias=True) for item in self.nodes]
+        if native_canonical_hash(nodes) != self.catalog_hash:
+            raise ValueError("Node definitions do not match their pinned catalog hash")
+        if len({(item.type, item.type_version) for item in self.nodes}) != len(
+            self.nodes
+        ):
+            raise ValueError("Node catalog must have unique type/version pairs")
+        if len({item.id for item in self.skills}) != len(self.skills):
+            raise ValueError("Selected skills must have unique IDs")
+        return self
+
+
+class NativeWorkflowDraftV2(NativeContractV2):
+    workflow: dict[str, Any]
+    spec: NativeWorkflowSpecV2
+    workflow_hash: Sha256
+    row_version: NativeVersionV2
+
+    @model_validator(mode="after")
+    def exact_draft(self) -> "NativeWorkflowDraftV2":
+        validate_native_json(self.workflow)
+        if native_canonical_hash(self.workflow) != self.workflow_hash:
+            raise ValueError("Native draft does not match its exact hash")
+        return self
+
+
+class NativeWorkflowDiagnosticV2(NativeContractV2):
+    code: NativeIdV2
+    message: Text2000
+    node_id: NativeIdV2 | None = None
+
+
+class NativeWorkflowAnswerV2(NativeContractV2):
+    question_id: NativeIdV2
+    value: Text2000
+
+
+class PrepareSolutionInputV2(NativeContractV2):
+    type: Literal["PrepareSolutionV2"]
+    build_request_id: UUID
+    input_version: SolutionPreparationVersionV1
+    instruction: str = Field(min_length=1, max_length=24_000)
+    agent: SolutionPreparationAgentV1
+    source: SolutionPreparationSourceV1
+    answers: list[NativeWorkflowAnswerV2] = Field(max_length=32)
+    knowledge: NativeWorkflowKnowledgeV2
+    draft: NativeWorkflowDraftV2 | None
+    diagnostics: list[NativeWorkflowDiagnosticV2] = Field(max_length=40)
+    phase: Literal["design", "repair"]
+    frozen_acceptance_cases: list[NativeWorkflowAcceptanceCaseV2] = Field(max_length=20)
+
+    @model_validator(mode="after")
+    def exact_request(self) -> "PrepareSolutionInputV2":
+        if len({answer.question_id for answer in self.answers}) != len(self.answers):
+            raise ValueError("Solution answers must have unique question IDs")
+        if self.phase == "repair":
+            if not self.draft or not self.frozen_acceptance_cases:
+                raise ValueError(
+                    "Repair requires an exact draft and frozen acceptance criteria"
+                )
+            frozen = [
+                case.model_dump(mode="json", by_alias=True)
+                for case in self.frozen_acceptance_cases
+            ]
+            draft_cases = [
+                case.model_dump(mode="json", by_alias=True)
+                for case in self.draft.spec.acceptance_cases
+            ]
+            if native_canonical_hash(frozen) != native_canonical_hash(draft_cases):
+                raise ValueError(
+                    "Repair acceptance criteria must match the current draft"
+                )
+        validate_native_json(
+            self.model_dump(mode="json", by_alias=True),
+            max_bytes=192_000,
+            max_entries=30_000,
+        )
+        return self
+
+
+class NativeWorkflowSemanticReviewV2(NativeContractV2):
+    advisory: Literal[True]
+    summary: Text4000
+    concerns: list[Text2000] = Field(max_length=20)
+
+
+class PrepareSolutionResponseV2(NativeContractV2):
+    schema_version: Literal["axwise.solution-preparation.v2"]
+    build_request_id: UUID
+    input_version: SolutionPreparationVersionV1
+    outcome: Literal["candidate", "needs_input", "dependencies"]
+    name: Text120
+    purpose: Text2000
+    explanation: Text4000
+    workflow: dict[str, Any] | None
+    spec: NativeWorkflowSpecV2 | None
+    questions: list[NativeWorkflowQuestionV2] = Field(max_length=8)
+    dependencies: list[NativeWorkflowDependencyV2] = Field(max_length=40)
+    base_workflow_hash: Sha256 | None
+    semantic_review: NativeWorkflowSemanticReviewV2
+
+    @model_validator(mode="after")
+    def exact_state(self) -> "PrepareSolutionResponseV2":
+        if (self.workflow is None) != (self.spec is None):
+            raise ValueError("Native workflow and spec must be present together")
+        if self.outcome == "candidate" and (
+            self.workflow is None
+            or self.spec is None
+            or self.questions
+            or self.dependencies
+        ):
+            raise ValueError(
+                "Candidate requires a graph/spec without unresolved questions or dependencies"
+            )
+        if self.outcome == "needs_input" and not self.questions:
+            raise ValueError("Needs-input requires a specific question")
+        if self.outcome == "dependencies" and not self.dependencies:
+            raise ValueError("Dependencies requires an explicit dependency")
+        for values in (self.questions, self.dependencies):
+            if len({item.id for item in values}) != len(values):
+                raise ValueError("Questions and dependencies must have unique IDs")
+        validate_native_json(
+            self.model_dump(mode="json", by_alias=True), max_bytes=192_000
+        )
+        return self
+
+
 OperationInput = Annotated[
     Union[
         AssistantTurnInputV1,
         PrepareSolutionInputV1,
+        PrepareSolutionInputV2,
         CompileScopeInputV2,
         CompileScopeInputV3,
         ReviseScopeInputV2,
@@ -2265,6 +2743,7 @@ class AxWiseOperationEnvelope(ContractModel):
     operation_type: Literal[
         "AssistantTurnV1",
         "PrepareSolutionV1",
+        "PrepareSolutionV2",
         "CompileScopeV2",
         "CompileScopeV3",
         "ReviseScopeV2",
@@ -2282,7 +2761,7 @@ class AxWiseOperationEnvelope(ContractModel):
         if self.operation_type != self.input.type:
             raise ValueError("operation type must match typed input")
         if (
-            isinstance(self.input, PrepareSolutionInputV1)
+            isinstance(self.input, (PrepareSolutionInputV1, PrepareSolutionInputV2))
             and self.input.source.run_id != self.workflow.run_id
         ):
             raise ValueError("Solution source run must match its workflow envelope")
@@ -2307,7 +2786,9 @@ class AxWiseOperationEnvelope(ContractModel):
             input_payload = {
                 key: value for key, value in input_payload.items() if value is not None
             }
-        if canonical_hash(input_payload) != self.canonical_input_hash:
+        input_hash = (native_canonical_hash(input_payload) if isinstance(self.input, PrepareSolutionInputV2)
+                      else canonical_hash(input_payload))
+        if input_hash != self.canonical_input_hash:
             raise ValueError("canonical input hash does not match typed input")
         return self
 
@@ -2486,7 +2967,7 @@ class AssistantTurnCompletedResult(ContractModel):
 
 class PrepareSolutionCompletedResult(ContractModel):
     result_type: Literal["solution_prepared"]
-    response: PrepareSolutionResponseV1
+    response: Annotated[Union[PrepareSolutionResponseV1, PrepareSolutionResponseV2], Field(discriminator="schema_version")]
     metrics: OperationMetrics | None = None
 
 

@@ -42,9 +42,10 @@ from backend.domain.workflow_v2.contracts import (
     FinalMarkdownArtifactFact,
     ImmutableArtifactContent,
     OperationMetrics,
-    PrepareSolutionInputV1,
-    PrepareSolutionCompletedResult,
     PlanningResultV2,
+    PrepareSolutionCompletedResult,
+    PrepareSolutionInputV1,
+    PrepareSolutionInputV2,
     ReaderOutputContractV1,
     RequirementCoverageV1,
     ResearchArtifactFact,
@@ -85,7 +86,10 @@ from backend.services.workflow_v2.assistant import (
     PydanticAIConversationalAssistantRunner,
 )
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
-from backend.services.workflow_v2.solution_preparation import PydanticAISolutionPreparer
+from backend.services.workflow_v2.solution_preparation import (
+    PydanticAINativeSolutionPreparer,
+    PydanticAISolutionPreparer,
+)
 
 _MAX_EVIDENCE_REQUIREMENTS = 12
 _MAX_REUSABLE_SOURCE_CANDIDATES = 3
@@ -8905,6 +8909,7 @@ class GeminiCognitiveExecutor:
         assistant_runner: ResearchRunner | None = None,
         assistant_chat_runner: ResearchRunner | None = None,
         solution_preparer: PydanticAISolutionPreparer | None = None,
+        solution_preparer_v2: PydanticAINativeSolutionPreparer | None = None,
     ) -> None:
         if len(authority_key) < 32:
             raise RuntimeError(
@@ -8919,6 +8924,7 @@ class GeminiCognitiveExecutor:
         self.assistant_runner = assistant_runner
         self.assistant_chat_runner = assistant_chat_runner
         self.solution_preparer = solution_preparer
+        self.solution_preparer_v2 = solution_preparer_v2
         self.assistant_turn_service = AssistantTurnService(
             grounded_runner=assistant_runner,
             conversational_runner=assistant_chat_runner,
@@ -8952,7 +8958,8 @@ class GeminiCognitiveExecutor:
             )
         except asyncio.TimeoutError as error:
             raise CognitiveExecutionFailure(
-                "AXWISE_OPERATION_DEADLINE", retryable=True
+                "AXWISE_OPERATION_DEADLINE",
+                retryable=envelope.operation_type != "PrepareSolutionV2",
             ) from error
         latency_ms = max(1, round((time.monotonic() - started) * 1000))
         metrics = result.metrics or OperationMetrics(latency_ms=latency_ms)
@@ -8961,6 +8968,25 @@ class GeminiCognitiveExecutor:
         )
 
     async def _execute_operation(self, envelope: AxWiseOperationEnvelope):
+        if envelope.operation_type == "PrepareSolutionV2":
+            if not isinstance(envelope.input, PrepareSolutionInputV2):
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
+            if self.solution_preparer_v2 is None:
+                raise CognitiveExecutionFailure(
+                    "AXWISE_SOLUTION_DESIGN_UNAVAILABLE", retryable=True
+                )
+            prepared = await self.solution_preparer_v2.prepare(envelope.input)
+            return PrepareSolutionCompletedResult(
+                result_type="solution_prepared",
+                response=prepared.response,
+                metrics=_operation_metrics(
+                    input_tokens=prepared.input_tokens,
+                    output_tokens=prepared.output_tokens,
+                    model_version=prepared.model_version,
+                ),
+            )
         if envelope.operation_type == "PrepareSolutionV1":
             if not isinstance(envelope.input, PrepareSolutionInputV1):
                 raise CognitiveExecutionFailure(
@@ -10953,4 +10979,5 @@ def build_cognitive_executor(
         assistant_runner=research_runner,
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
         solution_preparer=PydanticAISolutionPreparer(model),
+        solution_preparer_v2=PydanticAINativeSolutionPreparer(model),
     )
