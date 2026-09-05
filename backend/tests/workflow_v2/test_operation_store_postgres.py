@@ -15,7 +15,6 @@ from backend.services.workflow_v2.operation_store import (
     StaleOperationLease,
 )
 
-
 pytestmark = pytest.mark.contract
 DATABASE_URL = os.getenv("AXWISE_V2_TEST_DATABASE_URL")
 if not DATABASE_URL:
@@ -234,6 +233,7 @@ def test_latest_schema_allows_compile_scope_v3_and_one_operation_per_attempt(
     assert len(operation_type_checks) == 1
     assert "CompileScopeV3" in operation_type_checks[0]
     assert "PrepareSolutionV1" in operation_type_checks[0]
+    assert "PrepareSolutionV2" in operation_type_checks[0]
     assert "UNIQUE (tenant_id, stage_attempt_id)" in uniqueness
     assert "UNIQUE (tenant_id, stage_attempt_id, operation_type)" not in uniqueness
 
@@ -241,6 +241,8 @@ def test_latest_schema_allows_compile_scope_v3_and_one_operation_per_attempt(
 def test_prepare_solution_persists_claims_completes_and_preserves_tenant_isolation(stores):
     from backend.tests.workflow_v2.test_solution_preparation import (
         FIXTURE,
+    )
+    from backend.tests.workflow_v2.test_solution_preparation import (
         envelope as solution_envelope,
     )
 
@@ -263,6 +265,37 @@ def test_prepare_solution_persists_claims_completes_and_preserves_tenant_isolati
     # this completed immutable design attempt using the old idempotency identity.
     with pytest.raises(OperationConflict, match="changed input"):
         api.adopt_or_create(solution_envelope(FIXTURE["answeredInput"]))
+
+
+def test_native_solution_persists_exact_hash_and_tenant_bound_completion(stores):
+    from backend.tests.workflow_v2.test_solution_preparation_v2 import (
+        candidate,
+        input_payload,
+    )
+    from backend.tests.workflow_v2.test_solution_preparation_v2 import (
+        envelope as native_envelope,
+    )
+
+    _admin, api, worker = stores
+    operation = native_envelope()
+    accepted = api.adopt_or_create(operation)
+    assert api.adopt_or_create(operation) == accepted
+    assert api.get(uuid4(), operation.operation_id) is None
+    lease = uuid4()
+    claimed = worker.claim_next(lease, 30)
+    assert claimed.envelope == operation
+    result = {"resultType": "solution_prepared", "response": candidate()}
+    worker.complete(operation.owner.tenant_id, operation.operation_id, lease, result)
+    stored = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert stored.status == "completed"
+    assert stored.result_payload == result
+    assert stored.canonical_input_hash == operation.canonical_input_hash
+    assert api.get(uuid4(), operation.operation_id) is None
+    assert worker.claim_next(uuid4(), 30) is None
+    changed = input_payload()
+    changed["inputVersion"] += 1
+    with pytest.raises(OperationConflict):
+        api.adopt_or_create(native_envelope(changed))
 
 
 def test_tenant_b_cannot_read_tenant_a_and_api_worker_cannot_directly_update(stores) -> None:
