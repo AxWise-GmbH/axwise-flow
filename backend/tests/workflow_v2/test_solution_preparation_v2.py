@@ -31,13 +31,16 @@ from backend.services.workflow_v2.cognitive_executor import GeminiCognitiveExecu
 from backend.services.workflow_v2.operation_service import (
     CognitiveExecutionFailure,
     OperationService,
+    sanitize_failure_diagnostics,
 )
 from backend.services.workflow_v2.solution_preparation import (
     NATIVE_SOLUTION_PER_RESPONSE_OUTPUT_TOKENS,
     NATIVE_SOLUTION_PREPARATION_DEADLINE_SECONDS,
     SOLUTION_PREPARATION_DEADLINE_SECONDS,
+    NativeGraphRepairResponseV2,
     PydanticAINativeSolutionPreparer,
     PydanticAISolutionPreparer,
+    _complete_native_repair,
     _native_solution_usage_limits,
     _validate_native_design,
 )
@@ -504,6 +507,95 @@ def test_repair_preserves_frozen_cases_but_can_rewrite_native_graph():
         )
 
 
+@pytest.mark.asyncio
+async def test_graph_only_model_repair_retains_complete_server_owned_spec():
+    value = repair_input()
+    response = candidate(value)
+    response.pop("spec")
+    response["workflow"]["nodes"][2]["position"] = [460, 20]
+
+    async def respond(_messages, info):
+        assert (
+            "spec" not in NativeGraphRepairResponseV2.model_json_schema()["properties"]
+        )
+        return ModelResponse(
+            parts=[TextPart(json.dumps(response))],
+            usage=RequestUsage(
+                input_tokens=300, output_tokens=200, details={"thoughts_tokens": 100}
+            ),
+        )
+
+    result = await PydanticAINativeSolutionPreparer(
+        CountingFunctionModel(respond)
+    ).prepare(PrepareSolutionInputV2.model_validate(value))
+    actual = result.response.model_dump(mode="json", by_alias=True)
+    assert actual["spec"] == value["draft"]["spec"]
+    assert actual["workflow"]["nodes"][2]["position"] == [460, 20]
+    assert actual["baseWorkflowHash"] == value["draft"]["workflowHash"]
+
+
+def test_graph_only_repair_rejects_spec_replacement_and_stale_base():
+    value = PrepareSolutionInputV2.model_validate(repair_input())
+    response = candidate(repair_input())
+    with pytest.raises(ValidationError):
+        NativeGraphRepairResponseV2.model_validate(response)
+    response.pop("spec")
+    response["baseWorkflowHash"] = "b" * 64
+    with pytest.raises(ValueError, match="latest native draft"):
+        _complete_native_repair(
+            value, NativeGraphRepairResponseV2.model_validate(response)
+        )
+
+
+def test_graph_only_repair_cannot_attach_new_credentials():
+    value = repair_input()
+    response = candidate(value)
+    response.pop("spec")
+    response["workflow"]["nodes"][0]["credentials"] = {
+        "httpHeaderAuth": {"id": "invented"}
+    }
+    with pytest.raises(ValueError, match="credential"):
+        _complete_native_repair(
+            PrepareSolutionInputV2.model_validate(value),
+            NativeGraphRepairResponseV2.model_validate(response),
+        )
+
+
+def test_native_failure_counters_cross_the_api_without_provider_content():
+    safe = sanitize_failure_diagnostics(
+        {
+            "route": "native_repair",
+            "status": "failed",
+            "inputTokens": 17000,
+            "outputTokens": 9000,
+            "totalTokens": 26000,
+            "reasoningTokens": 5000,
+            "limitKind": "provider_output",
+            "usageComplete": False,
+            "rawProviderResponse": "not permitted",
+            "prompt": "not permitted",
+        }
+    )
+    assert safe["input_tokens"] == 17000
+    assert safe["reasoning_tokens"] == 5000
+    assert safe["limit_kind"] == "provider_output"
+    assert safe["usage_complete"] is False
+    assert "not permitted" not in json.dumps(safe)
+    bounded = sanitize_failure_diagnostics(
+        {
+            "route": "native_repair",
+            "status": "failed",
+            "inputTokens": 2_000_001,
+            "outputTokens": -1,
+            "totalTokens": True,
+            "reasoningTokens": "100",
+            "limitKind": "raw provider exception",
+            "usageComplete": "yes",
+        }
+    )
+    assert bounded == {"route": "native_repair", "status": "failed"}
+
+
 @pytest.mark.parametrize(
     "field", ["requirements", "inputSchema", "outputSchema", "runtimeProfile"]
 )
@@ -688,6 +780,10 @@ async def test_native_budget_exhaustion_is_terminal_and_stops_further_generation
         ]
     )
     assert "malformed" not in str(error.value)
+    expected_kind = "request" if limit == "requests" else limit
+    assert error.value.diagnostics["limit_kind"] == expected_kind
+    assert error.value.diagnostics["call_count"] == len(calls)
+    assert "malformed" not in json.dumps(error.value.diagnostics)
 
 
 @pytest.mark.parametrize("valid_json", [True, False])
@@ -712,6 +808,8 @@ async def test_provider_output_cap_is_never_accepted_as_a_complete_native_design
     assert error.value.error_class == "AXWISE_NATIVE_SOLUTION_BUDGET_EXHAUSTED"
     assert error.value.retryable is False
     assert len(calls) <= 3
+    assert error.value.diagnostics["limit_kind"] == "provider_output"
+    assert error.value.diagnostics["output_tokens"] >= 32_768
 
 
 @pytest.mark.asyncio
@@ -731,6 +829,9 @@ async def test_native_model_timeout_not_success(monkeypatch):
         error.value.error_class == "AXWISE_SOLUTION_DESIGN_DEADLINE"
         and error.value.retryable is False
     )
+    assert error.value.diagnostics["limit_kind"] == "deadline"
+    assert error.value.diagnostics["usage_complete"] is False
+    assert "output_tokens" not in error.value.diagnostics
 
 
 @pytest.mark.asyncio

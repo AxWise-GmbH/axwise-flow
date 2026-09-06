@@ -29,7 +29,6 @@ from backend.services.workflow_v2.operation_store import (
     OperationRecord,
 )
 
-
 _COMPLETION_RESULT_ADAPTER = TypeAdapter(CompletionResult)
 _RFC3339_UTC_ADAPTER = TypeAdapter(Rfc3339Utc)
 _DIAGNOSTIC_TOKEN = re.compile(r"^[A-Za-z0-9_:-]{1,100}$")
@@ -76,6 +75,10 @@ def _safe_phase_diagnostics(value: Any) -> dict[str, Any] | None:
         ("elapsed_ms", ("elapsed_ms", "elapsedMs"), 0, 900_000),
         ("call_count", ("call_count", "callCount"), 0, 100),
         ("retry_count", ("retry_count", "retryCount"), 0, 100),
+        ("input_tokens", ("input_tokens", "inputTokens"), 0, 2_000_000),
+        ("output_tokens", ("output_tokens", "outputTokens"), 0, 2_000_000),
+        ("total_tokens", ("total_tokens", "totalTokens"), 0, 2_000_000),
+        ("reasoning_tokens", ("reasoning_tokens", "reasoningTokens"), 0, 2_000_000),
         (
             "upstream_status_code",
             ("upstream_status_code", "upstreamStatusCode"),
@@ -97,6 +100,15 @@ def _safe_phase_diagnostics(value: Any) -> dict[str, Any] | None:
         )
         if normalized is not None:
             result[field] = normalized
+    limit_kind = _mapping_value(value, "limit_kind", "limitKind")
+    if limit_kind in (
+        "request", "per_request_input", "input", "output", "total",
+        "provider_output", "deadline", "unknown",
+    ):
+        result["limit_kind"] = limit_kind
+    usage_complete = _mapping_value(value, "usage_complete", "usageComplete")
+    if type(usage_complete) is bool:
+        result["usage_complete"] = usage_complete
     if _mapping_value(value, "primary_skipped", "primarySkipped") is True:
         result["primary_skipped"] = True
         result["circuit_state"] = "open"

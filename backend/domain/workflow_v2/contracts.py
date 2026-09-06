@@ -3112,6 +3112,15 @@ class OperationFailurePhaseDiagnostics(ContractModel):
     primary_skipped: bool | None = None
     circuit_state: Literal["open"] | None = None
     retry_after_seconds: int | None = Field(default=None, ge=1, le=900)
+    input_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
+    output_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
+    total_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
+    reasoning_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
+    limit_kind: Literal[
+        "request", "per_request_input", "input", "output", "total",
+        "provider_output", "deadline", "unknown",
+    ] | None = None
+    usage_complete: bool | None = None
 
     @model_validator(mode="after")
     def exact_open_circuit_facts(self) -> "OperationFailurePhaseDiagnostics":
