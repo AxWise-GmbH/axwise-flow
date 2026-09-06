@@ -172,7 +172,7 @@ import {readFileSync} from 'node:fs';
 import {createNativeWorkflowKnowledge} from './server/workflow-v2/native-workflow-knowledge.js';
 console.log(JSON.stringify(createNativeWorkflowKnowledge(JSON.parse(readFileSync(0,'utf8')))));
 """,
-        {"instruction": instruction, "draft": value["draft"]},
+        {"instruction": instruction, "draft": value["draft"], "phase": value["phase"]},
     )
     PrepareSolutionInputV2.model_validate(value)
     if sys.argv[1:] in [
@@ -252,6 +252,7 @@ console.log(JSON.stringify(createNativeWorkflowKnowledge(JSON.parse(readFileSync
                     "modelVersion": result.model_version,
                     "inputTokens": result.input_tokens,
                     "outputTokens": result.output_tokens,
+                    "modelDiagnostics": result.model_diagnostics,
                     "response": response,
                     "review": checked,
                     "runtimeExecuted": False,
@@ -314,6 +315,7 @@ if __name__ == "__main__":
                     "errorType": type(error).__name__,
                     "code": getattr(error, "code", None),
                     "errorClass": getattr(error, "error_class", None),
+                    "diagnostics": getattr(error, "diagnostics", None),
                     "records": RECORDS,
                     "validationLocations": [
                         {"location": list(item["loc"]), "type": item["type"]}
