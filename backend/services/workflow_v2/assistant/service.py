@@ -7,6 +7,7 @@ from backend.domain.workflow_v2.contracts import (
     AssistantTurnInputV1,
 )
 from backend.services.workflow_v2.assistant.projection import project_assistant_result
+from backend.services.workflow_v2.assistant.answer_quality import assistant_answer_defects
 from backend.services.workflow_v2.assistant.prompts import assistant_turn_query
 from backend.services.workflow_v2.assistant.protocols import (
     AssistantRunner,
@@ -47,7 +48,25 @@ class AssistantTurnService:
             raise CognitiveExecutionFailure(
                 "AXWISE_ASSISTANT_UNAVAILABLE", retryable=True
             )
-        raw = await runner.search(assistant_turn_query(input_value))
+        query = assistant_turn_query(input_value)
+        raw = await runner.search(query)
+        if input_value.response_mode == "one_shot" and raw.get("provider") != "searxng_direct_fetch":
+            diagnostics = raw.get("runtime_diagnostics")
+            quality_exhausted = (
+                isinstance(diagnostics, dict)
+                and diagnostics.get("status") == "quality_rejected"
+            )
+            if quality_exhausted or assistant_answer_defects(query, str(raw.get("text") or "")):
+                # The production provider already had one bounded repair chance.
+                # Custom/test runners must meet the same publication boundary;
+                # do not start a second search/retry lifecycle here.
+                raise CognitiveExecutionFailure(
+                    "AXWISE_ASSISTANT_QUALITY_REJECTED", retryable=False,
+                    diagnostics={
+                        **(diagnostics if isinstance(diagnostics, dict) else {}),
+                        "route": "assistant_one_shot", "status": "quality_rejected",
+                    },
+                )
         return project_assistant_result(
             raw,
             response_mode=input_value.response_mode,

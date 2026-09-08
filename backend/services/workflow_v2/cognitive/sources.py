@@ -500,6 +500,11 @@ def _usage_from_search(result: dict[str, Any]) -> tuple[int, int, int, int]:
     search_query_count = (
         len(provider_queries) if isinstance(provider_queries, list) else 0
     )
+    # Quality repairs keep provenance tied to the final provider response, while
+    # metering includes every returned response from the same bounded operation.
+    metered_search_calls = usage.get("search_calls") if isinstance(usage, dict) else None
+    if type(metered_search_calls) is int and metered_search_calls >= 0:
+        search_query_count = metered_search_calls
     return (
         input_tokens,
         output_tokens,

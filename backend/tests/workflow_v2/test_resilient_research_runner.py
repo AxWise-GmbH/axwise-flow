@@ -3111,7 +3111,15 @@ async def test_extractor_exception_retains_only_observable_primary_metering() ->
         return document(url, "A fetched source document.")
 
     primary_result = metered_transient()
-    primary_result["runtime_diagnostics"]["elapsed_ms"] = 17
+    primary_result["runtime_diagnostics"].update(
+        {
+            "elapsed_ms": 17,
+            "input_tokens": 31,
+            "output_tokens": 11,
+            "total_tokens": 42,
+            "usage_complete": True,
+        }
+    )
     result = await ResilientResearchRunner(
         FakePrimary(primary_result),
         searxng=TimedSearx(
@@ -3124,10 +3132,19 @@ async def test_extractor_exception_retains_only_observable_primary_metering() ->
 
     assert result["search_performed"] is False
     assert result["usage_metadata"] == {
-        "inputTokens": 31,
-        "outputTokens": 11,
-        "totalTokens": 42,
+        "inputTokens": None,
+        "outputTokens": None,
+        "totalTokens": None,
+        "input_tokens": None,
+        "output_tokens": None,
+        "total_tokens": None,
+        "usage_complete": False,
     }
+    primary_receipt = result["runtime_diagnostics"]["primary"]
+    assert primary_receipt["input_tokens"] == 31
+    assert primary_receipt["output_tokens"] == 11
+    assert primary_receipt["total_tokens"] == 42
+    assert primary_receipt["usage_complete"] is True
     assert len(result["provider_queries"]) == 2
     fallback = result["runtime_diagnostics"]["fallback"]
     assert fallback["status"] == "extraction_error"
