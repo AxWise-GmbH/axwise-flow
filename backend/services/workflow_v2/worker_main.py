@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 from urllib.parse import urlsplit
 
@@ -12,6 +11,7 @@ from backend.services.llm.gemini_runtime import (
 from backend.services.workflow_v2.cognitive_executor import build_cognitive_executor
 from backend.services.workflow_v2.operation_store import PostgresOperationStore
 from backend.services.workflow_v2.operation_worker import OperationWorker
+from backend.services.workflow_v2.worker_logging import configure_worker_logging
 
 
 def _validate_canonical_service_origin() -> None:
@@ -62,6 +62,7 @@ def build_worker() -> tuple[PostgresOperationStore, OperationWorker]:
 
 
 async def run() -> None:
+    configure_worker_logging()
     store, worker = build_worker()
     try:
         await worker.run_forever(
@@ -74,7 +75,6 @@ async def run() -> None:
 
 
 def main() -> None:
-    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     asyncio.run(run())
 
 
