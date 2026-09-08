@@ -20,6 +20,8 @@ httpx==0.28.1
 httpx2==2.12.0
 idna==3.19
 logfire-api==4.41.0
+markdown-it-py==4.0.0
+mdurl==0.1.2
 opentelemetry-api==1.44.0
 packaging==26.3
 psycopg2-binary==2.9.9

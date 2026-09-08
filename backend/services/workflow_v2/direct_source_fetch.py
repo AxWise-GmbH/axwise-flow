@@ -15,7 +15,7 @@ import re
 import socket
 from datetime import datetime, timezone
 from html.parser import HTMLParser
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import parse_qsl, urljoin, urlsplit, urlunsplit
 
 import httpcore
@@ -348,14 +348,19 @@ async def fetch_direct_source(
     operation_seconds: float = _DEFAULT_OPERATION_SECONDS,
     attempt_seconds: float = _DEFAULT_ATTEMPT_SECONDS,
     client: httpx.AsyncClient | None = None,
+    url_validator: Callable[[str], bool] | None = None,
 ) -> dict[str, Any]:
     """Fetch one public textual document with per-hop SSRF and size gates."""
 
     if maximum_bytes < 1 or maximum_text_bytes < 1:
         raise ValueError("direct source limits must be positive")
+    if url_validator is not None and not callable(url_validator):
+        raise ValueError("direct source URL policy must be callable")
     current = canonical_public_url(url)
     if current is None:
         raise ValueError("unsafe direct source URL")
+    if url_validator is not None and url_validator(current) is not True:
+        raise ValueError("direct source URL violates source policy")
     source_identity = current
     celex_transport = _official_celex_transport_url(current)
     if celex_transport is not None:
@@ -364,6 +369,8 @@ async def fetch_direct_source(
     deadline = loop.time() + max(1.0, operation_seconds)
     owns_client = client is None
     for _ in range(_MAX_REDIRECTS + 1):
+        if url_validator is not None and url_validator(current) is not True:
+            raise ValueError("direct source URL violates source policy")
         remaining = deadline - loop.time()
         if remaining <= 0:
             raise TimeoutError("direct source operation deadline exceeded")
@@ -470,6 +477,8 @@ async def fetch_direct_source(
                     final_url = canonical_public_url(str(response.url))
                     if final_url is None:
                         raise ValueError("direct source final URL is unsafe")
+                    if url_validator is not None and url_validator(final_url) is not True:
+                        raise ValueError("direct source URL violates source policy")
                     retrieved_at = (
                         datetime.now(timezone.utc)
                         .isoformat(timespec="microseconds")

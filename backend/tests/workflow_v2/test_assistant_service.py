@@ -187,7 +187,7 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
             "one_shot",
             message="Verify Estonia's EU membership.",
             conversation=[
-                {"role": "user", "content": "Use an official source."},
+                {"role": "user", "content": f"Use an official source at {source_url}."},
                 {"role": "assistant", "content": "I can research that."},
             ],
         )
@@ -202,7 +202,7 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
     authority = json.loads(fallback_authority)
     assert authority["requirement"]["description"] == (
         "Latest user request: Verify Estonia's EU membership. "
-        "Prior user request 1: Use an official source."
+        f"Prior user request 1: Use an official source at {source_url}."
     )
     assert result.metrics is not None
     assert result.metrics.search_calls == 1

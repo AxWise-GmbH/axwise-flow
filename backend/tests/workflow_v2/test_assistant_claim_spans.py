@@ -294,9 +294,14 @@ def test_inline_link_destination_does_not_swallow_the_next_assertion() -> None:
     first = "See the [request reference](https://docs.example.org/request)."
     second = "The current field is optional."
     text = f"{first} {second}"
-    raw = grounded_response(text, [first, second])
+    raw = grounded_response(
+        text, [first, second], urls=["https://docs.example.org/request"] * 2,
+    )
 
-    assert [fact.statement for fact in project(raw).response.facts] == [first, second]
+    assert [claim["text"] for claim in normalize_assistant_claims(raw)] == [first, second]
+    assert [fact.statement for fact in project(raw).response.facts] == [
+        "See the request reference.", second,
+    ]
 
 
 @pytest.mark.parametrize("punctuation", [".", "!", "?", "..."])
