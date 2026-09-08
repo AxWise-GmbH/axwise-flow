@@ -36,6 +36,9 @@ logger = logging.getLogger(__name__)
 GEMINI_SEARCH_MAX_ATTEMPTS = 3
 GEMINI_SEARCH_OPERATION_SECONDS = 120.0
 GEMINI_SEARCH_ATTEMPT_SECONDS = 60.0
+# Local retry policy, not a claimed provider minimum. Do not spend another
+# provider call on the final few seconds of an almost-exhausted operation.
+GEMINI_SEARCH_MIN_RETRY_SECONDS = 5.0
 GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS = 20.0
 GEMINI_GROUNDING_REDIRECT_SECONDS = 2.0
 GEMINI_SEARCH_REDIRECT_PHASE_SECONDS = 20.0
@@ -235,6 +238,41 @@ def _log_grounded_search_failure(
         type(error).__name__,
         status_code,
     )
+
+
+def _log_grounded_search_attempt(
+    *,
+    model: str,
+    call_count: int,
+    phase: str,
+    timeout_seconds: float,
+    remaining_seconds: float,
+    elapsed_seconds: float = 0.0,
+    error: BaseException | None = None,
+) -> None:
+    """Content-free local diagnostics; never log prompts, bodies or headers."""
+
+    log = (
+        logger.warning if phase in {"failed", "retry_budget_exhausted"} else logger.info
+    )
+    message = (
+        "Gemini grounded search attempt; route=gemini_google_search "
+        "model=%s call_count=%s phase=%s timeout_ms=%s remaining_ms=%s "
+        "elapsed_ms=%s"
+    )
+    values = [
+        model,
+        call_count,
+        phase,
+        max(0, int(timeout_seconds * 1000)),
+        max(0, int(remaining_seconds * 1000)),
+        max(0, round(elapsed_seconds * 1000)),
+    ]
+    status_code = _search_status_code(error) if error is not None else None
+    if status_code is not None:
+        message += " upstream_status_code=%s"
+        values.append(status_code)
+    log(message, *values)
 
 
 def _normalized_usage_metadata(response: Any) -> Dict[str, int]:
@@ -749,7 +787,17 @@ class GeminiSearchService:
 
         while call_count < max_attempts:
             remaining = deadline - clock()
-            if remaining <= 0:
+            if remaining <= 0 or (
+                call_count > 0
+                and remaining < min(GEMINI_SEARCH_MIN_RETRY_SECONDS, attempt_seconds)
+            ):
+                _log_grounded_search_attempt(
+                    model=model,
+                    call_count=call_count,
+                    phase="retry_budget_exhausted",
+                    timeout_seconds=0,
+                    remaining_seconds=remaining,
+                )
                 error = TimeoutError("Gemini grounded search deadline exceeded")
                 diagnostics = self._search_runtime_diagnostics(
                     status="deadline_exceeded",
@@ -766,20 +814,27 @@ class GeminiSearchService:
 
             # The SDK defaults to five attempts. Disable that layer so this
             # bounded loop remains the only retry owner and call_count is exact.
+            attempt_budget = min(attempt_seconds, remaining)
             config = types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
                 thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
                 http_options=types.HttpOptions(
-                    timeout=max(1, int(min(attempt_seconds, remaining) * 1000)),
+                    timeout=max(1, int(attempt_budget * 1000)),
                     retry_options=types.HttpRetryOptions(
                         attempts=1,
-                        http_status_codes=sorted(
-                            GEMINI_SEARCH_TRANSIENT_STATUS_CODES
-                        ),
+                        http_status_codes=sorted(GEMINI_SEARCH_TRANSIENT_STATUS_CODES),
                     ),
                 ),
             )
             call_count += 1
+            attempt_started_at = clock()
+            _log_grounded_search_attempt(
+                model=model,
+                call_count=call_count,
+                phase="started",
+                timeout_seconds=attempt_budget,
+                remaining_seconds=remaining,
+            )
             try:
                 response = self._client.models.generate_content(
                     model=model,
@@ -787,6 +842,15 @@ class GeminiSearchService:
                     config=config,
                 )
             except Exception as error:
+                _log_grounded_search_attempt(
+                    model=model,
+                    call_count=call_count,
+                    phase="failed",
+                    timeout_seconds=attempt_budget,
+                    remaining_seconds=deadline - clock(),
+                    elapsed_seconds=clock() - attempt_started_at,
+                    error=error,
+                )
                 attempt_status_code = _search_status_code(error)
                 if attempt_status_code is not None:
                     last_upstream_status_code = attempt_status_code
@@ -813,7 +877,9 @@ class GeminiSearchService:
                         GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS,
                         max(float(2 ** (call_count - 1)), retry_after),
                     )
-                    if delay < remaining:
+                    if remaining - delay >= min(
+                        GEMINI_SEARCH_MIN_RETRY_SECONDS, attempt_seconds
+                    ):
                         _log_transient_search_retry(
                             model=model,
                             call_count=call_count,
@@ -838,6 +904,14 @@ class GeminiSearchService:
                     cause=error,
                 ) from error
 
+            _log_grounded_search_attempt(
+                model=model,
+                call_count=call_count,
+                phase="succeeded",
+                timeout_seconds=attempt_budget,
+                remaining_seconds=deadline - clock(),
+                elapsed_seconds=clock() - attempt_started_at,
+            )
             diagnostics = self._search_runtime_diagnostics(
                 status="ok",
                 started_at=started_at,
@@ -937,7 +1011,17 @@ class GeminiSearchService:
                 deadline - clock(),
                 wall_clock_deadline - loop.time(),
             )
-            if remaining <= 0:
+            if remaining <= 0 or (
+                call_count > 0
+                and remaining < min(GEMINI_SEARCH_MIN_RETRY_SECONDS, attempt_seconds)
+            ):
+                _log_grounded_search_attempt(
+                    model=model,
+                    call_count=call_count,
+                    phase="retry_budget_exhausted",
+                    timeout_seconds=0,
+                    remaining_seconds=remaining,
+                )
                 error = TimeoutError("Gemini grounded search deadline exceeded")
                 diagnostics = self._search_runtime_diagnostics(
                     status="deadline_exceeded",
@@ -954,24 +1038,31 @@ class GeminiSearchService:
 
             # The SDK defaults to five attempts. Disable that layer so this
             # bounded loop remains the only retry owner and call_count is exact.
+            attempt_budget = min(attempt_seconds, remaining)
             config = types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
                 thinking_config=types.ThinkingConfig(thinking_level="HIGH"),
                 http_options=types.HttpOptions(
-                    timeout=max(1, int(min(attempt_seconds, remaining) * 1000)),
+                    timeout=max(1, int(attempt_budget * 1000)),
                     retry_options=types.HttpRetryOptions(
                         attempts=1,
-                        http_status_codes=sorted(
-                            GEMINI_SEARCH_TRANSIENT_STATUS_CODES
-                        ),
+                        http_status_codes=sorted(GEMINI_SEARCH_TRANSIENT_STATUS_CODES),
                     ),
                 ),
             )
             call_count += 1
+            attempt_started_at = clock()
+            _log_grounded_search_attempt(
+                model=model,
+                call_count=call_count,
+                phase="started",
+                timeout_seconds=attempt_budget,
+                remaining_seconds=remaining,
+            )
             try:
                 attempt_deadline = min(
                     wall_clock_deadline,
-                    loop.time() + min(attempt_seconds, remaining),
+                    loop.time() + attempt_budget,
                 )
                 async with asyncio.timeout_at(attempt_deadline):
                     response = await async_client.models.generate_content(
@@ -980,8 +1071,29 @@ class GeminiSearchService:
                         config=config,
                     )
             except asyncio.CancelledError:
+                _log_grounded_search_attempt(
+                    model=model,
+                    call_count=call_count,
+                    phase="cancelled",
+                    timeout_seconds=attempt_budget,
+                    remaining_seconds=min(
+                        deadline - clock(), wall_clock_deadline - loop.time()
+                    ),
+                    elapsed_seconds=clock() - attempt_started_at,
+                )
                 raise
             except Exception as error:
+                _log_grounded_search_attempt(
+                    model=model,
+                    call_count=call_count,
+                    phase="failed",
+                    timeout_seconds=attempt_budget,
+                    remaining_seconds=min(
+                        deadline - clock(), wall_clock_deadline - loop.time()
+                    ),
+                    elapsed_seconds=clock() - attempt_started_at,
+                    error=error,
+                )
                 attempt_status_code = _search_status_code(error)
                 if attempt_status_code is not None:
                     last_upstream_status_code = attempt_status_code
@@ -1011,7 +1123,9 @@ class GeminiSearchService:
                         GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS,
                         max(float(2 ** (call_count - 1)), retry_after),
                     )
-                    if delay < remaining:
+                    if remaining - delay >= min(
+                        GEMINI_SEARCH_MIN_RETRY_SECONDS, attempt_seconds
+                    ):
                         _log_transient_search_retry(
                             model=model,
                             call_count=call_count,
@@ -1036,6 +1150,16 @@ class GeminiSearchService:
                     cause=error,
                 ) from error
 
+            _log_grounded_search_attempt(
+                model=model,
+                call_count=call_count,
+                phase="succeeded",
+                timeout_seconds=attempt_budget,
+                remaining_seconds=min(
+                    deadline - clock(), wall_clock_deadline - loop.time()
+                ),
+                elapsed_seconds=clock() - attempt_started_at,
+            )
             diagnostics = self._search_runtime_diagnostics(
                 status="ok",
                 started_at=started_at,
@@ -1047,10 +1171,7 @@ class GeminiSearchService:
         raise AssertionError("bounded Gemini grounded-search loop exhausted")
 
     def search_location_news(
-        self,
-        location: str,
-        days_back: int = 7,
-        max_items: int = 5
+        self, location: str, days_back: int = 7, max_items: int = 5
     ) -> Dict[str, Any]:
         """
         Search for recent news and events for a specific location.

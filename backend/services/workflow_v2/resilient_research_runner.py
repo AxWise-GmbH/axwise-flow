@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Mapping, Protocol
 from urllib.parse import urlsplit
 
+import httpx
+
 from backend.domain.workflow_v2.contracts import (
     canonical_json,
     is_canonical_public_https_url,
@@ -65,6 +67,9 @@ _DEFAULT_PRIMARY_HEALTHY_SECONDS = 5.0
 _MAX_PRIMARY_HEALTHY_SECONDS = 30.0
 WORKFLOW_V2_FALLBACK_PHASE_SECONDS = 60.0
 _FALLBACK_DISCOVERY_SECONDS = 10.0
+# Assistant may match the discovery adapter's request allowance, including its
+# private-service authentication, without changing durable research's defaults.
+_MAX_FALLBACK_DISCOVERY_SECONDS = 20.0
 _FALLBACK_FETCH_SECONDS = 15.0
 _FALLBACK_EXTRACTION_SECONDS = 45.0
 _DISCOVERY_SECTION_BUDGETS = {
@@ -126,6 +131,44 @@ class DirectDocumentExtractor(Protocol):
 
 DirectTextFetcher = Callable[[str], Awaitable[Mapping[str, Any]]]
 SourceTypeClassifier = Callable[[str, str], set[str]]
+
+
+def _fetch_failure_category(error: Exception) -> str:
+    """Classify failures without emitting exception text, URLs, or response bodies."""
+
+    if isinstance(error, (TimeoutError, httpx.TimeoutException)):
+        return "timeout"
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        return (
+            "http_4xx"
+            if 400 <= status < 500
+            else "http_5xx" if 500 <= status < 600 else "http_status"
+        )
+    if isinstance(error, httpx.TransportError):
+        return "transport"
+    if isinstance(error, ValueError) and len(error.args) == 1:
+        # Only exact constant messages from the owned direct-source fetcher are
+        # inspected. Unknown messages (including user-controlled content) collapse.
+        reason = error.args[0]
+        if isinstance(reason, str):
+            return {
+                "unsafe direct source URL": "security_rejected",
+                "unsafe direct source host": "security_rejected",
+                "unsafe direct source address": "security_rejected",
+                "unsafe direct source connection peer": "security_rejected",
+                "unsafe direct source redirect": "security_rejected",
+                "direct source final URL is unsafe": "security_rejected",
+                "direct source encoded responses are disabled": "encoded_response",
+                "direct source is not textual": "unsupported_content_type",
+                "direct source contains no text": "empty_document",
+                "direct source returned an access challenge": "access_challenge",
+                "direct source exceeds size limit": "size_limit",
+                "direct source has invalid content length": "invalid_content_length",
+                "direct source redirect omitted location": "invalid_redirect",
+                "direct source exceeded redirect limit": "redirect_limit",
+            }.get(reason, "other")
+    return "other"
 
 
 @dataclass(frozen=True)
@@ -449,11 +492,7 @@ def _apply_primary_metering(
 
 def _finite_status(value: Any, *, default: str = "error") -> str:
     normalized = str(value or "")
-    return (
-        normalized
-        if re.fullmatch(r"[A-Za-z0-9_:-]{1,100}", normalized)
-        else default
-    )
+    return normalized if re.fullmatch(r"[A-Za-z0-9_:-]{1,100}", normalized) else default
 
 
 def _fallback_runtime_diagnostics(
@@ -1440,6 +1479,7 @@ class ResilientResearchRunner:
         primary_cooldown_seconds: float = _DEFAULT_PRIMARY_COOLDOWN_SECONDS,
         primary_healthy_seconds: float = _DEFAULT_PRIMARY_HEALTHY_SECONDS,
         fallback_phase_seconds: float = WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+        discovery_seconds: float = _FALLBACK_DISCOVERY_SECONDS,
         monotonic_clock: Callable[[], float] = time.monotonic,
         source_type_classifier: SourceTypeClassifier | None = None,
     ) -> None:
@@ -1468,6 +1508,7 @@ class ResilientResearchRunner:
         try:
             normalized_healthy = float(primary_healthy_seconds)
             normalized_fallback_phase = float(fallback_phase_seconds)
+            normalized_discovery = float(discovery_seconds)
         except (TypeError, ValueError, OverflowError) as error:
             raise ValueError("research runner phase limits must be finite") from error
         if (
@@ -1478,6 +1519,15 @@ class ResilientResearchRunner:
             raise ValueError(
                 "primary_healthy_seconds must be greater than 0 and at most "
                 f"{_MAX_PRIMARY_HEALTHY_SECONDS:g}"
+            )
+        if (
+            not math.isfinite(normalized_discovery)
+            or normalized_discovery <= 0
+            or normalized_discovery > _MAX_FALLBACK_DISCOVERY_SECONDS
+        ):
+            raise ValueError(
+                "discovery_seconds must be greater than 0 and at most "
+                f"{_MAX_FALLBACK_DISCOVERY_SECONDS:g}"
             )
         if (
             not math.isfinite(normalized_fallback_phase)
@@ -1497,6 +1547,7 @@ class ResilientResearchRunner:
         self.primary_cooldown_seconds = normalized_cooldown
         self.primary_healthy_seconds = normalized_healthy
         self.fallback_phase_seconds = normalized_fallback_phase
+        self.discovery_seconds = normalized_discovery
         self.source_type_classifier = source_type_classifier
         self._monotonic_clock = monotonic_clock
         self._primary_condition = asyncio.Condition()
@@ -1726,10 +1777,7 @@ class ResilientResearchRunner:
             else {}
         )
         primary_status = str(primary_diagnostics.get("status") or "")
-        if (
-            not locator_refetch
-            and primary_status not in _FALLBACK_PRIMARY_STATUSES
-        ):
+        if not locator_refetch and primary_status not in _FALLBACK_PRIMARY_STATUSES:
             return primary
         logger.info(
             "Workflow-v2 research fallback started; primary_status=%s",
@@ -1762,11 +1810,16 @@ class ResilientResearchRunner:
         try:
             discovery_deadline = min(
                 fallback_deadline,
-                asyncio.get_running_loop().time() + _FALLBACK_DISCOVERY_SECONDS,
+                asyncio.get_running_loop().time() + self.discovery_seconds,
             )
             async with asyncio.timeout_at(discovery_deadline):
                 discovery = await self._discover(context.discovery_query)
         except TimeoutError:
+            logger.warning(
+                "Workflow-v2 research fallback phase stopped; phase=discovery "
+                "status=deadline_exceeded elapsed_ms=%s call_count=1",
+                _finite_elapsed_ms(discovery_started_at, self._monotonic_clock()),
+            )
             if (
                 not context.reusable_candidates
                 and not context.authority_candidates
@@ -1969,6 +2022,12 @@ class ResilientResearchRunner:
             )
 
         fetch_semaphore = asyncio.Semaphore(3)
+        fetch_failure_categories: dict[str, int] = {}
+
+        def count_fetch_failure(category: str) -> None:
+            fetch_failure_categories[category] = (
+                fetch_failure_categories.get(category, 0) + 1
+            )
 
         async def fetch_candidate(
             candidate: _Candidate,
@@ -1976,9 +2035,11 @@ class ResilientResearchRunner:
             async with fetch_semaphore:
                 try:
                     raw_document = await self.fetcher(candidate.canonical_url)
-                except Exception:
+                except Exception as error:
+                    count_fetch_failure(_fetch_failure_category(error))
                     return candidate, None, True
             if not isinstance(raw_document, Mapping):
+                count_fetch_failure("invalid_mapping")
                 return candidate, None, True
             return candidate, raw_document, False
 
@@ -1992,6 +2053,12 @@ class ResilientResearchRunner:
                     *(fetch_candidate(candidate) for candidate in candidates)
                 )
         except TimeoutError:
+            logger.warning(
+                "Workflow-v2 research fallback phase stopped; phase=fetch "
+                "status=deadline_exceeded candidates=%s failure_categories=%s",
+                len(candidates),
+                json.dumps(fetch_failure_categories, sort_keys=True),
+            )
             return finish_fallback(
                 _primary_with_failed_fallback(
                     primary,
@@ -2029,10 +2096,12 @@ class ResilientResearchRunner:
             ):
                 rejected_count += 1
                 validation_incomplete_count += 1
+                count_fetch_failure("final_url_rejected")
                 continue
             raw_text = raw_document.get("text")
             if not isinstance(raw_text, str) or not raw_text:
                 validation_incomplete_count += 1
+                count_fetch_failure("empty_text")
                 continue
             document_text = _bounded_document_window(
                 raw_text,
@@ -2042,6 +2111,7 @@ class ResilientResearchRunner:
             )
             if not document_text:
                 validation_incomplete_count += 1
+                count_fetch_failure("empty_window")
                 continue
             retrieved_at = raw_document.get("retrieved_at")
             if not isinstance(retrieved_at, str) or not retrieved_at.strip():
@@ -2054,9 +2124,12 @@ class ResilientResearchRunner:
                 retrieved_at=retrieved_at,
             )
 
-            document_id = "source-" + hashlib.sha256(
-                f"{final_url}\n{snapshot.content_sha256}".encode("utf-8")
-            ).hexdigest()[:32]
+            document_id = (
+                "source-"
+                + hashlib.sha256(
+                    f"{final_url}\n{snapshot.content_sha256}".encode("utf-8")
+                ).hexdigest()[:32]
+            )
             if document_id not in seen_document_ids:
                 seen_document_ids.add(document_id)
                 fetched_documents.append(
@@ -2073,6 +2146,16 @@ class ResilientResearchRunner:
 
         fetched_count = len(fetched_documents)
         incomplete_fetch_count = fetch_error_count + validation_incomplete_count
+        logger.log(
+            logging.WARNING if incomplete_fetch_count else logging.INFO,
+            "Workflow-v2 research fallback fetch completed; candidates=%s fetched=%s "
+            "fetch_errors=%s validation_incomplete=%s failure_categories=%s",
+            len(candidates),
+            fetched_count,
+            fetch_error_count,
+            validation_incomplete_count,
+            json.dumps(fetch_failure_categories, sort_keys=True),
+        )
         if not fetched_documents and incomplete_fetch_count:
             return finish_fallback(
                 _primary_with_failed_fallback(
@@ -2172,6 +2255,14 @@ class ResilientResearchRunner:
                     )
                 )
 
+            logger.log(
+                logging.WARNING if extraction.chosen_document is None else logging.INFO,
+                "Workflow-v2 research fallback extraction completed; selected=%s "
+                "fetched=%s incomplete_fetches=%s",
+                extraction.chosen_document is not None,
+                fetched_count,
+                incomplete_fetch_count,
+            )
             if extraction.chosen_document is not None:
                 selected = next(
                     (
