@@ -215,12 +215,16 @@ async def _await_cancellation_safe(cleanup: Awaitable[None]) -> None:
         raise cancellation
 
 
-async def _default_fetch_direct_text(url: str) -> Mapping[str, Any]:
+async def _default_fetch_direct_text(
+    url: str, *, url_validator: Callable[[str], bool] | None = None
+) -> Mapping[str, Any]:
     # Kept lazy so importing the runner does not pull the legacy authority
     # stack into the small workflow-v2 worker image.
     from backend.services.workflow_v2.direct_source_fetch import fetch_direct_source
 
-    return await fetch_direct_source(url)
+    return await fetch_direct_source(url, **(
+        {"url_validator": url_validator} if url_validator is not None else {}
+    ))
 
 
 def _normalized_text(value: Any, *, maximum: int) -> str | None:
@@ -866,6 +870,7 @@ def _candidate_rows(
     accepted_source_types: frozenset[str],
     source_type_classifier: SourceTypeClassifier | None,
     maximum: int,
+    url_validator: Callable[[str], bool] | None = None,
 ) -> tuple[list[_Candidate], int, int, int]:
     by_url: dict[str, dict[str, Any]] = {}
     rejected = 0
@@ -878,7 +883,10 @@ def _candidate_rows(
             malformed += 1
             continue
         url = _canonical_candidate_url(source.get("url"))
-        if url is None or not _url_matches_allowed_hosts(url, allowed_hosts):
+        if (
+            url is None or not _url_matches_allowed_hosts(url, allowed_hosts)
+            or (url_validator is not None and url_validator(url) is not True)
+        ):
             rejected += 1
             continue
         row = by_url.setdefault(url, {"titles": [], "snippets": []})
@@ -967,6 +975,7 @@ def _primary_response_locator_rows(
     accepted_source_types: frozenset[str],
     source_type_classifier: SourceTypeClassifier | None,
     maximum: int,
+    url_validator: Callable[[str], bool] | None = None,
 ) -> tuple[list[_Candidate], int, int, int]:
     """Extract bounded authority locators from one provider response.
 
@@ -994,6 +1003,7 @@ def _primary_response_locator_rows(
             canonical_url is None
             or canonical_url != raw_url
             or not _url_matches_allowed_hosts(canonical_url, allowed_hosts)
+            or (url_validator is not None and url_validator(canonical_url) is not True)
             or source_type_classifier is None
         ):
             rejected += 1
@@ -1518,6 +1528,7 @@ class ResilientResearchRunner:
         discovery_seconds: float = _FALLBACK_DISCOVERY_SECONDS,
         monotonic_clock: Callable[[], float] = time.monotonic,
         source_type_classifier: SourceTypeClassifier | None = None,
+        source_url_validator: Callable[[str, str], bool] | None = None,
     ) -> None:
         if maximum_candidates < 1 or maximum_candidates > 10:
             raise ValueError("maximum_candidates must be between 1 and 10")
@@ -1575,6 +1586,9 @@ class ResilientResearchRunner:
                 f"{WORKFLOW_V2_FALLBACK_PHASE_SECONDS:g}"
             )
         self.primary = primary
+        if source_url_validator is not None and not callable(source_url_validator):
+            raise ValueError("Source URL policy must be callable")
+        self.source_url_validator = source_url_validator
         self.searxng = searxng or SearxngSearchService()
         self.fetcher = fetcher
         self.extractor = extractor
@@ -1770,6 +1784,9 @@ class ResilientResearchRunner:
             await _await_cancellation_safe(self._leave_search())
 
     async def _search_active(self, query: str) -> dict[str, Any]:
+        def url_allowed(url: str) -> bool:
+            return self.source_url_validator is None or self.source_url_validator(query, url) is True
+
         context = _fallback_context(query)
         locator_refetch = bool(context and context.reusable_candidates)
         if locator_refetch:
@@ -1806,6 +1823,7 @@ class ResilientResearchRunner:
             ),
             source_type_classifier=self.source_type_classifier,
             maximum=_MAX_REUSABLE_SOURCE_CANDIDATES,
+            url_validator=url_allowed,
         )
         if primary.get("search_performed") is True and not locator_refetch:
             return _with_primary_response_locators(
@@ -1957,6 +1975,7 @@ class ResilientResearchRunner:
                     maximum=(
                         self.maximum_candidates + len(context.reusable_candidates)
                     ),
+                    url_validator=url_allowed,
                 )
             )
         else:
@@ -1972,6 +1991,9 @@ class ResilientResearchRunner:
         ]
         merged_candidates_by_url: dict[str, _Candidate] = {}
         for candidate in (*context.reusable_candidates, *discovered_candidates):
+            if not url_allowed(candidate.canonical_url):
+                rejected_count += 1
+                continue
             existing = merged_candidates_by_url.get(candidate.canonical_url)
             if existing is None:
                 merged_candidates_by_url[candidate.canonical_url] = candidate
@@ -2004,6 +2026,8 @@ class ResilientResearchRunner:
         for urls in prioritized_url_groups:
             for url in urls:
                 if (
+                    url in merged_candidates_by_url
+                    and
                     url not in selected_urls
                     and len(selected_urls) < self.maximum_candidates
                 ):
@@ -2075,7 +2099,12 @@ class ResilientResearchRunner:
         ) -> tuple[_Candidate, Mapping[str, Any] | None, bool]:
             async with fetch_semaphore:
                 try:
-                    raw_document = await self.fetcher(candidate.canonical_url)
+                    if self.fetcher is _default_fetch_direct_text and self.source_url_validator is not None:
+                        raw_document = await _default_fetch_direct_text(
+                            candidate.canonical_url, url_validator=url_allowed,
+                        )
+                    else:
+                        raw_document = await self.fetcher(candidate.canonical_url)
                 except Exception as error:
                     count_fetch_failure(_fetch_failure_category(error))
                     return candidate, None, True
@@ -2132,8 +2161,9 @@ class ResilientResearchRunner:
             if raw_document is None:
                 continue
             final_url = _canonical_candidate_url(raw_document.get("final_url"))
-            if final_url is None or not _url_matches_allowed_hosts(
-                final_url, context.allowed_hosts
+            if (
+                final_url is None or not _url_matches_allowed_hosts(final_url, context.allowed_hosts)
+                or not url_allowed(final_url)
             ):
                 rejected_count += 1
                 validation_incomplete_count += 1

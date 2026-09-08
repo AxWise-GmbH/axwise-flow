@@ -20,7 +20,16 @@ from backend.services.workflow_v2.assistant.protocols import (
     SourceTypeClassifier,
     UsageReader,
 )
-from backend.services.workflow_v2.assistant.claim_spans import normalize_assistant_claims
+from backend.services.workflow_v2.assistant.claim_spans import (
+    normalize_assistant_claims,
+)
+from backend.services.workflow_v2.assistant.citations import (
+    assistant_citation_display_statement,
+)
+from backend.services.workflow_v2.assistant.publication import (
+    assess_assistant_publication,
+)
+from backend.services.workflow_v2.assistant.source_policy import AssistantSourcePolicy
 from backend.services.workflow_v2.assistant.answer_quality import (
     assistant_claim_source_matches,
     assistant_claim_statement_context,
@@ -193,11 +202,13 @@ def project_assistant_result(
     source_type_classifier: SourceTypeClassifier,
     usage_reader: UsageReader,
     metrics_factory: MetricsFactory,
+    source_policy: AssistantSourcePolicy | None = None,
 ) -> AssistantTurnCompletedResult:
     raw_sources = raw.get("sources", [])
     raw_claims = normalize_assistant_claims(raw)
     fallback = assistant_fallback_markdown(raw)
     verified_fallback = fallback is not None
+    policy = source_policy or AssistantSourcePolicy()
     if raw.get("provider") == "searxng_direct_fetch":
         if fallback is None:
             markdown = ""
@@ -207,6 +218,44 @@ def project_assistant_result(
             markdown, raw_sources, raw_claims = fallback
     else:
         markdown = str(raw.get("text") or "").strip()
+        if markdown and response_mode == "one_shot":
+            publication = assess_assistant_publication(raw, policy)
+            # Preserve existing ungrounded/mismatch error identities while new
+            # source/citation failures have their own non-retryable boundary.
+            fatal = set(publication.issues) - {
+                "assistant_evidence_missing",
+                "source_component_mismatch",
+            }
+            if fatal:
+                diagnostics = raw.get("runtime_diagnostics")
+                raise CognitiveExecutionFailure(
+                    "AXWISE_ASSISTANT_EVIDENCE_POLICY_REJECTED",
+                    retryable=False,
+                    diagnostics={
+                        **(diagnostics if isinstance(diagnostics, dict) else {}),
+                        "route": "assistant_one_shot",
+                        "status": "quality_rejected",
+                    },
+                )
+            if "source_component_mismatch" in publication.issues:
+                raise CognitiveExecutionFailure(
+                    "AXWISE_ASSISTANT_SOURCE_MISMATCH",
+                    retryable=False,
+                    diagnostics={
+                        "route": "assistant_one_shot",
+                        "status": "quality_rejected",
+                    },
+                )
+            markdown = publication.markdown.strip()
+            raw_sources, raw_claims = publication.sources, publication.claims
+    if verified_fallback and any(
+        not policy.allows_url(source["url"]) for source in raw_sources
+    ):
+        raise CognitiveExecutionFailure(
+            "AXWISE_ASSISTANT_EVIDENCE_POLICY_REJECTED",
+            retryable=False,
+            diagnostics={"route": "assistant_one_shot", "status": "quality_rejected"},
+        )
     if not markdown:
         runtime_diagnostics = raw.get("runtime_diagnostics")
         status = str(
@@ -224,9 +273,7 @@ def project_assistant_result(
                 "response_processing_error",
             },
             diagnostics=(
-                runtime_diagnostics
-                if isinstance(runtime_diagnostics, dict)
-                else None
+                runtime_diagnostics if isinstance(runtime_diagnostics, dict) else None
             ),
         )
     sources_by_url: dict[str, AssistantSourceV1] = {}
@@ -272,9 +319,14 @@ def project_assistant_result(
                 )
             }
         )
-        if not verified_fallback and statement and not urls and any(
-            str(value) in sources_by_url
-            for value in raw_claim.get("source_urls", [])
+        if (
+            not verified_fallback
+            and statement
+            and not urls
+            and any(
+                str(value) in sources_by_url
+                for value in raw_claim.get("source_urls", [])
+            )
         ):
             explicitly_unsupported_claim = True
         identity = (statement, tuple(urls))
@@ -283,7 +335,14 @@ def project_assistant_result(
         seen_facts.add(identity)
         facts.append(
             AssistantFactV1(
-                statement=statement,
+                statement=(
+                    assistant_citation_display_statement(
+                        statement,
+                        source_markdown=str(raw.get("text") or ""),
+                    )
+                    if response_mode == "one_shot" and not verified_fallback
+                    else statement
+                ),
                 source_urls=urls,
             )
         )
@@ -292,7 +351,8 @@ def project_assistant_result(
         # remains in the reader-facing Markdown. Do not publish that answer just
         # because another unrelated assertion retained a valid source.
         raise CognitiveExecutionFailure(
-            "AXWISE_ASSISTANT_SOURCE_MISMATCH", retryable=False,
+            "AXWISE_ASSISTANT_SOURCE_MISMATCH",
+            retryable=False,
             diagnostics={"route": "assistant_one_shot", "status": "quality_rejected"},
         )
     if response_mode == "one_shot" and not facts:
@@ -335,7 +395,9 @@ def project_assistant_result(
     if isinstance(usage, dict):
         if usage.get("usage_complete") is False:
             unknown_metrics.update(
-                input_tokens=None, output_tokens=None, total_tokens=None,
+                input_tokens=None,
+                output_tokens=None,
+                total_tokens=None,
                 estimated_cost_micros=None,
             )
         if "search_calls" in usage and usage["search_calls"] is None:

@@ -7,8 +7,16 @@ from backend.domain.workflow_v2.contracts import (
     AssistantTurnInputV1,
 )
 from backend.services.workflow_v2.assistant.projection import project_assistant_result
-from backend.services.workflow_v2.assistant.answer_quality import assistant_answer_defects
+from backend.services.workflow_v2.assistant.answer_quality import (
+    assistant_answer_defects,
+)
 from backend.services.workflow_v2.assistant.prompts import assistant_turn_query
+from backend.services.workflow_v2.assistant.publishers import (
+    reviewed_publisher_bindings,
+)
+from backend.services.workflow_v2.assistant.source_policy import (
+    resolve_assistant_source_policy,
+)
 from backend.services.workflow_v2.assistant.protocols import (
     AssistantRunner,
     MetricsFactory,
@@ -48,23 +56,47 @@ class AssistantTurnService:
             raise CognitiveExecutionFailure(
                 "AXWISE_ASSISTANT_UNAVAILABLE", retryable=True
             )
-        query = assistant_turn_query(input_value)
+        policy = resolve_assistant_source_policy(
+            input_value, reviewed_publisher_bindings()
+        )
+        if input_value.response_mode == "one_shot" and not policy.resolved:
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_SOURCE_REFERENCE_REQUIRED",
+                retryable=False,
+                diagnostics={
+                    "route": "assistant_source_policy",
+                    "status": "source_authority_required",
+                    "call_count": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "total_tokens": 0,
+                    "usage_complete": True,
+                },
+            )
+        query = assistant_turn_query(input_value, source_policy=policy)
         raw = await runner.search(query)
-        if input_value.response_mode == "one_shot" and raw.get("provider") != "searxng_direct_fetch":
+        if (
+            input_value.response_mode == "one_shot"
+            and raw.get("provider") != "searxng_direct_fetch"
+        ):
             diagnostics = raw.get("runtime_diagnostics")
             quality_exhausted = (
                 isinstance(diagnostics, dict)
                 and diagnostics.get("status") == "quality_rejected"
             )
-            if quality_exhausted or assistant_answer_defects(query, str(raw.get("text") or "")):
+            if quality_exhausted or assistant_answer_defects(
+                query, str(raw.get("text") or "")
+            ):
                 # The production provider already had one bounded repair chance.
                 # Custom/test runners must meet the same publication boundary;
                 # do not start a second search/retry lifecycle here.
                 raise CognitiveExecutionFailure(
-                    "AXWISE_ASSISTANT_QUALITY_REJECTED", retryable=False,
+                    "AXWISE_ASSISTANT_QUALITY_REJECTED",
+                    retryable=False,
                     diagnostics={
                         **(diagnostics if isinstance(diagnostics, dict) else {}),
-                        "route": "assistant_one_shot", "status": "quality_rejected",
+                        "route": "assistant_one_shot",
+                        "status": "quality_rejected",
                     },
                 )
         return project_assistant_result(
@@ -73,6 +105,7 @@ class AssistantTurnService:
             source_type_classifier=self.source_type_classifier,
             usage_reader=self.usage_reader,
             metrics_factory=self.metrics_factory,
+            source_policy=policy,
         )
 
 

@@ -335,6 +335,20 @@ def _provider_model_version(response: Any) -> str | None:
     return normalized
 
 
+def _validated_response_defects(value: Any) -> tuple[str, ...]:
+    if (
+        not isinstance(value, tuple)
+        or len(value) > 12
+        or any(
+            not isinstance(code, str)
+            or re.fullmatch(r"[a-z][a-z0-9_]{0,79}", code) is None
+            for code in value
+        )
+    ):
+        raise ValueError("Invalid response-policy result")
+    return value
+
+
 class _ResponseMetering:
     """Operation-local accounting for accepted and rejected provider responses.
 
@@ -594,6 +608,7 @@ class GeminiSearchService:
         search_attempt_seconds: float = GEMINI_SEARCH_ATTEMPT_SECONDS,
         response_validator: Callable[[str, str], tuple[str, ...]] | None = None,
         repair_query_builder: Callable[[str, tuple[str, ...]], str] | None = None,
+        parsed_response_validator: Callable[[str, Dict[str, Any]], tuple[str, ...]] | None = None,
     ):
         try:
             operation_seconds = float(search_operation_seconds)
@@ -626,6 +641,11 @@ class GeminiSearchService:
             raise ValueError("Response validation and repair policies must be paired callables")
         self._response_validator = response_validator
         self._repair_query_builder = repair_query_builder
+        if parsed_response_validator is not None and (
+            not callable(parsed_response_validator) or response_validator is None
+        ):
+            raise ValueError("Parsed response validation requires the paired response policies")
+        self._parsed_response_validator = parsed_response_validator
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self._client = None
         self._search_clock = time.monotonic
@@ -1093,6 +1113,7 @@ class GeminiSearchService:
         last_upstream_status_code: Optional[int] = None
 
         response_validator = getattr(self, "_response_validator", None)
+        parsed_response_validator = getattr(self, "_parsed_response_validator", None)
         repair_query_builder = getattr(self, "_repair_query_builder", None)
         metering = _ResponseMetering() if response_validator is not None else None
         quality_repair_used = False
@@ -1286,19 +1307,44 @@ class GeminiSearchService:
 
             if metering is not None:
                 metering.record(response)
+            parsed_result = None
             if response_validator is not None:
                 try:
-                    defects = response_validator(query, str(response.text or ""))
-                    if (
-                        not isinstance(defects, tuple)
-                        or len(defects) > 12
-                        or any(
-                            not isinstance(code, str)
-                            or re.fullmatch(r"[a-z][a-z0-9_]{0,79}", code) is None
-                            for code in defects
+                    defects = _validated_response_defects(
+                        response_validator(query, str(response.text or ""))
+                    )
+                    if not defects and parsed_response_validator is not None:
+                        normalization_diagnostics = self._search_runtime_diagnostics(
+                            status="ok", started_at=started_at,
+                            call_count=call_count, model=model,
                         )
-                    ):
-                        raise ValueError("Invalid response-policy result")
+                        try:
+                            parsed_result = await self._normalize_grounded_result_async(
+                                query, (response, normalization_diagnostics),
+                                started_at=started_at,
+                                absolute_deadline=deadline,
+                                wall_clock_deadline=wall_clock_deadline,
+                            )
+                        except asyncio.CancelledError:
+                            raise
+                        except Exception as error:
+                            normalization_status = (
+                                "deadline_exceeded" if isinstance(error, TimeoutError)
+                                else "response_processing_error"
+                            )
+                            raise runtime_error(
+                                status=normalization_status,
+                                diagnostics=self._search_runtime_diagnostics(
+                                    status=normalization_status, started_at=started_at,
+                                    call_count=call_count, model=model,
+                                ),
+                                cause=error,
+                            ) from error
+                        defects = _validated_response_defects(
+                            parsed_response_validator(query, parsed_result)
+                        )
+                except _GroundedSearchRuntimeError:
+                    raise
                 except Exception as error:
                     raise runtime_error(
                         status="configuration_error",
@@ -1354,6 +1400,17 @@ class GeminiSearchService:
                     # Do not send rejected prose or extend the operation deadline.
                     continue
 
+            if parsed_response_validator is not None and min(
+                deadline - clock(), wall_clock_deadline - loop.time()
+            ) <= 0:
+                raise runtime_error(
+                    status="deadline_exceeded",
+                    diagnostics=self._search_runtime_diagnostics(
+                        status="deadline_exceeded", started_at=started_at,
+                        call_count=call_count, model=model,
+                    ),
+                    cause=TimeoutError("Grounded publication deadline exceeded"),
+                )
             _log_grounded_search_attempt(
                 model=model,
                 call_count=call_count,
@@ -1372,6 +1429,10 @@ class GeminiSearchService:
             )
             if metering is not None:
                 diagnostics["_response_metering"] = metering.snapshot(call_count)
+            if parsed_result is not None:
+                # Operation-local cache, never an instance attribute. The public
+                # wrapper consumes it without resolving redirects/parsing twice.
+                diagnostics["_parsed_result"] = parsed_result
             return response, diagnostics
 
         raise AssertionError("bounded Gemini grounded-search loop exhausted")
@@ -2102,6 +2163,27 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "runtime_diagnostics": runtime_diagnostics,
             }, getattr(error, "response_metering", None))
 
+        _response, diagnostics = response_and_diagnostics
+        if "_parsed_result" in diagnostics:
+            return _with_response_metering(
+                diagnostics["_parsed_result"], diagnostics.get("_response_metering")
+            )
+        result = await self._normalize_grounded_result_async(
+            query, response_and_diagnostics, started_at=started_at,
+        )
+        return _with_response_metering(result, diagnostics.get("_response_metering"))
+
+    async def _normalize_grounded_result_async(
+        self,
+        query: str,
+        response_and_diagnostics: tuple[Any, Dict[str, Any]],
+        *,
+        started_at: float,
+        absolute_deadline: float | None = None,
+        wall_clock_deadline: float | None = None,
+    ) -> Dict[str, Any]:
+        """Normalize exactly once; publication checks share the original deadline."""
+        clock = getattr(self, "_search_clock", time.monotonic)
         # Resolve at most ten redirect hops concurrently under one strict,
         # cancellable aggregate deadline. The subsequent parser is CPU-only and
         # bounded to ten chunks/fifty supports; it must never start sync network
@@ -2129,10 +2211,23 @@ Do NOT use vague language. Include actual facts from search results about {indus
         )
         response, _runtime_diagnostics = response_and_diagnostics
         redirects = self._grounding_redirect_urls(response)
-        resolved_redirects = await self._resolve_grounding_redirects_async(
-            redirects,
-            timeout_seconds=redirect_seconds,
-        )
+        loop = asyncio.get_running_loop()
+
+        def remaining() -> float:
+            return min(
+                absolute_deadline - clock() if absolute_deadline is not None else math.inf,
+                wall_clock_deadline - loop.time() if wall_clock_deadline is not None else math.inf,
+            )
+
+        if remaining() <= 0:
+            raise TimeoutError("Grounded publication deadline exceeded")
+        redirect_budget = min(redirect_seconds, remaining())
+        async with asyncio.timeout_at(wall_clock_deadline):
+            resolved_redirects = await self._resolve_grounding_redirects_async(
+                redirects, timeout_seconds=redirect_budget,
+            )
+        if remaining() <= 0:
+            raise TimeoutError("Grounded publication deadline exceeded")
         parse_started_at = clock()
         result = self.search_web_general(
             query,
@@ -2142,8 +2237,8 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 provider_seconds + redirect_seconds + parse_seconds
             ),
             _resolved_grounding_redirects=resolved_redirects,
-            _normalization_deadline=parse_started_at + parse_seconds,
+            _normalization_deadline=parse_started_at + min(parse_seconds, remaining()),
         )
-        return _with_response_metering(
-            result, _runtime_diagnostics.get("_response_metering")
-        )
+        if remaining() <= 0:
+            raise TimeoutError("Grounded publication deadline exceeded")
+        return result

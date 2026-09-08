@@ -2163,12 +2163,18 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     from backend.services.workflow_v2.assistant.answer_quality import (
         assistant_answer_defects, assistant_repair_query,
     )
+    from backend.services.workflow_v2.assistant.publication import (
+        assistant_parsed_response_defects, assistant_source_url_allowed,
+    )
+    assert executor.assistant_runner.source_url_validator is assistant_source_url_allowed
+    assert executor.research_runner.source_url_validator is None
     assert grounded_calls == [
         ("test-key", {}),
         ("test-key", {
             "search_operation_seconds": 120, "search_attempt_seconds": 60,
             "response_validator": assistant_answer_defects,
             "repair_query_builder": assistant_repair_query,
+            "parsed_response_validator": assistant_parsed_response_defects,
         }),
     ]
 
@@ -13291,7 +13297,9 @@ async def test_one_shot_multiturn_assistant_completes_through_direct_fetch_fallb
 ):
     message = "For now, verify only the first country."
     first_user_request = "Compare EU membership for Estonia and Latvia."
-    second_user_request = "Use an official European Union source."
+    second_user_request = (
+        "Use an official European Union source at https://european-union.europa.eu."
+    )
     assistant_prose = "I can research both countries once you choose the output mode."
     fallback_requirement = (
         f"Latest user request: {message} "

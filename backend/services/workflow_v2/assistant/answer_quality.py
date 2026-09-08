@@ -39,6 +39,32 @@ _REPAIRS = {
         "component. Do not transfer a different node's authentication or execution "
         "semantics. If matching evidence is unavailable, state the uncertainty."
     ),
+    "source_policy_violation": (
+        "Use only evidence and citation links inside the sourcePolicy's permitted "
+        "documentation roots. Do not use a forum, issue, skills directory, blog or "
+        "other discovered page outside those roots to support this answer. Preserve "
+        "the user's restriction; do not broaden it to obtain a result."
+    ),
+    "source_policy_unresolved": (
+        "The required publisher authority has not been established. Do not invent "
+        "an official origin or substitute unrestricted web sources."
+    ),
+    "unresolved_citation_claim": (
+        "Write a complete source-supported answer using ordinary Markdown links "
+        "to supporting source URLs. Do not output invented bracket-number IDs or "
+        "unresolved footnotes. Removing markers alone does not establish support: "
+        "each factual assertion still needs relevant grounded evidence."
+    ),
+    "invalid_citation_response": (
+        "Return a complete Markdown answer with resolvable source links and "
+        "grounded evidence for the same request."
+    ),
+    "assistant_evidence_missing": (
+        "The response has no complete source-backed assertion. Obtain relevant "
+        "grounded support and write complete factual statements, not isolated "
+        "code fragments or citation tokens. If evidence is unavailable, state "
+        "that limitation instead of inventing support."
+    ),
 }
 _EACH_ITEM = re.compile(
     r"\brun\s+once\s+for\s+each\s+item\b|\brunOnceForEachItem\b|"

@@ -5,6 +5,13 @@ from __future__ import annotations
 import re
 
 from backend.domain.workflow_v2.contracts import AssistantTurnInputV1, canonical_json
+from backend.services.workflow_v2.assistant.publishers import (
+    reviewed_publisher_bindings,
+)
+from backend.services.workflow_v2.assistant.source_policy import (
+    AssistantSourcePolicy,
+    resolve_assistant_source_policy,
+)
 
 
 WORKFLOW_V2_ASSISTANT_FALLBACK_REQUIREMENT_CHARACTERS = 1_000
@@ -32,11 +39,19 @@ MODE_INSTRUCTIONS = {
         "cannot verify for that version. Inbound authentication and downstream "
         "provider dependencies are separate: an authentication setting of None does "
         "not establish that a workflow is provider-free or needs no external credentials."
+        " Use ordinary Markdown links to source URLs; never invent opaque numeric "
+        "citation identifiers. Keep each factual assertion complete and tie its "
+        "support to the relevant source. Clearly label implementation examples "
+        "and unverified suggestions rather than presenting them as documented facts."
     ),
 }
 
 
-def assistant_turn_query(input_value: AssistantTurnInputV1) -> str:
+def assistant_turn_query(
+    input_value: AssistantTurnInputV1,
+    *,
+    source_policy: AssistantSourcePolicy | None = None,
+) -> str:
     """Build the model prompt and, for one-shot work, bounded fallback authority.
 
     ResilientResearchRunner accepts fallback discovery semantics only from a
@@ -47,6 +62,12 @@ def assistant_turn_query(input_value: AssistantTurnInputV1) -> str:
     """
 
     mode_instruction = MODE_INSTRUCTIONS[input_value.response_mode]
+    policy = source_policy or resolve_assistant_source_policy(
+        input_value,
+        reviewed_publisher_bindings(),
+    )
+    if input_value.response_mode == "one_shot" and policy.mode == "restricted":
+        mode_instruction += " " + policy.instruction()
     conversation = [
         item.model_dump(mode="json", by_alias=True) for item in input_value.conversation
     ]
@@ -73,6 +94,11 @@ def assistant_turn_query(input_value: AssistantTurnInputV1) -> str:
             ),
             "conversation": conversation,
             "message": input_value.message,
+            **(
+                {"sourcePolicy": policy.to_payload()}
+                if input_value.response_mode == "one_shot"
+                else {}
+            ),
         }
     )
     if input_value.response_mode != "one_shot":
@@ -111,7 +137,7 @@ def assistant_turn_query(input_value: AssistantTurnInputV1) -> str:
             },
             "requirement": {
                 "acceptedSourceTypes": ["grounded_web"],
-                "allowedSourceHosts": [],
+                "allowedSourceHosts": list(policy.allowed_hosts),
                 "appliesWhen": (
                     "Answering the current bounded one-shot Assistant request."
                 ),
