@@ -1546,15 +1546,23 @@ class GeminiGroundedResearchRunner:
         *,
         search_operation_seconds: float = _WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS,
         search_attempt_seconds: float = _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+        response_validator: Callable[[str, str], tuple[str, ...]] | None = None,
+        repair_query_builder: Callable[[str, tuple[str, ...]], str] | None = None,
     ) -> None:
         from backend.services.generative.gemini_search_service import (
             GeminiSearchService,
         )
 
+        policy = (
+            {"response_validator": response_validator, "repair_query_builder": repair_query_builder}
+            if response_validator is not None or repair_query_builder is not None
+            else {}
+        )
         self.service = GeminiSearchService(
             api_key=api_key,
             search_operation_seconds=search_operation_seconds,
             search_attempt_seconds=search_attempt_seconds,
+            **policy,
         )
 
     async def search(self, query: str) -> dict[str, Any]:
@@ -3622,6 +3630,10 @@ def build_cognitive_executor(
     from backend.services.workflow_v2.resilient_research_runner import (
         ResilientResearchRunner,
     )
+    from backend.services.workflow_v2.assistant.answer_quality import (
+        assistant_answer_defects,
+        assistant_repair_query,
+    )
 
     api_key = os.getenv("GEMINI_API_KEY")
     authority_key = os.getenv("AXWISE_AUTHORITY_SEAL_KEY")
@@ -3644,6 +3656,8 @@ def build_cognitive_executor(
             api_key,
             search_operation_seconds=_ASSISTANT_PRIMARY_SEARCH_OPERATION_SECONDS,
             search_attempt_seconds=_ASSISTANT_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+            response_validator=assistant_answer_defects,
+            repair_query_builder=assistant_repair_query,
         ),
         searxng=SearxngSearchService(),
         extractor=PydanticAIExactSpanExtractor(model),

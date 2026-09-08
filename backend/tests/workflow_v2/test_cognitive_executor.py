@@ -2160,9 +2160,16 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.research_runner.discovery_seconds == 10
     assert executor.assistant_runner.discovery_seconds == 20
     assert executor.assistant_chat_runner is assistant
+    from backend.services.workflow_v2.assistant.answer_quality import (
+        assistant_answer_defects, assistant_repair_query,
+    )
     assert grounded_calls == [
         ("test-key", {}),
-        ("test-key", {"search_operation_seconds": 120, "search_attempt_seconds": 60}),
+        ("test-key", {
+            "search_operation_seconds": 120, "search_attempt_seconds": 60,
+            "response_validator": assistant_answer_defects,
+            "repair_query_builder": assistant_repair_query,
+        }),
     ]
 
 

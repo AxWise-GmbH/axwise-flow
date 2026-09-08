@@ -48,6 +48,7 @@ _FALLBACK_PRIMARY_STATUSES = frozenset(
         "retry_exhausted",
         "unavailable",
         "response_processing_error",
+        "quality_rejected",
     }
 )
 _HEALTHY_DISCOVERY_STATUSES = frozenset({"ok", "empty"})
@@ -430,12 +431,26 @@ def _combined_usage_metadata(
     *,
     extractor_input_tokens: int = 0,
     extractor_output_tokens: int = 0,
-) -> dict[str, int]:
+) -> dict[str, Any]:
     primary_input_tokens, primary_output_tokens = _primary_usage(primary)
-    return _usage_metadata(
+    result = _usage_metadata(
         primary_input_tokens + max(0, extractor_input_tokens),
         primary_output_tokens + max(0, extractor_output_tokens),
     )
+    primary_usage = primary.get("usage_metadata")
+    if isinstance(primary_usage, Mapping):
+        if "search_calls" in primary_usage:
+            count = primary_usage["search_calls"]
+            result["search_calls"] = count if type(count) is int and count >= 0 else None
+        if primary_usage.get("usage_complete") is False:
+            result.update(
+                input_tokens=None, output_tokens=None, total_tokens=None,
+                inputTokens=None, outputTokens=None, totalTokens=None,
+                usage_complete=False,
+            )
+        elif primary_usage.get("usage_complete") is True:
+            result["usage_complete"] = True
+    return result
 
 
 def _primary_provider_queries(primary: Mapping[str, Any]) -> list[str]:
@@ -1351,6 +1366,7 @@ def _primary_with_failed_fallback(
     discovery_diagnostics: Mapping[str, Any] | None = None,
     usage_input_tokens: int = 0,
     usage_output_tokens: int = 0,
+    extractor_usage_complete: bool = True,
     fetched_count: int = 0,
     fetch_error_count: int = 0,
     validation_incomplete_count: int = 0,
@@ -1407,15 +1423,35 @@ def _primary_with_failed_fallback(
         }
     )
     result["runtime_diagnostics"] = diagnostics
-    # PydanticAI exceptions do not expose reliable usage counters. On extractor
-    # exceptions these observable values therefore remain zero; never invent
-    # billable usage. Primary Gemini usage is still retained on every path.
-    return _apply_primary_metering(
+    result = _apply_primary_metering(
         result,
         primary,
         extractor_input_tokens=usage_input_tokens,
         extractor_output_tokens=usage_output_tokens,
     )
+    if not extractor_usage_complete:
+        # A timed-out/failed model call may still be billable. Preserve observed
+        # primary receipts in diagnostics, but never label aggregate cost zero.
+        diagnostics["usage_complete"] = False
+        observed_primary = {
+            key: primary_diagnostics[key]
+            for key in ("input_tokens", "output_tokens", "total_tokens")
+            if type(primary_diagnostics.get(key)) is int
+            and 0 <= primary_diagnostics[key] <= 2_000_000
+        }
+        if observed_primary:
+            diagnostics["primary"] = {
+                "route": "gemini_google_search", "status": primary_status,
+                **observed_primary,
+            }
+            if type(primary_diagnostics.get("usage_complete")) is bool:
+                diagnostics["primary"]["usage_complete"] = primary_diagnostics["usage_complete"]
+        result["usage_metadata"].update(
+            input_tokens=None, output_tokens=None, total_tokens=None,
+            inputTokens=None, outputTokens=None, totalTokens=None,
+            usage_complete=False,
+        )
+    return result
 
 
 def _all_discovery_engines_unresponsive(diagnostics: Mapping[str, Any]) -> bool:
@@ -1626,7 +1662,12 @@ class ResilientResearchRunner:
             )
             now = self._monotonic_clock()
             status = _fallback_eligible_primary_status(primary)
-            if status is not None:
+            if status == "quality_rejected":
+                # A task-specific publication defect proves neither a provider
+                # outage nor that other users' requests need fallback. Retain
+                # the existing circuit state; only this request uses fallback.
+                pass
+            elif status is not None:
                 # Any in-flight query that observes a transient latches the
                 # cooldown. Concurrent successes cannot immediately re-enable
                 # a provider that just failed another requirement.
@@ -2218,6 +2259,7 @@ class ResilientResearchRunner:
                     _primary_with_failed_fallback(
                         primary,
                         status="fallback_deadline_exceeded",
+                        extractor_usage_complete=False,
                         discovery_diagnostics=discovery_diagnostics,
                         fetched_count=fetched_count,
                         fetch_error_count=fetch_error_count,
@@ -2232,6 +2274,7 @@ class ResilientResearchRunner:
                 return finish_fallback(
                     _primary_with_failed_fallback(
                         primary,
+                        extractor_usage_complete=False,
                         status=str(
                             getattr(error, "code", None) or "extraction_error"
                         ),

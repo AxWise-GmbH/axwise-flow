@@ -20,6 +20,11 @@ from backend.services.workflow_v2.assistant.protocols import (
     SourceTypeClassifier,
     UsageReader,
 )
+from backend.services.workflow_v2.assistant.claim_spans import normalize_assistant_claims
+from backend.services.workflow_v2.assistant.answer_quality import (
+    assistant_claim_source_matches,
+    assistant_claim_statement_context,
+)
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 
 
@@ -190,7 +195,7 @@ def project_assistant_result(
     metrics_factory: MetricsFactory,
 ) -> AssistantTurnCompletedResult:
     raw_sources = raw.get("sources", [])
-    raw_claims = raw.get("claims", [])
+    raw_claims = normalize_assistant_claims(raw)
     fallback = assistant_fallback_markdown(raw)
     verified_fallback = fallback is not None
     if raw.get("provider") == "searxng_direct_fetch":
@@ -243,6 +248,7 @@ def project_assistant_result(
         )
     facts: list[AssistantFactV1] = []
     seen_facts: set[tuple[str, tuple[str, ...]]] = set()
+    explicitly_unsupported_claim = False
     for raw_claim in raw_claims[:50]:
         if not isinstance(raw_claim, dict):
             continue
@@ -252,22 +258,42 @@ def project_assistant_result(
             if verified_fallback and isinstance(raw_statement, str)
             else str(raw_statement or "").strip()
         )
+        source_context = assistant_claim_statement_context(statement, raw_claim)
         urls = utf16_ordinal_sorted(
             {
                 str(value)
                 for value in raw_claim.get("source_urls", [])
                 if str(value) in sources_by_url
+                and (
+                    verified_fallback
+                    or assistant_claim_source_matches(
+                        source_context, str(value), sources_by_url[str(value)].title
+                    )
+                )
             }
         )
+        if not verified_fallback and statement and not urls and any(
+            str(value) in sources_by_url
+            for value in raw_claim.get("source_urls", [])
+        ):
+            explicitly_unsupported_claim = True
         identity = (statement, tuple(urls))
         if not statement or not urls or identity in seen_facts:
             continue
         seen_facts.add(identity)
         facts.append(
             AssistantFactV1(
-                statement=(statement if verified_fallback else statement[:4000]),
+                statement=statement,
                 source_urls=urls,
             )
+        )
+    if response_mode == "one_shot" and explicitly_unsupported_claim:
+        # Hiding a mismatched evidence row is insufficient while its assertion
+        # remains in the reader-facing Markdown. Do not publish that answer just
+        # because another unrelated assertion retained a valid source.
+        raise CognitiveExecutionFailure(
+            "AXWISE_ASSISTANT_SOURCE_MISMATCH", retryable=False,
+            diagnostics={"route": "assistant_one_shot", "status": "quality_rejected"},
         )
     if response_mode == "one_shot" and not facts:
         raw_diagnostics = raw.get("runtime_diagnostics")
@@ -301,6 +327,23 @@ def project_assistant_result(
     model_version = _model_version(raw)
     if model_version is not None:
         metric_values["model_version"] = model_version
+    usage = raw.get("usage_metadata")
+    if isinstance(usage, dict) and type(usage.get("search_calls")) is int:
+        metric_values["search_calls"] = max(0, usage["search_calls"])
+    metrics = metrics_factory(**metric_values)
+    unknown_metrics: dict[str, None] = {}
+    if isinstance(usage, dict):
+        if usage.get("usage_complete") is False:
+            unknown_metrics.update(
+                input_tokens=None, output_tokens=None, total_tokens=None,
+                estimated_cost_micros=None,
+            )
+        if "search_calls" in usage and usage["search_calls"] is None:
+            unknown_metrics.update(search_calls=None, estimated_cost_micros=None)
+    if unknown_metrics:
+        # Missing provider receipts are unknown, not zero-cost operations. Keep
+        # existing MetricsFactory implementations compatible with integer input.
+        metrics = metrics.model_copy(update=unknown_metrics)
     return AssistantTurnCompletedResult(
         result_type="assistant_turn_completed",
         response=AssistantTurnV1(
@@ -312,7 +355,7 @@ def project_assistant_result(
             facts=facts,
             recommendations=[recommendation],
         ),
-        metrics=metrics_factory(**metric_values),
+        metrics=metrics,
     )
 
 

@@ -19,7 +19,7 @@ import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from itertools import islice
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Callable
 from urllib.parse import urlparse
 
 import httpx
@@ -102,11 +102,13 @@ class _GroundedSearchRuntimeError(RuntimeError):
         status: str,
         diagnostics: Dict[str, Any],
         cause: BaseException,
+        response_metering: Dict[str, Any] | None = None,
     ) -> None:
         super().__init__(f"Gemini grounded search failed: {status}")
         self.status = status
         self.diagnostics = diagnostics
         self.cause = cause
+        self.response_metering = response_metering
 
 
 def _validated_http_status_code(value: Any) -> Optional[int]:
@@ -333,6 +335,110 @@ def _provider_model_version(response: Any) -> str | None:
     return normalized
 
 
+class _ResponseMetering:
+    """Operation-local accounting for accepted and rejected provider responses.
+
+    Only counters/version labels are retained. Rejected prose and grounding URLs
+    never become part of the accepted response's provenance or repair prompt.
+    """
+
+    def __init__(self) -> None:
+        self.responses = 0
+        self.complete = True
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.total_tokens = 0
+        self.search_calls = 0
+        self.versions: list[str | None] = []
+
+    def record(self, response: Any) -> None:
+        self.responses += 1
+        metadata = getattr(response, "usage_metadata", None)
+
+        def present(*names: str) -> bool:
+            return any(
+                type(value) is int and value >= 0
+                for name in names
+                for value in [metadata.get(name) if isinstance(metadata, dict) else getattr(metadata, name, None)]
+            )
+
+        self.complete = self.complete and present(
+            "prompt_token_count", "promptTokenCount", "input_tokens", "inputTokens"
+        ) and present(
+            "candidates_token_count", "candidatesTokenCount", "output_tokens",
+            "outputTokens", "total_token_count", "totalTokenCount", "total_tokens", "totalTokens"
+        )
+        for name in (
+            "prompt_token_count", "promptTokenCount", "input_tokens", "inputTokens",
+            "candidates_token_count", "candidatesTokenCount", "output_tokens", "outputTokens",
+            "total_token_count", "totalTokenCount", "total_tokens", "totalTokens",
+            "tool_use_prompt_token_count", "toolUsePromptTokenCount",
+            "thoughts_token_count", "thoughtsTokenCount",
+        ):
+            value = metadata.get(name) if isinstance(metadata, dict) else getattr(metadata, name, None)
+            if value is not None and (type(value) is not int or value < 0):
+                self.complete = False
+        try:
+            usage = _normalized_usage_metadata(response)
+        except (TypeError, ValueError, OverflowError):
+            self.complete = False
+            usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+        self.input_tokens += usage["input_tokens"]
+        output = max(usage["output_tokens"], usage["total_tokens"] - usage["input_tokens"])
+        self.output_tokens += output
+        self.total_tokens += max(usage["total_tokens"], usage["input_tokens"] + output)
+        candidates = getattr(response, "candidates", None) or []
+        grounding = getattr(candidates[0], "grounding_metadata", None) if candidates else None
+        self.search_calls += sum(
+            1 for _ in islice(
+                getattr(grounding, "web_search_queries", None) or [],
+                GEMINI_SEARCH_MAX_PROVIDER_QUERIES,
+            )
+        )
+        self.versions.append(_provider_model_version(response))
+
+    def snapshot(self, call_count: int) -> Dict[str, Any]:
+        all_responses = self.responses == call_count
+        complete = self.complete and all_responses
+        version = (
+            self.versions[0]
+            if all_responses and self.versions
+            and self.versions[0] is not None
+            and all(value == self.versions[0] for value in self.versions)
+            else None
+        )
+        return {
+            "usage_metadata": {
+                "input_tokens": self.input_tokens if complete else None,
+                "output_tokens": self.output_tokens if complete else None,
+                "total_tokens": self.total_tokens if complete else None,
+                "search_calls": self.search_calls if all_responses else None,
+                "usage_complete": complete,
+            },
+            "model_version": version,
+        }
+
+
+def _with_response_metering(
+    result: Dict[str, Any], metering: Dict[str, Any] | None
+) -> Dict[str, Any]:
+    if metering is None:
+        return result
+    usage = dict(metering["usage_metadata"])
+    result["usage_metadata"] = usage
+    diagnostics = result.get("runtime_diagnostics")
+    if isinstance(diagnostics, dict):
+        diagnostics["usage_complete"] = usage["usage_complete"]
+        for key in ("input_tokens", "output_tokens", "total_tokens"):
+            if type(usage[key]) is int and 0 <= usage[key] <= 2_000_000:
+                diagnostics[key] = usage[key]
+    if metering["model_version"] is not None:
+        result["model_version"] = metering["model_version"]
+    else:
+        result.pop("model_version", None)
+    return result
+
+
 def parse_news_markdown(text: str) -> List[Dict[str, Any]]:
     """
     Parse Gemini's markdown-formatted news response into structured news items.
@@ -486,6 +592,8 @@ class GeminiSearchService:
         *,
         search_operation_seconds: float = GEMINI_SEARCH_OPERATION_SECONDS,
         search_attempt_seconds: float = GEMINI_SEARCH_ATTEMPT_SECONDS,
+        response_validator: Callable[[str, str], tuple[str, ...]] | None = None,
+        repair_query_builder: Callable[[str, tuple[str, ...]], str] | None = None,
     ):
         try:
             operation_seconds = float(search_operation_seconds)
@@ -511,6 +619,13 @@ class GeminiSearchService:
                 "search_attempt_seconds must be greater than 0 and no greater "
                 "than the operation limit or generic attempt maximum"
             )
+        if (response_validator is None) != (repair_query_builder is None) or (
+            response_validator is not None
+            and (not callable(response_validator) or not callable(repair_query_builder))
+        ):
+            raise ValueError("Response validation and repair policies must be paired callables")
+        self._response_validator = response_validator
+        self._repair_query_builder = repair_query_builder
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self._client = None
         self._search_clock = time.monotonic
@@ -977,6 +1092,25 @@ class GeminiSearchService:
         transient_failure_seen = False
         last_upstream_status_code: Optional[int] = None
 
+        response_validator = getattr(self, "_response_validator", None)
+        repair_query_builder = getattr(self, "_repair_query_builder", None)
+        metering = _ResponseMetering() if response_validator is not None else None
+        quality_repair_used = False
+        request_query = query
+
+        def runtime_error(
+            *, status: str, diagnostics: Dict[str, Any], cause: BaseException
+        ) -> _GroundedSearchRuntimeError:
+            return _GroundedSearchRuntimeError(
+                status=status,
+                diagnostics=diagnostics,
+                cause=cause,
+                response_metering=(
+                    metering.snapshot(call_count) if metering is not None else None
+                ),
+            )
+
+
         try:
             model = require_search_model()
         except Exception as error:
@@ -985,7 +1119,7 @@ class GeminiSearchService:
                 started_at=started_at,
                 call_count=0,
             )
-            raise _GroundedSearchRuntimeError(
+            raise runtime_error(
                 status="configuration_error",
                 diagnostics=diagnostics,
                 cause=error,
@@ -1000,7 +1134,7 @@ class GeminiSearchService:
                 call_count=0,
                 model=model,
             )
-            raise _GroundedSearchRuntimeError(
+            raise runtime_error(
                 status="configuration_error",
                 diagnostics=diagnostics,
                 cause=error,
@@ -1030,7 +1164,7 @@ class GeminiSearchService:
                     model=model,
                     upstream_status_code=last_upstream_status_code,
                 )
-                raise _GroundedSearchRuntimeError(
+                raise runtime_error(
                     status="deadline_exceeded",
                     diagnostics=diagnostics,
                     cause=error,
@@ -1067,7 +1201,7 @@ class GeminiSearchService:
                 async with asyncio.timeout_at(attempt_deadline):
                     response = await async_client.models.generate_content(
                         model=model,
-                        contents=query,
+                        contents=request_query,
                         config=config,
                     )
             except asyncio.CancelledError:
@@ -1144,11 +1278,81 @@ class GeminiSearchService:
                     model=model,
                     upstream_status_code=last_upstream_status_code,
                 )
-                raise _GroundedSearchRuntimeError(
+                raise runtime_error(
                     status=status,
                     diagnostics=diagnostics,
                     cause=error,
                 ) from error
+
+            if metering is not None:
+                metering.record(response)
+            if response_validator is not None:
+                try:
+                    defects = response_validator(query, str(response.text or ""))
+                    if (
+                        not isinstance(defects, tuple)
+                        or len(defects) > 12
+                        or any(
+                            not isinstance(code, str)
+                            or re.fullmatch(r"[a-z][a-z0-9_]{0,79}", code) is None
+                            for code in defects
+                        )
+                    ):
+                        raise ValueError("Invalid response-policy result")
+                except Exception as error:
+                    raise runtime_error(
+                        status="configuration_error",
+                        diagnostics=self._search_runtime_diagnostics(
+                            status="configuration_error", started_at=started_at,
+                            call_count=call_count, model=model,
+                        ),
+                        cause=ValueError("Grounded response policy failed"),
+                    ) from error
+                if defects:
+                    remaining = min(deadline - clock(), wall_clock_deadline - loop.time())
+                    if (
+                        quality_repair_used
+                        or call_count >= max_attempts
+                        or remaining < min(GEMINI_SEARCH_MIN_RETRY_SECONDS, attempt_seconds)
+                    ):
+                        # A returned but invalid answer is not an outage, even
+                        # when no time remains to repair it. Do not poison the
+                        # shared provider-availability circuit for other tasks.
+                        status = "quality_rejected"
+                        raise runtime_error(
+                            status=status,
+                            diagnostics=self._search_runtime_diagnostics(
+                                status=status, started_at=started_at,
+                                call_count=call_count, model=model,
+                            ),
+                            cause=ValueError("Grounded response failed publication policy"),
+                        )
+                    try:
+                        repaired_query = repair_query_builder(query, defects)
+                        if (
+                            not isinstance(repaired_query, str)
+                            or not repaired_query.strip()
+                            or len(repaired_query) > len(query) + 8_000
+                        ):
+                            raise ValueError("Invalid response-policy repair")
+                    except Exception as error:
+                        raise runtime_error(
+                            status="configuration_error",
+                            diagnostics=self._search_runtime_diagnostics(
+                                status="configuration_error", started_at=started_at,
+                                call_count=call_count, model=model,
+                            ),
+                            cause=ValueError("Grounded response repair policy failed"),
+                        ) from error
+                    quality_repair_used = True
+                    request_query = repaired_query
+                    _log_grounded_search_attempt(
+                        model=model, call_count=call_count, phase="quality_repair",
+                        timeout_seconds=0, remaining_seconds=remaining,
+                    )
+                    # The same attempt counter, clocks, and SDK retry owner apply.
+                    # Do not send rejected prose or extend the operation deadline.
+                    continue
 
             _log_grounded_search_attempt(
                 model=model,
@@ -1166,6 +1370,8 @@ class GeminiSearchService:
                 call_count=call_count,
                 model=model,
             )
+            if metering is not None:
+                diagnostics["_response_metering"] = metering.snapshot(call_count)
             return response, diagnostics
 
         raise AssertionError("bounded Gemini grounded-search loop exhausted")
@@ -1886,7 +2092,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     call_count=0,
                 )
             _log_grounded_search_failure(runtime_diagnostics, root_error)
-            return {
+            return _with_response_metering({
                 "text": "",
                 "sources": [],
                 "claims": [],
@@ -1894,7 +2100,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "search_performed": False,
                 "error": type(root_error).__name__,
                 "runtime_diagnostics": runtime_diagnostics,
-            }
+            }, getattr(error, "response_metering", None))
 
         # Resolve at most ten redirect hops concurrently under one strict,
         # cancellable aggregate deadline. The subsequent parser is CPU-only and
@@ -1928,7 +2134,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
             timeout_seconds=redirect_seconds,
         )
         parse_started_at = clock()
-        return self.search_web_general(
+        result = self.search_web_general(
             query,
             _precomputed_response=response_and_diagnostics,
             _started_at=started_at,
@@ -1937,4 +2143,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
             ),
             _resolved_grounding_redirects=resolved_redirects,
             _normalization_deadline=parse_started_at + parse_seconds,
+        )
+        return _with_response_metering(
+            result, _runtime_diagnostics.get("_response_metering")
         )

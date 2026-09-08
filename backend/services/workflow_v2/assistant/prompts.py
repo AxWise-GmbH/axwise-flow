@@ -23,7 +23,15 @@ MODE_INSTRUCTIONS = {
     "one_shot": (
         "Complete the bounded research, comparison, investigation, memo, analysis, "
         "PRD, or other artifact inline as useful Markdown. Include concrete findings "
-        "and source-aware caveats; do not suggest that a Goal was created."
+        "and source-aware caveats; do not suggest that a Goal was created. "
+        "For technical examples, specify one compatible execution mode and return "
+        "shape per snippet; do not present incompatible modes as interchangeable. "
+        "Cite documentation for the specific component whose behavior you describe, "
+        "not a related component with similar terminology. Distinguish a user's pinned "
+        "deployment version from current documentation, and qualify behavior you "
+        "cannot verify for that version. Inbound authentication and downstream "
+        "provider dependencies are separate: an authentication setting of None does "
+        "not establish that a workflow is provider-free or needs no external credentials."
     ),
 }
 
@@ -56,7 +64,11 @@ def assistant_turn_query(input_value: AssistantTurnInputV1) -> str:
                 "target architecture, and distinguish what is available now from what would need "
                 "to be implemented or connected. For version-dependent technical behavior, state "
                 "the uncertainty or recommend grounded Research instead of inventing exact "
-                "semantics. "
+                "semantics. A research-only or do-not-execute instruction is an action "
+                "constraint, not evidence that workspace credentials, integrations, or "
+                "execution history are absent. Describe inventory that was not inspected "
+                "as unknown, unless the user explicitly supplied that fact. Keep proposed "
+                "configuration and actions not performed separate from existing state. "
                 + mode_instruction
             ),
             "conversation": conversation,
