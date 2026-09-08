@@ -102,6 +102,9 @@ _MAX_RESEARCH_DEADLINE_SECONDS = 510
 _WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS = 45
 _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS = 20
 _WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS = 70
+_ASSISTANT_PRIMARY_SEARCH_OPERATION_SECONDS = 120
+_ASSISTANT_PRIMARY_SEARCH_ATTEMPT_SECONDS = 60
+_ASSISTANT_PRIMARY_SEARCH_TOTAL_SECONDS = 145
 _TRANSIENT_EVIDENCE_ACQUISITION_STATUSES = frozenset(
     {
         "deadline_exceeded",
@@ -8340,15 +8343,21 @@ def _authority_payload(
 
 
 class GeminiGroundedResearchRunner:
-    def __init__(self, api_key: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        search_operation_seconds: float = _WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS,
+        search_attempt_seconds: float = _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+    ) -> None:
         from backend.services.generative.gemini_search_service import (
             GeminiSearchService,
         )
 
         self.service = GeminiSearchService(
             api_key=api_key,
-            search_operation_seconds=_WORKFLOW_V2_PRIMARY_SEARCH_OPERATION_SECONDS,
-            search_attempt_seconds=_WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+            search_operation_seconds=search_operation_seconds,
+            search_attempt_seconds=search_attempt_seconds,
         )
 
     async def search(self, query: str) -> dict[str, Any]:
@@ -10969,6 +10978,20 @@ def build_cognitive_executor(
         extractor=PydanticAIExactSpanExtractor(model),
         source_type_classifier=_classify_source_types,
     )
+    # One-shot chat can give HIGH-reasoning grounded search a full attempt.
+    # Keep durable multi-requirement research's proven 510-second budget and
+    # circuit breaker independent; executor.close() owns both runner lifetimes.
+    assistant_runner = ResilientResearchRunner(
+        GeminiGroundedResearchRunner(
+            api_key,
+            search_operation_seconds=_ASSISTANT_PRIMARY_SEARCH_OPERATION_SECONDS,
+            search_attempt_seconds=_ASSISTANT_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+        ),
+        searxng=SearxngSearchService(),
+        extractor=PydanticAIExactSpanExtractor(model),
+        source_type_classifier=_classify_source_types,
+        discovery_seconds=20.0,
+    )
     return GeminiCognitiveExecutor(
         PydanticAIScopeDrafter(model),
         authority_key.encode("utf-8"),
@@ -10976,7 +10999,7 @@ def build_cognitive_executor(
         artifact_resolver,
         PydanticAISynthesisWriter(model),
         PydanticAIScopeReviser(model),
-        assistant_runner=research_runner,
+        assistant_runner=assistant_runner,
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
         solution_preparer=PydanticAISolutionPreparer(model),
         solution_preparer_v2=PydanticAINativeSolutionPreparer(model),

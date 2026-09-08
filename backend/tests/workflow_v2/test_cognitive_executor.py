@@ -2073,7 +2073,7 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     import backend.services.workflow_v2.exact_span_extractor as extractor_module
 
     model = object()
-    primary = object()
+    primaries = [object(), object()]
     discovery = object()
     extractor = object()
     drafter = object()
@@ -2083,11 +2083,11 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     solution_preparer = object()
     native_solution_preparer = object()
     resolver = object()
-    grounded_keys: list[str] = []
+    grounded_calls: list[tuple[str, dict[str, object]]] = []
 
-    def grounded_runner(key: str) -> object:
-        grounded_keys.append(key)
-        return primary
+    def grounded_runner(key: str, **kwargs: object) -> object:
+        grounded_calls.append((key, kwargs))
+        return primaries[len(grounded_calls) - 1]
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("AXWISE_AUTHORITY_SEAL_KEY", "a" * 32)
@@ -2138,7 +2138,7 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.solution_preparer_v2 is native_solution_preparer
 
     assert isinstance(executor.research_runner, ResilientResearchRunner)
-    assert executor.research_runner.primary is primary
+    assert executor.research_runner.primary is primaries[0]
     assert executor.research_runner.searxng is discovery
     assert executor.research_runner.extractor is extractor
     assert (
@@ -2149,9 +2149,21 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.synthesis_writer is writer
     assert executor.scope_reviser is reviser
     assert executor.artifact_resolver is resolver
-    assert executor.assistant_runner is executor.research_runner
+    assert isinstance(executor.assistant_runner, ResilientResearchRunner)
+    assert executor.assistant_runner is not executor.research_runner
+    assert executor.assistant_runner.primary is primaries[1]
+    assert (
+        executor.assistant_runner._primary_condition
+        is not executor.research_runner._primary_condition
+    )
+    assert executor.assistant_turn_service.grounded_runner is executor.assistant_runner
+    assert executor.research_runner.discovery_seconds == 10
+    assert executor.assistant_runner.discovery_seconds == 20
     assert executor.assistant_chat_runner is assistant
-    assert grounded_keys == ["test-key"]
+    assert grounded_calls == [
+        ("test-key", {}),
+        ("test-key", {"search_operation_seconds": 120, "search_attempt_seconds": 60}),
+    ]
 
 
 def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
@@ -2180,6 +2192,42 @@ def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
         + search_module.GEMINI_SEARCH_NORMALIZATION_SECONDS
         == cognitive_executor_module._WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS
     )
+
+
+def test_assistant_grounded_search_budget_preserves_durable_research_bounds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import backend.services.generative.gemini_search_service as search_module
+    from backend.services.workflow_v2.resilient_research_runner import (
+        WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+    )
+
+    captured: dict[str, object] = {}
+
+    class FakeSearchService:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(search_module, "GeminiSearchService", FakeSearchService)
+    cognitive_executor_module.GeminiGroundedResearchRunner(
+        "test-key",
+        search_operation_seconds=cognitive_executor_module._ASSISTANT_PRIMARY_SEARCH_OPERATION_SECONDS,
+        search_attempt_seconds=cognitive_executor_module._ASSISTANT_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+    )
+    assert captured == {
+        "api_key": "test-key",
+        "search_operation_seconds": search_module.GEMINI_SEARCH_OPERATION_SECONDS,
+        "search_attempt_seconds": search_module.GEMINI_SEARCH_ATTEMPT_SECONDS,
+    }
+    assert (
+        captured["search_operation_seconds"]
+        + search_module.GEMINI_SEARCH_NORMALIZATION_SECONDS
+        == cognitive_executor_module._ASSISTANT_PRIMARY_SEARCH_TOTAL_SECONDS
+        == 145
+    )
+    assert 145 + WORKFLOW_V2_FALLBACK_PHASE_SECONDS < 300 < 510
+    assert cognitive_executor_module._WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS == 70
+    assert cognitive_executor_module._MAX_RESEARCH_DEADLINE_SECONDS == 510
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import gc
+import json
+import logging
 import time
 from types import SimpleNamespace
 from typing import Any
@@ -641,6 +644,8 @@ def test_retry_after_is_honored_without_sdk_retry_multiplication(
         ]
     )
     service = _service(models, clock)
+    # Keep a useful retry window after the provider's seven-second backoff.
+    service._search_operation_seconds = 20
 
     result = service.search_web_general("Estonian commercial market")
 
@@ -656,6 +661,184 @@ def test_retry_after_is_honored_without_sdk_retry_multiplication(
     log_output = "\n".join(caplog.messages)
     assert "upstream_status_code=429" in log_output
     assert "sensitive quota" not in log_output
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("async_mode", [False, True])
+@pytest.mark.parametrize(
+    ("statuses", "durations", "expected_timeouts", "expected_status"),
+    [
+        ([200], [32.8], [60], "ok"),
+        ([504, 504, 400], [20, 20, 1], [60, 60, 60], "retry_exhausted"),
+        ([504, 504], [60, 54.6], [60, 59], "deadline_exceeded"),
+    ],
+)
+async def test_real_sdk_serializes_fresh_identical_grounded_requests_with_bounded_retries(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    async_mode: bool,
+    statuses: list[int],
+    durations: list[float],
+    expected_timeouts: list[int],
+    expected_status: str,
+) -> None:
+    from google import genai
+    from google.genai import types
+    from backend.services.generative.gemini_search_service import (
+        _GroundedSearchRuntimeError,
+    )
+
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
+    caplog.set_level(logging.INFO)
+    clock = FakeClock()
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        index = len(requests) - 1
+        # A surprise retry fails without ever reaching a real HTTP transport.
+        assert index < len(statuses)
+        clock.now += durations[index]
+        status = statuses[index]
+        if status == 200:
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {"content": {"parts": [{"text": "synthetic answer"}]}}
+                    ],
+                    "modelVersion": "gemini-3.8-flash-001",
+                },
+            )
+        return httpx.Response(
+            status,
+            json={
+                "error": {
+                    "code": status,
+                    "status": (
+                        "DEADLINE_EXCEEDED" if status == 504 else "INVALID_ARGUMENT"
+                    ),
+                    "message": "sensitive synthetic provider payload",
+                }
+            },
+        )
+
+    transport = httpx.MockTransport(respond)
+    sync_http = httpx.Client(transport=transport, trust_env=False)
+    async_http = httpx.AsyncClient(transport=transport, trust_env=False)
+    client = genai.Client(
+        api_key="synthetic-not-a-real-key",
+        vertexai=False,
+        http_options=types.HttpOptions(
+            httpx_client=sync_http, httpx_async_client=async_http
+        ),
+    )
+    service = _async_service(AsyncSequenceModels([]), clock)
+    service._client = client
+    service._async_client = client.aio
+    service._search_sleep = clock.sleep
+    service._search_operation_seconds = 120
+    service._search_attempt_seconds = 60
+    query = "sensitive synthetic user research question"
+    try:
+        try:
+            if async_mode:
+                _, diagnostics = await service._generate_grounded_content_async(query)
+            else:
+                _, diagnostics = service._generate_grounded_content(query)
+        except _GroundedSearchRuntimeError as error:
+            diagnostics = error.diagnostics
+        assert diagnostics["status"] == expected_status
+        assert diagnostics["call_count"] == len(statuses) <= 3
+        assert diagnostics["deadline_ms"] == 120000
+        assert diagnostics["elapsed_ms"] <= 120000
+        assert len({request.content for request in requests}) == 1
+        for request, timeout in zip(requests, expected_timeouts, strict=True):
+            payload = json.loads(request.content)
+            assert payload["tools"] == [{"googleSearch": {}}]
+            assert payload["generationConfig"] == {
+                "thinkingConfig": {"thinking_level": "HIGH"}
+            }
+            assert request.url.path == "/v1beta/models/gemini-3.8-flash:generateContent"
+            assert request.headers["X-Server-Timeout"] == str(timeout)
+            assert request.extensions["timeout"]["read"] == pytest.approx(
+                timeout, abs=0.002
+            )
+        if expected_status == "deadline_exceeded":
+            assert clock.sleeps == [1.0]  # No useless final sleep or tiny third call.
+        logs = "\n".join(caplog.messages)
+        assert "phase=started timeout_ms=60000" in logs
+        assert "remaining_ms=120000" in logs or "remaining_ms=119999" in logs
+        assert query not in logs
+        assert "sensitive synthetic provider payload" not in logs
+        assert "synthetic-not-a-real-key" not in logs
+    finally:
+        await client.aio.aclose()
+        client.close()
+        await async_http.aclose()
+        sync_http.close()
+        # The pinned SDK schedules a second best-effort close in __del__.
+        # Release it while this test loop is alive, not during loop teardown.
+        service._async_client = None
+        service._client = None
+        del client
+        gc.collect()
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+
+
+@pytest.mark.asyncio
+async def test_assistant_budget_can_be_cancelled_without_retry_or_background_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from backend.services.workflow_v2.cognitive_executor import (
+        GeminiGroundedResearchRunner,
+    )
+
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
+    models = BlockingAsyncModels()
+    runner = GeminiGroundedResearchRunner.__new__(GeminiGroundedResearchRunner)
+    runner.service = _async_service(models, FakeClock())
+    runner.service._search_operation_seconds = 120
+    runner.service._search_attempt_seconds = 60
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(0.02):
+            await runner.search("sensitive synthetic request")
+    assert models.cancelled.is_set()
+    assert len(models.calls) == 1
+    assert models.calls[0]["config"].http_options.timeout == 60000
+
+
+@pytest.mark.parametrize("async_mode", [False, True])
+@pytest.mark.asyncio
+async def test_retry_budget_is_rechecked_after_oversleep(
+    monkeypatch: pytest.MonkeyPatch,
+    async_mode: bool,
+) -> None:
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.8-flash")
+    clock = FakeClock()
+    models = (
+        AsyncSequenceModels([_http_status_error(504)])
+        if async_mode
+        else SequenceModels([_http_status_error(504)])
+    )
+    service = _async_service(models, clock) if async_mode else _service(models, clock)
+
+    def oversleep(_seconds: float) -> None:
+        clock.now = 6  # Only four of the configured ten seconds remain.
+
+    async def async_oversleep(seconds: float) -> None:
+        oversleep(seconds)
+
+    service._search_sleep = oversleep
+    service._search_async_sleep = async_oversleep
+    result = (
+        await service.search_web_general_async("synthetic")
+        if async_mode
+        else service.search_web_general("synthetic")
+    )
+    assert len(models.calls) == 1
+    assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
 
 
 def test_non_transient_error_is_not_retried(
