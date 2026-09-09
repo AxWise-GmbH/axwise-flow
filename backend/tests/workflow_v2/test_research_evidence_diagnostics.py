@@ -282,6 +282,11 @@ async def test_validated_success_records_resolved_claims_and_discovery_counts(
         "omitted_candidate_count": 0,
         "claim_count": 1,
         "primary_provider_query_count": 2,
+        "discovery_canonical_url_rejected_count": 0,
+        "discovery_allowed_host_rejected_count": rejected,
+        "discovery_owner_root_rejected_count": 0,
+        "discovery_source_type_rejected_count": 0,
+        "primary_locator_rejected_count": 0,
     }
     assert len(state["primary"].queries) == len(state["searx"].queries) == 1
     assert state["fetched"] == [OFFICIAL]

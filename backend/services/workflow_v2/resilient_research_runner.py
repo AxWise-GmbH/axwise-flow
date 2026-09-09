@@ -814,19 +814,11 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
     if authority_candidates is None:
         return None
 
-    # Material evidence semantics are rendered first and each field receives an
-    # independent budget. A maximal topic list can therefore never erase the
-    # exact requirement, applicability gate, source classes, or publisher gate.
-    rendered_sections = [
-        _bounded_query_term(
-            description,
-            maximum=_DISCOVERY_SECTION_BUDGETS["requirement"],
-        ),
-        _bounded_query_term(
-            applies_when_query,
-            maximum=_DISCOVERY_SECTION_BUDGETS["applicability"],
-        ),
-    ]
+    # Put the bounded publisher restriction first without dropping/rephrasing
+    # any section. Each field keeps its independent budget, so a maximal topic
+    # list cannot erase the requirement, applicability or publisher gate. This
+    # ordering is a discovery hint, never a substitute for URL admission below.
+    rendered_sections = []
     if allowed_hosts:
         rendered_sections.append(
             _bounded_query_term(
@@ -834,6 +826,18 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
                 maximum=_DISCOVERY_SECTION_BUDGETS["publishers"],
             )
         )
+    rendered_sections.extend(
+        [
+            _bounded_query_term(
+                description,
+                maximum=_DISCOVERY_SECTION_BUDGETS["requirement"],
+            ),
+            _bounded_query_term(
+                applies_when_query,
+                maximum=_DISCOVERY_SECTION_BUDGETS["applicability"],
+            ),
+        ]
+    )
     rendered_sections.append(
         _bounded_query_term(
             " ".join(anchors),
@@ -879,21 +883,69 @@ def _candidate_rows(
     maximum: int,
     url_validator: Callable[[str], bool] | None = None,
 ) -> tuple[list[_Candidate], int, int, int]:
+    """Keep the existing admission result independent of optional diagnostics."""
+
+    result, _rejections = _candidate_rows_with_rejections(
+        raw,
+        allowed_hosts=allowed_hosts,
+        accepted_source_types=accepted_source_types,
+        source_type_classifier=source_type_classifier,
+        maximum=maximum,
+        url_validator=url_validator,
+    )
+    return result
+
+
+def _candidate_rows_with_rejections(
+    raw: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+    accepted_source_types: frozenset[str],
+    source_type_classifier: SourceTypeClassifier | None,
+    maximum: int,
+    url_validator: Callable[[str], bool] | None = None,
+) -> tuple[tuple[list[_Candidate], int, int, int], dict[str, int]]:
+    """Return unchanged admission plus code-owned predicate observations.
+
+    Canonical-URL, allowed-host and owner-root failures count input source rows
+    at their first rejecting predicate, before deduplication. Source-class
+    failures count canonical URLs after deduplication, matching the existing
+    classifier gate. These are not distinct-source, provider-query or execution
+    counts. No provider-supplied diagnostic fields enter this local dictionary.
+    They cover discovery admission only; the legacy aggregate may additionally
+    include primary locators or candidates rejected again during merging.
+    A missing/malformed source-list shape has no observed predicate counters;
+    an observed empty list has known zero rejections. The final operator-only
+    sanitizer rechecks the same bounded plain-string-key dictionary contract.
+    """
+
     by_url: dict[str, dict[str, Any]] = {}
     rejected = 0
     malformed = 0
     raw_sources = raw.get("sources")
     if not isinstance(raw_sources, list):
-        return [], 0, 1, 0
+        return ([], 0, 1, 0), {}
+    rejections = {
+        "discovery_canonical_url_rejected_count": 0,
+        "discovery_allowed_host_rejected_count": 0,
+        "discovery_owner_root_rejected_count": 0,
+        "discovery_source_type_rejected_count": 0,
+    }
     for source in raw_sources:
         if not isinstance(source, Mapping):
             malformed += 1
             continue
         url = _canonical_candidate_url(source.get("url"))
-        if (
-            url is None or not _url_matches_allowed_hosts(url, allowed_hosts)
-            or (url_validator is not None and url_validator(url) is not True)
-        ):
+        if url is None:
+            rejections["discovery_canonical_url_rejected_count"] += 1
+            rejected += 1
+            continue
+        if not _url_matches_allowed_hosts(url, allowed_hosts):
+            rejections["discovery_allowed_host_rejected_count"] += 1
+            rejected += 1
+            continue
+        if url_validator is not None and url_validator(url) is not True:
+            rejections["discovery_owner_root_rejected_count"] += 1
             rejected += 1
             continue
         row = by_url.setdefault(url, {"titles": [], "snippets": []})
@@ -943,6 +995,7 @@ def _candidate_rows(
                 classified_types = frozenset()
             matched_types = classified_types.intersection(accepted_source_types)
             if not matched_types:
+                rejections["discovery_source_type_rejected_count"] += 1
                 rejected += 1
                 continue
         candidates.append((candidate, frozenset(matched_types)))
@@ -968,10 +1021,13 @@ def _candidate_rows(
 
     omitted = max(0, len(candidates) - maximum)
     return (
-        [candidate for candidate, _types in candidates[:maximum]],
-        rejected,
-        malformed,
-        omitted,
+        (
+            [candidate for candidate, _types in candidates[:maximum]],
+            rejected,
+            malformed,
+            omitted,
+        ),
+        rejections,
     )
 
 
@@ -2057,21 +2113,23 @@ class ResilientResearchRunner:
             )
 
         evidence_facts["stage"] = "admission"
+        # This pre-existing primary-locator observation is separate from the
+        # discovery predicates. Its helper deduplicates exact raw URL strings;
+        # it is not a provider-call count. The legacy total remains unchanged.
+        evidence_facts["primary_locator_rejected_count"] = primary_locator_rejected
         if discovery_healthy:
-            search_candidates, rejected_count, malformed_count, omitted_count = (
-                _candidate_rows(
-                    discovery,
-                    allowed_hosts=context.allowed_hosts,
-                    accepted_source_types=frozenset(
-                        context.accepted_source_types
-                    ),
-                    source_type_classifier=self.source_type_classifier,
-                    maximum=(
-                        self.maximum_candidates + len(context.reusable_candidates)
-                    ),
-                    url_validator=url_allowed,
-                )
+            admission, discovery_rejections = _candidate_rows_with_rejections(
+                discovery,
+                allowed_hosts=context.allowed_hosts,
+                accepted_source_types=frozenset(context.accepted_source_types),
+                source_type_classifier=self.source_type_classifier,
+                maximum=(
+                    self.maximum_candidates + len(context.reusable_candidates)
+                ),
+                url_validator=url_allowed,
             )
+            search_candidates, rejected_count, malformed_count, omitted_count = admission
+            evidence_facts.update(discovery_rejections)
         else:
             search_candidates = []
             rejected_count = malformed_count = omitted_count = 0

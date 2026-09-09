@@ -23,6 +23,11 @@ _COUNTS = (
     "omitted_candidate_count",
     "claim_count",
     "primary_provider_query_count",
+    "discovery_canonical_url_rejected_count",
+    "discovery_allowed_host_rejected_count",
+    "discovery_owner_root_rejected_count",
+    "discovery_source_type_rejected_count",
+    "primary_locator_rejected_count",
 )
 _MAX_COUNT = 10_000
 _MAX_FIELDS = 64
