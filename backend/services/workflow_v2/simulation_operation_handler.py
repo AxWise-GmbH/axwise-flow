@@ -27,6 +27,7 @@ from backend.domain.workflow_v2.contracts import (
 from backend.domain.workflow_v2.qualitative_analysis import QualitativeAnalysisV1
 from backend.domain.workflow_v2.simulation import (
     SimulationGroundingPassageV1,
+    simulation_plan,
     validate_simulation,
     validate_simulation_grounding,
 )
@@ -37,6 +38,10 @@ from backend.services.workflow_v2.analysis_service import (
     revalidate_capability_envelope,
 )
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+from backend.services.workflow_v2.capability_generation_payloads import (
+    simulation_generation_payload,
+)
+from backend.services.workflow_v2.capability_processing import issue_processing_permit
 from backend.services.workflow_v2.simulation_service import (
     SIMULATION_POLICY,
     SimulationExecutionError,
@@ -161,6 +166,17 @@ class SimulationOperationHandler:
                         )
                     ),
                     grounding=grounding,
+                    processing_permit=issue_processing_permit(
+                        checked,
+                        deadline=deadline,
+                        provider_payload=simulation_generation_payload(
+                            input_value.request,
+                            simulation_plan(
+                                input_value.request, operation_id=checked.operation_id
+                            ),
+                            grounding,
+                        ),
+                    ),
                 )
                 result = await self.service.run(
                     context,

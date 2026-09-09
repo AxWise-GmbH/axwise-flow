@@ -37,6 +37,10 @@ from backend.domain.workflow_v2.qualitative_analysis import (
     validate_analysis_request,
 )
 from backend.domain.workflow_v2.simulation import SimulationRequestV1, SimulationV1
+from backend.domain.workflow_v2.processing_consent import (
+    CapabilityProcessingConsentV1,
+    validate_processing_consent,
+)
 from backend.domain.workflow_v2.transcript_corpus import (
     CorpusArtifactRefV1,
     TranscriptCorpusV1,
@@ -2775,6 +2779,7 @@ class AnalyzeEvidenceInputV1(_FrozenCorpusModel):
     source: ImmutableArtifactContent
     request: AnalysisRequestV1
     limits: CapabilityLimitsV1
+    processing_consent: CapabilityProcessingConsentV1
     execution_agent: ExecutionAgentV1 | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
@@ -2787,6 +2792,8 @@ class AnalyzeEvidenceInputV1(_FrozenCorpusModel):
 
     @model_validator(mode="after")
     def exact_analysis_input(self) -> "AnalyzeEvidenceInputV1":
+        if self.processing_consent.purpose != self.type:
+            raise ValueError("processing consent purpose must match analysis")
         if self.accepted_scope.kind != "scope":
             raise ValueError("analysis requires an accepted scope artifact")
         if (
@@ -2826,6 +2833,7 @@ class SimulateInputV1(_FrozenCorpusModel):
     request: SimulationRequestV1
     selected_grounding: tuple[SimulationGroundingSelectionV1, ...] = Field(max_length=16)
     limits: CapabilityLimitsV1
+    processing_consent: CapabilityProcessingConsentV1
     execution_agent: ExecutionAgentV1 | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
@@ -2840,6 +2848,8 @@ class SimulateInputV1(_FrozenCorpusModel):
 
     @model_validator(mode="after")
     def exact_simulation_input(self) -> "SimulateInputV1":
+        if self.processing_consent.purpose != self.type:
+            raise ValueError("processing consent purpose must match simulation")
         if self.accepted_scope.kind != "scope":
             raise ValueError("simulation requires an accepted scope artifact")
         ScopeArtifactV2.model_validate(self.scope.model_dump(mode="json", by_alias=True))
@@ -2941,6 +2951,16 @@ class AxWiseOperationEnvelope(ContractModel):
                     "execution Agent userId must equal the operation owner userId"
                 )
         input_payload = self.input.model_dump(mode="json", by_alias=True)
+        if isinstance(self.input, (AnalyzeEvidenceInputV1, SimulateInputV1)):
+            validate_processing_consent(
+                self.input.processing_consent,
+                operation_type=self.operation_type,
+                operation_id=self.operation_id,
+                owner=self.owner.model_dump(mode="json", by_alias=True),
+                workflow=self.workflow.model_dump(mode="json", by_alias=True),
+                contract_version=self.contract_version,
+                input_value=input_payload,
+            )
         if isinstance(self.input, SynthesizeArtifactInputV1):
             # Only the purpose-discriminated top-level keys are omitted on the wire.
             # Nested immutable artifact payloads preserve explicit nulls in their hashes.

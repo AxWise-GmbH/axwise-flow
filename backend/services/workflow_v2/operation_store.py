@@ -44,6 +44,8 @@ class ClaimedOperation:
     record: OperationRecord
     envelope: AxWiseOperationEnvelope
     lease_token: UUID
+    # Internal durable claim count, never an owner-supplied invocation field.
+    execution_count: int | None = None
 
 
 @dataclass(frozen=True)
@@ -516,7 +518,37 @@ class PostgresOperationStore:
                 or envelope.owner.tenant_id != record.tenant_id
             ):
                 raise RuntimeError("claimed operation envelope identity is inconsistent")
-            return ClaimedOperation(record=record, envelope=envelope, lease_token=lease_token)
+            execution_count = None
+            if envelope.operation_type in {"AnalyzeEvidenceV1", "SimulateV1"}:
+                # SQL004 increments this existing counter while holding the row
+                # lock, but its historical return signature does not expose it.
+                # Read in the same transaction using the existing worker SELECT
+                # grant; no function, role, policy or migration change is needed.
+                _tenant_context(connection, envelope.owner.tenant_id)
+                execution_count = connection.execute(
+                    text(
+                        """
+                        SELECT execution_count
+                        FROM axwise.cognitive_operations
+                        WHERE tenant_id = :tenant_id
+                          AND operation_id = :operation_id
+                          AND lease_token = :lease_token
+                          AND status IN ('running', 'cancel_requested')
+                          AND lease_expires_at > clock_timestamp()
+                        """
+                    ),
+                    {
+                        "tenant_id": envelope.owner.tenant_id,
+                        "operation_id": envelope.operation_id,
+                        "lease_token": lease_token,
+                    },
+                ).scalar_one_or_none()
+            return ClaimedOperation(
+                record=record,
+                envelope=envelope,
+                lease_token=lease_token,
+                execution_count=execution_count,
+            )
 
     def renew(
         self,

@@ -12,7 +12,13 @@ from backend.domain.workflow_v2.contracts import (
 )
 from backend.domain.workflow_v2.simulation import SimulationCandidateV1
 from backend.services.workflow_v2.simulation_service import SimulationGenerationResult
-from backend.tests.workflow_v2.analysis_test_support import limits, ref, scope_fact, uid
+from backend.tests.workflow_v2.analysis_test_support import (
+    limits,
+    ref,
+    scope_fact,
+    uid,
+    synthetic_consent_stub,
+)
 from backend.tests.workflow_v2.test_simulation_contracts import candidate, request
 
 
@@ -112,6 +118,7 @@ def simulation_input(
             "request": raw_request,
             "selectedGrounding": selections,
             "limits": request_limits or limits(),
+            "processingConsent": synthetic_consent_stub("SimulateV1"),
         }
     ).model_dump(mode="json", by_alias=True)
 

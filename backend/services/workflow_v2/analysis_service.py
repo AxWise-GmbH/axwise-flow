@@ -51,6 +51,13 @@ from backend.services.workflow_v2.analysis_candidates import (
     materialize_analysis,
 )
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+from backend.services.workflow_v2.capability_generation_payloads import (
+    analysis_generation_payload,
+)
+from backend.services.workflow_v2.capability_processing import (
+    CapabilityProcessingPermit,
+    issue_processing_permit,
+)
 
 
 ANALYSIS_POLICY = CapabilityLimitsV1.model_validate(
@@ -70,6 +77,8 @@ class AnalysisGenerationContext:
     request: AnalysisRequestV1
     accepted_scope: CorpusArtifactRefV1
     source_artifacts: tuple[CorpusArtifactRefV1, ...]
+    operation_id: UUID | None = None
+    processing_permit: CapabilityProcessingPermit | None = None
 
 
 @dataclass(frozen=True)
@@ -116,7 +125,7 @@ def revalidate_capability_envelope(
     try:
         validate_capability_structure(envelope)
         return AxWiseOperationEnvelope.model_validate(
-            envelope.model_dump(mode="json", by_alias=True)
+            envelope.model_dump(mode="json", by_alias=True, warnings="error")
         )
     except (TypeError, ValueError, OverflowError) as error:
         raise _fail("AXWISE_CAPABILITY_INVALID_INPUT") from error
@@ -362,6 +371,12 @@ class AnalysisOperationHandler:
                 CorpusArtifactRefV1.model_validate(
                     input_value.source.artifact.model_dump(mode="json", by_alias=True)
                 ),
+            ),
+            operation_id=envelope.operation_id,
+            processing_permit=issue_processing_permit(
+                envelope,
+                provider_payload=analysis_generation_payload(corpus, request),
+                deadline=deadline,
             ),
         )
         if self.generator is None:

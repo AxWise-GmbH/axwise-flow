@@ -129,6 +129,19 @@ class OperationWorker:
         _log_state(claim, "claimed")
         if await self._cancel_if_requested(claim):
             return True
+        if claim.envelope.operation_type in {"AnalyzeEvidenceV1", "SimulateV1"} and (
+            type(claim.execution_count) is not int or claim.execution_count != 1
+        ):
+            # Even a crash before the first provider request requires a fresh
+            # owner-confirmed operation. Reclaimed leases cannot spend again on
+            # an old opt-in. This is not an exactly-once provider-call guarantee
+            # or a lifetime token/dollar ledger for the first invocation.
+            await self._fail(
+                claim,
+                retryable=False,
+                error_class="AXWISE_CAPABILITY_RECONSENT_REQUIRED",
+            )
+            return True
         started = time.monotonic()
         execution = asyncio.create_task(self.executor.execute(claim.envelope))
         try:

@@ -28,6 +28,9 @@ from backend.domain.workflow_v2.simulation import (
     validate_simulation_grounding,
 )
 from backend.domain.workflow_v2.transcript_corpus import CorpusArtifactRefV1
+from backend.services.workflow_v2.capability_processing import (
+    CapabilityProcessingPermit,
+)
 
 SIMULATION_POLICY = CapabilityLimitsV1.model_validate(
     {
@@ -63,6 +66,7 @@ class SimulationGenerationContext:
     operation_id: UUID
     accepted_scope: CorpusArtifactRefV1
     grounding: tuple[SimulationGroundingPassageV1, ...] = ()
+    processing_permit: CapabilityProcessingPermit | None = None
 
 
 @dataclass(frozen=True)
@@ -118,7 +122,7 @@ class SimulationService:
             operation_id = UUID(str(context.operation_id))
             grounding = validate_simulation_grounding(request, context.grounding)
             admitted = SimulationGenerationContext(
-                request, operation_id, scope, grounding
+                request, operation_id, scope, grounding, context.processing_permit
             )
             plan = simulation_plan(request, operation_id=operation_id)
         except (AttributeError, TypeError, ValueError, OverflowError) as error:
