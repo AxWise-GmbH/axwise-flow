@@ -55,6 +55,11 @@ async def test_committed_failure_logs_bounded_evidence_but_does_not_persist_side
                         "query_complete": True,
                         "candidate_count": 0,
                         "rejected_candidate_count": 3,
+                        "discovery_canonical_url_rejected_count": 0,
+                        "discovery_allowed_host_rejected_count": 2,
+                        "discovery_owner_root_rejected_count": 0,
+                        "discovery_source_type_rejected_count": 0,
+                        "primary_locator_rejected_count": 1,
                         "url": "https://private.invalid",
                         "prompt": "PRIVATE",
                     },
@@ -72,6 +77,11 @@ async def test_committed_failure_logs_bounded_evidence_but_does_not_persist_side
         "query_complete": True,
         "candidate_count": 0,
         "rejected_candidate_count": 3,
+        "discovery_canonical_url_rejected_count": 0,
+        "discovery_allowed_host_rejected_count": 2,
+        "discovery_owner_root_rejected_count": 0,
+        "discovery_source_type_rejected_count": 0,
+        "primary_locator_rejected_count": 1,
     }
     assert store.failed["failure_diagnostics"] == {
         "route": "gemini_google_search",
