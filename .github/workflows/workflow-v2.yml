@@ -113,6 +113,7 @@ jobs:
           --confcutdir=backend/tests/workflow_v2
           backend/tests/workflow_v2
           --ignore=backend/tests/workflow_v2/test_operation_store_postgres.py
+          --ignore=backend/tests/workflow_v2/test_capability_operations_postgres.py
       - name: Run grounded-search runtime tests
         run: >-
           python -m pytest -q
@@ -128,5 +129,6 @@ jobs:
           python -m pytest -q
           --confcutdir=backend/tests/workflow_v2
           backend/tests/workflow_v2/test_operation_store_postgres.py
+          backend/tests/workflow_v2/test_capability_operations_postgres.py
       - name: Build dedicated API and worker image
         run: docker build --file backend/Dockerfile.workflow-v2 --tag axwise-workflow-v2:ci backend
