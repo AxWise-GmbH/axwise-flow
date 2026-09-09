@@ -177,6 +177,7 @@ class OperationWorker:
                 retry_at=error.retry_at,
                 retry_after_seconds=error.retry_after_seconds,
                 failure_diagnostics=error.diagnostics,
+                evidence_diagnostics=error.evidence_diagnostics,
             )
             return True
         except ModelHTTPError as error:
@@ -248,6 +249,7 @@ class OperationWorker:
         retry_at: str | None = None,
         retry_after_seconds: int | None = None,
         failure_diagnostics: dict[str, object] | None = None,
+        evidence_diagnostics: dict[str, object] | None = None,
     ) -> None:
         try:
             await asyncio.to_thread(
@@ -272,6 +274,11 @@ class OperationWorker:
             retryable=retryable,
             errorClass=error_class,
             retryAfterSeconds=retry_after_seconds,
+            **(
+                {"evidenceDiagnostics": evidence_diagnostics}
+                if evidence_diagnostics is not None
+                else {}
+            ),
         )
 
     async def _cancel_if_requested(

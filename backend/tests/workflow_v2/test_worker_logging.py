@@ -10,6 +10,8 @@ import pytest
 
 from backend.api import workflow_v2_worker_app
 from backend.services.workflow_v2 import worker_main
+from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+from backend.services.workflow_v2.operation_store import StaleOperationLease
 from backend.services.workflow_v2.operation_worker import OperationWorker, _log_state
 from backend.services.workflow_v2.worker_logging import (
     LOGGER_NAME,
@@ -19,6 +21,207 @@ from backend.tests.workflow_v2.test_operation_worker import Store, result
 
 
 pytestmark = pytest.mark.contract
+
+
+def test_logger_drops_plain_dict_with_hostile_colliding_key_without_comparison(capsys):
+    class HostileKey:
+        def __hash__(self):
+            return hash("stage")
+
+        def __eq__(self, _other):
+            raise ValueError("PRIVATE key comparison")
+
+    configure_worker_logging()
+    _log_state(Store().claim, "failed", evidenceDiagnostics={HostileKey(): "PRIVATE"})
+    recorded, output = events(capsys)
+    assert [row["state"] for row in recorded] == ["failed"]
+    assert "evidenceDiagnostics" not in output and "PRIVATE" not in output
+
+
+@pytest.mark.asyncio
+async def test_committed_failure_logs_bounded_evidence_but_does_not_persist_sidecar(
+    capsys,
+):
+    class Executor:
+        async def execute(self, _envelope):
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EMPTY_RESPONSE",
+                retryable=True,
+                diagnostics={
+                    "route": "gemini_google_search",
+                    "status": "response_processing_error",
+                    "evidence": {
+                        "stage": "admission",
+                        "query_complete": True,
+                        "candidate_count": 0,
+                        "rejected_candidate_count": 3,
+                        "url": "https://private.invalid",
+                        "prompt": "PRIVATE",
+                    },
+                },
+            )
+
+    configure_worker_logging()
+    store = Store()
+    assert await OperationWorker(store, Executor()).run_once()
+    recorded, output = events(capsys)
+    assert [row["state"] for row in recorded] == ["claimed", "failed"]
+    assert recorded[1]["operationId"] == str(store.claim.envelope.operation_id)
+    assert recorded[1]["evidenceDiagnostics"] == {
+        "stage": "admission",
+        "query_complete": True,
+        "candidate_count": 0,
+        "rejected_candidate_count": 3,
+    }
+    assert store.failed["failure_diagnostics"] == {
+        "route": "gemini_google_search",
+        "status": "response_processing_error",
+    }
+    assert "PRIVATE" not in output and "private.invalid" not in output
+    assert store.completed is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancel", [False, True])
+async def test_evidence_does_not_claim_committed_failure_after_stale_lease_or_cancel(
+    cancel, capsys
+):
+    class RejectingStore(Store):
+        def fail(self, *_args, **_kwargs):
+            raise StaleOperationLease("private stale failure")
+
+    store = RejectingStore()
+
+    class Executor:
+        async def execute(self, _envelope):
+            store.cancel_requested = cancel
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EMPTY_RESPONSE",
+                retryable=True,
+                diagnostics={
+                    "route": "gemini_google_search",
+                    "status": "unavailable",
+                    "evidence": {"stage": "extraction", "claim_count": 0},
+                },
+            )
+
+    configure_worker_logging()
+    assert await OperationWorker(store, Executor()).run_once()
+    recorded, output = events(capsys)
+    assert [row["state"] for row in recorded] == [
+        "claimed",
+        "cancelled" if cancel else "stale_failure_rejected",
+    ]
+    assert "evidenceDiagnostics" not in output
+    assert store.failed is None
+
+
+def test_logging_boundary_revalidates_evidence_and_rejects_non_failure_attachment(
+    capsys,
+):
+    configure_worker_logging()
+    claim = Store().claim
+    values = {
+        "stage": "fetch",
+        "fetched_count": 1,
+        "fetch_error_count": True,
+        "candidate_count": 10_001,
+        "query_complete": "true",
+        "url": "https://private.invalid",
+        "body": "PRIVATE",
+    }
+    _log_state(claim, "failed", evidenceDiagnostics=values)
+    _log_state(claim, "heartbeat", evidenceDiagnostics=values)
+    _log_state(claim, "failed", evidenceDiagnostics={"stage": ["PRIVATE"]})
+    recorded, output = events(capsys)
+    assert recorded[0]["evidenceDiagnostics"] == {"stage": "fetch", "fetched_count": 1}
+    assert "evidenceDiagnostics" not in recorded[1]
+    assert "evidenceDiagnostics" not in recorded[2]
+    assert "PRIVATE" not in output and "private.invalid" not in output
+
+
+@pytest.mark.asyncio
+async def test_mutated_hostile_sidecar_does_not_fail_after_database_finalization(
+    capsys,
+):
+    class HostileEvidence(dict):
+        def get(self, *_args):
+            raise ValueError("PRIVATE evidence lookup")
+
+        def __bool__(self):
+            raise ValueError("PRIVATE evidence truthiness")
+
+    class Executor:
+        async def execute(self, _envelope):
+            error = CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EMPTY_RESPONSE", retryable=True
+            )
+            error.evidence_diagnostics = HostileEvidence(stage="fetch")
+            raise error
+
+    configure_worker_logging()
+    store = Store()
+    assert await OperationWorker(store, Executor()).run_once()
+    recorded, output = events(capsys)
+    assert [row["state"] for row in recorded] == ["claimed", "failed"]
+    assert store.failed["error_class"] == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert "evidenceDiagnostics" not in output and "PRIVATE" not in output
+
+
+@pytest.mark.asyncio
+async def test_uncommitted_store_failure_emits_no_committed_evidence_log(capsys):
+    class BrokenStore(Store):
+        def fail(self, *_args, **_kwargs):
+            raise RuntimeError("synthetic store failure")
+
+    class Executor:
+        async def execute(self, _envelope):
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EMPTY_RESPONSE",
+                retryable=True,
+                diagnostics={"evidence": {"stage": "admission", "candidate_count": 0}},
+            )
+
+    configure_worker_logging()
+    with pytest.raises(RuntimeError, match="synthetic store failure"):
+        await OperationWorker(BrokenStore(), Executor()).run_once()
+    recorded, output = events(capsys)
+    assert [row["state"] for row in recorded] == ["claimed"]
+    assert "evidenceDiagnostics" not in output
+
+
+@pytest.mark.asyncio
+async def test_sequential_operations_do_not_share_evidence_observations(capsys):
+    class Executor:
+        def __init__(self, observation):
+            self.observation = observation
+
+        async def execute(self, _envelope):
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EMPTY_RESPONSE",
+                retryable=True,
+                diagnostics={"evidence": self.observation},
+            )
+
+    configure_worker_logging()
+    for observation in (
+        {"stage": "admission", "candidate_count": 0},
+        {"stage": "extraction", "candidate_count": 2, "claim_count": 0},
+        None,
+    ):
+        assert await OperationWorker(Store(), Executor(observation)).run_once()
+    recorded, _output = events(capsys)
+    failures = [row for row in recorded if row["state"] == "failed"]
+    assert failures[0]["evidenceDiagnostics"] == {
+        "stage": "admission",
+        "candidate_count": 0,
+    }
+    assert failures[1]["evidenceDiagnostics"] == {
+        "stage": "extraction",
+        "candidate_count": 2,
+        "claim_count": 0,
+    }
+    assert "evidenceDiagnostics" not in failures[2]
 
 
 @pytest.fixture(autouse=True)

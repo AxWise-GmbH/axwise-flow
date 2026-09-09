@@ -38,6 +38,10 @@ from backend.services.workflow_v2.exact_span_extractor import (
     ExactSpanExtractionResult,
     ExactSpanRequirementQuery,
 )
+from backend.services.workflow_v2.research_diagnostics import (
+    plain_diagnostic_fields,
+    sanitize_research_evidence_diagnostics,
+)
 from backend.services.workflow_v2.research_query_budgets import (
     FALLBACK_DISCOVERY_TOPIC_CHARACTERS,
 )
@@ -982,29 +986,67 @@ def _primary_response_locator_rows(
 ) -> tuple[list[_Candidate], int, int, int]:
     """Extract bounded authority locators from one provider response.
 
-    Provider prose is never evidence and is never supplied to the exact-span
-    extractor. A URL written in that prose may only locate a publisher document
-    when it is already canonical and the server-owned classifier and host gates
-    independently accept it. The publisher is then refetched and validated by
-    the same immutable exact-span path as every SearX discovery candidate.
+    Provider prose and unsupported Google grounding rows are never evidence.
+    Their URL-only locators must pass the same canonical, owner-policy and
+    source-class gates before sharing one candidate cap. The publisher is then
+    refetched and validated by the same immutable exact-span path as every
+    SearX discovery candidate. No provider title or snippet enters extraction.
     """
 
-    response_text = raw.get("text")
-    if not isinstance(response_text, str) or not response_text:
-        return [], 0, 0, 0
-
     rejected = 0
+    malformed = 0
+    locator_urls: list[tuple[str, bool]] = []
+    redirect_hosts: frozenset[str] = frozenset()
+    if "_grounding_locator_urls" in raw:
+        from backend.services.generative.gemini_search_service import (
+            GEMINI_SEARCH_MAX_GROUNDING_CHUNKS,
+            TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS,
+        )
+
+        redirect_hosts = TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS
+        grounding_urls = raw["_grounding_locator_urls"]
+        # This internal channel is a finite producer shape, not authority.
+        # Reject unknown/oversized shapes as a whole rather than silently
+        # truncating them into a complete discovery result. Keep the existing
+        # metadata bound so admission can precede the smaller fetch-locator cap.
+        if (
+            raw.get("provider") != "gemini_google_search"
+            or raw.get("search_performed") is not False
+            or raw.get("error") != "MissingGroundingEvidence"
+            or not isinstance(grounding_urls, list)
+            or len(grounding_urls) > GEMINI_SEARCH_MAX_GROUNDING_CHUNKS
+        ):
+            malformed += 1
+        else:
+            for url in grounding_urls:
+                if isinstance(url, str):
+                    locator_urls.append((url, True))
+                else:
+                    malformed += 1
+
+    response_text = raw.get("text")
+    if isinstance(response_text, str) and response_text:
+        locator_urls.extend(
+            (match.group(0).rstrip(_HTTPS_LOCATOR_TRAILING_PUNCTUATION), False)
+            for match in _HTTPS_LOCATOR_IN_TEXT.finditer(response_text)
+        )
+
     eligible: list[tuple[_Candidate, frozenset[str]]] = []
     seen_urls: set[str] = set()
-    for match in _HTTPS_LOCATOR_IN_TEXT.finditer(response_text):
-        raw_url = match.group(0).rstrip(_HTTPS_LOCATOR_TRAILING_PUNCTUATION)
-        if not raw_url or raw_url in seen_urls:
+    for raw_url, grounding_locator in locator_urls:
+        if raw_url in seen_urls:
+            continue
+        if not raw_url and not grounding_locator:
             continue
         seen_urls.add(raw_url)
         canonical_url = _canonical_candidate_url(raw_url)
         if (
             canonical_url is None
             or canonical_url != raw_url
+            or (
+                grounding_locator
+                and urlsplit(canonical_url).hostname in redirect_hosts
+            )
             or not _url_matches_allowed_hosts(canonical_url, allowed_hosts)
             or (url_validator is not None and url_validator(canonical_url) is not True)
             or source_type_classifier is None
@@ -1042,7 +1084,12 @@ def _primary_response_locator_rows(
             *(row for row in eligible if not row[1].intersection(specific_source_types)),
         ]
     omitted = max(0, len(eligible) - maximum)
-    return [candidate for candidate, _types in eligible[:maximum]], rejected, 0, omitted
+    return (
+        [candidate for candidate, _types in eligible[:maximum]],
+        rejected,
+        malformed,
+        omitted,
+    )
 
 
 def _with_primary_response_locators(
@@ -1846,15 +1893,43 @@ class ResilientResearchRunner:
             primary_status,
         )
         fallback_started_at = self._monotonic_clock()
+        # Operator-only facts are local to this fallback, not provider-authored
+        # diagnostics or public wire fields. A phase is entered before its work;
+        # counts are added only after the corresponding observation completes.
+        evidence_facts: dict[str, object] = {"stage": "context"}
+        primary_fields = plain_diagnostic_fields(primary)
+        primary_query_receipt = (
+            primary_fields.get("provider_queries")
+            if primary_fields is not None else None
+        )
+        if (
+            type(primary_query_receipt) is list
+            and len(primary_query_receipt) <= 10_000
+            and all(type(item) is str for item in primary_query_receipt)
+        ):
+            evidence_facts["primary_provider_query_count"] = len(
+                primary_query_receipt
+            )
 
         def finish_fallback(result: dict[str, Any]) -> dict[str, Any]:
-            return _with_fallback_elapsed(
+            result = _with_fallback_elapsed(
                 result,
                 elapsed_ms=_finite_elapsed_ms(
                     fallback_started_at,
                     self._monotonic_clock(),
                 ),
             )
+            diagnostics = result.get("runtime_diagnostics")
+            if isinstance(diagnostics, dict):
+                # Snapshot only exact bounded primitives; never alias the
+                # provider response or leak raw discovery fields into logging.
+                result["runtime_diagnostics"] = {
+                    **diagnostics,
+                    "evidence": sanitize_research_evidence_diagnostics(
+                        evidence_facts
+                    ),
+                }
+            return result
 
         fallback_deadline = (
             asyncio.get_running_loop().time() + self.fallback_phase_seconds
@@ -1868,6 +1943,8 @@ class ResilientResearchRunner:
                 )
             )
 
+        evidence_facts["query_complete"] = context.query_complete
+        evidence_facts["stage"] = "discovery"
         discovery_started_at = self._monotonic_clock()
         try:
             discovery_deadline = min(
@@ -1934,6 +2011,19 @@ class ResilientResearchRunner:
                 if isinstance(raw_discovery_diagnostics, Mapping)
                 else {}
             )
+        # Preserve the adapter's bounded receipts before phase diagnostics drop
+        # them. The final sanitizer rejects bools, coercions and out-of-range
+        # values; absent receipts remain unknown rather than inferred from rows.
+        # Optional instrumentation must not invoke custom Mapping getters or
+        # colliding non-string dictionary keys during an otherwise safe read.
+        discovery_fields = plain_diagnostic_fields(discovery_diagnostics)
+        if discovery_fields is not None:
+            for field, provider_field in (
+                ("discovery_result_count", "result_count"),
+                ("discovery_invalid_result_count", "invalid_result_count"),
+            ):
+                if provider_field in discovery_fields:
+                    evidence_facts[field] = discovery_fields[provider_field]
         discovery_status = str(discovery_diagnostics.get("status") or "")
         # The internal SearX adapter is the authority for whether its response
         # shape was processed successfully.  A stray or malformed
@@ -1966,6 +2056,7 @@ class ResilientResearchRunner:
                 )
             )
 
+        evidence_facts["stage"] = "admission"
         if discovery_healthy:
             search_candidates, rejected_count, malformed_count, omitted_count = (
                 _candidate_rows(
@@ -2048,7 +2139,30 @@ class ResilientResearchRunner:
             "invalid_result_count",
             maximum=10_000,
         )
+        evidence_facts.update(
+            candidate_count=len(candidates),
+            rejected_candidate_count=rejected_count,
+            omitted_candidate_count=omitted_count,
+        )
+        if discovery_fields is not None:
+            adapter_invalid_count = discovery_fields.get(
+                "invalid_result_count"
+            )
+            if "invalid_result_count" not in discovery_fields or (
+                type(adapter_invalid_count) is int
+                and 0 <= adapter_invalid_count <= 10_000
+            ):
+                evidence_facts["malformed_candidate_count"] = malformed_count
+        # Existing decision counters deliberately remain unchanged. If their
+        # legacy coercion included an invalid adapter receipt, do not advertise
+        # the derived malformed aggregate as an observed evidence fact.
         if not candidates:
+            evidence_facts.update(
+                fetched_count=0,
+                fetch_error_count=0,
+                validation_incomplete_count=0,
+                claim_count=0,
+            )
             if not context.query_complete:
                 return finish_fallback(
                     _primary_with_failed_fallback(
@@ -2116,6 +2230,7 @@ class ResilientResearchRunner:
                 return candidate, None, True
             return candidate, raw_document, False
 
+        evidence_facts["stage"] = "fetch"
         try:
             fetch_deadline = min(
                 fallback_deadline,
@@ -2220,6 +2335,15 @@ class ResilientResearchRunner:
 
         fetched_count = len(fetched_documents)
         incomplete_fetch_count = fetch_error_count + validation_incomplete_count
+        # gather and document validation have both completed. In particular,
+        # a timeout above leaves these facts absent even if one fetch coroutine
+        # happened to finish; it did not establish a completed validated batch.
+        evidence_facts.update(
+            fetched_count=fetched_count,
+            fetch_error_count=fetch_error_count,
+            validation_incomplete_count=validation_incomplete_count,
+            rejected_candidate_count=rejected_count,
+        )
         logger.log(
             logging.WARNING if incomplete_fetch_count else logging.INFO,
             "Workflow-v2 research fallback fetch completed; candidates=%s fetched=%s "
@@ -2274,6 +2398,7 @@ class ResilientResearchRunner:
                 ),
                 documents=[item[2] for item in fetched_documents],
             )
+            evidence_facts["stage"] = "extraction"
             try:
                 extraction_deadline = min(
                     fallback_deadline,
@@ -2339,6 +2464,8 @@ class ResilientResearchRunner:
                 fetched_count,
                 incomplete_fetch_count,
             )
+            if extraction.chosen_document is None:
+                evidence_facts["claim_count"] = 0
             if extraction.chosen_document is not None:
                 selected = next(
                     (
@@ -2371,6 +2498,7 @@ class ResilientResearchRunner:
                 accepted_spans = _validated_extracted_spans(
                     snapshot.text, extraction
                 )
+                evidence_facts["claim_count"] = len(accepted_spans)
                 if accepted_spans:
                     logger.info(
                         "Workflow-v2 research fallback completed; status=ok "

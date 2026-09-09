@@ -28,6 +28,9 @@ from backend.services.workflow_v2.operation_store import (
     OperationEventBatch,
     OperationRecord,
 )
+from backend.services.workflow_v2.research_diagnostics import (
+    research_evidence_from_runtime_diagnostics,
+)
 
 _COMPLETION_RESULT_ADAPTER = TypeAdapter(CompletionResult)
 _RFC3339_UTC_ADAPTER = TypeAdapter(Rfc3339Utc)
@@ -205,6 +208,10 @@ class CognitiveExecutionFailure(RuntimeError):
         super().__init__(error_class)
         self.error_class = error_class
         self.retryable = retryable
+        # Operator-only facts do not extend the strict public/SQL failure
+        # contract. Capture their bounded snapshot before that sanitizer drops
+        # unrecognized keys; never retain the raw provider diagnostics.
+        self.evidence_diagnostics = research_evidence_from_runtime_diagnostics(diagnostics)
         self.diagnostics = sanitize_failure_diagnostics(diagnostics)
         normalized_retry_after = _safe_retry_after_seconds(retry_after_seconds)
         if normalized_retry_after is None:
