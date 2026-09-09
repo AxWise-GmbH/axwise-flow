@@ -19,6 +19,9 @@ from backend.domain.workflow_v2.contracts import (
 )
 from backend.services.workflow_v2.analysis_candidates import AnalysisCandidateV1
 from backend.services.workflow_v2.analysis_service import AnalysisGenerationResult
+from backend.domain.workflow_v2.processing_consent import (
+    processing_consent_binding_hash,
+)
 from backend.tests.workflow_v2.factories import scope_payload
 
 
@@ -28,6 +31,19 @@ USER_ID = "user_analysisfixture123"
 
 def uid(number: int) -> str:
     return f"00000000-0000-4000-8000-{number:012d}"
+
+
+def synthetic_consent_stub(purpose):
+    """Explicit synthetic test authorization; never a production consent default."""
+    return {
+        "schemaVersion": "axwise.processing-consent.v1",
+        "granted": True,
+        "provider": "google",
+        "purpose": purpose,
+        "operationId": uid(904),
+        "bindingHash": "0" * 64,
+        "noticeVersion": "google-selected-sources-v1",
+    }
 
 
 def document(*, number=1, origin="supplied_transcript", text=None):
@@ -180,6 +196,7 @@ def analysis_input(
             },
             "request": analysis_request or request(),
             "limits": request_limits or limits(),
+            "processingConsent": synthetic_consent_stub("AnalyzeEvidenceV1"),
         }
     ).model_dump(mode="json", by_alias=True)
 
@@ -187,25 +204,39 @@ def analysis_input(
 def envelope(
     input_value, *, operation_id=None, user_id=USER_ID, tenant_id=None, run_id=None
 ):
-    return AxWiseOperationEnvelope.model_validate(
-        {
-            "operationId": operation_id or uid(904),
-            "operationType": input_value["type"],
-            "owner": {
-                "tenantId": tenant_id or uid(901),
-                "organizationId": None,
-                "userId": user_id,
-            },
-            "workflow": {
-                "runId": run_id or uid(902),
-                "stageId": uid(903),
-                "stageAttemptId": uid(905),
-            },
-            "contractVersion": "axwise.operation.v2",
-            "canonicalInputHash": canonical_hash(input_value),
-            "input": input_value,
+    payload = {
+        "operationId": operation_id or uid(904),
+        "operationType": input_value["type"],
+        "owner": {
+            "tenantId": tenant_id or uid(901),
+            "organizationId": None,
+            "userId": user_id,
+        },
+        "workflow": {
+            "runId": run_id or uid(902),
+            "stageId": uid(903),
+            "stageAttemptId": uid(905),
+        },
+        "contractVersion": "axwise.operation.v2",
+        "input": copy.deepcopy(input_value),
+    }
+    if input_value["type"] in {"AnalyzeEvidenceV1", "SimulateV1"}:
+        # Tests explicitly authorize their synthetic fixture for this exact run.
+        # Real caller commands must never copy or automatically retarget consent.
+        payload["input"]["processingConsent"] = {
+            **synthetic_consent_stub(input_value["type"]),
+            "operationId": payload["operationId"],
+            "bindingHash": processing_consent_binding_hash(
+                operation_type=payload["operationType"],
+                operation_id=payload["operationId"],
+                owner=payload["owner"],
+                workflow=payload["workflow"],
+                contract_version=payload["contractVersion"],
+                input_value=payload["input"],
+            ),
         }
-    )
+    payload["canonicalInputHash"] = canonical_hash(payload["input"])
+    return AxWiseOperationEnvelope.model_validate(payload)
 
 
 class Resolver:

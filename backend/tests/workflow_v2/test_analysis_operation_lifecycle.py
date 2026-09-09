@@ -66,6 +66,7 @@ def worker_store(operation, **kwargs):
     store.claim = replace(
         store.claim,
         envelope=operation,
+        execution_count=1,
         record=replace(
             store.claim.record,
             operation_id=operation.operation_id,
