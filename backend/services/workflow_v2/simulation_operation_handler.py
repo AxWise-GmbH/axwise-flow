@@ -232,6 +232,8 @@ class SimulationOperationHandler:
                             else None
                         ),
                         model_version=result.model_version,
+                        model=result.model,
+                        provider=result.provider,
                         search_calls=0,
                     ),
                 )
