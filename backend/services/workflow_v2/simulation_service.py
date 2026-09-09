@@ -31,6 +31,7 @@ from backend.domain.workflow_v2.transcript_corpus import CorpusArtifactRefV1
 from backend.services.workflow_v2.capability_processing import (
     CapabilityProcessingPermit,
 )
+from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 
 SIMULATION_POLICY = CapabilityLimitsV1.model_validate(
     {
@@ -76,6 +77,8 @@ class SimulationGenerationResult:
     input_tokens: int | None = None
     output_tokens: int | None = None
     model_version: str | None = None
+    model: str | None = None
+    provider: str | None = None
 
 
 @dataclass(frozen=True)
@@ -86,6 +89,8 @@ class SimulationExecutionResult:
     input_tokens: int | None
     output_tokens: int | None
     model_version: str | None
+    model: str | None = None
+    provider: str | None = None
 
 
 class SimulationGenerator(Protocol):
@@ -166,6 +171,19 @@ class SimulationService:
                     is None
                 ):
                     raise SimulationExecutionError("AXWISE_SIMULATION_INVALID_USAGE")
+                if generated.provider is not None and (
+                    type(generated.provider) is not str
+                    or generated.provider != "google"
+                ):
+                    raise SimulationExecutionError("AXWISE_SIMULATION_INVALID_USAGE")
+                if generated.model is not None and (
+                    type(generated.model) is not str
+                    or re.fullmatch(
+                        r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,199}", generated.model
+                    )
+                    is None
+                ):
+                    raise SimulationExecutionError("AXWISE_SIMULATION_INVALID_USAGE")
                 try:
                     artifact = build_simulation(
                         generated.candidate,
@@ -191,12 +209,18 @@ class SimulationService:
                     input_tokens=generated.input_tokens,
                     output_tokens=generated.output_tokens,
                     model_version=generated.model_version,
+                    model=generated.model,
+                    provider=generated.provider,
                 )
         except asyncio.CancelledError:
             raise
         except TimeoutError as error:
             raise SimulationExecutionError("AXWISE_SIMULATION_DEADLINE") from error
         except SimulationExecutionError:
+            raise
+        except CognitiveExecutionFailure:
+            # Consent-gated provider failures are deliberately terminal. Do not
+            # turn them into the legacy injected-port retryable failure code.
             raise
         except Exception as error:
             raise SimulationExecutionError(
