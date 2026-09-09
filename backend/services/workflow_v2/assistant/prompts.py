@@ -12,6 +12,9 @@ from backend.services.workflow_v2.assistant.source_policy import (
     AssistantSourcePolicy,
     resolve_assistant_source_policy,
 )
+from backend.services.workflow_v2.research_query_budgets import (
+    FALLBACK_DISCOVERY_TOPIC_CHARACTERS,
+)
 
 
 WORKFLOW_V2_ASSISTANT_FALLBACK_REQUIREMENT_CHARACTERS = 1_000
@@ -133,7 +136,9 @@ def assistant_turn_query(
         {
             "acceptedScopeSemantics": {
                 "geography": [],
-                "topicAnchors": [{"value": latest_request[:300]}],
+                "topicAnchors": [
+                    {"value": latest_request[:FALLBACK_DISCOVERY_TOPIC_CHARACTERS]}
+                ],
             },
             "requirement": {
                 "acceptedSourceTypes": ["grounded_web"],

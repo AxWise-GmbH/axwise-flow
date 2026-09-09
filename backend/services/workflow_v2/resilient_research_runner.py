@@ -38,6 +38,9 @@ from backend.services.workflow_v2.exact_span_extractor import (
     ExactSpanExtractionResult,
     ExactSpanRequirementQuery,
 )
+from backend.services.workflow_v2.research_query_budgets import (
+    FALLBACK_DISCOVERY_TOPIC_CHARACTERS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +81,7 @@ _DISCOVERY_SECTION_BUDGETS = {
     "applicability": 300,
     "source classes": 160,
     "publishers": 650,
-    "topics": 200,
+    "topics": FALLBACK_DISCOVERY_TOPIC_CHARACTERS,
     "geography": 80,
 }
 _LOCATOR_STOP_WORDS = frozenset(
