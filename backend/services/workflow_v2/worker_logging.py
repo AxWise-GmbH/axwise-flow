@@ -7,6 +7,10 @@ import os
 import re
 from threading import RLock
 
+from backend.services.workflow_v2.research_diagnostics import (
+    sanitize_research_evidence_diagnostics,
+)
+
 
 LOGGER_NAME = "backend.services.workflow_v2.operation_worker"
 _HANDLER_NAME = "axwise-operation-state"
@@ -85,6 +89,13 @@ class _StateFieldsFilter(logging.Filter):
                     fields[key] = value
             elif key == "retryable" and type(value) is bool:
                 fields[key] = value
+            elif key == "evidenceDiagnostics" and state == "failed":
+                # Revalidate at the output boundary, including direct logger
+                # calls and mutated exception attributes. Only a committed
+                # failure state may carry these operator-only observations.
+                evidence = sanitize_research_evidence_diagnostics(value)
+                if evidence is not None:
+                    fields[key] = evidence
         record.args = (fields,)
         record.exc_info = record.exc_text = record.stack_info = None
         return True

@@ -2062,6 +2062,22 @@ Do NOT use vague language. Include actual facts from search results about {indus
             }
             if not has_grounded_evidence:
                 result["error"] = "MissingGroundingEvidence"
+                # A normalized Google source without a valid response support
+                # is not evidence. Retain only its canonical publisher URL as
+                # operation-local discovery metadata for an independent fetch;
+                # never retain unsupported prose, titles, snippets or claims.
+                # The existing chunk bound is a metadata bound, not permission
+                # to fetch more sources. The fallback applies owner admission
+                # and its smaller shared locator cap before any fetch.
+                locator_urls = list(
+                    dict.fromkeys(
+                        source["url"]
+                        for source in grounding_sources[:GEMINI_SEARCH_MAX_GROUNDING_CHUNKS]
+                        if _safe_resolved_https_url(source["url"]) is not None
+                    )
+                )
+                if locator_urls:
+                    result["_grounding_locator_urls"] = locator_urls
             model_version = _provider_model_version(response)
             if model_version is not None:
                 result["model_version"] = model_version
