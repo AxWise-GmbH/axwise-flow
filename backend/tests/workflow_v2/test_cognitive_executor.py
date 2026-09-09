@@ -2066,8 +2066,10 @@ def test_worker_readiness_requires_nonnegative_search_query_rate(
     assert cost_configuration_ready() is False
 
 
+@pytest.mark.parametrize("capability_flag", [None, "false", "true"])
 def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     monkeypatch: pytest.MonkeyPatch,
+    capability_flag,
 ) -> None:
     import backend.services.generative.searxng_search_service as searx_module
     import backend.services.workflow_v2.exact_span_extractor as extractor_module
@@ -2090,6 +2092,10 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
         return primaries[len(grounded_calls) - 1]
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    if capability_flag is None:
+        monkeypatch.delenv("AXWISE_CAPABILITY_GENERATORS_ENABLED", raising=False)
+    else:
+        monkeypatch.setenv("AXWISE_CAPABILITY_GENERATORS_ENABLED", capability_flag)
     monkeypatch.setenv("AXWISE_AUTHORITY_SEAL_KEY", "a" * 32)
     monkeypatch.setattr(
         cognitive_executor_module, "get_shared_workflow_model", lambda _key: model
@@ -2134,6 +2140,18 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     )
 
     executor = cognitive_executor_module.build_cognitive_executor(resolver)
+    if capability_flag == "true":
+        from backend.services.workflow_v2.capability_providers import (
+            GoogleAnalysisGenerator,
+            GoogleSimulationGenerator,
+        )
+        assert isinstance(executor.analysis_handler.generator, GoogleAnalysisGenerator)
+        assert isinstance(
+            executor.simulation_handler.service.generator, GoogleSimulationGenerator
+        )
+    else:
+        assert executor.analysis_handler.generator is None
+        assert executor.simulation_handler.service.generator is None
     assert executor.solution_preparer is solution_preparer
     assert executor.solution_preparer_v2 is native_solution_preparer
 

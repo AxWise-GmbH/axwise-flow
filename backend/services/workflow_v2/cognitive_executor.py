@@ -3682,6 +3682,13 @@ def build_cognitive_executor(
         raise RuntimeError("GEMINI_API_KEY is required")
     if not authority_key:
         raise RuntimeError("AXWISE_AUTHORITY_SEAL_KEY is required")
+    from backend.services.workflow_v2.capability_provider_config import (
+        capability_generator_options,
+    )
+
+    capability_generators = capability_generator_options(
+        os.getenv("AXWISE_CAPABILITY_GENERATORS_ENABLED"), api_key
+    )
     model = get_shared_workflow_model(api_key)
     research_runner = ResilientResearchRunner(
         GeminiGroundedResearchRunner(api_key),
@@ -3718,4 +3725,5 @@ def build_cognitive_executor(
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
         solution_preparer=PydanticAISolutionPreparer(model),
         solution_preparer_v2=PydanticAINativeSolutionPreparer(model),
+        **capability_generators,
     )
