@@ -132,7 +132,10 @@ def test_exact_live_fixture_has_complete_fallback_and_identical_primary_request(
     assert previous_context is not None and previous_context.query_complete is False
     assert query.splitlines()[0] == previous.splitlines()[0]
     assert authority["requirement"] == previous_authority["requirement"]
-    assert len(context.discovery_query) == len(previous_context.discovery_query) == 772
+    assert context.discovery_query == previous_context.discovery_query == (
+        "site:docs.n8n.io " + LIVE_FIXTURE
+    )
+    assert len(context.discovery_query) == 513
 
 
 @pytest.mark.parametrize("length", [199, 200, 201, 300, 560])

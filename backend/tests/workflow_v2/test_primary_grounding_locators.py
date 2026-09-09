@@ -290,7 +290,8 @@ async def test_real_normalization_recovers_only_after_fresh_fetch_and_exact_span
     assert fixture.provider._search_max_attempts == GEMINI_SEARCH_MAX_ATTEMPTS == 3
     assert runner.maximum_candidates == _MAX_REUSABLE_SOURCE_CANDIDATES == 3
     assert _fallback_context(query).query_complete is True
-    assert LIVE_FIXTURE in searx.queries[0] and len(searx.queries[0]) == 772
+    assert searx.queries[0] == "site:docs.n8n.io " + LIVE_FIXTURE
+    assert len(searx.queries[0]) == 513
     assert all(call["contents"] == query for call in fixture.models.calls)
     assert all(
         call["config"].http_options.retry_options.attempts == 1

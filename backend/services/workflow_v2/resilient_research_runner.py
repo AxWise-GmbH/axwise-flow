@@ -814,52 +814,69 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
     if authority_candidates is None:
         return None
 
-    # Put the bounded publisher restriction first without dropping/rephrasing
-    # any section. Each field keeps its independent budget, so a maximal topic
-    # list cannot erase the requirement, applicability or publisher gate. This
-    # ordering is a discovery hint, never a substitute for URL admission below.
-    rendered_sections = []
+    # Each original section keeps its independent completeness check. Query
+    # rendering is a discovery hint, never a substitute for source admission or
+    # the complete requirement retained for extraction below.
+    publisher_sections = []
     if allowed_hosts:
-        rendered_sections.append(
+        publisher_sections.append(
             _bounded_query_term(
                 " ".join(f"site:{host}" for host in allowed_hosts),
                 maximum=_DISCOVERY_SECTION_BUDGETS["publishers"],
             )
         )
-    rendered_sections.extend(
-        [
-            _bounded_query_term(
-                description,
-                maximum=_DISCOVERY_SECTION_BUDGETS["requirement"],
-            ),
-            _bounded_query_term(
-                applies_when_query,
-                maximum=_DISCOVERY_SECTION_BUDGETS["applicability"],
-            ),
-        ]
+    description_section = _bounded_query_term(
+        description, maximum=_DISCOVERY_SECTION_BUDGETS["requirement"]
     )
-    rendered_sections.append(
-        _bounded_query_term(
-            " ".join(anchors),
-            maximum=_DISCOVERY_SECTION_BUDGETS["topics"],
-        )
+    applicability_section = _bounded_query_term(
+        applies_when_query, maximum=_DISCOVERY_SECTION_BUDGETS["applicability"]
     )
+    topics_section = _bounded_query_term(
+        " ".join(anchors), maximum=_DISCOVERY_SECTION_BUDGETS["topics"]
+    )
+    geography_sections = []
     if geography:
-        rendered_sections.append(
+        geography_sections.append(
             _bounded_query_term(
                 " ".join(geography),
                 maximum=_DISCOVERY_SECTION_BUDGETS["geography"],
             )
         )
+    original_sections = [
+        *publisher_sections, description_section, applicability_section,
+        topics_section, *geography_sections,
+    ]
+    query_complete = input_complete and all(
+        complete for _section, complete in original_sections
+    )
+    rendered_sections = original_sections
+    if (
+        requirement.get("id") == "assistant-one-shot"
+        and requirement.get("claimType") == "assistant_one_shot"
+    ):
+        # The Assistant profile uses a prefix of its own request as an anchor
+        # and a fixed orchestration sentence as applicability. Neither adds a
+        # search concept. Remove only exact redundancy, with no summarization,
+        # stop-word policy, extra query, or change to canonical authority. An
+        # anchor in a truncated-away tail is not redundant in the actual query.
+        independent_anchors = [
+            anchor for anchor in anchors if anchor not in description_section[0]
+        ]
+        rendered_sections = [*publisher_sections, description_section]
+        if applies_when_query != "Answering the current bounded one-shot Assistant request.":
+            rendered_sections.append(applicability_section)
+        if independent_anchors:
+            rendered_sections.append(_bounded_query_term(
+                " ".join(independent_anchors),
+                maximum=_DISCOVERY_SECTION_BUDGETS["topics"],
+            ))
+        rendered_sections.extend(geography_sections)
     # Search engines interpret field-like prefixes such as ``requirement:`` as
     # query operators or generic dictionary terms. Keep the server-owned
     # structure in the canonical payload, but send discovery a natural query.
     # Source classes remain an enforcement filter after fetch; words such as
     # ``primary_law`` are not useful public-search terms.
     discovery_query = " ".join(term for term, _complete in rendered_sections)
-    query_complete = input_complete and all(
-        complete for _section, complete in rendered_sections
-    )
     if len(discovery_query) > _MAX_DISCOVERY_QUERY_CHARACTERS:
         raise AssertionError("discovery section budgets exceed the query bound")
     return _FallbackContext(
