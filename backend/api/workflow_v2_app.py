@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from backend.api.routes.workflow_v2_operations import (
     canonical_service_origin,
@@ -37,6 +40,37 @@ app = FastAPI(
     openapi_url=None,
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def capability_validation_error(request: Request, error: RequestValidationError):
+    """Do not echo newly supplied transcript content in validation errors.
+
+    Existing operations retain their historical FastAPI error response. New
+    capability errors deliberately expose neither model input nor dynamic keys.
+    """
+    body = error.body
+    capability_types = {"AdmitTranscriptCorpusV1", "AnalyzeEvidenceV1", "SimulateV1"}
+    operation_type = body.get("operationType") if type(body) is dict else None
+    input_value = body.get("input") if type(body) is dict else None
+    input_type = input_value.get("type") if type(input_value) is dict else None
+    if any(
+        type(value) is str and value in capability_types
+        for value in (operation_type, input_type)
+    ):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": [
+                    {
+                        "loc": ["body"],
+                        "msg": "Invalid bounded capability operation input",
+                        "type": "value_error.capability_input",
+                    }
+                ]
+            },
+        )
+    return await request_validation_exception_handler(request, error)
 
 
 @app.get("/healthz", include_in_schema=False)

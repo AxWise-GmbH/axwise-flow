@@ -8,7 +8,7 @@ import unicodedata
 from datetime import datetime
 from typing import Annotated, Any, Literal, Union
 from urllib.parse import urlsplit
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 import rfc8785
 from pydantic import (
@@ -26,6 +26,24 @@ from backend.domain.workflow_v2.wire import (
     canonical_hash,
     canonical_json,
     utf16_ordinal_sorted,
+)
+from backend.domain.workflow_v2.capability_limits import (
+    CapabilityLimitsV1,
+    validate_capability_structure,
+)
+from backend.domain.workflow_v2.qualitative_analysis import (
+    AnalysisRequestV1,
+    QualitativeAnalysisV1,
+    validate_analysis_request,
+)
+from backend.domain.workflow_v2.simulation import SimulationRequestV1, SimulationV1
+from backend.domain.workflow_v2.transcript_corpus import (
+    CorpusArtifactRefV1,
+    TranscriptCorpusV1,
+    _FrozenCorpusModel,
+    _Sha256,
+    _ordered_sequence,
+    validate_transcript_corpus,
 )
 
 Sha256 = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
@@ -2703,6 +2721,151 @@ class PrepareSolutionResponseV2(NativeContractV2):
         return self
 
 
+MAX_CAPABILITY_INPUT_BYTES = 1_000_000
+MAX_ADMISSION_ORIGIN_ARTIFACTS = 16
+
+
+def _capability_input_bytes(value: ContractModel) -> None:
+    payload = value.model_dump(mode="json", by_alias=True)
+    if len(canonical_json(payload).encode("utf-8")) > MAX_CAPABILITY_INPUT_BYTES:
+        raise ValueError("capability input exceeds its aggregate wire-byte limit")
+
+
+class AdmitTranscriptCorpusInputV1(_FrozenCorpusModel):
+    """Freeze supplied material; origin is acquisition metadata, not human proof."""
+
+    type: Literal["AdmitTranscriptCorpusV1"]
+    corpus: TranscriptCorpusV1
+    admission_profile: Literal["supplied_transcript_v1"]
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def bounded_input_structure(cls, value: Any) -> Any:
+        validate_capability_structure(value)
+        return value
+
+    @model_validator(mode="after")
+    def exact_admission_input(self) -> "AdmitTranscriptCorpusInputV1":
+        corpus = validate_transcript_corpus(self.corpus)
+        references: dict[UUID, tuple[str, str]] = {}
+        for document in corpus.documents:
+            for reference in document.origin_artifact_refs:
+                identity = (reference.artifact_hash, reference.kind)
+                if (
+                    reference.artifact_id in references
+                    and references[reference.artifact_id] != identity
+                ):
+                    raise ValueError("origin artifact identity cannot conflict")
+                references[reference.artifact_id] = identity
+        if len(references) > MAX_ADMISSION_ORIGIN_ARTIFACTS:
+            raise ValueError("admission exceeds its aggregate origin-artifact limit")
+        _capability_input_bytes(self)
+        return self
+
+
+class AnalyzeEvidenceInputV1(_FrozenCorpusModel):
+    """Explicit qualitative analysis of one already-admitted transcript corpus."""
+
+    type: Literal["AnalyzeEvidenceV1"]
+    accepted_scope: ArtifactRef
+    scope: ScopeArtifactV2
+    source: ImmutableArtifactContent
+    request: AnalysisRequestV1
+    limits: CapabilityLimitsV1
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def bounded_input_structure(cls, value: Any) -> Any:
+        validate_capability_structure(value)
+        return value
+
+    @model_validator(mode="after")
+    def exact_analysis_input(self) -> "AnalyzeEvidenceInputV1":
+        if self.accepted_scope.kind != "scope":
+            raise ValueError("analysis requires an accepted scope artifact")
+        if (
+            self.source.artifact.kind not in {"transcript_corpus", "simulation"}
+            or self.source.content_type != "application/json"
+            or self.source.payload is None
+        ):
+            raise ValueError("qualitative_v1 requires an admitted corpus or typed simulation artifact")
+        source = ImmutableArtifactContent.model_validate(
+            self.source.model_dump(mode="json", by_alias=True)
+        )
+        corpus = (
+            SimulationV1.model_validate(source.payload).corpus
+            if source.artifact.kind == "simulation"
+            else validate_transcript_corpus(source.payload)
+        )
+        validate_analysis_request(self.request, corpus)
+        ScopeArtifactV2.model_validate(self.scope.model_dump(mode="json", by_alias=True))
+        if self.accepted_scope.artifact_id == source.artifact.artifact_id:
+            raise ValueError("scope and corpus artifacts must be distinct")
+        _capability_input_bytes(self)
+        return self
+
+
+class SimulationGroundingSelectionV1(_FrozenCorpusModel):
+    """Exact source entry identity; raw passage text is resolved by the worker."""
+
+    artifact: CorpusArtifactRefV1
+    entry_kind: Literal["claim", "quote"]
+    entry_id: _Sha256
+
+
+class SimulateInputV1(_FrozenCorpusModel):
+    type: Literal["SimulateV1"]
+    accepted_scope: ArtifactRef
+    scope: ScopeArtifactV2
+    request: SimulationRequestV1
+    selected_grounding: tuple[SimulationGroundingSelectionV1, ...] = Field(max_length=16)
+    limits: CapabilityLimitsV1
+    execution_agent: ExecutionAgentV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+    _selections = field_validator("selected_grounding", mode="before")(_ordered_sequence)
+
+    @model_validator(mode="before")
+    @classmethod
+    def bounded_input_structure(cls, value: Any) -> Any:
+        validate_capability_structure(value)
+        return value
+
+    @model_validator(mode="after")
+    def exact_simulation_input(self) -> "SimulateInputV1":
+        if self.accepted_scope.kind != "scope":
+            raise ValueError("simulation requires an accepted scope artifact")
+        ScopeArtifactV2.model_validate(self.scope.model_dump(mode="json", by_alias=True))
+        expected = {ref.artifact_id: ref for ref in self.request.grounding.source_artifacts}
+        if self.accepted_scope.artifact_id in expected:
+            raise ValueError("scope and simulation grounding artifacts must be distinct")
+        used, keys = set(), set()
+        for selection in self.selected_grounding:
+            reference = selection.artifact
+            if expected.get(reference.artifact_id) != reference:
+                raise ValueError("selected grounding must match an exact requested artifact")
+            if (reference.kind, selection.entry_kind) not in {
+                ("research", "claim"), ("qualitative_analysis", "quote")
+            }:
+                raise ValueError("simulation grounding supports research claims or analysis quotes only")
+            key = (reference.artifact_id, selection.entry_kind, selection.entry_id)
+            if key in keys:
+                raise ValueError("simulation grounding selections must be unique")
+            keys.add(key)
+            used.add(reference.artifact_id)
+        if used != set(expected):
+            raise ValueError("every requested grounding artifact requires an explicit entry selection")
+        _capability_input_bytes(self)
+        return self
+
+
 OperationInput = Annotated[
     Union[
         AssistantTurnInputV1,
@@ -2713,6 +2876,9 @@ OperationInput = Annotated[
         ReviseScopeInputV2,
         ExecuteResearchInputV2,
         SynthesizeArtifactInputV1,
+        AdmitTranscriptCorpusInputV1,
+        AnalyzeEvidenceInputV1,
+        SimulateInputV1,
     ],
     Field(discriminator="type"),
 ]
@@ -2741,6 +2907,9 @@ class AxWiseOperationEnvelope(ContractModel):
         "ReviseScopeV2",
         "ExecuteResearchV2",
         "SynthesizeArtifactV1",
+        "AdmitTranscriptCorpusV1",
+        "AnalyzeEvidenceV1",
+        "SimulateV1",
     ]
     owner: OperationOwner
     workflow: WorkflowReference
@@ -2895,6 +3064,62 @@ class EvaluationArtifactFact(ArtifactFact):
         return self
 
 
+class TranscriptCorpusArtifactFact(ArtifactFact):
+    kind: Literal["transcript_corpus"]
+    content_type: Literal["application/json"] = "application/json"
+
+    @model_validator(mode="after")
+    def exact_corpus_fact(self) -> "TranscriptCorpusArtifactFact":
+        corpus = validate_transcript_corpus(self.payload)
+        expected = sorted(
+            {
+                reference.artifact_id
+                for document in corpus.documents
+                for reference in document.origin_artifact_refs
+            },
+            key=str,
+        )
+        if self.source_artifact_ids != expected:
+            raise ValueError("corpus artifact lineage must equal its origin references")
+        return self
+
+
+class QualitativeAnalysisArtifactFact(ArtifactFact):
+    kind: Literal["qualitative_analysis"]
+    content_type: Literal["application/json"] = "application/json"
+
+    @model_validator(mode="after")
+    def exact_analysis_fact(self) -> "QualitativeAnalysisArtifactFact":
+        payload = QualitativeAnalysisV1.model_validate(self.payload)
+        expected = sorted(
+            {payload.accepted_scope.artifact_id}
+            | {reference.artifact_id for reference in payload.source_artifacts},
+            key=str,
+        )
+        if self.source_artifact_ids != expected:
+            raise ValueError("analysis artifact lineage must equal its scope and sources")
+        return self
+
+
+class SimulationArtifactFact(ArtifactFact):
+    kind: Literal["simulation"]
+    content_type: Literal["application/json"] = "application/json"
+
+    @model_validator(mode="after")
+    def exact_simulation_fact(self) -> "SimulationArtifactFact":
+        payload = SimulationV1.model_validate(self.payload)
+        if self.artifact_id != uuid5(NAMESPACE_URL, f"axwise:{payload.operation_id}:simulation"):
+            raise ValueError("simulation artifact ID must bind its producing operation")
+        expected = sorted(
+            {payload.accepted_scope.artifact_id}
+            | {reference.artifact_id for reference in payload.source_artifacts},
+            key=str,
+        )
+        if self.source_artifact_ids != expected:
+            raise ValueError("simulation artifact lineage must equal its scope and sources")
+        return self
+
+
 class OperationMetrics(ContractModel):
     latency_ms: int = Field(ge=0)
     provider: Literal["google"] | None = None
@@ -2908,6 +3133,42 @@ class OperationMetrics(ContractModel):
     total_tokens: int | None = Field(default=None, ge=0)
     search_calls: int | None = Field(default=None, ge=0)
     estimated_cost_micros: int | None = Field(default=None, ge=0)
+
+
+class CapabilityOperationMetrics(OperationMetrics):
+    """Explicit capability invocation accounting; old metrics schemas stay intact."""
+
+    model_calls: int = Field(strict=True, ge=0, le=32)
+    usage_complete: bool = Field(strict=True)
+    budget_scope: Literal["invocation"]
+    input_tokens: int | None = Field(default=None, strict=True, ge=0, le=2_000_000)
+    output_tokens: int | None = Field(default=None, strict=True, ge=0, le=2_000_000)
+    total_tokens: int | None = Field(default=None, strict=True, ge=0, le=4_000_000)
+    search_calls: int | None = Field(default=None, strict=True, ge=0)
+    estimated_cost_micros: int | None = Field(default=None, strict=True, ge=0, le=9_007_199_254_740_991)
+
+    @model_validator(mode="after")
+    def exact_capability_metrics(self) -> "CapabilityOperationMetrics":
+        known = self.input_tokens is not None and self.output_tokens is not None
+        if self.usage_complete != known:
+            raise ValueError("capability usage completeness must match token receipts")
+        expected_total = self.input_tokens + self.output_tokens if known else None
+        if self.total_tokens != expected_total:
+            raise ValueError("capability total tokens must equal its known receipts")
+        if not known and self.estimated_cost_micros is not None:
+            raise ValueError("unknown capability token usage cannot establish a token cost")
+        if self.search_calls != 0:
+            raise ValueError("these capability invocations do not perform source search")
+        if self.model_calls == 0 and (
+            not known
+            or expected_total != 0
+            or any(value is not None for value in (self.provider, self.model, self.model_version))
+        ):
+            raise ValueError("model-free capability metrics must not claim model work")
+        for value in (self.model, self.model_version):
+            if value is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", value):
+                raise ValueError("capability model identifiers must be safe bounded tokens")
+        return self
 
 
 class AssistantSourceV1(ContractModel):
@@ -3049,6 +3310,42 @@ class EvaluationCompletedResult(ContractModel):
         return self
 
 
+class TranscriptCorpusAdmittedResult(ContractModel):
+    result_type: Literal["transcript_corpus_admitted"]
+    artifact: TranscriptCorpusArtifactFact
+    metrics: CapabilityOperationMetrics | None = None
+
+    @model_validator(mode="after")
+    def model_free_admission(self) -> "TranscriptCorpusAdmittedResult":
+        if self.metrics is not None and self.metrics.model_calls != 0:
+            raise ValueError("corpus admission cannot claim a model generation")
+        return self
+
+
+class EvidenceAnalyzedResult(ContractModel):
+    result_type: Literal["evidence_analyzed"]
+    artifact: QualitativeAnalysisArtifactFact
+    metrics: CapabilityOperationMetrics | None = None
+
+    @model_validator(mode="after")
+    def generation_receipt(self) -> "EvidenceAnalyzedResult":
+        if self.metrics is not None and self.metrics.model_calls < 1:
+            raise ValueError("analysis completion requires its generation receipt")
+        return self
+
+
+class SimulationCompletedResult(ContractModel):
+    result_type: Literal["simulation_completed"]
+    artifact: SimulationArtifactFact
+    metrics: CapabilityOperationMetrics | None = None
+
+    @model_validator(mode="after")
+    def generation_receipt(self) -> "SimulationCompletedResult":
+        if self.metrics is not None and self.metrics.model_calls < 1:
+            raise ValueError("simulation completion requires its generation receipt")
+        return self
+
+
 CompletionResult = Annotated[
     Union[
         AssistantTurnCompletedResult,
@@ -3058,6 +3355,9 @@ CompletionResult = Annotated[
         TaskCompletedResult,
         EvaluationCompletedResult,
         ArtifactSynthesizedResult,
+        TranscriptCorpusAdmittedResult,
+        EvidenceAnalyzedResult,
+        SimulationCompletedResult,
     ],
     Field(discriminator="result_type"),
 ]

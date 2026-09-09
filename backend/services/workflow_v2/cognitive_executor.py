@@ -20,6 +20,8 @@ from backend.domain.workflow_v2.contracts import (
     ASSISTANT_CONTEXT_TRUNCATION_MARKER,
     AcceptedDeliverableProfileV1,
     AcceptedDeliverableRequirementV1,
+    AdmitTranscriptCorpusInputV1,
+    AnalyzeEvidenceInputV1,
     ArtifactFact,
     ArtifactRef,
     ArtifactSynthesizedResult,
@@ -55,6 +57,7 @@ from backend.domain.workflow_v2.contracts import (
     ScopeArtifactV2,
     ScopeAuthority,
     ScopeCompiledResult,
+    SimulateInputV1,
     SelectedEvidenceArtifactV1,
     SourceAppendixEntryV1,
     SourceSpan,
@@ -84,6 +87,12 @@ from backend.services.workflow_v2.assistant import (
     PydanticAIConversationalAssistantRunner,
 )
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+from backend.services.workflow_v2.analysis_service import (
+    AnalysisGenerator,
+    AnalysisOperationHandler,
+)
+from backend.services.workflow_v2.simulation_operation_handler import SimulationOperationHandler
+from backend.services.workflow_v2.simulation_service import SimulationGenerator
 from backend.services.workflow_v2.solution_preparation import (
     PydanticAINativeSolutionPreparer,
     PydanticAISolutionPreparer,
@@ -1588,6 +1597,8 @@ class GeminiCognitiveExecutor:
         assistant_chat_runner: ResearchRunner | None = None,
         solution_preparer: PydanticAISolutionPreparer | None = None,
         solution_preparer_v2: PydanticAINativeSolutionPreparer | None = None,
+        analysis_generator: AnalysisGenerator | None = None,
+        simulation_generator: SimulationGenerator | None = None,
     ) -> None:
         if len(authority_key) < 32:
             raise RuntimeError(
@@ -1603,6 +1614,16 @@ class GeminiCognitiveExecutor:
         self.assistant_chat_runner = assistant_chat_runner
         self.solution_preparer = solution_preparer
         self.solution_preparer_v2 = solution_preparer_v2
+        self.analysis_handler = AnalysisOperationHandler(
+            artifact_resolver=artifact_resolver,
+            verify_scope_authority=self._verify_scope_authority,
+            generator=analysis_generator,
+        )
+        self.simulation_handler = SimulationOperationHandler(
+            artifact_resolver=artifact_resolver,
+            verify_scope_authority=self._verify_scope_authority,
+            generator=simulation_generator,
+        )
         self.assistant_turn_service = AssistantTurnService(
             grounded_runner=assistant_runner,
             conversational_runner=assistant_chat_runner,
@@ -1637,7 +1658,9 @@ class GeminiCognitiveExecutor:
         except asyncio.TimeoutError as error:
             raise CognitiveExecutionFailure(
                 "AXWISE_OPERATION_DEADLINE",
-                retryable=envelope.operation_type != "PrepareSolutionV2",
+                retryable=envelope.operation_type not in {
+                    "PrepareSolutionV2", "AdmitTranscriptCorpusV1", "AnalyzeEvidenceV1", "SimulateV1"
+                },
             ) from error
         latency_ms = max(1, round((time.monotonic() - started) * 1000))
         metrics = result.metrics or OperationMetrics(latency_ms=latency_ms)
@@ -1646,6 +1669,18 @@ class GeminiCognitiveExecutor:
         )
 
     async def _execute_operation(self, envelope: AxWiseOperationEnvelope):
+        if envelope.operation_type == "SimulateV1":
+            if not isinstance(envelope.input, SimulateInputV1):
+                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+            return await self.simulation_handler.execute(envelope)
+        if envelope.operation_type == "AdmitTranscriptCorpusV1":
+            if not isinstance(envelope.input, AdmitTranscriptCorpusInputV1):
+                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+            return await self.analysis_handler.admit(envelope)
+        if envelope.operation_type == "AnalyzeEvidenceV1":
+            if not isinstance(envelope.input, AnalyzeEvidenceInputV1):
+                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+            return await self.analysis_handler.analyze(envelope)
         if envelope.operation_type == "PrepareSolutionV2":
             if not isinstance(envelope.input, PrepareSolutionInputV2):
                 raise CognitiveExecutionFailure(
