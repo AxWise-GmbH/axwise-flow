@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
-import json
 import math
 import re
 import unicodedata
@@ -13,13 +12,20 @@ from uuid import UUID
 
 import rfc8785
 from pydantic import (
-    BaseModel,
-    ConfigDict,
     Field,
     StringConstraints,
     field_validator,
     model_serializer,
     model_validator,
+)
+
+from backend.domain.workflow_v2.wire import (
+    ContractModel,
+    StrictWireContractModel,
+    _camel,
+    canonical_hash,
+    canonical_json,
+    utf16_ordinal_sorted,
 )
 
 Sha256 = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
@@ -45,9 +51,7 @@ Text4000 = Annotated[str, StringConstraints(min_length=1, max_length=4000)]
 RequirementId = Annotated[
     str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9_-]{0,119}$")
 ]
-SemanticRequirementId = Annotated[
-    str, StringConstraints(pattern=r"^req-[a-f0-9]{16}$")
-]
+SemanticRequirementId = Annotated[str, StringConstraints(pattern=r"^req-[a-f0-9]{16}$")]
 SemanticAcceptanceCriterionId = Annotated[
     str, StringConstraints(pattern=r"^acc-[a-f0-9]{16}$")
 ]
@@ -72,10 +76,7 @@ PlanRequirementCategoryV2 = Literal[
 Rfc3339Utc = Annotated[
     str,
     StringConstraints(
-        pattern=(
-            r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
-            r"(?:\.\d{1,6})?Z$"
-        )
+        pattern=(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}" r"(?:\.\d{1,6})?Z$")
     ),
 ]
 EvidenceSourceType = Literal[
@@ -87,85 +88,6 @@ EvidenceSourceType = Literal[
     "standard",
     "industry",
 ]
-
-
-def _camel(name: str) -> str:
-    head, *tail = name.split("_")
-    return head + "".join(part.capitalize() for part in tail)
-
-
-class ContractModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=_camel,
-        populate_by_name=True,
-        extra="forbid",
-    )
-
-
-class StrictWireContractModel(ContractModel):
-    @model_validator(mode="before")
-    @classmethod
-    def camel_case_wire_keys_only(cls, value: object) -> object:
-        if not isinstance(value, dict):
-            return value
-        for field_name, field in cls.model_fields.items():
-            alias = field.alias
-            if alias and alias != field_name and field_name in value:
-                raise ValueError(f"wire field {field_name!r} must use alias {alias!r}")
-        return value
-
-
-def canonical_json(value: Any) -> str:
-    """Return the AxWise/Orqaly ``canonical-v1`` JSON representation.
-
-    ``canonical-v1`` deliberately supports the JSON subset used by workflow
-    contracts: null, booleans, strings, safe integers, arrays and objects.
-    Object keys are ordered by UTF-16 code units, matching JavaScript's stable
-    ordinal string ordering. Floats are rejected so Python and JavaScript can
-    never disagree about exponent, trailing-zero, negative-zero or precision
-    rendering.
-    """
-
-    if value is None or isinstance(value, bool):
-        return "null" if value is None else ("true" if value else "false")
-    if isinstance(value, int) and not isinstance(value, bool):
-        if abs(value) > 9_007_199_254_740_991:
-            raise TypeError("canonical JSON integers must be JavaScript-safe")
-        return str(value)
-    if isinstance(value, float):
-        raise TypeError("canonical JSON rejects floating-point numbers")
-    if isinstance(value, str):
-        try:
-            value.encode("utf-8")
-        except UnicodeEncodeError as error:
-            raise TypeError("canonical JSON rejects unpaired UTF-16 surrogates") from error
-        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-    if type(value) is list:
-        return "[" + ",".join(canonical_json(item) for item in value) + "]"
-    if type(value) is dict:
-        if any(not isinstance(key, str) for key in value):
-            raise TypeError("canonical JSON object keys must be strings")
-        keys = utf16_ordinal_sorted(value)
-        return "{" + ",".join(
-            f"{canonical_json(key)}:{canonical_json(value[key])}" for key in keys
-        ) + "}"
-    raise TypeError(f"canonical JSON does not support {type(value).__name__}")
-
-
-def utf16_ordinal_sorted(values: Any) -> list[str]:
-    normalized = list(values)
-    for value in normalized:
-        if not isinstance(value, str):
-            raise TypeError("UTF-16 ordinal sorting requires strings")
-        try:
-            value.encode("utf-8")
-        except UnicodeEncodeError as error:
-            raise TypeError("UTF-16 ordinal sorting rejects unpaired surrogates") from error
-    return sorted(normalized, key=lambda value: value.encode("utf-16-be"))
-
-
-def canonical_hash(value: Any) -> str:
-    return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
 def is_canonical_public_https_url(value: str) -> bool:
@@ -297,9 +219,7 @@ class EvidenceRequirement(ContractModel):
             else "selected_evidence"
         )
         if self.verification_basis != expected_basis:
-            raise ValueError(
-                "evidenceRole must use its exact typed verificationBasis"
-            )
+            raise ValueError("evidenceRole must use its exact typed verificationBasis")
         if self.accepted_source_types != utf16_ordinal_sorted(
             set(self.accepted_source_types)
         ):
@@ -322,16 +242,13 @@ class EvidenceRequirement(ContractModel):
             if not is_canonical_public_https_url(f"https://{host}"):
                 raise ValueError("allowed source host must be public and canonical")
             labels = host.split(".")
-            if (
-                len(labels) < 2
-                or any(
-                    not label
-                    or len(label) > 63
-                    or not label[0].isalnum()
-                    or not label[-1].isalnum()
-                    or any(not char.isalnum() and char != "-" for char in label)
-                    for label in labels
-                )
+            if len(labels) < 2 or any(
+                not label
+                or len(label) > 63
+                or not label[0].isalnum()
+                or not label[-1].isalnum()
+                or any(not char.isalnum() and char != "-" for char in label)
+                for label in labels
             ):
                 raise ValueError("allowed source host is not canonical")
         return self
@@ -365,7 +282,9 @@ class AcceptedDeliverableProfileV1(ContractModel):
             ("requiredSections", self.required_sections),
         ):
             if values != utf16_ordinal_sorted(set(values)):
-                raise ValueError(f"deliverable-profile {name} must be sorted and unique")
+                raise ValueError(
+                    f"deliverable-profile {name} must be sorted and unique"
+                )
         return self
 
 
@@ -422,7 +341,9 @@ class ScopeArtifactV2(ContractModel):
         min_length=1, max_length=120
     )
     assumptions: list[Text1000] = Field(default_factory=list, max_length=24)
-    material_clarification: str | None = Field(default=None, min_length=1, max_length=1000)
+    material_clarification: str | None = Field(
+        default=None, min_length=1, max_length=1000
+    )
     research_input_hash: Sha256
     authority: ScopeAuthority
 
@@ -434,7 +355,9 @@ class ScopeArtifactV2(ContractModel):
         requirement_ids = [item.id for item in self.requirements]
         criterion_ids = [item.id for item in self.acceptance_criteria]
         if requirement_ids != utf16_ordinal_sorted(set(requirement_ids)):
-            raise ValueError("deliverable requirements must be sorted by unique semantic ID")
+            raise ValueError(
+                "deliverable requirements must be sorted by unique semantic ID"
+            )
         if criterion_ids != utf16_ordinal_sorted(set(criterion_ids)):
             raise ValueError(
                 "deliverable acceptance criteria must be sorted by unique semantic ID"
@@ -450,13 +373,16 @@ class ScopeArtifactV2(ContractModel):
             )
         expected_descriptions = sorted(
             [
-                *(('deliverable', value) for value in self.deliverables),
-                *(('persona', value) for value in self.personas),
-                *(('interview', value) for value in self.interview_requirements),
-                *(('prd', value) for value in self.prd_requirements),
-                *(('limit', value) for value in self.limits),
-                *(('policy', value) for value in self.policies),
-                *(('evidence', value.description) for value in self.evidence_requirements),
+                *(("deliverable", value) for value in self.deliverables),
+                *(("persona", value) for value in self.personas),
+                *(("interview", value) for value in self.interview_requirements),
+                *(("prd", value) for value in self.prd_requirements),
+                *(("limit", value) for value in self.limits),
+                *(("policy", value) for value in self.policies),
+                *(
+                    ("evidence", value.description)
+                    for value in self.evidence_requirements
+                ),
             ],
             key=lambda item: (item[0].encode("utf-16-be"), item[1].encode("utf-16-be")),
         )
@@ -483,9 +409,9 @@ class EvidenceClaimV1(ContractModel):
     claim_id: Sha256
     text: str = Field(min_length=1, max_length=12_000)
     text_sha256: Sha256
-    source_urls: list[Annotated[str, StringConstraints(min_length=1, max_length=4000)]] = Field(
-        min_length=1, max_length=20
-    )
+    source_urls: list[
+        Annotated[str, StringConstraints(min_length=1, max_length=4000)]
+    ] = Field(min_length=1, max_length=20)
     source_types: list[EvidenceSourceType] = Field(min_length=1, max_length=7)
     provider_response_hash: Sha256 | None = None
     segment_start: int | None = Field(default=None, ge=0)
@@ -495,7 +421,9 @@ class EvidenceClaimV1(ContractModel):
     @model_validator(mode="after")
     def exact_claim_identity(self) -> "EvidenceClaimV1":
         if any(not is_canonical_public_https_url(url) for url in self.source_urls):
-            raise ValueError("evidence claim source URLs must be canonical public HTTPS")
+            raise ValueError(
+                "evidence claim source URLs must be canonical public HTTPS"
+            )
         if self.source_urls != utf16_ordinal_sorted(set(self.source_urls)):
             raise ValueError("claim source URLs must be sorted and unique")
         if self.source_types != utf16_ordinal_sorted(set(self.source_types)):
@@ -531,13 +459,17 @@ class EvidenceAcquisitionPassV1(ContractModel):
     provider_response_hash: Sha256
     provider_response_text: str = Field(max_length=200_000)
     claims: list[EvidenceClaimV1] = Field(default_factory=list, max_length=50)
-    source_types_seen: list[EvidenceSourceType] = Field(default_factory=list, max_length=7)
+    source_types_seen: list[EvidenceSourceType] = Field(
+        default_factory=list, max_length=7
+    )
 
     @model_validator(mode="after")
     def exact_provider_provenance(self) -> "EvidenceAcquisitionPassV1":
         response_bytes = self.provider_response_text.encode("utf-8")
         if hashlib.sha256(response_bytes).hexdigest() != self.provider_response_hash:
-            raise ValueError("provider response hash does not match stored acquisition text")
+            raise ValueError(
+                "provider response hash does not match stored acquisition text"
+            )
         if self.source_types_seen != utf16_ordinal_sorted(set(self.source_types_seen)):
             raise ValueError("sourceTypesSeen must be unique and UTF-16 ordinal sorted")
         claim_ids: set[str] = set()
@@ -551,11 +483,17 @@ class EvidenceAcquisitionPassV1(ContractModel):
                 or claim.segment_end is None
                 or claim.offset_unit != "utf8_bytes"
             ):
-                raise ValueError("acquisition claim must bind an exact provider response span")
+                raise ValueError(
+                    "acquisition claim must bind an exact provider response span"
+                )
             try:
-                segment = response_bytes[claim.segment_start : claim.segment_end].decode("utf-8")
+                segment = response_bytes[
+                    claim.segment_start : claim.segment_end
+                ].decode("utf-8")
             except UnicodeDecodeError as error:
-                raise ValueError("acquisition claim span splits a UTF-8 sequence") from error
+                raise ValueError(
+                    "acquisition claim span splits a UTF-8 sequence"
+                ) from error
             if segment != claim.text:
                 raise ValueError("acquisition claim span does not match claim text")
         return self
@@ -629,7 +567,9 @@ def _validate_source_catalogue(
     for claim in claims:
         prior = claim_by_id.get(claim.claim_id)
         if prior is not None and prior != claim:
-            raise ValueError("duplicate claim IDs must have identical immutable content")
+            raise ValueError(
+                "duplicate claim IDs must have identical immutable content"
+            )
         claim_by_id[claim.claim_id] = claim
     covered_pairs: set[tuple[str, str]] = set()
     for source in sources:
@@ -659,18 +599,24 @@ class ResearchResultV2(ContractModel):
     gaps: list[Text2000] = Field(max_length=80)
     conflicts: list[Text2000] = Field(max_length=80)
     claim_ledger_artifact_id: UUID
-    claim_ledger: list[EvidenceAcquisitionPassV1] = Field(default_factory=list, max_length=160)
+    claim_ledger: list[EvidenceAcquisitionPassV1] = Field(
+        default_factory=list, max_length=160
+    )
     selected_claims: list[EvidenceClaimV1] = Field(max_length=400)
     source_catalogue: list[ResearchSourceV1] = Field(max_length=400)
 
     @model_validator(mode="after")
     def readiness_consistency(self) -> "ResearchResultV2":
-        if len({finding.requirement_id for finding in self.findings}) != len(self.findings):
+        if len({finding.requirement_id for finding in self.findings}) != len(
+            self.findings
+        ):
             raise ValueError("research findings must have unique requirement IDs")
         if len(
             {(entry.requirement_id, entry.pass_number) for entry in self.claim_ledger}
         ) != len(self.claim_ledger):
-            raise ValueError("research acquisition passes must be unique per requirement")
+            raise ValueError(
+                "research acquisition passes must be unique per requirement"
+            )
         acquired_requirement_ids = {entry.requirement_id for entry in self.claim_ledger}
         all_claims = [
             *self.selected_claims,
@@ -685,7 +631,9 @@ class ResearchResultV2(ContractModel):
                 finding.requirement_id in acquired_requirement_ids
                 and self.claim_ledger_artifact_id not in finding.source_artifact_ids
             ):
-                raise ValueError("dynamically acquired finding must cite its claim ledger")
+                raise ValueError(
+                    "dynamically acquired finding must cite its claim ledger"
+                )
         # A verified conflict is never an optional gap: it means two accepted
         # evidence facts cannot simultaneously support the artifact.
         unresolved_blocking = any(
@@ -703,9 +651,7 @@ class ResearchResultV2(ContractModel):
             if not finding.blocking and finding.status == "missing"
         ]
         expected_conflicts = [
-            finding.note
-            for finding in self.findings
-            if finding.status == "conflicting"
+            finding.note for finding in self.findings if finding.status == "conflicting"
         ]
         if self.gaps != expected_gaps:
             raise ValueError(
@@ -718,12 +664,16 @@ class ResearchResultV2(ContractModel):
         expected_readiness = (
             "blocked"
             if unresolved_blocking
-            else "ready_with_gaps"
-            if unresolved_nonblocking or self.assumptions
-            else "ready"
+            else (
+                "ready_with_gaps"
+                if unresolved_nonblocking or self.assumptions
+                else "ready"
+            )
         )
         if self.readiness != expected_readiness:
-            raise ValueError("evidence readiness is not the deterministic finding result")
+            raise ValueError(
+                "evidence readiness is not the deterministic finding result"
+            )
         return self
 
 
@@ -743,13 +693,17 @@ class SourceAppendixEntryV1(ContractModel):
         try:
             datetime.fromisoformat(self.retrieval_date.replace("Z", "+00:00"))
         except ValueError as error:
-            raise ValueError("source appendix retrievalDate must be a real UTC datetime") from error
+            raise ValueError(
+                "source appendix retrievalDate must be a real UTC datetime"
+            ) from error
         return self
 
 
 class SafeScopeDefaultsV2(ContractModel):
     geography: list[Text160] = Field(default_factory=list, max_length=24)
-    accepted_source_types: list[EvidenceSourceType] = Field(default_factory=list, max_length=7)
+    accepted_source_types: list[EvidenceSourceType] = Field(
+        default_factory=list, max_length=7
+    )
     assumptions: list[Text1000] = Field(default_factory=list, max_length=24)
     limits: list[Text1000] = Field(default_factory=list, max_length=40)
     policies: list[Text1000] = Field(default_factory=list, max_length=40)
@@ -766,7 +720,9 @@ class SafeScopeDefaultsV2(ContractModel):
 class CompileScopeInputV2(ContractModel):
     type: Literal["CompileScopeV2"]
     request: str = Field(min_length=1, max_length=24_000)
-    objective_only_context: list[ArtifactRef] = Field(default_factory=list, max_length=20)
+    objective_only_context: list[ArtifactRef] = Field(
+        default_factory=list, max_length=20
+    )
     safe_defaults: SafeScopeDefaultsV2 = Field(default_factory=SafeScopeDefaultsV2)
 
 
@@ -838,9 +794,7 @@ class AssistantContextSafeScopeDefaultsV2(StrictWireContractModel):
             (self.policies, 1000, "policy"),
         ):
             if any(utf16_length(value) > maximum for value in values):
-                raise ValueError(
-                    f"default {label} exceeds {maximum} UTF-16 code units"
-                )
+                raise ValueError(f"default {label} exceeds {maximum} UTF-16 code units")
         return self
 
 
@@ -871,7 +825,9 @@ class AssistantContextMessageV1(StrictWireContractModel):
             )
         if self.authority == "owner_prior":
             if self.provenance != "persisted_owner_message":
-                raise ValueError("owner context must come from a persisted owner message")
+                raise ValueError(
+                    "owner context must come from a persisted owner message"
+                )
         elif self.provenance not in {
             "orqaly_local_output",
             "axwise_operation_output",
@@ -880,16 +836,18 @@ class AssistantContextMessageV1(StrictWireContractModel):
         try:
             exact_hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
         except UnicodeEncodeError as error:
-            raise ValueError("assistant context content must contain Unicode scalars") from error
+            raise ValueError(
+                "assistant context content must contain Unicode scalars"
+            ) from error
         if self.content_sha256 != exact_hash:
             raise ValueError("assistant context content hash does not match content")
         if self.source_span.text != self.content:
             raise ValueError("assistant context source span text must equal content")
         if self.source_span.sha256 != exact_hash:
-            raise ValueError("assistant context source span hash must equal content hash")
-        if self.truncated != self.content.endswith(
-            ASSISTANT_CONTEXT_TRUNCATION_MARKER
-        ):
+            raise ValueError(
+                "assistant context source span hash must equal content hash"
+            )
+        if self.truncated != self.content.endswith(ASSISTANT_CONTEXT_TRUNCATION_MARKER):
             raise ValueError(
                 "assistant context truncated flag must match its truncation marker"
             )
@@ -939,7 +897,9 @@ class AssistantContextInstructionV1(StrictWireContractModel):
         try:
             exact_hash = hashlib.sha256(self.content.encode("utf-8")).hexdigest()
         except UnicodeEncodeError as error:
-            raise ValueError("assistant instruction must contain Unicode scalars") from error
+            raise ValueError(
+                "assistant instruction must contain Unicode scalars"
+            ) from error
         if (
             self.source_span.text != self.content
             or self.source_span.sha256 != exact_hash
@@ -998,9 +958,7 @@ class AssistantContextEnvelopeV1(StrictWireContractModel):
             raise ValueError(
                 "truncatedMessageCount must equal truncated projected messages"
             )
-        payload = self.model_dump(
-            mode="json", by_alias=True, exclude={"envelope_hash"}
-        )
+        payload = self.model_dump(mode="json", by_alias=True, exclude={"envelope_hash"})
         if self.envelope_hash != canonical_hash(payload):
             raise ValueError("assistant context envelope hash does not match envelope")
         return self
@@ -1292,9 +1250,13 @@ class ReviseScopeInputV2(ContractModel):
         for span in self.correction_source_spans:
             exact_text = utf16_slice(self.correction, span.start, span.end)
             if exact_text != span.text:
-                raise ValueError("correction source span text does not match correction")
+                raise ValueError(
+                    "correction source span text does not match correction"
+                )
             if hashlib.sha256(exact_text.encode("utf-8")).hexdigest() != span.sha256:
-                raise ValueError("correction source span hash does not match correction")
+                raise ValueError(
+                    "correction source span hash does not match correction"
+                )
         return self
 
 
@@ -1375,12 +1337,16 @@ class WorkflowOutputContractV1(ContractModel):
         if self.required_sections != utf16_ordinal_sorted(set(self.required_sections)):
             raise ValueError("requiredSections must be sorted and unique")
         if self.requirement_ids != utf16_ordinal_sorted(set(self.requirement_ids)):
-            raise ValueError("output-contract requirement IDs must be sorted and unique")
+            raise ValueError(
+                "output-contract requirement IDs must be sorted and unique"
+            )
         if self.rubric != utf16_ordinal_sorted(set(self.rubric)):
             raise ValueError("output-contract rubric must be sorted and unique")
         criterion_ids = [item.id for item in self.acceptance_criteria]
         if criterion_ids != utf16_ordinal_sorted(set(criterion_ids)):
-            raise ValueError("output-contract acceptance criteria must be sorted and unique")
+            raise ValueError(
+                "output-contract acceptance criteria must be sorted and unique"
+            )
         supported = {
             requirement_id
             for criterion in self.acceptance_criteria
@@ -1507,15 +1473,15 @@ WorkflowOutputContract = WorkflowOutputContractV1 | WorkflowOutputContractV2
 
 class ExecutionTaskV2(ContractModel):
     stage_id: UUID
-    stage_key: Annotated[
-        str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9_-]{0,119}$")
-    ]
+    stage_key: Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9_-]{0,119}$")]
     title: Text500
     task_kind: Literal["core_draft", "specialist_analysis"]
     required_role: Text160
     lens: Text500
     required_capabilities: list[Text120] = Field(min_length=1, max_length=20)
-    acceptance_requirement_ids: list[RequirementId] = Field(min_length=1, max_length=120)
+    acceptance_requirement_ids: list[RequirementId] = Field(
+        min_length=1, max_length=120
+    )
     produces_full_contract: bool
     input_hash: Sha256
     depends_on_stage_keys: list[Text120] = Field(max_length=40)
@@ -1668,9 +1634,7 @@ class PlanningResultV2(ContractModel):
         core = core_tasks[0]
         if any(task.depends_on_stage_keys for task in specialists):
             raise ValueError("specialist analyses must be independent")
-        if set(core.depends_on_stage_keys) != {
-            task.stage_key for task in specialists
-        }:
+        if set(core.depends_on_stage_keys) != {task.stage_key for task in specialists}:
             raise ValueError(
                 "core draft must consume every independent specialist analysis"
             )
@@ -1701,7 +1665,9 @@ class TaskCandidateAttestationV1(ContractModel):
     def exact_candidate_attestation(self) -> "TaskCandidateAttestationV1":
         coverage_ids = [item.requirement_id for item in self.requirement_coverage]
         if coverage_ids != self.task.acceptance_requirement_ids:
-            raise ValueError("candidate coverage must equal task acceptance requirements")
+            raise ValueError(
+                "candidate coverage must equal task acceptance requirements"
+            )
         if (
             self.execution_receipt.agent != self.task.agent
             or self.execution_receipt.tool_ids != self.task.tool_ids
@@ -1727,7 +1693,9 @@ def _validate_source_appendix_order(values: list[SourceAppendixEntryV1]) -> None
         for item in values
     ]
     if keys != utf16_ordinal_sorted(set(keys)):
-        raise ValueError("sourceAppendix must be sorted and unique by exact source snapshot")
+        raise ValueError(
+            "sourceAppendix must be sorted and unique by exact source snapshot"
+        )
 
 
 class FinalArtifactV1(ContractModel):
@@ -1743,7 +1711,9 @@ class FinalArtifactV1(ContractModel):
     @model_validator(mode="after")
     def exact_final_artifact(self) -> "FinalArtifactV1":
         if self.evidence_readiness != "ready" and self.launch_ready:
-            raise ValueError("artifact with evidence gaps or blocks cannot be launch-ready")
+            raise ValueError(
+                "artifact with evidence gaps or blocks cannot be launch-ready"
+            )
         _validate_source_appendix_order(self.source_appendix)
         if self.source_artifacts != sorted(
             self.source_artifacts, key=lambda item: str(item.artifact_id)
@@ -1764,7 +1734,9 @@ class TaskResultV2(ContractModel):
     markdown: str = Field(min_length=1)
     evidence_readiness: Literal["ready", "ready_with_gaps", "blocked"]
     source_artifacts: list[ArtifactRef] = Field(min_length=3, max_length=200)
-    requirement_coverage: list[RequirementCoverageV1] = Field(min_length=1, max_length=120)
+    requirement_coverage: list[RequirementCoverageV1] = Field(
+        min_length=1, max_length=120
+    )
     source_appendix: list[SourceAppendixEntryV1] = Field(max_length=400)
     execution_receipt: ExecutionReceiptV2
     conclusions: list[Text4000] = Field(min_length=1, max_length=100)
@@ -1781,7 +1753,9 @@ class TaskResultV2(ContractModel):
             raise ValueError("task-result source artifacts must be sorted and unique")
         coverage_ids = [item.requirement_id for item in self.requirement_coverage]
         if coverage_ids != utf16_ordinal_sorted(set(coverage_ids)):
-            raise ValueError("requirementCoverage must be sorted by unique requirement ID")
+            raise ValueError(
+                "requirementCoverage must be sorted by unique requirement ID"
+            )
         if coverage_ids != self.task.acceptance_requirement_ids:
             raise ValueError("task result must cover every task acceptance requirement")
         if self.execution_receipt.agent != self.task.agent:
@@ -1791,7 +1765,9 @@ class TaskResultV2(ContractModel):
         if self.execution_receipt.budget_cents != self.task.budget_cents:
             raise ValueError("execution receipt budget must equal task permission")
         if self.execution_receipt.data_boundary != self.task.data_boundary:
-            raise ValueError("execution receipt data boundary must equal task permission")
+            raise ValueError(
+                "execution receipt data boundary must equal task permission"
+            )
         return self
 
 
@@ -1871,12 +1847,16 @@ class EvaluationResultV1(ContractModel):
         candidates = [
             item for item in self.task_artifacts if item.kind == "final_markdown"
         ]
-        if self.output_contract_satisfied != (issue_count == 0 and len(candidates) == 1):
+        if self.output_contract_satisfied != (
+            issue_count == 0 and len(candidates) == 1
+        ):
             raise ValueError("output-contract satisfaction must equal the issue facts")
         if self.repair_required == self.output_contract_satisfied:
             raise ValueError("repairRequired must be the inverse of satisfaction")
         if self.repair_required != bool(self.repair_instructions):
-            raise ValueError("repair instructions must exist exactly when repair is required")
+            raise ValueError(
+                "repair instructions must exist exactly when repair is required"
+            )
         if self.promoted_artifact is not None and not self.output_contract_satisfied:
             raise ValueError("direct promotion requires a fully satisfying candidate")
         if self.output_contract_satisfied:
@@ -1902,10 +1882,14 @@ class ImmutableArtifactContent(ContractModel):
     def exact_content_hash(self) -> "ImmutableArtifactContent":
         if self.content_type == "application/json":
             if self.payload is None or self.markdown is not None:
-                raise ValueError("JSON artifact content requires payload and no Markdown")
+                raise ValueError(
+                    "JSON artifact content requires payload and no Markdown"
+                )
         else:
             if self.payload is None or not self.markdown:
-                raise ValueError("Markdown artifact content requires payload and Markdown")
+                raise ValueError(
+                    "Markdown artifact content requires payload and Markdown"
+                )
             if self.payload.get("markdown") != self.markdown:
                 raise ValueError("Markdown artifact payload and body must match")
         expected = artifact_content_hash(
@@ -1931,7 +1915,9 @@ class SynthesizeArtifactInputV1(ContractModel):
     task_artifacts: list[ArtifactRef] | None = Field(default=None, max_length=200)
     evaluation: ArtifactRef | None = None
     repair_pass: Literal[0, 1]
-    artifact_contents: list[ImmutableArtifactContent] = Field(min_length=2, max_length=204)
+    artifact_contents: list[ImmutableArtifactContent] = Field(
+        min_length=2, max_length=204
+    )
     output_contract: WorkflowOutputContract
     execution_agent: ExecutionAgentV1 | None = Field(
         default=None,
@@ -1996,13 +1982,14 @@ class SynthesizeArtifactInputV1(ContractModel):
                 or self.task is not None
                 or not self.task_artifacts
                 or any(
-                    item.kind not in {"task_result", "final_markdown"}
-                    for item in tasks
+                    item.kind not in {"task_result", "final_markdown"} for item in tasks
                 )
                 or self.evaluation is not None
                 or self.repair_pass != 0
             ):
-                raise ValueError("evaluate_output requires plan, taskArtifacts and repairPass 0")
+                raise ValueError(
+                    "evaluate_output requires plan, taskArtifacts and repairPass 0"
+                )
             required_refs = [self.accepted_scope, self.research, *plan, *tasks]
         elif self.purpose == "final_synthesis":
             if (
@@ -2011,8 +1998,7 @@ class SynthesizeArtifactInputV1(ContractModel):
                 or self.task is not None
                 or not self.task_artifacts
                 or any(
-                    item.kind not in {"task_result", "final_markdown"}
-                    for item in tasks
+                    item.kind not in {"task_result", "final_markdown"} for item in tasks
                 )
                 or self.evaluation is None
                 or self.evaluation.kind != "evaluation"
@@ -2052,7 +2038,9 @@ class SynthesizeArtifactInputV1(ContractModel):
         if self.purpose != "execute_task" and self.source_artifacts != sorted(
             required_refs, key=lambda item: str(item.artifact_id)
         ):
-            raise ValueError("sourceArtifacts must exactly equal the purpose references")
+            raise ValueError(
+                "sourceArtifacts must exactly equal the purpose references"
+            )
         if self.artifact_contents != sorted(
             self.artifact_contents, key=lambda item: str(item.artifact.artifact_id)
         ):
@@ -2063,10 +2051,14 @@ class SynthesizeArtifactInputV1(ContractModel):
                 raise ValueError("synthesis artifact content IDs must be unique")
             supplied[item.artifact.artifact_id] = item
         if set(supplied) != set(expected):
-            raise ValueError("artifactContents must exactly cover every selected immutable ref")
+            raise ValueError(
+                "artifactContents must exactly cover every selected immutable ref"
+            )
         for artifact_id, reference in expected.items():
             if supplied[artifact_id].artifact != reference:
-                raise ValueError("artifactContents reference does not match selected artifact")
+                raise ValueError(
+                    "artifactContents reference does not match selected artifact"
+                )
         research_content = supplied[self.research.artifact_id]
         source_catalogue = (research_content.payload or {}).get("sourceCatalogue")
         if self.output_contract.source_appendix_required != bool(source_catalogue):
@@ -2786,8 +2778,11 @@ class AxWiseOperationEnvelope(ContractModel):
             input_payload = {
                 key: value for key, value in input_payload.items() if value is not None
             }
-        input_hash = (native_canonical_hash(input_payload) if isinstance(self.input, PrepareSolutionInputV2)
-                      else canonical_hash(input_payload))
+        input_hash = (
+            native_canonical_hash(input_payload)
+            if isinstance(self.input, PrepareSolutionInputV2)
+            else canonical_hash(input_payload)
+        )
         if input_hash != self.canonical_input_hash:
             raise ValueError("canonical input hash does not match typed input")
         return self
@@ -2894,9 +2889,7 @@ class EvaluationArtifactFact(ArtifactFact):
     @model_validator(mode="after")
     def exact_evaluation_fact(self) -> "EvaluationArtifactFact":
         payload = EvaluationResultV1.model_validate(self.payload)
-        expected_sources = [
-            item.artifact_id for item in payload.source_artifacts
-        ]
+        expected_sources = [item.artifact_id for item in payload.source_artifacts]
         if self.source_artifact_ids != expected_sources:
             raise ValueError("evaluation lineage must equal its full sourceArtifacts")
         return self
@@ -2967,7 +2960,10 @@ class AssistantTurnCompletedResult(ContractModel):
 
 class PrepareSolutionCompletedResult(ContractModel):
     result_type: Literal["solution_prepared"]
-    response: Annotated[Union[PrepareSolutionResponseV1, PrepareSolutionResponseV2], Field(discriminator="schema_version")]
+    response: Annotated[
+        Union[PrepareSolutionResponseV1, PrepareSolutionResponseV2],
+        Field(discriminator="schema_version"),
+    ]
     metrics: OperationMetrics | None = None
 
 
@@ -3003,7 +2999,9 @@ class ArtifactSynthesizedResult(ContractModel):
         if self.evidence_readiness != payload.evidence_readiness:
             raise ValueError("synthesis readiness must equal its artifact")
         if payload.candidate_attestation is not None:
-            raise ValueError("synthesized final artifact cannot carry task-candidate attestation")
+            raise ValueError(
+                "synthesized final artifact cannot carry task-candidate attestation"
+            )
         return self
 
 
@@ -3022,8 +3020,13 @@ class TaskCompletedResult(ContractModel):
         )
         if self.evidence_readiness != payload.evidence_readiness:
             raise ValueError("task completion readiness must equal its artifact")
-        if self.artifact.kind == "final_markdown" and payload.candidate_attestation is None:
-            raise ValueError("task-completed final Markdown requires candidate attestation")
+        if (
+            self.artifact.kind == "final_markdown"
+            and payload.candidate_attestation is None
+        ):
+            raise ValueError(
+                "task-completed final Markdown requires candidate attestation"
+            )
         return self
 
 
@@ -3116,10 +3119,19 @@ class OperationFailurePhaseDiagnostics(ContractModel):
     output_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
     total_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
     reasoning_tokens: int | None = Field(default=None, ge=0, le=2_000_000)
-    limit_kind: Literal[
-        "request", "per_request_input", "input", "output", "total",
-        "provider_output", "deadline", "unknown",
-    ] | None = None
+    limit_kind: (
+        Literal[
+            "request",
+            "per_request_input",
+            "input",
+            "output",
+            "total",
+            "provider_output",
+            "deadline",
+            "unknown",
+        ]
+        | None
+    ) = None
     usage_complete: bool | None = None
 
     @model_validator(mode="after")
