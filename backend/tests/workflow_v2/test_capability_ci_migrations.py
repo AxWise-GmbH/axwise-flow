@@ -37,3 +37,21 @@ def test_ci_checks_bytes_then_migrates_with_fail_closed_role_before_database_tes
     assert "--file=backend/database/workflow_v2/009_capability_simulation.sql" in block
     assert "|| true" not in block and "continue-on-error" not in block
     assert "image: postgres:16" in workflow
+
+
+def test_ci_runs_capability_counter_regressions_in_the_real_postgres_step():
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    pure_start = workflow.index(
+        "- name: Run pure contracts and durable worker/API tests"
+    )
+    pure = workflow[pure_start : workflow.index("- name:", pure_start + 1)]
+    database_start = workflow.index("- name: Run real PostgreSQL RLS and lease tests")
+    database = workflow[database_start : workflow.index("- name:", database_start + 1)]
+    for name in (
+        "test_operation_store_postgres.py",
+        "test_capability_operations_postgres.py",
+    ):
+        path = f"backend/tests/workflow_v2/{name}"
+        assert f"--ignore={path}" in pure
+        assert path in database and f"--ignore={path}" not in database
+    assert "|| true" not in database and "continue-on-error" not in database
