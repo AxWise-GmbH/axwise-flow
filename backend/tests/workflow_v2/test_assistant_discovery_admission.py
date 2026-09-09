@@ -125,17 +125,15 @@ def test_exact_fixture_policy_query_and_production_classifier(runtime):
         [
             "site:docs.n8n.io",
             FIXTURE,
-            "Answering the current bounded one-shot Assistant request.",
-            FIXTURE[:200],
         ]
     )
-    assert len(context.discovery_query) == 774
+    assert len(context.discovery_query) == 515
     previous = " ".join(
         [FIXTURE, "Answering the current bounded one-shot Assistant request.",
          "site:docs.n8n.io", FIXTURE[:200]]
     )
-    assert Counter(context.discovery_query.split()) == Counter(previous.split())
-    assert len(context.discovery_query) == len(previous)
+    assert Counter(context.discovery_query.split()) <= Counter(previous.split())
+    assert len(context.discovery_query) < len(previous)
     assert runtime._classify_source_types(OFFICIAL, "Untrusted title") == {"grounded_web"}
     assert runtime.assistant_source_url_allowed(query, OFFICIAL)
     for outside in (
