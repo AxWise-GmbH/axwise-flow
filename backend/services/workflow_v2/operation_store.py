@@ -206,6 +206,9 @@ class PostgresOperationStore:
                               AND pg_get_constraintdef(oid) LIKE '%CompileScopeV3%'
                               AND pg_get_constraintdef(oid) LIKE '%PrepareSolutionV1%'
                               AND pg_get_constraintdef(oid) LIKE '%PrepareSolutionV2%'
+                              AND pg_get_constraintdef(oid) LIKE '%AdmitTranscriptCorpusV1%'
+                              AND pg_get_constraintdef(oid) LIKE '%AnalyzeEvidenceV1%'
+                              AND pg_get_constraintdef(oid) LIKE '%SimulateV1%'
                           )
                           AND EXISTS (
                             SELECT 1
@@ -448,6 +451,48 @@ class PostgresOperationStore:
                 {"tenant_id": tenant_id, "artifact_id": str(artifact_id)},
             ).first()
             return row.artifact if row else None
+
+    def owned_artifact_fact(
+        self,
+        tenant_id: UUID,
+        user_id: str,
+        run_id: UUID,
+        artifact_id: UUID,
+        *,
+        operation_types: tuple[str, ...],
+    ) -> dict[str, Any] | None:
+        """Resolve capability inputs only from the same owner's managed work.
+
+        Keep the existing tenant-only reader unchanged for historical operations.
+        This read adds no grants and retains transaction-local tenant RLS context.
+        """
+        with self.engine.begin() as connection:
+            _tenant_context(connection, tenant_id)
+            rows = connection.execute(
+                text(
+                    """
+                    SELECT result_payload -> 'artifact' AS artifact
+                    FROM axwise.cognitive_operations
+                    WHERE tenant_id = :tenant_id
+                      AND user_id = :user_id
+                      AND run_id = :run_id
+                      AND status = 'completed'
+                      AND operation_type = ANY(:operation_types)
+                      AND result_payload -> 'artifact' ->> 'artifactId' = :artifact_id
+                    LIMIT 2
+                    """
+                ),
+                {
+                    "tenant_id": tenant_id,
+                    "user_id": user_id,
+                    "run_id": run_id,
+                    "artifact_id": str(artifact_id),
+                    "operation_types": list(operation_types),
+                },
+            ).all()
+            if len(rows) > 1:
+                raise RuntimeError("owned artifact identity is ambiguous")
+            return rows[0].artifact if rows else None
 
     def claim_next(self, lease_token: UUID, lease_seconds: int = 600) -> ClaimedOperation | None:
         if not 30 <= lease_seconds <= 3600:
