@@ -1,9 +1,12 @@
 # Consent-gated capability provider boundary
 
 Status: implemented for explicit injection and tested offline. The default
-`build_cognitive_executor` still supplies no Analysis or Simulation generator.
-This change adds no activation flag, environment configuration, migration,
-deployment, live provider call, or new dependency. Importing or constructing an
+`build_cognitive_executor` supplies no Analysis or Simulation generator unless
+`AXWISE_CAPABILITY_GENERATORS_ENABLED` is exactly `true`. Missing, empty, or
+`false` stays disabled; all other values fail startup. The opt-in supplies both
+lazy adapters with the existing explicit Google credential. No runtime flag,
+environment configuration, migration, deployment, live provider call, or new
+dependency has been applied. Importing or constructing an
 adapter does not construct a Google client or send data.
 
 ## Authorized data and requests
@@ -98,7 +101,7 @@ reply bounds, deadline/cancellation, no retries, partial usage, deterministic
 candidate validation, receipt propagation, and the unchanged first-claim gate.
 No real source, provider request, credential, database or cloud deployment is used.
 
-Before activation, independently review future default-executor wiring and the
+Before activation, independently review the opt-in executor wiring and the
 authenticated owner-confirmation flow, including the token-preflight disclosure;
 complete the separately approved database enforcement/release gates; and authorize
 a named live acceptance test and deployment. Offline tests do not prove live model
