@@ -58,3 +58,27 @@ scripts/deploy-axwise-de-*.sh
 # Local scratch
 tmp/
 augment-mcp-import.json
+/.axwise-flow-private/
+/.github/
+/.kilo/
+/.next/
+/.pytest_cache/
+/.ruff_cache/
+/.vscode/
+/__pycache__/
+/artifacts/
+/backend/
+/deploy/
+/docs/
+/frontend/
+/packages/
+/screenshots/
+/scripts/
+/supabase/
+/tmp/
+dist/
+build/
+.cache/
+target/
+coverage/
+temp/
