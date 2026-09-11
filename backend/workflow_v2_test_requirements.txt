@@ -1,0 +1,5 @@
+-r workflow_v2_requirements.lock
+iniconfig==2.3.0
+pluggy==1.6.0
+pytest==8.0.0
+pytest-asyncio==0.23.5

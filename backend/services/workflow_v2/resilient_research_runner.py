@@ -1,0 +1,2308 @@
+"""Bounded provider-independent fallback for workflow-v2 research acquisition.
+
+Gemini Search remains the primary acquisition route.  This adapter invokes
+SearXNG only after a retryable grounded-search failure and treats every SearXNG
+result as discovery metadata, never as verified evidence.  A claim is emitted
+only when it is a unique, byte-exact span of one independently fetched final
+publisher document.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import inspect
+import json
+import logging
+import math
+import re
+import time
+from bisect import bisect_left, bisect_right
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, Mapping, Protocol
+from urllib.parse import urlsplit
+
+from backend.domain.workflow_v2.contracts import (
+    canonical_json,
+    is_canonical_public_https_url,
+)
+from backend.services.generative.searxng_search_service import SearxngSearchService
+from backend.services.workflow_v2.direct_source_fetch import canonical_public_url
+from backend.services.workflow_v2.exact_span_extractor import (
+    BoundedFetchedDocument,
+    ExactSpanExtractionRequest,
+    ExactSpanExtractionResult,
+    ExactSpanRequirementQuery,
+    MAX_DOCUMENT_CODE_POINTS,
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+_FALLBACK_PRIMARY_STATUSES = frozenset(
+    {
+        "deadline_exceeded",
+        "retry_exhausted",
+        "unavailable",
+        "response_processing_error",
+    }
+)
+_HEALTHY_DISCOVERY_STATUSES = frozenset({"ok", "empty"})
+_CONFIGURED_DISCOVERY_ENGINES = frozenset({"bing", "brave", "duckduckgo", "google"})
+# Keep the exact-span model input compact enough to finish inside the existing
+# fallback extraction deadline. The fetcher still hashes the complete publisher
+# document; only the deterministic, relevance-ranked extraction window is bounded.
+_MAX_DOCUMENT_CHARACTERS = 40_000
+_MAX_DISCOVERY_QUERY_CHARACTERS = 2_000
+_MAX_DIAGNOSTIC_CALLS = 100
+_MAX_DIAGNOSTIC_ELAPSED_MS = 900_000
+_MAX_REUSABLE_SOURCE_CANDIDATES = 3
+_MAX_LOCATOR_WINDOW_GRID_CANDIDATES = 256
+_DEFAULT_PRIMARY_COOLDOWN_SECONDS = 450.0
+_MAX_PRIMARY_COOLDOWN_SECONDS = 900.0
+_DEFAULT_PRIMARY_HEALTHY_SECONDS = 5.0
+_MAX_PRIMARY_HEALTHY_SECONDS = 30.0
+WORKFLOW_V2_FALLBACK_PHASE_SECONDS = 60.0
+_FALLBACK_DISCOVERY_SECONDS = 10.0
+_FALLBACK_FETCH_SECONDS = 15.0
+_FALLBACK_EXTRACTION_SECONDS = 45.0
+_DISCOVERY_SECTION_BUDGETS = {
+    "requirement": 560,
+    "applicability": 300,
+    "source classes": 160,
+    "publishers": 650,
+    "topics": 200,
+    "geography": 80,
+}
+_LOCATOR_STOP_WORDS = frozenset(
+    {
+        "about",
+        "after",
+        "against",
+        "applicable",
+        "before",
+        "between",
+        "creating",
+        "during",
+        "every",
+        "exact",
+        "their",
+        "these",
+        "those",
+        "through",
+        "under",
+        "using",
+        "verify",
+        "when",
+        "where",
+        "which",
+        "while",
+        "with",
+    }
+)
+_HTTPS_LOCATOR_IN_TEXT = re.compile(r"https://[^\s<>{}\[\]\"'`]+")
+_HTTPS_LOCATOR_TRAILING_PUNCTUATION = ".,;:!?)]}"
+
+
+@dataclass(frozen=True)
+class DirectDocumentSnapshot:
+    canonical_url: str
+    title: str
+    text: str
+    content_sha256: str
+    retrieved_at: str
+
+
+class ResearchRunner(Protocol):
+    async def search(self, query: str) -> dict[str, Any]: ...
+
+
+class DirectDocumentExtractor(Protocol):
+    async def extract(
+        self, request: ExactSpanExtractionRequest
+    ) -> ExactSpanExtractionResult: ...
+
+
+DirectTextFetcher = Callable[[str], Awaitable[Mapping[str, Any]]]
+SourceTypeClassifier = Callable[[str, str], set[str]]
+
+
+@dataclass(frozen=True)
+class _FallbackContext:
+    discovery_query: str
+    query_complete: bool
+    requirement: dict[str, Any]
+    applies_when: str
+    accepted_source_types: tuple[str, ...]
+    allowed_hosts: frozenset[str]
+    reusable_candidates: tuple[_Candidate, ...]
+    authority_candidates: tuple[_Candidate, ...]
+
+
+@dataclass(frozen=True)
+class _Candidate:
+    canonical_url: str
+    title: str
+    snippets: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class _VerifiedSpan:
+    text: str
+    segment_start: int
+    segment_end: int
+
+
+async def _await_cancellation_safe(cleanup: Awaitable[None]) -> None:
+    """Finish one invariant-restoring cleanup while retaining cancellation."""
+
+    cleanup_task = asyncio.ensure_future(cleanup)
+    cancellation: asyncio.CancelledError | None = None
+    while True:
+        try:
+            await asyncio.shield(cleanup_task)
+            break
+        except asyncio.CancelledError as error:
+            if cleanup_task.cancelled():
+                raise
+            cancellation = error
+    if cancellation is not None:
+        raise cancellation
+
+
+async def _default_fetch_direct_text(url: str) -> Mapping[str, Any]:
+    # Kept lazy so importing the runner does not pull the legacy authority
+    # stack into the small workflow-v2 worker image.
+    from backend.services.workflow_v2.direct_source_fetch import fetch_direct_source
+
+    return await fetch_direct_source(url)
+
+
+def _normalized_text(value: Any, *, maximum: int) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = re.sub(r"\s+", " ", value).strip()
+    if not normalized:
+        return None
+    return normalized[:maximum]
+
+
+def _utf16_key(value: str) -> bytes:
+    return value.encode("utf-16-be")
+
+
+def _ordered_unique(values: list[str]) -> list[str]:
+    return sorted(set(values), key=_utf16_key)
+
+
+def _bounded_query_term(value: str, *, maximum: int) -> tuple[str, bool]:
+    """Render one natural search term without letting it consume later fields."""
+
+    if maximum <= 1:
+        raise ValueError("discovery term budget is too small")
+    normalized = re.sub(r"\s+", " ", value).strip()
+    if len(normalized) <= maximum:
+        return normalized, True
+    return normalized[: maximum - 1].rstrip() + "\u2026", False
+
+
+def _finite_diagnostic_int(
+    diagnostics: Mapping[str, Any],
+    *keys: str,
+    maximum: int,
+) -> int:
+    for key in keys:
+        if key not in diagnostics:
+            continue
+        try:
+            return min(maximum, max(0, int(diagnostics[key])))
+        except (TypeError, ValueError, OverflowError):
+            return 0
+    return 0
+
+
+def _finite_phase_diagnostics(
+    diagnostics: Mapping[str, Any], *, route: str, status: str
+) -> dict[str, Any]:
+    """Copy only finite, content-free fields across the provider boundary."""
+
+    result = {
+        "route": route,
+        "status": status,
+        "elapsed_ms": _finite_diagnostic_int(
+            diagnostics,
+            "elapsed_ms",
+            "elapsedMs",
+            maximum=_MAX_DIAGNOSTIC_ELAPSED_MS,
+        ),
+        "call_count": _finite_diagnostic_int(
+            diagnostics,
+            "call_count",
+            "callCount",
+            maximum=_MAX_DIAGNOSTIC_CALLS,
+        ),
+        "retry_count": _finite_diagnostic_int(
+            diagnostics,
+            "retry_count",
+            "retryCount",
+            maximum=_MAX_DIAGNOSTIC_CALLS,
+        ),
+    }
+    if diagnostics.get("primary_skipped") is True:
+        result["primary_skipped"] = True
+        result["circuit_state"] = "open"
+    return result
+
+
+def _finite_elapsed_ms(started_at: float, completed_at: float) -> int:
+    try:
+        elapsed = round((completed_at - started_at) * 1000)
+    except (TypeError, ValueError, OverflowError):
+        return 0
+    if not math.isfinite(elapsed):
+        return 0
+    return min(_MAX_DIAGNOSTIC_ELAPSED_MS, max(0, int(elapsed)))
+
+
+def _with_fallback_elapsed(
+    result: dict[str, Any], *, elapsed_ms: int
+) -> dict[str, Any]:
+    diagnostics = result.get("runtime_diagnostics")
+    if not isinstance(diagnostics, dict):
+        return result
+    if diagnostics.get("route") == "searxng_direct_fetch":
+        primary = diagnostics.get("primary")
+        primary_elapsed_ms = (
+            _finite_diagnostic_int(
+                primary,
+                "elapsed_ms",
+                maximum=_MAX_DIAGNOSTIC_ELAPSED_MS,
+            )
+            if isinstance(primary, Mapping)
+            else 0
+        )
+        diagnostics["fallback_elapsed_ms"] = elapsed_ms
+        diagnostics["elapsed_ms"] = min(
+            _MAX_DIAGNOSTIC_ELAPSED_MS,
+            primary_elapsed_ms + elapsed_ms,
+        )
+        return result
+    fallback = diagnostics.get("fallback")
+    if isinstance(fallback, dict):
+        fallback["elapsed_ms"] = elapsed_ms
+        primary_elapsed_ms = _finite_diagnostic_int(
+            diagnostics,
+            "elapsed_ms",
+            maximum=_MAX_DIAGNOSTIC_ELAPSED_MS,
+        )
+        diagnostics["elapsed_ms"] = min(
+            _MAX_DIAGNOSTIC_ELAPSED_MS,
+            primary_elapsed_ms + elapsed_ms,
+        )
+    return result
+
+
+def _usage_metadata(input_tokens: int, output_tokens: int) -> dict[str, int]:
+    return {
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
+        "totalTokens": input_tokens + output_tokens,
+    }
+
+
+def _optional_usage_int(source: Any, *keys: str) -> int | None:
+    if not isinstance(source, Mapping):
+        return None
+    for key in keys:
+        if key not in source:
+            continue
+        try:
+            return max(0, int(source[key]))
+        except (TypeError, ValueError, OverflowError):
+            return None
+    return None
+
+
+def _primary_usage(primary: Mapping[str, Any]) -> tuple[int, int]:
+    """Normalize the already-incurred Gemini usage without estimating it."""
+
+    usage = primary.get("usage_metadata")
+    normalized_input = _optional_usage_int(usage, "input_tokens", "inputTokens")
+    input_tokens = (
+        normalized_input
+        if normalized_input is not None
+        else (_optional_usage_int(usage, "prompt_token_count", "promptTokenCount") or 0)
+        + (
+            _optional_usage_int(
+                usage,
+                "tool_use_prompt_token_count",
+                "toolUsePromptTokenCount",
+            )
+            or 0
+        )
+    )
+    normalized_output = _optional_usage_int(usage, "output_tokens", "outputTokens")
+    output_tokens = (
+        normalized_output
+        if normalized_output is not None
+        else (
+            _optional_usage_int(
+                usage,
+                "candidates_token_count",
+                "candidatesTokenCount",
+            )
+            or 0
+        )
+        + (
+            _optional_usage_int(usage, "thoughts_token_count", "thoughtsTokenCount")
+            or 0
+        )
+    )
+    reported_total = _optional_usage_int(
+        usage,
+        "total_tokens",
+        "totalTokens",
+        "total_token_count",
+        "totalTokenCount",
+    )
+    if reported_total is not None:
+        output_tokens = max(output_tokens, max(0, reported_total - input_tokens))
+    return input_tokens, output_tokens
+
+
+def _combined_usage_metadata(
+    primary: Mapping[str, Any],
+    *,
+    extractor_input_tokens: int = 0,
+    extractor_output_tokens: int = 0,
+) -> dict[str, int]:
+    primary_input_tokens, primary_output_tokens = _primary_usage(primary)
+    return _usage_metadata(
+        primary_input_tokens + max(0, extractor_input_tokens),
+        primary_output_tokens + max(0, extractor_output_tokens),
+    )
+
+
+def _primary_provider_queries(primary: Mapping[str, Any]) -> list[str]:
+    """Carry only actual Gemini Search queries; SearX discovery is never counted."""
+
+    raw = primary.get("provider_queries")
+    if not isinstance(raw, list):
+        return []
+    return [value for value in raw if isinstance(value, str)]
+
+
+def _apply_primary_metering(
+    result: dict[str, Any],
+    primary: Mapping[str, Any],
+    *,
+    extractor_input_tokens: int = 0,
+    extractor_output_tokens: int = 0,
+) -> dict[str, Any]:
+    result["usage_metadata"] = _combined_usage_metadata(
+        primary,
+        extractor_input_tokens=extractor_input_tokens,
+        extractor_output_tokens=extractor_output_tokens,
+    )
+    # The shared cognitive metrics contract counts this exact list. Never append
+    # the SearX discovery query or the plain-Gemini extraction request to it.
+    result.pop("provider_queries", None)
+    provider_queries = _primary_provider_queries(primary)
+    if provider_queries:
+        result["provider_queries"] = provider_queries
+    return result
+
+
+def _finite_status(value: Any, *, default: str = "error") -> str:
+    normalized = str(value or "")
+    return (
+        normalized
+        if re.fullmatch(r"[A-Za-z0-9_:-]{1,100}", normalized)
+        else default
+    )
+
+
+def _fallback_runtime_diagnostics(
+    *,
+    status: str,
+    primary_status: str,
+    primary_diagnostics: Mapping[str, Any],
+    discovery_diagnostics: Mapping[str, Any],
+    candidate_count: int,
+    fetched_count: int,
+    query_complete: bool,
+    validation_incomplete_count: int,
+    rejected_candidate_count: int,
+    malformed_candidate_count: int,
+    omitted_candidate_count: int,
+    claim_count: int,
+    usage_input_tokens: int,
+    usage_output_tokens: int,
+    primary_provider_query_count: int,
+) -> dict[str, Any]:
+    primary_summary = _finite_phase_diagnostics(
+        primary_diagnostics,
+        route="gemini_google_search",
+        status=primary_status,
+    )
+    actual_discovery_status = _finite_status(
+        discovery_diagnostics.get("status"),
+        default=(status if status in _HEALTHY_DISCOVERY_STATUSES else "unavailable"),
+    )
+    discovery_summary = _finite_phase_diagnostics(
+        discovery_diagnostics,
+        route="searxng",
+        status=actual_discovery_status,
+    )
+    return {
+        "route": "searxng_direct_fetch",
+        "status": status,
+        "primary_status": primary_status,
+        "fallback_attempted": True,
+        "fallback_used": True,
+        # The runner replaces this placeholder with measured fallback wall
+        # time after discovery, fetch and extraction have all terminated.
+        "elapsed_ms": 0,
+        "call_count": min(
+            _MAX_DIAGNOSTIC_CALLS,
+            primary_summary["call_count"] + discovery_summary["call_count"],
+        ),
+        "retry_count": min(
+            _MAX_DIAGNOSTIC_CALLS,
+            primary_summary["retry_count"] + discovery_summary["retry_count"],
+        ),
+        "primary": primary_summary,
+        "discovery": discovery_summary,
+        "extractor": {
+            "input_tokens": usage_input_tokens,
+            "output_tokens": usage_output_tokens,
+        },
+        "primary_provider_query_count": primary_provider_query_count,
+        "query_complete": query_complete,
+        "candidate_count": candidate_count,
+        "fetched_count": fetched_count,
+        "validation_incomplete_count": validation_incomplete_count,
+        "rejected_candidate_count": rejected_candidate_count,
+        "malformed_candidate_count": malformed_candidate_count,
+        "omitted_candidate_count": omitted_candidate_count,
+        "claim_count": claim_count,
+    }
+
+
+def _canonical_candidate_url(value: Any) -> str | None:
+    if not isinstance(value, str) or not value or len(value) > 4_000:
+        return None
+    return canonical_public_url(value.strip())
+
+
+def _url_matches_allowed_hosts(url: str, allowed_hosts: frozenset[str]) -> bool:
+    if not allowed_hosts:
+        return True
+    try:
+        host = (urlsplit(url).hostname or "").casefold()
+    except ValueError:
+        return False
+    return any(host == allowed or host.endswith(f".{allowed}") for allowed in allowed_hosts)
+
+
+_EU_REGULATION_NUMBER_YEAR = re.compile(
+    r"\bRegulation\s*\((?:EC|EU|EEC)\)\s+No\.?\s*"
+    r"(?P<number>[1-9]\d{0,5})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+_EU_REGULATION_YEAR_NUMBER = re.compile(
+    r"\bRegulation\s*\(EU\)\s*"
+    r"(?P<year>(?:19|20)\d{2})\s*/\s*(?P<number>[1-9]\d{0,5})\b",
+    re.IGNORECASE,
+)
+
+
+def _explicit_eu_regulation_candidates(
+    requirement: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+) -> tuple[_Candidate, ...] | None:
+    """Resolve only explicit accepted EU regulation references to EUR-Lex.
+
+    Search results remain useful discovery locators, but a degraded public
+    search engine must not hide a primary-law document that the accepted
+    requirement already identifies exactly. ELI is the EU's canonical,
+    deterministic identifier scheme; the publisher page is still refetched
+    and must pass the same exact-span validation as every other candidate.
+    """
+
+    accepted_source_types = requirement.get("acceptedSourceTypes")
+    description = requirement.get("description")
+    if (
+        requirement.get("evidenceRole") != "grounded_claim"
+        or requirement.get("verificationBasis") != "grounded_claims"
+        or not isinstance(accepted_source_types, list)
+        or "primary_law" not in accepted_source_types
+        or not isinstance(description, str)
+    ):
+        return ()
+    authority_host = "eur-lex.europa.eu"
+    if allowed_hosts and not _url_matches_allowed_hosts(
+        f"https://{authority_host}", allowed_hosts
+    ):
+        return ()
+
+    references: list[tuple[int, int, str]] = []
+    for pattern in (_EU_REGULATION_NUMBER_YEAR, _EU_REGULATION_YEAR_NUMBER):
+        for match in pattern.finditer(description):
+            references.append(
+                (
+                    match.start(),
+                    int(match.group("year")),
+                    str(int(match.group("number"))),
+                )
+            )
+    references.sort(key=lambda item: item[0])
+
+    candidates: list[_Candidate] = []
+    seen_urls: set[str] = set()
+    for _offset, year, number in references:
+        url = canonical_public_url(
+            f"https://{authority_host}/eli/reg/{year}/{number}/oj/eng"
+        )
+        if url is None or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        candidates.append(
+            _Candidate(
+                canonical_url=url,
+                title=f"EU Regulation {number}/{year} — EUR-Lex",
+                snippets=(f"Regulation {number}/{year}",),
+            )
+        )
+        if len(candidates) > 1:
+            # One evidence requirement must remain independently verifiable.
+            # The current exact-span contract selects one publisher document,
+            # so accepting one of several named laws would overstate coverage.
+            return None
+    return tuple(candidates)
+
+
+def _canonical_string_list(
+    value: Any, *, maximum_items: int, maximum_item_characters: int
+) -> tuple[list[str], bool] | None:
+    if not isinstance(value, list) or len(value) > maximum_items:
+        return None
+    normalized: list[str] = []
+    complete = True
+    for item in value:
+        if not isinstance(item, str):
+            return None
+        full_text = re.sub(r"\s+", " ", item).strip()
+        if not full_text:
+            return None
+        if len(full_text) > maximum_item_characters:
+            complete = False
+        normalized.append(full_text[:maximum_item_characters])
+    return _ordered_unique(normalized), complete
+
+
+def _fallback_context(server_query: str) -> _FallbackContext | None:
+    """Parse only the server-owned canonical payload appended to the prompt."""
+
+    try:
+        _instruction, raw_payload = server_query.rsplit("\n", 1)
+        payload = json.loads(raw_payload)
+    except (AttributeError, json.JSONDecodeError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    try:
+        if canonical_json(payload) != raw_payload:
+            return None
+    except (TypeError, UnicodeError):
+        return None
+    semantics = payload.get("acceptedScopeSemantics")
+    requirement = payload.get("requirement")
+    if not isinstance(semantics, dict) or not isinstance(requirement, dict):
+        return None
+
+    raw_anchors = semantics.get("topicAnchors")
+    if not isinstance(raw_anchors, list) or len(raw_anchors) > 24:
+        return None
+    anchors: list[str] = []
+    input_complete = True
+    for anchor in raw_anchors:
+        if not isinstance(anchor, dict):
+            return None
+        raw_value = anchor.get("value")
+        if not isinstance(raw_value, str):
+            return None
+        full_value = re.sub(r"\s+", " ", raw_value).strip()
+        if not full_value:
+            return None
+        if len(full_value) > 300:
+            input_complete = False
+        anchors.append(full_value[:300])
+    if not anchors:
+        return None
+    anchors = _ordered_unique(anchors)
+
+    geography_result = _canonical_string_list(
+        semantics.get("geography", []),
+        maximum_items=24,
+        maximum_item_characters=160,
+    )
+    source_types_result = _canonical_string_list(
+        requirement.get("acceptedSourceTypes"),
+        maximum_items=7,
+        maximum_item_characters=80,
+    )
+    allowed_hosts_result = _canonical_string_list(
+        requirement.get("allowedSourceHosts", []),
+        maximum_items=20,
+        maximum_item_characters=120,
+    )
+    raw_description = requirement.get("description")
+    raw_applies_when = requirement.get("appliesWhen")
+    if (
+        not isinstance(raw_description, str)
+        or len(raw_description) > 1_000
+        or not isinstance(raw_applies_when, str)
+        or len(raw_applies_when) > 1_000
+    ):
+        return None
+    description = _normalized_text(raw_description, maximum=1_000)
+    applies_when_query = _normalized_text(raw_applies_when, maximum=1_000)
+    if (
+        geography_result is None
+        or source_types_result is None
+        or not source_types_result[0]
+        or allowed_hosts_result is None
+    ):
+        return None
+    if description is None or applies_when_query is None:
+        return None
+    geography, geography_complete = geography_result
+    source_types, source_types_complete = source_types_result
+    allowed_hosts, allowed_hosts_complete = allowed_hosts_result
+    input_complete = (
+        input_complete
+        and geography_complete
+        and source_types_complete
+        and allowed_hosts_complete
+    )
+    if any(
+        host != host.casefold()
+        or not is_canonical_public_https_url(f"https://{host}")
+        for host in allowed_hosts
+    ):
+        return None
+    raw_reusable_candidates = payload.get("fallbackCandidateSources", [])
+    if (
+        not isinstance(raw_reusable_candidates, list)
+        or len(raw_reusable_candidates) > _MAX_REUSABLE_SOURCE_CANDIDATES
+    ):
+        return None
+    reusable_candidates, reusable_rejected, reusable_malformed, reusable_omitted = (
+        _reusable_candidate_rows(
+            raw_reusable_candidates,
+            allowed_hosts=frozenset(allowed_hosts),
+            maximum=_MAX_REUSABLE_SOURCE_CANDIDATES,
+        )
+    )
+    if reusable_rejected or reusable_malformed or reusable_omitted:
+        return None
+    authority_candidates = _explicit_eu_regulation_candidates(
+        requirement,
+        allowed_hosts=frozenset(allowed_hosts),
+    )
+    if authority_candidates is None:
+        return None
+
+    # Material evidence semantics are rendered first and each field receives an
+    # independent budget. A maximal topic list can therefore never erase the
+    # exact requirement, applicability gate, source classes, or publisher gate.
+    rendered_sections = [
+        _bounded_query_term(
+            description,
+            maximum=_DISCOVERY_SECTION_BUDGETS["requirement"],
+        ),
+        _bounded_query_term(
+            applies_when_query,
+            maximum=_DISCOVERY_SECTION_BUDGETS["applicability"],
+        ),
+    ]
+    if allowed_hosts:
+        rendered_sections.append(
+            _bounded_query_term(
+                " ".join(f"site:{host}" for host in allowed_hosts),
+                maximum=_DISCOVERY_SECTION_BUDGETS["publishers"],
+            )
+        )
+    rendered_sections.append(
+        _bounded_query_term(
+            " ".join(anchors),
+            maximum=_DISCOVERY_SECTION_BUDGETS["topics"],
+        )
+    )
+    if geography:
+        rendered_sections.append(
+            _bounded_query_term(
+                " ".join(geography),
+                maximum=_DISCOVERY_SECTION_BUDGETS["geography"],
+            )
+        )
+    # Search engines interpret field-like prefixes such as ``requirement:`` as
+    # query operators or generic dictionary terms. Keep the server-owned
+    # structure in the canonical payload, but send discovery a natural query.
+    # Source classes remain an enforcement filter after fetch; words such as
+    # ``primary_law`` are not useful public-search terms.
+    discovery_query = " ".join(term for term, _complete in rendered_sections)
+    query_complete = input_complete and all(
+        complete for _section, complete in rendered_sections
+    )
+    if len(discovery_query) > _MAX_DISCOVERY_QUERY_CHARACTERS:
+        raise AssertionError("discovery section budgets exceed the query bound")
+    return _FallbackContext(
+        discovery_query=discovery_query,
+        query_complete=query_complete,
+        requirement=dict(requirement),
+        applies_when=raw_applies_when,
+        accepted_source_types=tuple(source_types),
+        allowed_hosts=frozenset(allowed_hosts),
+        reusable_candidates=tuple(reusable_candidates),
+        authority_candidates=authority_candidates,
+    )
+
+
+def _candidate_rows(
+    raw: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+    accepted_source_types: frozenset[str],
+    source_type_classifier: SourceTypeClassifier | None,
+    maximum: int,
+) -> tuple[list[_Candidate], int, int, int]:
+    by_url: dict[str, dict[str, Any]] = {}
+    rejected = 0
+    malformed = 0
+    raw_sources = raw.get("sources")
+    if not isinstance(raw_sources, list):
+        return [], 0, 1, 0
+    for source in raw_sources:
+        if not isinstance(source, Mapping):
+            malformed += 1
+            continue
+        url = _canonical_candidate_url(source.get("url"))
+        if url is None or not _url_matches_allowed_hosts(url, allowed_hosts):
+            rejected += 1
+            continue
+        row = by_url.setdefault(url, {"titles": [], "snippets": []})
+        title = _normalized_text(source.get("title"), maximum=500)
+        if title is not None and title.casefold() != "unknown":
+            row["titles"].append(title)
+
+    # These snippets are untrusted locators only. They may select a bounded
+    # window in a fetched publisher document, but are never copied into a claim
+    # or shown to the extractor as independent evidence.
+    raw_claims = raw.get("claims")
+    if isinstance(raw_claims, list):
+        for raw_claim in raw_claims:
+            if not isinstance(raw_claim, Mapping):
+                continue
+            snippet = _normalized_text(raw_claim.get("text"), maximum=12_000)
+            urls = raw_claim.get("source_urls")
+            if snippet is None or not isinstance(urls, list):
+                continue
+            for raw_url in urls:
+                url = _canonical_candidate_url(raw_url)
+                if url in by_url and snippet not in by_url[url]["snippets"]:
+                    by_url[url]["snippets"].append(snippet)
+
+    candidates: list[tuple[_Candidate, frozenset[str]]] = []
+    # Preserve SearXNG's ranked result order after validation and deduplication;
+    # limiting alphabetically would let a lower-ranked host crowd out the most
+    # relevant candidate.  Replaying the same immutable provider response still
+    # produces the same ordering. When the server provides its trusted source
+    # classifier, apply that gate before the limit: an incompatible high-ranked
+    # web result must not hide a later eligible authority or reusable locator.
+    ranked_rows = list(by_url.items())
+    for url, row in ranked_rows:
+        titles = _ordered_unique(row["titles"])
+        candidate = _Candidate(
+            canonical_url=url,
+            title=titles[0] if titles else (urlsplit(url).hostname or "Publisher"),
+            snippets=tuple(row["snippets"]),
+        )
+        matched_types = accepted_source_types
+        if source_type_classifier is not None:
+            try:
+                classified_types = frozenset(
+                    source_type_classifier(candidate.canonical_url, candidate.title)
+                )
+            except (TypeError, ValueError):
+                classified_types = frozenset()
+            matched_types = classified_types.intersection(accepted_source_types)
+            if not matched_types:
+                rejected += 1
+                continue
+        candidates.append((candidate, frozenset(matched_types)))
+
+    # When both a specific authority class and generic grounded web are
+    # accepted, preserve SearX rank within each class while putting specific
+    # matches first. Generic web remains viable; it simply cannot crowd a
+    # later, more specific match out of the bounded fetch set.
+    specific_source_types = accepted_source_types.difference({"grounded_web"})
+    if source_type_classifier is not None and specific_source_types:
+        candidates = [
+            *(
+                row
+                for row in candidates
+                if row[1].intersection(specific_source_types)
+            ),
+            *(
+                row
+                for row in candidates
+                if not row[1].intersection(specific_source_types)
+            ),
+        ]
+
+    omitted = max(0, len(candidates) - maximum)
+    return (
+        [candidate for candidate, _types in candidates[:maximum]],
+        rejected,
+        malformed,
+        omitted,
+    )
+
+
+def _primary_response_locator_rows(
+    raw: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+    accepted_source_types: frozenset[str],
+    source_type_classifier: SourceTypeClassifier | None,
+    maximum: int,
+) -> tuple[list[_Candidate], int, int, int]:
+    """Extract bounded authority locators from one provider response.
+
+    Provider prose is never evidence and is never supplied to the exact-span
+    extractor. A URL written in that prose may only locate a publisher document
+    when it is already canonical and the server-owned classifier and host gates
+    independently accept it. The publisher is then refetched and validated by
+    the same immutable exact-span path as every SearX discovery candidate.
+    """
+
+    response_text = raw.get("text")
+    if not isinstance(response_text, str) or not response_text:
+        return [], 0, 0, 0
+
+    rejected = 0
+    eligible: list[tuple[_Candidate, frozenset[str]]] = []
+    seen_urls: set[str] = set()
+    for match in _HTTPS_LOCATOR_IN_TEXT.finditer(response_text):
+        raw_url = match.group(0).rstrip(_HTTPS_LOCATOR_TRAILING_PUNCTUATION)
+        if not raw_url or raw_url in seen_urls:
+            continue
+        seen_urls.add(raw_url)
+        canonical_url = _canonical_candidate_url(raw_url)
+        if (
+            canonical_url is None
+            or canonical_url != raw_url
+            or not _url_matches_allowed_hosts(canonical_url, allowed_hosts)
+            or source_type_classifier is None
+        ):
+            rejected += 1
+            continue
+        title = urlsplit(canonical_url).hostname or "Publisher"
+        try:
+            classified_types = frozenset(
+                source_type_classifier(canonical_url, title)
+            )
+        except (TypeError, ValueError):
+            classified_types = frozenset()
+        matched_types = classified_types.intersection(accepted_source_types)
+        if not matched_types:
+            rejected += 1
+            continue
+        eligible.append(
+            (
+                _Candidate(
+                    canonical_url=canonical_url,
+                    title=title,
+                    # Never copy provider prose into a locator snippet. Windowing
+                    # remains driven only by the accepted requirement semantics.
+                    snippets=(),
+                ),
+                matched_types,
+            )
+        )
+
+    specific_source_types = accepted_source_types.difference({"grounded_web"})
+    if specific_source_types:
+        eligible = [
+            *(row for row in eligible if row[1].intersection(specific_source_types)),
+            *(row for row in eligible if not row[1].intersection(specific_source_types)),
+        ]
+    omitted = max(0, len(eligible) - maximum)
+    return [candidate for candidate, _types in eligible[:maximum]], rejected, 0, omitted
+
+
+def _with_primary_response_locators(
+    primary: Mapping[str, Any], candidates: list[_Candidate]
+) -> dict[str, Any]:
+    """Expose accepted response URLs as locator-only source rows.
+
+    The cognitive executor records this separate field only as operation-local
+    repair candidates. The rows never enter grounding ``sources`` and carry no
+    claim, span, content hash, or verification state; a later targeted repair
+    must still refetch and validate publisher bytes.
+    """
+
+    if not candidates and isinstance(primary, dict):
+        return primary
+    result = dict(primary)
+    locator_sources = []
+    for candidate in candidates:
+        locator_sources.append(
+            {
+                "title": candidate.title,
+                "url": candidate.canonical_url,
+            }
+        )
+    result["same_operation_locators"] = locator_sources
+    return result
+
+
+def _reusable_candidate_rows(
+    raw: Any, *, allowed_hosts: frozenset[str], maximum: int
+) -> tuple[list[_Candidate], int, int, int]:
+    """Validate operation-local prior source locators without trusting metadata."""
+
+    if not isinstance(raw, list):
+        return [], 0, 1, 0
+    rejected = 0
+    malformed = 0
+    candidates: list[_Candidate] = []
+    seen_urls: set[str] = set()
+    for source in raw[:_MAX_REUSABLE_SOURCE_CANDIDATES]:
+        if not isinstance(source, Mapping) or set(source) != {"title", "url"}:
+            malformed += 1
+            continue
+        url = _canonical_candidate_url(source.get("url"))
+        title = _normalized_text(source.get("title"), maximum=500)
+        if (
+            url is None
+            or not _url_matches_allowed_hosts(url, allowed_hosts)
+            or url in seen_urls
+        ):
+            rejected += 1
+            continue
+        if title is None:
+            malformed += 1
+            continue
+        seen_urls.add(url)
+        candidates.append(_Candidate(canonical_url=url, title=title, snippets=()))
+    omitted = max(0, len(raw) - _MAX_REUSABLE_SOURCE_CANDIDATES)
+    if len(candidates) > maximum:
+        omitted += len(candidates) - maximum
+        candidates = candidates[:maximum]
+    return candidates, rejected, malformed, omitted
+
+
+def _unique_exact_span(document: str, text: str) -> tuple[int, int] | None:
+    document_bytes = document.encode("utf-8")
+    text_bytes = text.encode("utf-8")
+    first = document_bytes.find(text_bytes)
+    if first < 0 or document_bytes.find(text_bytes, first + 1) >= 0:
+        return None
+    return first, first + len(text_bytes)
+
+
+def _normalized_locator_token(value: str) -> str | None:
+    token = value.casefold()
+    if token in {"labeled", "labelled", "labeling", "labelling"}:
+        return "label"
+    if len(token) < 5 or token in _LOCATOR_STOP_WORDS or not token.isalpha():
+        return None
+    if len(token) > 6 and token.endswith("ies"):
+        token = token[:-3] + "y"
+    elif len(token) > 5 and token.endswith("s") and not token.endswith("ss"):
+        token = token[:-1]
+    return token
+
+
+def _requirement_locator_terms(value: str) -> dict[str, int]:
+    terms: dict[str, int] = {}
+    for match in re.finditer(r"[^\W_]+", value, re.UNICODE):
+        token = _normalized_locator_token(match.group(0))
+        if token is not None:
+            terms[token] = max(terms.get(token, 0), len(token))
+    return terms
+
+
+def _requirement_window_start(
+    document: str, locator_text: str, maximum_characters: int
+) -> int | None:
+    terms = _requirement_locator_terms(locator_text)
+    if not terms:
+        return None
+    positions: dict[str, list[int]] = {term: [] for term in terms}
+    for match in re.finditer(r"[^\W_]+", document, re.UNICODE):
+        token = _normalized_locator_token(match.group(0))
+        if token in positions:
+            positions[token].append(match.start())
+    if not any(positions.values()):
+        return None
+    last_start = max(0, len(document) - maximum_characters)
+    candidate_starts = {0, last_start}
+    grid_step = max(1, maximum_characters // 2)
+    grid_count = last_start // grid_step + 1
+    if grid_count <= _MAX_LOCATOR_WINDOW_GRID_CANDIDATES:
+        candidate_starts.update(range(0, last_start + 1, grid_step))
+    else:
+        candidate_starts.update(
+            index
+            * last_start
+            // (_MAX_LOCATOR_WINDOW_GRID_CANDIDATES - 1)
+            for index in range(_MAX_LOCATOR_WINDOW_GRID_CANDIDATES)
+        )
+    for term_positions in positions.values():
+        if not term_positions:
+            continue
+        candidate_starts.update(
+            min(last_start, max(0, position - maximum_characters // 2))
+            for position in (term_positions[0], term_positions[-1])
+        )
+    best_start = 0
+    best_score = (-1, -1, -len(document), -len(document), 0)
+    document_midpoint = len(document) // 2
+    for start in sorted(candidate_starts):
+        end = start + maximum_characters
+        counts = {
+            term: bisect_right(term_positions, end - 1)
+            - bisect_left(term_positions, start)
+            for term, term_positions in positions.items()
+        }
+        distinct = {term for term, count in counts.items() if count}
+        total_hits = sum(counts.values())
+        score = (
+            sum(terms[term] for term in distinct),
+            len(distinct),
+            -total_hits,
+            -abs((start + maximum_characters // 2) - document_midpoint),
+            -start,
+        )
+        if score > best_score:
+            best_score = score
+            best_start = start
+    return best_start
+
+
+def _bounded_document_window(
+    document: str,
+    snippets: tuple[str, ...],
+    maximum_characters: int,
+    *,
+    locator_text: str = "",
+) -> str:
+    if len(document) <= maximum_characters:
+        return document
+    for snippet in snippets:
+        first = document.find(snippet)
+        if first < 0 or document.find(snippet, first + 1) >= 0:
+            continue
+        start = max(0, first - maximum_characters // 4)
+        start = min(start, len(document) - maximum_characters)
+        return document[start : start + maximum_characters]
+    requirement_start = _requirement_window_start(
+        document, locator_text, maximum_characters
+    )
+    if requirement_start is not None:
+        return document[requirement_start : requirement_start + maximum_characters]
+    return document[:maximum_characters]
+
+
+def _validated_extracted_spans(
+    document: str, extraction: ExactSpanExtractionResult
+) -> list[_VerifiedSpan]:
+    accepted: dict[tuple[int, int, str], _VerifiedSpan] = {}
+    for proposed in extraction.spans:
+        unique = _unique_exact_span(document, proposed.text)
+        if unique is None:
+            continue
+        expected_text = document[proposed.start : proposed.end]
+        if expected_text != proposed.text:
+            continue
+        start = len(document[: proposed.start].encode("utf-8"))
+        end = len(document[: proposed.end].encode("utf-8"))
+        if unique != (start, end):
+            continue
+        accepted[(start, end, proposed.text)] = _VerifiedSpan(
+            text=proposed.text,
+            segment_start=start,
+            segment_end=end,
+        )
+    return [accepted[key] for key in sorted(accepted)]
+
+
+def _result_for_document(
+    *,
+    primary: Mapping[str, Any],
+    primary_status: str,
+    discovery_status: str,
+    candidate: _Candidate,
+    document: DirectDocumentSnapshot,
+    claims: list[_VerifiedSpan],
+    candidate_count: int,
+    fetched_count: int,
+    query_complete: bool,
+    validation_incomplete_count: int,
+    rejected_candidate_count: int,
+    malformed_candidate_count: int,
+    omitted_candidate_count: int,
+    primary_diagnostics: Mapping[str, Any],
+    discovery_diagnostics: Mapping[str, Any],
+    usage_input_tokens: int = 0,
+    usage_output_tokens: int = 0,
+) -> dict[str, Any]:
+    result = {
+        "text": document.text,
+        "sources": [
+            {
+                "title": candidate.title,
+                "url": document.canonical_url,
+                "provider": "searxng_direct_fetch",
+                "provider_source_id": (
+                    "searxng-direct-"
+                    + hashlib.sha256(document.canonical_url.encode("utf-8")).hexdigest()[:20]
+                ),
+                "provider_response_hash": document.content_sha256,
+                "retrieved_at": document.retrieved_at,
+                "citation_metadata": {
+                    "content_sha256": document.content_sha256,
+                    "discovery_url": candidate.canonical_url,
+                },
+            }
+        ],
+        "claims": [
+            {
+                "text": claim.text,
+                "source_urls": [document.canonical_url],
+                "provider": "searxng_direct_fetch",
+                "provider_response_hash": document.content_sha256,
+                "segment_start": claim.segment_start,
+                "segment_end": claim.segment_end,
+                "offset_unit": "utf8_bytes",
+                "span_target": "provider_response_text",
+            }
+            for claim in claims
+        ],
+        "provider": "searxng_direct_fetch",
+        "provider_response_hash": document.content_sha256,
+        "search_performed": True,
+        "runtime_diagnostics": _fallback_runtime_diagnostics(
+            status=discovery_status,
+            primary_status=primary_status,
+            primary_diagnostics=primary_diagnostics,
+            discovery_diagnostics=discovery_diagnostics,
+            candidate_count=candidate_count,
+            fetched_count=fetched_count,
+            query_complete=query_complete,
+            validation_incomplete_count=validation_incomplete_count,
+            rejected_candidate_count=rejected_candidate_count,
+            malformed_candidate_count=malformed_candidate_count,
+            omitted_candidate_count=omitted_candidate_count,
+            claim_count=len(claims),
+            usage_input_tokens=usage_input_tokens,
+            usage_output_tokens=usage_output_tokens,
+            primary_provider_query_count=len(_primary_provider_queries(primary)),
+        ),
+    }
+    return _apply_primary_metering(
+        result,
+        primary,
+        extractor_input_tokens=usage_input_tokens,
+        extractor_output_tokens=usage_output_tokens,
+    )
+
+
+def _empty_fallback_result(
+    *,
+    primary: Mapping[str, Any],
+    primary_status: str,
+    candidate_count: int,
+    fetched_count: int,
+    query_complete: bool,
+    validation_incomplete_count: int,
+    rejected_candidate_count: int,
+    malformed_candidate_count: int,
+    omitted_candidate_count: int,
+    primary_diagnostics: Mapping[str, Any],
+    discovery_diagnostics: Mapping[str, Any],
+    usage_input_tokens: int = 0,
+    usage_output_tokens: int = 0,
+) -> dict[str, Any]:
+    result = {
+        "text": "",
+        "sources": [],
+        "claims": [],
+        "provider": "searxng_direct_fetch",
+        "search_performed": True,
+        "runtime_diagnostics": _fallback_runtime_diagnostics(
+            status="empty",
+            primary_status=primary_status,
+            primary_diagnostics=primary_diagnostics,
+            discovery_diagnostics=discovery_diagnostics,
+            candidate_count=candidate_count,
+            fetched_count=fetched_count,
+            query_complete=query_complete,
+            validation_incomplete_count=validation_incomplete_count,
+            rejected_candidate_count=rejected_candidate_count,
+            malformed_candidate_count=malformed_candidate_count,
+            omitted_candidate_count=omitted_candidate_count,
+            claim_count=0,
+            usage_input_tokens=usage_input_tokens,
+            usage_output_tokens=usage_output_tokens,
+            primary_provider_query_count=len(_primary_provider_queries(primary)),
+        ),
+    }
+    return _apply_primary_metering(
+        result,
+        primary,
+        extractor_input_tokens=usage_input_tokens,
+        extractor_output_tokens=usage_output_tokens,
+    )
+
+
+def _primary_with_failed_fallback(
+    primary: dict[str, Any],
+    *,
+    status: str,
+    discovery_diagnostics: Mapping[str, Any] | None = None,
+    usage_input_tokens: int = 0,
+    usage_output_tokens: int = 0,
+    fetched_count: int = 0,
+    fetch_error_count: int = 0,
+    validation_incomplete_count: int = 0,
+    query_complete: bool | None = None,
+    rejected_candidate_count: int = 0,
+    malformed_candidate_count: int = 0,
+    omitted_candidate_count: int = 0,
+) -> dict[str, Any]:
+    result = dict(primary)
+    raw_primary_diagnostics = primary.get("runtime_diagnostics")
+    primary_diagnostics = (
+        raw_primary_diagnostics
+        if isinstance(raw_primary_diagnostics, Mapping)
+        else {}
+    )
+    primary_status = _finite_status(primary_diagnostics.get("status"), default="unavailable")
+    diagnostics = _finite_phase_diagnostics(
+        primary_diagnostics,
+        route="gemini_google_search",
+        status=primary_status,
+    )
+    fallback_status = _finite_status(status)
+    fallback: dict[str, Any] = {
+        "route": "searxng_direct_fetch",
+        "status": fallback_status,
+        "extractor": {
+            "input_tokens": usage_input_tokens,
+            "output_tokens": usage_output_tokens,
+        },
+        "fetched_count": fetched_count,
+        "fetch_error_count": fetch_error_count,
+        "validation_incomplete_count": validation_incomplete_count,
+        "rejected_candidate_count": rejected_candidate_count,
+        "malformed_candidate_count": malformed_candidate_count,
+        "omitted_candidate_count": omitted_candidate_count,
+        "primary_provider_query_count": len(_primary_provider_queries(primary)),
+    }
+    if query_complete is not None:
+        fallback["query_complete"] = query_complete
+    if discovery_diagnostics is not None:
+        actual_discovery_status = _finite_status(
+            discovery_diagnostics.get("status"), default="unavailable"
+        )
+        fallback["discovery"] = _finite_phase_diagnostics(
+            discovery_diagnostics,
+            route="searxng",
+            status=actual_discovery_status,
+        )
+    diagnostics.update(
+        {
+            "fallback_attempted": True,
+            "fallback_used": False,
+            "fallback": fallback,
+        }
+    )
+    result["runtime_diagnostics"] = diagnostics
+    # PydanticAI exceptions do not expose reliable usage counters. On extractor
+    # exceptions these observable values therefore remain zero; never invent
+    # billable usage. Primary Gemini usage is still retained on every path.
+    return _apply_primary_metering(
+        result,
+        primary,
+        extractor_input_tokens=usage_input_tokens,
+        extractor_output_tokens=usage_output_tokens,
+    )
+
+
+def _all_discovery_engines_unresponsive(diagnostics: Mapping[str, Any]) -> bool:
+    rows = diagnostics.get("unresponsive_engines")
+    if not isinstance(rows, list):
+        return False
+    engines = {
+        str(row.get("engine") or "").casefold()
+        for row in rows
+        if isinstance(row, Mapping)
+    }
+    return _CONFIGURED_DISCOVERY_ENGINES.issubset(engines)
+
+
+def _fallback_eligible_primary_status(primary: Mapping[str, Any]) -> str | None:
+    if primary.get("search_performed") is True:
+        return None
+    raw_diagnostics = primary.get("runtime_diagnostics")
+    diagnostics = raw_diagnostics if isinstance(raw_diagnostics, Mapping) else {}
+    status = str(diagnostics.get("status") or "")
+    return status if status in _FALLBACK_PRIMARY_STATUSES else None
+
+
+def _cooldown_primary_result(status: str) -> dict[str, Any]:
+    """Describe an intentional no-call without inventing provider activity."""
+
+    return {
+        "text": "",
+        "sources": [],
+        "claims": [],
+        "provider": "gemini_google_search",
+        "search_performed": False,
+        "usage_metadata": _usage_metadata(0, 0),
+        "runtime_diagnostics": {
+            "route": "gemini_google_search",
+            "status": status,
+            "elapsed_ms": 0,
+            "call_count": 0,
+            "retry_count": 0,
+            "primary_skipped": True,
+        },
+    }
+
+
+class ResilientResearchRunner:
+    """Use bounded direct-source acquisition after selected Gemini transients."""
+
+    def __init__(
+        self,
+        primary: ResearchRunner,
+        *,
+        searxng: SearxngSearchService | Any | None = None,
+        fetcher: DirectTextFetcher = _default_fetch_direct_text,
+        extractor: DirectDocumentExtractor | None = None,
+        maximum_candidates: int = 3,
+        maximum_document_characters: int = _MAX_DOCUMENT_CHARACTERS,
+        primary_cooldown_seconds: float = _DEFAULT_PRIMARY_COOLDOWN_SECONDS,
+        primary_healthy_seconds: float = _DEFAULT_PRIMARY_HEALTHY_SECONDS,
+        fallback_phase_seconds: float = WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+        monotonic_clock: Callable[[], float] = time.monotonic,
+        source_type_classifier: SourceTypeClassifier | None = None,
+    ) -> None:
+        if maximum_candidates < 1 or maximum_candidates > 10:
+            raise ValueError("maximum_candidates must be between 1 and 10")
+        if (
+            maximum_document_characters < 1
+            or maximum_document_characters > MAX_DOCUMENT_CODE_POINTS
+        ):
+            raise ValueError(
+                f"maximum_document_characters must be between 1 and {MAX_DOCUMENT_CODE_POINTS}"
+            )
+        try:
+            normalized_cooldown = float(primary_cooldown_seconds)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError("primary_cooldown_seconds must be finite") from error
+        if (
+            not math.isfinite(normalized_cooldown)
+            or normalized_cooldown <= 0
+            or normalized_cooldown > _MAX_PRIMARY_COOLDOWN_SECONDS
+        ):
+            raise ValueError(
+                "primary_cooldown_seconds must be greater than 0 and at most "
+                f"{_MAX_PRIMARY_COOLDOWN_SECONDS:g}"
+            )
+        try:
+            normalized_healthy = float(primary_healthy_seconds)
+            normalized_fallback_phase = float(fallback_phase_seconds)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError("research runner phase limits must be finite") from error
+        if (
+            not math.isfinite(normalized_healthy)
+            or normalized_healthy <= 0
+            or normalized_healthy > _MAX_PRIMARY_HEALTHY_SECONDS
+        ):
+            raise ValueError(
+                "primary_healthy_seconds must be greater than 0 and at most "
+                f"{_MAX_PRIMARY_HEALTHY_SECONDS:g}"
+            )
+        if (
+            not math.isfinite(normalized_fallback_phase)
+            or normalized_fallback_phase <= 0
+            or normalized_fallback_phase > WORKFLOW_V2_FALLBACK_PHASE_SECONDS
+        ):
+            raise ValueError(
+                "fallback_phase_seconds must be greater than 0 and at most "
+                f"{WORKFLOW_V2_FALLBACK_PHASE_SECONDS:g}"
+            )
+        self.primary = primary
+        self.searxng = searxng or SearxngSearchService()
+        self.fetcher = fetcher
+        self.extractor = extractor
+        self.maximum_candidates = maximum_candidates
+        self.maximum_document_characters = maximum_document_characters
+        self.primary_cooldown_seconds = normalized_cooldown
+        self.primary_healthy_seconds = normalized_healthy
+        self.fallback_phase_seconds = normalized_fallback_phase
+        self.source_type_classifier = source_type_classifier
+        self._monotonic_clock = monotonic_clock
+        self._primary_condition = asyncio.Condition()
+        self._primary_gate_in_flight = False
+        self._primary_started_version = 0
+        self._primary_completed_version = 0
+        self._primary_generation = 0
+        self._primary_cooldown_until = 0.0
+        self._primary_cooldown_status = "unavailable"
+        self._primary_healthy_until = 0.0
+        self._lifecycle_condition = asyncio.Condition()
+        self._close_lock = asyncio.Lock()
+        self._active_searches = 0
+        self._closing = False
+        self._closed = False
+
+    def _cooldown_result_if_open(self) -> dict[str, Any] | None:
+        if self._monotonic_clock() >= self._primary_cooldown_until:
+            return None
+        return _cooldown_primary_result(self._primary_cooldown_status)
+
+    async def _enter_search(self) -> None:
+        async with self._lifecycle_condition:
+            if self._closing or self._closed:
+                raise RuntimeError("research runner is closed")
+            self._active_searches += 1
+
+    async def _leave_search(self) -> None:
+        async with self._lifecycle_condition:
+            self._active_searches -= 1
+            if self._active_searches == 0:
+                self._lifecycle_condition.notify_all()
+
+    async def _restore_open_after_close_cancel(self) -> None:
+        async with self._lifecycle_condition:
+            self._closing = False
+            self._lifecycle_condition.notify_all()
+
+    async def _mark_closed_after_shutdown(self) -> None:
+        async with self._lifecycle_condition:
+            self._closed = True
+            self._closing = False
+            self._lifecycle_condition.notify_all()
+
+    def _next_primary_version(self) -> int:
+        self._primary_started_version += 1
+        return self._primary_started_version
+
+    async def _release_primary_gate(self) -> None:
+        async with self._primary_condition:
+            self._primary_gate_in_flight = False
+            self._primary_condition.notify_all()
+
+    async def _complete_primary_call(
+        self,
+        *,
+        version: int,
+        generation: int,
+        primary: Mapping[str, Any],
+        owns_gate: bool,
+    ) -> None:
+        async with self._primary_condition:
+            self._primary_completed_version = max(
+                self._primary_completed_version, version
+            )
+            now = self._monotonic_clock()
+            status = _fallback_eligible_primary_status(primary)
+            if status is not None:
+                # Any in-flight query that observes a transient latches the
+                # cooldown. Concurrent successes cannot immediately re-enable
+                # a provider that just failed another requirement.
+                self._primary_cooldown_until = max(
+                    self._primary_cooldown_until,
+                    now + self.primary_cooldown_seconds,
+                )
+                self._primary_cooldown_status = status
+                self._primary_healthy_until = 0.0
+                # Every observed transient invalidates all successes that were
+                # already in flight. Only a call started in this new generation
+                # may later establish provider health.
+                self._primary_generation += 1
+            elif primary.get("search_performed") is True:
+                completion_is_current = generation == self._primary_generation
+                if owns_gate and completion_is_current:
+                    # A gate can run only after cooldown expiry. Its success is
+                    # the sole authority that closes the in-memory circuit.
+                    self._primary_cooldown_until = 0.0
+                    self._primary_healthy_until = now + self.primary_healthy_seconds
+                elif completion_is_current and now >= self._primary_cooldown_until:
+                    self._primary_healthy_until = max(
+                        self._primary_healthy_until,
+                        now + self.primary_healthy_seconds,
+                    )
+            elif owns_gate and generation == self._primary_generation:
+                # A configuration or non-retryable gate result fails closed and
+                # leaves availability unknown for the next caller. It never
+                # opens the transient circuit.
+                if now >= self._primary_cooldown_until:
+                    self._primary_cooldown_until = 0.0
+                self._primary_healthy_until = 0.0
+            if owns_gate:
+                self._primary_gate_in_flight = False
+            self._primary_condition.notify_all()
+
+    async def _search_primary(self, query: str) -> dict[str, Any]:
+        """Gate initial availability; never share query content or usage."""
+
+        while True:
+            async with self._primary_condition:
+                cooldown = self._cooldown_result_if_open()
+                if cooldown is not None:
+                    return cooldown
+                if self._monotonic_clock() < self._primary_healthy_until:
+                    version = self._next_primary_version()
+                    generation = self._primary_generation
+                    owns_gate = False
+                    break
+                if not self._primary_gate_in_flight:
+                    self._primary_gate_in_flight = True
+                    version = self._next_primary_version()
+                    generation = self._primary_generation
+                    owns_gate = True
+                    break
+                await self._primary_condition.wait()
+
+        try:
+            primary = await self.primary.search(query)
+        except BaseException:
+            if owns_gate:
+                await _await_cancellation_safe(self._release_primary_gate())
+            raise
+        try:
+            await self._complete_primary_call(
+                version=version,
+                generation=generation,
+                primary=primary,
+                owns_gate=owns_gate,
+            )
+        except BaseException:
+            if owns_gate:
+                await _await_cancellation_safe(self._release_primary_gate())
+            raise
+        return primary
+
+    async def _discover(self, query: str) -> Mapping[str, Any]:
+        method = getattr(self.searxng, "search_web_general_async", None)
+        if method is None:
+            method = getattr(self.searxng, "search_web_general", None)
+        if method is None or not inspect.iscoroutinefunction(method):
+            raise TypeError("workflow-v2 SearXNG discovery must be asynchronous")
+        result = await method(query)
+        return result if isinstance(result, Mapping) else {}
+
+    async def search(self, query: str) -> dict[str, Any]:
+        await self._enter_search()
+        try:
+            return await self._search_active(query)
+        finally:
+            await _await_cancellation_safe(self._leave_search())
+
+    async def _search_active(self, query: str) -> dict[str, Any]:
+        context = _fallback_context(query)
+        locator_refetch = bool(context and context.reusable_candidates)
+        if locator_refetch:
+            # A targeted repair pass carries only operation-local locators that the
+            # initial provider response already discovered. Do not ask Gemini to
+            # restate them: refetch immutable publisher bytes and bind exact spans.
+            primary = {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "route": "gemini_google_search",
+                    "status": "same_operation_locator_refetch",
+                    "elapsed_ms": 0,
+                    "call_count": 0,
+                    "retry_count": 0,
+                },
+            }
+        else:
+            primary = await self._search_primary(query)
+        (
+            primary_locator_candidates,
+            primary_locator_rejected,
+            primary_locator_malformed,
+            primary_locator_omitted,
+        ) = _primary_response_locator_rows(
+            primary,
+            allowed_hosts=(context.allowed_hosts if context else frozenset()),
+            accepted_source_types=(
+                frozenset(context.accepted_source_types)
+                if context
+                else frozenset()
+            ),
+            source_type_classifier=self.source_type_classifier,
+            maximum=_MAX_REUSABLE_SOURCE_CANDIDATES,
+        )
+        if primary.get("search_performed") is True and not locator_refetch:
+            return _with_primary_response_locators(
+                primary, primary_locator_candidates
+            )
+        raw_primary_diagnostics = primary.get("runtime_diagnostics")
+        primary_diagnostics = (
+            raw_primary_diagnostics
+            if isinstance(raw_primary_diagnostics, Mapping)
+            else {}
+        )
+        primary_status = str(primary_diagnostics.get("status") or "")
+        if (
+            not locator_refetch
+            and primary_status not in _FALLBACK_PRIMARY_STATUSES
+        ):
+            return primary
+        logger.info(
+            "Workflow-v2 research fallback started; primary_status=%s",
+            primary_status,
+        )
+        fallback_started_at = self._monotonic_clock()
+
+        def finish_fallback(result: dict[str, Any]) -> dict[str, Any]:
+            return _with_fallback_elapsed(
+                result,
+                elapsed_ms=_finite_elapsed_ms(
+                    fallback_started_at,
+                    self._monotonic_clock(),
+                ),
+            )
+
+        fallback_deadline = (
+            asyncio.get_running_loop().time() + self.fallback_phase_seconds
+        )
+
+        context = context or _fallback_context(query)
+        if context is None:
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary, status="invalid_canonical_input"
+                )
+            )
+
+        discovery_started_at = self._monotonic_clock()
+        try:
+            discovery_deadline = min(
+                fallback_deadline,
+                asyncio.get_running_loop().time() + _FALLBACK_DISCOVERY_SECONDS,
+            )
+            async with asyncio.timeout_at(discovery_deadline):
+                discovery = await self._discover(context.discovery_query)
+        except TimeoutError:
+            if (
+                not context.reusable_candidates
+                and not context.authority_candidates
+                and not primary_locator_candidates
+            ):
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="fallback_deadline_exceeded",
+                        query_complete=context.query_complete,
+                    )
+                )
+            discovery = {}
+            discovery_diagnostics = {
+                "route": "searxng",
+                "status": "deadline_exceeded",
+                "elapsed_ms": _finite_elapsed_ms(
+                    discovery_started_at, self._monotonic_clock()
+                ),
+                "call_count": 1,
+                "retry_count": 0,
+            }
+        except Exception:
+            if (
+                not context.reusable_candidates
+                and not context.authority_candidates
+                and not primary_locator_candidates
+            ):
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="error",
+                        query_complete=context.query_complete,
+                    )
+                )
+            discovery = {}
+            discovery_diagnostics = {
+                "route": "searxng",
+                "status": "error",
+                "elapsed_ms": _finite_elapsed_ms(
+                    discovery_started_at, self._monotonic_clock()
+                ),
+                "call_count": 1,
+                "retry_count": 0,
+            }
+        else:
+            raw_discovery_diagnostics = discovery.get("runtime_diagnostics")
+            discovery_diagnostics = (
+                raw_discovery_diagnostics
+                if isinstance(raw_discovery_diagnostics, Mapping)
+                else {}
+            )
+        discovery_status = str(discovery_diagnostics.get("status") or "")
+        # The internal SearX adapter is the authority for whether its response
+        # shape was processed successfully.  A stray or malformed
+        # ``search_performed`` flag must never turn an unknown/error status into
+        # a successful empty result that suppresses the primary transient.
+        discovery_healthy = discovery_status in _HEALTHY_DISCOVERY_STATUSES
+        if (
+            not discovery.get("search_performed")
+            and discovery_status == "empty"
+            and _all_discovery_engines_unresponsive(discovery_diagnostics)
+        ):
+            discovery_healthy = False
+            discovery_status = "all_engines_unresponsive"
+            discovery_diagnostics = {
+                **discovery_diagnostics,
+                "status": discovery_status,
+            }
+        if (
+            not discovery_healthy
+            and not context.reusable_candidates
+            and not context.authority_candidates
+            and not primary_locator_candidates
+        ):
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status=discovery_status or "unavailable",
+                    discovery_diagnostics=discovery_diagnostics,
+                    query_complete=context.query_complete,
+                )
+            )
+
+        if discovery_healthy:
+            search_candidates, rejected_count, malformed_count, omitted_count = (
+                _candidate_rows(
+                    discovery,
+                    allowed_hosts=context.allowed_hosts,
+                    accepted_source_types=frozenset(
+                        context.accepted_source_types
+                    ),
+                    source_type_classifier=self.source_type_classifier,
+                    maximum=(
+                        self.maximum_candidates + len(context.reusable_candidates)
+                    ),
+                )
+            )
+        else:
+            search_candidates = []
+            rejected_count = malformed_count = omitted_count = 0
+        rejected_count += primary_locator_rejected
+        malformed_count += primary_locator_malformed
+        omitted_count += primary_locator_omitted
+        discovered_candidates = [
+            *context.authority_candidates,
+            *primary_locator_candidates,
+            *search_candidates,
+        ]
+        merged_candidates_by_url: dict[str, _Candidate] = {}
+        for candidate in (*context.reusable_candidates, *discovered_candidates):
+            existing = merged_candidates_by_url.get(candidate.canonical_url)
+            if existing is None:
+                merged_candidates_by_url[candidate.canonical_url] = candidate
+                continue
+            merged_candidates_by_url[candidate.canonical_url] = _Candidate(
+                canonical_url=existing.canonical_url,
+                title=existing.title,
+                snippets=tuple(
+                    dict.fromkeys((*existing.snippets, *candidate.snippets))
+                ),
+            )
+        reusable_urls = [
+            candidate.canonical_url for candidate in context.reusable_candidates
+        ]
+        discovered_urls = [
+            candidate.canonical_url for candidate in discovered_candidates
+        ]
+        selected_urls: list[str] = []
+        # On the single locator-refetch pass, preserve the operation-local URL's
+        # opportunity to be independently fetched. Fresh discovery can otherwise
+        # fill the bounded candidate cap and silently crowd out the very publisher
+        # locator that caused this repair. Spare capacity still goes to explicit
+        # authorities and ranked discovery. A duplicate URL keeps the fresh snippets
+        # merged above for relevant-window selection.
+        prioritized_url_groups = (
+            (reusable_urls, discovered_urls)
+            if locator_refetch
+            else (discovered_urls, reusable_urls)
+        )
+        for urls in prioritized_url_groups:
+            for url in urls:
+                if (
+                    url not in selected_urls
+                    and len(selected_urls) < self.maximum_candidates
+                ):
+                    selected_urls.append(url)
+        merged_candidates = [merged_candidates_by_url[url] for url in selected_urls]
+        all_merged_candidate_count = len(merged_candidates_by_url)
+        if all_merged_candidate_count > self.maximum_candidates:
+            omitted_count += all_merged_candidate_count - self.maximum_candidates
+        candidates = merged_candidates
+        # The adapter returns only sanitized source rows. Preserve its bounded
+        # count of discarded provider rows so a mixed valid/malformed response
+        # cannot later become an authoritative zero-evidence result.
+        malformed_count += _finite_diagnostic_int(
+            discovery_diagnostics,
+            "invalid_result_count",
+            maximum=10_000,
+        )
+        if not candidates:
+            if not context.query_complete:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_query_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        query_complete=False,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            if rejected_count or malformed_count or omitted_count:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_rows_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        query_complete=True,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            return finish_fallback(
+                _empty_fallback_result(
+                    primary=primary,
+                    primary_status=primary_status,
+                    candidate_count=0,
+                    fetched_count=0,
+                    query_complete=True,
+                    validation_incomplete_count=0,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                    primary_diagnostics=primary_diagnostics,
+                    discovery_diagnostics=discovery_diagnostics,
+                )
+            )
+
+        fetch_semaphore = asyncio.Semaphore(3)
+
+        async def fetch_candidate(
+            candidate: _Candidate,
+        ) -> tuple[_Candidate, Mapping[str, Any] | None, bool]:
+            async with fetch_semaphore:
+                try:
+                    raw_document = await self.fetcher(candidate.canonical_url)
+                except Exception:
+                    return candidate, None, True
+            if not isinstance(raw_document, Mapping):
+                return candidate, None, True
+            return candidate, raw_document, False
+
+        try:
+            fetch_deadline = min(
+                fallback_deadline,
+                asyncio.get_running_loop().time() + _FALLBACK_FETCH_SECONDS,
+            )
+            async with asyncio.timeout_at(fetch_deadline):
+                fetch_results = await asyncio.gather(
+                    *(fetch_candidate(candidate) for candidate in candidates)
+                )
+        except TimeoutError:
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status="fallback_deadline_exceeded",
+                    discovery_diagnostics=discovery_diagnostics,
+                    fetched_count=0,
+                    fetch_error_count=len(candidates),
+                    query_complete=context.query_complete,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                )
+            )
+        raw_fetch_count = sum(
+            1 for _candidate, raw_document, _failed in fetch_results if raw_document
+        )
+        fetch_error_count = sum(1 for _candidate, _raw, failed in fetch_results if failed)
+        validation_incomplete_count = 0
+        requirement_locator_text = "\n".join(
+            (
+                str(context.requirement.get("description") or ""),
+                context.applies_when,
+            )
+        )
+        fetched_documents: list[
+            tuple[_Candidate, DirectDocumentSnapshot, BoundedFetchedDocument]
+        ] = []
+        seen_document_ids: set[str] = set()
+        for candidate, raw_document, _failed in fetch_results:
+            if raw_document is None:
+                continue
+            final_url = _canonical_candidate_url(raw_document.get("final_url"))
+            if final_url is None or not _url_matches_allowed_hosts(
+                final_url, context.allowed_hosts
+            ):
+                rejected_count += 1
+                validation_incomplete_count += 1
+                continue
+            raw_text = raw_document.get("text")
+            if not isinstance(raw_text, str) or not raw_text:
+                validation_incomplete_count += 1
+                continue
+            document_text = _bounded_document_window(
+                raw_text,
+                candidate.snippets,
+                self.maximum_document_characters,
+                locator_text=requirement_locator_text,
+            )
+            if not document_text:
+                validation_incomplete_count += 1
+                continue
+            retrieved_at = raw_document.get("retrieved_at")
+            if not isinstance(retrieved_at, str) or not retrieved_at.strip():
+                retrieved_at = datetime.now(timezone.utc).isoformat()
+            snapshot = DirectDocumentSnapshot(
+                canonical_url=final_url,
+                title=candidate.title,
+                text=document_text,
+                content_sha256=hashlib.sha256(document_text.encode("utf-8")).hexdigest(),
+                retrieved_at=retrieved_at,
+            )
+
+            document_id = "source-" + hashlib.sha256(
+                f"{final_url}\n{snapshot.content_sha256}".encode("utf-8")
+            ).hexdigest()[:32]
+            if document_id not in seen_document_ids:
+                seen_document_ids.add(document_id)
+                fetched_documents.append(
+                    (
+                        candidate,
+                        snapshot,
+                        BoundedFetchedDocument(
+                            document_id=document_id,
+                            title=candidate.title,
+                            text=document_text,
+                        ),
+                    )
+                )
+
+        fetched_count = len(fetched_documents)
+        incomplete_fetch_count = fetch_error_count + validation_incomplete_count
+        if not fetched_documents and incomplete_fetch_count:
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status=(
+                        "direct_fetch_error"
+                        if raw_fetch_count == 0
+                        else "direct_fetch_incomplete"
+                    ),
+                    discovery_diagnostics=discovery_diagnostics,
+                    fetched_count=fetched_count,
+                    fetch_error_count=fetch_error_count,
+                    validation_incomplete_count=validation_incomplete_count,
+                    query_complete=context.query_complete,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                )
+            )
+        if fetched_documents and self.extractor is None:
+            return finish_fallback(
+                _primary_with_failed_fallback(
+                    primary,
+                    status="exact_span_extractor_unavailable",
+                    discovery_diagnostics=discovery_diagnostics,
+                    fetched_count=fetched_count,
+                    fetch_error_count=fetch_error_count,
+                    validation_incomplete_count=validation_incomplete_count,
+                    query_complete=context.query_complete,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                )
+            )
+        if fetched_documents and self.extractor is not None:
+            extraction_request = ExactSpanExtractionRequest(
+                requirement_query=ExactSpanRequirementQuery(
+                    requirement_id=str(context.requirement.get("id") or "requirement"),
+                    requirement=str(context.requirement.get("description") or ""),
+                    applies_when=context.applies_when,
+                    query=context.discovery_query,
+                ),
+                documents=[item[2] for item in fetched_documents],
+            )
+            try:
+                extraction_deadline = min(
+                    fallback_deadline,
+                    asyncio.get_running_loop().time()
+                    + _FALLBACK_EXTRACTION_SECONDS,
+                )
+                async with asyncio.timeout_at(extraction_deadline):
+                    proposed = await self.extractor.extract(extraction_request)
+                extraction = (
+                    proposed
+                    if isinstance(proposed, ExactSpanExtractionResult)
+                    else ExactSpanExtractionResult.model_validate(proposed)
+                )
+            except TimeoutError:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="fallback_deadline_exceeded",
+                        discovery_diagnostics=discovery_diagnostics,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            except Exception as error:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status=str(
+                            getattr(error, "code", None) or "extraction_error"
+                        ),
+                        discovery_diagnostics=discovery_diagnostics,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            if extraction.chosen_document is not None:
+                selected = next(
+                    (
+                        item
+                        for item in fetched_documents
+                        if item[2].document_id
+                        == extraction.chosen_document.document_id
+                        and item[2] == extraction.chosen_document
+                    ),
+                    None,
+                )
+                if selected is None:
+                    return finish_fallback(
+                        _primary_with_failed_fallback(
+                            primary,
+                            status="extraction_document_mismatch",
+                            discovery_diagnostics=discovery_diagnostics,
+                            usage_input_tokens=extraction.input_tokens,
+                            usage_output_tokens=extraction.output_tokens,
+                            fetched_count=fetched_count,
+                            fetch_error_count=fetch_error_count,
+                            validation_incomplete_count=validation_incomplete_count,
+                            query_complete=context.query_complete,
+                            rejected_candidate_count=rejected_count,
+                            malformed_candidate_count=malformed_count,
+                            omitted_candidate_count=omitted_count,
+                        )
+                    )
+                candidate, snapshot, _bounded_document = selected
+                accepted_spans = _validated_extracted_spans(
+                    snapshot.text, extraction
+                )
+                if accepted_spans:
+                    logger.info(
+                        "Workflow-v2 research fallback completed; status=ok "
+                        "candidates=%s fetched=%s claims=%s",
+                        len(candidates),
+                        fetched_count,
+                        len(accepted_spans),
+                    )
+                    return finish_fallback(
+                        _result_for_document(
+                            primary=primary,
+                            primary_status=primary_status,
+                            discovery_status="ok",
+                            candidate=candidate,
+                            document=snapshot,
+                            claims=accepted_spans,
+                            candidate_count=len(candidates),
+                            fetched_count=fetched_count,
+                            query_complete=context.query_complete,
+                            validation_incomplete_count=validation_incomplete_count,
+                            rejected_candidate_count=rejected_count,
+                            malformed_candidate_count=malformed_count,
+                            omitted_candidate_count=omitted_count,
+                            primary_diagnostics=primary_diagnostics,
+                            discovery_diagnostics=discovery_diagnostics,
+                            usage_input_tokens=extraction.input_tokens,
+                            usage_output_tokens=extraction.output_tokens,
+                        )
+                    )
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="extraction_span_not_unique",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            if incomplete_fetch_count:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="direct_fetch_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=context.query_complete,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            if not context.query_complete:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_query_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=False,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            if rejected_count or malformed_count or omitted_count:
+                return finish_fallback(
+                    _primary_with_failed_fallback(
+                        primary,
+                        status="discovery_rows_incomplete",
+                        discovery_diagnostics=discovery_diagnostics,
+                        usage_input_tokens=extraction.input_tokens,
+                        usage_output_tokens=extraction.output_tokens,
+                        fetched_count=fetched_count,
+                        fetch_error_count=fetch_error_count,
+                        validation_incomplete_count=validation_incomplete_count,
+                        query_complete=True,
+                        rejected_candidate_count=rejected_count,
+                        malformed_candidate_count=malformed_count,
+                        omitted_candidate_count=omitted_count,
+                    )
+                )
+            return finish_fallback(
+                _empty_fallback_result(
+                    primary=primary,
+                    primary_status=primary_status,
+                    candidate_count=len(candidates),
+                    fetched_count=fetched_count,
+                    query_complete=True,
+                    validation_incomplete_count=validation_incomplete_count,
+                    rejected_candidate_count=rejected_count,
+                    malformed_candidate_count=malformed_count,
+                    omitted_candidate_count=omitted_count,
+                    primary_diagnostics=primary_diagnostics,
+                    discovery_diagnostics=discovery_diagnostics,
+                    usage_input_tokens=extraction.input_tokens,
+                    usage_output_tokens=extraction.output_tokens,
+                )
+            )
+        return finish_fallback(
+            _empty_fallback_result(
+                primary=primary,
+                primary_status=primary_status,
+                candidate_count=len(candidates),
+                fetched_count=fetched_count,
+                query_complete=context.query_complete,
+                validation_incomplete_count=validation_incomplete_count,
+                rejected_candidate_count=rejected_count,
+                malformed_candidate_count=malformed_count,
+                omitted_candidate_count=omitted_count,
+                primary_diagnostics=primary_diagnostics,
+                discovery_diagnostics=discovery_diagnostics,
+            )
+        )
+
+    async def close(self) -> None:
+        async with self._close_lock:
+            async with self._lifecycle_condition:
+                if self._closed:
+                    return
+                self._closing = True
+            try:
+                async with self._lifecycle_condition:
+                    await self._lifecycle_condition.wait_for(
+                        lambda: self._active_searches == 0
+                    )
+            except BaseException:
+                await _await_cancellation_safe(
+                    self._restore_open_after_close_cancel()
+                )
+                raise
+
+            try:
+                closers = []
+                for component in (self.primary, self.searxng, self.extractor):
+                    close = getattr(component, "close", None)
+                    if close is None:
+                        continue
+                    value = close()
+                    if inspect.isawaitable(value):
+                        closers.append(value)
+                if closers:
+                    await asyncio.gather(*closers)
+            finally:
+                # Once component shutdown begins, the runner cannot safely be
+                # reopened even if a closer fails or this close caller is cancelled.
+                await _await_cancellation_safe(self._mark_closed_after_shutdown())
+
+
+__all__ = [
+    "DirectDocumentExtractor",
+    "ResilientResearchRunner",
+    "WORKFLOW_V2_FALLBACK_PHASE_SECONDS",
+]
