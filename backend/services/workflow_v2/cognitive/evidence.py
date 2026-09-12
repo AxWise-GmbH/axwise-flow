@@ -34,6 +34,7 @@ from backend.services.workflow_v2.cognitive.policy import (
     _EXPLICIT_UNRESOLVED_LABEL,
     _EXPLICIT_VALIDATION_ACTION_PREFIX,
     _FORMULA_MARKER,
+    _GIVEN_WHEN_THEN_INLINE_ROLE,
     _IMMUTABLE_GAP_SECTION_HEADINGS,
     _INDEPENDENT_SENSITIVE_FACT,
     _INLINE_GWT_ROLE_BREAK,
@@ -44,6 +45,7 @@ from backend.services.workflow_v2.cognitive.policy import (
     _NON_DISTINCTIVE_REQUIREMENT_ACRONYMS,
     _PLANNING_ARTIFACT_TYPES,
     _PLANNING_TARGET_EXTERNAL_STATUS_ASSERTION,
+    _PLANNING_TARGET_EXTERNAL_SUBJECT,
     _PLANNING_TARGET_OBLIGATION_ASSERTION,
     _PLANNING_TARGET_PRODUCT_STATUS_ASSERTION,
     _POSITIVE_AUTHORITY_PREDICATE,
@@ -674,6 +676,115 @@ def _is_safe_nonauthority_planning_directive(value: str) -> bool:
     )
 
 
+def _planning_statement_body(value: str) -> tuple[str, str]:
+    """Retain an explicit requirement/criterion label, not its heading's scope."""
+
+    body = re.sub(r"[*_`]", "", value).strip()
+    body = re.sub(r"^(?:[-+*]|\d+[.)])\s+", "", body)
+    label, separator, remainder = body.partition(":")
+    if separator and re.fullmatch(r"(?:req|acc)-[a-f0-9]{16}", label.strip()):
+        return label[:3], remainder.strip()
+    return "", body
+
+
+def _internal_specification_language(value: str) -> bool:
+    """Disambiguate overloaded planning verbs only inside structural plan units.
+
+    ``prevent`` and ``treat`` may describe requested behavior. Other existing
+    sensitive matches (disease, certification, legal mandates, approval, etc.)
+    remain evidence claims, even inside a requirement or acceptance criterion.
+    """
+
+    return not (
+        _RAW_EVIDENCE_MARKER.search(value)
+        or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(value)
+        or _CONDITIONAL_AUTHORITY_ASSERTION.search(value)
+        or _AUTHORITY_PROCESS_EXECUTION.search(value)
+        or _UNRESOLVED_AUTHORITY_SIGNAL.search(value)
+        or re.search(
+            r"\b(?:always|unconditionally|guarantees?|guaranteed|measured|observed|"
+            r"confirmed|verified|proven)\b",
+            value,
+            re.IGNORECASE,
+        )
+        or any(
+            re.fullmatch(r"(?:prevent|treat)(?:ing)?", match.group(), re.IGNORECASE)
+            is None
+            for match in _EVIDENCE_SENSITIVE_ASSERTION.finditer(value)
+        )
+    )
+
+
+def _complete_internal_acceptance_fixture(value: str) -> bool:
+    """Recognize one complete G/W/T unit, never an arbitrary conditional section."""
+
+    _label, body = _planning_statement_body(value)
+    body = re.sub(
+        r"\s*\(Supports:\s*req-[a-f0-9]{16}(?:,\s*req-[a-f0-9]{16})*\)\s*$",
+        "",
+        body,
+    )
+    boundaries = list(_GIVEN_WHEN_THEN_INLINE_ROLE.finditer(body))
+    first = body[: boundaries[0].start()] if boundaries else body
+    _list, _prefix, first_role, first_body = _task_fragment_parts(first)
+    roles = [(first_role, first_body)]
+    for index, boundary in enumerate(boundaries):
+        end = (
+            boundaries[index + 1].start() if index + 1 < len(boundaries) else len(body)
+        )
+        roles.append(
+            (boundary.group("role").casefold(), body[boundary.end() : end].strip())
+        )
+    return (
+        [role for role, _part in roles] == ["given", "when", "then"]
+        and all(
+            part.strip()
+            and len([clause for clause in _CLAUSE_BREAK.split(part) if clause.strip()])
+            == 1
+            for _role, part in roles
+        )
+        and _internal_specification_language(body)
+    )
+
+
+def _normative_requirement_unit(value: str) -> bool:
+    """Require normative syntax in an explicitly identified requirement unit."""
+
+    _label, body = _planning_statement_body(value)
+    return (
+        bool(
+            _INTERNAL_PLANNING_TARGET.match(body)
+            or re.search(r"\b(?:must|shall)\b", body, re.I)
+        )
+        and len([part for part in _CLAUSE_BREAK.split(body) if part.strip()]) == 1
+        and _ACTION_ASSERTED_TAIL.search(body) is None
+        and re.search(r"\b(?:is|are|was|were|has|have|had|does|did)\b", body, re.I)
+        is None
+        and _internal_specification_language(body)
+    )
+
+
+def _permission_context_asserts_authority(value: str) -> bool:
+    """Keep permission labels from laundering external approvals or results.
+
+    Reuse the existing sensitive/authority classifiers and the same conservative
+    token-stem comparison used for unresolved requirements (e.g. regulation /
+    regulator). A role-matrix heading alone does not establish internal meaning.
+    """
+
+    return bool(
+        _ASSERTIVE_HEADING_PREDICATE.search(value)
+        or _EVIDENCE_SENSITIVE_ASSERTION.search(value)
+        or _PLANNING_TARGET_EXTERNAL_SUBJECT.search(value)
+        or any(
+            token == authority
+            or (len(token) >= 6 and len(authority) >= 6 and token[:6] == authority[:6])
+            for token in _support_tokens(value)
+            for authority in _UNRESOLVED_AUTHORITY_MATCH_TOKENS
+        )
+    )
+
+
 def _deterministic_evidence_integrity_defects(
     markdown: str,
     allowed_claim_texts: dict[str, str],
@@ -753,6 +864,19 @@ def _deterministic_evidence_integrity_defects(
         )
 
     base_lines = base.splitlines()
+    fixture_lines: set[int] = set()
+    if artifact_type in _PLANNING_ARTIFACT_TYPES:
+        for index in range(len(base_lines) - 2):
+            parts = [
+                _task_fragment_parts(line.strip())
+                for line in base_lines[index : index + 3]
+            ]
+            if [part[2] for part in parts] == ["given", "when", "then"] and (
+                _complete_internal_acceptance_fixture(
+                    ", ".join(f"{part[2].title()} {part[3]}" for part in parts)
+                )
+            ):
+                fixture_lines.update(range(index, index + 3))
     for line_index, line in enumerate(base_lines):
         stripped = line.strip()
         if stripped.startswith("```"):
@@ -760,6 +884,17 @@ def _deterministic_evidence_integrity_defects(
         if not stripped:
             pending_table_headers = None
             active_table_headers = None
+            continue
+        if artifact_type in _PLANNING_ARTIFACT_TYPES and (
+            line_index in fixture_lines
+            or _complete_internal_acceptance_fixture(stripped)
+            or (
+                _planning_statement_body(stripped)[0] == "req"
+                and _normative_requirement_unit(stripped)
+            )
+        ):
+            # A complete internal test is a specified expected outcome, not proof
+            # that it was executed. Semantic consistency still belongs to review.
             continue
         table_cells = (
             [
@@ -833,6 +968,53 @@ def _deterministic_evidence_integrity_defects(
                     if cell_index < len(table_contexts)
                     else ""
                 )
+                if artifact_type in _PLANNING_ARTIFACT_TYPES:
+                    requirement_row = (
+                        active_table_headers is not None
+                        and re.fullmatch(
+                            r"req-[a-f0-9]{16}",
+                            re.sub(r"[*_`]", "", table_cells[0]),
+                        )
+                        is not None
+                        and cell_context.casefold()
+                        in {"requirement", "description", "statement"}
+                    )
+                    permission_cell = (
+                        active_table_headers is not None
+                        and len(active_table_headers) >= 3
+                        and cell_index > 0
+                        and table_contexts[0].casefold().endswith("action")
+                        and any(
+                            other_index != cell_index
+                            and re.sub(r"[*_`]", "", other).casefold()
+                            in {"denied", "read-only"}
+                            for other_index, other in enumerate(table_cells[1:], 1)
+                        )
+                        and re.search(
+                            r"\b(?:RBAC|role-based access control|permission matrix)\b",
+                            current_heading,
+                            re.I,
+                        )
+                        and re.fullmatch(
+                            r"Approved(?:\s*\([A-Za-z][A-Za-z /-]{0,40}\))?",
+                            re.sub(r"[*_`]", "", cell),
+                            re.I,
+                        )
+                        is not None
+                        and not _permission_context_asserts_authority(
+                            " ".join(
+                                [
+                                    *table_contexts[1:],
+                                    table_cells[0],
+                                    cell.partition("(")[2],
+                                ]
+                            )
+                        )
+                    )
+                    if permission_cell or (
+                        requirement_row and _normative_requirement_unit(cell)
+                    ):
+                        continue
                 for cell_item in re.split(r"<br\s*/?>", cell, flags=re.IGNORECASE):
                     fragments.append(re.sub(r"^\s*[•·]\s*", "", cell_item).strip())
                     fragment_contexts.append(cell_context)

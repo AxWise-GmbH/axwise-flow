@@ -27,3 +27,13 @@ These modules contain the existing scope, evidence and publication logic extract
 ## Remaining decomposition
 
 The dispatcher still contains provider adapters and research/synthesis handlers. Extract these incrementally behind the existing ports after characterization tests, rather than adding a second operation lifecycle. Public API retirement and typed access to existing simulation/transcript-analysis algorithms are separate follow-up work, not accomplished by moving these files.
+
+## Synthesis consistency boundary
+
+- Writer and executor use the same `_context` builder. Accepted scope and reader requirements are authoritative; incidental draft heading/list counts are not new requirements.
+- Specialist `conclusions` contain advice; core `conclusions` record selected decisions, with unresolved choices in `unknowns`. These existing fields are passed into repair without a new artifact schema or workflow stage.
+- Repair receives the exact reviewed core, original accepted scope and exact critic findings. It does not receive a server-rewritten substitute or silently return the old core if generation fails.
+- Prompt serialization includes each dependency's Markdown once. The immutable stored artifact and its hash are unchanged.
+- Final validation still precedes publication. Rejections log a candidate hash and closed reason/count fields, never document or exception prose; persisted SQL diagnostics stay unchanged.
+
+These boundaries make delivery consistent and failures diagnosable. Prompt tests and mocked provider tests do not prove that a generated design is semantically correct; a live artifact still needs content acceptance.

@@ -2130,11 +2130,16 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
         prepare_solution_with_shared_model,
     )
     monkeypatch.setattr(searx_module, "SearxngSearchService", lambda: discovery)
+
     def prepare_native_with_shared_model(value):
         assert value is model
         return native_solution_preparer
 
-    monkeypatch.setattr(cognitive_executor_module, "PydanticAINativeSolutionPreparer", prepare_native_with_shared_model)
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "PydanticAINativeSolutionPreparer",
+        prepare_native_with_shared_model,
+    )
     monkeypatch.setattr(
         extractor_module, "PydanticAIExactSpanExtractor", lambda value: extractor
     )
@@ -2145,6 +2150,7 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
             GoogleAnalysisGenerator,
             GoogleSimulationGenerator,
         )
+
         assert isinstance(executor.analysis_handler.generator, GoogleAnalysisGenerator)
         assert isinstance(
             executor.simulation_handler.service.generator, GoogleSimulationGenerator
@@ -2179,21 +2185,30 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.assistant_runner.discovery_seconds == 20
     assert executor.assistant_chat_runner is assistant
     from backend.services.workflow_v2.assistant.answer_quality import (
-        assistant_answer_defects, assistant_repair_query,
+        assistant_answer_defects,
+        assistant_repair_query,
     )
     from backend.services.workflow_v2.assistant.publication import (
-        assistant_parsed_response_defects, assistant_source_url_allowed,
+        assistant_parsed_response_defects,
+        assistant_source_url_allowed,
     )
-    assert executor.assistant_runner.source_url_validator is assistant_source_url_allowed
+
+    assert (
+        executor.assistant_runner.source_url_validator is assistant_source_url_allowed
+    )
     assert executor.research_runner.source_url_validator is None
     assert grounded_calls == [
         ("test-key", {}),
-        ("test-key", {
-            "search_operation_seconds": 120, "search_attempt_seconds": 60,
-            "response_validator": assistant_answer_defects,
-            "repair_query_builder": assistant_repair_query,
-            "parsed_response_validator": assistant_parsed_response_defects,
-        }),
+        (
+            "test-key",
+            {
+                "search_operation_seconds": 120,
+                "search_attempt_seconds": 60,
+                "response_validator": assistant_answer_defects,
+                "repair_query_builder": assistant_repair_query,
+                "parsed_response_validator": assistant_parsed_response_defects,
+            },
+        ),
     ]
 
 
@@ -2460,8 +2475,9 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
 
 
 @pytest.mark.asyncio
-async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authority(
-) -> None:
+async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authority() -> (
+    None
+):
     compiled = await GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY).execute(
         envelope_for()
     )
@@ -2503,16 +2519,13 @@ async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authori
                     evidence_requirements=list(accepted_scope.evidence_requirements),
                     deliverables=list(accepted_scope.deliverables),
                     personas=list(accepted_scope.personas),
-                    interview_requirements=list(
-                        accepted_scope.interview_requirements
-                    ),
+                    interview_requirements=list(accepted_scope.interview_requirements),
                     prd_requirements=list(accepted_scope.prd_requirements),
                     limits=list(accepted_scope.limits),
                     policies=list(accepted_scope.policies),
                     deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
                     acceptance_criteria=[
-                        item.model_dump()
-                        for item in accepted_scope.acceptance_criteria
+                        item.model_dump() for item in accepted_scope.acceptance_criteria
                     ],
                     assumptions=list(accepted_scope.assumptions),
                 )
@@ -2525,9 +2538,10 @@ async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authori
     assert captured[0]["EXECUTION_AGENT"] == input_payload["executionAgent"]
     assert "EXECUTION_AGENT" not in captured[0]["OWNER_CORRECTION"]
     assert "apply its exact roleLabel and" in SCOPE_REVISION_SYSTEM_PROMPT
-    assert captured[0]["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
-        "instructions"
-    ] == "Prefer primary evidence and make uncertainty explicit."
+    assert (
+        captured[0]["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["instructions"]
+        == "Prefer primary evidence and make uncertainty explicit."
+    )
 
 
 @pytest.mark.asyncio
@@ -3037,8 +3051,9 @@ async def test_execute_research_input_enforces_exact_artifact_roles_and_order() 
 
 
 @pytest.mark.asyncio
-async def test_research_prompts_carry_fixed_execution_agent_without_tool_authority(
-) -> None:
+async def test_research_prompts_carry_fixed_execution_agent_without_tool_authority() -> (
+    None
+):
     compiled = await compiled_scope()
     runner = MissingResearchRunner()
     input_payload = research_operation(compiled).input.model_dump(
@@ -3061,9 +3076,10 @@ async def test_research_prompts_carry_fixed_execution_agent_without_tool_authori
         prompt = json.loads(encoded)
         assert prompt["EXECUTION_AGENT"] == input_payload["executionAgent"]
         assert "apply its exact roleLabel and" in instruction
-        assert prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
-            "roleLabel"
-        ] == "Evidence-led launch operator"
+        assert (
+            prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["roleLabel"]
+            == "Evidence-led launch operator"
+        )
         assert prompt["EXECUTION_AGENT"]["tools"] == {
             "externalActions": False,
             "executionProvider": None,
@@ -4900,12 +4916,15 @@ def test_synthesis_prompts_carry_fixed_execution_agent_for_every_standard_path(
         "blocked_report": cognitive_executor_module.BLOCKED_REPORT_SYSTEM_PROMPT,
     }
     assert "apply its exact roleLabel and" in system_prompts[case_name]
-    assert prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
-        "instructions"
-    ] == "Prefer primary evidence and make uncertainty explicit."
+    assert (
+        prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["instructions"]
+        == "Prefer primary evidence and make uncertainty explicit."
+    )
 
 
-def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() -> None:
+def test_final_repair_prompt_preserves_exact_defects_and_excludes_duplicate_bodies() -> (
+    None
+):
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
     )
@@ -4981,11 +5000,11 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         "apply its exact roleLabel and"
         in cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
     )
-    assert payload["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
-        "roleLabel"
-    ] == "Evidence-led launch operator"
-    # Preserve the critic's findings, while the explicit projection guard forbids
-    # reconstructing unsupported claims that are no longer in the current base.
+    assert (
+        payload["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["roleLabel"]
+        == "Evidence-led launch operator"
+    )
+    # Repair sees the exact assessed draft and the critic's exact findings.
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
         "Unsupported nutritional threshold.",
         "Unsupported processing temperature.",
@@ -4995,15 +5014,6 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     ]
     assert set(payload["REPAIR_INSTRUCTIONS"]) == {
         "Remove the unsupported thresholds and preserve the useful PRD.",
-        (
-            "Apply each structured repair target only when its referenced issue is "
-            "still observable in BASE_MARKDOWN; never recreate absent text."
-        ),
-        (
-            "Repair every named post-projection substantive or practicality defect "
-            "with concrete deliverable content, using only explicit proposals, "
-            "assumptions, validation actions and the allowed immutable claims."
-        ),
     }
     assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
     semantic_method = payload["SEMANTIC_METHOD"]
@@ -5012,21 +5022,28 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         "user segments, jobs to be done, pains, and buying roles"
         in semantic_method["analysisAreas"]
     )
-    assert (
-        "measurable validation experiments with owners and decision thresholds"
-        in (semantic_method["analysisAreas"])
+    assert "measurable validation experiments with owners and decision thresholds" in (
+        semantic_method["analysisAreas"]
     )
     assert any(
         "explicit hypothesis or proposal" in rule
         for rule in semantic_method["consequentialAssertionRule"]
     )
     assert "SELECTED_IMMUTABLE_ARTIFACTS" not in payload
-    assert "ACCEPTED_SCOPE" not in payload
-    assert "RESEARCH_RESULT" not in payload
+    assert payload["ACCEPTED_SCOPE"] == next(
+        item.payload for item in contents if item.artifact == input_value.accepted_scope
+    )
+    assert payload[
+        "RESEARCH_RESULT"
+    ] == PydanticAISynthesisWriter._research_prompt_view(
+        research_payload, payload["ACCEPTED_SCOPE"]
+    )
     assert all(item.markdown not in payload.values() for item in specialists)
 
 
-def test_final_repair_prompt_preserves_guidance_with_projection_safety_guard() -> None:
+def test_final_repair_preserves_original_candidate_but_does_not_authorize_unsafe_claim() -> (
+    None
+):
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
     )
@@ -5072,22 +5089,14 @@ def test_final_repair_prompt_preserves_guidance_with_projection_safety_guard() -
 
     payload = json.loads(writer._final_repair_prompt(input_value, contents, context))
 
-    assert "\nThe formula is safe for adult cats.\n" not in payload["BASE_MARKDOWN"]
-    assert (
-        "Validation target (all following content is unverified until pre-adoption "
-        "review):" in payload["BASE_MARKDOWN"]
-    )
+    assert payload["BASE_MARKDOWN"] == unsafe
     assert "Restore the removed formula safety claim as verified." in (
         payload["REPAIR_INSTRUCTIONS"]
     )
-    assert any(
-        "never recreate absent text" in instruction
-        for instruction in payload["REPAIR_INSTRUCTIONS"]
-    )
-    assert any(
-        "structure-preserving safety projection" in instruction
-        for instruction in payload["REPAIR_INSTRUCTIONS"]
-    )
+    with pytest.raises(ValueError):
+        cognitive_executor_module._validate_synthesis(
+            context, SynthesisDraft(title="Unrepaired", markdown=unsafe)
+        )
 
 
 def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
@@ -7288,7 +7297,9 @@ class QualityWriter:
 
     async def evaluate_final(self, _input, _scope, _research, _contents, final_draft):
         assert isinstance(final_draft, SynthesisDraft)
-        return EvaluationDraft(note="Exact final publication reviewed by the test fixture.")
+        return EvaluationDraft(
+            note="Exact final publication reviewed by the test fixture."
+        )
 
     async def write(self, _input, _scope, research_payload, _contents):
         return SynthesisDraft(
@@ -7874,7 +7885,7 @@ async def _legacy_final_writer_publishes_strict_fallback_after_critic_only_repai
 
 
 @pytest.mark.asyncio
-async def test_final_writer_returns_core_only_for_structured_output_exhaustion(
+async def test_final_writer_propagates_structured_output_exhaustion_without_old_core(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -7910,17 +7921,13 @@ async def test_final_writer_returns_core_only_for_structured_output_exhaustion(
         staticmethod(exhausted),
     )
 
-    result = await writer.write(
-        input_value,
-        compiled.artifact.payload,
-        research.artifact.payload,
-        contents,
-    )
-
-    assert "Keep this useful planning requirement." in result.value.markdown
-    assert "Validation target (all following content" in result.value.markdown
-    assert "**Pending verification:**" not in result.value.markdown
-    assert (result.input_tokens, result.output_tokens) == (0, 0)
+    with pytest.raises(CognitiveExecutionFailure, match="STRUCTURED_OUTPUT_INVALID"):
+        await writer.write(
+            input_value,
+            compiled.artifact.payload,
+            research.artifact.payload,
+            contents,
+        )
 
 
 @pytest.mark.asyncio
@@ -10644,8 +10651,7 @@ def test_task_does_not_reclassify_long_cited_prefix_collision() -> None:
     shared = (
         "PTA notification filing is mandatory before distribution for the applicable "
         "authority procedure and the responsible operator review "
-        + "within the documented compliance boundary "
-        * 4
+        + "within the documented compliance boundary " * 4
     )
     cited = shared + "with exact immutable support"
     context = SynthesisContext(
@@ -10696,8 +10702,7 @@ def test_task_preserves_supported_line_before_long_uncited_prefix_collision() ->
     shared = (
         "PTA notification filing is mandatory before distribution for the applicable "
         "authority procedure and the responsible operator review "
-        + "within the documented compliance boundary "
-        * 4
+        + "within the documented compliance boundary " * 4
     )
     cited = shared + "with exact immutable support"
     unsupported = shared + "without evidence"
@@ -11793,8 +11798,7 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
         "# Product requirements document\n\n"
         + "Accepted scope, accepted plan, evidence status, PRD requirements, and source "
         "artifacts are listed without doing the requested work. "
-        + "Context only. "
-        * 115
+        + "Context only. " * 115
     )
     substantive, practicality = _deterministic_quality_defects(
         shell, practical_output_required=True

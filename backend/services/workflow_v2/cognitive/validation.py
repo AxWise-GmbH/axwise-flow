@@ -48,6 +48,98 @@ from backend.services.workflow_v2.cognitive.policy import (
 )
 
 
+_SAFE_FINAL_VALIDATION_PREFIXES = (
+    *_SAFE_SYNTHESIS_VALIDATION_REASONS,
+    (
+        "non-authorizing artifact contains a launch-ready claim",
+        "LAUNCH_READY_CLAIM_FORBIDDEN",
+    ),
+    (
+        "final artifact contains server-generated validation scaffolding instead ",
+        "FINAL_SCAFFOLDING_FORBIDDEN",
+    ),
+)
+_FINAL_VALIDATION_REASON_CODES = frozenset(
+    {"VALIDATOR_REJECTED", "READER_CONTRACT_FAILED"}.union(
+        reason for _prefix, reason in _SAFE_FINAL_VALIDATION_PREFIXES
+    )
+)
+_FINAL_VALIDATION_COUNT_KEYS = frozenset(
+    {
+        "required_sections",
+        "reader_contract",
+        "evidence_integrity",
+        "substantive",
+        "practicality",
+        "topology",
+    }
+)
+_MAX_FINAL_VALIDATION_COUNT = 1_000_000
+
+
+class SynthesisValidationError(ValueError):
+    """Keep validator retry text compatible; expose separate content-free metadata.
+
+    The inherited message can include document content and must not be logged.
+    Only ``safe_synthesis_validation_details`` is an operator logging boundary.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason: str,
+        counts: dict[str, int] | None = None,
+    ) -> None:
+        if type(reason) is not str or reason not in _FINAL_VALIDATION_REASON_CODES:
+            raise ValueError("invalid synthesis validation reason")
+        values = {} if counts is None else counts
+        if not _valid_final_validation_counts(values):
+            raise ValueError("invalid synthesis validation counts")
+        super().__init__(message)
+        self.reason = reason
+        self.counts = dict(values)
+
+
+def _valid_final_validation_counts(value: object) -> bool:
+    return type(value) is dict and all(
+        type(key) is str
+        and key in _FINAL_VALIDATION_COUNT_KEYS
+        and type(count) is int
+        and 0 <= count <= _MAX_FINAL_VALIDATION_COUNT
+        for key, count in value.items()
+    )
+
+
+def safe_synthesis_validation_details(error: BaseException) -> dict[str, object]:
+    """Return closed reason/count fields, never exception or document prose.
+
+    Plain ValueErrors from existing validators/custom writers are categorized
+    only by known prefixes. They have no reliable counts. Typed metadata is
+    revalidated here so mutated exception attributes cannot leak into logs.
+    """
+
+    if isinstance(error, SynthesisValidationError):
+        reason = getattr(error, "reason", None)
+        counts = getattr(error, "counts", None)
+        if (
+            type(reason) is str
+            and reason in _FINAL_VALIDATION_REASON_CODES
+            and _valid_final_validation_counts(counts)
+        ):
+            return {"reason": reason, "counts": dict(counts)}
+        return {"reason": "VALIDATOR_REJECTED", "counts": {}}
+    # Avoid invoking arbitrary __str__ implementations or traversing exception
+    # causes; neither is needed to expose a bounded category.
+    if isinstance(error, ValueError) and len(error.args) == 1:
+        message = error.args[0]
+        if type(message) is str:
+            for prefix, reason in _SAFE_FINAL_VALIDATION_PREFIXES:
+                if message.startswith(prefix):
+                    return {"reason": reason, "counts": {}}
+    return {"reason": "VALIDATOR_REJECTED", "counts": {}}
+
+
 def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> None:
     folded = draft.markdown.lower()
     heading_facts = _markdown_headings(draft.markdown)
@@ -62,7 +154,10 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
         _is_server_owned_source_heading(name, rendered=True)
         for _, name, _ in heading_facts
     ):
-        raise ValueError("model output must not provide its own source appendix")
+        raise SynthesisValidationError(
+            "model output must not provide its own source appendix",
+            reason="SOURCE_APPENDIX_FORBIDDEN",
+        )
     missing = [
         section
         for section in context.required_sections
@@ -72,28 +167,43 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
         ).intersection(headings)
     ]
     if missing:
-        raise ValueError(
-            "required Markdown sections are missing: " + ", ".join(missing)
+        raise SynthesisValidationError(
+            "required Markdown sections are missing: " + ", ".join(missing),
+            reason="REQUIRED_SECTIONS_MISSING",
+            counts={"required_sections": len(missing)},
         )
     positive_launch_claim = has_positive_launch_readiness_claim(draft.markdown)
     if positive_launch_claim and context.evidence_readiness != "ready":
-        raise ValueError("evidence-gapped artifact contains a launch-ready claim")
+        raise SynthesisValidationError(
+            "evidence-gapped artifact contains a launch-ready claim",
+            reason="LAUNCH_READY_CLAIM_FORBIDDEN",
+        )
     if positive_launch_claim and context.artifact_type != "launch_authorization":
-        raise ValueError("non-authorizing artifact contains a launch-ready claim")
+        raise SynthesisValidationError(
+            "non-authorizing artifact contains a launch-ready claim",
+            reason="LAUNCH_READY_CLAIM_FORBIDDEN",
+        )
     citations = {marker.group(1) for marker in _evidence_markers(draft.markdown)}
     allowed = set(context.allowed_claim_ids)
     if citations - allowed:
-        raise ValueError("Markdown cites evidence outside the immutable claim ledger")
+        raise SynthesisValidationError(
+            "Markdown cites evidence outside the immutable claim ledger",
+            reason="EVIDENCE_CLAIM_NOT_ALLOWED",
+        )
     if (
         allowed
         and not citations
         and not (context.purpose == "execute_task" and not context.required_sections)
     ):
-        raise ValueError("evidence-backed Markdown must cite immutable claim IDs")
+        raise SynthesisValidationError(
+            "evidence-backed Markdown must cite immutable claim IDs",
+            reason="EVIDENCE_CITATION_MISSING",
+        )
     if context.evidence_readiness in {"ready_with_gaps", "blocked"}:
         if not any(_is_evidence_status_heading(heading) for heading in headings):
-            raise ValueError(
-                "non-ready Markdown requires an evidence-gap, assumption or blocking section"
+            raise SynthesisValidationError(
+                "non-ready Markdown requires an evidence-gap, assumption or blocking section",
+                reason="EVIDENCE_STATUS_SECTION_MISSING",
             )
         missing_gaps = [
             label
@@ -101,20 +211,28 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             if label.casefold() not in folded
         ]
         if missing_gaps:
-            raise ValueError(
-                "Markdown does not surface every immutable gap or assumption"
+            raise SynthesisValidationError(
+                "Markdown does not surface every immutable gap or assumption",
+                reason="EVIDENCE_GAP_LABEL_MISSING",
             )
     if context.evidence_readiness == "blocked":
         if not re.search(r"\b(?:no[- ]go|blocked)\b", draft.markdown, re.IGNORECASE):
-            raise ValueError("blocked report must state a no-go or blocked decision")
+            raise SynthesisValidationError(
+                "blocked report must state a no-go or blocked decision",
+                reason="BLOCKED_DECISION_MISSING",
+            )
         if not any("remediation" in heading for heading in headings):
-            raise ValueError("blocked report requires a Remediation heading")
+            raise SynthesisValidationError(
+                "blocked report requires a Remediation heading",
+                reason="BLOCKED_REMEDIATION_HEADING_MISSING",
+            )
     if context.purpose == "final_synthesis" and (
         _contains_server_unverified_validation_target(draft.markdown)
     ):
-        raise ValueError(
+        raise SynthesisValidationError(
             "final artifact contains server-generated validation scaffolding instead "
-            "of publication-ready prose"
+            "of publication-ready prose",
+            reason="FINAL_SCAFFOLDING_FORBIDDEN",
         )
     if context.quality_gate_required:
         evidence_integrity = _deterministic_evidence_integrity_defects(
@@ -138,11 +256,18 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             else []
         )
         if evidence_integrity or substantive or practicality or topology:
-            raise ValueError(
+            raise SynthesisValidationError(
                 "final artifact failed substantive/practical quality: "
                 + "; ".join(
                     [*evidence_integrity, *substantive, *practicality, *topology]
-                )
+                ),
+                reason="QUALITY_GATE_FAILED",
+                counts={
+                    "evidence_integrity": len(evidence_integrity),
+                    "substantive": len(substantive),
+                    "practicality": len(practicality),
+                    "topology": len(topology),
+                },
             )
 
 
