@@ -16,6 +16,12 @@ UNRESOLVED = [
     "Standard definitions and state transitions for ATP, on-hand, reservations, allocations, quarantine.",
     "Official-language packaging declarations and filing procedures.",
 ]
+DRAFT_BOUNDARY = (
+    "- **Engineering Draft Boundary:** This deliverable represents an engineering "
+    "draft for human technical review and implementation planning, not a certified "
+    "implementation, launch clearance, or proof that every physical-world edge "
+    "case is solved."
+)
 
 
 @pytest.fixture(autouse=True)
@@ -192,3 +198,39 @@ def test_planning_context_does_not_hide_invalid_evidence_marker_support():
 def test_requirement_and_fixture_allowance_is_not_launch_authorization():
     value = f"- **{REQ}**: The system shall prevent negative ATP."
     assert defects(value, artifact_type="launch_authorization")
+
+
+def test_actual_provider_draft_boundary_withholds_certification_instead_of_claiming_it():
+    # Retained core paragraph from preview run 4d5897bc; the rejected final body
+    # was not retained, so this regression does not identify its rejection cause.
+    assert defects(DRAFT_BOUNDARY) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "This deliverable is a certified implementation.",
+        DRAFT_BOUNDARY[:-1] + ", and the product is certified.",
+        DRAFT_BOUNDARY + " The vendor is certified.",
+        DRAFT_BOUNDARY.replace("not a certified", "not only a certified"),
+        DRAFT_BOUNDARY.replace("This deliverable", "This vendor"),
+        DRAFT_BOUNDARY.replace("This deliverable", "This product"),
+        DRAFT_BOUNDARY.replace("an engineering draft", "a certified engineering draft"),
+        DRAFT_BOUNDARY[:-1] + ", and the law does not require registration.",
+        "If " + DRAFT_BOUNDARY.split(":** ", 1)[1],
+        DRAFT_BOUNDARY[:-1] + ", and the product treats disease.",
+    ],
+)
+def test_draft_disclaimer_does_not_hide_positive_or_external_authority(value):
+    assert defects(value)
+
+
+def test_draft_disclaimer_still_checks_cited_immutable_support():
+    claim_id = "clm-" + "a" * 16
+    found = _deterministic_evidence_integrity_defects(
+        f"{DRAFT_BOUNDARY[:-1]} [evidence:{claim_id}].",
+        {claim_id: "The unrelated shipping benchmark processed nine records."},
+        artifact_type="product_prd",
+    )
+    assert found
+    assert all(item.startswith("Cited immutable claims") for item in found)

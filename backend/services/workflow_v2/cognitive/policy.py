@@ -915,6 +915,16 @@ _PURE_ARTIFACT_NONAUTHORIZATION = re.compile(
 )
 
 
+_PURE_DRAFT_NONAUTHORIZATION = re.compile(
+    r"^(?:this|the)\s+(?:artifact|document|deliverable|report|plan|memo)\s+"
+    r"(?:is|represents)\s+(?P<description>an?\s+[^,.;!?]{0,160}\bdraft\b"
+    r"[^,.;!?]{0,160}),\s*not\s+(?:a\s+)?certified\s+implementation"
+    r"(?P<tail>(?:,\s*launch\s+clearance)?"
+    r"(?:,\s*(?:or|and)\s+proof\s+that\s+[^.;!?]{1,240})?)[.]?$",
+    re.IGNORECASE,
+)
+
+
 _PURE_WITHHOLDING_REQUIREMENT = re.compile(
     r"^(?:an?\s+)?(?:explicit\s+)?(?:open\s+)?gaps?\s+"
     r"(?:section|list|register)\s+without\s+(?:asserting|claiming)\s+"
