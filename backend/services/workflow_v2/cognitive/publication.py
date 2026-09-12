@@ -1,6 +1,7 @@
 """Bounded draft projections and final/blocked report preparation; preserves evidence gaps."""
 
 from __future__ import annotations
+import html
 import re
 from backend.domain.workflow_v2.contracts import (
     ReaderOutputContractV1,
@@ -45,6 +46,7 @@ from backend.services.workflow_v2.cognitive.markdown import (
     _task_fragment_parts,
 )
 from backend.services.workflow_v2.cognitive.models import (
+    EvaluationDraft,
     SynthesisContext,
     SynthesisDraft,
     TaskDraft,
@@ -83,9 +85,79 @@ from backend.services.workflow_v2.cognitive.policy import (
     _UNRESOLVED_AUTHORITY_QUALIFIER,
 )
 from backend.services.workflow_v2.cognitive.validation import (
+    SynthesisValidationError,
     _deterministic_quality_defects,
+    _is_advisory_planning_evidence_defect,
     _validate_task_draft,
 )
+
+
+def _with_advisory_planning_review(
+    context: SynthesisContext,
+    draft: SynthesisDraft,
+    review: EvaluationDraft | None = None,
+) -> str:
+    """Render review observations as attributed text, never a pass certificate."""
+    findings = [
+        ("Wording flag", defect.partition(": ")[2])
+        for defect in _deterministic_evidence_integrity_defects(
+            draft.markdown,
+            context.allowed_claim_texts,
+            artifact_type=context.artifact_type,
+            immutable_gap_labels=context.required_gap_labels,
+            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+            excerpt_limit=None,
+        )
+        if _is_advisory_planning_evidence_defect(context, defect)
+    ]
+    if review is not None:
+        for field, label in (
+            ("unsupported_precision", "Evidence concern"),
+            ("contradictions", "Consistency concern"),
+            ("stale_topic_references", "Relevance concern"),
+            ("readiness_violations", "Readiness concern"),
+            ("substantive_content_defects", "Content concern"),
+            ("practicality_defects", "Practicality concern"),
+            ("repair_instructions", "Suggested revision"),
+        ):
+            findings.extend((label, text) for text in getattr(review, field))
+    body, source_heading, source_body = draft.markdown.partition("\n\n## Sources\n")
+    lines = [
+        body.rstrip(),
+        "",
+        "## Review notes — advisory",
+        "",
+        "> **Draft for human review.** Proposed decisions and automated review "
+        "comments are not implementation verification or launch approval. "
+        "Resolve open questions before putting this plan into operation.",
+        "",
+    ]
+    if findings:
+        lines.append(
+            "Automated observations below may include false positives. They remain "
+            "review items, not verified facts or proof that all other issues were found."
+        )
+        lines.append("")
+        for label, text in findings:
+            # Render provider prose literally: no active links, raw HTML, source
+            # markers, headings, or accidental authority in the review appendix.
+            literal = html.escape(
+                " ".join(text.split()).replace("[", "［").replace("]", "］"),
+                quote=False,
+            )
+            literal = re.sub(r"([\\`*_{}\[\]()#+.!|>~-])", r"\\\1", literal)
+            lines.append(f"- **{label}:** {literal}")
+    elif review is None:
+        lines.append(
+            "Review history is recorded separately; this draft still requires human review."
+        )
+    else:
+        lines.append(
+            "No concerns were identified by this automated review; correctness "
+            "remains unverified."
+        )
+    # The source appendix is canonical and must remain the final section.
+    return "\n".join(lines) + source_heading + source_body
 
 
 def _with_immutable_gap_labels(
@@ -1984,7 +2056,8 @@ def _normalize_reader_draft(
 ) -> SynthesisDraft:
     """Normalize only the model-authored reader body before server disclosures.
 
-    This boundary removes model-owned provenance scaffolding and unsafe authority claims.
+    This boundary owns reader normalization and launch-authority protection. Evidence
+    defects remain in the writer's text for validation instead of being reworded.
     Immutable gaps, traceability, evidence status, and Sources are appended later so V2
     presentation measurement never counts server-owned disclosure text.
     """
@@ -1993,9 +2066,20 @@ def _normalize_reader_draft(
     prepared = SynthesisDraft.model_validate(
         _without_model_owned_task_appendix(prepared)
     )
-    prepared = SynthesisDraft.model_validate(
-        _without_unbound_task_evidence_markers(context, prepared)
-    )
+    # Preserve the writer's citation assertions for the hard validation boundary.
+    # Removing a wrong marker here could disguise it as an uncited wording flag.
+    if context.purpose != "blocked_report":
+        supported = _without_mismatched_publication_evidence_markers(
+            context, _without_unbound_task_evidence_markers(context, prepared)
+        )
+        if (
+            [match.group(1) for match in _RAW_EVIDENCE_MARKER.finditer(supported.markdown)]
+            != [match.group(1) for match in _RAW_EVIDENCE_MARKER.finditer(prepared.markdown)]
+        ):
+            raise SynthesisValidationError(
+                "publication contains an unbound or locally unsupported evidence marker",
+                reason="EVIDENCE_CLAIM_NOT_ALLOWED",
+            )
     prepared = prepared.model_copy(
         update={
             "markdown": "\n".join(
@@ -2005,14 +2089,6 @@ def _normalize_reader_draft(
             )
         }
     )
-    if context.purpose != "blocked_report":
-        prepared = _without_mismatched_publication_evidence_markers(context, prepared)
-        prepared = _project_remaining_evidence_defects(
-            context,
-            prepared,
-            defect_selector=_is_hard_task_evidence_defect,
-        )
-
     lines: list[str] = []
     for line in prepared.markdown.splitlines():
         heading_line = line.lstrip().startswith("#")

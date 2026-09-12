@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 import backend.services.workflow_v2.cognitive_executor as executor_module
+import backend.tests.workflow_v2.test_cognitive_executor as fixture_module
 
 from backend.services.workflow_v2.cognitive_executor import (
     EvaluationDraft,
@@ -28,11 +29,22 @@ from backend.tests.workflow_v2.test_cognitive_executor import (
     _final_writer_fixture,
     artifact_ref,
     cognitive_input,
+    compiled_scope,
     envelope_for,
     quality_markdown,
 )
 
 pytestmark = pytest.mark.contract
+
+
+def semantic_receipt(caplog):
+    receipts = [
+        json.loads(record.message.removeprefix("final_semantic_review "))
+        for record in caplog.records
+        if record.message.startswith("final_semantic_review ")
+    ]
+    assert len(receipts) == 1
+    return receipts[0]
 
 
 @pytest.mark.asyncio
@@ -157,6 +169,23 @@ async def final_case(writer):
     )
 
 
+async def nonplanning_final_case(writer, monkeypatch):
+    async def content_scope(**kwargs):
+        return await compiled_scope(
+            request="Write a cat-food decision note.",
+            artifact_type="content_artifact",
+            deliverables=["Decision note"],
+            **kwargs,
+        )
+
+    # Override only fixture construction: scope compilation, artifact hashes,
+    # research, task execution and the final executor still use their real paths.
+    monkeypatch.setattr(fixture_module, "compiled_scope", content_scope)
+    executor, operation = await final_case(writer)
+    assert operation.input.output_contract.artifact_type == "content_artifact"
+    return executor, operation
+
+
 class FinalReviewWriter(QualityWriter):
     def __init__(self, *, text="", review=None, metrics=False):
         self.text = text
@@ -192,7 +221,7 @@ class FinalReviewWriter(QualityWriter):
 
 
 @pytest.mark.asyncio
-async def test_clean_final_is_reviewed_as_exact_published_body_once():
+async def test_clean_planning_final_adds_unverified_notice_after_exact_body_review(caplog):
     marker = "\n\n## Rewritten assembly\n\nRetain the immutable ERP replay ledger."
     writer = FinalReviewWriter(text=marker)
     executor, operation = await final_case(writer)
@@ -201,7 +230,33 @@ async def test_clean_final_is_reviewed_as_exact_published_body_once():
     assert writer.reviewed_input.purpose == "final_synthesis"
     assert marker.strip() in writer.reviewed.markdown
     assert result.artifact.kind == "final_markdown"
-    assert writer.reviewed.markdown == result.artifact.markdown
+    assert "## Review notes — advisory" not in writer.reviewed.markdown
+    reviewed_body, separator, source_body = writer.reviewed.markdown.partition(
+        "\n\n## Sources\n"
+    )
+    published_body, published_separator, published_sources = (
+        result.artifact.markdown.partition("\n\n## Sources\n")
+    )
+    assert published_body.startswith(reviewed_body.rstrip() + "\n\n")
+    assert (published_separator, published_sources) == (separator, source_body)
+    assert published_body.count("## Review notes — advisory") == 1
+    assert "Draft for human review." in published_body
+    assert (
+        "No concerns were identified by this automated review; correctness "
+        "remains unverified."
+    ) in published_body
+    assert result.artifact.payload["launchReady"] is False
+    receipt = semantic_receipt(caplog)
+    assert receipt["advisory"] is True
+    assert receipt["accepted"] is True
+    assert not any(receipt["issue_counts"].values())
+    assert receipt["reviewed_markdown_sha256"] == hashlib.sha256(
+        writer.reviewed.markdown.encode()
+    ).hexdigest()
+    assert receipt["markdown_sha256"] == hashlib.sha256(
+        result.artifact.markdown.encode()
+    ).hexdigest()
+    assert receipt["reviewed_markdown_sha256"] != receipt["markdown_sha256"]
 
 
 @pytest.mark.asyncio
@@ -213,7 +268,7 @@ async def test_clean_final_is_reviewed_as_exact_published_body_once():
         "Replay preserves committed stock, but replay first clears all committed inventory.",
     ],
 )
-async def test_new_final_contradiction_blocks_publication_after_clean_core_review(
+async def test_new_planning_contradiction_is_published_as_advisory_after_clean_core_review(
     contradiction,
 ):
     writer = FinalReviewWriter(
@@ -223,39 +278,77 @@ async def test_new_final_contradiction_blocks_publication_after_clean_core_revie
         ),
     )
     executor, operation = await final_case(writer)
-    with pytest.raises(CognitiveExecutionFailure) as caught:
-        await executor.execute(operation)
-    assert caught.value.error_class == "AXWISE_FINAL_SEMANTIC_REJECTED"
-    assert caught.value.retryable is False
+    result = await executor.execute(operation)
     assert contradiction in writer.reviewed.markdown
+    assert contradiction in result.artifact.markdown
+    notes = result.artifact.markdown.split("## Review notes — advisory", 1)[1]
+    assert "- **Consistency concern:** " + contradiction.replace(".", r"\.") in notes
+    assert "not verified facts or proof that all other issues were found" in notes
+    assert result.artifact.payload["launchReady"] is False
     assert writer.write_calls == writer.final_calls == 1
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "field",
+    "field,label",
     [
-        "unsupported_precision",
-        "contradictions",
-        "stale_topic_references",
-        "readiness_violations",
-        "substantive_content_defects",
-        "practicality_defects",
-        "repair_instructions",
+        ("unsupported_precision", "Evidence concern"),
+        ("contradictions", "Consistency concern"),
+        ("stale_topic_references", "Relevance concern"),
+        ("readiness_violations", "Readiness concern"),
+        ("substantive_content_defects", "Content concern"),
+        ("practicality_defects", "Practicality concern"),
+        ("repair_instructions", "Suggested revision"),
     ],
 )
-async def test_each_final_semantic_flag_fails_closed_without_rewrite(field):
+async def test_each_planning_review_flag_remains_visible_without_rewrite(field, label):
     writer = FinalReviewWriter(
         review=EvaluationDraft(
-            **{field: ["Bounded review defect."], "note": "Rejected."}
+            **{field: ["Bounded review defect."], "note": "Needs human review."}
         )
     )
     executor, operation = await final_case(writer)
-    with pytest.raises(CognitiveExecutionFailure) as caught:
-        await executor.execute(operation)
-    assert caught.value.error_class == "AXWISE_FINAL_SEMANTIC_REJECTED"
-    assert caught.value.retryable is False
+    result = await executor.execute(operation)
+    notes = result.artifact.markdown.split("## Review notes — advisory", 1)[1]
+    assert f"- **{label}:** Bounded review defect\\." in notes
+    assert "not implementation verification or launch approval" in notes
+    assert result.artifact.payload["launchReady"] is False
     assert writer.write_calls == writer.final_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_advisory_review_is_literal_content_not_active_markup_or_evidence(caplog):
+    review_text = (
+        '<script>alert("review")</script>\n## Launch approved\n'
+        "[evidence:invented] [Open](https://example.invalid) **verified**"
+    )
+    writer = FinalReviewWriter(
+        review=EvaluationDraft(contradictions=[review_text], note="Review only.")
+    )
+    executor, operation = await final_case(writer)
+    result = await executor.execute(operation)
+    notes = result.artifact.markdown.split("## Review notes — advisory", 1)[1]
+    assert (
+        r'- **Consistency concern:** &lt;script&gt;alert\("review"\)&lt;/script&gt; '
+        r'\#\# Launch approved ［evidence:invented］ '
+        r'［Open］\(https://example\.invalid\) \*\*verified\*\*'
+    ) in notes
+    assert "<script>" not in notes
+    assert "\n## Launch approved" not in notes
+    assert "[evidence:invented]" not in notes
+    assert "[Open](https://example.invalid)" not in notes
+    assert result.artifact.payload["launchReady"] is False
+    assert writer.write_calls == writer.final_calls == 1
+    assert review_text not in caplog.text
+    receipt = semantic_receipt(caplog)
+    assert receipt["issue_counts"]["contradictions"] == 1
+    assert receipt["reviewed_markdown_sha256"] == hashlib.sha256(
+        writer.reviewed.markdown.encode()
+    ).hexdigest()
+    assert receipt["markdown_sha256"] == hashlib.sha256(
+        result.artifact.markdown.encode()
+    ).hexdigest()
+    assert receipt["reviewed_markdown_sha256"] != receipt["markdown_sha256"]
 
 
 @pytest.mark.asyncio
@@ -347,20 +440,36 @@ async def test_final_repair_failure_never_authorizes_another_paid_write(failure)
 
 
 @pytest.mark.asyncio
-async def test_rejected_final_retains_usage_without_logging_private_review_text(caplog):
+@pytest.mark.parametrize(
+    "field",
+    [
+        "unsupported_precision",
+        "contradictions",
+        "stale_topic_references",
+        "readiness_violations",
+        "substantive_content_defects",
+        "practicality_defects",
+        "repair_instructions",
+    ],
+)
+async def test_nonplanning_final_still_rejects_flags_and_retains_private_usage(
+    caplog, monkeypatch, field
+):
     secret = "PRIVATE_REVIEW_SENTINEL_ERP_98765"
     writer = FinalReviewWriter(
+        text="\n\n## Decision note\n\nPreserve the bounded evidence-based decision.",
         metrics=True,
         review=EvaluationDraft(
-            contradictions=[secret], note="Final contains a contradiction."
+            **{field: [secret], "note": "Final requires a correction."}
         ),
     )
-    executor, operation = await final_case(writer)
+    executor, operation = await nonplanning_final_case(writer, monkeypatch)
     with pytest.raises(CognitiveExecutionFailure) as caught:
         await executor.execute(operation)
     error = caught.value
     assert error.error_class == "AXWISE_FINAL_SEMANTIC_REJECTED"
     assert error.retryable is False
+    assert writer.write_calls == writer.final_calls == 1
     assert error.diagnostics == {
         "route": "final_synthesis",
         "status": "semantic_rejected",
@@ -379,18 +488,15 @@ async def test_rejected_final_retains_usage_without_logging_private_review_text(
     assert usage["billing_reconciled"] is False
     assert secret not in json.dumps(error.diagnostics)
     assert secret not in caplog.text
-    receipt = next(
-        record.message
-        for record in caplog.records
-        if record.message.startswith("final_semantic_review ")
-    )
-    receipt = json.loads(receipt.removeprefix("final_semantic_review "))
+    receipt = semantic_receipt(caplog)
     assert receipt["accepted"] is False
-    assert receipt["issue_counts"]["contradictions"] == 1
+    assert receipt["advisory"] is False
+    assert receipt["issue_counts"][field] == 1
     assert (
         receipt["markdown_sha256"]
         == hashlib.sha256(writer.reviewed.markdown.encode()).hexdigest()
     )
+    assert receipt["reviewed_markdown_sha256"] == receipt["markdown_sha256"]
 
 
 @pytest.mark.asyncio

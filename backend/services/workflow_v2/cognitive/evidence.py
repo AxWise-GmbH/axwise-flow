@@ -52,6 +52,7 @@ from backend.services.workflow_v2.cognitive.policy import (
     _POSITIVE_LAUNCH_CLAIM_PATTERNS,
     _PRECISE_VALUE,
     _PROJECTED_STATUTORY_LOCATOR_HEADER,
+    _PUBLICATION_EVIDENCE_STATUS_BLOCK,
     _PUBLICATION_UNKNOWN_PENDING_ITEM,
     _PUBLICATION_UNKNOWN_PENDING_PREFIX,
     _PUBLICATION_VERIFICATION_ACTION,
@@ -879,6 +880,10 @@ def _deterministic_evidence_integrity_defects(
                 fixture_lines.update(range(index, index + 3))
     for line_index, line in enumerate(base_lines):
         stripped = line.strip()
+        if stripped == _PUBLICATION_EVIDENCE_STATUS_BLOCK:
+            # This exact server-owned disclaimer withholds launch authority. Do
+            # not split its "not launch authorization" into an asserted claim.
+            continue
         if stripped.startswith("```"):
             continue
         if not stripped:

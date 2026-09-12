@@ -39,7 +39,9 @@ from backend.services.workflow_v2.cognitive.models import (
     TaskDraft,
 )
 from backend.services.workflow_v2.cognitive.policy import (
+    _EVIDENCE_SENSITIVE_ASSERTION,
     _MARKDOWN_HEADING,
+    _PLANNING_ARTIFACT_TYPES,
     _PRD_BASELINE_SECTIONS,
     _SAFE_SYNTHESIS_VALIDATION_REASONS,
     _SERVER_GWT_PLACEHOLDER_BODIES,
@@ -138,6 +140,31 @@ def safe_synthesis_validation_details(error: BaseException) -> dict[str, object]
                 if message.startswith(prefix):
                     return {"reason": reason, "counts": {}}
     return {"reason": "VALIDATOR_REJECTED", "counts": {}}
+
+
+def _is_advisory_planning_evidence_defect(
+    context: SynthesisContext, defect: str
+) -> bool:
+    """Overloaded planning verbs alone are review flags, not factual proof.
+
+    Exact citation/claim mismatches and assertions that settle an immutable
+    unresolved requirement retain their existing hard checks.
+    """
+    if context.artifact_type not in _PLANNING_ARTIFACT_TYPES or not defect.startswith(
+        "Unsupported factual precision requires an exact evidence marker or an "
+        "explicit proposal/assumption/validation label: "
+    ):
+        return False
+    matches = list(_EVIDENCE_SENSITIVE_ASSERTION.finditer(defect.partition(": ")[2]))
+    return bool(matches) and all(
+        re.fullmatch(
+            r"prevent(?:s|ed|ing|ion)?|treat(?:s|ed|ing|ment)?|"
+            r"authori[sz](?:e|es|ed|ation)|approved",
+            match.group(),
+            re.IGNORECASE,
+        )
+        for match in matches
+    )
 
 
 def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> None:
@@ -241,7 +268,12 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             artifact_type=context.artifact_type,
             immutable_gap_labels=context.required_gap_labels,
             unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+            excerpt_limit=None,
         )
+        evidence_integrity = [
+            defect for defect in evidence_integrity
+            if not _is_advisory_planning_evidence_defect(context, defect)
+        ]
         substantive, practicality = _deterministic_quality_defects(
             draft.markdown,
             practical_output_required=context.practical_output_required,
@@ -453,14 +485,8 @@ def _deterministic_quality_defects(
         section_body = _MARKDOWN_HEADING.sub("", base[match.end() : content_end])
         if len(re.findall(r"\b[\w'-]+\b", section_body)) < 3:
             practical.append(f"Markdown section {raw_name!r} is empty or too thin.")
-    fenced_blocks = re.findall(r"(?ms)^\s*```[^\n]*\n(.*?)^\s*```\s*$", base)
-    if any(
-        "|" in block and re.search(r"(?m)^\s*\+[-+]{3,}\+\s*$", block)
-        for block in fenced_blocks
-    ):
-        substantive.append(
-            "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
-        )
+    # Fenced diagrams can contain the same borders as ASCII tables. Do not impose
+    # an incidental presentation veto; explicit reader contracts own format limits.
     if re.search(
         r"\b(?:will\s+(?:succeed|win|dominate|guarantee)|guaranteed\s+to\s+(?:succeed|win|dominate))\b",
         base,

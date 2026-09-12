@@ -358,6 +358,7 @@ from backend.services.workflow_v2.cognitive.policy import (
     _WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS as _WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS,
 )
 from backend.services.workflow_v2.cognitive.publication import (
+    _with_advisory_planning_review as _with_advisory_planning_review,
     _as_publication_unknown_item as _as_publication_unknown_item,
     _as_unresolved_validation_action as _as_unresolved_validation_action,
     _as_unverified_repair_assumption as _as_unverified_repair_assumption,
@@ -446,6 +447,7 @@ from backend.services.workflow_v2.cognitive.validation import (
     _contains_server_deliverable_placeholder as _contains_server_deliverable_placeholder,
     _contains_server_unverified_validation_target as _contains_server_unverified_validation_target,
     _deterministic_quality_defects as _deterministic_quality_defects,
+    _is_advisory_planning_evidence_defect as _is_advisory_planning_evidence_defect,
     _safe_synthesis_validation_failure as _safe_synthesis_validation_failure,
     _validate_synthesis as _validate_synthesis,
     _validate_task_draft as _validate_task_draft,
@@ -835,7 +837,10 @@ class PydanticAISynthesisWriter:
         ) -> SynthesisDraft:
             if ctx.deps.reader_output is None:
                 return output
-            reader_draft = _normalize_reader_draft(ctx.deps, output)
+            try:
+                reader_draft = _normalize_reader_draft(ctx.deps, output)
+            except SynthesisValidationError as error:
+                raise ModelRetry(str(error)) from error
             reader_draft = _project_reader_output_draft(
                 reader_draft, ctx.deps.reader_output
             )
@@ -1450,7 +1455,7 @@ class PydanticAISynthesisWriter:
             input_value, scope_payload, research_payload, selected_contents
         )
         prompt = (
-            "FINAL PUBLICATION ACCEPTANCE REVIEW. The supplied FINAL_PUBLICATION is "
+            "FINAL PUBLICATION REVIEW. The supplied FINAL_PUBLICATION is "
             "the exact document about to be published, including server-owned disclosures "
             "and source appendix. Judge this text independently; no earlier clean review "
             "or claimed repair is evidence that it is correct. Do not request removal of "
@@ -1462,8 +1467,9 @@ class PydanticAISynthesisWriter:
             "unknown vendor prerequisites from broken proposed fallbacks. Inspect source "
             "claims for overreach; ledger membership alone does not prove truth. Return "
             "concrete defects in the typed fields; use substantive_content_defects for "
-            "missing accepted requirements. Empty defect fields mean this exact document "
-            "is acceptable, not merely comprehensive. No further repair or execution "
+            "missing accepted requirements. Empty defect fields mean no issues were "
+            "identified, not proof of correctness. For planning artifacts, your findings "
+            "are advisory comments for human review. No further repair or execution "
             "is authorized by this review.\n"
             + canonical_json(
                 {
@@ -3316,6 +3322,14 @@ class GeminiCognitiveExecutor:
                         for section in scope.deliverable_profile.required_sections
                     ),
                 )
+                if (
+                    common_context.artifact_type in _PLANNING_ARTIFACT_TYPES
+                    and not input_value.output_contract.launch_ready_allowed
+                ):
+                    markdown = _with_advisory_planning_review(
+                        common_context,
+                        SynthesisDraft(title=draft.title, markdown=markdown),
+                    )
                 final_candidate = FinalArtifactV1(
                     title=draft.title,
                     markdown=markdown,
@@ -3645,7 +3659,21 @@ class GeminiCognitiveExecutor:
         draft, input_tokens, output_tokens, model_version = _unwrap_model_output(
             written
         )
-        reader_draft = _normalize_reader_draft(common_context, draft)
+        try:
+            reader_draft = _normalize_reader_draft(common_context, draft)
+        except SynthesisValidationError as error:
+            _log_final_contract_failure(envelope, draft.markdown, error)
+            raise CognitiveExecutionFailure(
+                "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
+                retryable=False,
+                diagnostics=_logged_failure_diagnostics(
+                    envelope,
+                    route=input_value.purpose,
+                    status="contract_rejected",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                ),
+            ) from error
         reader_draft = _project_reader_output_draft(
             reader_draft, common_context.reader_output
         )
@@ -3774,18 +3802,31 @@ class GeminiCognitiveExecutor:
             issue_counts = {
                 field: len(getattr(review, field)) for field in issue_fields
             }
-            rejected = any(issue_counts.values())
+            advisory = (
+                common_context.artifact_type in _PLANNING_ARTIFACT_TYPES
+                and not input_value.output_contract.launch_ready_allowed
+            )
+            rejected = any(issue_counts.values()) and not advisory
+            reviewed_markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+            if advisory:
+                markdown = _with_advisory_planning_review(
+                    common_context,
+                    SynthesisDraft(title=draft.title, markdown=markdown),
+                    review,
+                )
             # No prompt, prose or raw provider response enters runtime logs.
             logging.getLogger(__name__).warning(
                 "final_semantic_review %s",
                 canonical_json(
                     {
                         "operation_id": str(envelope.operation_id),
+                        "reviewed_markdown_sha256": reviewed_markdown_sha256,
                         "markdown_sha256": hashlib.sha256(
                             markdown.encode("utf-8")
                         ).hexdigest(),
                         "review_sha256": canonical_hash(review.model_dump(mode="json")),
                         "issue_counts": issue_counts,
+                        "advisory": advisory,
                         "accepted": not rejected,
                     }
                 ),
