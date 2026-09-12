@@ -30,6 +30,7 @@ from backend.services.workflow_v2.operation_worker import OperationWorker
 from backend.tests.workflow_v2.test_final_semantic_gate import (
     FinalReviewWriter,
     final_case,
+    nonplanning_final_case,
 )
 from backend.tests.workflow_v2.test_final_synthesis_reclaim_fence import (
     MemoryLeaseStore,
@@ -209,7 +210,11 @@ async def test_real_final_failure_settles_through_worker_and_sql_store_mapping(
             ),
         )
     )
-    executor, operation = await final_case(writer)
+    if failure == "semantic":
+        writer.text = "\n\n## Decision note\n\nKeep the proposed design under human review."
+        executor, operation = await nonplanning_final_case(writer, monkeypatch)
+    else:
+        executor, operation = await final_case(writer)
     if failure == "missing":
         writer.evaluate_final = None
     if failure == "contract":

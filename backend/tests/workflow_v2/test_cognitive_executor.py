@@ -1640,7 +1640,7 @@ def test_final_publication_normalizer_is_non_rejecting_and_reader_facing() -> No
     )
 
 
-def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> None:
+def test_final_publication_rejects_wrong_markers_instead_of_silently_stripping() -> None:
     water_claim_id = "a" * 64
     labelling_claim_id = "b" * 64
     context = SynthesisContext(
@@ -1674,15 +1674,9 @@ def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> 
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert f"[evidence:{labelling_claim_id}]" in normalized.markdown
-    assert f"[evidence:{water_claim_id}]" not in normalized.markdown
-    assert "Cats prefer chicken-flavoured kibble." in normalized.markdown
-    assert "Fresh kibble improves palatability." in normalized.markdown
-    assert "**Pending verification:** EU law guarantees this formula is safe." in (
-        normalized.markdown
-    )
+    with pytest.raises(ValueError, match="unsupported evidence marker"):
+        cognitive_executor_module._normalize_publication_draft(context, draft)
+    assert f"[evidence:{water_claim_id}]" in draft.markdown
 
 
 def test_final_publication_marker_requires_material_local_claim_coverage() -> None:
@@ -1710,11 +1704,14 @@ def test_final_publication_marker_requires_material_local_claim_coverage() -> No
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized.markdown.count(marker) == 2
-    assert "Cats prefer fresh chicken." in normalized.markdown
-    assert "Fresh cats enjoy kibble." in normalized.markdown
+    with pytest.raises(ValueError, match="unsupported evidence marker"):
+        cognitive_executor_module._normalize_publication_draft(context, draft)
+    supported = draft.model_copy(update={
+        "markdown": "# Claim coverage\n\n## Product requirements\n\n"
+        f"Cats require access to fresh drinking water. {marker}"
+    })
+    normalized = cognitive_executor_module._normalize_publication_draft(context, supported)
+    assert normalized.markdown.count(marker) == 1
 
 
 def test_final_publication_normalizer_never_authorizes_launch_for_a_prd() -> None:
@@ -8925,7 +8922,7 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
 
 @pytest.mark.asyncio
 async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
-    class AsciiCoreWriter(QualityWriter):
+    class PlaceholderCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
                 input_value, scope, research_payload, contents
@@ -8935,8 +8932,8 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
             return draft.model_copy(
                 update={
                     "markdown": (
-                        draft.markdown + "\n\n## Decision matrix\n\n```text\n"
-                        "+-----+-----+\n| A | B |\n+-----+-----+\n```"
+                        draft.markdown + "\n\n## Decision matrix\n\n"
+                        "This placeholder must be replaced."
                     )
                 }
             )
@@ -8948,7 +8945,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
         FakeDrafter(),
         AUTHORITY_KEY,
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
-        synthesis_writer=AsciiCoreWriter(),
+        synthesis_writer=PlaceholderCoreWriter(),
     )
     results = await execute_plan_tasks(
         executor,
@@ -8962,7 +8959,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
     )
     core = results[-1]
     assert core.artifact.kind == "task_result"
-    assert "```text" in (core.artifact.markdown or "")
+    assert "placeholder" in (core.artifact.markdown or "")
 
     task_refs = sorted(
         [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
@@ -8991,7 +8988,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
     assert evaluation.execution_output_contract_satisfied is False
     assert evaluation.direct_promotion_artifact is None
     assert any(
-        "ASCII-art table" in defect
+        "placeholder" in defect
         for defect in evaluation.artifact.payload["substantiveContentDefects"]
     )
 
@@ -12250,7 +12247,7 @@ def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees(
     )
     assert (
         "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
-        in substantive
+        not in substantive
     )
 
     success_prediction = prd() + "\n\nThe product will succeed in the market."
@@ -12999,7 +12996,7 @@ def test_numbered_headings_surface_evidence_and_quality_defects_together() -> No
     assert "required Markdown sections are missing" not in message
     assert "Unsupported factual precision" in message
     assert "contains placeholder content" in message
-    assert "ASCII-art table" in message
+    assert "ASCII-art table" not in message
 
 
 def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() -> None:
