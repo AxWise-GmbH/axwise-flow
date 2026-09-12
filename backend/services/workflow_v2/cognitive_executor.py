@@ -106,10 +106,12 @@ from backend.services.workflow_v2.solution_preparation import (
 from backend.services.workflow_v2.cognitive.evidence import (
     _assertions_share_explicit_polarity as _assertions_share_explicit_polarity,
     _claims_align_with_assertion as _claims_align_with_assertion,
+    _complete_internal_acceptance_fixture as _complete_internal_acceptance_fixture,
     _deterministic_evidence_integrity_defects as _deterministic_evidence_integrity_defects,
     _evidence_clause_fragments as _evidence_clause_fragments,
     _expanded_support_tokens as _expanded_support_tokens,
     _handled_task_evidence_defect as _handled_task_evidence_defect,
+    _internal_specification_language as _internal_specification_language,
     _is_bounded_specific_verification_action as _is_bounded_specific_verification_action,
     _is_bounded_unresolved_requirement_action as _is_bounded_unresolved_requirement_action,
     _is_hard_task_evidence_defect as _is_hard_task_evidence_defect,
@@ -120,6 +122,9 @@ from backend.services.workflow_v2.cognitive.evidence import (
     _local_prefix_for_negation as _local_prefix_for_negation,
     _materially_matches_unresolved_requirement as _materially_matches_unresolved_requirement,
     _normalized_launch_claim_text as _normalized_launch_claim_text,
+    _normative_requirement_unit as _normative_requirement_unit,
+    _permission_context_asserts_authority as _permission_context_asserts_authority,
+    _planning_statement_body as _planning_statement_body,
     _precision_values as _precision_values,
     _split_unresolved_assertions as _split_unresolved_assertions,
     _support_tokens as _support_tokens,
@@ -183,6 +188,7 @@ from backend.services.workflow_v2.cognitive.models import (
     _with_execution_agent_prompt as _with_execution_agent_prompt,
 )
 from backend.services.workflow_v2.cognitive.policy import (
+    _DESIGN_CONSISTENCY_METHOD as _DESIGN_CONSISTENCY_METHOD,
     BLOCKED_REPORT_SYSTEM_PROMPT as BLOCKED_REPORT_SYSTEM_PROMPT,
     EVALUATION_SYSTEM_PROMPT as EVALUATION_SYSTEM_PROMPT,
     SCOPE_REVISION_SYSTEM_PROMPT as SCOPE_REVISION_SYSTEM_PROMPT,
@@ -432,12 +438,19 @@ from backend.services.workflow_v2.cognitive.sources import (
     _usage_from_search as _usage_from_search,
 )
 from backend.services.workflow_v2.cognitive.validation import (
+    SynthesisValidationError as SynthesisValidationError,
+    _FINAL_VALIDATION_COUNT_KEYS as _FINAL_VALIDATION_COUNT_KEYS,
+    _FINAL_VALIDATION_REASON_CODES as _FINAL_VALIDATION_REASON_CODES,
+    _MAX_FINAL_VALIDATION_COUNT as _MAX_FINAL_VALIDATION_COUNT,
+    _SAFE_FINAL_VALIDATION_PREFIXES as _SAFE_FINAL_VALIDATION_PREFIXES,
     _contains_server_deliverable_placeholder as _contains_server_deliverable_placeholder,
     _contains_server_unverified_validation_target as _contains_server_unverified_validation_target,
     _deterministic_quality_defects as _deterministic_quality_defects,
     _safe_synthesis_validation_failure as _safe_synthesis_validation_failure,
     _validate_synthesis as _validate_synthesis,
     _validate_task_draft as _validate_task_draft,
+    _valid_final_validation_counts as _valid_final_validation_counts,
+    safe_synthesis_validation_details as safe_synthesis_validation_details,
 )
 
 
@@ -531,6 +544,24 @@ def _logged_failure_diagnostics(
     # The deployed safe_failure_diagnostics SQL function excludes token fields.
     # Do not widen that database contract merely to retain operator accounting.
     return {"route": route, "status": status}
+
+
+def _log_final_contract_failure(
+    envelope: AxWiseOperationEnvelope, markdown: str, error: ValueError
+) -> None:
+    """Identify the rejected candidate/rule without logging document or error prose."""
+    logging.getLogger(__name__).warning(
+        "final_contract_rejected %s",
+        canonical_json(
+            {
+                "operation_id": str(envelope.operation_id),
+                "candidate_sha256": hashlib.sha256(
+                    markdown.encode("utf-8")
+                ).hexdigest(),
+                **safe_synthesis_validation_details(error),
+            }
+        ),
+    )
 
 
 def _operation_metrics(
@@ -953,8 +984,9 @@ class PydanticAISynthesisWriter:
             return []
         return cls._required_gap_labels(research_payload, scope_payload)
 
+    @classmethod
     def _context(
-        self,
+        cls,
         input_value: SynthesizeArtifactInputV1,
         scope_payload: dict[str, Any],
         research_payload: dict[str, Any],
@@ -985,9 +1017,9 @@ class PydanticAISynthesisWriter:
             purpose=input_value.purpose,
             required_sections=required_sections,
             evidence_readiness=input_value.output_contract.evidence_readiness,
-            allowed_claim_ids=self._allowed_claim_ids(research_payload),
-            allowed_claim_texts=self._allowed_claim_texts(research_payload),
-            required_gap_labels=self._required_gap_labels_for_input(
+            allowed_claim_ids=cls._allowed_claim_ids(research_payload),
+            allowed_claim_texts=cls._allowed_claim_texts(research_payload),
+            required_gap_labels=cls._required_gap_labels_for_input(
                 input_value, research_payload, scope_payload
             ),
             unresolved_evidence_requirements=(
@@ -1025,6 +1057,42 @@ class PydanticAISynthesisWriter:
             reader_output=reader_output,
             artifact_type=input_value.output_contract.artifact_type,
         )
+
+    @staticmethod
+    def _core_content(
+        selected_contents: list[ImmutableArtifactContent],
+    ) -> ImmutableArtifactContent:
+        candidates = []
+        for item in selected_contents:
+            if item.content_type != "text/markdown":
+                continue
+            payload = item.payload
+            task = None
+            if item.artifact.kind == "task_result":
+                task = payload.get("task")
+            elif item.artifact.kind == "final_markdown":
+                attestation = payload.get("candidateAttestation")
+                if isinstance(attestation, dict):
+                    task = attestation.get("task")
+            if (
+                isinstance(task, dict)
+                and task.get("taskKind") == "core_draft"
+                and task.get("producesFullContract") is True
+                and isinstance(item.markdown, str)
+            ):
+                candidates.append(item)
+        if len(candidates) != 1:
+            raise ValueError(
+                "final repair prompt requires one full-contract core draft"
+            )
+        return candidates[0]
+
+    @staticmethod
+    def _prompt_artifact(item: ImmutableArtifactContent) -> dict[str, Any]:
+        """Keep the canonical payload, without repeating its mirrored Markdown body."""
+        value = item.model_dump(mode="json", by_alias=True)
+        value.pop("markdown", None)
+        return value
 
     @classmethod
     def _research_prompt_view(
@@ -1204,7 +1272,7 @@ class PydanticAISynthesisWriter:
                     ),
                     "REPAIR_PASS": input_value.repair_pass,
                     "SELECTED_IMMUTABLE_ARTIFACTS": [
-                        item.model_dump(mode="json", by_alias=True)
+                        PydanticAISynthesisWriter._prompt_artifact(item)
                         for item in selected_contents
                         if item.artifact.kind not in {"scope", "research"}
                     ],
@@ -1220,38 +1288,12 @@ class PydanticAISynthesisWriter:
         selected_contents: list[ImmutableArtifactContent],
         context: SynthesisContext,
     ) -> str:
-        """Project immutable final inputs into one compact, surgical repair prompt."""
+        """Repair the exact reviewed candidate under its original accepted context."""
 
         if input_value.purpose != "final_synthesis" or input_value.evaluation is None:
             raise ValueError("final repair prompt requires final_synthesis input")
 
-        def core_task(item: ImmutableArtifactContent) -> dict[str, Any] | None:
-            if item.artifact.kind == "task_result":
-                task = item.payload.get("task")
-                return task if isinstance(task, dict) else None
-            if item.artifact.kind == "final_markdown":
-                attestation = item.payload.get("candidateAttestation")
-                if not isinstance(attestation, dict):
-                    return None
-                task = attestation.get("task")
-                return task if isinstance(task, dict) else None
-            return None
-
-        core_candidates = []
-        for item in selected_contents:
-            task = core_task(item)
-            if (
-                item.content_type == "text/markdown"
-                and task is not None
-                and task.get("taskKind") == "core_draft"
-                and task.get("producesFullContract") is True
-                and isinstance(item.markdown, str)
-            ):
-                core_candidates.append(item)
-        if len(core_candidates) != 1:
-            raise ValueError(
-                "final repair prompt requires one full-contract core draft"
-            )
+        core = PydanticAISynthesisWriter._core_content(selected_contents)
         evaluation_candidates = [
             item
             for item in selected_contents
@@ -1264,76 +1306,52 @@ class PydanticAISynthesisWriter:
                 "final repair prompt requires the exact evaluation artifact"
             )
         evaluation = EvaluationResultV1.model_validate(evaluation_candidates[0].payload)
-        core = core_candidates[0]
-        projected = _project_final_repair_base(
-            context,
-            title=str(core.payload.get("title") or "Final artifact"),
-            markdown=core.markdown,
+        scope_payload = next(
+            item.payload
+            for item in selected_contents
+            if item.artifact == input_value.accepted_scope
         )
-        projected_evidence_defects = _deterministic_evidence_integrity_defects(
-            projected.markdown,
-            context.allowed_claim_texts,
-            artifact_type=context.artifact_type,
-            immutable_gap_labels=context.required_gap_labels,
-            unresolved_evidence_requirements=(context.unresolved_evidence_requirements),
-            defect_limit=None,
-            excerpt_limit=None,
-        )
-        projected_substantive, projected_practicality = _deterministic_quality_defects(
-            projected.markdown,
-            practical_output_required=context.practical_output_required,
-            artifact_type=context.artifact_type,
-            reader_output=context.reader_output,
+        research_payload = next(
+            item.payload
+            for item in selected_contents
+            if item.artifact == input_value.research
         )
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            "unsupportedPrecision": utf16_ordinal_sorted(
-                set(evaluation.unsupported_precision).union(projected_evidence_defects)
-            ),
+            "unsupportedPrecision": evaluation.unsupported_precision,
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
-            "substantiveContentDefects": utf16_ordinal_sorted(
-                set(evaluation.substantive_content_defects).union(projected_substantive)
-            ),
-            "practicalityDefects": utf16_ordinal_sorted(
-                set(evaluation.practicality_defects).union(projected_practicality)
-            ),
+            "substantiveContentDefects": evaluation.substantive_content_defects,
+            "practicalityDefects": evaluation.practicality_defects,
         }
-        projection_changed = projected.markdown != core.markdown
-        # Projection can change wording, not erase the critic's concrete findings.
-        # The applicability instruction below prevents recreating removed text.
-        repair_instructions = list(evaluation.repair_instructions)
-        repair_instructions.append(
-            "Apply each structured repair target only when its referenced issue is "
-            "still observable in BASE_MARKDOWN; never recreate absent text."
-        )
-        if projection_changed:
-            repair_instructions.extend(
-                [
-                    "BASE_MARKDOWN is a structure-preserving safety projection. Keep "
-                    "every requirement ID, owner, table row and Given/When/Then role.",
-                    "Rewrite projected verification and unverified-assumption labels "
-                    "into concise section-appropriate proposals or validation actions. "
-                    "Keep legal, safety and authority uncertainty explicit.",
-                    "If ALLOWED_CLAIMS exactly supports a narrower part of a projected "
-                    "statement, split it and attach that claim's marker only to the "
-                    "supported text; never recreate unsupported content.",
-                ]
-            )
-        if projected_substantive or projected_practicality:
-            repair_instructions.append(
-                "Repair every named post-projection substantive or practicality defect "
-                "with concrete deliverable content, using only explicit proposals, "
-                "assumptions, validation actions and the allowed immutable claims."
-            )
-        repair_instructions = utf16_ordinal_sorted(set(repair_instructions))
         return canonical_json(
             _with_execution_agent_prompt(
                 {
                     "PURPOSE": input_value.purpose,
-                    "BASE_MARKDOWN": projected.markdown,
+                    "BASE_MARKDOWN": core.markdown,
+                    "ACCEPTED_SCOPE": scope_payload,
+                    "RESEARCH_RESULT": PydanticAISynthesisWriter._research_prompt_view(
+                        research_payload, scope_payload
+                    ),
+                    "CORE_DECISIONS": {
+                        "conclusions": core.payload.get("conclusions", []),
+                        "unknowns": core.payload.get("unknowns", []),
+                    },
+                    "SPECIALIST_DECISIONS": [
+                        {
+                            "artifact": item.artifact.model_dump(
+                                mode="json", by_alias=True
+                            ),
+                            "role": item.payload.get("task", {}).get("requiredRole"),
+                            "conclusions": item.payload.get("conclusions", []),
+                            "unknowns": item.payload.get("unknowns", []),
+                        }
+                        for item in selected_contents
+                        if item.artifact.kind == "task_result"
+                        and item.artifact != core.artifact
+                    ],
                     "CORE_ARTIFACT": core.artifact.model_dump(
                         mode="json", by_alias=True
                     ),
@@ -1341,7 +1359,7 @@ class PydanticAISynthesisWriter:
                         mode="json", by_alias=True
                     ),
                     "REPAIR_TARGETS": repair_targets,
-                    "REPAIR_INSTRUCTIONS": repair_instructions,
+                    "REPAIR_INSTRUCTIONS": evaluation.repair_instructions,
                     "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
                         mode="json", by_alias=True
                     ),
@@ -1485,65 +1503,13 @@ class PydanticAISynthesisWriter:
         context = self._context(
             input_value, scope_payload, research_payload, selected_contents
         )
-        evaluation_content = next(
-            item
-            for item in selected_contents
-            if item.artifact == input_value.evaluation
-            and item.artifact.kind == "evaluation"
-        )
-        EvaluationResultV1.model_validate(evaluation_content.payload)
-        core_candidates = [
-            item
-            for item in selected_contents
-            if item.content_type == "text/markdown"
-            and (
-                (
-                    item.artifact.kind == "task_result"
-                    and isinstance(item.payload.get("task"), dict)
-                    and item.payload["task"].get("taskKind") == "core_draft"
-                    and item.payload["task"].get("producesFullContract") is True
-                )
-                or (
-                    item.artifact.kind == "final_markdown"
-                    and isinstance(item.payload.get("candidateAttestation"), dict)
-                    and isinstance(
-                        item.payload["candidateAttestation"].get("task"), dict
-                    )
-                    and item.payload["candidateAttestation"]["task"].get("taskKind")
-                    == "core_draft"
-                    and item.payload["candidateAttestation"]["task"].get(
-                        "producesFullContract"
-                    )
-                    is True
-                )
-            )
-        ]
-        core_fallback: SynthesisDraft | None = None
-        if len(core_candidates) == 1:
-            core = core_candidates[0]
-            core_fallback = SynthesisDraft(
-                title=str(core.payload.get("title") or "Final artifact"),
-                markdown=core.markdown,
-            )
-            context = context.model_copy(
-                update={"final_repair_topology": _final_repair_topology(core.markdown)}
-            )
         prompt = self._final_repair_prompt(input_value, selected_contents, context)
-        try:
-            result = await self._run_validated_agent(
-                self.final_agent,
-                prompt,
-                context,
-                phase="FINAL",
-            )
-        except CognitiveExecutionFailure as error:
-            if (
-                core_fallback is None
-                or error.error_class
-                != "AXWISE_FINAL_OUTPUT_VALIDATION_EXHAUSTED_STRUCTURED_OUTPUT_INVALID"
-            ):
-                raise
-            return ModelOutput(core_fallback, 0, 0)
+        result = await self._run_validated_agent(
+            self.final_agent,
+            prompt,
+            context,
+            phase="FINAL",
+        )
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(
             SynthesisDraft.model_validate(result.output),
@@ -3202,53 +3168,11 @@ class GeminiCognitiveExecutor:
         selected_contents = input_value.artifact_contents
         research_context_payload = research.model_dump(mode="json", by_alias=True)
         scope_context_payload = scope.model_dump(mode="json", by_alias=True)
-        reader_output = (
-            input_value.output_contract.reader_output
-            if isinstance(input_value.output_contract, WorkflowOutputContractV2)
-            else None
-        )
-        common_context = SynthesisContext(
-            purpose=input_value.purpose,
-            required_sections=input_value.output_contract.required_sections,
-            evidence_readiness=research.readiness,
-            allowed_claim_ids=PydanticAISynthesisWriter._allowed_claim_ids(
-                research_context_payload
-            ),
-            allowed_claim_texts=PydanticAISynthesisWriter._allowed_claim_texts(
-                research_context_payload
-            ),
-            required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
-                research_context_payload,
-                scope_context_payload,
-            ),
-            unresolved_evidence_requirements=(
-                _unresolved_evidence_requirement_descriptions(
-                    research_context_payload,
-                    scope_context_payload,
-                )
-            ),
-            accepted_requirements=scope.requirements,
-            accepted_acceptance_criteria=(
-                input_value.output_contract.acceptance_criteria
-            ),
-            repair_pass=input_value.repair_pass or 0,
-            quality_gate_required=input_value.purpose
-            in {"final_synthesis", "blocked_report"},
-            practical_output_required=(
-                input_value.purpose == "blocked_report"
-                or (
-                    plan is not None
-                    and plan.work_shape
-                    in {
-                        "product_prd",
-                        "software_prd",
-                        "research_strategy",
-                        "operational_plan",
-                    }
-                )
-            ),
-            reader_output=reader_output,
-            artifact_type=input_value.output_contract.artifact_type,
+        common_context = PydanticAISynthesisWriter._context(
+            input_value,
+            scope_context_payload,
+            research_context_payload,
+            selected_contents,
         )
         permitted_evidence_gap_ids = (
             _permitted_nonblocking_evidence_gap_requirement_ids(scope, research)
@@ -3313,21 +3237,7 @@ class GeminiCognitiveExecutor:
                 raise CognitiveExecutionFailure(
                     "AXWISE_TASK_DEPENDENCY_SET_MISMATCH", retryable=False
                 )
-            context = common_context.model_copy(
-                update={
-                    "required_sections": (
-                        input_value.output_contract.required_sections
-                        if input_value.task.produces_full_contract
-                        else []
-                    ),
-                    "required_gap_labels": (
-                        common_context.required_gap_labels
-                        if input_value.task.produces_full_contract
-                        else []
-                    ),
-                    "acceptance_requirement_ids": input_value.task.acceptance_requirement_ids,
-                }
-            )
+            context = common_context
             drafted = await self.synthesis_writer.execute_task(
                 input_value,
                 scope.model_dump(mode="json", by_alias=True),
@@ -3743,6 +3653,15 @@ class GeminiCognitiveExecutor:
             reader_draft.markdown, common_context.reader_output
         )
         if reader_defects:
+            _log_final_contract_failure(
+                envelope,
+                reader_draft.markdown,
+                SynthesisValidationError(
+                    "final reader contract was not satisfied",
+                    reason="READER_CONTRACT_FAILED",
+                    counts={"reader_contract": len(reader_defects)},
+                ),
+            )
             raise CognitiveExecutionFailure(
                 "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
                 retryable=False,
@@ -3774,6 +3693,7 @@ class GeminiCognitiveExecutor:
             except ValueError as error:
                 # Exhausted the single authorized repair. Never silently publish or
                 # schedule another paid rewrite to satisfy a quality check.
+                _log_final_contract_failure(envelope, draft.markdown, error)
                 raise CognitiveExecutionFailure(
                     "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
                     retryable=False,

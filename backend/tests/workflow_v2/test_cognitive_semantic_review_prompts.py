@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from backend.services.workflow_v2.cognitive.policy import (
+    _DESIGN_CONSISTENCY_METHOD,
     EVALUATION_SYSTEM_PROMPT,
     SYNTHESIS_SYSTEM_PROMPT,
     TASK_SYSTEM_PROMPT,
@@ -36,91 +37,125 @@ def test_allowed_claim_lineage_is_not_external_truth(prompt: str) -> None:
 
 def test_core_must_reconcile_specialists_instead_of_echoing_coverage() -> None:
     text = normalized(TASK_SYSTEM_PROMPT)
-    assert "reconcile specialist algorithms rather than concatenating them" in text
-    assert "select one consistent accounting/authority model" in text
-    assert "carry unresolved conflicts as gaps in requirement_coverage" in text
-    assert "do not mark a requirement satisfied merely because its heading" in text
-    assert "state variables, transaction boundaries and failure conditions" in text
+    assert "Specialists advise; the core_draft owns the coherent design" in text
+    assert "each specialist's existing conclusions field" in text
+    assert "not a competing complete specification" in text
+    assert "core's conclusions field records the selected decisions" in text
+    assert "materially conflicting alternatives were rejected" in text
+    assert "Keep unresolved decisions in unknowns" in text
+    assert "mark affected requirement_coverage as gap" in text
+    assert "Do not silently combine alternatives" in text
+    assert "requirement satisfied just because its heading appears" in text
 
 
-def test_task_requires_visible_state_traces_and_unknown_outcome_handling() -> None:
-    text = normalized(TASK_SYSTEM_PROMPT)
-    assert "initial-state -> event -> intermediate-state -> final-state" in text
-    assert "recompute quantities at each externally visible boundary" in text
-    assert "reversed snapshot/acknowledgement arrival" in text
-    assert "a digest or local lock does not establish remote freshness" in text
-    assert "unknown outcomes stay fenced until authoritative resolution" in text
+@pytest.mark.parametrize("prompt", PROMPTS)
+def test_one_shared_method_requires_conservation_authority_and_replay_rules(
+    prompt: str,
+) -> None:
+    text = normalized(prompt)
+    assert text.count(normalized(_DESIGN_CONSISTENCY_METHOD)) == 1
+    assert "quantities and commitments are conserved" in text
+    assert "state changes require the responsible authority" in text
     assert (
-        "replay horizons, durable operation identities and rollback writer handoffs"
+        "duplicate or older events cannot repeat an effect or reverse a newer decision"
         in text
+    )
+    assert "Identity and local arrival order do not prove source freshness" in text
+    assert "unknown outcome remains unresolved until authoritative confirmation" in text
+    assert "initial -> event -> intermediate -> final quantities" in text
+    assert (
+        "Derive every journey, equation, recovery path and acceptance example" in text
     )
 
 
 def test_evaluator_requires_counterexamples_not_format_based_approval() -> None:
     text = normalized(EVALUATION_SYSTEM_PROMPT)
-    assert "not its confidence, length, headings or coverage labels" in text
-    assert "recompute each requested numeric case" in text
-    assert "not only whether the eventual final number looks correct" in text
-    assert "Identity/hash equality is not freshness or causal inclusion" in text
-    assert "local serialization is not remote source order" in text
+    assert "Review the selected design decisions first" in text
+    assert "compare each relevant section with them" in text
     assert (
-        "cancellation authority, replay-retention coverage and rollback writer fence"
+        "core resolved conflicting specialist proposals rather than preserving both"
         in text
     )
-    assert (
-        "a short witness (input/event order -> claimed versus computed outcome)" in text
-    )
+    assert "exact sections and a short counterexample" in text
+    assert "input/event order -> claimed versus computed outcome" in text
     assert "appropriate typed field" in text
-    assert "without claiming live test execution" in text
+    assert (
+        "Keep contradictions, unsupported facts and formatting findings distinct"
+        in text
+    )
+    assert "what was actually checked and its limits" in text
+    assert "it is not a pass certificate" in text
+    assert "Do not claim that calculations or live tests were executed" in text
+    assert (
+        "Requirements, hypothetical test inputs and permission labels are not reported external facts"
+        in text
+    )
 
 
 def test_evaluator_does_not_treat_qualifications_as_contradiction_repairs() -> None:
     text = normalized(EVALUATION_SYSTEM_PROMPT)
-    assert "Do not accept 'pending verification', a global prerequisite" in text
-    assert "a fallback that still performs the unsafe action" in text
-    assert "a legitimate evidence gap" in text
     assert (
-        "actually provide its safety property or explicitly remain unavailable" in text
+        "A qualification or 'pending verification' label cannot repair a contradiction"
+        in text
     )
-    assert "source claims critically even when their IDs are allowed" in text
+    assert "correct the decision or retain the affected requirement as a gap" in text
+    assert "If an accepted claim overreaches the available source" in text
+    assert "flag the exact uncertainty without rewriting its immutable record" in text
 
 
 def test_final_repair_must_update_all_conflicting_algorithm_projections() -> None:
     text = normalized(SYNTHESIS_SYSTEM_PROMPT)
-    assert "repair the actual conflicting state transition or authority rule" in text
-    assert "not only its wording" in text
+    assert (
+        "BASE_MARKDOWN is the exact reviewed candidate, not a server-rewritten substitute"
+        in text
+    )
+    assert "ACCEPTED_SCOPE remains authoritative" in text
+    assert "CORE_DECISIONS records the author's choices" in text
+    assert (
+        "SPECIALIST_DECISIONS are advice, not additional requirements or verified facts"
+        in text
+    )
+    assert "Repair the decision behind a concrete defect" in text
     assert (
         "every affected equation, example, journey, acceptance case and fallback"
         in text
     )
-    assert "including intermediate externally visible quantities" in text
-    assert (
-        "release a commitment merely because a delayed acknowledgement is absent"
-        in text
-    )
-    assert (
-        "does not make contradictory arithmetic or an unsafe fallback acceptable"
-        in text
-    )
-    assert "without inventing evidence or modifying the immutable claim ledger" in text
+    assert "Preserve other valid decisions" in text
+    assert "Do not change the algorithm independently in different sections" in text
+    assert "replace a defect with a disclaimer" in text
+    assert "add new requirements to satisfy an incidental draft shape" in text
+    assert "keep it explicit as a gap rather than inventing an answer" in text
 
 
 @pytest.mark.parametrize("prompt", PROMPTS)
 def test_extra_adversarial_work_is_bounded_and_scenario_sensitive(prompt: str) -> None:
     text = normalized(prompt)
-    assert "up to six" in text
-    assert "requested" in text
-    assert "reader-facing" in text
+    assert "Check the requested examples" in text
+    assert "vary event order or replay only where it tests one of those rules" in text
+    assert "Do not add a catalogue of unrequested edge cases" in text
+    assert "Apply this method only to stateful behavior actually requested" in text
+    assert "Preserve reader-facing length and format" in text
     for fixture_specific_text in ("SKU-500", "ORD-500", "20,000", "North Central Hub"):
         assert fixture_specific_text not in prompt
 
 
 def test_stateful_checks_do_not_expand_unrelated_content_contracts() -> None:
-    assert "do not add an engineering analysis" in normalized(TASK_SYSTEM_PROMPT)
-    assert "do not impose inventory, concurrency or recovery rules" in normalized(
+    for prompt in (
+        TASK_SYSTEM_PROMPT,
+        EVALUATION_SYSTEM_PROMPT,
+        SYNTHESIS_SYSTEM_PROMPT,
+    ):
+        assert "do not add engineering sections to unrelated content" in normalized(
+            prompt
+        )
+    assert (
+        "honor the requested reader-facing length, item-count, and format exactly"
+        in normalized(TASK_SYSTEM_PROMPT)
+    )
+    assert "accepted owner length, item-count, or format constraint" in normalized(
         EVALUATION_SYSTEM_PROMPT
     )
-    assert "within the requested artifact type and reader-facing format" in normalized(
+    assert "within the accepted reader-facing contract" in normalized(
         SYNTHESIS_SYSTEM_PROMPT
     )
 
