@@ -57,6 +57,7 @@ from backend.services.workflow_v2.cognitive.policy import (
     _PUBLICATION_UNKNOWN_PENDING_PREFIX,
     _PUBLICATION_VERIFICATION_ACTION,
     _PURE_ARTIFACT_NONAUTHORIZATION,
+    _PURE_DRAFT_NONAUTHORIZATION,
     _PURE_NEGATED_ARTIFACT_ACTION,
     _PURE_NOT_LAUNCH_READY_STATUS,
     _PURE_REMEDIATION_CONTROL_BOUNDARY,
@@ -288,6 +289,35 @@ def _is_pure_evidence_status_or_withholding(value: str) -> bool:
     if (match := _PURE_VERIFICATION_DIRECTIVE.fullmatch(cleaned)) is not None:
         return _INDEPENDENT_SENSITIVE_FACT.search(match.group("prefix")) is None
     return False
+
+
+def _is_pure_artifact_draft_withholding(value: str) -> bool:
+    """A draft's own non-certification is not a product's certification status."""
+
+    _list, _prefix, role, body = _task_fragment_parts(value)
+    if role:
+        return False
+    label = re.match(r"^(\*\*|__)([^:\n]{1,80}):\1\s*", body)
+    if label is not None:
+        if _ASSERTIVE_HEADING_PREDICATE.search(label.group(2)) is not None:
+            return False
+        body = body[label.end() :]
+    cleaned = re.sub(r"[*_`]", "", body).strip()
+    match = _PURE_DRAFT_NONAUTHORIZATION.fullmatch(cleaned)
+    if match is None:
+        return False
+    # Only the directly negated nominal "certified implementation" is removed
+    # from consideration. Independent facts in the draft description or in the
+    # coordinated disclaimer remain subject to the existing sensitive checks.
+    remaining = f"{match.group('description')} {match.group('tail')}"
+    return not (
+        _RAW_EVIDENCE_MARKER.search(value)
+        or _EVIDENCE_SENSITIVE_ASSERTION.search(remaining)
+        or _INDEPENDENT_SENSITIVE_FACT.search(remaining)
+        or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(remaining)
+        or _AUTHORITY_PROCESS_EXECUTION.search(remaining)
+        or _precision_values(remaining)
+    )
 
 
 def _is_bounded_unresolved_requirement_action(fragment: str) -> bool:
@@ -1214,9 +1244,14 @@ def _deterministic_evidence_integrity_defects(
                 continue
             if (
                 not markers
-                and _UNRESOLVED_AUTHORITY_QUALIFIER.search(without_markers)
                 and not unresolved_alignment
-                and _is_pure_evidence_status_or_withholding(without_markers)
+                and (
+                    _is_pure_artifact_draft_withholding(without_markers)
+                    or (
+                        _UNRESOLVED_AUTHORITY_QUALIFIER.search(without_markers)
+                        and _is_pure_evidence_status_or_withholding(without_markers)
+                    )
+                )
                 and _DEFINITE_NEGATED_LEGAL_ASSERTION.search(without_markers) is None
             ):
                 continue
