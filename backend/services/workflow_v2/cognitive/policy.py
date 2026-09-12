@@ -519,6 +519,12 @@ requirements, limits and policies. OUTPUT_CONTRACT required sections, rubric and
 criteria are semantic quality checks, not headings to echo. A grounded factual claim must carry its
 exact `[evidence:<claim-id>]` marker from ALLOWED_CLAIM_IDS. Never invent a marker or an
 evidence source's URL, title or publication date, and never invent certification or clearance.
+An allowed claim ID establishes admission and lineage, not infallible external truth. Check
+the supplied source excerpts and metadata before adopting their interpretation; a URL, title
+or source-class label alone is not proof. Do not elevate a draft, proposal or logical model
+into an adopted standard, universal rule or physical-world guarantee. If an accepted claim
+overreaches the available source, flag the exact uncertainty without rewriting its immutable
+record or inventing a replacement citation.
 Separate supported facts from assumptions and
 recommendations. Exact immutable support is mandatory for health, safety, legal,
 certification and authority assertions, and every assertion carrying an evidence marker.
@@ -564,6 +570,26 @@ reader-facing length, item-count, and format exactly. Keep requirement proof in 
 acceptance-test prose, or workflow metadata to the Markdown unless an accepted owner
 requirement or required section explicitly requests it.
 Return typed title, Markdown, coverage, conclusions and unknowns.
+
+For a stateful-system specification, reconcile specialist algorithms rather than concatenating
+them. The core_draft must select one consistent accounting/authority model, explain rejected
+alternatives where material, and carry unresolved conflicts as gaps in requirement_coverage.
+Specialists should expose the assumptions, state variables, transaction boundaries and failure
+conditions needed to compose their proposals; do not mark a requirement satisfied merely
+because its heading or desired outcome appears.
+Where relevant to the accepted scope, provide worked initial-state -> event -> intermediate-state
+-> final-state examples and recompute quantities at each externally visible boundary.
+Cover required acceptance cases and up to six additional high-risk counterexamples: concurrent
+requests, reversed snapshot/acknowledgement arrival, delayed authoritative cancellation,
+duplicate replay beyond deduplication retention, and interrupted multi-party commit or rollback.
+Distinguish source commit order from arrival order or content identity: a digest or local lock
+does not establish remote freshness. Explain how acknowledgement inclusion is known before
+retiring a local hold, and how unknown outcomes stay fenced until authoritative resolution.
+Align replay horizons, durable operation identities and rollback writer handoffs. A labelled
+assumption, safety buffer or disclaimer does not repair an internal contradiction; change the
+algorithm or state the affected requirement as unresolved with a safe unavailable branch.
+Apply these checks only to relevant stateful behavior; do not add an engineering analysis or
+extra sections to unrelated content or exceed the accepted reader-facing format/length.
 """
 ).strip()
 
@@ -592,6 +618,30 @@ coverage metadata does not need to appear in the reader-facing Markdown.
 Return bounded repair instructions only for concrete defects; preserve valid material and never
 request wholesale regeneration. The server deterministically owns requirement coverage,
 citation resolution, satisfaction and direct-promotion facts.
+
+Adversarially review the candidate, not its confidence, length, headings or coverage labels.
+Compare the core's algorithms with its specialist dependencies and check that conflicting
+proposals were resolved, not silently combined. For stateful quantities or commitments,
+recompute each requested numeric case and up to six additional high-risk counterexamples.
+Track initial, intermediate and final states under reversed event arrival, delayed authority,
+duplicate replay and interrupted recovery. Check every externally visible invariant, not
+only whether the eventual final number looks correct. Identity/hash equality is not freshness
+or causal inclusion; local serialization is not remote source order. Verify the claimed
+cancellation authority, replay-retention coverage and rollback writer fence where relevant.
+Do not accept 'pending verification', a global prerequisite or a safety-buffer label as a fix
+for a concrete contradictory transition or a fallback that still performs the unsafe action.
+A missing vendor capability may be a legitimate evidence gap; an algorithm claiming to replace
+that capability must actually provide its safety property or explicitly remain unavailable.
+Treat source claims critically even when their IDs are allowed: check exact scope, source
+status and causal versus physical-order assertions against the supplied source material. If
+source support is unavailable, report a specific verification gap rather than certify it.
+Put each concrete defect in the appropriate typed field, with its section, a short witness
+(input/event order -> claimed versus computed outcome), and a bounded correction. Keep
+contradictions, unsupported precision and practicality defects distinct; do not replace them
+with a generic positive note. If no defect is found, the note should identify the relevant
+invariants or cases actually checked and any limits, without claiming live test execution.
+These checks are scenario-sensitive: do not impose inventory, concurrency or recovery rules
+on unrelated creative/content artifacts or demand unrequested sections.
 """
 ).strip()
 
@@ -627,6 +677,21 @@ For content_artifact and general_artifact, preserve the accepted reader-facing l
 item-count, and format exactly. Remove unrequested analysis, risk registers, traceability
 tables, acceptance-test prose, and workflow metadata instead of expanding a concise artifact;
 typed coverage remains outside the Markdown.
+
+For stateful specifications, repair the actual conflicting state transition or authority rule,
+not only its wording. Reconcile competing specialist/core algorithms into one explicit model;
+update every affected equation, example, journey, acceptance case and fallback consistently.
+Recompute the requested cases and up to six relevant adversarial event permutations after
+the changes, including intermediate externally visible quantities. Resolve source order versus
+identity, unknown acknowledgement inclusion, cancellation authority, replay horizon and
+rollback writer fencing wherever the accepted scope depends on them. Do not infer chronology
+from a digest or release a commitment merely because a delayed acknowledgement is absent.
+If a prerequisite cannot be established, retain the unresolved decision and a genuinely safe
+unavailable or explicitly bounded alternative. A disclaimer or 'pending verification' prefix
+does not make contradictory arithmetic or an unsafe fallback acceptable. Correct overbroad
+source interpretations without inventing evidence or modifying the immutable claim ledger.
+Keep these repairs within the requested artifact type and reader-facing format; do not claim
+that the written examples or proposed integration were executed.
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.

@@ -1,8 +1,10 @@
 """Cognitive operation dispatcher and provider adapters. Pure quality logic lives in cognitive/."""
+
 from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import logging
 import os
 import re
 import time
@@ -91,7 +93,9 @@ from backend.services.workflow_v2.analysis_service import (
     AnalysisGenerator,
     AnalysisOperationHandler,
 )
-from backend.services.workflow_v2.simulation_operation_handler import SimulationOperationHandler
+from backend.services.workflow_v2.simulation_operation_handler import (
+    SimulationOperationHandler,
+)
 from backend.services.workflow_v2.simulation_service import SimulationGenerator
 from backend.services.workflow_v2.solution_preparation import (
     PydanticAINativeSolutionPreparer,
@@ -1246,7 +1250,9 @@ class PydanticAISynthesisWriter:
         repair_targets = {
             "unmetRequirementIds": evaluation.unmet_requirement_ids,
             "unresolvedSourceMarkers": evaluation.unresolved_source_markers,
-            "unsupportedPrecision": projected_evidence_defects,
+            "unsupportedPrecision": utf16_ordinal_sorted(
+                set(evaluation.unsupported_precision).union(projected_evidence_defects)
+            ),
             "contradictions": evaluation.contradictions,
             "staleTopicReferences": evaluation.stale_topic_references,
             "readinessViolations": evaluation.readiness_violations,
@@ -1258,12 +1264,9 @@ class PydanticAISynthesisWriter:
             ),
         }
         projection_changed = projected.markdown != core.markdown
-        # Evaluator guidance remains applicable when the base is byte-identical. Once
-        # projection changes the base, opaque prose can conflict with the current text;
-        # typed targets above retain the concrete findings in that branch.
-        repair_instructions = (
-            [] if projection_changed else list(evaluation.repair_instructions)
-        )
+        # Projection can change wording, not erase the critic's concrete findings.
+        # The applicability instruction below prevents recreating removed text.
+        repair_instructions = list(evaluation.repair_instructions)
         repair_instructions.append(
             "Apply each structured repair target only when its referenced issue is "
             "still observable in BASE_MARKDOWN; never recreate absent text."
@@ -1373,6 +1376,62 @@ class PydanticAISynthesisWriter:
         input_tokens, output_tokens = _usage_from_result(result)
         return ModelOutput(
             result.output,
+            input_tokens,
+            output_tokens,
+            exact_uniform_model_version_from_result(result),
+        )
+
+    async def evaluate_final(
+        self,
+        input_value: SynthesizeArtifactInputV1,
+        scope_payload: dict[str, Any],
+        research_payload: dict[str, Any],
+        selected_contents: list[ImmutableArtifactContent],
+        final_draft: SynthesisDraft,
+    ) -> ModelOutput[EvaluationDraft]:
+        """Review the exact publication, not the old core or its repair promises."""
+        context = self._context(
+            input_value, scope_payload, research_payload, selected_contents
+        )
+        prompt = (
+            "FINAL PUBLICATION ACCEPTANCE REVIEW. The supplied FINAL_PUBLICATION is "
+            "the exact document about to be published, including server-owned disclosures "
+            "and source appendix. Judge this text independently; no earlier clean review "
+            "or claimed repair is evidence that it is correct. Do not request removal of "
+            "the server-owned source appendix. Check accepted requirements, causal "
+            "state transitions and contradictory descriptions across sections. Recompute "
+            "numeric examples and try the specified delayed, duplicate, out-of-order, "
+            "partial-failure and recovery cases when applicable. A pending-verification "
+            "label does not repair an internally inconsistent algorithm. Distinguish "
+            "unknown vendor prerequisites from broken proposed fallbacks. Inspect source "
+            "claims for overreach; ledger membership alone does not prove truth. Return "
+            "concrete defects in the typed fields; use substantive_content_defects for "
+            "missing accepted requirements. Empty defect fields mean this exact document "
+            "is acceptable, not merely comprehensive. No further repair or execution "
+            "is authorized by this review.\n"
+            + canonical_json(
+                {
+                    "OUTPUT_CONTRACT": input_value.output_contract.model_dump(
+                        mode="json", by_alias=True
+                    ),
+                    "ACCEPTED_SCOPE": scope_payload,
+                    "RESEARCH": self._research_prompt_view(
+                        research_payload, scope_payload
+                    ),
+                    "ALLOWED_CLAIM_TEXTS": context.allowed_claim_texts,
+                    "FINAL_PUBLICATION_SHA256": hashlib.sha256(
+                        final_draft.markdown.encode("utf-8")
+                    ).hexdigest(),
+                    "FINAL_PUBLICATION": final_draft.model_dump(mode="json"),
+                }
+            )
+        )
+        result = await self._run_validated_agent(
+            self.evaluation_agent, prompt, context, phase="EVALUATION"
+        )
+        input_tokens, output_tokens = _usage_from_result(result)
+        return ModelOutput(
+            EvaluationDraft.model_validate(result.output),
             input_tokens,
             output_tokens,
             exact_uniform_model_version_from_result(result),
@@ -1557,14 +1616,19 @@ class GeminiGroundedResearchRunner:
         search_attempt_seconds: float = _WORKFLOW_V2_PRIMARY_SEARCH_ATTEMPT_SECONDS,
         response_validator: Callable[[str, str], tuple[str, ...]] | None = None,
         repair_query_builder: Callable[[str, tuple[str, ...]], str] | None = None,
-        parsed_response_validator: Callable[[str, dict[str, Any]], tuple[str, ...]] | None = None,
+        parsed_response_validator: (
+            Callable[[str, dict[str, Any]], tuple[str, ...]] | None
+        ) = None,
     ) -> None:
         from backend.services.generative.gemini_search_service import (
             GeminiSearchService,
         )
 
         policy = (
-            {"response_validator": response_validator, "repair_query_builder": repair_query_builder}
+            {
+                "response_validator": response_validator,
+                "repair_query_builder": repair_query_builder,
+            }
             if response_validator is not None or repair_query_builder is not None
             else {}
         )
@@ -1648,6 +1712,10 @@ class GeminiCognitiveExecutor:
 
     async def execute(self, envelope: AxWiseOperationEnvelope):
         started = time.monotonic()
+        final_repair = (
+            isinstance(envelope.input, SynthesizeArtifactInputV1)
+            and envelope.input.purpose == "final_synthesis"
+        )
         deadline_seconds = max(
             30, min(int(os.getenv("AXWISE_COGNITIVE_DEADLINE_SECONDS", "540")), 900)
         )
@@ -1658,10 +1726,21 @@ class GeminiCognitiveExecutor:
         except asyncio.TimeoutError as error:
             raise CognitiveExecutionFailure(
                 "AXWISE_OPERATION_DEADLINE",
-                retryable=envelope.operation_type not in {
-                    "PrepareSolutionV2", "AdmitTranscriptCorpusV1", "AnalyzeEvidenceV1", "SimulateV1"
+                retryable=not final_repair
+                and envelope.operation_type
+                not in {
+                    "PrepareSolutionV2",
+                    "AdmitTranscriptCorpusV1",
+                    "AnalyzeEvidenceV1",
+                    "SimulateV1",
                 },
             ) from error
+        except CognitiveExecutionFailure as error:
+            if final_repair and error.retryable:
+                raise CognitiveExecutionFailure(
+                    error.error_class, retryable=False, diagnostics=error.diagnostics
+                ) from error
+            raise
         latency_ms = max(1, round((time.monotonic() - started) * 1000))
         metrics = result.metrics or OperationMetrics(latency_ms=latency_ms)
         return result.model_copy(
@@ -1671,15 +1750,21 @@ class GeminiCognitiveExecutor:
     async def _execute_operation(self, envelope: AxWiseOperationEnvelope):
         if envelope.operation_type == "SimulateV1":
             if not isinstance(envelope.input, SimulateInputV1):
-                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
             return await self.simulation_handler.execute(envelope)
         if envelope.operation_type == "AdmitTranscriptCorpusV1":
             if not isinstance(envelope.input, AdmitTranscriptCorpusInputV1):
-                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
             return await self.analysis_handler.admit(envelope)
         if envelope.operation_type == "AnalyzeEvidenceV1":
             if not isinstance(envelope.input, AnalyzeEvidenceInputV1):
-                raise CognitiveExecutionFailure("AXWISE_INPUT_TYPE_MISMATCH", retryable=False)
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
             return await self.analysis_handler.analyze(envelope)
         if envelope.operation_type == "PrepareSolutionV2":
             if not isinstance(envelope.input, PrepareSolutionInputV2):
@@ -1819,7 +1904,9 @@ class GeminiCognitiveExecutor:
         owner_prior_texts: tuple[str, ...] = ()
         if isinstance(input_value, CompileScopeInputV3):
             authority_text = _scope_v3_draft_context(input_value).owner_authority_text
-            current_owner_text = input_value.assistant_context.instruction.source_span.text
+            current_owner_text = (
+                input_value.assistant_context.instruction.source_span.text
+            )
             owner_prior_texts = tuple(
                 turn.user.source_span.text
                 for turn in input_value.assistant_context.turns
@@ -2402,9 +2489,7 @@ class GeminiCognitiveExecutor:
                 )
             )
             if input_value.execution_agent is not None:
-                instruction += " " + " ".join(
-                    _EXECUTION_AGENT_PROFILE_BOUNDARY.split()
-                )
+                instruction += " " + " ".join(_EXECUTION_AGENT_PROFILE_BOUNDARY.split())
             query_payload: dict[str, Any] = _with_execution_agent_prompt(
                 {
                     "acceptedScopeSemantics": semantics,
@@ -2685,21 +2770,27 @@ class GeminiCognitiveExecutor:
             note = (
                 "Grounded repair returned conflicting evidence."
                 if conflicts
-                else f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
-                if claims
                 else (
-                    "Grounded acquisition reached the bounded research deadline before "
-                    "the targeted repair pass; no accepted grounded claim was recorded."
+                    f"Verified on the single repair pass with {len(claims)} grounded claim(s)."
+                    if claims
+                    else (
+                        (
+                            "Grounded acquisition reached the bounded research deadline before "
+                            "the targeted repair pass; no accepted grounded claim was recorded."
+                        )
+                        if not repair_performed
+                        else (
+                            (
+                                "Grounded acquisition remained unavailable after the single "
+                                "targeted repair pass "
+                                f"({', '.join(failure_statuses)}); no accepted grounded claim "
+                                "was recorded."
+                            )
+                            if failure_statuses
+                            else "No accepted grounded claim was available after the single repair pass."
+                        )
+                    )
                 )
-                if not repair_performed
-                else (
-                    "Grounded acquisition remained unavailable after the single "
-                    "targeted repair pass "
-                    f"({', '.join(failure_statuses)}); no accepted grounded claim "
-                    "was recorded."
-                )
-                if failure_statuses
-                else "No accepted grounded claim was available after the single repair pass."
             )
             findings_by_id[requirement.id] = EvidenceFinding(
                 requirement_id=requirement.id,
@@ -2735,9 +2826,7 @@ class GeminiCognitiveExecutor:
         readiness = (
             "blocked"
             if unresolved_blocking
-            else "ready_with_gaps"
-            if unresolved_optional or assumptions
-            else "ready"
+            else "ready_with_gaps" if unresolved_optional or assumptions else "ready"
         )
         result = ResearchResultV2(
             accepted_scope_artifact_id=input_value.accepted_scope.artifact_id,
@@ -3430,7 +3519,21 @@ class GeminiCognitiveExecutor:
                     ),
                 )
             }
-            unsupported = utf16_ordinal_sorted(deterministic_evidence_integrity)[:40]
+            unsupported = utf16_ordinal_sorted(
+                set(draft.unsupported_precision).union(deterministic_evidence_integrity)
+            )
+            if len(unsupported) > 40:
+                raise CognitiveExecutionFailure(
+                    "AXWISE_EVALUATION_FINDINGS_OVERFLOW",
+                    retryable=False,
+                    diagnostics={
+                        "route": "evaluate_output",
+                        "status": "findings_overflow",
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": input_tokens + output_tokens,
+                    },
+                )
             contradictions = utf16_ordinal_sorted(set(draft.contradictions))
             stale = utf16_ordinal_sorted(set(draft.stale_topic_references))
             readiness_issue_list = utf16_ordinal_sorted(readiness_violations)
@@ -3603,9 +3706,39 @@ class GeminiCognitiveExecutor:
         )
         if reader_defects:
             raise CognitiveExecutionFailure(
-                "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED", retryable=True
+                "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED", retryable=False
             )
         draft = _decorate_publication_draft(common_context, reader_draft)
+        if input_value.purpose == "final_synthesis":
+            try:
+                # The explicit reader contract (including its headings/item count)
+                # was checked before server disclosures/traceability were appended.
+                # Do not count that mandatory server text as reader-authored content.
+                validation_context = common_context.model_copy(
+                    update={
+                        "reader_output": None,
+                        "required_sections": (
+                            []
+                            if common_context.reader_output is not None
+                            else common_context.required_sections
+                        ),
+                    }
+                )
+                _validate_synthesis(validation_context, draft)
+            except ValueError as error:
+                # Exhausted the single authorized repair. Never silently publish or
+                # schedule another paid rewrite to satisfy a quality check.
+                raise CognitiveExecutionFailure(
+                    "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
+                    retryable=False,
+                    diagnostics={
+                        "route": "final_synthesis",
+                        "status": "contract_rejected",
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": input_tokens + output_tokens,
+                    },
+                ) from error
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(
             draft.markdown,
@@ -3615,6 +3748,86 @@ class GeminiCognitiveExecutor:
                 for section in scope.deliverable_profile.required_sections
             ),
         )
+        if input_value.purpose == "final_synthesis":
+            reviewer = getattr(self.synthesis_writer, "evaluate_final", None)
+            if not callable(reviewer):
+                raise CognitiveExecutionFailure(
+                    "AXWISE_FINAL_SEMANTIC_REVIEW_UNAVAILABLE", retryable=False
+                )
+            try:
+                reviewed = await reviewer(
+                    input_value,
+                    scope.model_dump(mode="json", by_alias=True),
+                    research.model_dump(mode="json", by_alias=True),
+                    selected_contents,
+                    SynthesisDraft(title=draft.title, markdown=markdown),
+                )
+                review, review_input, review_output, review_model = (
+                    _unwrap_model_output(reviewed)
+                )
+                # Revalidate fields even if a custom writer constructed a model
+                # without validation. Disable serializer warnings to avoid raw prose
+                # leaking into logs from a malformed review field.
+                review = EvaluationDraft.model_validate(
+                    review.model_dump(warnings=False)
+                    if isinstance(review, BaseModel)
+                    else review
+                )
+            except Exception as error:
+                raise CognitiveExecutionFailure(
+                    "AXWISE_FINAL_SEMANTIC_REVIEW_FAILED",
+                    retryable=False,
+                    diagnostics={
+                        "route": "final_synthesis",
+                        "status": "review_failed",
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": input_tokens + output_tokens,
+                    },
+                ) from error
+            input_tokens += review_input
+            output_tokens += review_output
+            model_version = _uniform_model_version([model_version, review_model])
+            issue_fields = (
+                "unsupported_precision",
+                "contradictions",
+                "stale_topic_references",
+                "readiness_violations",
+                "substantive_content_defects",
+                "practicality_defects",
+                "repair_instructions",
+            )
+            issue_counts = {
+                field: len(getattr(review, field)) for field in issue_fields
+            }
+            rejected = any(issue_counts.values())
+            # No prompt, prose or raw provider response enters runtime logs.
+            logging.getLogger(__name__).warning(
+                "final_semantic_review %s",
+                canonical_json(
+                    {
+                        "operation_id": str(envelope.operation_id),
+                        "markdown_sha256": hashlib.sha256(
+                            markdown.encode("utf-8")
+                        ).hexdigest(),
+                        "review_sha256": canonical_hash(review.model_dump(mode="json")),
+                        "issue_counts": issue_counts,
+                        "accepted": not rejected,
+                    }
+                ),
+            )
+            if rejected:
+                raise CognitiveExecutionFailure(
+                    "AXWISE_FINAL_SEMANTIC_REJECTED",
+                    retryable=False,
+                    diagnostics={
+                        "route": "final_synthesis",
+                        "status": "semantic_rejected",
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": input_tokens + output_tokens,
+                    },
+                )
         final = FinalArtifactV1(
             title=draft.title,
             markdown=markdown,
@@ -3673,7 +3886,8 @@ def build_cognitive_executor(
         assistant_repair_query,
     )
     from backend.services.workflow_v2.assistant.publication import (
-        assistant_parsed_response_defects, assistant_source_url_allowed,
+        assistant_parsed_response_defects,
+        assistant_source_url_allowed,
     )
 
     api_key = os.getenv("GEMINI_API_KEY")

@@ -284,6 +284,15 @@ class SynthesisWriter(Protocol):
         selected_contents: list[ImmutableArtifactContent],
     ) -> ModelOutput[SynthesisDraft] | SynthesisDraft: ...
 
+    async def evaluate_final(
+        self,
+        input_value: SynthesizeArtifactInputV1,
+        scope_payload: dict[str, Any],
+        research_payload: dict[str, Any],
+        selected_contents: list[ImmutableArtifactContent],
+        final_draft: SynthesisDraft,
+    ) -> ModelOutput[EvaluationDraft] | EvaluationDraft: ...
+
     async def write_blocked(
         self,
         input_value: SynthesizeArtifactInputV1,

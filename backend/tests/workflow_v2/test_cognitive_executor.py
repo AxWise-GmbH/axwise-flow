@@ -4984,9 +4984,12 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     assert payload["EXECUTION_AGENT"]["profileSnapshot"]["profile"][
         "roleLabel"
     ] == "Evidence-led launch operator"
-    # Stale evaluation diagnostics that do not occur in the projected base are not
-    # handed back to the model as instructions to recreate absent claims.
-    assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == []
+    # Preserve the critic's findings, while the explicit projection guard forbids
+    # reconstructing unsupported claims that are no longer in the current base.
+    assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
+        "Unsupported nutritional threshold.",
+        "Unsupported processing temperature.",
+    ]
     assert payload["REPAIR_TARGETS"]["contradictions"] == [
         "The product is both cleared and unresolved."
     ]
@@ -5023,7 +5026,7 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     assert all(item.markdown not in payload.values() for item in specialists)
 
 
-def test_final_repair_prompt_drops_stale_instructions_after_projection() -> None:
+def test_final_repair_prompt_preserves_guidance_with_projection_safety_guard() -> None:
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
     )
@@ -5074,8 +5077,11 @@ def test_final_repair_prompt_drops_stale_instructions_after_projection() -> None
         "Validation target (all following content is unverified until pre-adoption "
         "review):" in payload["BASE_MARKDOWN"]
     )
-    assert all(
-        "Restore the removed formula" not in instruction
+    assert "Restore the removed formula safety claim as verified." in (
+        payload["REPAIR_INSTRUCTIONS"]
+    )
+    assert any(
+        "never recreate absent text" in instruction
         for instruction in payload["REPAIR_INSTRUCTIONS"]
     )
     assert any(
@@ -7280,6 +7286,10 @@ class QualityWriter:
     async def evaluate_output(self, _input, _scope, _research, _contents):
         return EvaluationDraft(note="Semantic and deterministic checks completed.")
 
+    async def evaluate_final(self, _input, _scope, _research, _contents, final_draft):
+        assert isinstance(final_draft, SynthesisDraft)
+        return EvaluationDraft(note="Exact final publication reviewed by the test fixture.")
+
     async def write(self, _input, _scope, research_payload, _contents):
         return SynthesisDraft(
             title="Repaired Estonia cat-food PRD",
@@ -7970,12 +7980,12 @@ async def test_executor_applies_reader_normalization_then_server_disclosures_onc
     compiled, research, input_value, contents = await _final_writer_fixture()
 
     class RawFinalWriter(QualityWriter):
-        async def write(self, *_args, **_kwargs):
+        async def write(self, _input, _scope, research_payload, _contents):
             return SynthesisDraft(
                 title="Raw final",
                 markdown=(
-                    "# Raw final\n\nAll specifications are grounded in external "
-                    "frameworks.\n\n## Product requirements\n\n"
+                    quality_markdown(research_payload)
+                    + "\n\n## Publication review action\n\n"
                     "Validation target (all following content is unverified until "
                     "pre-adoption review): Verify the product-specific legal result."
                 ),
@@ -8739,7 +8749,7 @@ async def test_incomplete_core_falls_through_to_evaluation_instead_of_failing() 
 
 
 @pytest.mark.asyncio
-async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> (
+async def test_model_precision_flags_are_preserved_and_prevent_direct_promotion() -> (
     None
 ):
     class NumericPlanningWriter(QualityWriter):
@@ -8816,11 +8826,12 @@ async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precisi
             operation_type="SynthesizeArtifactV1",
         )
     )
-    assert evaluation.execution_output_contract_satisfied is True
-    assert evaluation.artifact.payload["unsupportedPrecision"] == []
-    assert evaluation.direct_promotion_artifact.model_dump(
-        mode="json", by_alias=True
-    ) == ref(candidate.artifact)
+    assert evaluation.execution_output_contract_satisfied is False
+    assert evaluation.artifact.payload["unsupportedPrecision"] == [
+        "The model treated ordinary planning decisions as unsupported."
+    ]
+    assert evaluation.direct_promotion_artifact is None
+    assert evaluation.artifact.payload["repairRequired"] is True
 
 
 @pytest.mark.asyncio
