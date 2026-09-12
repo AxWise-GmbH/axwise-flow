@@ -21,6 +21,8 @@ from backend.services.workflow_v2.operation_store import (
     ClaimedOperation,
     PostgresOperationStore,
     StaleOperationLease,
+    is_final_synthesis,
+    single_execution_reclaim_error,
 )
 
 
@@ -129,17 +131,20 @@ class OperationWorker:
         _log_state(claim, "claimed")
         if await self._cancel_if_requested(claim):
             return True
-        if claim.envelope.operation_type in {"AnalyzeEvidenceV1", "SimulateV1"} and (
+        final_synthesis = is_final_synthesis(claim.envelope)
+        reclaim_error = single_execution_reclaim_error(claim.envelope)
+        if reclaim_error is not None and (
             type(claim.execution_count) is not int or claim.execution_count != 1
         ):
-            # Even a crash before the first provider request requires a fresh
-            # owner-confirmed operation. Reclaimed leases cannot spend again on
-            # an old opt-in. This is not an exactly-once provider-call guarantee
-            # or a lifetime token/dollar ledger for the first invocation.
+            # Even a crash before the first provider request cannot authorize a
+            # second spend from an old capability opt-in or final-repair budget.
+            # Only the durable counter from this exact locked claim is accepted;
+            # unknown counts fail closed. This is not an exactly-once provider
+            # guarantee or a lifetime token/dollar ledger for the first execution.
             await self._fail(
                 claim,
                 retryable=False,
-                error_class="AXWISE_CAPABILITY_RECONSENT_REQUIRED",
+                error_class=reclaim_error,
             )
             return True
         started = time.monotonic()
@@ -185,10 +190,12 @@ class OperationWorker:
                 return True
             await self._fail(
                 claim,
-                retryable=error.retryable,
+                retryable=error.retryable and not final_synthesis,
                 error_class=error.error_class,
-                retry_at=error.retry_at,
-                retry_after_seconds=error.retry_after_seconds,
+                retry_at=error.retry_at if not final_synthesis else None,
+                retry_after_seconds=(
+                    error.retry_after_seconds if not final_synthesis else None
+                ),
                 failure_diagnostics=error.diagnostics,
                 evidence_diagnostics=error.evidence_diagnostics,
             )
@@ -199,7 +206,7 @@ class OperationWorker:
             status = error.status_code
             await self._fail(
                 claim,
-                retryable=status in {408, 429} or status >= 500,
+                retryable=not final_synthesis and (status in {408, 429} or status >= 500),
                 error_class=f"AXWISE_MODEL_HTTP_{status}",
             )
             return True
@@ -218,7 +225,9 @@ class OperationWorker:
             if await self._cancel_if_requested(claim):
                 return True
             await self._fail(
-                claim, retryable=True, error_class="AXWISE_EXECUTION_ERROR"
+                claim,
+                retryable=not final_synthesis,
+                error_class="AXWISE_EXECUTION_ERROR",
             )
             return True
         if await self._cancel_if_requested(claim):

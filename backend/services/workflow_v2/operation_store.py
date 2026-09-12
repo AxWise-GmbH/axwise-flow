@@ -48,6 +48,24 @@ class ClaimedOperation:
     execution_count: int | None = None
 
 
+def is_final_synthesis(envelope: AxWiseOperationEnvelope) -> bool:
+    return (
+        envelope.operation_type == "SynthesizeArtifactV1"
+        and isinstance(envelope.input, SynthesizeArtifactInputV1)
+        and envelope.input.purpose == "final_synthesis"
+    )
+
+
+def single_execution_reclaim_error(envelope: AxWiseOperationEnvelope) -> str | None:
+    """Keep the store's durable counter projection and worker spend fence aligned."""
+
+    if envelope.operation_type in {"AnalyzeEvidenceV1", "SimulateV1"}:
+        return "AXWISE_CAPABILITY_RECONSENT_REQUIRED"
+    if is_final_synthesis(envelope):
+        return "AXWISE_FINAL_SYNTHESIS_RECLAIM_FORBIDDEN"
+    return None
+
+
 @dataclass(frozen=True)
 class OperationEventRecord:
     operation_id: UUID
@@ -519,7 +537,7 @@ class PostgresOperationStore:
             ):
                 raise RuntimeError("claimed operation envelope identity is inconsistent")
             execution_count = None
-            if envelope.operation_type in {"AnalyzeEvidenceV1", "SimulateV1"}:
+            if single_execution_reclaim_error(envelope) is not None:
                 # SQL004 increments this existing counter while holding the row
                 # lock, but its historical return signature does not expose it.
                 # Read in the same transaction using the existing worker SELECT

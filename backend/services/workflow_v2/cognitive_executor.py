@@ -495,6 +495,44 @@ def _estimated_cost_micros(
     return max(0, token_numerator // 1_000_000 + search_cost)
 
 
+def _logged_failure_diagnostics(
+    envelope: AxWiseOperationEnvelope,
+    *,
+    route: str,
+    status: str,
+    input_tokens: int,
+    output_tokens: int,
+) -> dict[str, str]:
+    """Keep SQL003 diagnostics strict; known usage belongs in content-free logs."""
+
+    usage = {
+        name: value
+        for name, value in (
+            ("input_tokens", input_tokens),
+            ("output_tokens", output_tokens),
+        )
+        if type(value) is int and 0 <= value <= 2_000_000
+    }
+    if len(usage) == 2 and input_tokens + output_tokens <= 2_000_000:
+        usage["total_tokens"] = input_tokens + output_tokens
+    logging.getLogger(__name__).warning(
+        "cognitive_failure_usage %s",
+        canonical_json(
+            {
+                "operation_id": str(envelope.operation_id),
+                "route": route,
+                "status": status,
+                **usage,
+                "known_usage_only": True,
+                "billing_reconciled": False,
+            }
+        ),
+    )
+    # The deployed safe_failure_diagnostics SQL function excludes token fields.
+    # Do not widen that database contract merely to retain operator accounting.
+    return {"route": route, "status": status}
+
+
 def _operation_metrics(
     *,
     input_tokens: int = 0,
@@ -3526,13 +3564,13 @@ class GeminiCognitiveExecutor:
                 raise CognitiveExecutionFailure(
                     "AXWISE_EVALUATION_FINDINGS_OVERFLOW",
                     retryable=False,
-                    diagnostics={
-                        "route": "evaluate_output",
-                        "status": "findings_overflow",
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "total_tokens": input_tokens + output_tokens,
-                    },
+                    diagnostics=_logged_failure_diagnostics(
+                        envelope,
+                        route="evaluate_output",
+                        status="findings_overflow",
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    ),
                 )
             contradictions = utf16_ordinal_sorted(set(draft.contradictions))
             stale = utf16_ordinal_sorted(set(draft.stale_topic_references))
@@ -3706,7 +3744,15 @@ class GeminiCognitiveExecutor:
         )
         if reader_defects:
             raise CognitiveExecutionFailure(
-                "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED", retryable=False
+                "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
+                retryable=False,
+                diagnostics=_logged_failure_diagnostics(
+                    envelope,
+                    route=input_value.purpose,
+                    status="contract_rejected",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                ),
             )
         draft = _decorate_publication_draft(common_context, reader_draft)
         if input_value.purpose == "final_synthesis":
@@ -3731,13 +3777,13 @@ class GeminiCognitiveExecutor:
                 raise CognitiveExecutionFailure(
                     "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
                     retryable=False,
-                    diagnostics={
-                        "route": "final_synthesis",
-                        "status": "contract_rejected",
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "total_tokens": input_tokens + output_tokens,
-                    },
+                    diagnostics=_logged_failure_diagnostics(
+                        envelope,
+                        route="final_synthesis",
+                        status="contract_rejected",
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    ),
                 ) from error
         appendix = _source_appendix_entries(draft.markdown, research)
         markdown = _markdown_with_source_appendix(
@@ -3752,7 +3798,15 @@ class GeminiCognitiveExecutor:
             reviewer = getattr(self.synthesis_writer, "evaluate_final", None)
             if not callable(reviewer):
                 raise CognitiveExecutionFailure(
-                    "AXWISE_FINAL_SEMANTIC_REVIEW_UNAVAILABLE", retryable=False
+                    "AXWISE_FINAL_SEMANTIC_REVIEW_UNAVAILABLE",
+                    retryable=False,
+                    diagnostics=_logged_failure_diagnostics(
+                        envelope,
+                        route="final_synthesis",
+                        status="review_unavailable",
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    ),
                 )
             try:
                 reviewed = await reviewer(
@@ -3777,13 +3831,13 @@ class GeminiCognitiveExecutor:
                 raise CognitiveExecutionFailure(
                     "AXWISE_FINAL_SEMANTIC_REVIEW_FAILED",
                     retryable=False,
-                    diagnostics={
-                        "route": "final_synthesis",
-                        "status": "review_failed",
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "total_tokens": input_tokens + output_tokens,
-                    },
+                    diagnostics=_logged_failure_diagnostics(
+                        envelope,
+                        route="final_synthesis",
+                        status="review_failed",
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    ),
                 ) from error
             input_tokens += review_input
             output_tokens += review_output
@@ -3820,13 +3874,13 @@ class GeminiCognitiveExecutor:
                 raise CognitiveExecutionFailure(
                     "AXWISE_FINAL_SEMANTIC_REJECTED",
                     retryable=False,
-                    diagnostics={
-                        "route": "final_synthesis",
-                        "status": "semantic_rejected",
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "total_tokens": input_tokens + output_tokens,
-                    },
+                    diagnostics=_logged_failure_diagnostics(
+                        envelope,
+                        route="final_synthesis",
+                        status="semantic_rejected",
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    ),
                 )
         final = FinalArtifactV1(
             title=draft.title,
