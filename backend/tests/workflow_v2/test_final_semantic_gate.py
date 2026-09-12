@@ -361,11 +361,22 @@ async def test_rejected_final_retains_usage_without_logging_private_review_text(
     error = caught.value
     assert error.error_class == "AXWISE_FINAL_SEMANTIC_REJECTED"
     assert error.retryable is False
-    assert error.diagnostics["route"] == "final_synthesis"
-    assert error.diagnostics["status"] == "semantic_rejected"
-    assert error.diagnostics["input_tokens"] == 24
-    assert error.diagnostics["output_tokens"] == 12
-    assert error.diagnostics["total_tokens"] == 36
+    assert error.diagnostics == {
+        "route": "final_synthesis",
+        "status": "semantic_rejected",
+    }
+    usage = next(
+        record.message
+        for record in caplog.records
+        if record.message.startswith("cognitive_failure_usage ")
+    )
+    usage = json.loads(usage.removeprefix("cognitive_failure_usage "))
+    assert usage["operation_id"] == str(operation.operation_id)
+    assert usage["input_tokens"] == 24
+    assert usage["output_tokens"] == 12
+    assert usage["total_tokens"] == 36
+    assert usage["known_usage_only"] is True
+    assert usage["billing_reconciled"] is False
     assert secret not in json.dumps(error.diagnostics)
     assert secret not in caplog.text
     receipt = next(
