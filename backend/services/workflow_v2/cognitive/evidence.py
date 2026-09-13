@@ -7,6 +7,7 @@ from backend.domain.workflow_v2.contracts import utf16_ordinal_sorted
 from typing import Any, Sequence
 from backend.services.workflow_v2.cognitive.markdown import (
     _immutable_gap_bullet,
+    _is_immutable_gap_heading,
     _task_fragment_parts,
 )
 from backend.services.workflow_v2.cognitive.policy import (
@@ -35,7 +36,6 @@ from backend.services.workflow_v2.cognitive.policy import (
     _EXPLICIT_VALIDATION_ACTION_PREFIX,
     _FORMULA_MARKER,
     _GIVEN_WHEN_THEN_INLINE_ROLE,
-    _IMMUTABLE_GAP_SECTION_HEADINGS,
     _INDEPENDENT_SENSITIVE_FACT,
     _INLINE_GWT_ROLE_BREAK,
     _INTERNAL_PLANNING_TARGET,
@@ -984,7 +984,7 @@ def _deterministic_evidence_integrity_defects(
                 # authority claim still pass through the exact same checks below.
                 continue
         elif (
-            current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS
+            _is_immutable_gap_heading(current_heading)
             and stripped in immutable_gap_bullets
         ):
             # This exact line is appended by AxWise to preserve an immutable unresolved

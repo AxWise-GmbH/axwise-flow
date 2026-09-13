@@ -665,8 +665,9 @@ def test_task_preparation_derives_coverage_and_evidence_status_from_contract() -
         "gap",
         "gap",
     ]
-    assert "## Evidence gaps and assumptions" in prepared.markdown
-    assert "does not establish launch, legal, safety" in prepared.markdown
+    assert prepared.markdown == draft.markdown
+    assert "## Open decisions" not in prepared.markdown
+    assert context.evidence_readiness == "ready_with_gaps"
     _validate_task_draft(context, prepared)
 
 
@@ -715,7 +716,7 @@ def test_task_projects_uncited_high_risk_assertion_with_unrelated_ledger() -> No
         _validate_task_draft(full_contract_context, prepared)
 
 
-def test_task_preserves_uncited_residual_claim_for_visible_review() -> None:
+def test_task_preserves_uncited_residual_claim_without_keyword_warning() -> None:
     allowed_claim_id = "e" * 64
     context = SynthesisContext(
         purpose="execute_task",
@@ -757,10 +758,7 @@ def test_task_preserves_uncited_residual_claim_for_visible_review() -> None:
     publication = cognitive_executor_module._with_advisory_planning_review(
         context, SynthesisDraft(title=prepared.title, markdown=prepared.markdown)
     )
-    assert "**Unverified claim — review required:**" in publication
-    assert "Estonian law requires registration within 30 days" in publication.split(
-        "## Review notes — advisory", 1
-    )[1]
+    assert publication == prepared.markdown
     with pytest.raises(ValueError, match="residual unsupported evidence assertions"):
         _validate_task_draft(
             context.model_copy(update={"artifact_type": "general_artifact"}), prepared
@@ -1635,10 +1633,9 @@ def test_final_publication_normalizer_is_non_rejecting_and_reader_facing() -> No
 
     normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
-    assert (
-        normalized.markdown.count("**Evidence status: completed with evidence gaps.**")
-        == 1
-    )
+    assert "**Evidence status: completed with evidence gaps.**" not in normalized.markdown
+    assert "## Open decisions" in normalized.markdown
+    assert context.required_gap_labels[0] in normalized.markdown
     assert "Validation target (all following content" not in normalized.markdown
     assert "Unknown pending evidence (the complete following item" not in (
         normalized.markdown
@@ -3655,8 +3652,11 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         "invent personal names, ages, neighbourhoods",
         "Do not invent exact nutrition",
         "Evidence markers are sentence- or table-cell-local",
-        "include an explicit `Evidence gaps` or `Assumptions`",
-        "ASCII-art tables inside code fences",
+        "Lead with the requested deliverable",
+        "one concise `Open decisions` section",
+        "Preserve the required gap content",
+        "do not repeat blanket unvalidated warnings",
+        "Describe ordinary numeric settings naturally as proposed design choices",
     ):
         assert required in task_prompt
     for required in (
@@ -3664,7 +3664,10 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         "reviewer guidance, not a form to satisfy",
         "Never echo diagnostics, validator language",
         "Prefer clear reader-facing prose over repetitive warnings",
-        "prominent evidence-status boundary",
+        "Lead with the useful answer",
+        "concise `Open decisions` section",
+        "Preserve the exact required gap content",
+        "completion certifies the document",
         "Do not prefix personas, non-goals, headings",
         "planning requirements to verify before adoption",
         "ordinary product, operational, budget, date and metric choices",
@@ -3678,6 +3681,10 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
     assert "reader-facing length, item-count, and format exactly" in task_prompt
     assert "content_artifact and general_artifact" in final_prompt
     assert "instead of expanding a concise artifact" in final_prompt
+    assert "ASCII-art tables inside code fences" in " ".join(task_prompt.split())
+    assert "prominent evidence-status boundary" not in final_prompt
+    for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
+        assert "blanket draft disclaimers or warning requirements" in prompt
 
 
 def test_structural_guard_rejects_priority_acceptance_traceability_drift() -> None:
@@ -8643,7 +8650,7 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_composite_core_keeps_authority_warning_and_requires_evaluation() -> None:
+async def test_composite_core_keeps_authority_claim_for_evaluation_without_keyword_warning() -> None:
     class CompositeAuthorityCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -8699,10 +8706,9 @@ async def test_composite_core_keeps_authority_warning_and_requires_evaluation() 
             "Verify applicable pet-food safety obligations."
         ],
     )
-    assert "**Unverified claim — review required:**" in core.artifact.markdown
-    assert "authority has approved the product" in core.artifact.markdown.split(
-        "## Review notes — advisory", 1
-    )[1]
+    assert "**Unverified claim — review required:**" not in core.artifact.markdown
+    assert "## Review suggestions" not in core.artifact.markdown
+    assert core.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
     task_refs = sorted(
         [ref(item.artifact) for item in task_results],
         key=lambda item: item["artifactId"],
@@ -8892,7 +8898,7 @@ async def test_model_precision_flags_are_preserved_and_prevent_direct_promotion(
 
 
 @pytest.mark.asyncio
-async def test_uncited_precise_core_candidate_preserves_review_warning() -> None:
+async def test_uncited_precise_core_candidate_retains_typed_status_without_keyword_warning() -> None:
     class UnsafePrecisionWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -8943,10 +8949,9 @@ async def test_uncited_precise_core_candidate_preserves_review_warning() -> None
     assert not _contains_server_deliverable_placeholder(
         candidate.artifact.markdown or ""
     )
-    assert "**Unverified claim — review required:**" in candidate.artifact.markdown
-    assert "2,000 mg/kg taurine and prevents renal disease" in (
-        candidate.artifact.markdown.split("## Review notes — advisory", 1)[1]
-    )
+    assert "**Unverified claim — review required:**" not in candidate.artifact.markdown
+    assert "## Review suggestions" not in candidate.artifact.markdown
+    assert candidate.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
     assert _deterministic_evidence_integrity_defects(
         candidate.artifact.markdown, {}, artifact_type="product_prd"
     )
@@ -8981,7 +8986,7 @@ async def test_uncited_precise_core_candidate_preserves_review_warning() -> None
     ) == ref(candidate.artifact)
     assert evaluation.artifact.payload["unsupportedPrecision"] == []
     assert evaluation.artifact.payload["repairRequired"] is False
-    assert "**Unverified claim — review required:**" in candidate.artifact.markdown
+    assert "**Unverified claim — review required:**" not in candidate.artifact.markdown
 
 
 @pytest.mark.asyncio
@@ -10518,8 +10523,7 @@ def test_task_flags_uncited_authority_but_rejects_mismatched_citation() -> None:
             current_context,
             SynthesisDraft(title=current_draft.title, markdown=current_draft.markdown),
         )
-        assert rendered.startswith(current_draft.markdown)
-        assert "**Unverified claim — review required:**" in rendered
+        assert rendered == current_draft.markdown
 
     assert_review_flagged(context, unsafe)
     with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
@@ -13036,7 +13040,7 @@ def test_numbered_source_heading_remains_server_owned(indent: str, label: str) -
     assert _model_owned_required_sections(["1. Sources", "Artifact"]) == ["Artifact"]
 
 
-def test_numbered_headings_keep_quality_failure_and_evidence_review_warning() -> None:
+def test_numbered_headings_keep_quality_failure_and_raw_evidence_finding() -> None:
     markdown = quality_markdown(
         {
             "assumptions": [],
@@ -13079,10 +13083,7 @@ def test_numbered_headings_keep_quality_failure_and_evidence_review_warning() ->
     rendered = cognitive_executor_module._with_advisory_planning_review(
         context, SynthesisDraft(title="Combined feedback", markdown=markdown)
     )
-    assert "**Unverified claim — review required:**" in rendered
-    assert "facility maintains certified HACCP compliance" in rendered.split(
-        "## Review notes — advisory", 1
-    )[1]
+    assert rendered == markdown
 
 
 def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() -> None:
@@ -14135,8 +14136,7 @@ def test_final_gap_rendering_exempts_only_canonical_labels_from_review_flags() -
         rendered = cognitive_executor_module._with_advisory_planning_review(
             context, candidate
         )
-        assert rendered.startswith(candidate.markdown)
-        assert "**Unverified claim — review required:**" in rendered
+        assert rendered == candidate.markdown
 
     raw_claim_elsewhere = preserved.model_copy(
         update={

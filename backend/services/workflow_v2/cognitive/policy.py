@@ -274,6 +274,9 @@ launch_authorization, unsafe artifact content and verified conflicts still block
 proof the owner explicitly makes optional or nonblocking. Return at most one truly material
 clarification, never a questionnaire. Emit every acceptedSourceTypes array sorted and unique using only the closed
 source vocabulary. Use one identical quality contract. Do not expose unrelated context.
+Do not invent blanket draft disclaimers or warning requirements as scope policies, limits or
+acceptance criteria merely because the deliverable is a draft. Preserve explicit owner
+requirements and the claim-specific evidence rules above.
 """.strip()
 
 
@@ -501,6 +504,9 @@ future_authorization_proof is a labelled gap for every non-launch_authorization 
 selected_artifact_proof, launch_authorization, unsafe artifact content and verified conflicts
 still block. Preserve proof the owner explicitly makes optional or nonblocking.
 Emit every acceptedSourceTypes array sorted and unique using the closed source vocabulary.
+Do not introduce blanket draft disclaimers or warning requirements merely because the
+deliverable is a draft. Preserve non-conflicting accepted requirements and claim-specific
+evidence rules.
 """.strip()
     + "\n\n"
     + _EXECUTION_AGENT_PROFILE_BOUNDARY
@@ -579,9 +585,13 @@ health, safety, legal, process, test-method or certification specifications. If 
 immutable claim does not support one of those details, omit it or state the unresolved decision
 and how to validate it. Evidence markers are sentence- or table-cell-local: split verified facts
 from proposed targets, and never attach a marker to a line containing an unsupported target.
-When evidence readiness is not ready, include an explicit `Evidence gaps` or `Assumptions`
-Markdown heading even in a bounded specialist packet. Use ordinary Markdown tables, never
-ASCII-art tables inside code fences.
+Lead with the requested deliverable. In planning artifacts, collect material unresolved choices
+and missing evidence in one concise `Open decisions` section, or an accepted required section
+that already serves that purpose. Preserve the required gap content and give a specific next
+step for each material item; do not repeat blanket unvalidated warnings or narrate internal
+evidence ledgers. Describe ordinary numeric settings naturally as proposed design choices or
+targets, not as externally verified facts. Use ordinary Markdown tables, never ASCII-art tables
+inside code fences.
 When OUTPUT_CONTRACT.artifactType is content_artifact or general_artifact, honor the requested
 reader-facing length, item-count, and format exactly. Keep requirement proof in the typed
 `requirement_coverage` field. Do not add analysis, risk registers, traceability tables,
@@ -633,6 +643,10 @@ Keep contradictions, unsupported facts and formatting findings distinct. The not
 what was actually checked and its limits; it is not a pass certificate. Do not claim that
 calculations or live tests were executed merely because the document presents examples.
 Requirements, hypothetical test inputs and permission labels are not reported external facts.
+Judge what a statement actually asserts in context. Missing independent verification alone
+does not make an ordinary proposed design choice a defect. Do not request blanket disclaimers,
+repeated warnings or internal evidence-ledger prose; identify the concrete unsupported factual
+claim, contradiction or material open decision instead.
 """
 ).strip()
 
@@ -648,13 +662,15 @@ apply only corrections that are concrete and consistent with the accepted scope 
 evidence. Never echo diagnostics, validator language, workflow commentary or internal control
 metadata into the deliverable.
 
-Prefer clear reader-facing prose over repetitive warnings. When evidence is incomplete, state one
-prominent evidence-status boundary near the beginning, keep the exact unresolved items in the
-evidence-gaps section, and label only the particular affected claim or requirement as pending
-verification. Do not prefix personas, non-goals, headings, ordinary product choices, or the
-planning-artifact boundary with generic evidence warnings. Keep a useful PRD deliverable even
-when product-specific launch authorization or safety clearance is unavailable; never imply that
-the artifact itself grants launch, legal, safety, certification or market approval.
+Prefer clear reader-facing prose over repetitive warnings. Lead with the useful answer, not a
+blanket unvalidated notice. Collect material unresolved choices and missing evidence in one
+concise `Open decisions` section, or an accepted required section that already serves that
+purpose. Preserve the exact required gap content, explain the practical decision or confirmation
+needed, and give a specific next step. Do not prefix personas, non-goals, headings or ordinary
+product choices with generic evidence warnings, narrate internal evidence ledgers, or claim that
+completion certifies the document. Keep a useful PRD deliverable even when product-specific launch
+authorization or safety clearance is unavailable; never imply that the artifact itself grants
+launch, legal, safety, certification or market approval.
 
 Preserve every valid immutable evidence marker and never broaden its exact supported claim.
 Remove a mismatched marker instead of inventing support. Treat unsupported legal, safety,
@@ -758,13 +774,14 @@ _EVIDENCE_CLAIM_ID = re.compile(r"^[a-f0-9]{64}$")
 
 
 _EVIDENCE_STATUS_HEADING = re.compile(
-    r"\b(?:evidence\s+(?:gaps?|decision)|assumptions?|block(?:ed|ing)?|no-go)\b",
+    r"\b(?:evidence\s+(?:gaps?|decision)|open\s+decisions|assumptions?|block(?:ed|ing)?|no-go)\b",
     re.IGNORECASE,
 )
 
 
 _IMMUTABLE_GAP_SECTION_HEADINGS = frozenset(
     {
+        "Open decisions",
         "Immutable evidence gaps and assumptions",
         "Other immutable gaps and assumptions",
     }

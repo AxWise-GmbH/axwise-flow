@@ -221,7 +221,7 @@ class FinalReviewWriter(QualityWriter):
 
 
 @pytest.mark.asyncio
-async def test_clean_planning_final_adds_unverified_notice_after_exact_body_review(caplog):
+async def test_clean_planning_final_preserves_exact_reviewed_body_without_notice(caplog):
     marker = "\n\n## Rewritten assembly\n\nRetain the immutable ERP replay ledger."
     writer = FinalReviewWriter(text=marker)
     executor, operation = await final_case(writer)
@@ -230,22 +230,21 @@ async def test_clean_planning_final_adds_unverified_notice_after_exact_body_revi
     assert writer.reviewed_input.purpose == "final_synthesis"
     assert marker.strip() in writer.reviewed.markdown
     assert result.artifact.kind == "final_markdown"
-    assert "## Review notes — advisory" not in writer.reviewed.markdown
+    assert "## Review suggestions" not in writer.reviewed.markdown
     reviewed_body, separator, source_body = writer.reviewed.markdown.partition(
         "\n\n## Sources\n"
     )
     published_body, published_separator, published_sources = (
         result.artifact.markdown.partition("\n\n## Sources\n")
     )
-    assert published_body.startswith(reviewed_body.rstrip() + "\n\n")
+    assert published_body == reviewed_body
     assert (published_separator, published_sources) == (separator, source_body)
-    assert published_body.count("## Review notes — advisory") == 1
-    assert "Draft for human review." in published_body
-    assert (
-        "No concerns were identified by this automated review; correctness "
-        "remains unverified."
-    ) in published_body
+    assert "## Review suggestions" not in published_body
+    assert "Draft for human review." not in published_body
+    assert "correctness remains unverified" not in published_body
+    assert result.artifact.markdown == writer.reviewed.markdown
     assert result.artifact.payload["launchReady"] is False
+    assert result.artifact.payload["evidenceReadiness"] == operation.input.output_contract.evidence_readiness
     receipt = semantic_receipt(caplog)
     assert receipt["advisory"] is True
     assert receipt["accepted"] is True
@@ -256,7 +255,7 @@ async def test_clean_planning_final_adds_unverified_notice_after_exact_body_revi
     assert receipt["markdown_sha256"] == hashlib.sha256(
         result.artifact.markdown.encode()
     ).hexdigest()
-    assert receipt["reviewed_markdown_sha256"] != receipt["markdown_sha256"]
+    assert receipt["reviewed_markdown_sha256"] == receipt["markdown_sha256"]
 
 
 @pytest.mark.asyncio
@@ -281,9 +280,9 @@ async def test_new_planning_contradiction_is_published_as_advisory_after_clean_c
     result = await executor.execute(operation)
     assert contradiction in writer.reviewed.markdown
     assert contradiction in result.artifact.markdown
-    notes = result.artifact.markdown.split("## Review notes — advisory", 1)[1]
-    assert "- **Consistency concern:** " + contradiction.replace(".", r"\.") in notes
-    assert "not verified facts or proof that all other issues were found" in notes
+    notes = result.artifact.markdown.split("## Review suggestions", 1)[1]
+    assert "- **Consistency:** " + contradiction.replace(".", r"\.") in notes
+    assert "not verified facts or proof that all other issues were found" not in notes
     assert result.artifact.payload["launchReady"] is False
     assert writer.write_calls == writer.final_calls == 1
 
@@ -292,13 +291,13 @@ async def test_new_planning_contradiction_is_published_as_advisory_after_clean_c
 @pytest.mark.parametrize(
     "field,label",
     [
-        ("unsupported_precision", "Evidence concern"),
-        ("contradictions", "Consistency concern"),
-        ("stale_topic_references", "Relevance concern"),
-        ("readiness_violations", "Readiness concern"),
-        ("substantive_content_defects", "Content concern"),
-        ("practicality_defects", "Practicality concern"),
-        ("repair_instructions", "Suggested revision"),
+        ("unsupported_precision", "Evidence"),
+        ("contradictions", "Consistency"),
+        ("stale_topic_references", "Relevance"),
+        ("readiness_violations", "Readiness"),
+        ("substantive_content_defects", "Content"),
+        ("practicality_defects", "Practicality"),
+        ("repair_instructions", "Revision"),
     ],
 )
 async def test_each_planning_review_flag_remains_visible_without_rewrite(field, label):
@@ -309,9 +308,9 @@ async def test_each_planning_review_flag_remains_visible_without_rewrite(field, 
     )
     executor, operation = await final_case(writer)
     result = await executor.execute(operation)
-    notes = result.artifact.markdown.split("## Review notes — advisory", 1)[1]
+    notes = result.artifact.markdown.split("## Review suggestions", 1)[1]
     assert f"- **{label}:** Bounded review defect\\." in notes
-    assert "not implementation verification or launch approval" in notes
+    assert "not implementation verification or launch approval" not in notes
     assert result.artifact.payload["launchReady"] is False
     assert writer.write_calls == writer.final_calls == 1
 
@@ -327,9 +326,9 @@ async def test_advisory_review_is_literal_content_not_active_markup_or_evidence(
     )
     executor, operation = await final_case(writer)
     result = await executor.execute(operation)
-    notes = result.artifact.markdown.split("## Review notes — advisory", 1)[1]
+    notes = result.artifact.markdown.split("## Review suggestions", 1)[1]
     assert (
-        r'- **Consistency concern:** &lt;script&gt;alert\("review"\)&lt;/script&gt; '
+        r'- **Consistency:** &lt;script&gt;alert\("review"\)&lt;/script&gt; '
         r'\#\# Launch approved ［evidence:invented］ '
         r'［Open］\(https://example\.invalid\) \*\*verified\*\*'
     ) in notes
@@ -337,6 +336,13 @@ async def test_advisory_review_is_literal_content_not_active_markup_or_evidence(
     assert "\n## Launch approved" not in notes
     assert "[evidence:invented]" not in notes
     assert "[Open](https://example.invalid)" not in notes
+    _, source_separator, original_sources = writer.reviewed.markdown.partition(
+        "\n\n## Sources\n"
+    )
+    _, published_separator, published_sources = result.artifact.markdown.partition(
+        "\n\n## Sources\n"
+    )
+    assert (published_separator, published_sources) == (source_separator, original_sources)
     assert result.artifact.payload["launchReady"] is False
     assert writer.write_calls == writer.final_calls == 1
     assert review_text not in caplog.text

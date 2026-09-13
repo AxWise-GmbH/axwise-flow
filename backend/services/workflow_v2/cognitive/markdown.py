@@ -170,6 +170,14 @@ def _immutable_gap_bullet(label: str) -> str:
     return f"- {label}"
 
 
+def _is_immutable_gap_heading(value: str) -> bool:
+    return bool(
+        _markdown_heading_identities(value).intersection(
+            heading.casefold() for heading in _IMMUTABLE_GAP_SECTION_HEADINGS
+        )
+    )
+
+
 def _has_server_owned_immutable_gap_bullet(markdown: str, bullet: str) -> bool:
     current_heading = ""
     for line in markdown.splitlines():
@@ -178,7 +186,7 @@ def _has_server_owned_immutable_gap_bullet(markdown: str, bullet: str) -> bool:
         if heading:
             current_heading = heading.group(1).strip()
             continue
-        if current_heading in _IMMUTABLE_GAP_SECTION_HEADINGS and stripped == bullet:
+        if _is_immutable_gap_heading(current_heading) and stripped == bullet:
             return True
     return False
 
