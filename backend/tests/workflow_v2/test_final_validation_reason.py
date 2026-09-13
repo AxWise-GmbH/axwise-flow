@@ -361,3 +361,131 @@ def test_new_operator_metadata_is_not_added_to_database_failure_diagnostics(capl
         output_tokens=2,
     ) == {"route": "final_synthesis", "status": "contract_rejected"}
     assert PRIVATE not in caplog.text
+
+
+def test_real_rejected_clause_is_identifiable_without_logging_its_text(caplog):
+    from backend.services.workflow_v2.cognitive_executor import (
+        _log_final_contract_failure,
+    )
+
+    clause = PRIVATE + " is certified."
+    markdown = "# Result\n\n" + clause
+    error, _details = details_for(context(quality_gate_required=True), draft(markdown))
+    _log_final_contract_failure(
+        SimpleNamespace(operation_id=UUID("00000000-0000-4000-8000-000000007303")),
+        markdown,
+        error,
+    )
+    record = next(
+        r for r in caplog.records if r.message.startswith("final_contract_rejected ")
+    )
+    value = json.loads(record.message.removeprefix("final_contract_rejected "))
+    assert value["evidence_findings"] == [
+        {
+            "rule": "UNSUPPORTED_FACTUAL_PRECISION",
+            "clause_sha256": hashlib.sha256(clause.encode("utf-8")).hexdigest(),
+            "character_start": 10,
+            "character_end": len(markdown),
+        }
+    ]
+    assert (
+        value["candidate_sha256"]
+        == hashlib.sha256(markdown.encode("utf-8")).hexdigest()
+    )
+    assert PRIVATE not in caplog.text
+    assert "certified" not in caplog.text
+    assert record.exc_info is None
+
+
+@pytest.mark.parametrize("prefix,rule", validation._EVIDENCE_REJECTION_RULES)
+def test_evidence_rule_names_are_closed_and_complete_clause_hash_is_not_truncated(
+    prefix, rule
+):
+    clause = PRIVATE + " ä " + "long clause " * 30
+    error = validation.SynthesisValidationError(
+        PRIVATE,
+        reason="QUALITY_GATE_FAILED",
+        evidence_defects=(prefix + "detail: " + clause,),
+    )
+    markdown = "# 🧭\n\n" + clause
+    findings = validation.safe_synthesis_rejection_findings(error, markdown)
+    assert findings == [
+        {
+            "rule": rule,
+            "clause_sha256": hashlib.sha256(clause.encode("utf-8")).hexdigest(),
+            "character_start": 5,
+            "character_end": len(markdown),
+        }
+    ]
+    assert PRIVATE not in json.dumps(findings)
+
+
+@pytest.mark.parametrize(
+    "markdown", [PRIVATE + "\n" + PRIVATE, "other draft", "PRIVATE\nDOCUMENT"]
+)
+def test_rejection_locator_does_not_guess_duplicate_absent_or_transformed_spans(
+    markdown,
+):
+    error = validation.SynthesisValidationError(
+        PRIVATE,
+        reason="QUALITY_GATE_FAILED",
+        evidence_defects=(validation._EVIDENCE_REJECTION_RULES[0][0] + ": " + PRIVATE,),
+    )
+    assert validation.safe_synthesis_rejection_findings(error, markdown) == [
+        {
+            "rule": "UNRESOLVED_REQUIREMENT_ASSERTED",
+            "clause_sha256": hashlib.sha256(PRIVATE.encode("utf-8")).hexdigest(),
+        }
+    ]
+
+
+def test_evidence_rejection_metadata_is_bounded_and_unknown_rules_are_not_guessed():
+    defect = validation._EVIDENCE_REJECTION_RULES[0][0] + ": " + PRIVATE
+    error = validation.SynthesisValidationError(
+        PRIVATE, reason="QUALITY_GATE_FAILED", evidence_defects=(defect,) * 20
+    )
+    assert len(validation.safe_synthesis_rejection_findings(error, PRIVATE)) == 8
+    error.evidence_defects = (PRIVATE, {"body": PRIVATE}, defect.partition(": ")[0])
+    assert validation.safe_synthesis_rejection_findings(error, PRIVATE) == []
+    error.evidence_defects = [defect]
+    assert validation.safe_synthesis_rejection_findings(error, PRIVATE) == []
+    error.evidence_defects = (defect,)
+    error.reason = PRIVATE
+    assert validation.safe_synthesis_rejection_findings(error, PRIVATE) == []
+    assert (
+        validation.safe_synthesis_rejection_findings(ValueError(defect), PRIVATE) == []
+    )
+
+
+def test_clause_fingerprints_do_not_extend_database_failure_diagnostics(caplog):
+    from backend.services.workflow_v2.cognitive_executor import (
+        _log_final_contract_failure,
+    )
+    from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+
+    error = validation.SynthesisValidationError(
+        PRIVATE,
+        reason="QUALITY_GATE_FAILED",
+        evidence_defects=(validation._EVIDENCE_REJECTION_RULES[0][0] + ": " + PRIVATE,),
+    )
+    operation = SimpleNamespace(
+        operation_id=UUID("00000000-0000-4000-8000-000000007304")
+    )
+    _log_final_contract_failure(operation, PRIVATE, error)
+    failure = CognitiveExecutionFailure(
+        "AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
+        retryable=False,
+        diagnostics={
+            "route": "final_synthesis",
+            "status": "contract_rejected",
+            "evidence_findings": validation.safe_synthesis_rejection_findings(
+                error, PRIVATE
+            ),
+            "evidence_defects": error.evidence_defects,
+        },
+    )
+    assert failure.diagnostics == {
+        "route": "final_synthesis",
+        "status": "contract_rejected",
+    }
+    assert PRIVATE not in caplog.text

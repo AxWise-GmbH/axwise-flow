@@ -22,6 +22,10 @@ DRAFT_BOUNDARY = (
     "implementation, launch clearance, or proof that every physical-world edge "
     "case is solved."
 )
+DEPLOYMENT_BOUNDARY = (
+    "It does not constitute a certified production deployment, an executed "
+    "acceptance test report, or a launch sign-off."
+)
 
 
 @pytest.fixture(autouse=True)
@@ -204,6 +208,55 @@ def test_actual_provider_draft_boundary_withholds_certification_instead_of_claim
     # Retained core paragraph from preview run 4d5897bc; the rejected final body
     # was not retained, so this regression does not identify its rejection cause.
     assert defects(DRAFT_BOUNDARY) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # Exact retained provider text from run 1aa17194; the final rejected
+        # candidate was not retained and is not represented by this fixture.
+        DEPLOYMENT_BOUNDARY,
+        "This deliverable is not a certified production deployment.",
+        "This document does not provide an authorized launch plan.",
+        "This report is not a certified implementation or launch authorization.",
+        "This document is an engineering draft for review, not a certified production deployment.",
+        "This document is an engineering draft, not an authorized launch plan.",
+    ],
+)
+def test_negated_nominal_objects_share_the_same_withholding_check(value):
+    assert defects(value) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        DEPLOYMENT_BOUNDARY.replace("does not constitute", "constitutes"),
+        DEPLOYMENT_BOUNDARY.replace("does not constitute", "does not only constitute"),
+        DEPLOYMENT_BOUNDARY.replace("It", "The vendor"),
+        DEPLOYMENT_BOUNDARY[:-1] + ", and the vendor certified the deployment.",
+        DEPLOYMENT_BOUNDARY[:-1] + ", and a vendor certified the deployment.",
+        DEPLOYMENT_BOUNDARY[:-1] + ", and the product is certified.",
+        DEPLOYMENT_BOUNDARY[:-1] + ", and the product treats disease.",
+        DEPLOYMENT_BOUNDARY[:-1] + ", and the law does not require registration.",
+        "This document is a certified engineering draft, not an authorized launch plan.",
+        "This document is an engineering draft, not a certified deployment, and the vendor is certified.",
+        "This document is an engineering draft, not a certified deployment, and a certified vendor built the integration.",
+        "This document is an engineering draft, not a certified deployment, and an authorized laboratory performed the assessment.",
+    ],
+)
+def test_negated_object_does_not_hide_asserted_predicates_or_external_status(value):
+    assert defects(value)
+
+
+def test_negated_deployment_still_checks_cited_immutable_support():
+    claim_id = "clm-" + "b" * 16
+    found = _deterministic_evidence_integrity_defects(
+        f"{DEPLOYMENT_BOUNDARY[:-1]} [evidence:{claim_id}].",
+        {claim_id: "The unrelated shipping benchmark processed nine records."},
+        artifact_type="product_prd",
+    )
+    assert found
+    assert all(item.startswith("Cited immutable claims") for item in found)
 
 
 @pytest.mark.parametrize(

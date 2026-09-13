@@ -888,7 +888,7 @@ _DEFINITE_NEGATED_LEGAL_ASSERTION = re.compile(
 _SAFE_EPISTEMIC_SUBJECT = (
     r"(?:(?:this|the|these|those)\s+"
     r"(?:[\w'’-]+\s+){0,3}"
-    r"(?:artifact|document|report|plan|memo|analysis|assessment|research|evidence|"
+    r"(?:artifact|document|deliverable|report|plan|memo|analysis|assessment|research|evidence|"
     r"findings?|results?|claims?|data|decision)|it|they)"
 )
 
@@ -918,9 +918,8 @@ _PURE_ARTIFACT_NONAUTHORIZATION = re.compile(
 _PURE_DRAFT_NONAUTHORIZATION = re.compile(
     r"^(?:this|the)\s+(?:artifact|document|deliverable|report|plan|memo)\s+"
     r"(?:is|represents)\s+(?P<description>an?\s+[^,.;!?]{0,160}\bdraft\b"
-    r"[^,.;!?]{0,160}),\s*not\s+(?:a\s+)?certified\s+implementation"
-    r"(?P<tail>(?:,\s*launch\s+clearance)?"
-    r"(?:,\s*(?:or|and)\s+proof\s+that\s+[^.;!?]{1,240})?)[.]?$",
+    r"[^,.;!?]{0,160}),\s*not\s+(?!only\b|just\b|merely\b)"
+    r"(?P<tail>[^.;!?]{1,400}?)[.]?$",
     re.IGNORECASE,
 )
 
