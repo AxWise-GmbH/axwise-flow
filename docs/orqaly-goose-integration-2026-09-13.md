@@ -1,8 +1,8 @@
 # Goose integration: first local slice
 
-Status: the local authenticated context/model/session flow has passed real
-acceptance. The user approved an API-only Cloud Run preview rollout; that rollout
-is the next step and is not yet claimed complete here.
+Status: the authenticated Goose → Orqaly → Gemini connection is live on Cloud
+Run preview and has passed the bounded real context/tool/session acceptance.
+The packaged, branded client remains a separate next step.
 
 ## Design
 
@@ -45,9 +45,10 @@ add a model-review loop or execute tools on the server.
 
 Enablement requires explicit `ORQALY_GOOSE_ENABLED=true`,
 `ORQALY_GOOSE_OAUTH_CLIENT_ID`, `ORQALY_GOOSE_GEMINI_API_KEY`, and the existing
-Clerk configuration. The current Cloud Run API does **not** have the Gemini key:
-the existing key is bound only to the AxWise worker. Cloud enablement therefore
-needs a reviewed API secret binding and an image rollout after the local pass.
+Clerk configuration. With the user's explicit approval, the preview API now
+reads version 2 of the existing Gemini secret; the key is not supplied to Goose.
+The existing AxWise worker access was preserved. No project-wide secret grant,
+new Gemini key, production change or worker rollout was made.
 
 ## Preview login registration
 
@@ -65,6 +66,10 @@ browser sessions were not changed. The first browser login timed out; a fresh
 login then completed with the user's consent and stored the desktop grant in
 macOS Keychain. A real refresh subsequently returned a token that the gateway
 accepted with HTTP 200 and `tenantBound: true`.
+The first cloud-address login exceeded the original two-minute callback window.
+The connector now allows five minutes; the subsequent real cloud login completed
+and the existing 11 auth checks still passed. Local and cloud connection records
+remain separately bound to their API origins.
 
 ## Verification to date
 
@@ -129,15 +134,48 @@ so the connector sanitizes failures. No claim is made that local project content
 stays offline: selected context and model conversation content go to Gemini via
 Orqaly, as intended by this integration.
 
-## Preview rollout and remaining product work
+## Completed preview rollout
 
-1. Commit the reviewed source to the approved private monorepo branch and build
-   the Orqaly service image from that exact clean source.
-2. Grant only the Orqaly preview API service account access to the existing
-   Gemini secret, as explicitly approved by the user; enable the desktop route
-   and roll only the API image. Preserve the four other services and production.
-3. Verify real desktop login/model/context access against Cloud Run and retain
-   existing browser access. Record the exact revision and image digest.
+- API source commit: `04606f0b2cb425e33cf2679a14f834921902f242`, pushed to the
+  approved private repository's `codex/universal-agentic-foundation` branch.
+- Cloud Build: `e702c083-e28d-4350-aeb3-c8ebd9411b52`. Its exact app-relative Git
+  archive, uploaded source generation, recipe, build identity and registry digest
+  were independently compared using the existing build verifier.
+- Active API revision: `orqaly-v2-api-preview-goose-04606f0b`, at 100% traffic.
+- Image:
+  `europe-west4-docker.pkg.dev/axwise-v2-preview-001/workflow-v2-preview/orqaly-service@sha256:38724efc0e5151f377a6811810bf4fea0eca0e644dcd59d7c0ffa2490206c0e4`.
+- Only the API image and the three Goose enablement/client/secret environment
+  entries changed. Its eight existing tags, other configuration and service IAM
+  were preserved. All four other services match the pre-rollout snapshot.
+- The Gemini secret's final accessor binding contains exactly the existing
+  AxWise worker and the approved Orqaly preview API service accounts.
+
+Unsigned cloud `/desktop/v1/session` returned 401; the real desktop OAuth token
+returned 200, `tenantBound: true`, and model alias `orqaly-gemini`.
+
+With the local gateway stopped and provider keys removed from the Goose process
+environment, cloud-backed Goose session `20260913_2` performed one approved
+`cat README.md` tool call and then returned the correct Goal ID and approved-scope
+hash, explaining the relationship between the reference and the synthetic local
+exercise. The user explicitly approved sending those two test inputs to Gemini.
+The two model requests on the exact new Cloud Run revision both returned 200,
+with observed request latencies of **1.548 seconds** and **3.033 seconds**.
+These are observed request timings, not a general latency guarantee.
+
+Closing and reopening this cloud-backed session restored all four messages.
+The exported conversation hash before/after was identical:
+`1b5ec3b20bd9a65b02763607e85b5b80be2e8c01d9ce073a189bafbd3b827ce4`.
+The existing authenticated Goals browser tab was also reloaded: it retained the
+same 11/11 settled workflow and immutable final artifact hash
+`9358908c05b0b0489eb232640e96386c329cfedadeeb04abf0039e461d1744e7`.
+
+Sanitized local receipts are in `artifacts/goose-integration-sep13/`, including
+`api-build-verification.json`, `api-staged-verification.json`,
+`api-active-verification.json` and `cloud-acceptance.json`. Temporary Goose CLI
+sessions and the local gateway/proxy were closed. Normal Goose settings were
+not changed, and no new Goal run was launched for this acceptance.
+
+## Remaining product work
 
 Later work remains explicit: packaged/branded desktop onboarding, the selected
 private Goose repository, and backend Goal/progress/result operations from

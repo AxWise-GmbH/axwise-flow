@@ -13,7 +13,7 @@ node src/cli.mjs logout --config preview.config.example.json
 
 `login` prints the authorization URL and opens the system browser. `--no-open`
 prints the URL without opening it. The loopback listener accepts one valid
-callback at `http://127.0.0.1:{random-port}/callback` and expires after two minutes.
+callback at `http://127.0.0.1:{random-port}/callback` and expires after five minutes.
 Register `http://127.0.0.1/callback` on the public Clerk OAuth client, require PKCE,
 and keep the consent screen enabled.
 

@@ -53,7 +53,7 @@ export function pkce() {
   return { verifier, challenge: createHash('sha256').update(verifier).digest('base64url'), state: randomBytes(32).toString('base64url') };
 }
 
-export async function startCallback(state, { timeoutMs = 120_000 } = {}) {
+export async function startCallback(state, { timeoutMs = 300_000 } = {}) {
   let settled = false, timer, accept, reject;
   const result = new Promise((resolve, failResult) => { accept = resolve; reject = failResult; });
   // A timeout can occur while the caller is opening the browser.
