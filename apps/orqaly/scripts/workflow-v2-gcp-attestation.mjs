@@ -202,7 +202,7 @@ function normalizedBuildDefinition(build) {
   };
 }
 
-function buildRecord({
+export function buildRecord({
   buildId,
   image,
   sourceCommit,

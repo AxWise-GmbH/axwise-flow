@@ -8,7 +8,12 @@ import { createCapabilityWorkService } from './capability-work-service.js';
 import { capabilityWorkEnabledFromEnvironment } from './capability-work-config.js';
 import { createExecutableActionRuntimeFromEnvironment } from './executable-action-runtime.js';
 import { createExecutableActionService } from './executable-action-service.js';
-import { createWorkflowHttpApp, isClerkEnvironmentConfigured } from './http-app.js';
+import {
+  createMemoryRateLimiter,
+  createWorkflowHttpApp,
+  isClerkEnvironmentConfigured,
+} from './http-app.js';
+import { createGooseProviderFromEnvironment } from './goose-provider-config.js';
 import { createPostgresRepositories } from './postgres-repository.js';
 import { createSolutionService } from './solution-service.js';
 import { createSolutionConversationService } from './solution-conversation-service.js';
@@ -120,6 +125,10 @@ const nativeN8nGateway = nativeN8nGatewayFromEnvironment({
 });
 const app = createWorkflowHttpApp({
   commandService,
+  gooseProviderRouter: createGooseProviderFromEnvironment({
+    commandService,
+    rateLimiter: createMemoryRateLimiter({ limit: 30 }),
+  }),
   goalWorkflowViewService: createGoalWorkflowViewService({ repository }),
   capabilityWorkService: createCapabilityWorkService({ repository, enabled: enableCapabilityWork }),
   assistantService,
