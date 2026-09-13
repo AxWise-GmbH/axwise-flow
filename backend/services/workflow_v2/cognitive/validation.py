@@ -306,7 +306,14 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             reason="EVIDENCE_CITATION_MISSING",
         )
     if context.evidence_readiness in {"ready_with_gaps", "blocked"}:
-        if not any(_is_evidence_status_heading(heading) for heading in headings):
+        needs_gap_section = (
+            context.evidence_readiness == "blocked"
+            or bool(context.required_gap_labels)
+            or context.artifact_type not in _PLANNING_ARTIFACT_TYPES
+        )
+        if needs_gap_section and not any(
+            _is_evidence_status_heading(heading) for heading in headings
+        ):
             raise SynthesisValidationError(
                 "non-ready Markdown requires an evidence-gap, assumption or blocking section",
                 reason="EVIDENCE_STATUS_SECTION_MISSING",
@@ -487,6 +494,22 @@ def _contains_server_unverified_validation_target(markdown: str) -> bool:
     return False
 
 
+def _contains_unfinished_document_stub(markdown: str) -> bool:
+    """Recognize document filler, not mentions of placeholders or code examples."""
+
+    for line in _markdown_with_fenced_bodies_blanked(markdown).splitlines():
+        candidate = re.sub(r"^\s*(?:[-*+]|\d+[.)])\s+", "", line)
+        candidate = candidate.strip(" \t*_`[]()<>")
+        if re.fullmatch(
+            r"(?:placeholder|insert (?:details|content)|to be completed|"
+            r"this placeholder must be replaced)[.!]?",
+            candidate,
+            re.IGNORECASE,
+        ) or re.match(r"lorem ipsum\b", candidate, re.IGNORECASE):
+            return True
+    return False
+
+
 def _deterministic_quality_defects(
     markdown: str,
     *,
@@ -523,11 +546,7 @@ def _deterministic_quality_defects(
         substantive.append(
             "The candidate mostly restates scope/plan metadata instead of delivering the work."
         )
-    if re.search(
-        r"\b(?:lorem ipsum|placeholder|insert (?:details|content)|to be completed)\b",
-        base,
-        re.IGNORECASE,
-    ):
+    if _contains_unfinished_document_stub(base):
         substantive.append("The candidate contains placeholder content.")
     if _contains_server_deliverable_placeholder(base):
         substantive.append(

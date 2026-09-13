@@ -36,6 +36,7 @@ from backend.services.workflow_v2.cognitive.markdown import (
     _immutable_gap_bullet,
     _incomplete_given_when_then_acceptance_blocks,
     _is_evidence_status_heading,
+    _is_immutable_gap_heading,
     _is_server_owned_source_heading,
     _markdown_heading_identities,
     _markdown_heading_level,
@@ -64,11 +65,11 @@ from backend.services.workflow_v2.cognitive.policy import (
     _FENCED_TREE_ROADMAP_ACTIVITY,
     _FENCED_TREE_ROADMAP_PERIOD,
     _FORMULA_MARKER,
-    _IMMUTABLE_GAP_SECTION_HEADINGS,
     _MARKDOWN_HEADING,
     _NONPROVISIONAL_AUTHORITY_ASSERTION,
     _NUMBERED_GATE_LINE,
     _OVERBROAD_PUBLICATION_GROUNDING_CLAIM,
+    _PLANNING_ARTIFACT_TYPES,
     _PROJECTED_STATUTORY_LOCATOR_HEADER,
     _PUBLICATION_EVIDENCE_STATUS_BLOCK,
     _PUBLICATION_UNKNOWN_PENDING_PREFIX,
@@ -87,7 +88,6 @@ from backend.services.workflow_v2.cognitive.policy import (
 from backend.services.workflow_v2.cognitive.validation import (
     SynthesisValidationError,
     _deterministic_quality_defects,
-    _is_advisory_planning_evidence_defect,
     _validate_task_draft,
 )
 
@@ -97,66 +97,41 @@ def _with_advisory_planning_review(
     draft: SynthesisDraft,
     review: EvaluationDraft | None = None,
 ) -> str:
-    """Render review observations as attributed text, never a pass certificate."""
-    findings = [
-        ("Unverified claim — review required", defect.partition(": ")[2])
-        for defect in _deterministic_evidence_integrity_defects(
-            draft.markdown,
-            context.allowed_claim_texts,
-            artifact_type=context.artifact_type,
-            immutable_gap_labels=context.required_gap_labels,
-            unresolved_evidence_requirements=context.unresolved_evidence_requirements,
-            excerpt_limit=None,
-            defect_limit=None,
-        )
-        if _is_advisory_planning_evidence_defect(context, defect)
-    ]
+    """Show concrete review suggestions without blanket notices or keyword flags."""
+    findings: list[tuple[str, str]] = []
+    seen: set[str] = set()
     if review is not None:
         for field, label in (
-            ("unsupported_precision", "Evidence concern"),
-            ("contradictions", "Consistency concern"),
-            ("stale_topic_references", "Relevance concern"),
-            ("readiness_violations", "Readiness concern"),
-            ("substantive_content_defects", "Content concern"),
-            ("practicality_defects", "Practicality concern"),
-            ("repair_instructions", "Suggested revision"),
+            ("unsupported_precision", "Evidence"),
+            ("contradictions", "Consistency"),
+            ("stale_topic_references", "Relevance"),
+            ("readiness_violations", "Readiness"),
+            ("substantive_content_defects", "Content"),
+            ("practicality_defects", "Practicality"),
+            ("repair_instructions", "Revision"),
         ):
-            findings.extend((label, text) for text in getattr(review, field))
+            for text in getattr(review, field):
+                text = " ".join(text.split())
+                identity = text.casefold()
+                if text and identity not in seen:
+                    findings.append((label, text))
+                    seen.add(identity)
+    if not findings:
+        return draft.markdown
     body, source_heading, source_body = draft.markdown.partition("\n\n## Sources\n")
     lines = [
         body.rstrip(),
         "",
-        "## Review notes — advisory",
-        "",
-        "> **Draft for human review.** Proposed decisions and automated review "
-        "comments are not implementation verification or launch approval. "
-        "Resolve open questions before putting this plan into operation.",
+        "## Review suggestions",
         "",
     ]
-    if findings:
-        lines.append(
-            "Automated observations below may include false positives. They remain "
-            "review items, not verified facts or proof that all other issues were found."
+    for label, text in findings:
+        # Provider observations remain literal text, not executable markup or citations.
+        literal = html.escape(
+            text.replace("[", "［").replace("]", "］"), quote=False
         )
-        lines.append("")
-        for label, text in findings:
-            # Render provider prose literally: no active links, raw HTML, source
-            # markers, headings, or accidental authority in the review appendix.
-            literal = html.escape(
-                " ".join(text.split()).replace("[", "［").replace("]", "］"),
-                quote=False,
-            )
-            literal = re.sub(r"([\\`*_{}\[\]()#+.!|>~-])", r"\\\1", literal)
-            lines.append(f"- **{label}:** {literal}")
-    elif review is None:
-        lines.append(
-            "Review history is recorded separately; this draft still requires human review."
-        )
-    else:
-        lines.append(
-            "No concerns were identified by this automated review; correctness "
-            "remains unverified."
-        )
+        literal = re.sub(r"([\\`*_{}\[\]()#+.!|>~-])", r"\\\1", literal)
+        lines.append(f"- **{label}:** {literal}")
     # The source appendix is canonical and must remain the final section.
     return "\n".join(lines) + source_heading + source_body
 
@@ -189,7 +164,7 @@ def _with_immutable_gap_labels(
         heading = _MARKDOWN_HEADING.fullmatch(stripped)
         if (
             heading is None
-            or heading.group(1).strip() not in _IMMUTABLE_GAP_SECTION_HEADINGS
+            or not _is_immutable_gap_heading(heading.group(1))
         ):
             continue
         insert_at = len(lines)
@@ -206,17 +181,23 @@ def _with_immutable_gap_labels(
             additions.append("")
         lines[insert_at:insert_at] = additions
         return draft.model_copy(update={"markdown": "\n".join(lines)})
+    planning = (
+        context.artifact_type in _PLANNING_ARTIFACT_TYPES
+        and context.evidence_readiness != "blocked"
+        and context.purpose != "blocked_report"
+    )
+    introduction = [] if planning else [
+        "These immutable gaps remain unresolved. They do not establish launch, "
+        "legal, safety, certification, or market clearance.",
+        "",
+    ]
     markdown = "\n".join(
         [
             draft.markdown.rstrip(),
             "",
-            "## Immutable evidence gaps and assumptions",
+            "## Open decisions" if planning else "## Immutable evidence gaps and assumptions",
             "",
-            (
-                "These immutable gaps remain unresolved. They do not establish launch, "
-                "legal, safety, certification, or market clearance."
-            ),
-            "",
+            *introduction,
             *(_immutable_gap_bullet(label) for label in missing),
         ]
     )
@@ -1788,6 +1769,10 @@ def _with_task_evidence_status_section(
 
     if context.evidence_readiness != "ready_with_gaps":
         return draft
+    if context.artifact_type in _PLANNING_ARTIFACT_TYPES:
+        # The typed research status carries inherited uncertainty. Append concrete
+        # missing decisions, not a blanket disclaimer to every specialist packet.
+        return TaskDraft.model_validate(_with_immutable_gap_labels(context, draft))
     headings = {
         identity
         for _, raw_name, _ in _markdown_headings(draft.markdown)
@@ -2143,7 +2128,10 @@ def _decorate_publication_draft(
         _with_accepted_requirement_traceability(context, prepared)
     )
 
-    if context.evidence_readiness == "ready_with_gaps":
+    if (
+        context.evidence_readiness == "ready_with_gaps"
+        and context.artifact_type not in _PLANNING_ARTIFACT_TYPES
+    ):
         markdown_lines = prepared.markdown.splitlines()
         if markdown_lines and markdown_lines[0].startswith("# "):
             first, remainder = markdown_lines[0], markdown_lines[1:]
