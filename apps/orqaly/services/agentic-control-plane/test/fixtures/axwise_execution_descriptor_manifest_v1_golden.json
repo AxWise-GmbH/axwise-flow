@@ -1,0 +1,73 @@
+{
+  "version": "orqaly_execution_descriptor_manifest_v1",
+  "contractVersion": "1.0",
+  "canonicalization": "rfc8785_v1",
+  "reference": {
+    "contractVersion": "1.0",
+    "descriptorKey": "messaging_send_v1",
+    "schemaVersion": "1.0",
+    "contentHash": "53b2f258fe840fe83506ac3f488c50d1ce9f2fca097e86960f7acc423fb8b8b9"
+  },
+  "stepKind": "connector_write",
+  "effectProfile": {
+    "externality": "write",
+    "mutation": "create",
+    "flags": [
+      "communication",
+      "external_disclosure"
+    ]
+  },
+  "dataEgressProfile": {
+    "mode": "policy_bound_external",
+    "destinationClasses": [
+      "messaging_provider"
+    ],
+    "providerClasses": [
+      "approved_provider"
+    ],
+    "regionClasses": [
+      "eu"
+    ],
+    "permittedInputClassifications": [
+      "internal"
+    ],
+    "permittedOutputClassifications": [
+      "internal"
+    ],
+    "redactionRequired": true,
+    "dlpRequired": true,
+    "providerRetentionPolicyRequired": true,
+    "providerTrainingPolicyRequired": true
+  },
+  "inputSchemaHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "outputSchemaHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "supportedExecutorBindings": [
+    {
+      "contractVersion": "1.0",
+      "bindingKey": "n8n_connector_executor",
+      "bindingVersion": "1.0",
+      "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "approvalPolicy": "always",
+  "retryPolicy": "never",
+  "reconciliationPolicy": {
+    "strategy": "manual",
+    "lookupOperation": null
+  },
+  "compensationPolicy": {
+    "strategy": "none",
+    "operation": null
+  },
+  "maximumAttempts": 1,
+  "defaultTimeoutSeconds": 60,
+  "limitPolicy": {
+    "maximumTurns": 4,
+    "maximumTokens": 8000,
+    "maximumToolCalls": 1,
+    "maximumRuntimeSeconds": 120,
+    "cost": {
+      "mode": "forbidden"
+    }
+  }
+}

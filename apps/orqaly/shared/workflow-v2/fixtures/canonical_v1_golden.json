@@ -1,0 +1,51 @@
+{
+  "contract": "canonical-v1",
+  "encoding": "utf-8",
+  "keyOrder": "utf16_ordinal",
+  "vectors": [
+    {
+      "name": "nested",
+      "value": {
+        "z": [true, null, -7],
+        "a": {
+          "b": "line\n\"quoted\"",
+          "a": 9007199254740991
+        }
+      },
+      "canonical": "{\"a\":{\"a\":9007199254740991,\"b\":\"line\\n\\\"quoted\\\"\"},\"z\":[true,null,-7]}",
+      "sha256": "ea7e075caefb8aaf2e1bf789f29caf15820431c4ed80a3c78d11a0205331f76e"
+    },
+    {
+      "name": "utf16-key-order",
+      "value": {
+        "": 2,
+        "😀": 1,
+        "a": 3
+      },
+      "canonical": "{\"a\":3,\"😀\":1,\"\":2}",
+      "sha256": "a901d5c9340048b768183fd6fb82e7d0f7792049a0aafa9d2c7ccd845d984ad3"
+    },
+    {
+      "name": "unicode-scalar-text",
+      "value": {
+        "text": "A😀éZ"
+      },
+      "canonical": "{\"text\":\"A😀éZ\"}",
+      "sha256": "76cc2f7a9c5cde0973d98b6c15dac0b9afe14acf1584520b437822cc2518c046"
+    }
+  ],
+  "sourceSpan": {
+    "source": "A😀éZ",
+    "start": 1,
+    "end": 4,
+    "offsetUnit": "utf16_code_units",
+    "text": "😀é",
+    "sha256": "71b897d47640bd5e39412fb2d81c5d04b1195fc5524663a7704b6bfe2ec0db63"
+  },
+  "negative": [
+    "floating_point",
+    "unsafe_integer",
+    "unpaired_high_surrogate",
+    "unpaired_low_surrogate"
+  ]
+}

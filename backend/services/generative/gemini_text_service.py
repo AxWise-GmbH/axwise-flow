@@ -31,8 +31,8 @@ class GeminiTextService:
         try:
             from google.genai import types  # type: ignore
 
-            model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.7-flash")
-            # Gemini 3.7 rejects legacy sampling controls. Keep ``temperature``
+            model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.8-flash")
+            # Gemini 3.8 rejects legacy sampling controls. Keep ``temperature``
             # in the public helper signature for callers that still pass it,
             # but use the model's sampling defaults at the provider boundary.
             cfg = types.GenerateContentConfig(

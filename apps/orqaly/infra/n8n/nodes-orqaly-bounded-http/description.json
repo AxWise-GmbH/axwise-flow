@@ -1,0 +1,17 @@
+{
+  "displayName": "Deliver HTTPS Request",
+  "name": "boundedHttp",
+  "group": ["output"],
+  "version": 1,
+  "defaultVersion": 1,
+  "description": "Deliver one bounded JSON POST to an explicitly connected, frozen public HTTPS destination",
+  "defaults": { "name": "Deliver HTTPS Request" },
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "credentials": [{ "name": "orqalyBoundedHttp", "required": true }],
+  "properties": [
+    { "displayName": "Destination", "name": "url", "type": "string", "default": "", "required": true, "noDataExpression": true },
+    { "displayName": "Method", "name": "method", "type": "options", "options": [{ "name": "POST", "value": "POST" }], "default": "POST", "noDataExpression": true },
+    { "displayName": "JSON Body", "name": "body", "type": "json", "default": "={{ $json }}", "required": true }
+  ]
+}

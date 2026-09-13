@@ -78,7 +78,7 @@ async def test_transcript_structuring():
 
         gemini_config = {
             "api_key": api_key,
-            "model": "models/gemini-3.7-flash",
+            "model": "models/gemini-3.8-flash",
             "temperature": 0.0,
             "max_tokens": 65536,
             "top_p": 0.95,

@@ -1,0 +1,27 @@
+-- LEGACY SOURCE ONLY: superseded by 189_public_experiences_schema_repair.sql.
+-- Public pages for shareable "link in bio" style profiles.
+-- Supports template-based public profile pages with Telegram/company/social/website/contact data.
+
+create table if not exists public.public_pages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  slug text not null unique,
+  is_published boolean not null default false,
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists idx_public_pages_user_id on public.public_pages(user_id);
+create index if not exists idx_public_pages_slug on public.public_pages(slug);
+create index if not exists idx_public_pages_published on public.public_pages(is_published);
+
+alter table public.public_pages enable row level security;
+
+drop policy if exists "Users can manage own public_pages" on public.public_pages;
+create policy "Users can manage own public_pages" on public.public_pages
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "Public can read published public_pages" on public.public_pages;
+create policy "Public can read published public_pages" on public.public_pages
+  for select using (is_published = true);

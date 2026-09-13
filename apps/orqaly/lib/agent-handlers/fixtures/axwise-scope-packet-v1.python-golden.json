@@ -1,0 +1,207 @@
+{
+  "scope_confirmation": {
+    "authorizes_external_actions": false,
+    "material_question": null,
+    "message": "I’ll Create an implementation-ready PRD. Outcome: A safe propose, correct, and proceed flow. Assumptions: Which rollout cohort should be first?: Preview users. Reply ‘proceed’ or edit the scope.",
+    "primary_action": "proceed",
+    "scope_hash": "483bb7b45852985a64a2bdb218e3cac63e329f9b096f62334bcca4c24973b785",
+    "secondary_action": "edit scope",
+    "status": "proceed_or_edit"
+  },
+  "scope_contract_binding": {
+    "contract_hash": "1571a85b5c0d07ea8f6272f23aa35bb773d895c311867e7748d9f403b8d4c3bf",
+    "document_intent": "software_product",
+    "evidence": {
+      "external_sources_required": false,
+      "grounding_required": false,
+      "mode": "none",
+      "required_outputs": []
+    },
+    "executor_role_slots": [],
+    "geographies": [],
+    "scope_hash": "483bb7b45852985a64a2bdb218e3cac63e329f9b096f62334bcca4c24973b785",
+    "version": "axwise_scope_research_contract_v1",
+    "work_types": ["software_development"]
+  },
+  "scope_packet": {
+    "deliverable": {
+      "count": 1,
+      "presentation": "markdown_artifact",
+      "required_sections": ["Acceptance tests", "Problem", "Risks"],
+      "title_prefix": "# PRD: Straße",
+      "type": "software_product_prd"
+    },
+    "document_status": "Draft",
+    "intent": {
+      "audiences": ["Product operators"],
+      "desired_outcome": "A safe propose, correct, and proceed flow",
+      "non_goals": ["No autonomous external side effects"],
+      "objective": "Create an implementation-ready PRD",
+      "problem": "Repeated interviews delay a known request"
+    },
+    "ledger": {
+      "acceptance": [
+        {
+          "acceptance_id": "acc-7f20b334cc96bf91",
+          "data_class": "synthetic",
+          "given": "a synthetic proposed scope",
+          "supports": ["req-fa1a218596176425"],
+          "then": ["the approved scope advances to synthesis"],
+          "when": "the user chooses proceed"
+        }
+      ],
+      "assumptions": [
+        {
+          "assumption_id": "asm-345f4c68d44a10d9",
+          "materiality": "non_material",
+          "owner_confirmed": true,
+          "source_refs": [],
+          "text": "Use synthetic data in examples",
+          "truth_status": "assumption"
+        }
+      ],
+      "constraints": [
+        {
+          "authority": "user",
+          "constraint_id": "con-2150c1ebc9875609",
+          "kind": "policy",
+          "source_refs": ["user:message:3"],
+          "text": "No autonomous external side effects"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "dec-fba4fcfb664795a0",
+          "materiality": "non_material",
+          "proposal": "Preview users",
+          "question": "Which rollout cohort should be first?",
+          "resolved_choice": null,
+          "source_refs": [],
+          "status": "proposed"
+        }
+      ],
+      "facts": [
+        {
+          "claim": "Die Straße wurde ausdrücklich genannt",
+          "content_hash": "89f603a2e026483ba6d5bb415e4d833a4b7969f01db07e74a4008c52cbafc316",
+          "fact_id": "fact-4795c50e4cb81207",
+          "source_authority_ids": ["authority:owner:ß"],
+          "source_refs": ["quelle:Straße"],
+          "verbatim_excerpt": "Die Straße ist als Nutzerkorrektur belegt.",
+          "verification": "verified"
+        }
+      ],
+      "requirements": [
+        {
+          "authority": "user",
+          "priority": "P0",
+          "requirement_id": "req-fa1a218596176425",
+          "source_refs": ["user:Straße:1"],
+          "text": "Straße für kleine Unternehmen"
+        }
+      ]
+    },
+    "quality_contract": {
+      "minimum_p0_test_coverage": 1,
+      "minimum_requirement_coverage": 1,
+      "output_token_limit_policy": "do_not_artificially_cap",
+      "reject_fact_assumption_overlap": true,
+      "reject_stale_scope_hash": true,
+      "require_requirement_test_traceability": true,
+      "require_runtime_truth": true,
+      "require_verbatim_evidence": true,
+      "require_verified_fact_authority": true,
+      "targeted_repair_before_regeneration": true,
+      "unresolved_decisions_force_draft": true,
+      "version": "axwise_quality_contract_v1"
+    },
+    "research_contract": {
+      "contract_hash": "1571a85b5c0d07ea8f6272f23aa35bb773d895c311867e7748d9f403b8d4c3bf",
+      "document_intent": "software_product",
+      "evidence": {
+        "external_sources_required": false,
+        "grounding_required": false,
+        "mode": "none",
+        "required_outputs": []
+      },
+      "executor_role_slots": [],
+      "geographies": [],
+      "version": "axwise_scope_research_contract_v1",
+      "work_types": ["software_development"]
+    },
+    "runtime": {
+      "configuration_sources": [
+        "backend.services.llm.gemini_runtime",
+        "backend.services.llm.config.genai_config",
+        "backend.infrastructure.data.config.MODEL_CAPABILITIES"
+      ],
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "model": "gemini-3.7-flash",
+      "model_resource": "models/gemini-3.7-flash",
+      "output_policy": "provider_maximum_no_workflow_cap",
+      "provider": "google",
+      "reasoning_mode": "high",
+      "runtime_authority_id": "axwise.runtime.gemini-research.v1",
+      "runtime_contract_version": "axwise_gemini_runtime_v1"
+    },
+    "scope_hash": "483bb7b45852985a64a2bdb218e3cac63e329f9b096f62334bcca4c24973b785",
+    "scope_ref": "golden:python:unicode-v1",
+    "truth_policy": {
+      "external_facts": "verified_evidence_only",
+      "open_decisions": "force_draft",
+      "owner_confirmation": "assumption_never_fact",
+      "side_effects": "explicit_orqaly_approval_required",
+      "unsettled_technology": "label_proposed",
+      "unsupported_numbers": "target_hypothesis_or_assumption"
+    },
+    "version": "axwise_scope_packet_v1"
+  },
+  "scope_validation": {
+    "acceptance_count": 1,
+    "checks": [
+      {
+        "blocking": true,
+        "check_id": "canonical_hash",
+        "message": "Scope hash is bound to the canonical packet.",
+        "passed": true
+      },
+      {
+        "blocking": true,
+        "check_id": "requirement_coverage",
+        "message": "Every requirement maps to at least one acceptance criterion.",
+        "passed": true
+      },
+      {
+        "blocking": true,
+        "check_id": "fact_evidence_integrity",
+        "message": "Verified facts carry exact evidence and authority metadata.",
+        "passed": true
+      },
+      {
+        "blocking": true,
+        "check_id": "fact_assumption_separation",
+        "message": "Owner-confirmed assumptions remain separate from facts.",
+        "passed": true
+      },
+      {
+        "blocking": true,
+        "check_id": "trusted_runtime",
+        "message": "Model and token capabilities come from trusted runtime code.",
+        "passed": true
+      },
+      {
+        "blocking": true,
+        "check_id": "decision_resolution",
+        "message": "Unresolved decisions keep the artifact in Draft.",
+        "passed": false
+      }
+    ],
+    "ready_for_synthesis": false,
+    "requirement_count": 1,
+    "scope_hash": "483bb7b45852985a64a2bdb218e3cac63e329f9b096f62334bcca4c24973b785",
+    "unresolved_decision_count": 1,
+    "valid": true,
+    "version": "axwise_scope_validation_v1"
+  }
+}

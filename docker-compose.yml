@@ -62,7 +62,7 @@ services:
       # LLM
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
       AXWISE_AUTHORITY_PROOF_SECRET: ${AXWISE_AUTHORITY_PROOF_SECRET:?Please set AXWISE_AUTHORITY_PROOF_SECRET to at least 32 random bytes}
-      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.7-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.8-flash}
       OPENREGISTER_API_KEY: ${OPENREGISTER_API_KEY:-}
       SEARXNG_URL: ${SEARXNG_URL:-}
 
@@ -95,7 +95,7 @@ services:
       DB_NAME: axwise
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
       AXWISE_AUTHORITY_PROOF_SECRET: ${AXWISE_AUTHORITY_PROOF_SECRET:?Please set AXWISE_AUTHORITY_PROOF_SECRET to at least 32 random bytes}
-      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.7-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.8-flash}
       OPENREGISTER_API_KEY: ${OPENREGISTER_API_KEY:-}
       SEARXNG_URL: ${SEARXNG_URL:-}
       ENABLE_CLERK_VALIDATION: "false"
@@ -131,7 +131,7 @@ services:
       DB_NAME: axwise
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
       AXWISE_AUTHORITY_PROOF_SECRET: ${AXWISE_AUTHORITY_PROOF_SECRET:?Please set AXWISE_AUTHORITY_PROOF_SECRET to at least 32 random bytes}
-      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.7-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.8-flash}
       ENABLE_CLERK_VALIDATION: "false"
       AXWISE_API_KEY: ${AXWISE_API_KEY:-local-dev-change-me}
       WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-1}

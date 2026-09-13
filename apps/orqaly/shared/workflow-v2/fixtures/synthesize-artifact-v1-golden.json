@@ -1,0 +1,4442 @@
+{
+  "schemaVersion": "axwise-orqaly.synthesize-artifact-v1.golden.v1",
+  "cases": [
+    {
+      "name": "execute_task",
+      "purpose": "execute_task",
+      "canonicalInputHash": "686c4c2aac6620d25b130a03d8115cd31cf0ee8f10becbfcfdfc07bfa3e73dca",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": [],
+                  "evidenceRole": "grounded_claim"
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "deliverableProfile": {
+                "schemaVersion": "axwise.deliverable-profile.v1",
+                "artifactType": "product_prd",
+                "domain": "Commercial cat-food launch in Estonia",
+                "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+                "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+                "audiences": [
+                  "Estonian product decision-makers"
+                ],
+                "nonGoals": [
+                  "Do not claim launch authority without verified evidence."
+                ],
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ]
+              },
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "acceptanceCriteria": [
+                {
+                  "id": "acc-ab17a89ac70da512",
+                  "given": "The accepted scope and immutable research are available.",
+                  "when": "The product requirements document is evaluated.",
+                  "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                  "supports": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ]
+                }
+              ],
+              "materialClarification": null,
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "authority": {
+                "canonicalInputHash": "8d56d7569807bc81f7b88d8bfa5bdc0285f1ebb47ec7acc0eaa92243d064654b",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": []
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "workShape": "product_prd",
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "artifactType": "product_prd",
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ],
+                "requirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "rubric": [
+                  "Evidence, assumptions, and gaps are distinguished.",
+                  "Metrics and validation steps make outcomes testable.",
+                  "Prioritization and non-goals bound the work.",
+                  "Problem, domain, and desired outcome are explicit.",
+                  "Requirements map to Given/When/Then acceptance criteria.",
+                  "Risks and next steps are actionable.",
+                  "Users, jobs, and pains are concrete."
+                ],
+                "acceptanceCriteria": [
+                  {
+                    "id": "acc-ab17a89ac70da512",
+                    "given": "The accepted scope and immutable research are available.",
+                    "when": "The product requirements document is evaluated.",
+                    "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                    "supports": [
+                      "req-3effc5f2c4f66529",
+                      "req-8406b408a1efe030",
+                      "req-978783b86f1d6824",
+                      "req-dc0b1ec0c22b4945",
+                      "req-fb9aa570a3cfd044"
+                    ]
+                  }
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": false,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "product-user-analysis",
+                  "title": "Product, audience, and user-needs analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "product and user-needs specialist",
+                  "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                  "requiredCapabilities": [
+                    "product_strategy"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-8406b408a1efe030",
+                    "req-dc0b1ec0c22b4945"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000401",
+                  "stageKey": "domain-evidence-analysis",
+                  "title": "Domain, evidence, and boundary analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "domain and evidence specialist",
+                  "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                  "requiredCapabilities": [
+                    "evidence_synthesis"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000402",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract synthesis",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product requirements synthesizer",
+                  "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": true,
+                  "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                  "dependsOnStageKeys": [
+                    "domain-evidence-analysis",
+                    "product-user-analysis"
+                  ],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                }
+              ],
+              "planHash": "da8dbf5842c4b0b937eef8600d727b7cf973b1496f325df913e5275a61b2c1f2"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000103",
+              "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000400",
+                "stageKey": "product-user-analysis",
+                "title": "Product, audience, and user-needs analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "product and user-needs specialist",
+                "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                "requiredCapabilities": [
+                  "product_strategy"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-8406b408a1efe030",
+                  "req-dc0b1ec0c22b4945"
+                ],
+                "producesFullContract": false,
+                "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Product, audience, and user-needs analysis",
+              "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the product and user-needs analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000104",
+              "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000401",
+                "stageKey": "domain-evidence-analysis",
+                "title": "Domain, evidence, and boundary analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "domain and evidence specialist",
+                "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                "requiredCapabilities": [
+                  "evidence_synthesis"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "producesFullContract": false,
+                "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Domain, evidence, and boundary analysis",
+              "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-3effc5f2c4f66529",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-978783b86f1d6824",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-fb9aa570a3cfd044",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the domain and evidence analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded."
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "artifactType": "product_prd",
+          "requiredSections": [
+            "Acceptance criteria",
+            "Evidence, assumptions, and gaps",
+            "Metrics and validation",
+            "Next steps",
+            "Prioritized requirements",
+            "Problem and desired outcome",
+            "Product thesis, scope, and non-goals",
+            "Risks",
+            "User journeys",
+            "Users, jobs, and pains"
+          ],
+          "requirementIds": [
+            "req-3effc5f2c4f66529",
+            "req-8406b408a1efe030",
+            "req-978783b86f1d6824",
+            "req-dc0b1ec0c22b4945",
+            "req-fb9aa570a3cfd044"
+          ],
+          "rubric": [
+            "Evidence, assumptions, and gaps are distinguished.",
+            "Metrics and validation steps make outcomes testable.",
+            "Prioritization and non-goals bound the work.",
+            "Problem, domain, and desired outcome are explicit.",
+            "Requirements map to Given/When/Then acceptance criteria.",
+            "Risks and next steps are actionable.",
+            "Users, jobs, and pains are concrete."
+          ],
+          "acceptanceCriteria": [
+            {
+              "id": "acc-ab17a89ac70da512",
+              "given": "The accepted scope and immutable research are available.",
+              "when": "The product requirements document is evaluated.",
+              "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+              "supports": [
+                "req-3effc5f2c4f66529",
+                "req-8406b408a1efe030",
+                "req-978783b86f1d6824",
+                "req-dc0b1ec0c22b4945",
+                "req-fb9aa570a3cfd044"
+              ]
+            }
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": false,
+          "sourceAppendixRequired": false
+        },
+        "purpose": "execute_task",
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+          "kind": "plan"
+        },
+        "task": {
+          "stageId": "00000000-0000-4000-8000-000000000402",
+          "stageKey": "core-draft",
+          "title": "Coherent full-contract synthesis",
+          "taskKind": "core_draft",
+          "requiredRole": "product requirements synthesizer",
+          "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+          "requiredCapabilities": [
+            "prd"
+          ],
+          "acceptanceRequirementIds": [
+            "req-3effc5f2c4f66529",
+            "req-8406b408a1efe030",
+            "req-978783b86f1d6824",
+            "req-dc0b1ec0c22b4945",
+            "req-fb9aa570a3cfd044"
+          ],
+          "producesFullContract": true,
+          "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+          "dependsOnStageKeys": [
+            "domain-evidence-analysis",
+            "product-user-analysis"
+          ],
+          "agent": {
+            "id": "00000000-0000-4000-8000-000000000300",
+            "name": "Golden Product Researcher",
+            "capabilities": [
+              "evidence_synthesis",
+              "prd",
+              "product_strategy"
+            ],
+            "toolIds": [],
+            "qualityScoreMicros": 950000,
+            "costPerRunCents": 20
+          },
+          "agentId": "00000000-0000-4000-8000-000000000300",
+          "toolIds": [],
+          "budgetCents": 20,
+          "dataBoundary": [
+            "No payment data"
+          ]
+        },
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "task_completed",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000105",
+          "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+          "kind": "task_result",
+          "contentType": "text/markdown",
+          "payload": {
+            "schemaVersion": "orqaly.task-result.v2",
+            "task": {
+              "stageId": "00000000-0000-4000-8000-000000000402",
+              "stageKey": "core-draft",
+              "title": "Coherent full-contract synthesis",
+              "taskKind": "core_draft",
+              "requiredRole": "product requirements synthesizer",
+              "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+              "requiredCapabilities": [
+                "prd"
+              ],
+              "acceptanceRequirementIds": [
+                "req-3effc5f2c4f66529",
+                "req-8406b408a1efe030",
+                "req-978783b86f1d6824",
+                "req-dc0b1ec0c22b4945",
+                "req-fb9aa570a3cfd044"
+              ],
+              "producesFullContract": true,
+              "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+              "dependsOnStageKeys": [
+                "domain-evidence-analysis",
+                "product-user-analysis"
+              ],
+              "agent": {
+                "id": "00000000-0000-4000-8000-000000000300",
+                "name": "Golden Product Researcher",
+                "capabilities": [
+                  "evidence_synthesis",
+                  "prd",
+                  "product_strategy"
+                ],
+                "toolIds": [],
+                "qualityScoreMicros": 950000,
+                "costPerRunCents": 20
+              },
+              "agentId": "00000000-0000-4000-8000-000000000300",
+              "toolIds": [],
+              "budgetCents": 20,
+              "dataBoundary": [
+                "No payment data"
+              ]
+            },
+            "acceptedScope": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "kind": "scope"
+            },
+            "research": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+              "kind": "research"
+            },
+            "acceptedPlan": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+              "kind": "plan"
+            },
+            "title": "Coherent full-contract synthesis",
+            "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+            "evidenceReadiness": "ready",
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                "kind": "task_result"
+              }
+            ],
+            "requirementCoverage": [
+              {
+                "requirementId": "req-3effc5f2c4f66529",
+                "status": "satisfied",
+                "note": "The immutable task artifact covers this exact requirement."
+              },
+              {
+                "requirementId": "req-8406b408a1efe030",
+                "status": "satisfied",
+                "note": "The immutable task artifact covers this exact requirement."
+              },
+              {
+                "requirementId": "req-978783b86f1d6824",
+                "status": "satisfied",
+                "note": "The immutable task artifact covers this exact requirement."
+              },
+              {
+                "requirementId": "req-dc0b1ec0c22b4945",
+                "status": "satisfied",
+                "note": "The immutable task artifact covers this exact requirement."
+              },
+              {
+                "requirementId": "req-fb9aa570a3cfd044",
+                "status": "satisfied",
+                "note": "The immutable task artifact covers this exact requirement."
+              }
+            ],
+            "sourceAppendix": [],
+            "executionReceipt": {
+              "agent": {
+                "id": "00000000-0000-4000-8000-000000000300",
+                "name": "Golden Product Researcher",
+                "capabilities": [
+                  "evidence_synthesis",
+                  "prd",
+                  "product_strategy"
+                ],
+                "toolIds": [],
+                "qualityScoreMicros": 950000,
+                "costPerRunCents": 20
+              },
+              "toolIds": [],
+              "budgetCents": 20,
+              "dataBoundary": [
+                "No payment data"
+              ]
+            },
+            "conclusions": [
+              "Synthesized the complete bounded product requirements document."
+            ],
+            "unknowns": []
+          },
+          "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000103",
+            "00000000-0000-4000-8000-000000000104"
+          ]
+        },
+        "evidenceReadiness": "ready"
+      }
+    },
+    {
+      "name": "evaluate_output_repair",
+      "purpose": "evaluate_output",
+      "canonicalInputHash": "fb2cc8e496087ba588f3695558d34f2989688d3d5b5ca16d201a6d2b1a25e569",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000105",
+            "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+            "kind": "task_result"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": [],
+                  "evidenceRole": "grounded_claim"
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "deliverableProfile": {
+                "schemaVersion": "axwise.deliverable-profile.v1",
+                "artifactType": "product_prd",
+                "domain": "Commercial cat-food launch in Estonia",
+                "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+                "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+                "audiences": [
+                  "Estonian product decision-makers"
+                ],
+                "nonGoals": [
+                  "Do not claim launch authority without verified evidence."
+                ],
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ]
+              },
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "acceptanceCriteria": [
+                {
+                  "id": "acc-ab17a89ac70da512",
+                  "given": "The accepted scope and immutable research are available.",
+                  "when": "The product requirements document is evaluated.",
+                  "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                  "supports": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ]
+                }
+              ],
+              "materialClarification": null,
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "authority": {
+                "canonicalInputHash": "8d56d7569807bc81f7b88d8bfa5bdc0285f1ebb47ec7acc0eaa92243d064654b",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": []
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "workShape": "product_prd",
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "artifactType": "product_prd",
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ],
+                "requirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "rubric": [
+                  "Evidence, assumptions, and gaps are distinguished.",
+                  "Metrics and validation steps make outcomes testable.",
+                  "Prioritization and non-goals bound the work.",
+                  "Problem, domain, and desired outcome are explicit.",
+                  "Requirements map to Given/When/Then acceptance criteria.",
+                  "Risks and next steps are actionable.",
+                  "Users, jobs, and pains are concrete."
+                ],
+                "acceptanceCriteria": [
+                  {
+                    "id": "acc-ab17a89ac70da512",
+                    "given": "The accepted scope and immutable research are available.",
+                    "when": "The product requirements document is evaluated.",
+                    "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                    "supports": [
+                      "req-3effc5f2c4f66529",
+                      "req-8406b408a1efe030",
+                      "req-978783b86f1d6824",
+                      "req-dc0b1ec0c22b4945",
+                      "req-fb9aa570a3cfd044"
+                    ]
+                  }
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": false,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "product-user-analysis",
+                  "title": "Product, audience, and user-needs analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "product and user-needs specialist",
+                  "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                  "requiredCapabilities": [
+                    "product_strategy"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-8406b408a1efe030",
+                    "req-dc0b1ec0c22b4945"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000401",
+                  "stageKey": "domain-evidence-analysis",
+                  "title": "Domain, evidence, and boundary analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "domain and evidence specialist",
+                  "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                  "requiredCapabilities": [
+                    "evidence_synthesis"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000402",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract synthesis",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product requirements synthesizer",
+                  "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": true,
+                  "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                  "dependsOnStageKeys": [
+                    "domain-evidence-analysis",
+                    "product-user-analysis"
+                  ],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                }
+              ],
+              "planHash": "da8dbf5842c4b0b937eef8600d727b7cf973b1496f325df913e5275a61b2c1f2"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000103",
+              "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000400",
+                "stageKey": "product-user-analysis",
+                "title": "Product, audience, and user-needs analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "product and user-needs specialist",
+                "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                "requiredCapabilities": [
+                  "product_strategy"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-8406b408a1efe030",
+                  "req-dc0b1ec0c22b4945"
+                ],
+                "producesFullContract": false,
+                "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Product, audience, and user-needs analysis",
+              "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the product and user-needs analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000104",
+              "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000401",
+                "stageKey": "domain-evidence-analysis",
+                "title": "Domain, evidence, and boundary analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "domain and evidence specialist",
+                "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                "requiredCapabilities": [
+                  "evidence_synthesis"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "producesFullContract": false,
+                "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Domain, evidence, and boundary analysis",
+              "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-3effc5f2c4f66529",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-978783b86f1d6824",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-fb9aa570a3cfd044",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the domain and evidence analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000105",
+              "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000402",
+                "stageKey": "core-draft",
+                "title": "Coherent full-contract synthesis",
+                "taskKind": "core_draft",
+                "requiredRole": "product requirements synthesizer",
+                "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                "requiredCapabilities": [
+                  "prd"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "producesFullContract": true,
+                "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                "dependsOnStageKeys": [
+                  "domain-evidence-analysis",
+                  "product-user-analysis"
+                ],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Coherent full-contract synthesis",
+              "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000104",
+                  "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                  "kind": "task_result"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-3effc5f2c4f66529",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-978783b86f1d6824",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-fb9aa570a3cfd044",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Synthesized the complete bounded product requirements document."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved."
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "artifactType": "product_prd",
+          "requiredSections": [
+            "Acceptance criteria",
+            "Evidence, assumptions, and gaps",
+            "Metrics and validation",
+            "Next steps",
+            "Prioritized requirements",
+            "Problem and desired outcome",
+            "Product thesis, scope, and non-goals",
+            "Risks",
+            "User journeys",
+            "Users, jobs, and pains"
+          ],
+          "requirementIds": [
+            "req-3effc5f2c4f66529",
+            "req-8406b408a1efe030",
+            "req-978783b86f1d6824",
+            "req-dc0b1ec0c22b4945",
+            "req-fb9aa570a3cfd044"
+          ],
+          "rubric": [
+            "Evidence, assumptions, and gaps are distinguished.",
+            "Metrics and validation steps make outcomes testable.",
+            "Prioritization and non-goals bound the work.",
+            "Problem, domain, and desired outcome are explicit.",
+            "Requirements map to Given/When/Then acceptance criteria.",
+            "Risks and next steps are actionable.",
+            "Users, jobs, and pains are concrete."
+          ],
+          "acceptanceCriteria": [
+            {
+              "id": "acc-ab17a89ac70da512",
+              "given": "The accepted scope and immutable research are available.",
+              "when": "The product requirements document is evaluated.",
+              "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+              "supports": [
+                "req-3effc5f2c4f66529",
+                "req-8406b408a1efe030",
+                "req-978783b86f1d6824",
+                "req-dc0b1ec0c22b4945",
+                "req-fb9aa570a3cfd044"
+              ]
+            }
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": false,
+          "sourceAppendixRequired": false
+        },
+        "purpose": "evaluate_output",
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+          "kind": "plan"
+        },
+        "taskArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000105",
+            "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+            "kind": "task_result"
+          }
+        ],
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "evaluation_completed",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000107",
+          "artifactHash": "0ded7562581cef7dee124abe9e48fecc35825000c863afd4b3d28fddc39154f1",
+          "kind": "evaluation",
+          "contentType": "application/json",
+          "payload": {
+            "schemaVersion": "orqaly.evaluation.v1",
+            "taskArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000105",
+                "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+                "kind": "task_result"
+              }
+            ],
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000105",
+                "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+                "kind": "task_result"
+              }
+            ],
+            "evidenceReadiness": "ready",
+            "outputContractHash": "4b8a0fe2f049628fd6d22d114159f5c5823b9b41c371c88715058d65e1ad0ab2",
+            "repairPass": 0,
+            "outputContractSatisfied": false,
+            "promotedArtifact": null,
+            "unmetRequirementIds": [
+              "req-dc0b1ec0c22b4945"
+            ],
+            "unresolvedSourceMarkers": [],
+            "unsupportedPrecision": [],
+            "contradictions": [],
+            "staleTopicReferences": [],
+            "readinessViolations": [],
+            "substantiveContentDefects": [
+              "The non-ASCII analysis section needs one bounded repair."
+            ],
+            "practicalityDefects": [],
+            "repairRequired": true,
+            "repairInstructions": [
+              "Repair only the incomplete Ärianalüüs section."
+            ],
+            "note": "One bounded repair is authorized."
+          },
+          "markdown": null,
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000103",
+            "00000000-0000-4000-8000-000000000104",
+            "00000000-0000-4000-8000-000000000105"
+          ]
+        },
+        "executionOutputContractSatisfied": false,
+        "directPromotionArtifact": null
+      }
+    },
+    {
+      "name": "evaluate_output_direct_promotion",
+      "purpose": "evaluate_output",
+      "canonicalInputHash": "b9a37cf2ccca29087a2bf77ff55045c66859197ebca97fd0794999c927f050c7",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000106",
+            "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+            "kind": "final_markdown"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": [],
+                  "evidenceRole": "grounded_claim"
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "deliverableProfile": {
+                "schemaVersion": "axwise.deliverable-profile.v1",
+                "artifactType": "product_prd",
+                "domain": "Commercial cat-food launch in Estonia",
+                "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+                "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+                "audiences": [
+                  "Estonian product decision-makers"
+                ],
+                "nonGoals": [
+                  "Do not claim launch authority without verified evidence."
+                ],
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ]
+              },
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "acceptanceCriteria": [
+                {
+                  "id": "acc-ab17a89ac70da512",
+                  "given": "The accepted scope and immutable research are available.",
+                  "when": "The product requirements document is evaluated.",
+                  "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                  "supports": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ]
+                }
+              ],
+              "materialClarification": null,
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "authority": {
+                "canonicalInputHash": "8d56d7569807bc81f7b88d8bfa5bdc0285f1ebb47ec7acc0eaa92243d064654b",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": []
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "workShape": "product_prd",
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "artifactType": "product_prd",
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ],
+                "requirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "rubric": [
+                  "Evidence, assumptions, and gaps are distinguished.",
+                  "Metrics and validation steps make outcomes testable.",
+                  "Prioritization and non-goals bound the work.",
+                  "Problem, domain, and desired outcome are explicit.",
+                  "Requirements map to Given/When/Then acceptance criteria.",
+                  "Risks and next steps are actionable.",
+                  "Users, jobs, and pains are concrete."
+                ],
+                "acceptanceCriteria": [
+                  {
+                    "id": "acc-ab17a89ac70da512",
+                    "given": "The accepted scope and immutable research are available.",
+                    "when": "The product requirements document is evaluated.",
+                    "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                    "supports": [
+                      "req-3effc5f2c4f66529",
+                      "req-8406b408a1efe030",
+                      "req-978783b86f1d6824",
+                      "req-dc0b1ec0c22b4945",
+                      "req-fb9aa570a3cfd044"
+                    ]
+                  }
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": false,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "product-user-analysis",
+                  "title": "Product, audience, and user-needs analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "product and user-needs specialist",
+                  "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                  "requiredCapabilities": [
+                    "product_strategy"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-8406b408a1efe030",
+                    "req-dc0b1ec0c22b4945"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000401",
+                  "stageKey": "domain-evidence-analysis",
+                  "title": "Domain, evidence, and boundary analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "domain and evidence specialist",
+                  "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                  "requiredCapabilities": [
+                    "evidence_synthesis"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000402",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract synthesis",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product requirements synthesizer",
+                  "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": true,
+                  "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                  "dependsOnStageKeys": [
+                    "domain-evidence-analysis",
+                    "product-user-analysis"
+                  ],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                }
+              ],
+              "planHash": "da8dbf5842c4b0b937eef8600d727b7cf973b1496f325df913e5275a61b2c1f2"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000103",
+              "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000400",
+                "stageKey": "product-user-analysis",
+                "title": "Product, audience, and user-needs analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "product and user-needs specialist",
+                "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                "requiredCapabilities": [
+                  "product_strategy"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-8406b408a1efe030",
+                  "req-dc0b1ec0c22b4945"
+                ],
+                "producesFullContract": false,
+                "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Product, audience, and user-needs analysis",
+              "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the product and user-needs analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000104",
+              "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000401",
+                "stageKey": "domain-evidence-analysis",
+                "title": "Domain, evidence, and boundary analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "domain and evidence specialist",
+                "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                "requiredCapabilities": [
+                  "evidence_synthesis"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "producesFullContract": false,
+                "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Domain, evidence, and boundary analysis",
+              "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-3effc5f2c4f66529",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-978783b86f1d6824",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-fb9aa570a3cfd044",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the domain and evidence analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000106",
+              "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+              "kind": "final_markdown"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "axwise.final-markdown.v1",
+              "title": "Direct final candidate",
+              "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000104",
+                  "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                  "kind": "task_result"
+                }
+              ],
+              "sourceAppendix": [],
+              "candidateAttestation": {
+                "task": {
+                  "stageId": "00000000-0000-4000-8000-000000000402",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract synthesis",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product requirements synthesizer",
+                  "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": true,
+                  "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                  "dependsOnStageKeys": [
+                    "domain-evidence-analysis",
+                    "product-user-analysis"
+                  ],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                "requirementCoverage": [
+                  {
+                    "requirementId": "req-3effc5f2c4f66529",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  },
+                  {
+                    "requirementId": "req-8406b408a1efe030",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  },
+                  {
+                    "requirementId": "req-978783b86f1d6824",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  },
+                  {
+                    "requirementId": "req-dc0b1ec0c22b4945",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  },
+                  {
+                    "requirementId": "req-fb9aa570a3cfd044",
+                    "status": "satisfied",
+                    "note": "The coherent core covers this exact requirement."
+                  }
+                ],
+                "executionReceipt": {
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                }
+              },
+              "evidenceReadiness": "ready",
+              "launchReady": false
+            },
+            "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved."
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "artifactType": "product_prd",
+          "requiredSections": [
+            "Acceptance criteria",
+            "Evidence, assumptions, and gaps",
+            "Metrics and validation",
+            "Next steps",
+            "Prioritized requirements",
+            "Problem and desired outcome",
+            "Product thesis, scope, and non-goals",
+            "Risks",
+            "User journeys",
+            "Users, jobs, and pains"
+          ],
+          "requirementIds": [
+            "req-3effc5f2c4f66529",
+            "req-8406b408a1efe030",
+            "req-978783b86f1d6824",
+            "req-dc0b1ec0c22b4945",
+            "req-fb9aa570a3cfd044"
+          ],
+          "rubric": [
+            "Evidence, assumptions, and gaps are distinguished.",
+            "Metrics and validation steps make outcomes testable.",
+            "Prioritization and non-goals bound the work.",
+            "Problem, domain, and desired outcome are explicit.",
+            "Requirements map to Given/When/Then acceptance criteria.",
+            "Risks and next steps are actionable.",
+            "Users, jobs, and pains are concrete."
+          ],
+          "acceptanceCriteria": [
+            {
+              "id": "acc-ab17a89ac70da512",
+              "given": "The accepted scope and immutable research are available.",
+              "when": "The product requirements document is evaluated.",
+              "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+              "supports": [
+                "req-3effc5f2c4f66529",
+                "req-8406b408a1efe030",
+                "req-978783b86f1d6824",
+                "req-dc0b1ec0c22b4945",
+                "req-fb9aa570a3cfd044"
+              ]
+            }
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": false,
+          "sourceAppendixRequired": false
+        },
+        "purpose": "evaluate_output",
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+          "kind": "plan"
+        },
+        "taskArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000106",
+            "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+            "kind": "final_markdown"
+          }
+        ],
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "evaluation_completed",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000108",
+          "artifactHash": "32fc124013c87957162cf326d61879e520c36695c068d1e8cfcb2f6dd633c248",
+          "kind": "evaluation",
+          "contentType": "application/json",
+          "payload": {
+            "schemaVersion": "orqaly.evaluation.v1",
+            "taskArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000106",
+                "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+                "kind": "final_markdown"
+              }
+            ],
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000106",
+                "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+                "kind": "final_markdown"
+              }
+            ],
+            "evidenceReadiness": "ready",
+            "outputContractHash": "4b8a0fe2f049628fd6d22d114159f5c5823b9b41c371c88715058d65e1ad0ab2",
+            "repairPass": 0,
+            "outputContractSatisfied": true,
+            "promotedArtifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000106",
+              "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+              "kind": "final_markdown"
+            },
+            "unmetRequirementIds": [],
+            "unresolvedSourceMarkers": [],
+            "unsupportedPrecision": [],
+            "contradictions": [],
+            "staleTopicReferences": [],
+            "readinessViolations": [],
+            "substantiveContentDefects": [],
+            "practicalityDefects": [],
+            "repairRequired": false,
+            "repairInstructions": [],
+            "note": "The exact dependency-bound core candidate satisfies the contract."
+          },
+          "markdown": null,
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000103",
+            "00000000-0000-4000-8000-000000000104",
+            "00000000-0000-4000-8000-000000000106"
+          ]
+        },
+        "executionOutputContractSatisfied": true,
+        "directPromotionArtifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000106",
+          "artifactHash": "9ffc304d05d2f7786660bfb7acc9dfb9b89a88a0c06cf6ec983498729905b706",
+          "kind": "final_markdown"
+        }
+      }
+    },
+    {
+      "name": "final_synthesis",
+      "purpose": "final_synthesis",
+      "canonicalInputHash": "0c618b5bd5feeef3ecfc9d8f1f39551d2b87fb831cac6a2cad189d84e3f207d7",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000101",
+          "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+            "kind": "research"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000102",
+            "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+            "kind": "plan"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000105",
+            "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000107",
+            "artifactHash": "0ded7562581cef7dee124abe9e48fecc35825000c863afd4b3d28fddc39154f1",
+            "kind": "evaluation"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": [],
+                  "evidenceRole": "grounded_claim"
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "deliverableProfile": {
+                "schemaVersion": "axwise.deliverable-profile.v1",
+                "artifactType": "product_prd",
+                "domain": "Commercial cat-food launch in Estonia",
+                "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+                "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+                "audiences": [
+                  "Estonian product decision-makers"
+                ],
+                "nonGoals": [
+                  "Do not claim launch authority without verified evidence."
+                ],
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ]
+              },
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "acceptanceCriteria": [
+                {
+                  "id": "acc-ab17a89ac70da512",
+                  "given": "The accepted scope and immutable research are available.",
+                  "when": "The product requirements document is evaluated.",
+                  "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                  "supports": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ]
+                }
+              ],
+              "materialClarification": null,
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "authority": {
+                "canonicalInputHash": "8d56d7569807bc81f7b88d8bfa5bdc0285f1ebb47ec7acc0eaa92243d064654b",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000101",
+              "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "readiness": "ready",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "verified",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "The fixture records the requirement as verified."
+                }
+              ],
+              "boundedRepairPasses": 0,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": []
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+              "kind": "plan"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.plan.v2",
+              "acceptedScopeArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "researchArtifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "workShape": "product_prd",
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "outputContract": {
+                "format": "text/markdown",
+                "artifactType": "product_prd",
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ],
+                "requirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "rubric": [
+                  "Evidence, assumptions, and gaps are distinguished.",
+                  "Metrics and validation steps make outcomes testable.",
+                  "Prioritization and non-goals bound the work.",
+                  "Problem, domain, and desired outcome are explicit.",
+                  "Requirements map to Given/When/Then acceptance criteria.",
+                  "Risks and next steps are actionable.",
+                  "Users, jobs, and pains are concrete."
+                ],
+                "acceptanceCriteria": [
+                  {
+                    "id": "acc-ab17a89ac70da512",
+                    "given": "The accepted scope and immutable research are available.",
+                    "when": "The product requirements document is evaluated.",
+                    "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                    "supports": [
+                      "req-3effc5f2c4f66529",
+                      "req-8406b408a1efe030",
+                      "req-978783b86f1d6824",
+                      "req-dc0b1ec0c22b4945",
+                      "req-fb9aa570a3cfd044"
+                    ]
+                  }
+                ],
+                "evidenceReadiness": "ready",
+                "launchReadyAllowed": false,
+                "sourceAppendixRequired": false
+              },
+              "tasks": [
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000400",
+                  "stageKey": "product-user-analysis",
+                  "title": "Product, audience, and user-needs analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "product and user-needs specialist",
+                  "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                  "requiredCapabilities": [
+                    "product_strategy"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-8406b408a1efe030",
+                    "req-dc0b1ec0c22b4945"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000401",
+                  "stageKey": "domain-evidence-analysis",
+                  "title": "Domain, evidence, and boundary analysis",
+                  "taskKind": "specialist_analysis",
+                  "requiredRole": "domain and evidence specialist",
+                  "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                  "requiredCapabilities": [
+                    "evidence_synthesis"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": false,
+                  "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                  "dependsOnStageKeys": [],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                },
+                {
+                  "stageId": "00000000-0000-4000-8000-000000000402",
+                  "stageKey": "core-draft",
+                  "title": "Coherent full-contract synthesis",
+                  "taskKind": "core_draft",
+                  "requiredRole": "product requirements synthesizer",
+                  "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                  "requiredCapabilities": [
+                    "prd"
+                  ],
+                  "acceptanceRequirementIds": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ],
+                  "producesFullContract": true,
+                  "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                  "dependsOnStageKeys": [
+                    "domain-evidence-analysis",
+                    "product-user-analysis"
+                  ],
+                  "agent": {
+                    "id": "00000000-0000-4000-8000-000000000300",
+                    "name": "Golden Product Researcher",
+                    "capabilities": [
+                      "evidence_synthesis",
+                      "prd",
+                      "product_strategy"
+                    ],
+                    "toolIds": [],
+                    "qualityScoreMicros": 950000,
+                    "costPerRunCents": 20
+                  },
+                  "agentId": "00000000-0000-4000-8000-000000000300",
+                  "toolIds": [],
+                  "budgetCents": 20,
+                  "dataBoundary": [
+                    "No payment data"
+                  ]
+                }
+              ],
+              "planHash": "da8dbf5842c4b0b937eef8600d727b7cf973b1496f325df913e5275a61b2c1f2"
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000103",
+              "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000400",
+                "stageKey": "product-user-analysis",
+                "title": "Product, audience, and user-needs analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "product and user-needs specialist",
+                "lens": "Analyze the accepted problem, desired outcome, audiences, jobs, pains, journeys, priorities, non-goals, metrics, validation needs, risks, and open product decisions.",
+                "requiredCapabilities": [
+                  "product_strategy"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-8406b408a1efe030",
+                  "req-dc0b1ec0c22b4945"
+                ],
+                "producesFullContract": false,
+                "inputHash": "ffe163dd4fe24b282347fdd61813c11a61162d4d1128ceb1eeb659f5f0d8fb84",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Product, audience, and user-needs analysis",
+              "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the product and user-needs analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product and user analysis\n\nThe product, audience, user needs, priorities, metrics, and open decisions are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000104",
+              "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000401",
+                "stageKey": "domain-evidence-analysis",
+                "title": "Domain, evidence, and boundary analysis",
+                "taskKind": "specialist_analysis",
+                "requiredRole": "domain and evidence specialist",
+                "lens": "Analyze domain constraints, immutable evidence, assumptions, conflicts, gaps, policies, limits, risks, and exact claim boundaries without inventing authority.",
+                "requiredCapabilities": [
+                  "evidence_synthesis"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "producesFullContract": false,
+                "inputHash": "6bde2e1be1cb84162ef3ffa73bc3a8897f32f48e692b3f6b28527cf4c588a450",
+                "dependsOnStageKeys": [],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Domain, evidence, and boundary analysis",
+              "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-3effc5f2c4f66529",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-978783b86f1d6824",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-fb9aa570a3cfd044",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Prepared the domain and evidence analysis."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Domain and evidence analysis\n\nThe evidence, legal boundaries, assumptions, and risks are bounded."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000105",
+              "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+              "kind": "task_result"
+            },
+            "contentType": "text/markdown",
+            "payload": {
+              "schemaVersion": "orqaly.task-result.v2",
+              "task": {
+                "stageId": "00000000-0000-4000-8000-000000000402",
+                "stageKey": "core-draft",
+                "title": "Coherent full-contract synthesis",
+                "taskKind": "core_draft",
+                "requiredRole": "product requirements synthesizer",
+                "lens": "Synthesize the exact specialist analyses into one coherent artifact that satisfies every accepted requirement, acceptance criterion, required section, rubric dimension, and evidence boundary.",
+                "requiredCapabilities": [
+                  "prd"
+                ],
+                "acceptanceRequirementIds": [
+                  "req-3effc5f2c4f66529",
+                  "req-8406b408a1efe030",
+                  "req-978783b86f1d6824",
+                  "req-dc0b1ec0c22b4945",
+                  "req-fb9aa570a3cfd044"
+                ],
+                "producesFullContract": true,
+                "inputHash": "055350500e0c9a50c3885f0b01bc0f2f616bbd96686de79d55b212837f5b501b",
+                "dependsOnStageKeys": [
+                  "domain-evidence-analysis",
+                  "product-user-analysis"
+                ],
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "agentId": "00000000-0000-4000-8000-000000000300",
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "acceptedScope": {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              "research": {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              "acceptedPlan": {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              "title": "Coherent full-contract synthesis",
+              "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved.",
+              "evidenceReadiness": "ready",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000104",
+                  "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                  "kind": "task_result"
+                }
+              ],
+              "requirementCoverage": [
+                {
+                  "requirementId": "req-3effc5f2c4f66529",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-8406b408a1efe030",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-978783b86f1d6824",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-dc0b1ec0c22b4945",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                },
+                {
+                  "requirementId": "req-fb9aa570a3cfd044",
+                  "status": "satisfied",
+                  "note": "The immutable task artifact covers this exact requirement."
+                }
+              ],
+              "sourceAppendix": [],
+              "executionReceipt": {
+                "agent": {
+                  "id": "00000000-0000-4000-8000-000000000300",
+                  "name": "Golden Product Researcher",
+                  "capabilities": [
+                    "evidence_synthesis",
+                    "prd",
+                    "product_strategy"
+                  ],
+                  "toolIds": [],
+                  "qualityScoreMicros": 950000,
+                  "costPerRunCents": 20
+                },
+                "toolIds": [],
+                "budgetCents": 20,
+                "dataBoundary": [
+                  "No payment data"
+                ]
+              },
+              "conclusions": [
+                "Synthesized the complete bounded product requirements document."
+              ],
+              "unknowns": []
+            },
+            "markdown": "# Product requirements document\n\nComplete core synthesis.\n\n## Ärianalüüs\n\nNon-ASCII section ordering is preserved."
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000107",
+              "artifactHash": "0ded7562581cef7dee124abe9e48fecc35825000c863afd4b3d28fddc39154f1",
+              "kind": "evaluation"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "orqaly.evaluation.v1",
+              "taskArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000104",
+                  "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000105",
+                  "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+                  "kind": "task_result"
+                }
+              ],
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000100",
+                  "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                  "kind": "scope"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000101",
+                  "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                  "kind": "research"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000102",
+                  "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                  "kind": "plan"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000104",
+                  "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                  "kind": "task_result"
+                },
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000105",
+                  "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+                  "kind": "task_result"
+                }
+              ],
+              "evidenceReadiness": "ready",
+              "outputContractHash": "4b8a0fe2f049628fd6d22d114159f5c5823b9b41c371c88715058d65e1ad0ab2",
+              "repairPass": 0,
+              "outputContractSatisfied": false,
+              "promotedArtifact": null,
+              "unmetRequirementIds": [
+                "req-dc0b1ec0c22b4945"
+              ],
+              "unresolvedSourceMarkers": [],
+              "unsupportedPrecision": [],
+              "contradictions": [],
+              "staleTopicReferences": [],
+              "readinessViolations": [],
+              "substantiveContentDefects": [
+                "The non-ASCII analysis section needs one bounded repair."
+              ],
+              "practicalityDefects": [],
+              "repairRequired": true,
+              "repairInstructions": [
+                "Repair only the incomplete Ärianalüüs section."
+              ],
+              "note": "One bounded repair is authorized."
+            },
+            "markdown": null
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "artifactType": "product_prd",
+          "requiredSections": [
+            "Acceptance criteria",
+            "Evidence, assumptions, and gaps",
+            "Metrics and validation",
+            "Next steps",
+            "Prioritized requirements",
+            "Problem and desired outcome",
+            "Product thesis, scope, and non-goals",
+            "Risks",
+            "User journeys",
+            "Users, jobs, and pains"
+          ],
+          "requirementIds": [
+            "req-3effc5f2c4f66529",
+            "req-8406b408a1efe030",
+            "req-978783b86f1d6824",
+            "req-dc0b1ec0c22b4945",
+            "req-fb9aa570a3cfd044"
+          ],
+          "rubric": [
+            "Evidence, assumptions, and gaps are distinguished.",
+            "Metrics and validation steps make outcomes testable.",
+            "Prioritization and non-goals bound the work.",
+            "Problem, domain, and desired outcome are explicit.",
+            "Requirements map to Given/When/Then acceptance criteria.",
+            "Risks and next steps are actionable.",
+            "Users, jobs, and pains are concrete."
+          ],
+          "acceptanceCriteria": [
+            {
+              "id": "acc-ab17a89ac70da512",
+              "given": "The accepted scope and immutable research are available.",
+              "when": "The product requirements document is evaluated.",
+              "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+              "supports": [
+                "req-3effc5f2c4f66529",
+                "req-8406b408a1efe030",
+                "req-978783b86f1d6824",
+                "req-dc0b1ec0c22b4945",
+                "req-fb9aa570a3cfd044"
+              ]
+            }
+          ],
+          "evidenceReadiness": "ready",
+          "launchReadyAllowed": false,
+          "sourceAppendixRequired": false
+        },
+        "purpose": "final_synthesis",
+        "acceptedPlan": {
+          "artifactId": "00000000-0000-4000-8000-000000000102",
+          "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+          "kind": "plan"
+        },
+        "taskArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000103",
+            "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000104",
+            "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+            "kind": "task_result"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000105",
+            "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+            "kind": "task_result"
+          }
+        ],
+        "evaluation": {
+          "artifactId": "00000000-0000-4000-8000-000000000107",
+          "artifactHash": "0ded7562581cef7dee124abe9e48fecc35825000c863afd4b3d28fddc39154f1",
+          "kind": "evaluation"
+        },
+        "repairPass": 1
+      },
+      "result": {
+        "resultType": "artifact_synthesized",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000109",
+          "artifactHash": "d65e0641fe529072f7ed98a3769283e864a605166e0aa0c9b4bf5e0543fb2133",
+          "kind": "final_markdown",
+          "contentType": "text/markdown",
+          "payload": {
+            "schemaVersion": "axwise.final-markdown.v1",
+            "title": "Repaired final artifact",
+            "markdown": "# Product requirements document\n\nComplete repaired artifact.\n\n## Ärianalüüs\n\nThe bounded repair is complete.",
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000101",
+                "artifactHash": "5ed826a9572d1c796b1b7d4b4b29a7f4f29f1b04e69b0725762a7405bc170193",
+                "kind": "research"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000102",
+                "artifactHash": "8bec66b827f1f4b5d1301d728f047a5d6dfb89847e3b2d9a5371863362638592",
+                "kind": "plan"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "4db582ab75bf6f746007a90e5eaed9e3ab1d79d3df8dbdaba2bf8c6dd764a5a7",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000104",
+                "artifactHash": "79babc1bbd2ed500086144d2a4f1eeae7d11e843f5542f2b670e274824cabc83",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000105",
+                "artifactHash": "b0bf28b0095cf7f1bd62db796e3b11ea43622a3ea08a659e06009348cc1e778d",
+                "kind": "task_result"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000107",
+                "artifactHash": "0ded7562581cef7dee124abe9e48fecc35825000c863afd4b3d28fddc39154f1",
+                "kind": "evaluation"
+              }
+            ],
+            "sourceAppendix": [],
+            "candidateAttestation": null,
+            "evidenceReadiness": "ready",
+            "launchReady": false
+          },
+          "markdown": "# Product requirements document\n\nComplete repaired artifact.\n\n## Ärianalüüs\n\nThe bounded repair is complete.",
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000101",
+            "00000000-0000-4000-8000-000000000102",
+            "00000000-0000-4000-8000-000000000103",
+            "00000000-0000-4000-8000-000000000104",
+            "00000000-0000-4000-8000-000000000105",
+            "00000000-0000-4000-8000-000000000107"
+          ]
+        },
+        "evidenceReadiness": "ready"
+      }
+    },
+    {
+      "name": "blocked_report",
+      "purpose": "blocked_report",
+      "canonicalInputHash": "655459bc338146a5c61733d60d87742a71eb17ae61d7795445754a51fbdae35c",
+      "input": {
+        "type": "SynthesizeArtifactV1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000100",
+          "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+          "kind": "scope"
+        },
+        "research": {
+          "artifactId": "00000000-0000-4000-8000-000000000110",
+          "artifactHash": "4ad5dc5f86490c14f60163157590e052bee2f3907b744f66dc93d1847266642c",
+          "kind": "research"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000100",
+            "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+            "kind": "scope"
+          },
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000110",
+            "artifactHash": "4ad5dc5f86490c14f60163157590e052bee2f3907b744f66dc93d1847266642c",
+            "kind": "research"
+          }
+        ],
+        "artifactContents": [
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000100",
+              "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "kind": "scope"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.scope.v2",
+              "objective": "Create an Ärianalüüs Estonia cat-food PRD.",
+              "objectiveSourceSpans": [
+                {
+                  "start": 0,
+                  "end": 42,
+                  "text": "Create an Ärianalüüs Estonia cat-food PRD.",
+                  "sha256": "e536313e8b5a7f1960bbf1e1ba3865d26d031625dfa29b315cbe2d33fe06bb9e",
+                  "offsetUnit": "utf16_code_units"
+                }
+              ],
+              "topicAnchors": [
+                {
+                  "value": "cat-food",
+                  "sourceSpans": [
+                    {
+                      "start": 29,
+                      "end": 37,
+                      "text": "cat-food",
+                      "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+                      "offsetUnit": "utf16_code_units"
+                    }
+                  ]
+                }
+              ],
+              "geography": [
+                "Estonia"
+              ],
+              "evidenceRequirements": [
+                {
+                  "id": "feed-law",
+                  "claimType": "legal_requirement",
+                  "description": "Verify applicable feed law.",
+                  "criticality": "blocking",
+                  "verificationBasis": "grounded_claims",
+                  "appliesWhen": "The artifact discusses commercial launch.",
+                  "acceptedSourceTypes": [
+                    "government",
+                    "primary_law"
+                  ],
+                  "allowedSourceHosts": [],
+                  "evidenceRole": "grounded_claim"
+                }
+              ],
+              "deliverables": [
+                "Product requirements document",
+                "Ärianalüüs"
+              ],
+              "personas": [],
+              "interviewRequirements": [],
+              "prdRequirements": [],
+              "limits": [
+                "No payment data"
+              ],
+              "policies": [
+                "Do not change evidence readiness during synthesis"
+              ],
+              "assumptions": [],
+              "deliverableProfile": {
+                "schemaVersion": "axwise.deliverable-profile.v1",
+                "artifactType": "product_prd",
+                "domain": "Commercial cat-food launch in Estonia",
+                "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+                "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+                "audiences": [
+                  "Estonian product decision-makers"
+                ],
+                "nonGoals": [
+                  "Do not claim launch authority without verified evidence."
+                ],
+                "requiredSections": [
+                  "Acceptance criteria",
+                  "Evidence, assumptions, and gaps",
+                  "Metrics and validation",
+                  "Next steps",
+                  "Prioritized requirements",
+                  "Problem and desired outcome",
+                  "Product thesis, scope, and non-goals",
+                  "Risks",
+                  "User journeys",
+                  "Users, jobs, and pains"
+                ]
+              },
+              "requirements": [
+                {
+                  "id": "req-3effc5f2c4f66529",
+                  "category": "policy",
+                  "description": "Do not change evidence readiness during synthesis",
+                  "priority": "P1",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-8406b408a1efe030",
+                  "category": "deliverable",
+                  "description": "Product requirements document",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-978783b86f1d6824",
+                  "category": "evidence",
+                  "description": "Verify applicable feed law.",
+                  "priority": "P0",
+                  "authority": "axwise_derived"
+                },
+                {
+                  "id": "req-dc0b1ec0c22b4945",
+                  "category": "deliverable",
+                  "description": "Ärianalüüs",
+                  "priority": "P0",
+                  "authority": "owner"
+                },
+                {
+                  "id": "req-fb9aa570a3cfd044",
+                  "category": "limit",
+                  "description": "No payment data",
+                  "priority": "P1",
+                  "authority": "owner"
+                }
+              ],
+              "acceptanceCriteria": [
+                {
+                  "id": "acc-ab17a89ac70da512",
+                  "given": "The accepted scope and immutable research are available.",
+                  "when": "The product requirements document is evaluated.",
+                  "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                  "supports": [
+                    "req-3effc5f2c4f66529",
+                    "req-8406b408a1efe030",
+                    "req-978783b86f1d6824",
+                    "req-dc0b1ec0c22b4945",
+                    "req-fb9aa570a3cfd044"
+                  ]
+                }
+              ],
+              "materialClarification": null,
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "authority": {
+                "canonicalInputHash": "8d56d7569807bc81f7b88d8bfa5bdc0285f1ebb47ec7acc0eaa92243d064654b",
+                "seal": "golden-scope-authority-sealsssssssssssssssssssssssssssssssssssss"
+              }
+            },
+            "markdown": null
+          },
+          {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000110",
+              "artifactHash": "4ad5dc5f86490c14f60163157590e052bee2f3907b744f66dc93d1847266642c",
+              "kind": "research"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.research.v2",
+              "acceptedScopeArtifactId": "00000000-0000-4000-8000-000000000100",
+              "acceptedScopeHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+              "researchInputHash": "3fd6a2650ad342a9e06416872c23e09d81119a3609fb4c3a08bed27021caff28",
+              "readiness": "blocked",
+              "findings": [
+                {
+                  "requirementId": "feed-law",
+                  "status": "missing",
+                  "blocking": true,
+                  "sourceArtifactIds": [],
+                  "note": "Essential law remains unresolved."
+                }
+              ],
+              "boundedRepairPasses": 1,
+              "assumptions": [],
+              "gaps": [],
+              "conflicts": [],
+              "claimLedgerArtifactId": "00000000-0000-4000-8000-000000000190",
+              "claimLedger": [],
+              "selectedClaims": [],
+              "sourceCatalogue": []
+            },
+            "markdown": null
+          }
+        ],
+        "outputContract": {
+          "format": "text/markdown",
+          "artifactType": "launch_authorization",
+          "requiredSections": [
+            "Evidence decision",
+            "Remediation plan"
+          ],
+          "requirementIds": [
+            "req-375ad0b64c4cde1b",
+            "req-a7ebf1ac33c4e446"
+          ],
+          "rubric": [
+            "Blocking evidence and uncertainty are explicit.",
+            "Every blocking finding has a bounded remediation step.",
+            "The launch decision cannot overclaim authority."
+          ],
+          "acceptanceCriteria": [
+            {
+              "id": "acc-7cbe740e182d7edc",
+              "given": "Immutable research evidence is blocked.",
+              "when": "The workflow produces the terminal evidence decision.",
+              "then": "The report states the no-go decision and exact remediation for every blocking finding.",
+              "supports": [
+                "req-375ad0b64c4cde1b",
+                "req-a7ebf1ac33c4e446"
+              ]
+            }
+          ],
+          "evidenceReadiness": "blocked",
+          "launchReadyAllowed": false,
+          "sourceAppendixRequired": false
+        },
+        "purpose": "blocked_report",
+        "repairPass": 0
+      },
+      "result": {
+        "resultType": "artifact_synthesized",
+        "artifact": {
+          "artifactId": "00000000-0000-4000-8000-000000000111",
+          "artifactHash": "bec1ca4ba495a30ebf765bc7d10ec312827bfb13bc09598d84942dde5da3a14e",
+          "kind": "final_markdown",
+          "contentType": "text/markdown",
+          "payload": {
+            "schemaVersion": "axwise.final-markdown.v1",
+            "title": "Blocked evidence report",
+            "markdown": "# Evidence decision\n\nBlocked: essential feed-law evidence remains unresolved. No launch authorization is granted.\n\n## Remediation plan\n\nVerify the applicable primary law before requesting a launch decision.",
+            "sourceArtifacts": [
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000100",
+                "artifactHash": "bf8fc9b5430e84561d72eb71e81726831a83eede9e893f9abad8c88ca69b8a20",
+                "kind": "scope"
+              },
+              {
+                "artifactId": "00000000-0000-4000-8000-000000000110",
+                "artifactHash": "4ad5dc5f86490c14f60163157590e052bee2f3907b744f66dc93d1847266642c",
+                "kind": "research"
+              }
+            ],
+            "sourceAppendix": [],
+            "candidateAttestation": null,
+            "evidenceReadiness": "blocked",
+            "launchReady": false
+          },
+          "markdown": "# Evidence decision\n\nBlocked: essential feed-law evidence remains unresolved. No launch authorization is granted.\n\n## Remediation plan\n\nVerify the applicable primary law before requesting a launch decision.",
+          "sourceArtifactIds": [
+            "00000000-0000-4000-8000-000000000100",
+            "00000000-0000-4000-8000-000000000110"
+          ]
+        },
+        "evidenceReadiness": "blocked"
+      }
+    }
+  ]
+}

@@ -63,7 +63,7 @@ evidence_engine = create_engine(llm_service)
 llm_services = {
     "gpt4": LLMService(model="gpt-4"),
     "claude": LLMService(model="claude-3-opus"),
-    "gemini": LLMService(model="models/gemini-3.7-flash")
+    "gemini": LLMService(model="models/gemini-3.8-flash")
 }
 evidence_engine = create_engine(llm_services)
 ```

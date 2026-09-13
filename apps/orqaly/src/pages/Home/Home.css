@@ -1,0 +1,67 @@
+/* Home dashboard - ambient motion + reduced-motion guard.
+   Tokens kept minimal; entrance + count-up + chart animation live in JS. */
+
+.home-dash {
+  /* Tabular numerals so count-up values do not jitter in width. */
+  font-feature-settings: 'tnum' 1;
+}
+
+/* The performance chart is the single visual hero: a slow telemetry sweep. */
+.home-hero {
+  position: relative;
+}
+
+.home-hero::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--app-accent-rgb, 16, 185, 129), 0.06),
+    transparent
+  );
+  transform: skewX(-12deg);
+  animation: homeScanSweep 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes homeScanSweep {
+  0% {
+    left: -40%;
+  }
+  60%,
+  100% {
+    left: 120%;
+  }
+}
+
+/* Per-row cascade entrance for tiles / table rows / cards inside each block.
+   Applied via staggerSx() with a per-index animation-delay. */
+@keyframes homeRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-dash *,
+  .home-dash *::before,
+  .home-dash *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .home-hero::after {
+    display: none;
+  }
+}

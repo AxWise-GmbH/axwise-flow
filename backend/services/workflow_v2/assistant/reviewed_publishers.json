@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "publishers": [
+    {
+      "publisher": "n8n",
+      "aliases": [],
+      "documentation_roots": ["https://docs.n8n.io"],
+      "reviewed_on": "2026-09-09",
+      "review_basis": "Publisher homepage links to its repository; that repository distinguishes Documentation from Community Forum and links to this documentation origin.",
+      "review_sources": [
+        "https://n8n.io/",
+        "https://github.com/n8n-io/n8n",
+        "https://docs.n8n.io/"
+      ]
+    }
+  ]
+}

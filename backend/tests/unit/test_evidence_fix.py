@@ -36,7 +36,7 @@ async def test_evidence_distribution():
         # Create LLM service
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-3.7-flash",
+            "model": "gemini-3.8-flash",
         }
         
         if not llm_config["api_key"]:

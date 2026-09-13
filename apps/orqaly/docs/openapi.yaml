@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Orchestrator API
+  version: 1.0.0
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /api/transcribe:
+    post:
+      summary: Transcribe audio and structure for meetings
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [audioBase64]
+              properties:
+                audioBase64:
+                  type: string
+                  description: Base64-encoded audio (max ~6M chars)
+                mimeType:
+                  type: string
+                  default: audio/webm
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transcriptRaw:
+                    type: string
+                  transcriptStructured:
+                    type: object
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '503':
+          description: Transcription not configured
+
+  /api/send-email:
+    post:
+      summary: Send email via Resend
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to, subject]
+              properties:
+                to:
+                  oneOf:
+                    - type: string
+                      format: email
+                    - type: array
+                      items:
+                        type: string
+                        format: email
+                subject:
+                  type: string
+                  maxLength: 500
+                text:
+                  type: string
+                  maxLength: 50000
+                html:
+                  type: string
+                  maxLength: 50000
+      responses:
+        '200':
+          description: Sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  id:
+                    type: string
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase access_token

@@ -106,7 +106,7 @@ def test_mid_stream_stall_honors_total_deadline_and_closes_iterator(
 ) -> None:
     module = _load_client_module(monkeypatch)
     client = object.__new__(module.AsyncGenAIClient)
-    client.default_model = "models/gemini-3.7-flash"
+    client.default_model = "models/gemini-3.8-flash"
 
     class HangingStream:
         closed = False
@@ -151,7 +151,7 @@ def test_stream_cancellation_propagates_and_closes_iterator(
 ) -> None:
     module = _load_client_module(monkeypatch)
     client = object.__new__(module.AsyncGenAIClient)
-    client.default_model = "models/gemini-3.7-flash"
+    client.default_model = "models/gemini-3.8-flash"
 
     class HangingStream:
         closed = False

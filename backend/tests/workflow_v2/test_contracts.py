@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from copy import deepcopy
 from pathlib import Path
 
@@ -10,33 +11,186 @@ from pydantic import TypeAdapter, ValidationError
 
 from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
+    CompileScopeInputV3,
     CompletionResult,
     EvidenceAcquisitionPassV1,
     EvidenceClaimV1,
     EvidenceRequirement,
+    OperationEvent,
+    OperationEventPage,
+    OperationMetrics,
     PlanningResultV2,
     ResearchResultV2,
     ResearchSourceV1,
     SelectedEvidenceArtifactV1,
-    SynthesizeArtifactInputV1,
     SourceSpan,
+    SynthesizeArtifactInputV1,
     WorkflowOutputContractV1,
+    WorkflowOutputContractV2,
     artifact_content_hash,
     canonical_hash,
     canonical_json,
+    render_assistant_context_request,
+    utf16_length,
     utf16_slice,
 )
 from backend.services.workflow_v2.operation_store import _stored_envelope_payload
-
+from backend.tests.workflow_v2.factories import scope_payload
 
 pytestmark = pytest.mark.contract
 GOLDEN = Path(__file__).with_name("fixtures") / "canonical_v1_golden.json"
 COMPILE_SCOPE_ENVELOPE = (
     Path(__file__).with_name("fixtures") / "compile_scope_envelope_v2.json"
 )
+COMPILE_SCOPE_V3_ENVELOPE = (
+    Path(__file__).with_name("fixtures") / "compile_scope_envelope_v3.json"
+)
 SYNTHESIZE_ARTIFACT_GOLDEN = (
     Path(__file__).with_name("fixtures") / "synthesize_artifact_v1_golden.json"
 )
+ASSISTANT_MIGRATION = (
+    Path(__file__).parents[2] / "database" / "workflow_v2" / "002_assistant_turn.sql"
+)
+ASSISTANT_RUNTIME_MIGRATION = (
+    Path(__file__).parents[2]
+    / "database"
+    / "workflow_v2"
+    / "003_assistant_runtime.sql"
+)
+OPERATION_EVENTS_MIGRATION = (
+    Path(__file__).parents[2]
+    / "database"
+    / "workflow_v2"
+    / "004_operation_events.sql"
+)
+PREVIEW_SCHEMA_APPLY = (
+    Path(__file__).parents[3]
+    / "deploy"
+    / "workflow-v2"
+    / "apply-preview-schema.sh"
+)
+
+
+def test_assistant_migration_does_not_use_reserved_constraint_alias() -> None:
+    migration = ASSISTANT_MIGRATION.read_text(encoding="utf-8")
+    assert "FROM pg_constraint AS candidate" in migration
+    assert "AS constraint" not in migration
+
+
+def test_operation_metrics_model_version_is_additive_for_legacy_replay() -> None:
+    legacy = OperationMetrics.model_validate(
+        {
+            "latencyMs": 7,
+            "provider": "google",
+            "model": "gemini-3.7-flash",
+        }
+    )
+    current = OperationMetrics.model_validate(
+        {
+            "latencyMs": 9,
+            "provider": "google",
+            "model": "gemini-3.8-flash",
+            "modelVersion": "gemini-3.8-flash-001",
+        }
+    )
+
+    assert legacy.model_version is None
+    assert "modelVersion" not in legacy.model_dump(
+        mode="json", by_alias=True, exclude_unset=True
+    )
+    assert current.model == "gemini-3.8-flash"
+    assert current.model_version == "gemini-3.8-flash-001"
+    assert current.model_dump(mode="json", by_alias=True)["modelVersion"] == (
+        "gemini-3.8-flash-001"
+    )
+
+
+def test_assistant_runtime_migration_is_additive_and_content_free() -> None:
+    migration = ASSISTANT_RUNTIME_MIGRATION.read_text(encoding="utf-8")
+
+    assert "ADD COLUMN retry_at timestamptz NULL" in migration
+    assert "ADD COLUMN retry_after_seconds integer NULL" in migration
+    assert "ADD COLUMN failure_diagnostics jsonb NULL" in migration
+    assert (
+        "uuid, uuid, uuid, boolean, text, timestamptz, integer, jsonb"
+        in migration
+    )
+    assert "DROP FUNCTION" not in migration
+    assert "prompt" not in migration.casefold()
+    assert "response_body" not in migration.casefold()
+    assert "p_value ? 'route'" in migration
+    assert "p_value ? 'status'" in migration
+    assert "COALESCE((" in migration
+
+
+def test_operation_events_migration_is_append_only_and_has_no_provider_circuit() -> None:
+    migration = OPERATION_EVENTS_MIGRATION.read_text(encoding="utf-8")
+
+    assert "CREATE TABLE axwise.operation_events" in migration
+    assert "operation lifecycle events are append-only" in migration
+    assert "event_sequence = value.event_sequence + 1" in migration
+    assert "request_cognitive_operation_cancel" in migration
+    assert "cancel_cognitive_operation" in migration
+    assert "ENABLE ROW LEVEL SECURITY" in migration
+    assert "provider_circuit" not in migration
+
+
+def test_preview_schema_apply_advances_and_marks_all_additive_migrations() -> None:
+    script = PREVIEW_SCHEMA_APPLY.read_text(encoding="utf-8")
+    subprocess.run(["bash", "-n", str(PREVIEW_SCHEMA_APPLY)], check=True)
+
+    for migration in (
+        "002_assistant_turn.sql",
+        "003_assistant_runtime.sql",
+        "004_operation_events.sql",
+    ):
+        assert migration in script
+    assert "expected_relations_with_events" in script
+    assert "axwise.operation_events" in script
+    assert "expected_release_marker" in script
+    assert "events_migration_path" in script
+    fresh_apply = script[script.index('if test "${user_schemas}" != public'):]
+    assert fresh_apply.index('"${ASSISTANT_MIGRATION}"') < fresh_apply.index(
+        '"${RUNTIME_MIGRATION}"'
+    )
+    assert fresh_apply.index('"${RUNTIME_MIGRATION}"') < fresh_apply.index(
+        '"${EVENTS_MIGRATION}"'
+    )
+    assert fresh_apply.index('"${EVENTS_MIGRATION}"') < fresh_apply.index(
+        '"${BINDINGS}"'
+    )
+
+
+def test_operation_event_contract_enforces_monotonic_typed_lifecycle() -> None:
+    operation_id = "00000000-0000-4000-8000-000000000777"
+    event = OperationEvent.model_validate(
+        {
+            "operationId": operation_id,
+            "sequence": 3,
+            "eventType": "cancel_requested",
+            "status": "cancel_requested",
+            "occurredAt": "2026-09-02T10:15:30Z",
+        }
+    )
+    page = OperationEventPage(
+        operation_id=operation_id,
+        after=2,
+        next_after=3,
+        has_more=False,
+        events=[event],
+    )
+
+    assert page.next_after == 3
+    with pytest.raises(ValidationError):
+        OperationEvent.model_validate(
+            {
+                "operationId": operation_id,
+                "sequence": 4,
+                "eventType": "completed",
+                "status": "failed",
+                "occurredAt": "2026-09-02T10:15:31Z",
+            }
+        )
 
 
 def test_canonical_v1_shared_golden_vectors_and_utf16_span() -> None:
@@ -84,6 +238,479 @@ def test_compile_scope_envelope_matches_shared_javascript_fixture() -> None:
         "policies": [],
     }
     assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+
+
+def test_compile_scope_v3_envelope_matches_shared_javascript_fixture() -> None:
+    fixture_bytes = COMPILE_SCOPE_V3_ENVELOPE.read_bytes()
+    fixture = json.loads(fixture_bytes.decode("utf-8"))
+    envelope = AxWiseOperationEnvelope.model_validate(fixture)
+    input_value = envelope.input
+
+    assert isinstance(input_value, CompileScopeInputV3)
+    assert envelope.operation_type == "CompileScopeV3"
+    assert input_value.assistant_context.envelope_hash == (
+        "2428b5d28b484e28fe38d50d1aba5c72026763faa178dd95736891b3adc50a6e"
+    )
+    assert envelope.canonical_input_hash == (
+        "47f22aaf2746e6add69a7d0c590926dd6130b60baaecdcb100302117114bd7c0"
+    )
+    assert render_assistant_context_request(input_value.assistant_context) == (
+        input_value.request
+    )
+    assert utf16_length(input_value.assistant_context.instruction.content) == 32
+    assert input_value.assistant_context.turns[0].user.source_span.start == 46
+    assert input_value.assistant_context.turns[0].assistant.source_span.start == 103
+    assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+    assert envelope.model_dump(mode="json", by_alias=True) == fixture
+    assert hashlib.sha256(fixture_bytes).hexdigest() == (
+        "5cd46e817322d5193b1d68f99ba93de0669a350547f987e1482bb73d532a8c73"
+    )
+
+
+def test_compile_scope_v3_accepts_canonical_mixed_content_kind_order() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["assistantContext"]["turns"][0]["user"][
+        "contentKinds"
+    ] = ["text", "artifact"]
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    parsed = AxWiseOperationEnvelope.model_validate(fixture)
+
+    assert parsed.input.assistant_context.turns[0].user.content_kinds == [
+        "text",
+        "artifact",
+    ]
+
+
+def _rebind_compile_scope_v3_fixture(fixture: dict) -> None:
+    context = fixture["input"]["assistantContext"]
+    context["envelopeHash"] = canonical_hash(
+        {key: value for key, value in context.items() if key != "envelopeHash"}
+    )
+    fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+
+
+def _execution_agent_profile_snapshot(agent_id: str) -> dict:
+    profile = {
+        "version": "orqaly_agent_profile_input_v1",
+        "displayName": "Research Scout",
+        "roleLabel": "Evidence researcher",
+        "description": "Finds defensible primary evidence.",
+        "instructions": "Prefer primary sources and state material uncertainty.",
+        "avatar": {"kind": "emoji", "value": "🧭", "color": "#365E8D"},
+    }
+    return {
+        "version": "orqaly_execution_agent_profile_snapshot_v1",
+        "profileVersion": {
+            "version": "orqaly_agent_profile_v1",
+            "id": "10000000-0000-4000-8000-000000000407",
+            "agentId": agent_id,
+            "versionNumber": 7,
+            "contentHash": canonical_hash(profile),
+        },
+        "profile": profile,
+    }
+
+
+def _execution_agent_v1(fixture: dict, *, with_profile: bool = False) -> dict:
+    context = fixture["input"]["assistantContext"]
+    instruction = context["instruction"]["content"]
+    agent = {
+        "schemaVersion": "orqaly.execution-agent.v1",
+        "id": "10000000-0000-4000-8000-000000000406",
+        "runId": fixture["workflow"]["runId"],
+        "owner": {
+            "tenantId": fixture["owner"]["tenantId"],
+            "userId": fixture["owner"]["userId"],
+        },
+        "lifetime": "temporary",
+        "source": {
+            "threadId": context["threadId"],
+            "turnId": context["currentTurnId"],
+            "taskHash": hashlib.sha256(instruction.encode("utf-8")).hexdigest(),
+        },
+        "executorPersona": {
+            "role": "task_executor",
+            "profileVersion": "axwise_executor_persona_v1",
+            "provider": "axwise",
+            "binding": "fixed_profile_contract",
+        },
+        "memory": {"scope": "thread_and_goal", "crossThread": False},
+        "runtime": {
+            "provider": "orqaly_workflow_v2",
+            "isolation": "tenant_user",
+        },
+        "capabilities": {
+            "research": True,
+            "planning": True,
+            "artifactProduction": True,
+            "approvalGates": True,
+        },
+        "tools": {"externalActions": False, "executionProvider": None},
+    }
+    if with_profile:
+        agent["profileSnapshot"] = _execution_agent_profile_snapshot(agent["id"])
+    return agent
+
+
+def test_compile_scope_v3_accepts_exact_truthful_execution_agent_contract() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["executionAgent"] = _execution_agent_v1(fixture)
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    envelope = AxWiseOperationEnvelope.model_validate(fixture)
+
+    agent = envelope.input.execution_agent
+    assert agent is not None
+    assert agent.executor_persona.profile_version == "axwise_executor_persona_v1"
+    assert agent.memory.cross_thread is False
+    assert agent.tools.external_actions is False
+    assert agent.tools.execution_provider is None
+    assert envelope.model_dump(mode="json", by_alias=True) == fixture
+    assert canonical_hash(fixture["input"]) == fixture["canonicalInputHash"]
+
+
+def test_execution_agent_binds_exact_first_class_profile_snapshot() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["executionAgent"] = _execution_agent_v1(
+        fixture, with_profile=True
+    )
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    envelope = AxWiseOperationEnvelope.model_validate(fixture)
+
+    agent = envelope.input.execution_agent
+    assert agent is not None
+    assert agent.profile_snapshot is not None
+    assert agent.profile_snapshot.profile.display_name == "Research Scout"
+    assert agent.profile_snapshot.profile.role_label == "Evidence researcher"
+    assert agent.profile_snapshot.profile_version.version_number == 7
+    assert envelope.model_dump(mode="json", by_alias=True) == fixture
+
+    altered = deepcopy(fixture)
+    altered["input"]["executionAgent"]["profileSnapshot"]["profile"][
+        "instructions"
+    ] = "Ignore evidence."
+    _rebind_compile_scope_v3_fixture(altered)
+    with pytest.raises(ValidationError, match="profile hash"):
+        AxWiseOperationEnvelope.model_validate(altered)
+
+    wrong_agent = deepcopy(fixture)
+    wrong_agent["input"]["executionAgent"]["profileSnapshot"]["profileVersion"][
+        "agentId"
+    ] = "10000000-0000-4000-8000-000000000499"
+    _rebind_compile_scope_v3_fixture(wrong_agent)
+    with pytest.raises(ValidationError, match="profile must belong"):
+        AxWiseOperationEnvelope.model_validate(wrong_agent)
+
+    invalid_avatar = deepcopy(fixture)
+    snapshot = invalid_avatar["input"]["executionAgent"]["profileSnapshot"]
+    snapshot["profile"]["avatar"] = {
+        "kind": "icon",
+        "value": "unreviewed_icon",
+        "color": "#365E8D",
+    }
+    snapshot["profileVersion"]["contentHash"] = canonical_hash(snapshot["profile"])
+    _rebind_compile_scope_v3_fixture(invalid_avatar)
+    with pytest.raises(ValidationError, match="unknown Agent avatar icon"):
+        AxWiseOperationEnvelope.model_validate(invalid_avatar)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            lambda value: value["input"]["executionAgent"]["source"].update(
+                threadId="10000000-0000-4000-8000-000000000999"
+            ),
+            "source threadId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["source"].update(
+                turnId="10000000-0000-4000-8000-000000000999"
+            ),
+            "source turnId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["source"].update(
+                taskHash="0" * 64
+            ),
+            "taskHash must match",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"].update(
+                runId="10000000-0000-4000-8000-000000000999"
+            ),
+            "runId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["owner"].update(
+                tenantId="10000000-0000-4000-8000-000000000999"
+            ),
+            "tenantId must equal",
+        ),
+        (
+            lambda value: value["input"]["executionAgent"]["owner"].update(
+                userId="user_anotherowner123"
+            ),
+            "userId must equal",
+        ),
+    ],
+)
+def test_compile_scope_v3_binds_execution_agent_to_exact_task_and_owner(
+    mutation, message: str
+) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["executionAgent"] = _execution_agent_v1(fixture)
+    mutation(fixture)
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    with pytest.raises(ValidationError, match=message):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda agent: agent["executorPersona"].update(
+            profileVersion="axwise_executor_persona_v2"
+        ),
+        lambda agent: agent["executorPersona"].update(
+            binding="dynamically_generated"
+        ),
+        lambda agent: agent["memory"].update(crossThread=True),
+        lambda agent: agent["memory"].update(crossThread=0),
+        lambda agent: agent["runtime"].update(isolation="shared"),
+        lambda agent: agent["capabilities"].update(research=False),
+        lambda agent: agent["capabilities"].update(research=1),
+        lambda agent: agent["tools"].update(externalActions=True),
+        lambda agent: agent["tools"].update(externalActions=0),
+        lambda agent: agent["tools"].update(executionProvider="n8n"),
+        lambda agent: agent["executorPersona"].update(
+            profile_version=agent["executorPersona"].pop("profileVersion")
+        ),
+    ],
+)
+def test_compile_scope_v3_rejects_execution_agent_capability_or_wire_drift(
+    mutation,
+) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    agent = _execution_agent_v1(fixture)
+    mutation(agent)
+    fixture["input"]["executionAgent"] = agent
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    with pytest.raises(ValidationError):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+def _operation_with_execution_agent(input_payload: dict, operation_type: str) -> dict:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    agent = _execution_agent_v1(fixture, with_profile=True)
+    owner = {
+        "tenantId": "20000000-0000-4000-8000-000000000002",
+        "organizationId": None,
+        "userId": "user_executionagentstage123",
+    }
+    workflow = {
+        "runId": "20000000-0000-4000-8000-000000000003",
+        "stageId": "20000000-0000-4000-8000-000000000004",
+        "stageAttemptId": "20000000-0000-4000-8000-000000000005",
+    }
+    agent["runId"] = workflow["runId"]
+    agent["owner"] = {
+        "tenantId": owner["tenantId"],
+        "userId": owner["userId"],
+    }
+    typed_input = {**input_payload, "executionAgent": agent}
+    return {
+        "operationId": "20000000-0000-4000-8000-000000000001",
+        "operationType": operation_type,
+        "owner": owner,
+        "workflow": workflow,
+        "contractVersion": "axwise.operation.v2",
+        "canonicalInputHash": canonical_hash(typed_input),
+        "input": typed_input,
+    }
+
+
+def test_execution_agent_is_canonically_bound_to_every_goal_operation_stage() -> None:
+    correction = "Keep the scope and make the result concise."
+    correction_hash = hashlib.sha256(correction.encode("utf-8")).hexdigest()
+    scope = scope_payload()
+    inputs = [
+        (
+            "ReviseScopeV2",
+            {
+                "type": "ReviseScopeV2",
+                "acceptedScope": {
+                    "artifactId": "20000000-0000-4000-8000-000000000011",
+                    "artifactHash": "a" * 64,
+                    "kind": "scope",
+                },
+                "correction": correction,
+                "correctionSourceSpans": [
+                    {
+                        "start": 0,
+                        "end": len(correction),
+                        "offsetUnit": "utf16_code_units",
+                        "text": correction,
+                        "sha256": correction_hash,
+                    }
+                ],
+            },
+        ),
+        (
+            "ExecuteResearchV2",
+            {
+                "type": "ExecuteResearchV2",
+                "acceptedScope": {
+                    "artifactId": "20000000-0000-4000-8000-000000000011",
+                    "artifactHash": "a" * 64,
+                    "kind": "scope",
+                },
+                "scope": scope,
+                "selectedEvidence": [],
+            },
+        ),
+    ]
+    synthesis_fixture = json.loads(SYNTHESIZE_ARTIFACT_GOLDEN.read_text(encoding="utf-8"))
+    inputs.extend(
+        ("SynthesizeArtifactV1", case["input"])
+        for case in synthesis_fixture["cases"]
+    )
+
+    for operation_type, input_payload in inputs:
+        payload = _operation_with_execution_agent(input_payload, operation_type)
+        envelope = AxWiseOperationEnvelope.model_validate(payload)
+        serialized = envelope.model_dump(
+            mode="json", by_alias=True, exclude_unset=True
+        )
+
+        assert serialized["input"]["executionAgent"] == payload["input"][
+            "executionAgent"
+        ]
+        assert canonical_hash(serialized["input"]) == payload["canonicalInputHash"]
+
+
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        (
+            lambda value: value["input"]["assistantContext"]["turns"][0][
+                "user"
+            ].update(contentKinds=["artifact", "text"]),
+            "canonical text/artifact order",
+        ),
+        (
+            lambda value: value["input"]["assistantContext"]["turns"][0][
+                "assistant"
+            ].update(provenance="orqaly_local_output"),
+            "provenance must match",
+        ),
+        (
+            lambda value: value["input"]["assistantContext"]["turns"][0][
+                "user"
+            ]["sourceSpan"].update(start=47),
+            "exact rendered content offsets",
+        ),
+        (
+            lambda value: value["input"]["assistantContext"].update(
+                currentTurnId=value["input"]["assistantContext"]["turns"][0][
+                    "assistant"
+                ]["turnId"]
+            ),
+            "turn identities must not overlap",
+        ),
+    ],
+)
+def test_compile_scope_v3_rejects_noncanonical_context(
+    mutation, message: str
+) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    mutation(fixture)
+    _rebind_compile_scope_v3_fixture(fixture)
+
+    with pytest.raises(ValidationError, match=message):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+def test_compile_scope_v3_rejects_tampered_envelope_and_content_hashes() -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["assistantContext"]["turns"][0]["user"][
+        "contentSha256"
+    ] = "f" * 64
+    fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+
+    with pytest.raises(ValidationError, match="content hash does not match"):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    fixture["input"]["assistantContext"]["omittedTurnCount"] = 1
+    fixture["canonicalInputHash"] = canonical_hash(fixture["input"])
+    with pytest.raises(ValidationError, match="envelope hash does not match"):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda value: value["input"].update(
+            assistant_context=value["input"].pop("assistantContext")
+        ),
+        lambda value: value["input"]["assistantContext"]["turns"][0][
+            "user"
+        ]["sourceSpan"].pop("offsetUnit"),
+        lambda value: value["input"]["assistantContext"].update(
+            omittedTurnCount="0"
+        ),
+        lambda value: value["input"]["assistantContext"]["turns"][0][
+            "user"
+        ].update(truncated="false"),
+        lambda value: value["input"]["assistantContext"].update(
+            threadId="urn:uuid:10000000-0000-4000-8000-000000000001"
+        ),
+    ],
+)
+def test_compile_scope_v3_rejects_noncanonical_wire_coercions(mutation) -> None:
+    fixture = json.loads(COMPILE_SCOPE_V3_ENVELOPE.read_text(encoding="utf-8"))
+    mutation(fixture)
+
+    with pytest.raises(ValidationError):
+        AxWiseOperationEnvelope.model_validate(fixture)
+
+
+def test_assistant_turn_envelope_is_typed_and_canonically_bound() -> None:
+    input_payload = {
+        "type": "AssistantTurnV1",
+        "responseMode": "one_shot",
+        "message": "Compare two bounded options.",
+        "conversation": [
+            {"role": "user", "content": "I care most about reliability."}
+        ],
+    }
+    envelope = AxWiseOperationEnvelope.model_validate(
+        {
+            "operationId": "00000000-0000-4000-8000-000000000921",
+            "operationType": "AssistantTurnV1",
+            "owner": {
+                "tenantId": "00000000-0000-4000-8000-000000000922",
+                "organizationId": None,
+                "userId": "user_assistantcontract123",
+            },
+            "workflow": {
+                "runId": "00000000-0000-4000-8000-000000000923",
+                "stageId": "00000000-0000-4000-8000-000000000924",
+                "stageAttemptId": "00000000-0000-4000-8000-000000000925",
+            },
+            "contractVersion": "axwise.operation.v2",
+            "canonicalInputHash": canonical_hash(input_payload),
+            "input": input_payload,
+        }
+    )
+
+    assert envelope.operation_type == "AssistantTurnV1"
+    assert envelope.model_dump(mode="json", by_alias=True)["input"] == input_payload
 
 
 def test_synthesize_artifact_inputs_and_results_match_shared_javascript_golden() -> None:
@@ -447,6 +1074,129 @@ def test_only_ready_launch_authorization_contract_can_allow_launch_readiness() -
                 "launchReadyAllowed": False,
             }
         )
+
+
+def test_output_contract_v2_is_tagged_strict_and_leaves_v1_byte_exact() -> None:
+    requirement_id = "req-0123456789abcdef"
+    criterion_core = {
+        "given": "The owner requests one direct checklist.",
+        "when": "The reader Markdown is published.",
+        "then": "It contains exactly three checklist items within 100 words.",
+        "supports": [requirement_id],
+    }
+    legacy_payload = {
+        "format": "text/markdown",
+        "artifactType": "content_artifact",
+        "requiredSections": ["Checklist"],
+        "requirementIds": [requirement_id],
+        "rubric": ["Honor the accepted reader-facing format."],
+        "acceptanceCriteria": [
+            {
+                "id": f"acc-{canonical_hash(criterion_core)[:16]}",
+                **criterion_core,
+            }
+        ],
+        "evidenceReadiness": "ready",
+        "launchReadyAllowed": False,
+        "sourceAppendixRequired": False,
+    }
+    legacy = WorkflowOutputContractV1.model_validate(legacy_payload)
+    assert legacy.model_dump(
+        mode="json", by_alias=True, exclude_unset=True
+    ) == legacy_payload
+
+    reader_output = {
+        "schemaVersion": "orqaly.reader-output.v1",
+        "readerFormat": {"value": "checklist", "requirementId": requirement_id},
+        "wordLimit": {
+            "maximumWords": 100,
+            "basis": "owner_explicit",
+            "requirementId": requirement_id,
+        },
+        "itemLimit": {
+            "exactItems": 3,
+            "itemKind": "checklist_item",
+            "requirementId": requirement_id,
+        },
+        "measurement": {
+            "scope": "reader_markdown_before_server_disclosures",
+            "wordCounter": "unicode_words_v1",
+            "itemCounter": "top_level_markdown_items_v1",
+        },
+    }
+    current_payload = {
+        **legacy_payload,
+        "schemaVersion": "orqaly.markdown-output-contract.v2",
+        "readerOutput": reader_output,
+    }
+    current = WorkflowOutputContractV2.model_validate(current_payload)
+    assert current.model_dump(mode="json", by_alias=True) == current_payload
+
+    with pytest.raises(ValidationError):
+        WorkflowOutputContractV1.model_validate(current_payload)
+    with pytest.raises(ValidationError, match="requirement IDs"):
+        WorkflowOutputContractV2.model_validate(
+            {
+                **current_payload,
+                "readerOutput": {
+                    **reader_output,
+                    "readerFormat": {
+                        "value": "checklist",
+                        "requirementId": "req-fedcba9876543210",
+                    },
+                },
+            }
+        )
+
+
+def test_plan_v2_reader_output_requires_owner_requirement_provenance() -> None:
+    input_payload = _synthesis_case("execute_task")["input"]
+    plan = deepcopy(
+        next(
+            content["payload"]
+            for content in input_payload["artifactContents"]
+            if content["artifact"]["kind"] == "plan"
+        )
+    )
+    owner_requirement = next(
+        item for item in plan["requirements"] if item["authority"] == "owner"
+    )
+    derived_requirement = next(
+        item for item in plan["requirements"] if item["authority"] != "owner"
+    )
+    plan["workShape"] = "content_artifact"
+    plan["outputContract"] = {
+        **plan["outputContract"],
+        "schemaVersion": "orqaly.markdown-output-contract.v2",
+        "artifactType": "content_artifact",
+        "readerOutput": {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": owner_requirement["id"],
+            },
+            "wordLimit": None,
+            "itemLimit": None,
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        },
+    }
+    plan["planHash"] = canonical_hash(
+        {key: value for key, value in plan.items() if key != "planHash"}
+    )
+    PlanningResultV2.model_validate(plan)
+
+    plan["outputContract"]["readerOutput"]["readerFormat"]["requirementId"] = (
+        derived_requirement["id"]
+    )
+    plan["planHash"] = canonical_hash(
+        {key: value for key, value in plan.items() if key != "planHash"}
+    )
+    with pytest.raises(ValidationError, match="owner-authored"):
+        PlanningResultV2.model_validate(plan)
 
 
 @pytest.mark.parametrize(

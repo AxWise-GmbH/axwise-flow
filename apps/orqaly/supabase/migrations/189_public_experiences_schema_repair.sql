@@ -1,0 +1,232 @@
+-- Repair the public booking and public page schema for every installation.
+--
+-- The original sources were named 012a_... and 012b_..., which current
+-- Supabase CLIs do not recognize as migrations. This forward-only migration is
+-- intentionally idempotent: it completes fresh bootstraps and safely repairs
+-- an existing deployment where some or all of these objects already exist.
+
+create table if not exists public.booking_profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  partner_id text references public.partners(id) on delete set null,
+  slug text not null unique,
+  host_name text not null default '',
+  meeting_title text not null default '30 Minute Meeting',
+  meeting_description text not null default '',
+  duration_minutes integer not null default 30 check (duration_minutes >= 15 and duration_minutes <= 240),
+  timezone text not null default 'UTC',
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.booking_profiles
+  add column if not exists public_token text unique,
+  add column if not exists buffer_before_minutes smallint not null default 0 check (buffer_before_minutes >= 0 and buffer_before_minutes <= 120),
+  add column if not exists buffer_after_minutes smallint not null default 0 check (buffer_after_minutes >= 0 and buffer_after_minutes <= 120),
+  add column if not exists role text not null default '',
+  add column if not exists avatar_url text,
+  add column if not exists max_bookings_per_day smallint not null default 0 check (max_bookings_per_day >= 0 and max_bookings_per_day <= 50);
+
+create index if not exists idx_booking_profiles_user_id on public.booking_profiles(user_id);
+create index if not exists idx_booking_profiles_partner_id on public.booking_profiles(partner_id);
+create unique index if not exists idx_booking_profiles_slug on public.booking_profiles(slug);
+create unique index if not exists idx_booking_profiles_public_token
+  on public.booking_profiles(public_token)
+  where public_token is not null;
+
+comment on column public.booking_profiles.public_token is 'Secure token for /schedule/{token}; null when link revoked.';
+comment on column public.booking_profiles.buffer_before_minutes is 'Minutes of buffer before each booking (no slot start within this before another booking).';
+comment on column public.booking_profiles.buffer_after_minutes is 'Minutes of buffer after each booking (no slot start within this after another booking).';
+comment on column public.booking_profiles.role is 'Persona role label (e.g. Sales, Support).';
+comment on column public.booking_profiles.avatar_url is 'Optional persona image URL.';
+comment on column public.booking_profiles.max_bookings_per_day is 'Max bookings per day per profile; 0 = no limit.';
+
+create table if not exists public.availability_rules (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.booking_profiles(id) on delete cascade,
+  weekday smallint not null check (weekday >= 0 and weekday <= 6),
+  start_time time not null,
+  end_time time not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (end_time > start_time)
+);
+
+create index if not exists idx_availability_rules_profile_id on public.availability_rules(profile_id);
+create index if not exists idx_availability_rules_weekday on public.availability_rules(weekday);
+create unique index if not exists idx_availability_rules_profile_window
+  on public.availability_rules(profile_id, weekday, start_time, end_time);
+
+create table if not exists public.availability_overrides (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.booking_profiles(id) on delete cascade,
+  override_date date not null,
+  is_available boolean not null default true,
+  start_time time,
+  end_time time,
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (
+    is_available = false
+    or (
+      start_time is not null
+      and end_time is not null
+      and end_time > start_time
+    )
+    or (
+      start_time is null
+      and end_time is null
+    )
+  )
+);
+
+create index if not exists idx_availability_overrides_profile_id on public.availability_overrides(profile_id);
+create unique index if not exists idx_availability_overrides_profile_date
+  on public.availability_overrides(profile_id, override_date);
+
+create table if not exists public.meeting_bookings (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.booking_profiles(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  guest_name text not null,
+  guest_email text not null,
+  guest_notes text not null default '',
+  status text not null default 'confirmed',
+  source text not null default 'public_link',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_at > starts_at)
+);
+
+create index if not exists idx_meeting_bookings_profile_id on public.meeting_bookings(profile_id);
+create index if not exists idx_meeting_bookings_starts_at on public.meeting_bookings(starts_at);
+create unique index if not exists idx_meeting_bookings_profile_starts_at
+  on public.meeting_bookings(profile_id, starts_at);
+
+alter table public.booking_profiles enable row level security;
+alter table public.availability_rules enable row level security;
+alter table public.availability_overrides enable row level security;
+alter table public.meeting_bookings enable row level security;
+
+drop policy if exists "Owners manage booking_profiles" on public.booking_profiles;
+create policy "Owners manage booking_profiles" on public.booking_profiles
+  for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "Public read active booking_profiles" on public.booking_profiles;
+create policy "Public read active booking_profiles" on public.booking_profiles
+  for select
+  using (is_active = true);
+
+drop policy if exists "Owners manage availability_rules" on public.availability_rules;
+create policy "Owners manage availability_rules" on public.availability_rules
+  for all
+  using (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Public read availability_rules" on public.availability_rules;
+create policy "Public read availability_rules" on public.availability_rules
+  for select
+  using (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.is_active = true
+    )
+  );
+
+drop policy if exists "Owners manage availability_overrides" on public.availability_overrides;
+create policy "Owners manage availability_overrides" on public.availability_overrides
+  for all
+  using (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Public read availability_overrides" on public.availability_overrides;
+create policy "Public read availability_overrides" on public.availability_overrides
+  for select
+  using (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.is_active = true
+    )
+  );
+
+drop policy if exists "Owners manage meeting_bookings" on public.meeting_bookings;
+create policy "Owners manage meeting_bookings" on public.meeting_bookings
+  for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "Public insert meeting_bookings" on public.meeting_bookings;
+create policy "Public insert meeting_bookings" on public.meeting_bookings
+  for insert
+  with check (
+    exists (
+      select 1
+      from public.booking_profiles p
+      where p.id = profile_id
+        and p.is_active = true
+        and p.user_id = user_id
+    )
+    and starts_at >= (now() - interval '1 minute')
+  );
+
+create table if not exists public.public_pages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  slug text not null unique,
+  is_published boolean not null default false,
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists idx_public_pages_user_id on public.public_pages(user_id);
+create index if not exists idx_public_pages_slug on public.public_pages(slug);
+create index if not exists idx_public_pages_published on public.public_pages(is_published);
+
+alter table public.public_pages enable row level security;
+
+drop policy if exists "Users can manage own public_pages" on public.public_pages;
+create policy "Users can manage own public_pages" on public.public_pages
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "Public can read published public_pages" on public.public_pages;
+create policy "Public can read published public_pages" on public.public_pages
+  for select using (is_published = true);

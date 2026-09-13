@@ -46,7 +46,7 @@ def _get_api_key() -> str:
 
 
 async def extract_business_and_stakeholders(project_idea: str) -> Dict[str, Any]:
-    """Uses Gemini 3.7 Flash to identify the problem, target customers, and required team hires."""
+    """Uses Gemini 3.8 Flash to identify the problem, target customers, and required team hires."""
     logger.info("Extracting business context, customers, and hiring profiles using Google GenAI...")
     api_key = _get_api_key()
     client = genai.Client(api_key=api_key)
@@ -92,7 +92,7 @@ Return your response strictly as a JSON object with this exact structure:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.7-flash",
+        model="gemini-3.8-flash",
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
@@ -106,7 +106,7 @@ Return your response strictly as a JSON object with this exact structure:
 
 
 async def generate_landing_page_concept(business_context: BusinessContext, customers: List[Any]) -> str:
-    """Uses Gemini 3.7 Flash to generate a tailored landing-page concept from target customer personas."""
+    """Uses Gemini 3.8 Flash to generate a tailored landing-page concept from target customer personas."""
     logger.info("Generating landing page concept and copywriting structure tailored to the generated customer personas...")
     api_key = _get_api_key()
     client = genai.Client(api_key=api_key)
@@ -146,7 +146,7 @@ Structure your output beautifully in Markdown, including:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.7-flash",
+        model="gemini-3.8-flash",
         contents=prompt
     )
     return response.text
@@ -193,7 +193,7 @@ async def main():
     # 2. Run Forward-Simulation Pipeline with OCEANSampler
     logger.info("Initializing Forward-Simulation Pipeline...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.8-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()

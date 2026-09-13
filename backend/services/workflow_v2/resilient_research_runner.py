@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Mapping, Protocol
 from urllib.parse import urlsplit
 
+import httpx
+
 from backend.domain.workflow_v2.contracts import (
     canonical_json,
     is_canonical_public_https_url,
@@ -30,13 +32,19 @@ from backend.domain.workflow_v2.contracts import (
 from backend.services.generative.searxng_search_service import SearxngSearchService
 from backend.services.workflow_v2.direct_source_fetch import canonical_public_url
 from backend.services.workflow_v2.exact_span_extractor import (
+    MAX_DOCUMENT_CODE_POINTS,
     BoundedFetchedDocument,
     ExactSpanExtractionRequest,
     ExactSpanExtractionResult,
     ExactSpanRequirementQuery,
-    MAX_DOCUMENT_CODE_POINTS,
 )
-
+from backend.services.workflow_v2.research_diagnostics import (
+    plain_diagnostic_fields,
+    sanitize_research_evidence_diagnostics,
+)
+from backend.services.workflow_v2.research_query_budgets import (
+    FALLBACK_DISCOVERY_TOPIC_CHARACTERS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +55,7 @@ _FALLBACK_PRIMARY_STATUSES = frozenset(
         "retry_exhausted",
         "unavailable",
         "response_processing_error",
+        "quality_rejected",
     }
 )
 _HEALTHY_DISCOVERY_STATUSES = frozenset({"ok", "empty"})
@@ -66,6 +75,9 @@ _DEFAULT_PRIMARY_HEALTHY_SECONDS = 5.0
 _MAX_PRIMARY_HEALTHY_SECONDS = 30.0
 WORKFLOW_V2_FALLBACK_PHASE_SECONDS = 60.0
 _FALLBACK_DISCOVERY_SECONDS = 10.0
+# Assistant may match the discovery adapter's request allowance, including its
+# private-service authentication, without changing durable research's defaults.
+_MAX_FALLBACK_DISCOVERY_SECONDS = 20.0
 _FALLBACK_FETCH_SECONDS = 15.0
 _FALLBACK_EXTRACTION_SECONDS = 45.0
 _DISCOVERY_SECTION_BUDGETS = {
@@ -73,7 +85,7 @@ _DISCOVERY_SECTION_BUDGETS = {
     "applicability": 300,
     "source classes": 160,
     "publishers": 650,
-    "topics": 200,
+    "topics": FALLBACK_DISCOVERY_TOPIC_CHARACTERS,
     "geography": 80,
 }
 _LOCATOR_STOP_WORDS = frozenset(
@@ -129,6 +141,44 @@ DirectTextFetcher = Callable[[str], Awaitable[Mapping[str, Any]]]
 SourceTypeClassifier = Callable[[str, str], set[str]]
 
 
+def _fetch_failure_category(error: Exception) -> str:
+    """Classify failures without emitting exception text, URLs, or response bodies."""
+
+    if isinstance(error, (TimeoutError, httpx.TimeoutException)):
+        return "timeout"
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        return (
+            "http_4xx"
+            if 400 <= status < 500
+            else "http_5xx" if 500 <= status < 600 else "http_status"
+        )
+    if isinstance(error, httpx.TransportError):
+        return "transport"
+    if isinstance(error, ValueError) and len(error.args) == 1:
+        # Only exact constant messages from the owned direct-source fetcher are
+        # inspected. Unknown messages (including user-controlled content) collapse.
+        reason = error.args[0]
+        if isinstance(reason, str):
+            return {
+                "unsafe direct source URL": "security_rejected",
+                "unsafe direct source host": "security_rejected",
+                "unsafe direct source address": "security_rejected",
+                "unsafe direct source connection peer": "security_rejected",
+                "unsafe direct source redirect": "security_rejected",
+                "direct source final URL is unsafe": "security_rejected",
+                "direct source encoded responses are disabled": "encoded_response",
+                "direct source is not textual": "unsupported_content_type",
+                "direct source contains no text": "empty_document",
+                "direct source returned an access challenge": "access_challenge",
+                "direct source exceeds size limit": "size_limit",
+                "direct source has invalid content length": "invalid_content_length",
+                "direct source redirect omitted location": "invalid_redirect",
+                "direct source exceeded redirect limit": "redirect_limit",
+            }.get(reason, "other")
+    return "other"
+
+
 @dataclass(frozen=True)
 class _FallbackContext:
     discovery_query: str
@@ -172,12 +222,16 @@ async def _await_cancellation_safe(cleanup: Awaitable[None]) -> None:
         raise cancellation
 
 
-async def _default_fetch_direct_text(url: str) -> Mapping[str, Any]:
+async def _default_fetch_direct_text(
+    url: str, *, url_validator: Callable[[str], bool] | None = None
+) -> Mapping[str, Any]:
     # Kept lazy so importing the runner does not pull the legacy authority
     # stack into the small workflow-v2 worker image.
     from backend.services.workflow_v2.direct_source_fetch import fetch_direct_source
 
-    return await fetch_direct_source(url)
+    return await fetch_direct_source(url, **(
+        {"url_validator": url_validator} if url_validator is not None else {}
+    ))
 
 
 def _normalized_text(value: Any, *, maximum: int) -> str | None:
@@ -253,6 +307,17 @@ def _finite_phase_diagnostics(
     if diagnostics.get("primary_skipped") is True:
         result["primary_skipped"] = True
         result["circuit_state"] = "open"
+    retry_after_seconds = _finite_diagnostic_int(
+        diagnostics,
+        "retry_after_seconds",
+        "retryAfterSeconds",
+        maximum=int(_MAX_PRIMARY_COOLDOWN_SECONDS),
+    )
+    if retry_after_seconds >= 1:
+        result["retry_after_seconds"] = retry_after_seconds
+    upstream_status_code = diagnostics.get("upstream_status_code")
+    if type(upstream_status_code) is int and 100 <= upstream_status_code <= 599:
+        result["upstream_status_code"] = upstream_status_code
     return result
 
 
@@ -377,12 +442,26 @@ def _combined_usage_metadata(
     *,
     extractor_input_tokens: int = 0,
     extractor_output_tokens: int = 0,
-) -> dict[str, int]:
+) -> dict[str, Any]:
     primary_input_tokens, primary_output_tokens = _primary_usage(primary)
-    return _usage_metadata(
+    result = _usage_metadata(
         primary_input_tokens + max(0, extractor_input_tokens),
         primary_output_tokens + max(0, extractor_output_tokens),
     )
+    primary_usage = primary.get("usage_metadata")
+    if isinstance(primary_usage, Mapping):
+        if "search_calls" in primary_usage:
+            count = primary_usage["search_calls"]
+            result["search_calls"] = count if type(count) is int and count >= 0 else None
+        if primary_usage.get("usage_complete") is False:
+            result.update(
+                input_tokens=None, output_tokens=None, total_tokens=None,
+                inputTokens=None, outputTokens=None, totalTokens=None,
+                usage_complete=False,
+            )
+        elif primary_usage.get("usage_complete") is True:
+            result["usage_complete"] = True
+    return result
 
 
 def _primary_provider_queries(primary: Mapping[str, Any]) -> list[str]:
@@ -392,6 +471,28 @@ def _primary_provider_queries(primary: Mapping[str, Any]) -> list[str]:
     if not isinstance(raw, list):
         return []
     return [value for value in raw if isinstance(value, str)]
+
+
+def _with_uniform_model_version(
+    result: dict[str, Any], *values: Any
+) -> dict[str, Any]:
+    """Expose one exact served version only when every observed value agrees."""
+
+    normalized: list[str] = []
+    for value in values:
+        if not isinstance(value, str):
+            result.pop("model_version", None)
+            return result
+        candidate = value.strip()
+        if not candidate or len(candidate) > 200:
+            result.pop("model_version", None)
+            return result
+        normalized.append(candidate)
+    if normalized and len(set(normalized)) == 1:
+        result["model_version"] = normalized[0]
+    else:
+        result.pop("model_version", None)
+    return result
 
 
 def _apply_primary_metering(
@@ -412,16 +513,12 @@ def _apply_primary_metering(
     provider_queries = _primary_provider_queries(primary)
     if provider_queries:
         result["provider_queries"] = provider_queries
-    return result
+    return _with_uniform_model_version(result, primary.get("model_version"))
 
 
 def _finite_status(value: Any, *, default: str = "error") -> str:
     normalized = str(value or "")
-    return (
-        normalized
-        if re.fullmatch(r"[A-Za-z0-9_:-]{1,100}", normalized)
-        else default
-    )
+    return normalized if re.fullmatch(r"[A-Za-z0-9_:-]{1,100}", normalized) else default
 
 
 def _fallback_runtime_diagnostics(
@@ -717,48 +814,69 @@ def _fallback_context(server_query: str) -> _FallbackContext | None:
     if authority_candidates is None:
         return None
 
-    # Material evidence semantics are rendered first and each field receives an
-    # independent budget. A maximal topic list can therefore never erase the
-    # exact requirement, applicability gate, source classes, or publisher gate.
-    rendered_sections = [
-        _bounded_query_term(
-            description,
-            maximum=_DISCOVERY_SECTION_BUDGETS["requirement"],
-        ),
-        _bounded_query_term(
-            applies_when_query,
-            maximum=_DISCOVERY_SECTION_BUDGETS["applicability"],
-        ),
-    ]
+    # Each original section keeps its independent completeness check. Query
+    # rendering is a discovery hint, never a substitute for source admission or
+    # the complete requirement retained for extraction below.
+    publisher_sections = []
     if allowed_hosts:
-        rendered_sections.append(
+        publisher_sections.append(
             _bounded_query_term(
                 " ".join(f"site:{host}" for host in allowed_hosts),
                 maximum=_DISCOVERY_SECTION_BUDGETS["publishers"],
             )
         )
-    rendered_sections.append(
-        _bounded_query_term(
-            " ".join(anchors),
-            maximum=_DISCOVERY_SECTION_BUDGETS["topics"],
-        )
+    description_section = _bounded_query_term(
+        description, maximum=_DISCOVERY_SECTION_BUDGETS["requirement"]
     )
+    applicability_section = _bounded_query_term(
+        applies_when_query, maximum=_DISCOVERY_SECTION_BUDGETS["applicability"]
+    )
+    topics_section = _bounded_query_term(
+        " ".join(anchors), maximum=_DISCOVERY_SECTION_BUDGETS["topics"]
+    )
+    geography_sections = []
     if geography:
-        rendered_sections.append(
+        geography_sections.append(
             _bounded_query_term(
                 " ".join(geography),
                 maximum=_DISCOVERY_SECTION_BUDGETS["geography"],
             )
         )
+    original_sections = [
+        *publisher_sections, description_section, applicability_section,
+        topics_section, *geography_sections,
+    ]
+    query_complete = input_complete and all(
+        complete for _section, complete in original_sections
+    )
+    rendered_sections = original_sections
+    if (
+        requirement.get("id") == "assistant-one-shot"
+        and requirement.get("claimType") == "assistant_one_shot"
+    ):
+        # The Assistant profile uses a prefix of its own request as an anchor
+        # and a fixed orchestration sentence as applicability. Neither adds a
+        # search concept. Remove only exact redundancy, with no summarization,
+        # stop-word policy, extra query, or change to canonical authority. An
+        # anchor in a truncated-away tail is not redundant in the actual query.
+        independent_anchors = [
+            anchor for anchor in anchors if anchor not in description_section[0]
+        ]
+        rendered_sections = [*publisher_sections, description_section]
+        if applies_when_query != "Answering the current bounded one-shot Assistant request.":
+            rendered_sections.append(applicability_section)
+        if independent_anchors:
+            rendered_sections.append(_bounded_query_term(
+                " ".join(independent_anchors),
+                maximum=_DISCOVERY_SECTION_BUDGETS["topics"],
+            ))
+        rendered_sections.extend(geography_sections)
     # Search engines interpret field-like prefixes such as ``requirement:`` as
     # query operators or generic dictionary terms. Keep the server-owned
     # structure in the canonical payload, but send discovery a natural query.
     # Source classes remain an enforcement filter after fetch; words such as
     # ``primary_law`` are not useful public-search terms.
     discovery_query = " ".join(term for term, _complete in rendered_sections)
-    query_complete = input_complete and all(
-        complete for _section, complete in rendered_sections
-    )
     if len(discovery_query) > _MAX_DISCOVERY_QUERY_CHARACTERS:
         raise AssertionError("discovery section budgets exceed the query bound")
     return _FallbackContext(
@@ -780,19 +898,71 @@ def _candidate_rows(
     accepted_source_types: frozenset[str],
     source_type_classifier: SourceTypeClassifier | None,
     maximum: int,
+    url_validator: Callable[[str], bool] | None = None,
 ) -> tuple[list[_Candidate], int, int, int]:
+    """Keep the existing admission result independent of optional diagnostics."""
+
+    result, _rejections = _candidate_rows_with_rejections(
+        raw,
+        allowed_hosts=allowed_hosts,
+        accepted_source_types=accepted_source_types,
+        source_type_classifier=source_type_classifier,
+        maximum=maximum,
+        url_validator=url_validator,
+    )
+    return result
+
+
+def _candidate_rows_with_rejections(
+    raw: Mapping[str, Any],
+    *,
+    allowed_hosts: frozenset[str],
+    accepted_source_types: frozenset[str],
+    source_type_classifier: SourceTypeClassifier | None,
+    maximum: int,
+    url_validator: Callable[[str], bool] | None = None,
+) -> tuple[tuple[list[_Candidate], int, int, int], dict[str, int]]:
+    """Return unchanged admission plus code-owned predicate observations.
+
+    Canonical-URL, allowed-host and owner-root failures count input source rows
+    at their first rejecting predicate, before deduplication. Source-class
+    failures count canonical URLs after deduplication, matching the existing
+    classifier gate. These are not distinct-source, provider-query or execution
+    counts. No provider-supplied diagnostic fields enter this local dictionary.
+    They cover discovery admission only; the legacy aggregate may additionally
+    include primary locators or candidates rejected again during merging.
+    A missing/malformed source-list shape has no observed predicate counters;
+    an observed empty list has known zero rejections. The final operator-only
+    sanitizer rechecks the same bounded plain-string-key dictionary contract.
+    """
+
     by_url: dict[str, dict[str, Any]] = {}
     rejected = 0
     malformed = 0
     raw_sources = raw.get("sources")
     if not isinstance(raw_sources, list):
-        return [], 0, 1, 0
+        return ([], 0, 1, 0), {}
+    rejections = {
+        "discovery_canonical_url_rejected_count": 0,
+        "discovery_allowed_host_rejected_count": 0,
+        "discovery_owner_root_rejected_count": 0,
+        "discovery_source_type_rejected_count": 0,
+    }
     for source in raw_sources:
         if not isinstance(source, Mapping):
             malformed += 1
             continue
         url = _canonical_candidate_url(source.get("url"))
-        if url is None or not _url_matches_allowed_hosts(url, allowed_hosts):
+        if url is None:
+            rejections["discovery_canonical_url_rejected_count"] += 1
+            rejected += 1
+            continue
+        if not _url_matches_allowed_hosts(url, allowed_hosts):
+            rejections["discovery_allowed_host_rejected_count"] += 1
+            rejected += 1
+            continue
+        if url_validator is not None and url_validator(url) is not True:
+            rejections["discovery_owner_root_rejected_count"] += 1
             rejected += 1
             continue
         row = by_url.setdefault(url, {"titles": [], "snippets": []})
@@ -842,6 +1012,7 @@ def _candidate_rows(
                 classified_types = frozenset()
             matched_types = classified_types.intersection(accepted_source_types)
             if not matched_types:
+                rejections["discovery_source_type_rejected_count"] += 1
                 rejected += 1
                 continue
         candidates.append((candidate, frozenset(matched_types)))
@@ -867,10 +1038,13 @@ def _candidate_rows(
 
     omitted = max(0, len(candidates) - maximum)
     return (
-        [candidate for candidate, _types in candidates[:maximum]],
-        rejected,
-        malformed,
-        omitted,
+        (
+            [candidate for candidate, _types in candidates[:maximum]],
+            rejected,
+            malformed,
+            omitted,
+        ),
+        rejections,
     )
 
 
@@ -881,33 +1055,73 @@ def _primary_response_locator_rows(
     accepted_source_types: frozenset[str],
     source_type_classifier: SourceTypeClassifier | None,
     maximum: int,
+    url_validator: Callable[[str], bool] | None = None,
 ) -> tuple[list[_Candidate], int, int, int]:
     """Extract bounded authority locators from one provider response.
 
-    Provider prose is never evidence and is never supplied to the exact-span
-    extractor. A URL written in that prose may only locate a publisher document
-    when it is already canonical and the server-owned classifier and host gates
-    independently accept it. The publisher is then refetched and validated by
-    the same immutable exact-span path as every SearX discovery candidate.
+    Provider prose and unsupported Google grounding rows are never evidence.
+    Their URL-only locators must pass the same canonical, owner-policy and
+    source-class gates before sharing one candidate cap. The publisher is then
+    refetched and validated by the same immutable exact-span path as every
+    SearX discovery candidate. No provider title or snippet enters extraction.
     """
 
-    response_text = raw.get("text")
-    if not isinstance(response_text, str) or not response_text:
-        return [], 0, 0, 0
-
     rejected = 0
+    malformed = 0
+    locator_urls: list[tuple[str, bool]] = []
+    redirect_hosts: frozenset[str] = frozenset()
+    if "_grounding_locator_urls" in raw:
+        from backend.services.generative.gemini_search_service import (
+            GEMINI_SEARCH_MAX_GROUNDING_CHUNKS,
+            TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS,
+        )
+
+        redirect_hosts = TRUSTED_GEMINI_GROUNDING_REDIRECT_HOSTS
+        grounding_urls = raw["_grounding_locator_urls"]
+        # This internal channel is a finite producer shape, not authority.
+        # Reject unknown/oversized shapes as a whole rather than silently
+        # truncating them into a complete discovery result. Keep the existing
+        # metadata bound so admission can precede the smaller fetch-locator cap.
+        if (
+            raw.get("provider") != "gemini_google_search"
+            or raw.get("search_performed") is not False
+            or raw.get("error") != "MissingGroundingEvidence"
+            or not isinstance(grounding_urls, list)
+            or len(grounding_urls) > GEMINI_SEARCH_MAX_GROUNDING_CHUNKS
+        ):
+            malformed += 1
+        else:
+            for url in grounding_urls:
+                if isinstance(url, str):
+                    locator_urls.append((url, True))
+                else:
+                    malformed += 1
+
+    response_text = raw.get("text")
+    if isinstance(response_text, str) and response_text:
+        locator_urls.extend(
+            (match.group(0).rstrip(_HTTPS_LOCATOR_TRAILING_PUNCTUATION), False)
+            for match in _HTTPS_LOCATOR_IN_TEXT.finditer(response_text)
+        )
+
     eligible: list[tuple[_Candidate, frozenset[str]]] = []
     seen_urls: set[str] = set()
-    for match in _HTTPS_LOCATOR_IN_TEXT.finditer(response_text):
-        raw_url = match.group(0).rstrip(_HTTPS_LOCATOR_TRAILING_PUNCTUATION)
-        if not raw_url or raw_url in seen_urls:
+    for raw_url, grounding_locator in locator_urls:
+        if raw_url in seen_urls:
+            continue
+        if not raw_url and not grounding_locator:
             continue
         seen_urls.add(raw_url)
         canonical_url = _canonical_candidate_url(raw_url)
         if (
             canonical_url is None
             or canonical_url != raw_url
+            or (
+                grounding_locator
+                and urlsplit(canonical_url).hostname in redirect_hosts
+            )
             or not _url_matches_allowed_hosts(canonical_url, allowed_hosts)
+            or (url_validator is not None and url_validator(canonical_url) is not True)
             or source_type_classifier is None
         ):
             rejected += 1
@@ -943,7 +1157,12 @@ def _primary_response_locator_rows(
             *(row for row in eligible if not row[1].intersection(specific_source_types)),
         ]
     omitted = max(0, len(eligible) - maximum)
-    return [candidate for candidate, _types in eligible[:maximum]], rejected, 0, omitted
+    return (
+        [candidate for candidate, _types in eligible[:maximum]],
+        rejected,
+        malformed,
+        omitted,
+    )
 
 
 def _with_primary_response_locators(
@@ -1280,6 +1499,7 @@ def _primary_with_failed_fallback(
     discovery_diagnostics: Mapping[str, Any] | None = None,
     usage_input_tokens: int = 0,
     usage_output_tokens: int = 0,
+    extractor_usage_complete: bool = True,
     fetched_count: int = 0,
     fetch_error_count: int = 0,
     validation_incomplete_count: int = 0,
@@ -1336,15 +1556,35 @@ def _primary_with_failed_fallback(
         }
     )
     result["runtime_diagnostics"] = diagnostics
-    # PydanticAI exceptions do not expose reliable usage counters. On extractor
-    # exceptions these observable values therefore remain zero; never invent
-    # billable usage. Primary Gemini usage is still retained on every path.
-    return _apply_primary_metering(
+    result = _apply_primary_metering(
         result,
         primary,
         extractor_input_tokens=usage_input_tokens,
         extractor_output_tokens=usage_output_tokens,
     )
+    if not extractor_usage_complete:
+        # A timed-out/failed model call may still be billable. Preserve observed
+        # primary receipts in diagnostics, but never label aggregate cost zero.
+        diagnostics["usage_complete"] = False
+        observed_primary = {
+            key: primary_diagnostics[key]
+            for key in ("input_tokens", "output_tokens", "total_tokens")
+            if type(primary_diagnostics.get(key)) is int
+            and 0 <= primary_diagnostics[key] <= 2_000_000
+        }
+        if observed_primary:
+            diagnostics["primary"] = {
+                "route": "gemini_google_search", "status": primary_status,
+                **observed_primary,
+            }
+            if type(primary_diagnostics.get("usage_complete")) is bool:
+                diagnostics["primary"]["usage_complete"] = primary_diagnostics["usage_complete"]
+        result["usage_metadata"].update(
+            input_tokens=None, output_tokens=None, total_tokens=None,
+            inputTokens=None, outputTokens=None, totalTokens=None,
+            usage_complete=False,
+        )
+    return result
 
 
 def _all_discovery_engines_unresponsive(diagnostics: Mapping[str, Any]) -> bool:
@@ -1368,7 +1608,9 @@ def _fallback_eligible_primary_status(primary: Mapping[str, Any]) -> str | None:
     return status if status in _FALLBACK_PRIMARY_STATUSES else None
 
 
-def _cooldown_primary_result(status: str) -> dict[str, Any]:
+def _cooldown_primary_result(
+    status: str, *, retry_after_seconds: int
+) -> dict[str, Any]:
     """Describe an intentional no-call without inventing provider activity."""
 
     return {
@@ -1385,6 +1627,8 @@ def _cooldown_primary_result(status: str) -> dict[str, Any]:
             "call_count": 0,
             "retry_count": 0,
             "primary_skipped": True,
+            "circuit_state": "open",
+            "retry_after_seconds": retry_after_seconds,
         },
     }
 
@@ -1404,8 +1648,10 @@ class ResilientResearchRunner:
         primary_cooldown_seconds: float = _DEFAULT_PRIMARY_COOLDOWN_SECONDS,
         primary_healthy_seconds: float = _DEFAULT_PRIMARY_HEALTHY_SECONDS,
         fallback_phase_seconds: float = WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+        discovery_seconds: float = _FALLBACK_DISCOVERY_SECONDS,
         monotonic_clock: Callable[[], float] = time.monotonic,
         source_type_classifier: SourceTypeClassifier | None = None,
+        source_url_validator: Callable[[str, str], bool] | None = None,
     ) -> None:
         if maximum_candidates < 1 or maximum_candidates > 10:
             raise ValueError("maximum_candidates must be between 1 and 10")
@@ -1432,6 +1678,7 @@ class ResilientResearchRunner:
         try:
             normalized_healthy = float(primary_healthy_seconds)
             normalized_fallback_phase = float(fallback_phase_seconds)
+            normalized_discovery = float(discovery_seconds)
         except (TypeError, ValueError, OverflowError) as error:
             raise ValueError("research runner phase limits must be finite") from error
         if (
@@ -1444,6 +1691,15 @@ class ResilientResearchRunner:
                 f"{_MAX_PRIMARY_HEALTHY_SECONDS:g}"
             )
         if (
+            not math.isfinite(normalized_discovery)
+            or normalized_discovery <= 0
+            or normalized_discovery > _MAX_FALLBACK_DISCOVERY_SECONDS
+        ):
+            raise ValueError(
+                "discovery_seconds must be greater than 0 and at most "
+                f"{_MAX_FALLBACK_DISCOVERY_SECONDS:g}"
+            )
+        if (
             not math.isfinite(normalized_fallback_phase)
             or normalized_fallback_phase <= 0
             or normalized_fallback_phase > WORKFLOW_V2_FALLBACK_PHASE_SECONDS
@@ -1453,6 +1709,9 @@ class ResilientResearchRunner:
                 f"{WORKFLOW_V2_FALLBACK_PHASE_SECONDS:g}"
             )
         self.primary = primary
+        if source_url_validator is not None and not callable(source_url_validator):
+            raise ValueError("Source URL policy must be callable")
+        self.source_url_validator = source_url_validator
         self.searxng = searxng or SearxngSearchService()
         self.fetcher = fetcher
         self.extractor = extractor
@@ -1461,6 +1720,7 @@ class ResilientResearchRunner:
         self.primary_cooldown_seconds = normalized_cooldown
         self.primary_healthy_seconds = normalized_healthy
         self.fallback_phase_seconds = normalized_fallback_phase
+        self.discovery_seconds = normalized_discovery
         self.source_type_classifier = source_type_classifier
         self._monotonic_clock = monotonic_clock
         self._primary_condition = asyncio.Condition()
@@ -1478,9 +1738,20 @@ class ResilientResearchRunner:
         self._closed = False
 
     def _cooldown_result_if_open(self) -> dict[str, Any] | None:
-        if self._monotonic_clock() >= self._primary_cooldown_until:
+        now = self._monotonic_clock()
+        if now >= self._primary_cooldown_until:
             return None
-        return _cooldown_primary_result(self._primary_cooldown_status)
+        retry_after_seconds = max(
+            1,
+            min(
+                int(_MAX_PRIMARY_COOLDOWN_SECONDS),
+                math.ceil(self._primary_cooldown_until - now),
+            ),
+        )
+        return _cooldown_primary_result(
+            self._primary_cooldown_status,
+            retry_after_seconds=retry_after_seconds,
+        )
 
     async def _enter_search(self) -> None:
         async with self._lifecycle_condition:
@@ -1528,7 +1799,12 @@ class ResilientResearchRunner:
             )
             now = self._monotonic_clock()
             status = _fallback_eligible_primary_status(primary)
-            if status is not None:
+            if status == "quality_rejected":
+                # A task-specific publication defect proves neither a provider
+                # outage nor that other users' requests need fallback. Retain
+                # the existing circuit state; only this request uses fallback.
+                pass
+            elif status is not None:
                 # Any in-flight query that observes a transient latches the
                 # cooldown. Concurrent successes cannot immediately re-enable
                 # a provider that just failed another requirement.
@@ -1538,6 +1814,15 @@ class ResilientResearchRunner:
                 )
                 self._primary_cooldown_status = status
                 self._primary_healthy_until = 0.0
+                runtime_diagnostics = primary.get("runtime_diagnostics")
+                if isinstance(runtime_diagnostics, dict):
+                    runtime_diagnostics["retry_after_seconds"] = max(
+                        1,
+                        min(
+                            int(_MAX_PRIMARY_COOLDOWN_SECONDS),
+                            math.ceil(self._primary_cooldown_until - now),
+                        ),
+                    )
                 # Every observed transient invalidates all successes that were
                 # already in flight. Only a call started in this new generation
                 # may later establish provider health.
@@ -1622,6 +1907,9 @@ class ResilientResearchRunner:
             await _await_cancellation_safe(self._leave_search())
 
     async def _search_active(self, query: str) -> dict[str, Any]:
+        def url_allowed(url: str) -> bool:
+            return self.source_url_validator is None or self.source_url_validator(query, url) is True
+
         context = _fallback_context(query)
         locator_refetch = bool(context and context.reusable_candidates)
         if locator_refetch:
@@ -1658,6 +1946,7 @@ class ResilientResearchRunner:
             ),
             source_type_classifier=self.source_type_classifier,
             maximum=_MAX_REUSABLE_SOURCE_CANDIDATES,
+            url_validator=url_allowed,
         )
         if primary.get("search_performed") is True and not locator_refetch:
             return _with_primary_response_locators(
@@ -1670,25 +1959,50 @@ class ResilientResearchRunner:
             else {}
         )
         primary_status = str(primary_diagnostics.get("status") or "")
-        if (
-            not locator_refetch
-            and primary_status not in _FALLBACK_PRIMARY_STATUSES
-        ):
+        if not locator_refetch and primary_status not in _FALLBACK_PRIMARY_STATUSES:
             return primary
         logger.info(
             "Workflow-v2 research fallback started; primary_status=%s",
             primary_status,
         )
         fallback_started_at = self._monotonic_clock()
+        # Operator-only facts are local to this fallback, not provider-authored
+        # diagnostics or public wire fields. A phase is entered before its work;
+        # counts are added only after the corresponding observation completes.
+        evidence_facts: dict[str, object] = {"stage": "context"}
+        primary_fields = plain_diagnostic_fields(primary)
+        primary_query_receipt = (
+            primary_fields.get("provider_queries")
+            if primary_fields is not None else None
+        )
+        if (
+            type(primary_query_receipt) is list
+            and len(primary_query_receipt) <= 10_000
+            and all(type(item) is str for item in primary_query_receipt)
+        ):
+            evidence_facts["primary_provider_query_count"] = len(
+                primary_query_receipt
+            )
 
         def finish_fallback(result: dict[str, Any]) -> dict[str, Any]:
-            return _with_fallback_elapsed(
+            result = _with_fallback_elapsed(
                 result,
                 elapsed_ms=_finite_elapsed_ms(
                     fallback_started_at,
                     self._monotonic_clock(),
                 ),
             )
+            diagnostics = result.get("runtime_diagnostics")
+            if isinstance(diagnostics, dict):
+                # Snapshot only exact bounded primitives; never alias the
+                # provider response or leak raw discovery fields into logging.
+                result["runtime_diagnostics"] = {
+                    **diagnostics,
+                    "evidence": sanitize_research_evidence_diagnostics(
+                        evidence_facts
+                    ),
+                }
+            return result
 
         fallback_deadline = (
             asyncio.get_running_loop().time() + self.fallback_phase_seconds
@@ -1702,15 +2016,22 @@ class ResilientResearchRunner:
                 )
             )
 
+        evidence_facts["query_complete"] = context.query_complete
+        evidence_facts["stage"] = "discovery"
         discovery_started_at = self._monotonic_clock()
         try:
             discovery_deadline = min(
                 fallback_deadline,
-                asyncio.get_running_loop().time() + _FALLBACK_DISCOVERY_SECONDS,
+                asyncio.get_running_loop().time() + self.discovery_seconds,
             )
             async with asyncio.timeout_at(discovery_deadline):
                 discovery = await self._discover(context.discovery_query)
         except TimeoutError:
+            logger.warning(
+                "Workflow-v2 research fallback phase stopped; phase=discovery "
+                "status=deadline_exceeded elapsed_ms=%s call_count=1",
+                _finite_elapsed_ms(discovery_started_at, self._monotonic_clock()),
+            )
             if (
                 not context.reusable_candidates
                 and not context.authority_candidates
@@ -1763,6 +2084,19 @@ class ResilientResearchRunner:
                 if isinstance(raw_discovery_diagnostics, Mapping)
                 else {}
             )
+        # Preserve the adapter's bounded receipts before phase diagnostics drop
+        # them. The final sanitizer rejects bools, coercions and out-of-range
+        # values; absent receipts remain unknown rather than inferred from rows.
+        # Optional instrumentation must not invoke custom Mapping getters or
+        # colliding non-string dictionary keys during an otherwise safe read.
+        discovery_fields = plain_diagnostic_fields(discovery_diagnostics)
+        if discovery_fields is not None:
+            for field, provider_field in (
+                ("discovery_result_count", "result_count"),
+                ("discovery_invalid_result_count", "invalid_result_count"),
+            ):
+                if provider_field in discovery_fields:
+                    evidence_facts[field] = discovery_fields[provider_field]
         discovery_status = str(discovery_diagnostics.get("status") or "")
         # The internal SearX adapter is the authority for whether its response
         # shape was processed successfully.  A stray or malformed
@@ -1795,20 +2129,24 @@ class ResilientResearchRunner:
                 )
             )
 
+        evidence_facts["stage"] = "admission"
+        # This pre-existing primary-locator observation is separate from the
+        # discovery predicates. Its helper deduplicates exact raw URL strings;
+        # it is not a provider-call count. The legacy total remains unchanged.
+        evidence_facts["primary_locator_rejected_count"] = primary_locator_rejected
         if discovery_healthy:
-            search_candidates, rejected_count, malformed_count, omitted_count = (
-                _candidate_rows(
-                    discovery,
-                    allowed_hosts=context.allowed_hosts,
-                    accepted_source_types=frozenset(
-                        context.accepted_source_types
-                    ),
-                    source_type_classifier=self.source_type_classifier,
-                    maximum=(
-                        self.maximum_candidates + len(context.reusable_candidates)
-                    ),
-                )
+            admission, discovery_rejections = _candidate_rows_with_rejections(
+                discovery,
+                allowed_hosts=context.allowed_hosts,
+                accepted_source_types=frozenset(context.accepted_source_types),
+                source_type_classifier=self.source_type_classifier,
+                maximum=(
+                    self.maximum_candidates + len(context.reusable_candidates)
+                ),
+                url_validator=url_allowed,
             )
+            search_candidates, rejected_count, malformed_count, omitted_count = admission
+            evidence_facts.update(discovery_rejections)
         else:
             search_candidates = []
             rejected_count = malformed_count = omitted_count = 0
@@ -1822,6 +2160,9 @@ class ResilientResearchRunner:
         ]
         merged_candidates_by_url: dict[str, _Candidate] = {}
         for candidate in (*context.reusable_candidates, *discovered_candidates):
+            if not url_allowed(candidate.canonical_url):
+                rejected_count += 1
+                continue
             existing = merged_candidates_by_url.get(candidate.canonical_url)
             if existing is None:
                 merged_candidates_by_url[candidate.canonical_url] = candidate
@@ -1854,6 +2195,8 @@ class ResilientResearchRunner:
         for urls in prioritized_url_groups:
             for url in urls:
                 if (
+                    url in merged_candidates_by_url
+                    and
                     url not in selected_urls
                     and len(selected_urls) < self.maximum_candidates
                 ):
@@ -1871,7 +2214,30 @@ class ResilientResearchRunner:
             "invalid_result_count",
             maximum=10_000,
         )
+        evidence_facts.update(
+            candidate_count=len(candidates),
+            rejected_candidate_count=rejected_count,
+            omitted_candidate_count=omitted_count,
+        )
+        if discovery_fields is not None:
+            adapter_invalid_count = discovery_fields.get(
+                "invalid_result_count"
+            )
+            if "invalid_result_count" not in discovery_fields or (
+                type(adapter_invalid_count) is int
+                and 0 <= adapter_invalid_count <= 10_000
+            ):
+                evidence_facts["malformed_candidate_count"] = malformed_count
+        # Existing decision counters deliberately remain unchanged. If their
+        # legacy coercion included an invalid adapter receipt, do not advertise
+        # the derived malformed aggregate as an observed evidence fact.
         if not candidates:
+            evidence_facts.update(
+                fetched_count=0,
+                fetch_error_count=0,
+                validation_incomplete_count=0,
+                claim_count=0,
+            )
             if not context.query_complete:
                 return finish_fallback(
                     _primary_with_failed_fallback(
@@ -1913,19 +2279,33 @@ class ResilientResearchRunner:
             )
 
         fetch_semaphore = asyncio.Semaphore(3)
+        fetch_failure_categories: dict[str, int] = {}
+
+        def count_fetch_failure(category: str) -> None:
+            fetch_failure_categories[category] = (
+                fetch_failure_categories.get(category, 0) + 1
+            )
 
         async def fetch_candidate(
             candidate: _Candidate,
         ) -> tuple[_Candidate, Mapping[str, Any] | None, bool]:
             async with fetch_semaphore:
                 try:
-                    raw_document = await self.fetcher(candidate.canonical_url)
-                except Exception:
+                    if self.fetcher is _default_fetch_direct_text and self.source_url_validator is not None:
+                        raw_document = await _default_fetch_direct_text(
+                            candidate.canonical_url, url_validator=url_allowed,
+                        )
+                    else:
+                        raw_document = await self.fetcher(candidate.canonical_url)
+                except Exception as error:
+                    count_fetch_failure(_fetch_failure_category(error))
                     return candidate, None, True
             if not isinstance(raw_document, Mapping):
+                count_fetch_failure("invalid_mapping")
                 return candidate, None, True
             return candidate, raw_document, False
 
+        evidence_facts["stage"] = "fetch"
         try:
             fetch_deadline = min(
                 fallback_deadline,
@@ -1936,6 +2316,12 @@ class ResilientResearchRunner:
                     *(fetch_candidate(candidate) for candidate in candidates)
                 )
         except TimeoutError:
+            logger.warning(
+                "Workflow-v2 research fallback phase stopped; phase=fetch "
+                "status=deadline_exceeded candidates=%s failure_categories=%s",
+                len(candidates),
+                json.dumps(fetch_failure_categories, sort_keys=True),
+            )
             return finish_fallback(
                 _primary_with_failed_fallback(
                     primary,
@@ -1968,15 +2354,18 @@ class ResilientResearchRunner:
             if raw_document is None:
                 continue
             final_url = _canonical_candidate_url(raw_document.get("final_url"))
-            if final_url is None or not _url_matches_allowed_hosts(
-                final_url, context.allowed_hosts
+            if (
+                final_url is None or not _url_matches_allowed_hosts(final_url, context.allowed_hosts)
+                or not url_allowed(final_url)
             ):
                 rejected_count += 1
                 validation_incomplete_count += 1
+                count_fetch_failure("final_url_rejected")
                 continue
             raw_text = raw_document.get("text")
             if not isinstance(raw_text, str) or not raw_text:
                 validation_incomplete_count += 1
+                count_fetch_failure("empty_text")
                 continue
             document_text = _bounded_document_window(
                 raw_text,
@@ -1986,6 +2375,7 @@ class ResilientResearchRunner:
             )
             if not document_text:
                 validation_incomplete_count += 1
+                count_fetch_failure("empty_window")
                 continue
             retrieved_at = raw_document.get("retrieved_at")
             if not isinstance(retrieved_at, str) or not retrieved_at.strip():
@@ -1998,9 +2388,12 @@ class ResilientResearchRunner:
                 retrieved_at=retrieved_at,
             )
 
-            document_id = "source-" + hashlib.sha256(
-                f"{final_url}\n{snapshot.content_sha256}".encode("utf-8")
-            ).hexdigest()[:32]
+            document_id = (
+                "source-"
+                + hashlib.sha256(
+                    f"{final_url}\n{snapshot.content_sha256}".encode("utf-8")
+                ).hexdigest()[:32]
+            )
             if document_id not in seen_document_ids:
                 seen_document_ids.add(document_id)
                 fetched_documents.append(
@@ -2017,6 +2410,25 @@ class ResilientResearchRunner:
 
         fetched_count = len(fetched_documents)
         incomplete_fetch_count = fetch_error_count + validation_incomplete_count
+        # gather and document validation have both completed. In particular,
+        # a timeout above leaves these facts absent even if one fetch coroutine
+        # happened to finish; it did not establish a completed validated batch.
+        evidence_facts.update(
+            fetched_count=fetched_count,
+            fetch_error_count=fetch_error_count,
+            validation_incomplete_count=validation_incomplete_count,
+            rejected_candidate_count=rejected_count,
+        )
+        logger.log(
+            logging.WARNING if incomplete_fetch_count else logging.INFO,
+            "Workflow-v2 research fallback fetch completed; candidates=%s fetched=%s "
+            "fetch_errors=%s validation_incomplete=%s failure_categories=%s",
+            len(candidates),
+            fetched_count,
+            fetch_error_count,
+            validation_incomplete_count,
+            json.dumps(fetch_failure_categories, sort_keys=True),
+        )
         if not fetched_documents and incomplete_fetch_count:
             return finish_fallback(
                 _primary_with_failed_fallback(
@@ -2061,6 +2473,7 @@ class ResilientResearchRunner:
                 ),
                 documents=[item[2] for item in fetched_documents],
             )
+            evidence_facts["stage"] = "extraction"
             try:
                 extraction_deadline = min(
                     fallback_deadline,
@@ -2079,6 +2492,7 @@ class ResilientResearchRunner:
                     _primary_with_failed_fallback(
                         primary,
                         status="fallback_deadline_exceeded",
+                        extractor_usage_complete=False,
                         discovery_diagnostics=discovery_diagnostics,
                         fetched_count=fetched_count,
                         fetch_error_count=fetch_error_count,
@@ -2093,6 +2507,7 @@ class ResilientResearchRunner:
                 return finish_fallback(
                     _primary_with_failed_fallback(
                         primary,
+                        extractor_usage_complete=False,
                         status=str(
                             getattr(error, "code", None) or "extraction_error"
                         ),
@@ -2106,6 +2521,26 @@ class ResilientResearchRunner:
                         omitted_candidate_count=omitted_count,
                     )
                 )
+
+            def finish_extraction(result: dict[str, Any]) -> dict[str, Any]:
+                return finish_fallback(
+                    _with_uniform_model_version(
+                        result,
+                        primary.get("model_version"),
+                        extraction.model_version,
+                    )
+                )
+
+            logger.log(
+                logging.WARNING if extraction.chosen_document is None else logging.INFO,
+                "Workflow-v2 research fallback extraction completed; selected=%s "
+                "fetched=%s incomplete_fetches=%s",
+                extraction.chosen_document is not None,
+                fetched_count,
+                incomplete_fetch_count,
+            )
+            if extraction.chosen_document is None:
+                evidence_facts["claim_count"] = 0
             if extraction.chosen_document is not None:
                 selected = next(
                     (
@@ -2118,7 +2553,7 @@ class ResilientResearchRunner:
                     None,
                 )
                 if selected is None:
-                    return finish_fallback(
+                    return finish_extraction(
                         _primary_with_failed_fallback(
                             primary,
                             status="extraction_document_mismatch",
@@ -2138,6 +2573,7 @@ class ResilientResearchRunner:
                 accepted_spans = _validated_extracted_spans(
                     snapshot.text, extraction
                 )
+                evidence_facts["claim_count"] = len(accepted_spans)
                 if accepted_spans:
                     logger.info(
                         "Workflow-v2 research fallback completed; status=ok "
@@ -2146,7 +2582,7 @@ class ResilientResearchRunner:
                         fetched_count,
                         len(accepted_spans),
                     )
-                    return finish_fallback(
+                    return finish_extraction(
                         _result_for_document(
                             primary=primary,
                             primary_status=primary_status,
@@ -2167,7 +2603,7 @@ class ResilientResearchRunner:
                             usage_output_tokens=extraction.output_tokens,
                         )
                     )
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="extraction_span_not_unique",
@@ -2184,7 +2620,7 @@ class ResilientResearchRunner:
                     )
                 )
             if incomplete_fetch_count:
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="direct_fetch_incomplete",
@@ -2201,7 +2637,7 @@ class ResilientResearchRunner:
                     )
                 )
             if not context.query_complete:
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="discovery_query_incomplete",
@@ -2218,7 +2654,7 @@ class ResilientResearchRunner:
                     )
                 )
             if rejected_count or malformed_count or omitted_count:
-                return finish_fallback(
+                return finish_extraction(
                     _primary_with_failed_fallback(
                         primary,
                         status="discovery_rows_incomplete",
@@ -2234,7 +2670,7 @@ class ResilientResearchRunner:
                         omitted_candidate_count=omitted_count,
                     )
                 )
-            return finish_fallback(
+            return finish_extraction(
                 _empty_fallback_result(
                     primary=primary,
                     primary_status=primary_status,

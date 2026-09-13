@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
@@ -32,6 +34,9 @@ class OperationRecord:
     result_payload: dict[str, Any] | None
     retryable: bool | None
     error_class: str | None
+    retry_at: str | None = None
+    retry_after_seconds: int | None = None
+    failure_diagnostics: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -39,9 +44,58 @@ class ClaimedOperation:
     record: OperationRecord
     envelope: AxWiseOperationEnvelope
     lease_token: UUID
+    # Internal durable claim count, never an owner-supplied invocation field.
+    execution_count: int | None = None
+
+
+def is_final_synthesis(envelope: AxWiseOperationEnvelope) -> bool:
+    return (
+        envelope.operation_type == "SynthesizeArtifactV1"
+        and isinstance(envelope.input, SynthesizeArtifactInputV1)
+        and envelope.input.purpose == "final_synthesis"
+    )
+
+
+def single_execution_reclaim_error(envelope: AxWiseOperationEnvelope) -> str | None:
+    """Keep the store's durable counter projection and worker spend fence aligned."""
+
+    if envelope.operation_type in {"AnalyzeEvidenceV1", "SimulateV1"}:
+        return "AXWISE_CAPABILITY_RECONSENT_REQUIRED"
+    if is_final_synthesis(envelope):
+        return "AXWISE_FINAL_SYNTHESIS_RECLAIM_FORBIDDEN"
+    return None
+
+
+@dataclass(frozen=True)
+class OperationEventRecord:
+    operation_id: UUID
+    sequence: int
+    event_type: str
+    status: str
+    occurred_at: str
+    retryable: bool | None = None
+    error_class: str | None = None
+    retry_at: str | None = None
+    retry_after_seconds: int | None = None
+    failure_diagnostics: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class OperationEventBatch:
+    events: tuple[OperationEventRecord, ...]
+    has_more: bool
+
+
+def _utc_timestamp(value: Any, *, field: str) -> str:
+    if not isinstance(value, datetime) or value.tzinfo is None:
+        raise RuntimeError(f"stored {field} must be a timezone-aware timestamp")
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _record(row: Any) -> OperationRecord:
+    retry_at = getattr(row, "retry_at", None)
+    if isinstance(retry_at, datetime):
+        retry_at = _utc_timestamp(retry_at, field="retry timestamp")
     return OperationRecord(
         operation_id=row.operation_id,
         tenant_id=row.tenant_id,
@@ -50,6 +104,27 @@ def _record(row: Any) -> OperationRecord:
         result_payload=row.result_payload,
         retryable=row.retryable,
         error_class=row.error_class,
+        retry_at=retry_at,
+        retry_after_seconds=getattr(row, "retry_after_seconds", None),
+        failure_diagnostics=getattr(row, "failure_diagnostics", None),
+    )
+
+
+def _event(row: Any) -> OperationEventRecord:
+    retry_at = row.retry_at
+    if isinstance(retry_at, datetime):
+        retry_at = _utc_timestamp(retry_at, field="event retry timestamp")
+    return OperationEventRecord(
+        operation_id=row.operation_id,
+        sequence=int(row.sequence),
+        event_type=row.event_type,
+        status=row.status,
+        occurred_at=_utc_timestamp(row.occurred_at, field="event occurrence"),
+        retryable=row.retryable,
+        error_class=row.error_class,
+        retry_at=retry_at,
+        retry_after_seconds=row.retry_after_seconds,
+        failure_diagnostics=row.failure_diagnostics,
     )
 
 
@@ -94,8 +169,132 @@ class PostgresOperationStore:
         )
 
     def ready(self) -> bool:
-        with self.engine.connect() as connection:
-            return connection.execute(text("SELECT 1")).scalar_one() == 1
+        try:
+            with self.engine.connect() as connection:
+                return bool(
+                    connection.execute(
+                        text(
+                            """
+                            WITH surface AS (
+                              SELECT
+                                to_regclass(
+                                  'axwise.cognitive_operations'
+                                ) AS operations_relation,
+                                to_regclass(
+                                  'axwise.operation_events'
+                                ) AS events_relation,
+                                to_regprocedure(
+                                  'axwise.fail_cognitive_operation(uuid,uuid,uuid,'
+                                  'boolean,text,timestamp with time zone,integer,jsonb)'
+                                ) AS fail_procedure,
+                                to_regprocedure(
+                                  'axwise.request_cognitive_operation_cancel(uuid,uuid)'
+                                ) AS request_cancel_procedure,
+                                to_regprocedure(
+                                  'axwise.cancel_cognitive_operation(uuid,uuid,uuid)'
+                                ) AS cancel_procedure,
+                                to_regprocedure(
+                                  'axwise.claim_cognitive_operation(uuid,integer)'
+                                ) AS claim_procedure,
+                                to_regprocedure(
+                                  'axwise.renew_cognitive_operation(uuid,uuid,uuid,integer)'
+                                ) AS renew_procedure,
+                                to_regprocedure(
+                                  'axwise.complete_cognitive_operation(uuid,uuid,uuid,jsonb)'
+                                ) AS complete_procedure,
+                                to_regrole('axwise_v2_api') AS api_role,
+                                to_regrole('axwise_v2_worker') AS worker_role
+                            )
+                            SELECT COALESCE((
+                              surface.operations_relation IS NOT NULL
+                              AND surface.events_relation IS NOT NULL
+                          AND (
+                            SELECT count(*) = 3
+                            FROM pg_attribute
+                            WHERE attrelid = surface.operations_relation
+                              AND attname IN (
+                                'retry_at', 'failure_diagnostics', 'event_sequence'
+                              )
+                              AND NOT attisdropped
+                          )
+                          AND EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conrelid = surface.operations_relation
+                              AND contype = 'c'
+                              AND pg_get_constraintdef(oid) LIKE '%operation_type%'
+                              AND pg_get_constraintdef(oid) LIKE '%CompileScopeV3%'
+                              AND pg_get_constraintdef(oid) LIKE '%PrepareSolutionV1%'
+                              AND pg_get_constraintdef(oid) LIKE '%PrepareSolutionV2%'
+                              AND pg_get_constraintdef(oid) LIKE '%AdmitTranscriptCorpusV1%'
+                              AND pg_get_constraintdef(oid) LIKE '%AnalyzeEvidenceV1%'
+                              AND pg_get_constraintdef(oid) LIKE '%SimulateV1%'
+                          )
+                          AND EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conrelid = surface.operations_relation
+                              AND contype = 'u'
+                              AND pg_get_constraintdef(oid) =
+                                'UNIQUE (tenant_id, stage_attempt_id)'
+                          )
+                          AND surface.fail_procedure IS NOT NULL
+                          AND surface.request_cancel_procedure IS NOT NULL
+                          AND surface.cancel_procedure IS NOT NULL
+                          AND (
+                            pg_has_role(current_user, surface.api_role, 'member')
+                            OR pg_has_role(current_user, surface.worker_role, 'member')
+                          )
+                          AND (
+                            NOT pg_has_role(current_user, surface.api_role, 'member')
+                            OR (
+                              has_table_privilege(
+                                current_user, surface.operations_relation, 'SELECT'
+                              )
+                              AND has_table_privilege(
+                                current_user, surface.operations_relation, 'INSERT'
+                              )
+                              AND has_table_privilege(
+                                current_user, surface.events_relation, 'SELECT'
+                              )
+                              AND has_function_privilege(
+                                current_user,
+                                surface.request_cancel_procedure,
+                                'EXECUTE'
+                              )
+                            )
+                          )
+                          AND (
+                            NOT pg_has_role(current_user, surface.worker_role, 'member')
+                            OR (
+                              has_table_privilege(
+                                current_user, surface.operations_relation, 'SELECT'
+                              )
+                              AND has_function_privilege(
+                                current_user, surface.claim_procedure, 'EXECUTE'
+                              )
+                              AND has_function_privilege(
+                                current_user, surface.renew_procedure, 'EXECUTE'
+                              )
+                              AND has_function_privilege(
+                                current_user, surface.complete_procedure, 'EXECUTE'
+                              )
+                              AND has_function_privilege(
+                                current_user, surface.fail_procedure, 'EXECUTE'
+                              )
+                              AND has_function_privilege(
+                                current_user, surface.cancel_procedure, 'EXECUTE'
+                              )
+                            )
+                          )
+                            ), false)
+                            FROM surface
+                            """
+                        )
+                    ).scalar_one()
+                )
+        except SQLAlchemyError:
+            return False
 
     def adopt_or_create(self, envelope: AxWiseOperationEnvelope) -> OperationRecord:
         payload = _stored_envelope_payload(envelope)
@@ -128,7 +327,8 @@ class PostgresOperationStore:
                         )
                         ON CONFLICT DO NOTHING
                         RETURNING operation_id, tenant_id, canonical_input_hash, status,
-                                  result_payload, retryable, error_class
+                                  result_payload, retryable, error_class, retry_at,
+                                  retry_after_seconds, failure_diagnostics
                     """
                 ),
                 parameters,
@@ -137,7 +337,8 @@ class PostgresOperationStore:
                 text(
                     """
                     SELECT operation_id, tenant_id, canonical_input_hash, status, result_payload,
-                           retryable, error_class, input_payload
+                           retryable, error_class, retry_at, retry_after_seconds,
+                           failure_diagnostics, input_payload
                     FROM axwise.cognitive_operations
                     WHERE tenant_id = :tenant_id AND operation_id = :operation_id
                     """
@@ -152,14 +353,13 @@ class PostgresOperationStore:
                         FROM axwise.cognitive_operations
                         WHERE tenant_id = :tenant_id
                           AND stage_attempt_id = :stage_attempt_id
-                          AND operation_type = :operation_type
                         """
                     ),
                     parameters,
                 ).first()
                 if occupied is not None:
                     raise OperationConflict(
-                        "stage attempt and operation type already use another operation ID"
+                        "stage attempt already uses another operation ID"
                     )
                 raise OperationConflict("operation ID belongs to another immutable owner")
             if row.canonical_input_hash != envelope.canonical_input_hash:
@@ -175,7 +375,8 @@ class PostgresOperationStore:
                 text(
                     """
                     SELECT operation_id, tenant_id, canonical_input_hash, status, result_payload,
-                           retryable, error_class
+                           retryable, error_class, retry_at, retry_after_seconds,
+                           failure_diagnostics
                     FROM axwise.cognitive_operations
                     WHERE tenant_id = :tenant_id AND operation_id = :operation_id
                     """
@@ -183,6 +384,76 @@ class PostgresOperationStore:
                 {"tenant_id": tenant_id, "operation_id": operation_id},
             ).first()
             return _record(row) if row else None
+
+    def request_cancel(
+        self, tenant_id: UUID, operation_id: UUID
+    ) -> OperationRecord | None:
+        with self.engine.begin() as connection:
+            _tenant_context(connection, tenant_id)
+            resulting_status = connection.execute(
+                text(
+                    "SELECT axwise.request_cognitive_operation_cancel("
+                    ":tenant_id, :operation_id)"
+                ),
+                {"tenant_id": tenant_id, "operation_id": operation_id},
+            ).scalar_one_or_none()
+            if resulting_status is None:
+                return None
+            row = connection.execute(
+                text(
+                    """
+                    SELECT operation_id, tenant_id, canonical_input_hash, status,
+                           result_payload, retryable, error_class, retry_at,
+                           retry_after_seconds, failure_diagnostics
+                    FROM axwise.cognitive_operations
+                    WHERE tenant_id = :tenant_id AND operation_id = :operation_id
+                    """
+                ),
+                {"tenant_id": tenant_id, "operation_id": operation_id},
+            ).first()
+            if row is None or row.status != resulting_status:
+                raise RuntimeError("cancel transition did not return its stored operation")
+            return _record(row)
+
+    def events_after(
+        self,
+        tenant_id: UUID,
+        operation_id: UUID,
+        *,
+        after: int,
+        limit: int,
+    ) -> OperationEventBatch:
+        if after < 0:
+            raise ValueError("event cursor must be non-negative")
+        if not 1 <= limit <= 200:
+            raise ValueError("event page limit must be between 1 and 200")
+        with self.engine.begin() as connection:
+            _tenant_context(connection, tenant_id)
+            rows = connection.execute(
+                text(
+                    """
+                    SELECT operation_id, sequence, event_type, status, occurred_at,
+                           retryable, error_class, retry_at, retry_after_seconds,
+                           failure_diagnostics
+                    FROM axwise.operation_events
+                    WHERE tenant_id = :tenant_id
+                      AND operation_id = :operation_id
+                      AND sequence > :after
+                    ORDER BY sequence
+                    LIMIT :fetch_limit
+                    """
+                ),
+                {
+                    "tenant_id": tenant_id,
+                    "operation_id": operation_id,
+                    "after": after,
+                    "fetch_limit": limit + 1,
+                },
+            ).all()
+        return OperationEventBatch(
+            events=tuple(_event(row) for row in rows[:limit]),
+            has_more=len(rows) > limit,
+        )
 
     def artifact_fact(self, tenant_id: UUID, artifact_id: UUID) -> dict[str, Any] | None:
         with self.engine.begin() as connection:
@@ -200,6 +471,48 @@ class PostgresOperationStore:
                 {"tenant_id": tenant_id, "artifact_id": str(artifact_id)},
             ).first()
             return row.artifact if row else None
+
+    def owned_artifact_fact(
+        self,
+        tenant_id: UUID,
+        user_id: str,
+        run_id: UUID,
+        artifact_id: UUID,
+        *,
+        operation_types: tuple[str, ...],
+    ) -> dict[str, Any] | None:
+        """Resolve capability inputs only from the same owner's managed work.
+
+        Keep the existing tenant-only reader unchanged for historical operations.
+        This read adds no grants and retains transaction-local tenant RLS context.
+        """
+        with self.engine.begin() as connection:
+            _tenant_context(connection, tenant_id)
+            rows = connection.execute(
+                text(
+                    """
+                    SELECT result_payload -> 'artifact' AS artifact
+                    FROM axwise.cognitive_operations
+                    WHERE tenant_id = :tenant_id
+                      AND user_id = :user_id
+                      AND run_id = :run_id
+                      AND status = 'completed'
+                      AND operation_type = ANY(:operation_types)
+                      AND result_payload -> 'artifact' ->> 'artifactId' = :artifact_id
+                    LIMIT 2
+                    """
+                ),
+                {
+                    "tenant_id": tenant_id,
+                    "user_id": user_id,
+                    "run_id": run_id,
+                    "artifact_id": str(artifact_id),
+                    "operation_types": list(operation_types),
+                },
+            ).all()
+            if len(rows) > 1:
+                raise RuntimeError("owned artifact identity is ambiguous")
+            return rows[0].artifact if rows else None
 
     def claim_next(self, lease_token: UUID, lease_seconds: int = 600) -> ClaimedOperation | None:
         if not 30 <= lease_seconds <= 3600:
@@ -223,7 +536,37 @@ class PostgresOperationStore:
                 or envelope.owner.tenant_id != record.tenant_id
             ):
                 raise RuntimeError("claimed operation envelope identity is inconsistent")
-            return ClaimedOperation(record=record, envelope=envelope, lease_token=lease_token)
+            execution_count = None
+            if single_execution_reclaim_error(envelope) is not None:
+                # SQL004 increments this existing counter while holding the row
+                # lock, but its historical return signature does not expose it.
+                # Read in the same transaction using the existing worker SELECT
+                # grant; no function, role, policy or migration change is needed.
+                _tenant_context(connection, envelope.owner.tenant_id)
+                execution_count = connection.execute(
+                    text(
+                        """
+                        SELECT execution_count
+                        FROM axwise.cognitive_operations
+                        WHERE tenant_id = :tenant_id
+                          AND operation_id = :operation_id
+                          AND lease_token = :lease_token
+                          AND status IN ('running', 'cancel_requested')
+                          AND lease_expires_at > clock_timestamp()
+                        """
+                    ),
+                    {
+                        "tenant_id": envelope.owner.tenant_id,
+                        "operation_id": envelope.operation_id,
+                        "lease_token": lease_token,
+                    },
+                ).scalar_one_or_none()
+            return ClaimedOperation(
+                record=record,
+                envelope=envelope,
+                lease_token=lease_token,
+                execution_count=execution_count,
+            )
 
     def renew(
         self,
@@ -250,6 +593,60 @@ class PostgresOperationStore:
             ).scalar_one()
             return bool(renewed)
 
+    def cancellation_requested(
+        self,
+        tenant_id: UUID,
+        operation_id: UUID,
+        lease_token: UUID,
+    ) -> bool:
+        with self.engine.begin() as connection:
+            _tenant_context(connection, tenant_id)
+            return bool(
+                connection.execute(
+                    text(
+                        """
+                        SELECT EXISTS (
+                          SELECT 1
+                          FROM axwise.cognitive_operations
+                          WHERE tenant_id = :tenant_id
+                            AND operation_id = :operation_id
+                            AND status = 'cancel_requested'
+                            AND lease_token = :lease_token
+                        )
+                        """
+                    ),
+                    {
+                        "tenant_id": tenant_id,
+                        "operation_id": operation_id,
+                        "lease_token": lease_token,
+                    },
+                ).scalar_one()
+            )
+
+    def cancel(
+        self,
+        tenant_id: UUID,
+        operation_id: UUID,
+        lease_token: UUID,
+    ) -> None:
+        with self.engine.begin() as connection:
+            _tenant_context(connection, tenant_id)
+            cancelled = connection.execute(
+                text(
+                    "SELECT axwise.cancel_cognitive_operation("
+                    ":tenant_id, :operation_id, :lease_token)"
+                ),
+                {
+                    "tenant_id": tenant_id,
+                    "operation_id": operation_id,
+                    "lease_token": lease_token,
+                },
+            ).scalar_one()
+            if not cancelled:
+                raise StaleOperationLease(
+                    "expired or stale operation lease cannot cancel"
+                )
+
     def complete(
         self,
         tenant_id: UUID,
@@ -265,6 +662,9 @@ class PostgresOperationStore:
             result_payload=result,
             retryable=None,
             error_class=None,
+            retry_at=None,
+            retry_after_seconds=None,
+            failure_diagnostics=None,
         )
 
     def fail(
@@ -275,6 +675,9 @@ class PostgresOperationStore:
         *,
         retryable: bool,
         error_class: str,
+        retry_at: str | None = None,
+        retry_after_seconds: int | None = None,
+        failure_diagnostics: dict[str, Any] | None = None,
     ) -> None:
         self._finalize(
             tenant_id,
@@ -284,6 +687,9 @@ class PostgresOperationStore:
             result_payload=None,
             retryable=retryable,
             error_class=error_class,
+            retry_at=retry_at,
+            retry_after_seconds=retry_after_seconds,
+            failure_diagnostics=failure_diagnostics,
         )
 
     def _finalize(
@@ -296,6 +702,9 @@ class PostgresOperationStore:
         result_payload: dict[str, Any] | None,
         retryable: bool | None,
         error_class: str | None,
+        retry_at: str | None,
+        retry_after_seconds: int | None,
+        failure_diagnostics: dict[str, Any] | None,
     ) -> None:
         with self.engine.begin() as connection:
             _tenant_context(connection, tenant_id)
@@ -310,6 +719,17 @@ class PostgresOperationStore:
                 ),
                 "retryable": retryable,
                 "error_class": error_class,
+                "retry_at": retry_at,
+                "retry_after_seconds": retry_after_seconds,
+                "failure_diagnostics": (
+                    json.dumps(
+                        failure_diagnostics,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    if failure_diagnostics is not None
+                    else None
+                ),
             }
             if status == "completed":
                 finalized = connection.execute(
@@ -325,7 +745,8 @@ class PostgresOperationStore:
                     text(
                         "SELECT axwise.fail_cognitive_operation("
                         ":tenant_id, :operation_id, :lease_token, "
-                        ":retryable, :error_class)"
+                        ":retryable, :error_class, :retry_at, "
+                        ":retry_after_seconds, CAST(:failure_diagnostics AS jsonb))"
                     ),
                     parameters,
                 ).scalar_one()

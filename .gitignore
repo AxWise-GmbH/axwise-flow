@@ -82,3 +82,10 @@ build/
 target/
 coverage/
 temp/
+
+# Reviewed Orqaly monorepo CI; local/unreviewed GitHub helpers stay ignored.
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/workflow-v2-preview-gates.yml

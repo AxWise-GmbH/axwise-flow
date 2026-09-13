@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "orqaly.capability-source-vectors.v1",
+  "provenance": "Built by AxWise Python frozen corpus/quote validators using only public synthetic fixture text; source hashes do not establish ownership or human authenticity.",
+  "cases": [
+    {
+      "name": "supplied_utf8_with_bom",
+      "corpus": {
+        "schemaVersion": "axwise.transcript-corpus.v1",
+        "documents": [
+          {
+            "documentId": "a1000000-0000-4000-8000-000000000001",
+            "title": "Synthetic UTF-8 source fixture",
+            "text": "Question: Which friction matters?\nAnswer: ﻿Café 日本語 🙂 needs fewer steps.\n",
+            "textSha256": "40b1ec167f01293b49c6c58d5f36274f275e7e1b0efae6151e728c980d2d2547",
+            "origin": "supplied_transcript",
+            "originArtifactRefs": [],
+            "participants": [
+              {
+                "participantId": "interviewer",
+                "displayName": null,
+                "role": "interviewer",
+                "stakeholderId": null
+              },
+              {
+                "participantId": "participant-🙂",
+                "displayName": "Fictional participant",
+                "role": "participant",
+                "stakeholderId": "group-one"
+              }
+            ],
+            "turns": [
+              {
+                "turnId": "question-one",
+                "participantId": "interviewer",
+                "questionId": "q-one",
+                "start": 10,
+                "end": 33,
+                "offsetUnit": "utf8_bytes"
+              },
+              {
+                "turnId": "answer-one",
+                "participantId": "participant-🙂",
+                "questionId": "q-one",
+                "start": 42,
+                "end": 84,
+                "offsetUnit": "utf8_bytes"
+              }
+            ]
+          }
+        ]
+      },
+      "corpusHash": "aa38238c7b4dd089cefe3a834758609ed6bb72b5ae168c57fd7d6d4a75555896",
+      "quote": {
+        "quoteId": "68b488d14c88da446b748c1d6267eba10023168546a11636245e61081b6dbb79",
+        "documentId": "a1000000-0000-4000-8000-000000000001",
+        "turnId": "answer-one",
+        "participantId": "participant-🙂",
+        "speakerRole": "participant",
+        "origin": "supplied_transcript",
+        "sourceTextSha256": "40b1ec167f01293b49c6c58d5f36274f275e7e1b0efae6151e728c980d2d2547",
+        "start": 42,
+        "end": 84,
+        "offsetUnit": "utf8_bytes",
+        "text": "﻿Café 日本語 🙂 needs fewer steps.",
+        "textSha256": "c6c37ee3f83fa596bbf8b33c6bd6953e38a08ae739b21f14e726d33006e8231a"
+      },
+      "auditQuote": {
+        "quoteId": "c06a02d2e4bce381fd28f7f2df85b47cf91b368b2ef983dcd7ebcd66dadbf26a",
+        "documentId": "a1000000-0000-4000-8000-000000000001",
+        "turnId": "question-one",
+        "participantId": "interviewer",
+        "speakerRole": "interviewer",
+        "origin": "supplied_transcript",
+        "sourceTextSha256": "40b1ec167f01293b49c6c58d5f36274f275e7e1b0efae6151e728c980d2d2547",
+        "start": 10,
+        "end": 33,
+        "offsetUnit": "utf8_bytes",
+        "text": "Which friction matters?",
+        "textSha256": "56bc630beb30ce04402e3f7839f617ac9b5d7825586bc0342d3e93def5590185"
+      }
+    },
+    {
+      "name": "synthetic_origin_preserved",
+      "corpus": {
+        "schemaVersion": "axwise.transcript-corpus.v1",
+        "documents": [
+          {
+            "documentId": "a1000000-0000-4000-8000-000000000001",
+            "title": "Synthetic UTF-8 source fixture",
+            "text": "Question: Which friction matters?\nAnswer: ﻿Café 日本語 🙂 needs fewer steps.\n",
+            "textSha256": "40b1ec167f01293b49c6c58d5f36274f275e7e1b0efae6151e728c980d2d2547",
+            "origin": "synthetic_transcript",
+            "originArtifactRefs": [
+              {
+                "artifactId": "b1000000-0000-4000-8000-000000000001",
+                "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "kind": "simulation"
+              }
+            ],
+            "participants": [
+              {
+                "participantId": "interviewer",
+                "displayName": null,
+                "role": "interviewer",
+                "stakeholderId": null
+              },
+              {
+                "participantId": "participant-🙂",
+                "displayName": "Fictional participant",
+                "role": "participant",
+                "stakeholderId": "group-one"
+              }
+            ],
+            "turns": [
+              {
+                "turnId": "question-one",
+                "participantId": "interviewer",
+                "questionId": "q-one",
+                "start": 10,
+                "end": 33,
+                "offsetUnit": "utf8_bytes"
+              },
+              {
+                "turnId": "answer-one",
+                "participantId": "participant-🙂",
+                "questionId": "q-one",
+                "start": 42,
+                "end": 84,
+                "offsetUnit": "utf8_bytes"
+              }
+            ]
+          }
+        ]
+      },
+      "corpusHash": "a3e74cabf6c6a1714fddffa2cd11f28b56965fbfed098eeed102bbe3f3ac26a9",
+      "quote": {
+        "quoteId": "d8a388b2c88250a64fc4c6d9afd5d6af7b7c5a3e9134506985ed7a031999211e",
+        "documentId": "a1000000-0000-4000-8000-000000000001",
+        "turnId": "answer-one",
+        "participantId": "participant-🙂",
+        "speakerRole": "participant",
+        "origin": "synthetic_transcript",
+        "sourceTextSha256": "40b1ec167f01293b49c6c58d5f36274f275e7e1b0efae6151e728c980d2d2547",
+        "start": 42,
+        "end": 84,
+        "offsetUnit": "utf8_bytes",
+        "text": "﻿Café 日本語 🙂 needs fewer steps.",
+        "textSha256": "c6c37ee3f83fa596bbf8b33c6bd6953e38a08ae739b21f14e726d33006e8231a"
+      }
+    }
+  ]
+}

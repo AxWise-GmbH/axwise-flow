@@ -1,0 +1,3417 @@
+{
+  "_notice": "Recorded synthetic REAL-MODEL array design under V2 limits. Orqaly static review BLOCKED the initial candidate; it was NOT approved or executed. A first explicitly authorized exact-draft repair hit the terminal 90-second deadline. A separately authorized final attempt with the V2-only 180-second deadline ended with terminal AXWISE_NATIVE_SOLUTION_BUDGET_EXHAUSTED. Neither repair returned an accepted response or usage receipt. No further model call was made. This is not runtime evidence.",
+  "scope": "synthetic_authoring_only",
+  "runtimeExecuted": false,
+  "candidateAccepted": false,
+  "modelVersion": "gemini-3.8-flash",
+  "designUsage": {
+    "inputTokens": 27823,
+    "outputTokens": 27621
+  },
+  "budget": {
+    "scope": "per_adapter_invocation_not_persisted_lifetime_spend",
+    "requestLimit": 3,
+    "maxTokensPerResponse": 32768,
+    "perRequestInputTokenLimit": 64000,
+    "inputTokenLimit": 120000,
+    "outputTokenLimit": 65536,
+    "totalTokenLimit": 160000,
+    "deadlineSeconds": 90,
+    "deadlineRetryable": false,
+    "countTokensBeforeRequest": true
+  },
+  "buildRequestId": "00000000-0000-4000-8000-000000000602",
+  "workflowHash": "4b301fb8ae8518ef84aeab9170b15fd1b8ab26f49428813d85e9df759e55b678",
+  "workflow": {
+    "name": "Native Line-Item Aggregation Workflow",
+    "nodes": [
+      {
+        "id": "node-webhook",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          200,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "solution-00000000-0000-4000-8000-000000000602",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "00000000-0000-4000-8000-000000000602"
+      },
+      {
+        "id": "node-if-items-empty",
+        "name": "If Items Empty",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          420,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ ($json.body.order.items || []).length }}",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "rightValue": 0
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "node-split-out",
+        "name": "Split Out Items",
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1,
+        "position": [
+          660,
+          200
+        ],
+        "parameters": {
+          "fieldToSplitOut": "body.order.items",
+          "include": "noOtherFields",
+          "options": {}
+        }
+      },
+      {
+        "id": "node-filter-positive",
+        "name": "Filter Positive Quantity",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          880,
+          200
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.quantity }}",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "rightValue": 0
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "settings": {
+          "alwaysOutputData": true
+        }
+      },
+      {
+        "id": "node-if-has-kept-items",
+        "name": "If Has Kept Items",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          1100,
+          200
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.quantity }}",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "rightValue": 0
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "node-calc-subtotal",
+        "name": "Calculate Subtotal",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.5,
+        "position": [
+          1340,
+          140
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": true,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "assign-subtotal",
+                "name": "subtotal",
+                "value": "={{ $json.quantity * $json.unitPrice }}",
+                "type": "number"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-aggregate",
+        "name": "Aggregate Subtotals",
+        "type": "n8n-nodes-base.aggregate",
+        "typeVersion": 1,
+        "position": [
+          1560,
+          140
+        ],
+        "parameters": {
+          "aggregate": "aggregateIndividualFields",
+          "fieldsToAggregate": {
+            "fieldToAggregate": [
+              {
+                "fieldToAggregate": "subtotal",
+                "renameField": false
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-build-final-response",
+        "name": "Build Final Response",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.5,
+        "position": [
+          1780,
+          140
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "assign-final-order-id",
+                "name": "orderId",
+                "value": "={{ $('Webhook').item.json.body.order.id }}",
+                "type": "string"
+              },
+              {
+                "id": "assign-final-accepted-count",
+                "name": "acceptedCount",
+                "value": "={{ $json.subtotal.length }}",
+                "type": "number"
+              },
+              {
+                "id": "assign-final-total",
+                "name": "total",
+                "value": "={{ $json.subtotal.sum() }}",
+                "type": "number"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-build-zero-response",
+        "name": "Build Zero Response",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.5,
+        "position": [
+          1340,
+          460
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "assign-zero-order-id",
+                "name": "orderId",
+                "value": "={{ $('Webhook').item.json.body.order.id }}",
+                "type": "string"
+              },
+              {
+                "id": "assign-zero-accepted-count",
+                "name": "acceptedCount",
+                "value": "={{ 0 }}",
+                "type": "number"
+              },
+              {
+                "id": "assign-zero-total",
+                "name": "total",
+                "value": "={{ 0 }}",
+                "type": "number"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "node-respond-webhook",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          2040,
+          300
+        ],
+        "parameters": {
+          "respondWith": "firstIncomingItem",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "x-orqaly-execution-id",
+                  "value": "={{ $execution.id }}"
+                },
+                {
+                  "name": "x-orqaly-invocation-id",
+                  "value": "={{ $(\"Webhook\").first().json.headers[\"x-orqaly-invocation-id\"] }}"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "If Items Empty",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If Items Empty": {
+        "main": [
+          [
+            {
+              "node": "Split Out Items",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Zero Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out Items": {
+        "main": [
+          [
+            {
+              "node": "Filter Positive Quantity",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Positive Quantity": {
+        "main": [
+          [
+            {
+              "node": "If Has Kept Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If Has Kept Items": {
+        "main": [
+          [
+            {
+              "node": "Calculate Subtotal",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Zero Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Subtotal": {
+        "main": [
+          [
+            {
+              "node": "Aggregate Subtotals",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate Subtotals": {
+        "main": [
+          [
+            {
+              "node": "Build Final Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Final Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Zero Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "executionTimeout": 30,
+      "saveDataSuccessExecution": "none",
+      "saveDataErrorExecution": "none",
+      "saveManualExecutions": false,
+      "availableInMCP": false
+    }
+  },
+  "spec": {
+    "kind": "n8n_workflow_v2",
+    "requirements": [
+      {
+        "id": "req-receive-order",
+        "description": "Receive HTTP POST webhook payload at $json.body containing an order object with an id string and items array."
+      },
+      {
+        "id": "req-filter-positive",
+        "description": "Split out items and filter line items natively to keep only items whose quantity is strictly greater than zero."
+      },
+      {
+        "id": "req-calc-aggregate",
+        "description": "Calculate subtotal = quantity * unitPrice per kept item, aggregate subtotals into an array, and compute total using native .sum()."
+      },
+      {
+        "id": "req-empty-zero-handling",
+        "description": "Handle empty item arrays and arrays with no positive quantities cleanly by returning acceptedCount 0 and total 0 without hanging."
+      }
+    ],
+    "inputSchema": {
+      "type": "object",
+      "description": "Incoming HTTP POST webhook JSON payload",
+      "properties": {
+        "order": {
+          "type": "object",
+          "description": "Order information and line item array",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Order identifier"
+            },
+            "items": {
+              "type": "array",
+              "description": "Line items in the order",
+              "items": {
+                "type": "object",
+                "description": "Line item details",
+                "properties": {
+                  "sku": {
+                    "type": "string",
+                    "description": "Item stock keeping unit"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "description": "Item quantity"
+                  },
+                  "unitPrice": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Nonnegative unit price"
+                  }
+                },
+                "required": [
+                  "sku",
+                  "quantity",
+                  "unitPrice"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "id",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "order"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "Synchronous webhook response summarizing the processed order",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Original order identifier"
+        },
+        "acceptedCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of items with quantity strictly greater than zero"
+        },
+        "total": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Sum of all kept line item subtotals"
+        }
+      },
+      "required": [
+        "orderId",
+        "acceptedCount",
+        "total"
+      ],
+      "additionalProperties": false
+    },
+    "acceptanceCases": [
+      {
+        "id": "case-empty-items-array",
+        "description": "Order with an empty items array returns count 0 and total 0",
+        "requirementIds": [
+          "req-receive-order",
+          "req-empty-zero-handling"
+        ],
+        "input": {
+          "order": {
+            "id": "ord-empty-001",
+            "items": []
+          }
+        },
+        "expectedOutput": {
+          "orderId": "ord-empty-001",
+          "acceptedCount": 0,
+          "total": 0
+        },
+        "expectedStatus": 200,
+        "assertions": [
+          {
+            "path": "/orderId",
+            "operator": "equals",
+            "value": "ord-empty-001"
+          },
+          {
+            "path": "/acceptedCount",
+            "operator": "equals",
+            "value": 0
+          },
+          {
+            "path": "/total",
+            "operator": "equals",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "case-all-nonpositive-array",
+        "description": "Order with items having zero or negative quantities returns count 0 and total 0",
+        "requirementIds": [
+          "req-receive-order",
+          "req-filter-positive",
+          "req-empty-zero-handling"
+        ],
+        "input": {
+          "order": {
+            "id": "ord-nonpos-002",
+            "items": [
+              {
+                "sku": "B",
+                "quantity": 0,
+                "unitPrice": 3
+              },
+              {
+                "sku": "C",
+                "quantity": -1,
+                "unitPrice": 6
+              }
+            ]
+          }
+        },
+        "expectedOutput": {
+          "orderId": "ord-nonpos-002",
+          "acceptedCount": 0,
+          "total": 0
+        },
+        "expectedStatus": 200,
+        "assertions": [
+          {
+            "path": "/orderId",
+            "operator": "equals",
+            "value": "ord-nonpos-002"
+          },
+          {
+            "path": "/acceptedCount",
+            "operator": "equals",
+            "value": 0
+          },
+          {
+            "path": "/total",
+            "operator": "equals",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "id": "case-mixed-items-array",
+        "description": "Order with mixed valid and invalid quantities filters out non-positive items and aggregates kept items",
+        "requirementIds": [
+          "req-receive-order",
+          "req-filter-positive",
+          "req-calc-aggregate"
+        ],
+        "input": {
+          "order": {
+            "id": "ord-mixed-003",
+            "items": [
+              {
+                "sku": "A",
+                "quantity": 2,
+                "unitPrice": 10
+              },
+              {
+                "sku": "B",
+                "quantity": 0,
+                "unitPrice": 3
+              },
+              {
+                "sku": "C",
+                "quantity": -1,
+                "unitPrice": 6
+              },
+              {
+                "sku": "D",
+                "quantity": 3,
+                "unitPrice": 5
+              }
+            ]
+          }
+        },
+        "expectedOutput": {
+          "orderId": "ord-mixed-003",
+          "acceptedCount": 2,
+          "total": 35
+        },
+        "expectedStatus": 200,
+        "assertions": [
+          {
+            "path": "/orderId",
+            "operator": "equals",
+            "value": "ord-mixed-003"
+          },
+          {
+            "path": "/acceptedCount",
+            "operator": "equals",
+            "value": 2
+          },
+          {
+            "path": "/total",
+            "operator": "equals",
+            "value": 35
+          }
+        ]
+      }
+    ],
+    "connections": [],
+    "runtimeProfile": "request_automation"
+  },
+  "input": {
+    "instruction": "Build a genuinely array-processing native n8n workflow.\nReceive HTTP POST JSON {order:{id:string,items:[{sku:string,quantity:integer,unitPrice:number}]}}.\nunitPrice is nonnegative. Use actual Split Out, Filter, Edit Fields/Set and\nAggregate nodes (plus Webhook, response and any necessary empty-input branches).\nKeep only line items whose quantity is strictly greater than zero. Compute each\nkept item's subtotal = quantity * unitPrice; aggregate subtotal values and return\nHTTP 200 JSON {orderId:<original order.id>,acceptedCount:<number of kept items>,total:<sum of subtotals>}.\nEmpty arrays and arrays with no positive quantities must return count 0 and total\n0, not hang without a response. Mixed valid/invalid arrays must count/sum only\npositive quantities. Native numeric-array .sum() is available for aggregation;\nuse node branches to handle no-item paths before and after filtering. JavaScript\ncallback methods (map/reduce/filter/some) are not in this execution profile;\nperform those operations with native nodes. Do not use Code nodes, arbitrary JavaScript functions, external services,\nregistration, credentials or provider effects. Include frozen synthetic cases\nfor an empty array, an all-nonpositive array, and a mixed array containing items\n{sku:'A',quantity:2,unitPrice:10}, {sku:'B',quantity:0,unitPrice:3},\n{sku:'C',quantity:-1,unitPrice:6}, {sku:'D',quantity:3,unitPrice:5}; the mixed case\nmust return acceptedCount 2 and total 35. This is authoring only; do not claim\nthe workflow ran or passed. Do not substitute a fixed-length scalar example.",
+    "source": {
+      "runId": "00000000-0000-4000-8000-000000000603",
+      "taskHash": "2e8c0b1d849225640d0b3111c17dcaf3ce6a1bee7164f2a5afb6c73e38054052",
+      "title": "Synthetic native line-item aggregation",
+      "taskText": "Build a genuinely array-processing native n8n workflow.\nReceive HTTP POST JSON {order:{id:string,items:[{sku:string,quantity:integer,unitPrice:number}]}}.\nunitPrice is nonnegative. Use actual Split Out, Filter, Edit Fields/Set and\nAggregate nodes (plus Webhook, response and any necessary empty-input branches).\nKeep only line items whose quantity is strictly greater than zero. Compute each\nkept item's subtotal = quantity * unitPrice; aggregate subtotal values and return\nHTTP 200 JSON {orderId:<original order.id>,acceptedCount:<number of kept items>,total:<sum of subtotals>}.\nEmpty arrays and arrays with no positive quantities must return count 0 and total\n0, not hang without a response. Mixed valid/invalid arrays must count/sum only\npositive quantities. Native numeric-array .sum() is available for aggregation;\nuse node branches to handle no-item paths before and after filtering. JavaScript\ncallback methods (map/reduce/filter/some) are not in this execution profile;\nperform those operations with native nodes. Do not use Code nodes, arbitrary JavaScript functions, external services,\nregistration, credentials or provider effects. Include frozen synthetic cases\nfor an empty array, an all-nonpositive array, and a mixed array containing items\n{sku:'A',quantity:2,unitPrice:10}, {sku:'B',quantity:0,unitPrice:3},\n{sku:'C',quantity:-1,unitPrice:6}, {sku:'D',quantity:3,unitPrice:5}; the mixed case\nmust return acceptedCount 2 and total 35. This is authoring only; do not claim\nthe workflow ran or passed. Do not substitute a fixed-length scalar example.",
+      "contextHash": "2f1f940931334f2220c6e2ae277ed518e9ad7507ef611a7ced63d14fb699bc4a"
+    },
+    "agent": {
+      "id": "00000000-0000-4000-8000-000000000602",
+      "name": "Workflow builder",
+      "profileVersion": 1,
+      "roleLabel": "Automation specialist",
+      "description": "Prepares customer workflows.",
+      "instructions": "Use only this selected task.",
+      "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "canonicalInputHash": "1e1237977a4cd743b2fbb90e4917764bf56d4fc9f59236034d9da704eb94efb1",
+    "knowledge": {
+      "version": "n8n-native-2.37.10-v1",
+      "catalogHash": "dc9dc44f05d78d264f0d75701e4d1fd0d76b064c8ba79a5c4abf818c6aeede69",
+      "skills": [
+        {
+          "id": "n8n-workflow-lifecycle-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "af03a33f79e2701b8224bb789e9cb6286e4fc3f3ab562e11da757c779a5876c3"
+        },
+        {
+          "id": "n8n-node-configuration-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "d2a9da497d6511cd580ae624dfcb27184f1f206ff59ba592f937e26f8a35ef53"
+        },
+        {
+          "id": "n8n-expressions-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "3ce40b035add4e14d989ad873cca3dd89f4b04a0a4f3a03703d4f6dc637e8c39"
+        },
+        {
+          "id": "n8n-credentials-and-security-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "e1396beedd49ee3d308a3921b136372fa4c6535edbd127451155da50e6e3710d"
+        },
+        {
+          "id": "n8n-loops-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "aefb91628a900edf49366ef39e4e7965b2a62a0cdfffd9418e53afc554d35cc1"
+        }
+      ],
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.5
+        },
+        {
+          "type": "n8n-nodes-base.wait",
+          "typeVersion": 1.1
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1
+        },
+        {
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.5
+        },
+        {
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5
+        },
+        {
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3
+        },
+        {
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 3.4
+        },
+        {
+          "type": "n8n-nodes-base.filter",
+          "typeVersion": 2.3
+        },
+        {
+          "type": "n8n-nodes-base.merge",
+          "typeVersion": 3.2
+        },
+        {
+          "type": "n8n-nodes-base.aggregate",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.sort",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.noOp",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.stopAndError",
+          "typeVersion": 1
+        }
+      ]
+    }
+  },
+  "pins": {
+    "version": "n8n-native-2.37.10-v1",
+    "n8nVersion": "2.37.10",
+    "imageDigest": "sha256:848166b4051fd4251869f48c18455bddff922f04cb2f2676929463ba973dbde2",
+    "catalogHash": "836badc7047e9b1d09bdfc69a6f87e0f204e00efc393307d1b8b58f07b12bf8d",
+    "skillsCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139"
+  },
+  "frozenAcceptanceCases": [
+    {
+      "id": "case-empty-items-array",
+      "description": "Order with an empty items array returns count 0 and total 0",
+      "requirementIds": [
+        "req-receive-order",
+        "req-empty-zero-handling"
+      ],
+      "input": {
+        "order": {
+          "id": "ord-empty-001",
+          "items": []
+        }
+      },
+      "expectedOutput": {
+        "orderId": "ord-empty-001",
+        "acceptedCount": 0,
+        "total": 0
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "/orderId",
+          "operator": "equals",
+          "value": "ord-empty-001"
+        },
+        {
+          "path": "/acceptedCount",
+          "operator": "equals",
+          "value": 0
+        },
+        {
+          "path": "/total",
+          "operator": "equals",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "case-all-nonpositive-array",
+      "description": "Order with items having zero or negative quantities returns count 0 and total 0",
+      "requirementIds": [
+        "req-receive-order",
+        "req-filter-positive",
+        "req-empty-zero-handling"
+      ],
+      "input": {
+        "order": {
+          "id": "ord-nonpos-002",
+          "items": [
+            {
+              "sku": "B",
+              "quantity": 0,
+              "unitPrice": 3
+            },
+            {
+              "sku": "C",
+              "quantity": -1,
+              "unitPrice": 6
+            }
+          ]
+        }
+      },
+      "expectedOutput": {
+        "orderId": "ord-nonpos-002",
+        "acceptedCount": 0,
+        "total": 0
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "/orderId",
+          "operator": "equals",
+          "value": "ord-nonpos-002"
+        },
+        {
+          "path": "/acceptedCount",
+          "operator": "equals",
+          "value": 0
+        },
+        {
+          "path": "/total",
+          "operator": "equals",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "case-mixed-items-array",
+      "description": "Order with mixed valid and invalid quantities filters out non-positive items and aggregates kept items",
+      "requirementIds": [
+        "req-receive-order",
+        "req-filter-positive",
+        "req-calc-aggregate"
+      ],
+      "input": {
+        "order": {
+          "id": "ord-mixed-003",
+          "items": [
+            {
+              "sku": "A",
+              "quantity": 2,
+              "unitPrice": 10
+            },
+            {
+              "sku": "B",
+              "quantity": 0,
+              "unitPrice": 3
+            },
+            {
+              "sku": "C",
+              "quantity": -1,
+              "unitPrice": 6
+            },
+            {
+              "sku": "D",
+              "quantity": 3,
+              "unitPrice": 5
+            }
+          ]
+        }
+      },
+      "expectedOutput": {
+        "orderId": "ord-mixed-003",
+        "acceptedCount": 2,
+        "total": 35
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "/orderId",
+          "operator": "equals",
+          "value": "ord-mixed-003"
+        },
+        {
+          "path": "/acceptedCount",
+          "operator": "equals",
+          "value": 2
+        },
+        {
+          "path": "/total",
+          "operator": "equals",
+          "value": 35
+        }
+      ]
+    }
+  ],
+  "modelResponses": {
+    "design": {
+      "schemaVersion": "axwise.solution-preparation.v2",
+      "buildRequestId": "00000000-0000-4000-8000-000000000602",
+      "inputVersion": 1,
+      "outcome": "candidate",
+      "name": "Native Line-Item Aggregation Workflow",
+      "purpose": "Natively filters and aggregates order line items using Webhook, Split Out, Filter, Set, and Aggregate nodes, computing item subtotals and sum total while handling empty and non-positive item paths cleanly.",
+      "explanation": "The workflow is designed entirely with native n8n nodes without any Code nodes, external JavaScript callbacks, or credentialed dependencies. Incoming requests arrive at the Webhook node with payload at $json.body. An initial If node checks whether order.items contains elements. If empty, it immediately branches to Build Zero Response and returns count 0 and total 0. If non-empty, items are split using the Split Out node and routed to the native Filter node to keep only items with quantity strictly greater than zero. The Filter node includes alwaysOutputData so that executions with zero positive items do not terminate silently; a downstream If node checks for retained items, routing to Build Zero Response when no items qualified. For qualifying items, Edit Fields (Set) computes subtotal = quantity * unitPrice per item, the Aggregate node aggregates the subtotals into a single list, and Build Final Response calculates acceptedCount via array length and total via the native numeric array .sum() method before returning HTTP 200 via Respond to Webhook.",
+      "workflow": {
+        "name": "Native Line-Item Aggregation Workflow",
+        "nodes": [
+          {
+            "id": "node-webhook",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+              200,
+              300
+            ],
+            "parameters": {
+              "httpMethod": "POST",
+              "path": "order-aggregate",
+              "responseMode": "responseNode",
+              "options": {}
+            }
+          },
+          {
+            "id": "node-if-items-empty",
+            "name": "If Items Empty",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+              420,
+              300
+            ],
+            "parameters": {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.body.order.items || []).length }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "rightValue": 0
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          },
+          {
+            "id": "node-split-out",
+            "name": "Split Out Items",
+            "type": "n8n-nodes-base.splitOut",
+            "typeVersion": 1,
+            "position": [
+              660,
+              200
+            ],
+            "parameters": {
+              "fieldToSplitOut": "body.order.items",
+              "include": "noOtherFields",
+              "options": {}
+            }
+          },
+          {
+            "id": "node-filter-positive",
+            "name": "Filter Positive Quantity",
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 2.3,
+            "position": [
+              880,
+              200
+            ],
+            "parameters": {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.quantity }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "rightValue": 0
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            "settings": {
+              "alwaysOutputData": true
+            }
+          },
+          {
+            "id": "node-if-has-kept-items",
+            "name": "If Has Kept Items",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+              1100,
+              200
+            ],
+            "parameters": {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.quantity }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "rightValue": 0
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          },
+          {
+            "id": "node-calc-subtotal",
+            "name": "Calculate Subtotal",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.5,
+            "position": [
+              1340,
+              140
+            ],
+            "parameters": {
+              "mode": "manual",
+              "includeOtherFields": true,
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "assign-subtotal",
+                    "name": "subtotal",
+                    "value": "={{ $json.quantity * $json.unitPrice }}",
+                    "type": "number"
+                  }
+                ]
+              },
+              "options": {}
+            }
+          },
+          {
+            "id": "node-aggregate",
+            "name": "Aggregate Subtotals",
+            "type": "n8n-nodes-base.aggregate",
+            "typeVersion": 1,
+            "position": [
+              1560,
+              140
+            ],
+            "parameters": {
+              "aggregate": "aggregateIndividualFields",
+              "fieldsToAggregate": {
+                "fieldToAggregate": [
+                  {
+                    "fieldToAggregate": "subtotal",
+                    "renameField": false
+                  }
+                ]
+              },
+              "options": {}
+            }
+          },
+          {
+            "id": "node-build-final-response",
+            "name": "Build Final Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.5,
+            "position": [
+              1780,
+              140
+            ],
+            "parameters": {
+              "mode": "manual",
+              "includeOtherFields": false,
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "assign-final-order-id",
+                    "name": "orderId",
+                    "value": "={{ $('Webhook').item.json.body.order.id }}",
+                    "type": "string"
+                  },
+                  {
+                    "id": "assign-final-accepted-count",
+                    "name": "acceptedCount",
+                    "value": "={{ $json.subtotal.length }}",
+                    "type": "number"
+                  },
+                  {
+                    "id": "assign-final-total",
+                    "name": "total",
+                    "value": "={{ $json.subtotal.sum() }}",
+                    "type": "number"
+                  }
+                ]
+              },
+              "options": {}
+            }
+          },
+          {
+            "id": "node-build-zero-response",
+            "name": "Build Zero Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.5,
+            "position": [
+              1340,
+              460
+            ],
+            "parameters": {
+              "mode": "manual",
+              "includeOtherFields": false,
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "assign-zero-order-id",
+                    "name": "orderId",
+                    "value": "={{ $('Webhook').item.json.body.order.id }}",
+                    "type": "string"
+                  },
+                  {
+                    "id": "assign-zero-accepted-count",
+                    "name": "acceptedCount",
+                    "value": "={{ 0 }}",
+                    "type": "number"
+                  },
+                  {
+                    "id": "assign-zero-total",
+                    "name": "total",
+                    "value": "={{ 0 }}",
+                    "type": "number"
+                  }
+                ]
+              },
+              "options": {}
+            }
+          },
+          {
+            "id": "node-respond-webhook",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+              2040,
+              300
+            ],
+            "parameters": {
+              "respondWith": "firstIncomingItem",
+              "options": {
+                "responseCode": 200
+              }
+            }
+          }
+        ],
+        "connections": {
+          "Webhook": {
+            "main": [
+              [
+                {
+                  "node": "If Items Empty",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "If Items Empty": {
+            "main": [
+              [
+                {
+                  "node": "Split Out Items",
+                  "type": "main",
+                  "index": 0
+                }
+              ],
+              [
+                {
+                  "node": "Build Zero Response",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Split Out Items": {
+            "main": [
+              [
+                {
+                  "node": "Filter Positive Quantity",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Filter Positive Quantity": {
+            "main": [
+              [
+                {
+                  "node": "If Has Kept Items",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "If Has Kept Items": {
+            "main": [
+              [
+                {
+                  "node": "Calculate Subtotal",
+                  "type": "main",
+                  "index": 0
+                }
+              ],
+              [
+                {
+                  "node": "Build Zero Response",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Calculate Subtotal": {
+            "main": [
+              [
+                {
+                  "node": "Aggregate Subtotals",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Aggregate Subtotals": {
+            "main": [
+              [
+                {
+                  "node": "Build Final Response",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Build Final Response": {
+            "main": [
+              [
+                {
+                  "node": "Respond to Webhook",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Build Zero Response": {
+            "main": [
+              [
+                {
+                  "node": "Respond to Webhook",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          }
+        },
+        "settings": {
+          "executionOrder": "v1"
+        }
+      },
+      "spec": {
+        "kind": "n8n_workflow_v2",
+        "requirements": [
+          {
+            "id": "req-receive-order",
+            "description": "Receive HTTP POST webhook payload at $json.body containing an order object with an id string and items array."
+          },
+          {
+            "id": "req-filter-positive",
+            "description": "Split out items and filter line items natively to keep only items whose quantity is strictly greater than zero."
+          },
+          {
+            "id": "req-calc-aggregate",
+            "description": "Calculate subtotal = quantity * unitPrice per kept item, aggregate subtotals into an array, and compute total using native .sum()."
+          },
+          {
+            "id": "req-empty-zero-handling",
+            "description": "Handle empty item arrays and arrays with no positive quantities cleanly by returning acceptedCount 0 and total 0 without hanging."
+          }
+        ],
+        "inputSchema": {
+          "type": "object",
+          "description": "Incoming HTTP POST webhook JSON payload",
+          "properties": {
+            "order": {
+              "type": "object",
+              "description": "Order information and line item array",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Order identifier"
+                },
+                "items": {
+                  "type": "array",
+                  "description": "Line items in the order",
+                  "items": {
+                    "type": "object",
+                    "description": "Line item details",
+                    "properties": {
+                      "sku": {
+                        "type": "string",
+                        "description": "Item stock keeping unit"
+                      },
+                      "quantity": {
+                        "type": "integer",
+                        "description": "Item quantity"
+                      },
+                      "unitPrice": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "Nonnegative unit price"
+                      }
+                    },
+                    "required": [
+                      "sku",
+                      "quantity",
+                      "unitPrice"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "items"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "order"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "description": "Synchronous webhook response summarizing the processed order",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "description": "Original order identifier"
+            },
+            "acceptedCount": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Count of items with quantity strictly greater than zero"
+            },
+            "total": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Sum of all kept line item subtotals"
+            }
+          },
+          "required": [
+            "orderId",
+            "acceptedCount",
+            "total"
+          ],
+          "additionalProperties": false
+        },
+        "acceptanceCases": [
+          {
+            "id": "case-empty-items-array",
+            "description": "Order with an empty items array returns count 0 and total 0",
+            "requirementIds": [
+              "req-receive-order",
+              "req-empty-zero-handling"
+            ],
+            "input": {
+              "order": {
+                "id": "ord-empty-001",
+                "items": []
+              }
+            },
+            "expectedOutput": {
+              "orderId": "ord-empty-001",
+              "acceptedCount": 0,
+              "total": 0
+            },
+            "expectedStatus": 200,
+            "assertions": [
+              {
+                "path": "/orderId",
+                "operator": "equals",
+                "value": "ord-empty-001"
+              },
+              {
+                "path": "/acceptedCount",
+                "operator": "equals",
+                "value": 0
+              },
+              {
+                "path": "/total",
+                "operator": "equals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "id": "case-all-nonpositive-array",
+            "description": "Order with items having zero or negative quantities returns count 0 and total 0",
+            "requirementIds": [
+              "req-receive-order",
+              "req-filter-positive",
+              "req-empty-zero-handling"
+            ],
+            "input": {
+              "order": {
+                "id": "ord-nonpos-002",
+                "items": [
+                  {
+                    "sku": "B",
+                    "quantity": 0,
+                    "unitPrice": 3
+                  },
+                  {
+                    "sku": "C",
+                    "quantity": -1,
+                    "unitPrice": 6
+                  }
+                ]
+              }
+            },
+            "expectedOutput": {
+              "orderId": "ord-nonpos-002",
+              "acceptedCount": 0,
+              "total": 0
+            },
+            "expectedStatus": 200,
+            "assertions": [
+              {
+                "path": "/orderId",
+                "operator": "equals",
+                "value": "ord-nonpos-002"
+              },
+              {
+                "path": "/acceptedCount",
+                "operator": "equals",
+                "value": 0
+              },
+              {
+                "path": "/total",
+                "operator": "equals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "id": "case-mixed-items-array",
+            "description": "Order with mixed valid and invalid quantities filters out non-positive items and aggregates kept items",
+            "requirementIds": [
+              "req-receive-order",
+              "req-filter-positive",
+              "req-calc-aggregate"
+            ],
+            "input": {
+              "order": {
+                "id": "ord-mixed-003",
+                "items": [
+                  {
+                    "sku": "A",
+                    "quantity": 2,
+                    "unitPrice": 10
+                  },
+                  {
+                    "sku": "B",
+                    "quantity": 0,
+                    "unitPrice": 3
+                  },
+                  {
+                    "sku": "C",
+                    "quantity": -1,
+                    "unitPrice": 6
+                  },
+                  {
+                    "sku": "D",
+                    "quantity": 3,
+                    "unitPrice": 5
+                  }
+                ]
+              }
+            },
+            "expectedOutput": {
+              "orderId": "ord-mixed-003",
+              "acceptedCount": 2,
+              "total": 35
+            },
+            "expectedStatus": 200,
+            "assertions": [
+              {
+                "path": "/orderId",
+                "operator": "equals",
+                "value": "ord-mixed-003"
+              },
+              {
+                "path": "/acceptedCount",
+                "operator": "equals",
+                "value": 2
+              },
+              {
+                "path": "/total",
+                "operator": "equals",
+                "value": 35
+              }
+            ]
+          }
+        ],
+        "connections": [],
+        "runtimeProfile": "request_automation"
+      },
+      "questions": [],
+      "dependencies": [],
+      "baseWorkflowHash": null,
+      "semanticReview": {
+        "advisory": true,
+        "summary": "The solution authoring directly fulfills the task specification by utilizing native n8n nodes for array transformation without custom JavaScript code or callback functions. Branching logic explicitly addresses zero-item and zero-positive cases before and after filtering to guarantee predictable webhook termination with count 0 and total 0.",
+        "concerns": [
+          "Ensure n8n engine version supports alwaysOutputData on Filter node v2.3 in the deployment runtime to allow graceful propagation into the post-filter If node when all items are discarded."
+        ]
+      }
+    }
+  },
+  "review": {
+    "valid": false,
+    "issues": [
+      {
+        "code": "NODE_FIELD",
+        "message": "Unsupported native node field: settings",
+        "nodeId": "node-filter-positive"
+      }
+    ],
+    "execution": {
+      "allowed": false,
+      "reasons": [
+        {
+          "code": "NODE_FIELD",
+          "message": "Unsupported native node field: settings",
+          "nodeId": "node-filter-positive"
+        },
+        {
+          "code": "RUNTIME_RESPONSE_TYPE",
+          "message": "The first request profile returns explicit business JSON"
+        }
+      ]
+    },
+    "normalizedWorkflow": {
+      "name": "Native Line-Item Aggregation Workflow",
+      "nodes": [
+        {
+          "id": "node-webhook",
+          "name": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1,
+          "position": [
+            200,
+            300
+          ],
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "solution-00000000-0000-4000-8000-000000000602",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "webhookId": "00000000-0000-4000-8000-000000000602"
+        },
+        {
+          "id": "node-if-items-empty",
+          "name": "If Items Empty",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            420,
+            300
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ ($json.body.order.items || []).length }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          }
+        },
+        {
+          "id": "node-split-out",
+          "name": "Split Out Items",
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1,
+          "position": [
+            660,
+            200
+          ],
+          "parameters": {
+            "fieldToSplitOut": "body.order.items",
+            "include": "noOtherFields",
+            "options": {}
+          }
+        },
+        {
+          "id": "node-filter-positive",
+          "name": "Filter Positive Quantity",
+          "type": "n8n-nodes-base.filter",
+          "typeVersion": 2.3,
+          "position": [
+            880,
+            200
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.quantity }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          },
+          "settings": {
+            "alwaysOutputData": true
+          }
+        },
+        {
+          "id": "node-if-has-kept-items",
+          "name": "If Has Kept Items",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            1100,
+            200
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.quantity }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          }
+        },
+        {
+          "id": "node-calc-subtotal",
+          "name": "Calculate Subtotal",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1340,
+            140
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": true,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-subtotal",
+                  "name": "subtotal",
+                  "value": "={{ $json.quantity * $json.unitPrice }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-aggregate",
+          "name": "Aggregate Subtotals",
+          "type": "n8n-nodes-base.aggregate",
+          "typeVersion": 1,
+          "position": [
+            1560,
+            140
+          ],
+          "parameters": {
+            "aggregate": "aggregateIndividualFields",
+            "fieldsToAggregate": {
+              "fieldToAggregate": [
+                {
+                  "fieldToAggregate": "subtotal",
+                  "renameField": false
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-build-final-response",
+          "name": "Build Final Response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1780,
+            140
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": false,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-final-order-id",
+                  "name": "orderId",
+                  "value": "={{ $('Webhook').item.json.body.order.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "assign-final-accepted-count",
+                  "name": "acceptedCount",
+                  "value": "={{ $json.subtotal.length }}",
+                  "type": "number"
+                },
+                {
+                  "id": "assign-final-total",
+                  "name": "total",
+                  "value": "={{ $json.subtotal.sum() }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-build-zero-response",
+          "name": "Build Zero Response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1340,
+            460
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": false,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-zero-order-id",
+                  "name": "orderId",
+                  "value": "={{ $('Webhook').item.json.body.order.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "assign-zero-accepted-count",
+                  "name": "acceptedCount",
+                  "value": "={{ 0 }}",
+                  "type": "number"
+                },
+                {
+                  "id": "assign-zero-total",
+                  "name": "total",
+                  "value": "={{ 0 }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-respond-webhook",
+          "name": "Respond to Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.5,
+          "position": [
+            2040,
+            300
+          ],
+          "parameters": {
+            "respondWith": "firstIncomingItem",
+            "options": {
+              "responseCode": 200,
+              "responseHeaders": {
+                "entries": [
+                  {
+                    "name": "x-orqaly-execution-id",
+                    "value": "={{ $execution.id }}"
+                  },
+                  {
+                    "name": "x-orqaly-invocation-id",
+                    "value": "={{ $(\"Webhook\").first().json.headers[\"x-orqaly-invocation-id\"] }}"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Webhook": {
+          "main": [
+            [
+              {
+                "node": "If Items Empty",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Items Empty": {
+          "main": [
+            [
+              {
+                "node": "Split Out Items",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Zero Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Split Out Items": {
+          "main": [
+            [
+              {
+                "node": "Filter Positive Quantity",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Positive Quantity": {
+          "main": [
+            [
+              {
+                "node": "If Has Kept Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Has Kept Items": {
+          "main": [
+            [
+              {
+                "node": "Calculate Subtotal",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Zero Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Calculate Subtotal": {
+          "main": [
+            [
+              {
+                "node": "Aggregate Subtotals",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Aggregate Subtotals": {
+          "main": [
+            [
+              {
+                "node": "Build Final Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Final Response": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Zero Response": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "executionTimeout": 30,
+        "saveDataSuccessExecution": "none",
+        "saveDataErrorExecution": "none",
+        "saveManualExecutions": false,
+        "availableInMCP": false
+      }
+    },
+    "workflowHash": "4b301fb8ae8518ef84aeab9170b15fd1b8ab26f49428813d85e9df759e55b678"
+  },
+  "initialDraft": {
+    "workflow": {
+      "name": "Native Line-Item Aggregation Workflow",
+      "nodes": [
+        {
+          "id": "node-webhook",
+          "name": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1,
+          "position": [
+            200,
+            300
+          ],
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "solution-00000000-0000-4000-8000-000000000602",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "webhookId": "00000000-0000-4000-8000-000000000602"
+        },
+        {
+          "id": "node-if-items-empty",
+          "name": "If Items Empty",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            420,
+            300
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ ($json.body.order.items || []).length }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          }
+        },
+        {
+          "id": "node-split-out",
+          "name": "Split Out Items",
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1,
+          "position": [
+            660,
+            200
+          ],
+          "parameters": {
+            "fieldToSplitOut": "body.order.items",
+            "include": "noOtherFields",
+            "options": {}
+          }
+        },
+        {
+          "id": "node-filter-positive",
+          "name": "Filter Positive Quantity",
+          "type": "n8n-nodes-base.filter",
+          "typeVersion": 2.3,
+          "position": [
+            880,
+            200
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.quantity }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          },
+          "settings": {
+            "alwaysOutputData": true
+          }
+        },
+        {
+          "id": "node-if-has-kept-items",
+          "name": "If Has Kept Items",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            1100,
+            200
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.quantity }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          }
+        },
+        {
+          "id": "node-calc-subtotal",
+          "name": "Calculate Subtotal",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1340,
+            140
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": true,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-subtotal",
+                  "name": "subtotal",
+                  "value": "={{ $json.quantity * $json.unitPrice }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-aggregate",
+          "name": "Aggregate Subtotals",
+          "type": "n8n-nodes-base.aggregate",
+          "typeVersion": 1,
+          "position": [
+            1560,
+            140
+          ],
+          "parameters": {
+            "aggregate": "aggregateIndividualFields",
+            "fieldsToAggregate": {
+              "fieldToAggregate": [
+                {
+                  "fieldToAggregate": "subtotal",
+                  "renameField": false
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-build-final-response",
+          "name": "Build Final Response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1780,
+            140
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": false,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-final-order-id",
+                  "name": "orderId",
+                  "value": "={{ $('Webhook').item.json.body.order.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "assign-final-accepted-count",
+                  "name": "acceptedCount",
+                  "value": "={{ $json.subtotal.length }}",
+                  "type": "number"
+                },
+                {
+                  "id": "assign-final-total",
+                  "name": "total",
+                  "value": "={{ $json.subtotal.sum() }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-build-zero-response",
+          "name": "Build Zero Response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1340,
+            460
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": false,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-zero-order-id",
+                  "name": "orderId",
+                  "value": "={{ $('Webhook').item.json.body.order.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "assign-zero-accepted-count",
+                  "name": "acceptedCount",
+                  "value": "={{ 0 }}",
+                  "type": "number"
+                },
+                {
+                  "id": "assign-zero-total",
+                  "name": "total",
+                  "value": "={{ 0 }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-respond-webhook",
+          "name": "Respond to Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.5,
+          "position": [
+            2040,
+            300
+          ],
+          "parameters": {
+            "respondWith": "firstIncomingItem",
+            "options": {
+              "responseCode": 200,
+              "responseHeaders": {
+                "entries": [
+                  {
+                    "name": "x-orqaly-execution-id",
+                    "value": "={{ $execution.id }}"
+                  },
+                  {
+                    "name": "x-orqaly-invocation-id",
+                    "value": "={{ $(\"Webhook\").first().json.headers[\"x-orqaly-invocation-id\"] }}"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Webhook": {
+          "main": [
+            [
+              {
+                "node": "If Items Empty",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Items Empty": {
+          "main": [
+            [
+              {
+                "node": "Split Out Items",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Zero Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Split Out Items": {
+          "main": [
+            [
+              {
+                "node": "Filter Positive Quantity",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Positive Quantity": {
+          "main": [
+            [
+              {
+                "node": "If Has Kept Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Has Kept Items": {
+          "main": [
+            [
+              {
+                "node": "Calculate Subtotal",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Zero Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Calculate Subtotal": {
+          "main": [
+            [
+              {
+                "node": "Aggregate Subtotals",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Aggregate Subtotals": {
+          "main": [
+            [
+              {
+                "node": "Build Final Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Final Response": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Zero Response": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "executionTimeout": 30,
+        "saveDataSuccessExecution": "none",
+        "saveDataErrorExecution": "none",
+        "saveManualExecutions": false,
+        "availableInMCP": false
+      }
+    },
+    "spec": {
+      "kind": "n8n_workflow_v2",
+      "requirements": [
+        {
+          "id": "req-receive-order",
+          "description": "Receive HTTP POST webhook payload at $json.body containing an order object with an id string and items array."
+        },
+        {
+          "id": "req-filter-positive",
+          "description": "Split out items and filter line items natively to keep only items whose quantity is strictly greater than zero."
+        },
+        {
+          "id": "req-calc-aggregate",
+          "description": "Calculate subtotal = quantity * unitPrice per kept item, aggregate subtotals into an array, and compute total using native .sum()."
+        },
+        {
+          "id": "req-empty-zero-handling",
+          "description": "Handle empty item arrays and arrays with no positive quantities cleanly by returning acceptedCount 0 and total 0 without hanging."
+        }
+      ],
+      "inputSchema": {
+        "type": "object",
+        "description": "Incoming HTTP POST webhook JSON payload",
+        "properties": {
+          "order": {
+            "type": "object",
+            "description": "Order information and line item array",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Order identifier"
+              },
+              "items": {
+                "type": "array",
+                "description": "Line items in the order",
+                "items": {
+                  "type": "object",
+                  "description": "Line item details",
+                  "properties": {
+                    "sku": {
+                      "type": "string",
+                      "description": "Item stock keeping unit"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "description": "Item quantity"
+                    },
+                    "unitPrice": {
+                      "type": "number",
+                      "minimum": 0,
+                      "description": "Nonnegative unit price"
+                    }
+                  },
+                  "required": [
+                    "sku",
+                    "quantity",
+                    "unitPrice"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "items"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "order"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Synchronous webhook response summarizing the processed order",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "description": "Original order identifier"
+          },
+          "acceptedCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Count of items with quantity strictly greater than zero"
+          },
+          "total": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Sum of all kept line item subtotals"
+          }
+        },
+        "required": [
+          "orderId",
+          "acceptedCount",
+          "total"
+        ],
+        "additionalProperties": false
+      },
+      "acceptanceCases": [
+        {
+          "id": "case-empty-items-array",
+          "description": "Order with an empty items array returns count 0 and total 0",
+          "requirementIds": [
+            "req-receive-order",
+            "req-empty-zero-handling"
+          ],
+          "input": {
+            "order": {
+              "id": "ord-empty-001",
+              "items": []
+            }
+          },
+          "expectedOutput": {
+            "orderId": "ord-empty-001",
+            "acceptedCount": 0,
+            "total": 0
+          },
+          "expectedStatus": 200,
+          "assertions": [
+            {
+              "path": "/orderId",
+              "operator": "equals",
+              "value": "ord-empty-001"
+            },
+            {
+              "path": "/acceptedCount",
+              "operator": "equals",
+              "value": 0
+            },
+            {
+              "path": "/total",
+              "operator": "equals",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "case-all-nonpositive-array",
+          "description": "Order with items having zero or negative quantities returns count 0 and total 0",
+          "requirementIds": [
+            "req-receive-order",
+            "req-filter-positive",
+            "req-empty-zero-handling"
+          ],
+          "input": {
+            "order": {
+              "id": "ord-nonpos-002",
+              "items": [
+                {
+                  "sku": "B",
+                  "quantity": 0,
+                  "unitPrice": 3
+                },
+                {
+                  "sku": "C",
+                  "quantity": -1,
+                  "unitPrice": 6
+                }
+              ]
+            }
+          },
+          "expectedOutput": {
+            "orderId": "ord-nonpos-002",
+            "acceptedCount": 0,
+            "total": 0
+          },
+          "expectedStatus": 200,
+          "assertions": [
+            {
+              "path": "/orderId",
+              "operator": "equals",
+              "value": "ord-nonpos-002"
+            },
+            {
+              "path": "/acceptedCount",
+              "operator": "equals",
+              "value": 0
+            },
+            {
+              "path": "/total",
+              "operator": "equals",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "case-mixed-items-array",
+          "description": "Order with mixed valid and invalid quantities filters out non-positive items and aggregates kept items",
+          "requirementIds": [
+            "req-receive-order",
+            "req-filter-positive",
+            "req-calc-aggregate"
+          ],
+          "input": {
+            "order": {
+              "id": "ord-mixed-003",
+              "items": [
+                {
+                  "sku": "A",
+                  "quantity": 2,
+                  "unitPrice": 10
+                },
+                {
+                  "sku": "B",
+                  "quantity": 0,
+                  "unitPrice": 3
+                },
+                {
+                  "sku": "C",
+                  "quantity": -1,
+                  "unitPrice": 6
+                },
+                {
+                  "sku": "D",
+                  "quantity": 3,
+                  "unitPrice": 5
+                }
+              ]
+            }
+          },
+          "expectedOutput": {
+            "orderId": "ord-mixed-003",
+            "acceptedCount": 2,
+            "total": 35
+          },
+          "expectedStatus": 200,
+          "assertions": [
+            {
+              "path": "/orderId",
+              "operator": "equals",
+              "value": "ord-mixed-003"
+            },
+            {
+              "path": "/acceptedCount",
+              "operator": "equals",
+              "value": 2
+            },
+            {
+              "path": "/total",
+              "operator": "equals",
+              "value": 35
+            }
+          ]
+        }
+      ],
+      "connections": [],
+      "runtimeProfile": "request_automation"
+    },
+    "workflowHash": "4b301fb8ae8518ef84aeab9170b15fd1b8ab26f49428813d85e9df759e55b678",
+    "rowVersion": 1
+  },
+  "designReview": {
+    "valid": false,
+    "issues": [
+      {
+        "code": "NODE_FIELD",
+        "message": "Unsupported native node field: settings",
+        "nodeId": "node-filter-positive"
+      }
+    ],
+    "execution": {
+      "allowed": false,
+      "reasons": [
+        {
+          "code": "NODE_FIELD",
+          "message": "Unsupported native node field: settings",
+          "nodeId": "node-filter-positive"
+        },
+        {
+          "code": "RUNTIME_RESPONSE_TYPE",
+          "message": "The first request profile returns explicit business JSON"
+        }
+      ]
+    },
+    "normalizedWorkflow": {
+      "name": "Native Line-Item Aggregation Workflow",
+      "nodes": [
+        {
+          "id": "node-webhook",
+          "name": "Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1,
+          "position": [
+            200,
+            300
+          ],
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "solution-00000000-0000-4000-8000-000000000602",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "webhookId": "00000000-0000-4000-8000-000000000602"
+        },
+        {
+          "id": "node-if-items-empty",
+          "name": "If Items Empty",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            420,
+            300
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ ($json.body.order.items || []).length }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          }
+        },
+        {
+          "id": "node-split-out",
+          "name": "Split Out Items",
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1,
+          "position": [
+            660,
+            200
+          ],
+          "parameters": {
+            "fieldToSplitOut": "body.order.items",
+            "include": "noOtherFields",
+            "options": {}
+          }
+        },
+        {
+          "id": "node-filter-positive",
+          "name": "Filter Positive Quantity",
+          "type": "n8n-nodes-base.filter",
+          "typeVersion": 2.3,
+          "position": [
+            880,
+            200
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.quantity }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          },
+          "settings": {
+            "alwaysOutputData": true
+          }
+        },
+        {
+          "id": "node-if-has-kept-items",
+          "name": "If Has Kept Items",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3,
+          "position": [
+            1100,
+            200
+          ],
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.quantity }}",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "rightValue": 0
+                }
+              ],
+              "combinator": "and"
+            }
+          }
+        },
+        {
+          "id": "node-calc-subtotal",
+          "name": "Calculate Subtotal",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1340,
+            140
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": true,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-subtotal",
+                  "name": "subtotal",
+                  "value": "={{ $json.quantity * $json.unitPrice }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-aggregate",
+          "name": "Aggregate Subtotals",
+          "type": "n8n-nodes-base.aggregate",
+          "typeVersion": 1,
+          "position": [
+            1560,
+            140
+          ],
+          "parameters": {
+            "aggregate": "aggregateIndividualFields",
+            "fieldsToAggregate": {
+              "fieldToAggregate": [
+                {
+                  "fieldToAggregate": "subtotal",
+                  "renameField": false
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-build-final-response",
+          "name": "Build Final Response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1780,
+            140
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": false,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-final-order-id",
+                  "name": "orderId",
+                  "value": "={{ $('Webhook').item.json.body.order.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "assign-final-accepted-count",
+                  "name": "acceptedCount",
+                  "value": "={{ $json.subtotal.length }}",
+                  "type": "number"
+                },
+                {
+                  "id": "assign-final-total",
+                  "name": "total",
+                  "value": "={{ $json.subtotal.sum() }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-build-zero-response",
+          "name": "Build Zero Response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5,
+          "position": [
+            1340,
+            460
+          ],
+          "parameters": {
+            "mode": "manual",
+            "includeOtherFields": false,
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "assign-zero-order-id",
+                  "name": "orderId",
+                  "value": "={{ $('Webhook').item.json.body.order.id }}",
+                  "type": "string"
+                },
+                {
+                  "id": "assign-zero-accepted-count",
+                  "name": "acceptedCount",
+                  "value": "={{ 0 }}",
+                  "type": "number"
+                },
+                {
+                  "id": "assign-zero-total",
+                  "name": "total",
+                  "value": "={{ 0 }}",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {}
+          }
+        },
+        {
+          "id": "node-respond-webhook",
+          "name": "Respond to Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.5,
+          "position": [
+            2040,
+            300
+          ],
+          "parameters": {
+            "respondWith": "firstIncomingItem",
+            "options": {
+              "responseCode": 200,
+              "responseHeaders": {
+                "entries": [
+                  {
+                    "name": "x-orqaly-execution-id",
+                    "value": "={{ $execution.id }}"
+                  },
+                  {
+                    "name": "x-orqaly-invocation-id",
+                    "value": "={{ $(\"Webhook\").first().json.headers[\"x-orqaly-invocation-id\"] }}"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Webhook": {
+          "main": [
+            [
+              {
+                "node": "If Items Empty",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Items Empty": {
+          "main": [
+            [
+              {
+                "node": "Split Out Items",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Zero Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Split Out Items": {
+          "main": [
+            [
+              {
+                "node": "Filter Positive Quantity",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Positive Quantity": {
+          "main": [
+            [
+              {
+                "node": "If Has Kept Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Has Kept Items": {
+          "main": [
+            [
+              {
+                "node": "Calculate Subtotal",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Zero Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Calculate Subtotal": {
+          "main": [
+            [
+              {
+                "node": "Aggregate Subtotals",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Aggregate Subtotals": {
+          "main": [
+            [
+              {
+                "node": "Build Final Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Final Response": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Zero Response": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "executionTimeout": 30,
+        "saveDataSuccessExecution": "none",
+        "saveDataErrorExecution": "none",
+        "saveManualExecutions": false,
+        "availableInMCP": false
+      }
+    },
+    "workflowHash": "4b301fb8ae8518ef84aeab9170b15fd1b8ab26f49428813d85e9df759e55b678"
+  },
+  "repairAttempts": [
+    {
+      "phase": "repair",
+      "status": "failed",
+      "errorClass": "AXWISE_SOLUTION_DESIGN_DEADLINE",
+      "retryable": false,
+      "acceptedResponse": false,
+      "runtimeExecuted": false,
+      "input": {
+        "instruction": "Build a genuinely array-processing native n8n workflow.\nReceive HTTP POST JSON {order:{id:string,items:[{sku:string,quantity:integer,unitPrice:number}]}}.\nunitPrice is nonnegative. Use actual Split Out, Filter, Edit Fields/Set and\nAggregate nodes (plus Webhook, response and any necessary empty-input branches).\nKeep only line items whose quantity is strictly greater than zero. Compute each\nkept item's subtotal = quantity * unitPrice; aggregate subtotal values and return\nHTTP 200 JSON {orderId:<original order.id>,acceptedCount:<number of kept items>,total:<sum of subtotals>}.\nEmpty arrays and arrays with no positive quantities must return count 0 and total\n0, not hang without a response. Mixed valid/invalid arrays must count/sum only\npositive quantities. Native numeric-array .sum() is available for aggregation;\nuse node branches to handle no-item paths before and after filtering. JavaScript\ncallback methods (map/reduce/filter/some) are not in this execution profile;\nperform those operations with native nodes. Do not use Code nodes, arbitrary JavaScript functions, external services,\nregistration, credentials or provider effects. Include frozen synthetic cases\nfor an empty array, an all-nonpositive array, and a mixed array containing items\n{sku:'A',quantity:2,unitPrice:10}, {sku:'B',quantity:0,unitPrice:3},\n{sku:'C',quantity:-1,unitPrice:6}, {sku:'D',quantity:3,unitPrice:5}; the mixed case\nmust return acceptedCount 2 and total 35. This is authoring only; do not claim\nthe workflow ran or passed. Do not substitute a fixed-length scalar example.",
+        "source": {
+          "runId": "00000000-0000-4000-8000-000000000603",
+          "taskHash": "2e8c0b1d849225640d0b3111c17dcaf3ce6a1bee7164f2a5afb6c73e38054052",
+          "title": "Synthetic native line-item aggregation",
+          "taskText": "Build a genuinely array-processing native n8n workflow.\nReceive HTTP POST JSON {order:{id:string,items:[{sku:string,quantity:integer,unitPrice:number}]}}.\nunitPrice is nonnegative. Use actual Split Out, Filter, Edit Fields/Set and\nAggregate nodes (plus Webhook, response and any necessary empty-input branches).\nKeep only line items whose quantity is strictly greater than zero. Compute each\nkept item's subtotal = quantity * unitPrice; aggregate subtotal values and return\nHTTP 200 JSON {orderId:<original order.id>,acceptedCount:<number of kept items>,total:<sum of subtotals>}.\nEmpty arrays and arrays with no positive quantities must return count 0 and total\n0, not hang without a response. Mixed valid/invalid arrays must count/sum only\npositive quantities. Native numeric-array .sum() is available for aggregation;\nuse node branches to handle no-item paths before and after filtering. JavaScript\ncallback methods (map/reduce/filter/some) are not in this execution profile;\nperform those operations with native nodes. Do not use Code nodes, arbitrary JavaScript functions, external services,\nregistration, credentials or provider effects. Include frozen synthetic cases\nfor an empty array, an all-nonpositive array, and a mixed array containing items\n{sku:'A',quantity:2,unitPrice:10}, {sku:'B',quantity:0,unitPrice:3},\n{sku:'C',quantity:-1,unitPrice:6}, {sku:'D',quantity:3,unitPrice:5}; the mixed case\nmust return acceptedCount 2 and total 35. This is authoring only; do not claim\nthe workflow ran or passed. Do not substitute a fixed-length scalar example.",
+          "contextHash": "2f1f940931334f2220c6e2ae277ed518e9ad7507ef611a7ced63d14fb699bc4a"
+        },
+        "agent": {
+          "id": "00000000-0000-4000-8000-000000000602",
+          "name": "Workflow builder",
+          "profileVersion": 1,
+          "roleLabel": "Automation specialist",
+          "description": "Prepares customer workflows.",
+          "instructions": "Use only this selected task.",
+          "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "canonicalInputHash": "5ea2e89dde9941d749f317e14846346bc21fc4d9b8092f7195cc2f9b9846e2ec",
+        "phase": "repair",
+        "inputVersion": 2,
+        "baseWorkflowHash": "4b301fb8ae8518ef84aeab9170b15fd1b8ab26f49428813d85e9df759e55b678",
+        "diagnostics": [
+          {
+            "code": "NODE_FIELD",
+            "message": "Unsupported native node field: settings",
+            "nodeId": "node-filter-positive"
+          },
+          {
+            "code": "RUNTIME_RESPONSE_TYPE",
+            "message": "The first request profile returns explicit business JSON",
+            "nodeId": null
+          }
+        ],
+        "knowledge": {
+          "version": "n8n-native-2.37.10-v1",
+          "catalogHash": "3f9686dee918f6ac8c06f65f059dfdab87fa40fbc9ae5956256ebfc7798d90b4",
+          "skills": [
+            {
+              "id": "n8n-workflow-lifecycle-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "af03a33f79e2701b8224bb789e9cb6286e4fc3f3ab562e11da757c779a5876c3"
+            },
+            {
+              "id": "n8n-node-configuration-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "d2a9da497d6511cd580ae624dfcb27184f1f206ff59ba592f937e26f8a35ef53"
+            },
+            {
+              "id": "n8n-expressions-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "3ce40b035add4e14d989ad873cca3dd89f4b04a0a4f3a03703d4f6dc637e8c39"
+            },
+            {
+              "id": "n8n-credentials-and-security-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "e1396beedd49ee3d308a3921b136372fa4c6535edbd127451155da50e6e3710d"
+            },
+            {
+              "id": "n8n-loops-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "aefb91628a900edf49366ef39e4e7965b2a62a0cdfffd9418e53afc554d35cc1"
+            },
+            {
+              "id": "n8n-debugging-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "b5c66eeb5ef5a108dad8a2b597b49387ea2c63502d375a6419ef4c4dc43d9dd0"
+            }
+          ],
+          "nodes": [
+            {
+              "type": "n8n-nodes-base.webhook",
+              "typeVersion": 2.1
+            },
+            {
+              "type": "n8n-nodes-base.if",
+              "typeVersion": 2.3
+            },
+            {
+              "type": "n8n-nodes-base.splitOut",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.filter",
+              "typeVersion": 2.3
+            },
+            {
+              "type": "n8n-nodes-base.set",
+              "typeVersion": 3.5
+            },
+            {
+              "type": "n8n-nodes-base.aggregate",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.respondToWebhook",
+              "typeVersion": 1.5
+            },
+            {
+              "type": "n8n-nodes-base.httpRequest",
+              "typeVersion": 4.5
+            },
+            {
+              "type": "n8n-nodes-base.wait",
+              "typeVersion": 1.1
+            },
+            {
+              "type": "n8n-nodes-base.code",
+              "typeVersion": 2
+            },
+            {
+              "type": "n8n-nodes-base.switch",
+              "typeVersion": 3.4
+            },
+            {
+              "type": "n8n-nodes-base.merge",
+              "typeVersion": 3.2
+            },
+            {
+              "type": "n8n-nodes-base.sort",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.limit",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.noOp",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.stopAndError",
+              "typeVersion": 1
+            }
+          ]
+        }
+      },
+      "usage": null,
+      "actualModelVersion": null,
+      "configuredModel": "models/gemini-3.8-flash",
+      "note": "The request was interrupted by the enforced deadline. No accepted model response/usage receipt was returned; null is unavailable, not zero. Business requirements, schemas, runtime profile and acceptance cases were frozen.",
+      "attempt": 1,
+      "deadlineSeconds": 90
+    },
+    {
+      "phase": "repair",
+      "status": "failed",
+      "errorClass": "AXWISE_NATIVE_SOLUTION_BUDGET_EXHAUSTED",
+      "retryable": false,
+      "acceptedResponse": false,
+      "runtimeExecuted": false,
+      "input": {
+        "instruction": "Build a genuinely array-processing native n8n workflow.\nReceive HTTP POST JSON {order:{id:string,items:[{sku:string,quantity:integer,unitPrice:number}]}}.\nunitPrice is nonnegative. Use actual Split Out, Filter, Edit Fields/Set and\nAggregate nodes (plus Webhook, response and any necessary empty-input branches).\nKeep only line items whose quantity is strictly greater than zero. Compute each\nkept item's subtotal = quantity * unitPrice; aggregate subtotal values and return\nHTTP 200 JSON {orderId:<original order.id>,acceptedCount:<number of kept items>,total:<sum of subtotals>}.\nEmpty arrays and arrays with no positive quantities must return count 0 and total\n0, not hang without a response. Mixed valid/invalid arrays must count/sum only\npositive quantities. Native numeric-array .sum() is available for aggregation;\nuse node branches to handle no-item paths before and after filtering. JavaScript\ncallback methods (map/reduce/filter/some) are not in this execution profile;\nperform those operations with native nodes. Do not use Code nodes, arbitrary JavaScript functions, external services,\nregistration, credentials or provider effects. Include frozen synthetic cases\nfor an empty array, an all-nonpositive array, and a mixed array containing items\n{sku:'A',quantity:2,unitPrice:10}, {sku:'B',quantity:0,unitPrice:3},\n{sku:'C',quantity:-1,unitPrice:6}, {sku:'D',quantity:3,unitPrice:5}; the mixed case\nmust return acceptedCount 2 and total 35. This is authoring only; do not claim\nthe workflow ran or passed. Do not substitute a fixed-length scalar example.",
+        "source": {
+          "runId": "00000000-0000-4000-8000-000000000603",
+          "taskHash": "2e8c0b1d849225640d0b3111c17dcaf3ce6a1bee7164f2a5afb6c73e38054052",
+          "title": "Synthetic native line-item aggregation",
+          "taskText": "Build a genuinely array-processing native n8n workflow.\nReceive HTTP POST JSON {order:{id:string,items:[{sku:string,quantity:integer,unitPrice:number}]}}.\nunitPrice is nonnegative. Use actual Split Out, Filter, Edit Fields/Set and\nAggregate nodes (plus Webhook, response and any necessary empty-input branches).\nKeep only line items whose quantity is strictly greater than zero. Compute each\nkept item's subtotal = quantity * unitPrice; aggregate subtotal values and return\nHTTP 200 JSON {orderId:<original order.id>,acceptedCount:<number of kept items>,total:<sum of subtotals>}.\nEmpty arrays and arrays with no positive quantities must return count 0 and total\n0, not hang without a response. Mixed valid/invalid arrays must count/sum only\npositive quantities. Native numeric-array .sum() is available for aggregation;\nuse node branches to handle no-item paths before and after filtering. JavaScript\ncallback methods (map/reduce/filter/some) are not in this execution profile;\nperform those operations with native nodes. Do not use Code nodes, arbitrary JavaScript functions, external services,\nregistration, credentials or provider effects. Include frozen synthetic cases\nfor an empty array, an all-nonpositive array, and a mixed array containing items\n{sku:'A',quantity:2,unitPrice:10}, {sku:'B',quantity:0,unitPrice:3},\n{sku:'C',quantity:-1,unitPrice:6}, {sku:'D',quantity:3,unitPrice:5}; the mixed case\nmust return acceptedCount 2 and total 35. This is authoring only; do not claim\nthe workflow ran or passed. Do not substitute a fixed-length scalar example.",
+          "contextHash": "2f1f940931334f2220c6e2ae277ed518e9ad7507ef611a7ced63d14fb699bc4a"
+        },
+        "agent": {
+          "id": "00000000-0000-4000-8000-000000000602",
+          "name": "Workflow builder",
+          "profileVersion": 1,
+          "roleLabel": "Automation specialist",
+          "description": "Prepares customer workflows.",
+          "instructions": "Use only this selected task.",
+          "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "canonicalInputHash": "5ea2e89dde9941d749f317e14846346bc21fc4d9b8092f7195cc2f9b9846e2ec",
+        "phase": "repair",
+        "inputVersion": 2,
+        "baseWorkflowHash": "4b301fb8ae8518ef84aeab9170b15fd1b8ab26f49428813d85e9df759e55b678",
+        "diagnostics": [
+          {
+            "code": "NODE_FIELD",
+            "message": "Unsupported native node field: settings",
+            "nodeId": "node-filter-positive"
+          },
+          {
+            "code": "RUNTIME_RESPONSE_TYPE",
+            "message": "The first request profile returns explicit business JSON",
+            "nodeId": null
+          }
+        ],
+        "knowledge": {
+          "version": "n8n-native-2.37.10-v1",
+          "catalogHash": "3f9686dee918f6ac8c06f65f059dfdab87fa40fbc9ae5956256ebfc7798d90b4",
+          "skills": [
+            {
+              "id": "n8n-workflow-lifecycle-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "af03a33f79e2701b8224bb789e9cb6286e4fc3f3ab562e11da757c779a5876c3"
+            },
+            {
+              "id": "n8n-node-configuration-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "d2a9da497d6511cd580ae624dfcb27184f1f206ff59ba592f937e26f8a35ef53"
+            },
+            {
+              "id": "n8n-expressions-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "3ce40b035add4e14d989ad873cca3dd89f4b04a0a4f3a03703d4f6dc637e8c39"
+            },
+            {
+              "id": "n8n-credentials-and-security-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "e1396beedd49ee3d308a3921b136372fa4c6535edbd127451155da50e6e3710d"
+            },
+            {
+              "id": "n8n-loops-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "aefb91628a900edf49366ef39e4e7965b2a62a0cdfffd9418e53afc554d35cc1"
+            },
+            {
+              "id": "n8n-debugging-official",
+              "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+              "contentHash": "b5c66eeb5ef5a108dad8a2b597b49387ea2c63502d375a6419ef4c4dc43d9dd0"
+            }
+          ],
+          "nodes": [
+            {
+              "type": "n8n-nodes-base.webhook",
+              "typeVersion": 2.1
+            },
+            {
+              "type": "n8n-nodes-base.if",
+              "typeVersion": 2.3
+            },
+            {
+              "type": "n8n-nodes-base.splitOut",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.filter",
+              "typeVersion": 2.3
+            },
+            {
+              "type": "n8n-nodes-base.set",
+              "typeVersion": 3.5
+            },
+            {
+              "type": "n8n-nodes-base.aggregate",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.respondToWebhook",
+              "typeVersion": 1.5
+            },
+            {
+              "type": "n8n-nodes-base.httpRequest",
+              "typeVersion": 4.5
+            },
+            {
+              "type": "n8n-nodes-base.wait",
+              "typeVersion": 1.1
+            },
+            {
+              "type": "n8n-nodes-base.code",
+              "typeVersion": 2
+            },
+            {
+              "type": "n8n-nodes-base.switch",
+              "typeVersion": 3.4
+            },
+            {
+              "type": "n8n-nodes-base.merge",
+              "typeVersion": 3.2
+            },
+            {
+              "type": "n8n-nodes-base.sort",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.limit",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.noOp",
+              "typeVersion": 1
+            },
+            {
+              "type": "n8n-nodes-base.stopAndError",
+              "typeVersion": 1
+            }
+          ]
+        }
+      },
+      "usage": null,
+      "actualModelVersion": null,
+      "configuredModel": "models/gemini-3.8-flash",
+      "note": "Separately authorized final attempt used the SAME blocked draft hash, repair input hash, diagnostics and frozen business contract. It ended with AXWISE_NATIVE_SOLUTION_BUDGET_EXHAUSTED before an accepted response/usage receipt. The specific limit and actual usage are unavailable, not zero. No model graph was manually edited, no workflow was executed, and no further model call was made.",
+      "attempt": 2,
+      "deadlineSeconds": 180
+    }
+  ]
+}

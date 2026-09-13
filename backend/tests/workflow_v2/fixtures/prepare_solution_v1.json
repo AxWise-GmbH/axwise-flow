@@ -1,0 +1,140 @@
+{
+  "initialInput": {
+    "type": "PrepareSolutionV1",
+    "buildRequestId": "00000000-0000-4000-8000-000000000601",
+    "inputVersion": 1,
+    "instruction": "Build a webhook that lowercases the email field. Ask me for the output field name.",
+    "agent": {
+      "id": "00000000-0000-4000-8000-000000000602",
+      "name": "Workflow builder",
+      "profileVersion": 1,
+      "roleLabel": "Automation specialist",
+      "description": "Prepares customer workflows.",
+      "instructions": "Use only this selected task.",
+      "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "source": {
+      "runId": "00000000-0000-4000-8000-000000000603",
+      "taskHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "title": "Normalize signup data",
+      "taskText": "Create a webhook for signup data. It receives email and returns it in lowercase. The output field name is not decided.",
+      "contextHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "answers": [],
+    "draft": null,
+    "supportedCapabilities": [
+      "webhook_transform_v1"
+    ]
+  },
+  "answeredInput": {
+    "type": "PrepareSolutionV1",
+    "buildRequestId": "00000000-0000-4000-8000-000000000601",
+    "inputVersion": 2,
+    "instruction": "Build a webhook that lowercases the email field. Ask me for the output field name.",
+    "agent": {
+      "id": "00000000-0000-4000-8000-000000000602",
+      "name": "Workflow builder",
+      "profileVersion": 1,
+      "roleLabel": "Automation specialist",
+      "description": "Prepares customer workflows.",
+      "instructions": "Use only this selected task.",
+      "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "source": {
+      "runId": "00000000-0000-4000-8000-000000000603",
+      "taskHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "title": "Normalize signup data",
+      "taskText": "Create a webhook for signup data. It receives email and returns it in lowercase. The output field name is not decided.",
+      "contextHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "answers": [
+      {
+        "questionId": "output_name",
+        "value": "contactEmail"
+      }
+    ],
+    "draft": {
+      "kind": "webhook_transform_v1",
+      "fields": [
+        {
+          "source": "email",
+          "target": null,
+          "transform": "lowercase"
+        }
+      ]
+    },
+    "supportedCapabilities": [
+      "webhook_transform_v1"
+    ]
+  },
+  "needsInput": {
+    "schemaVersion": "axwise.solution-preparation.v1",
+    "buildRequestId": "00000000-0000-4000-8000-000000000601",
+    "inputVersion": 1,
+    "name": "Signup email normalization",
+    "purpose": "Normalize the email supplied to a webhook.",
+    "explanation": "The output name is needed before the mapping can be reviewed.",
+    "spec": null,
+    "partialFields": [
+      {
+        "source": "email",
+        "target": null,
+        "transform": "lowercase"
+      }
+    ],
+    "questions": [
+      {
+        "id": "output_name",
+        "kind": "information",
+        "prompt": "Which output field should receive the lowercased email?",
+        "reason": "The output field name defines the returned JSON contract."
+      }
+    ],
+    "unsupportedCapabilities": [],
+    "outcome": "needs_input"
+  },
+  "candidate": {
+    "schemaVersion": "axwise.solution-preparation.v1",
+    "buildRequestId": "00000000-0000-4000-8000-000000000601",
+    "inputVersion": 2,
+    "name": "Signup email normalization",
+    "purpose": "Normalize the email supplied to a webhook.",
+    "explanation": "The specified mapping is complete and ready for Orqaly review, not deployed.",
+    "spec": {
+      "kind": "webhook_transform_v1",
+      "fields": [
+        {
+          "source": "email",
+          "target": "contactEmail",
+          "transform": "lowercase"
+        }
+      ]
+    },
+    "partialFields": [
+      {
+        "source": "email",
+        "target": "contactEmail",
+        "transform": "lowercase"
+      }
+    ],
+    "questions": [],
+    "unsupportedCapabilities": [],
+    "outcome": "candidate"
+  },
+  "unsupported": {
+    "schemaVersion": "axwise.solution-preparation.v1",
+    "buildRequestId": "00000000-0000-4000-8000-000000000601",
+    "inputVersion": 1,
+    "name": "SMS gateway",
+    "purpose": "Send customer SMS messages.",
+    "explanation": "Provider SMS actions and verified connections are not available in the supported runtime. This task cannot be replaced by a contact-data webhook.",
+    "spec": null,
+    "partialFields": [],
+    "questions": [],
+    "unsupportedCapabilities": [
+      "SMS provider action",
+      "Verified provider connection"
+    ],
+    "outcome": "unsupported"
+  }
+}

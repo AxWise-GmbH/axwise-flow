@@ -49,7 +49,7 @@ class InfluenceMetricsCalculator:
 
             provider = GoogleProvider(api_key=api_key)
             # Create cross-stakeholder patterns agent
-            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.8-flash")
             self.patterns_agent = Agent(
                 model=GoogleModel(model_name, provider=provider),
                 system_prompt=self._get_patterns_analysis_prompt(),

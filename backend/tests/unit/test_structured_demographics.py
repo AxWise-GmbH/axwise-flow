@@ -40,7 +40,7 @@ async def test_structured_demographics():
         
         # Create Gemini model
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+        gemini_model = GoogleModel("models/gemini-3.8-flash", provider=provider)
         print("✅ Gemini model initialized")
         
         # Create agent with the updated system prompt (same as in persona_formation_service.py)

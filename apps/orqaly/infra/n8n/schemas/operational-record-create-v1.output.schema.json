@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orqaly.dev/schemas/operational-record-create-v1.output.schema.json",
+  "title": "Create operational record result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "recordId",
+    "createdAt",
+    "canonicalInputHash",
+    "receiptHash",
+    "signatureKeyId",
+    "signatureVerified",
+    "idempotencyState"
+  ],
+  "properties": {
+    "recordId": { "type": "string", "format": "uuid" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "canonicalInputHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "receiptHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "signatureKeyId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "signatureVerified": { "const": true },
+    "idempotencyState": { "enum": ["created", "replayed"] }
+  }
+}
