@@ -13,7 +13,8 @@ database migrations.
 | Orqaly API and worker | `apps/orqaly/server/`, `apps/orqaly/lib/` | `orqaly-v2-api-preview`, `orqaly-v2-worker-preview` |
 | Orqaly web | `apps/orqaly/src/` | `orqaly-v2-web-preview` |
 
-Both existing CI suites run from the repository root. Orqaly keeps its own npm
+Both existing CI workflows are defined at the repository root; Orqaly commands
+run from `apps/orqaly/`. Orqaly keeps its own npm
 lockfile; AxWise keeps its Python dependency locks. No additional monorepo package
 manager or orchestration service is required.
 
