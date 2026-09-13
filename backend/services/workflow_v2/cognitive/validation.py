@@ -40,7 +40,6 @@ from backend.services.workflow_v2.cognitive.models import (
     TaskDraft,
 )
 from backend.services.workflow_v2.cognitive.policy import (
-    _EVIDENCE_SENSITIVE_ASSERTION,
     _MARKDOWN_HEADING,
     _PLANNING_ARTIFACT_TYPES,
     _PRD_BASELINE_SECTIONS,
@@ -227,25 +226,23 @@ def safe_synthesis_rejection_findings(
 def _is_advisory_planning_evidence_defect(
     context: SynthesisContext, defect: str
 ) -> bool:
-    """Overloaded planning verbs alone are review flags, not factual proof.
+    """Uncited language heuristics require review, not proof of draft failure.
 
-    Exact citation/claim mismatches and assertions that settle an immutable
-    unresolved requirement retain their existing hard checks.
+    These two findings use word matching, which cannot reliably distinguish a
+    proposed requirement from an established fact. Preserve them as visible
+    warnings in non-blocked planning drafts. Citation mismatches, evidence
+    blocking, launch claims and execution authority retain their hard checks.
     """
-    if context.artifact_type not in _PLANNING_ARTIFACT_TYPES or not defect.startswith(
-        "Unsupported factual precision requires an exact evidence marker or an "
-        "explicit proposal/assumption/validation label: "
-    ):
-        return False
-    matches = list(_EVIDENCE_SENSITIVE_ASSERTION.finditer(defect.partition(": ")[2]))
-    return bool(matches) and all(
-        re.fullmatch(
-            r"prevent(?:s|ed|ing|ion)?|treat(?:s|ed|ing|ment)?|"
-            r"authori[sz](?:e|es|ed|ation)|approved",
-            match.group(),
-            re.IGNORECASE,
+    return (
+        context.artifact_type in _PLANNING_ARTIFACT_TYPES
+        and context.evidence_readiness != "blocked"
+        and context.purpose != "blocked_report"
+        and defect.startswith(
+            (
+                "An unresolved evidence requirement is asserted as fact without ",
+                "Unsupported factual precision requires an exact evidence marker or an ",
+            )
         )
-        for match in matches
     )
 
 
@@ -351,6 +348,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             immutable_gap_labels=context.required_gap_labels,
             unresolved_evidence_requirements=context.unresolved_evidence_requirements,
             excerpt_limit=None,
+            defect_limit=None,
         )
         evidence_integrity = [
             defect
@@ -403,7 +401,13 @@ def _validate_task_draft(context: SynthesisContext, draft: TaskDraft) -> None:
         artifact_type=context.artifact_type,
         immutable_gap_labels=context.required_gap_labels,
         unresolved_evidence_requirements=context.unresolved_evidence_requirements,
+        defect_limit=None,
     )
+    evidence_integrity = [
+        defect
+        for defect in evidence_integrity
+        if not _is_advisory_planning_evidence_defect(context, defect)
+    ]
     unresolved_assertions = [
         defect
         for defect in evidence_integrity
