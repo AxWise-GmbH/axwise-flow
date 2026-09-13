@@ -99,7 +99,7 @@ def _with_advisory_planning_review(
 ) -> str:
     """Render review observations as attributed text, never a pass certificate."""
     findings = [
-        ("Wording flag", defect.partition(": ")[2])
+        ("Unverified claim — review required", defect.partition(": ")[2])
         for defect in _deterministic_evidence_integrity_defects(
             draft.markdown,
             context.allowed_claim_texts,
@@ -107,6 +107,7 @@ def _with_advisory_planning_review(
             immutable_gap_labels=context.required_gap_labels,
             unresolved_evidence_requirements=context.unresolved_evidence_requirements,
             excerpt_limit=None,
+            defect_limit=None,
         )
         if _is_advisory_planning_evidence_defect(context, defect)
     ]

@@ -3284,7 +3284,13 @@ class GeminiCognitiveExecutor:
                 unresolved_evidence_requirements=(
                     context.unresolved_evidence_requirements
                 ),
+                defect_limit=None,
             )
+            local_evidence_integrity = [
+                defect
+                for defect in local_evidence_integrity
+                if not _is_advisory_planning_evidence_defect(common_context, defect)
+            ]
             acceptable_coverage = not any(
                 item.status == "gap"
                 and item.requirement_id not in permitted_evidence_gap_ids
@@ -3487,7 +3493,9 @@ class GeminiCognitiveExecutor:
                     unresolved_evidence_requirements=(
                         common_context.unresolved_evidence_requirements
                     ),
+                    defect_limit=None,
                 )
+                if not _is_advisory_planning_evidence_defect(common_context, defect)
             }
             unsupported = utf16_ordinal_sorted(
                 set(draft.unsupported_precision).union(deterministic_evidence_integrity)

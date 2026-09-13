@@ -715,7 +715,7 @@ def test_task_projects_uncited_high_risk_assertion_with_unrelated_ledger() -> No
         _validate_task_draft(full_contract_context, prepared)
 
 
-def test_task_rejects_unprojectable_residual_claim_despite_valid_citation() -> None:
+def test_task_preserves_uncited_residual_claim_for_visible_review() -> None:
     allowed_claim_id = "e" * 64
     context = SynthesisContext(
         purpose="execute_task",
@@ -745,8 +745,26 @@ def test_task_rejects_unprojectable_residual_claim_despite_valid_citation() -> N
         conclusions=["Do not rely on an unverified legal deadline."],
     )
 
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+    _validate_task_draft(context, prepared)
+    assert f"[evidence:{allowed_claim_id}]" in prepared.markdown
+    assert "Estonian law requires registration within 30 days." in prepared.markdown
+    assert _deterministic_evidence_integrity_defects(
+        prepared.markdown, context.allowed_claim_texts, artifact_type="product_prd"
+    )
+    publication = cognitive_executor_module._with_advisory_planning_review(
+        context, SynthesisDraft(title=prepared.title, markdown=prepared.markdown)
+    )
+    assert "**Unverified claim — review required:**" in publication
+    assert "Estonian law requires registration within 30 days" in publication.split(
+        "## Review notes — advisory", 1
+    )[1]
     with pytest.raises(ValueError, match="residual unsupported evidence assertions"):
-        cognitive_executor_module._prepare_task_draft_for_validation(context, draft)
+        _validate_task_draft(
+            context.model_copy(update={"artifact_type": "general_artifact"}), prepared
+        )
 
 
 @pytest.mark.parametrize(
@@ -8625,7 +8643,7 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_server_bounded_composite_core_requires_evaluation() -> None:
+async def test_composite_core_keeps_authority_warning_and_requires_evaluation() -> None:
     class CompositeAuthorityCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -8666,7 +8684,9 @@ async def test_server_bounded_composite_core_requires_evaluation() -> None:
     )
 
     core = task_results[-1]
-    assert core.artifact.kind == "task_result"
+    assert core.artifact.kind == "final_markdown"
+    assert core.artifact.payload["launchReady"] is False
+    assert core.artifact.payload["candidateAttestation"]
     assert not _contains_server_unverified_validation_target(
         core.artifact.markdown or ""
     )
@@ -8679,6 +8699,39 @@ async def test_server_bounded_composite_core_requires_evaluation() -> None:
             "Verify applicable pet-food safety obligations."
         ],
     )
+    assert "**Unverified claim — review required:**" in core.artifact.markdown
+    assert "authority has approved the product" in core.artifact.markdown.split(
+        "## Review notes — advisory", 1
+    )[1]
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in task_results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000869",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(core.artifact)
+    assert evaluation.artifact.payload["repairRequired"] is False
 
 
 @pytest.mark.asyncio
@@ -8839,7 +8892,7 @@ async def test_model_precision_flags_are_preserved_and_prevent_direct_promotion(
 
 
 @pytest.mark.asyncio
-async def test_unsupported_precise_core_candidate_requires_final_repair() -> None:
+async def test_uncited_precise_core_candidate_preserves_review_warning() -> None:
     class UnsafePrecisionWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -8878,7 +8931,8 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
         operation_base=820,
     )
     candidate = results[-1]
-    assert candidate.artifact.kind == "task_result"
+    assert candidate.artifact.kind == "final_markdown"
+    assert candidate.artifact.payload["launchReady"] is False
     assert (
         "The validated formula contains 2,000 mg/kg taurine and prevents renal disease."
         in (candidate.artifact.markdown or "")
@@ -8888,6 +8942,13 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
     )
     assert not _contains_server_deliverable_placeholder(
         candidate.artifact.markdown or ""
+    )
+    assert "**Unverified claim — review required:**" in candidate.artifact.markdown
+    assert "2,000 mg/kg taurine and prevents renal disease" in (
+        candidate.artifact.markdown.split("## Review notes — advisory", 1)[1]
+    )
+    assert _deterministic_evidence_integrity_defects(
+        candidate.artifact.markdown, {}, artifact_type="product_prd"
     )
 
     task_refs = sorted(
@@ -8914,10 +8975,13 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
         )
     )
 
-    assert evaluation.execution_output_contract_satisfied is False
-    assert evaluation.direct_promotion_artifact is None
-    assert evaluation.artifact.payload["unsupportedPrecision"]
-    assert evaluation.artifact.payload["repairRequired"] is True
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(candidate.artifact)
+    assert evaluation.artifact.payload["unsupportedPrecision"] == []
+    assert evaluation.artifact.payload["repairRequired"] is False
+    assert "**Unverified claim — review required:**" in candidate.artifact.markdown
 
 
 @pytest.mark.asyncio
@@ -10411,7 +10475,7 @@ def test_experiment_hypothesis_and_target_columns_remain_planning_context() -> N
     )
 
 
-def test_task_validation_rejects_unresolved_authority_before_persistence() -> None:
+def test_task_flags_uncited_authority_but_rejects_mismatched_citation() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=[],
@@ -10441,10 +10505,27 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
         requirement_coverage=coverage,
         conclusions=["A planning conclusion was prepared."],
     )
-    with pytest.raises(
-        ValueError, match="task artifact contradicts unresolved evidence"
-    ):
-        cognitive_executor_module._validate_task_draft(context, unsafe)
+    def assert_review_flagged(current_context, current_draft):
+        defects = _deterministic_evidence_integrity_defects(
+            current_draft.markdown,
+            current_context.allowed_claim_texts,
+            artifact_type=current_context.artifact_type,
+            unresolved_evidence_requirements=current_context.unresolved_evidence_requirements,
+        )
+        assert any("unresolved evidence requirement" in item for item in defects)
+        _validate_task_draft(current_context, current_draft)
+        rendered = cognitive_executor_module._with_advisory_planning_review(
+            current_context,
+            SynthesisDraft(title=current_draft.title, markdown=current_draft.markdown),
+        )
+        assert rendered.startswith(current_draft.markdown)
+        assert "**Unverified claim — review required:**" in rendered
+
+    assert_review_flagged(context, unsafe)
+    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+        _validate_task_draft(
+            context.model_copy(update={"artifact_type": "general_artifact"}), unsafe
+        )
 
     provisional = unsafe.model_copy(
         update={
@@ -10508,12 +10589,7 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
                 )
             }
         )
-        with pytest.raises(
-            ValueError, match="task artifact contradicts unresolved evidence"
-        ):
-            cognitive_executor_module._validate_task_draft(
-                adversarial_context, adversarial
-            )
+        assert_review_flagged(adversarial_context, adversarial)
 
 
 @pytest.mark.parametrize(
@@ -12960,7 +13036,7 @@ def test_numbered_source_heading_remains_server_owned(indent: str, label: str) -
     assert _model_owned_required_sections(["1. Sources", "Artifact"]) == ["Artifact"]
 
 
-def test_numbered_headings_surface_evidence_and_quality_defects_together() -> None:
+def test_numbered_headings_keep_quality_failure_and_evidence_review_warning() -> None:
     markdown = quality_markdown(
         {
             "assumptions": [],
@@ -12994,9 +13070,19 @@ def test_numbered_headings_surface_evidence_and_quality_defects_together() -> No
         )
     message = str(raised.value)
     assert "required Markdown sections are missing" not in message
-    assert "Unsupported factual precision" in message
+    assert "Unsupported factual precision" not in message
     assert "contains placeholder content" in message
     assert "ASCII-art table" not in message
+    assert _deterministic_evidence_integrity_defects(
+        markdown, {}, artifact_type="product_prd"
+    )
+    rendered = cognitive_executor_module._with_advisory_planning_review(
+        context, SynthesisDraft(title="Combined feedback", markdown=markdown)
+    )
+    assert "**Unverified claim — review required:**" in rendered
+    assert "facility maintains certified HACCP compliance" in rendered.split(
+        "## Review notes — advisory", 1
+    )[1]
 
 
 def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() -> None:
@@ -13989,7 +14075,7 @@ def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content()
     _validate_synthesis(context, preserved)
 
 
-def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> None:
+def test_final_gap_rendering_exempts_only_canonical_labels_from_review_flags() -> None:
     label = (
         "The cat-food product will be formulated and packaged for compliance with EU "
         "animal nutrition regulations and Estonian veterinary requirements"
@@ -14034,6 +14120,23 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
         == []
     )
     _validate_synthesis(context, preserved)
+    assert "**Unverified claim — review required:**" not in (
+        cognitive_executor_module._with_advisory_planning_review(context, preserved)
+    )
+
+    def assert_review_flagged(candidate):
+        assert _deterministic_evidence_integrity_defects(
+            candidate.markdown,
+            {},
+            artifact_type="product_prd",
+            immutable_gap_labels=context.required_gap_labels,
+        )
+        _validate_synthesis(context, candidate)
+        rendered = cognitive_executor_module._with_advisory_planning_review(
+            context, candidate
+        )
+        assert rendered.startswith(candidate.markdown)
+        assert "**Unverified claim — review required:**" in rendered
 
     raw_claim_elsewhere = preserved.model_copy(
         update={
@@ -14044,8 +14147,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, raw_claim_elsewhere)
+    assert_review_flagged(raw_claim_elsewhere)
 
     expanded_canonical_bullet = preserved.model_copy(
         update={
@@ -14056,8 +14158,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, expanded_canonical_bullet)
+    assert_review_flagged(expanded_canonical_bullet)
 
     comma_extended = preserved.model_copy(
         update={
@@ -14068,8 +14169,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, comma_extended)
+    assert_review_flagged(comma_extended)
 
     dash_extended = preserved.model_copy(
         update={
@@ -14080,8 +14180,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, dash_extended)
+    assert_review_flagged(dash_extended)
 
     relocated = SynthesisDraft(
         title="Relocated unresolved item",
@@ -14093,8 +14192,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
     )
     relocated_preserved = _with_immutable_gap_labels(context, relocated)
     assert relocated_preserved.markdown.count(label) == 2
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, relocated_preserved)
+    assert_review_flagged(relocated_preserved)
 
 
 def test_ready_prd_cannot_claim_launch_authority_but_authorization_can() -> None:
