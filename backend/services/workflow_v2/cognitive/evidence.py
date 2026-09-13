@@ -265,6 +265,26 @@ def has_positive_launch_readiness_claim(markdown: str) -> bool:
     return False
 
 
+def _negated_object_asserts_independent_fact(value: str) -> bool:
+    """Keep attributive participles inside an explicitly negated object.
+
+    In ``not a certified deployment``, ``certified`` modifies the denied noun;
+    in ``not approval, the vendor certified the deployment`` it is a predicate.
+    Only the immediate determiner + participle + noun form is discounted.
+    Later coordinated nouns may introduce their own clause (``and a certified
+    vendor built it``), so the rest of the complement is checked unchanged.
+    """
+
+    remaining = re.sub(
+        r"(?P<prefix>^\s*(?:a|an)\s+)(?:certified|authorized|authorised)\b"
+        r"(?=\s+(?!and\b|or\b|by\b|that\b|which\b)[\w-]+)",
+        r"\g<prefix>",
+        value,
+        flags=re.IGNORECASE,
+    )
+    return _INDEPENDENT_SENSITIVE_FACT.search(remaining) is not None
+
+
 def _is_pure_evidence_status_or_withholding(value: str) -> bool:
     """Accept a bounded evidence status, never a status-prefixed factual tail."""
 
@@ -279,7 +299,7 @@ def _is_pure_evidence_status_or_withholding(value: str) -> bool:
         _PURE_WITHHOLDING_REQUIREMENT,
     ):
         if (match := pattern.fullmatch(cleaned)) is not None:
-            return _INDEPENDENT_SENSITIVE_FACT.search(match.group("tail")) is None
+            return not _negated_object_asserts_independent_fact(match.group("tail"))
     if (match := _PURE_NOT_LAUNCH_READY_STATUS.fullmatch(cleaned)) is not None:
         return _INDEPENDENT_SENSITIVE_FACT.search(match.group("reason")) is None
     if (match := _PURE_TRAILING_EVIDENCE_STATUS.fullmatch(cleaned)) is not None:
@@ -306,17 +326,18 @@ def _is_pure_artifact_draft_withholding(value: str) -> bool:
     match = _PURE_DRAFT_NONAUTHORIZATION.fullmatch(cleaned)
     if match is None:
         return False
-    # Only the directly negated nominal "certified implementation" is removed
-    # from consideration. Independent facts in the draft description or in the
-    # coordinated disclaimer remain subject to the existing sensitive checks.
-    remaining = f"{match.group('description')} {match.group('tail')}"
+    # The draft description is asserted; only the following object is negated.
+    # Use the same complement check as direct artifact non-authorization.
+    description = match.group("description")
+    tail = match.group("tail")
     return not (
         _RAW_EVIDENCE_MARKER.search(value)
-        or _EVIDENCE_SENSITIVE_ASSERTION.search(remaining)
-        or _INDEPENDENT_SENSITIVE_FACT.search(remaining)
-        or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(remaining)
-        or _AUTHORITY_PROCESS_EXECUTION.search(remaining)
-        or _precision_values(remaining)
+        or _EVIDENCE_SENSITIVE_ASSERTION.search(description)
+        or _INDEPENDENT_SENSITIVE_FACT.search(description)
+        or _negated_object_asserts_independent_fact(tail)
+        or _DEFINITE_NEGATED_LEGAL_ASSERTION.search(cleaned)
+        or _AUTHORITY_PROCESS_EXECUTION.search(cleaned)
+        or _precision_values(cleaned)
     )
 
 

@@ -122,6 +122,7 @@ from backend.services.workflow_v2.cognitive.evidence import (
     _launch_claim_is_negated_or_conditional as _launch_claim_is_negated_or_conditional,
     _local_prefix_for_negation as _local_prefix_for_negation,
     _materially_matches_unresolved_requirement as _materially_matches_unresolved_requirement,
+    _negated_object_asserts_independent_fact as _negated_object_asserts_independent_fact,
     _normalized_launch_claim_text as _normalized_launch_claim_text,
     _normative_requirement_unit as _normative_requirement_unit,
     _permission_context_asserts_authority as _permission_context_asserts_authority,
@@ -441,6 +442,8 @@ from backend.services.workflow_v2.cognitive.sources import (
     _usage_from_search as _usage_from_search,
 )
 from backend.services.workflow_v2.cognitive.validation import (
+    _EVIDENCE_REJECTION_RULES as _EVIDENCE_REJECTION_RULES,
+    _MAX_LOGGED_EVIDENCE_FINDINGS as _MAX_LOGGED_EVIDENCE_FINDINGS,
     SynthesisValidationError as SynthesisValidationError,
     _FINAL_VALIDATION_COUNT_KEYS as _FINAL_VALIDATION_COUNT_KEYS,
     _FINAL_VALIDATION_REASON_CODES as _FINAL_VALIDATION_REASON_CODES,
@@ -454,6 +457,7 @@ from backend.services.workflow_v2.cognitive.validation import (
     _validate_synthesis as _validate_synthesis,
     _validate_task_draft as _validate_task_draft,
     _valid_final_validation_counts as _valid_final_validation_counts,
+    safe_synthesis_rejection_findings as safe_synthesis_rejection_findings,
     safe_synthesis_validation_details as safe_synthesis_validation_details,
 )
 
@@ -554,6 +558,7 @@ def _log_final_contract_failure(
     envelope: AxWiseOperationEnvelope, markdown: str, error: ValueError
 ) -> None:
     """Identify the rejected candidate/rule without logging document or error prose."""
+    findings = safe_synthesis_rejection_findings(error, markdown)
     logging.getLogger(__name__).warning(
         "final_contract_rejected %s",
         canonical_json(
@@ -563,6 +568,7 @@ def _log_final_contract_failure(
                     markdown.encode("utf-8")
                 ).hexdigest(),
                 **safe_synthesis_validation_details(error),
+                **({"evidence_findings": findings} if findings else {}),
             }
         ),
     )

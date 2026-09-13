@@ -1,6 +1,7 @@
 """Draft validation and content-free validation failures. Does not grant execution authority."""
 
 from __future__ import annotations
+import hashlib
 import re
 from backend.domain.workflow_v2.contracts import (
     ReaderOutputContractV1,
@@ -77,13 +78,44 @@ _FINAL_VALIDATION_COUNT_KEYS = frozenset(
     }
 )
 _MAX_FINAL_VALIDATION_COUNT = 1_000_000
+_MAX_LOGGED_EVIDENCE_FINDINGS = 8
+_EVIDENCE_REJECTION_RULES = (
+    (
+        "An unresolved evidence requirement is asserted as fact without ",
+        "UNRESOLVED_REQUIREMENT_ASSERTED",
+    ),
+    (
+        "Unsupported factual precision requires an exact evidence marker or an ",
+        "UNSUPPORTED_FACTUAL_PRECISION",
+    ),
+    (
+        "Cited immutable claims have opposite polarity for this unresolved ",
+        "UNRESOLVED_CITATION_POLARITY",
+    ),
+    (
+        "Cited immutable claims do not support every exact value in this unresolved ",
+        "UNRESOLVED_CITATION_VALUE",
+    ),
+    (
+        "Cited immutable claims do not support every exact value in this assertion ",
+        "CITATION_VALUE",
+    ),
+    (
+        "Cited immutable claims do not support this unresolved evidence ",
+        "UNRESOLVED_CITATION_SUPPORT",
+    ),
+    (
+        "Cited immutable claims do not semantically support this exact ",
+        "CITATION_SUPPORT",
+    ),
+)
 
 
 class SynthesisValidationError(ValueError):
     """Keep validator retry text compatible; expose separate content-free metadata.
 
     The inherited message can include document content and must not be logged.
-    Only ``safe_synthesis_validation_details`` is an operator logging boundary.
+    Only the ``safe_synthesis_*`` exporters are operator logging boundaries.
     """
 
     def __init__(
@@ -92,6 +124,7 @@ class SynthesisValidationError(ValueError):
         *,
         reason: str,
         counts: dict[str, int] | None = None,
+        evidence_defects: tuple[str, ...] = (),
     ) -> None:
         if type(reason) is not str or reason not in _FINAL_VALIDATION_REASON_CODES:
             raise ValueError("invalid synthesis validation reason")
@@ -101,6 +134,9 @@ class SynthesisValidationError(ValueError):
         super().__init__(message)
         self.reason = reason
         self.counts = dict(values)
+        # Private in-memory validator detail, like the inherited retry message.
+        # Never serialize directly into operation diagnostics or log records.
+        self.evidence_defects = evidence_defects
 
 
 def _valid_final_validation_counts(value: object) -> bool:
@@ -140,6 +176,52 @@ def safe_synthesis_validation_details(error: BaseException) -> dict[str, object]
                 if message.startswith(prefix):
                     return {"reason": reason, "counts": {}}
     return {"reason": "VALIDATOR_REJECTED", "counts": {}}
+
+
+def safe_synthesis_rejection_findings(
+    error: BaseException, markdown: str
+) -> list[dict[str, object]]:
+    """Identify evidence clauses without retaining their text.
+
+    Hashes cover complete whitespace-normalized, marker-free validator excerpts.
+    Optional zero-based Unicode character offsets are emitted only for a unique
+    verbatim occurrence in the exact candidate; never guess a transformed span.
+    The caller's candidate hash binds these offsets to that candidate, not the
+    earlier core draft. Neither hashes nor offsets can recover an absent draft.
+    """
+    if (
+        not isinstance(error, SynthesisValidationError)
+        or safe_synthesis_validation_details(error)["reason"] != "QUALITY_GATE_FAILED"
+    ):
+        return []
+    defects = getattr(error, "evidence_defects", ())
+    if type(defects) is not tuple:
+        return []
+    findings: list[dict[str, object]] = []
+    for defect in defects[:_MAX_LOGGED_EVIDENCE_FINDINGS]:
+        if type(defect) is not str:
+            continue
+        rule = next(
+            (
+                code
+                for prefix, code in _EVIDENCE_REJECTION_RULES
+                if defect.startswith(prefix)
+            ),
+            None,
+        )
+        _prefix, separator, clause = defect.partition(": ")
+        if rule is None or not separator or not clause:
+            continue
+        finding: dict[str, object] = {
+            "rule": rule,
+            "clause_sha256": hashlib.sha256(clause.encode("utf-8")).hexdigest(),
+        }
+        start = markdown.find(clause)
+        if start >= 0 and markdown.find(clause, start + 1) == -1:
+            finding["character_start"] = start
+            finding["character_end"] = start + len(clause)
+        findings.append(finding)
+    return findings
 
 
 def _is_advisory_planning_evidence_defect(
@@ -271,7 +353,8 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             excerpt_limit=None,
         )
         evidence_integrity = [
-            defect for defect in evidence_integrity
+            defect
+            for defect in evidence_integrity
             if not _is_advisory_planning_evidence_defect(context, defect)
         ]
         substantive, practicality = _deterministic_quality_defects(
@@ -300,6 +383,7 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
                     "practicality": len(practicality),
                     "topology": len(topology),
                 },
+                evidence_defects=tuple(evidence_integrity),
             )
 
 
