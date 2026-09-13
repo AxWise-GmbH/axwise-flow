@@ -2,7 +2,9 @@
 
 Status: the authenticated Goose → Orqaly → Gemini connection is live on Cloud
 Run preview and has passed the bounded real context/tool/session acceptance.
-The packaged, branded client remains a separate next step.
+The separate private desktop repository now also contains a packaged unsigned
+macOS preview; its acceptance report tracks that later work and remaining
+distribution/large-context limits.
 
 ## Design
 
@@ -17,10 +19,11 @@ authenticates the user, resolves the existing tenant, adds explicitly selected
 Goal context and forwards model requests to Gemini. The sponsored Gemini key
 belongs to the gateway, not to the desktop auth helper or Goose configuration.
 
-The connector and gateway live in the Orqaly/AxWise monorepo. A separate private
-Goose derivative will keep an upstream remote for stable-release updates; its
-GitHub owner is still awaiting the user's choice. No new Goose repository has
-been published.
+The connector and gateway live in the Orqaly/AxWise monorepo. The separate private
+desktop derivative is now `vitalyvishnevsky/orqaly-goose`, based on stable Goose
+1.50.0 with upstream history retained. Its `ORQALY.md` and
+`DESKTOP-ACCEPTANCE-2026-09-13.md` track the packaged desktop work. This document's
+cloud acceptance below remains historical evidence for the gateway rollout.
 
 ## Implemented
 
@@ -177,11 +180,13 @@ not changed, and no new Goal run was launched for this acceptance.
 
 ## Remaining product work
 
-Later work remains explicit: packaged/branded desktop onboarding, the selected
-private Goose repository, and backend Goal/progress/result operations from
-Goose. Local Goose session persistence is not backend result synchronization.
-The current prototype requires Node 22 and the connector; it is not yet a
-signed, self-contained installer verified on arbitrary computers. The branded
-client should offer sign-in, while enforcement remains on the backend. An
+The private desktop repository now bundles the connector/runtime and implements
+sign-in, sign-out and explicit Goal selection for an unsigned macOS preview.
+See its acceptance document for current verification, model/transport limits and
+distribution status. Signing, additional native platforms and backend
+Goal/progress/result operations remain explicit work. Local Goose session
+persistence is not backend result synchronization. The standalone connector
+prototype described above requires Node 22; the packaged preview supplies its
+own runtime. Access enforcement remains on the backend. An
 unmodified upstream Goose can still use a user's own model provider; that does
 not grant access to Orqaly's context or sponsored model endpoint.
