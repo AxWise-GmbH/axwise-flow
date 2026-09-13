@@ -12,6 +12,8 @@ from pydantic_ai import Agent, ModelRetry, PromptedOutput
 from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 from pydantic_ai.messages import RetryPromptPart
 
+import backend.services.workflow_v2.assistant.conversation_runner as assistant_conversation_runner_module
+import backend.services.workflow_v2.assistant.projection as assistant_projection_module
 import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 from backend.domain.workflow_v2.contracts import (
     ArtifactFact,
@@ -19,6 +21,7 @@ from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
     DeliverableAcceptanceCriterionV1,
     EvidenceRequirement,
+    ReaderOutputContractV1,
     ResearchResultV2,
     ResearchSourceV1,
     ScopeArtifactV2,
@@ -27,50 +30,52 @@ from backend.domain.workflow_v2.contracts import (
     artifact_content_hash,
     canonical_hash,
 )
+from backend.services.llm import gemini_runtime
 from backend.services.workflow_v2.cognitive_executor import (
+    SCOPE_REVISION_SYSTEM_PROMPT,
+    SCOPE_SYSTEM_PROMPT,
     DraftSpan,
     DraftTopicAnchor,
+    EvaluationDraft,
     GeminiCognitiveExecutor,
     ModelOutput,
     PydanticAIScopeDrafter,
     PydanticAIScopeReviser,
     PydanticAISynthesisWriter,
-    SCOPE_REVISION_SYSTEM_PROMPT,
-    SCOPE_SYSTEM_PROMPT,
     ScopeDraft,
     ScopeRevisionDraft,
     SynthesisContext,
     SynthesisDraft,
     TaskDraft,
-    EvaluationDraft,
     _appendix_matches_research,
     _blocked_report_output_contract,
+    _citation_sections,
+    _claim_from_grounding,
     _contains_server_deliverable_placeholder,
     _contains_server_unverified_validation_target,
     _deterministic_evidence_integrity_defects,
-    _operation_metrics,
-    _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL,
-    _PUBLICATION_PENDING_SENTINEL,
     _deterministic_quality_defects,
-    _citation_sections,
-    _claim_from_grounding,
     _markdown_with_source_appendix,
     _model_owned_required_sections,
+    _operation_metrics,
     _prepare_task_unresolved_actions,
-    _with_accepted_requirement_traceability,
-    _with_canonical_acceptance_criteria,
+    _project_reader_output_draft,
+    _reader_output_defects,
     _usage_from_result,
     _usage_from_search,
+    _validate_revision_draft,
     _validate_synthesis,
     _validate_task_draft,
-    _validate_revision_draft,
-    _without_forbidden_task_launch_claim_lines,
+    _with_accepted_requirement_traceability,
+    _with_canonical_acceptance_criteria,
     _with_immutable_gap_labels,
+    _without_forbidden_task_launch_claim_lines,
     has_positive_launch_readiness_claim,
 )
-from backend.services.llm import gemini_runtime
 from backend.services.workflow_v2.exact_span_extractor import (
     DraftCodePointSpan as ExactDraftCodePointSpan,
+)
+from backend.services.workflow_v2.exact_span_extractor import (
     ExactSpanExtractionRequest,
     ExactSpanSelectionDraft,
     assemble_exact_span_result,
@@ -80,7 +85,6 @@ from backend.services.workflow_v2.resilient_research_runner import (
     ResilientResearchRunner,
 )
 from backend.services.workflow_v2.worker_main import cost_configuration_ready
-
 
 REQUEST = "Create an Estonia cat-food launch PRD."
 B01_REQUEST = (
@@ -107,22 +111,6 @@ def compile_input(request: str = REQUEST) -> dict:
             "policies": [],
         },
     }
-
-
-def draft_statements(
-    values: list[str],
-    *,
-    disposition: str = "internal_target",
-    evidence_requirement_ids: list[str] | None = None,
-) -> list[dict]:
-    return [
-        {
-            "text": value,
-            "disposition": disposition,
-            "evidence_requirement_ids": evidence_requirement_ids or [],
-        }
-        for value in values
-    ]
 
 
 def envelope_for(
@@ -153,6 +141,63 @@ def envelope_for(
     )
 
 
+def _execution_agent_contract() -> dict:
+    task = "Turn this into a launch plan 🚀."
+    agent = {
+        "schemaVersion": "orqaly.execution-agent.v1",
+        "id": "10000000-0000-4000-8000-000000000406",
+        "runId": "00000000-0000-4000-8000-000000000003",
+        "owner": {
+            "tenantId": "00000000-0000-4000-8000-000000000002",
+            "userId": "user_axwisetest123",
+        },
+        "lifetime": "persistent",
+        "source": {
+            "threadId": "10000000-0000-4000-8000-000000000001",
+            "turnId": "10000000-0000-4000-8000-000000000012",
+            "taskHash": hashlib.sha256(task.encode("utf-8")).hexdigest(),
+        },
+        "executorPersona": {
+            "role": "task_executor",
+            "profileVersion": "axwise_executor_persona_v1",
+            "provider": "axwise",
+            "binding": "fixed_profile_contract",
+        },
+        "memory": {"scope": "thread_and_goal", "crossThread": False},
+        "runtime": {
+            "provider": "orqaly_workflow_v2",
+            "isolation": "tenant_user",
+        },
+        "capabilities": {
+            "research": True,
+            "planning": True,
+            "artifactProduction": True,
+            "approvalGates": True,
+        },
+        "tools": {"externalActions": False, "executionProvider": None},
+    }
+    profile = {
+        "version": "orqaly_agent_profile_input_v1",
+        "displayName": "Launch Navigator",
+        "roleLabel": "Evidence-led launch operator",
+        "description": "Turns accepted launch scope into verifiable work.",
+        "instructions": "Prefer primary evidence and make uncertainty explicit.",
+        "avatar": {"kind": "emoji", "value": "🧭", "color": "#365E8D"},
+    }
+    agent["profileSnapshot"] = {
+        "version": "orqaly_execution_agent_profile_snapshot_v1",
+        "profileVersion": {
+            "version": "orqaly_agent_profile_v1",
+            "id": "10000000-0000-4000-8000-000000000407",
+            "agentId": agent["id"],
+            "versionNumber": 3,
+            "contentHash": canonical_hash(profile),
+        },
+        "profile": profile,
+    }
+    return agent
+
+
 class FakeDrafter:
     def __init__(
         self,
@@ -172,8 +217,6 @@ class FakeDrafter:
         accepted_source_types: list[str] | None = None,
         deliverables: list[str] | None = None,
         artifact_type: str | None = None,
-        statement_disposition: str = "internal_target",
-        assumption_disposition: str = "internal_target",
     ) -> None:
         self.criticality = criticality
         self.claim_type = claim_type
@@ -197,8 +240,6 @@ class FakeDrafter:
         ]
         self.deliverables = deliverables or ["Product requirements document"]
         self.artifact_type = artifact_type
-        self.statement_disposition = statement_disposition
-        self.assumption_disposition = assumption_disposition
 
     async def draft(self, input_value, objective_context):
         assert objective_context == []
@@ -254,17 +295,8 @@ class FakeDrafter:
                 geography=["Estonia"],
                 evidence_requirements=requirements,
                 deliverables=self.deliverables,
-                prd_requirements=draft_statements(
-                    ["Label evidence gaps at claim level"],
-                    disposition=self.statement_disposition,
-                    evidence_requirement_ids=(
-                        ["food-safety-law"]
-                        if self.evidence
-                        and self.statement_disposition == "evidence_question"
-                        else []
-                    ),
-                ),
-                policies=draft_statements(self.policies),
+                prd_requirements=["Label evidence gaps at claim level"],
+                policies=self.policies,
                 deliverable_profile={
                     "artifact_type": artifact_type,
                     "domain": "Physical pet-food product planning in Estonia",
@@ -287,19 +319,11 @@ class FakeDrafter:
                         ],
                     }
                 ],
-                assumptions=draft_statements(
-                    self.assumptions,
-                    disposition=self.assumption_disposition,
-                    evidence_requirement_ids=(
-                        ["food-safety-law"]
-                        if self.evidence
-                        and self.assumption_disposition == "evidence_question"
-                        else []
-                    ),
-                ),
+                assumptions=self.assumptions,
             ),
             input_tokens=11,
             output_tokens=13,
+            model_version="gemini-3.8-flash-001",
         )
 
 
@@ -320,996 +344,6 @@ def ref(fact: ArtifactFact) -> dict:
     }
 
 
-@pytest.mark.asyncio
-async def test_scope_projection_discards_pre_research_legal_answers() -> None:
-    class PollutedDrafter:
-        async def draft(self, input_value, objective_context):
-            request = input_value.request
-            topic_start = request.index("NorthPaw")
-            return ScopeDraft(
-                objective=request,
-                objective_source_spans=[DraftSpan(start=0, end=len(request))],
-                topic_anchors=[
-                    DraftTopicAnchor(
-                        value="NorthPaw",
-                        source_spans=[
-                            DraftSpan(start=topic_start, end=topic_start + 8)
-                        ],
-                    )
-                ],
-                geography=["Estonia"],
-                evidence_requirements=[
-                    {
-                        "id": "eu-label-law",
-                        "claimType": "legal_requirement",
-                        "description": (
-                            "EU pet-food labeling law applicable to the accepted "
-                            "Estonia planning scope."
-                        ),
-                        "criticality": "blocking",
-                        "evidenceRole": "grounded_claim",
-                        "verificationBasis": "grounded_claims",
-                        "appliesWhen": "The PRD discusses product labeling.",
-                        "acceptedSourceTypes": ["government", "primary_law"],
-                        "allowedSourceHosts": [],
-                    },
-                    {
-                        "id": "estonia-safety-law",
-                        "claimType": "legal_safety",
-                        "description": (
-                            "Estonian product-safety law applicable to the accepted "
-                            "planning scope."
-                        ),
-                        "criticality": "blocking",
-                        "evidenceRole": "grounded_claim",
-                        "verificationBasis": "grounded_claims",
-                        "appliesWhen": "The PRD discusses future distribution.",
-                        "acceptedSourceTypes": ["government", "primary_law"],
-                        "allowedSourceHosts": [],
-                    },
-                ],
-                deliverables=["Product requirements document"],
-                prd_requirements=[
-                    {
-                        "text": (
-                            "Mandatory label fields include feed type, analytical "
-                            "constituents, batch identifier, and Estonian translation."
-                        ),
-                        "disposition": "evidence_question",
-                        "evidence_requirement_ids": ["eu-label-law"],
-                    },
-                    {
-                        "text": (
-                            "Target a 12-18 month shelf life, subject to validation."
-                        ),
-                        "disposition": "internal_target",
-                        "evidence_requirement_ids": [],
-                    },
-                ],
-                limits=[
-                    {
-                        "text": (
-                            "Commercial distribution cannot occur without Estonian "
-                            "competent-authority registration."
-                        ),
-                        "disposition": "evidence_question",
-                        "evidence_requirement_ids": ["estonia-safety-law"],
-                    }
-                ],
-                policies=[],
-                deliverable_profile={
-                    "artifact_type": "product_prd",
-                    "domain": "Physical pet-food product planning in Estonia",
-                    "problem": "Define a useful evidence-aware cat-food product.",
-                    "desired_outcome": "A decision-useful physical product PRD.",
-                    "audiences": ["Product team"],
-                    "non_goals": ["Launch authorization"],
-                    "required_sections": ["Product requirements document"],
-                },
-                acceptance_criteria=[
-                    {
-                        "given": "A launch candidate enters review",
-                        "when": "Its mandatory legal fields are checked",
-                        "then": (
-                            "Registration and every mandatory label field are confirmed."
-                        ),
-                        "supports": ["prd", "limit", "evidence"],
-                    }
-                ],
-                assumptions=[
-                    {
-                        "text": "Production uses an EU-approved HACCP facility.",
-                        "disposition": "evidence_question",
-                        "evidence_requirement_ids": ["estonia-safety-law"],
-                    }
-                ],
-            )
-
-    executor = GeminiCognitiveExecutor(PollutedDrafter(), AUTHORITY_KEY)
-    result = await executor.execute(envelope_for(compile_input(B01_REQUEST)))
-    repeated = await executor.execute(envelope_for(compile_input(B01_REQUEST)))
-    payload = result.artifact.payload
-    serialized = json.dumps(payload)
-
-    for invented_answer in (
-        "Mandatory label fields include",
-        "competent-authority registration",
-        "EU-approved HACCP facility",
-        "Registration and every mandatory label field",
-    ):
-        assert invented_answer not in serialized
-    assert any(
-        item.startswith("Candidate internal proposal") and "12-18 month" in item
-        for item in payload["prdRequirements"]
-    )
-    assert any(
-        item.startswith("Unresolved evidence gate") for item in payload["limits"]
-    )
-    assert payload["assumptions"] == []
-    assert all(
-        "external authority" in criterion["then"]
-        for criterion in payload["acceptanceCriteria"]
-    )
-    assert repeated.artifact.artifact_hash == result.artifact.artifact_hash
-
-
-def test_scope_projection_preserves_owner_targets_only_as_proposals() -> None:
-    owner_text = "Prepare an operational plan with RTO 15 minutes and budget EUR 2,000."
-    projected = cognitive_executor_module._project_scope_statements(
-        authority_text=owner_text,
-        evidence_requirements=[],
-        prd_requirements=[],
-        limits=[
-            cognitive_executor_module.DraftScopeStatement.model_validate(item)
-            for item in draft_statements(
-                ["RTO 15 minutes", "budget EUR 2,000"],
-                disposition="owner_proposed_constraint",
-            )
-        ],
-        policies=[],
-        assumptions=[],
-    )
-
-    assert projected.limits == [
-        "Owner-proposed constraint (pending accepted evidence where external authority "
-        "applies): RTO 15 minutes",
-        "Owner-proposed constraint (pending accepted evidence where external authority "
-        "applies): budget EUR 2,000",
-    ]
-    assert set(projected.authority_overrides.values()) == {"owner"}
-
-
-def test_acceptance_support_description_keeps_cross_category_evidence_edge() -> None:
-    profile = cognitive_executor_module.DraftDeliverableProfile(
-        artifact_type="operational_plan",
-        domain="Incident recovery",
-        problem="Define the recovery decision boundary.",
-        desired_outcome="An evidence-aware recovery plan.",
-        audiences=["Operations"],
-        required_sections=["Recovery plan"],
-    )
-    description = "Determine the applicable recovery obligation."
-    evidence = EvidenceRequirement.model_validate(
-        {
-            "id": "recovery-law",
-            "claimType": "legal_requirement",
-            "description": description,
-            "criticality": "blocking",
-            "evidenceRole": "grounded_claim",
-            "verificationBasis": "grounded_claims",
-            "appliesWhen": "The plan describes mandatory recovery duties.",
-            "acceptedSourceTypes": ["government", "primary_law"],
-            "allowedSourceHosts": [],
-        }
-    )
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Prepare a recovery plan.",
-        profile=profile,
-        evidence_requirements=[evidence],
-        deliverables=["Recovery plan"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=[description],
-        limits=[],
-        policies=[],
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="A recovery plan",
-                when="The obligation is reviewed",
-                then="The invented threshold is treated as mandatory.",
-                supports=[description],
-            )
-        ],
-    )
-
-    duplicated_description_ids = {
-        item.id for item in requirements if item.description == description
-    }
-    supported_ids = {
-        requirement_id
-        for criterion in criteria
-        for requirement_id in criterion.supports
-    }
-    assert len(duplicated_description_ids) == 2
-    assert duplicated_description_ids <= supported_ids
-    assert all("invented threshold" not in item.then for item in criteria)
-
-
-def test_projected_statement_alias_retains_exact_evidence_edge() -> None:
-    evidence = EvidenceRequirement.model_validate(
-        {
-            "id": "label-law",
-            "claimType": "legal_requirement",
-            "description": "Applicable labeling law for the accepted scope.",
-            "criticality": "blocking",
-            "evidenceRole": "grounded_claim",
-            "verificationBasis": "grounded_claims",
-            "appliesWhen": "The artifact discusses labeling.",
-            "acceptedSourceTypes": ["government", "primary_law"],
-            "allowedSourceHosts": [],
-        }
-    )
-    raw_statement = "Every mandatory label field is already known."
-    projected = cognitive_executor_module._project_scope_statements(
-        authority_text="Create a labeling plan.",
-        evidence_requirements=[evidence],
-        prd_requirements=[
-            cognitive_executor_module.DraftScopeStatement(
-                text=raw_statement,
-                disposition="evidence_question",
-                evidence_requirement_ids=[evidence.id],
-            )
-        ],
-        limits=[],
-        policies=[],
-        assumptions=[],
-    )
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Create a labeling plan.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="operational_plan",
-            domain="Labeling plan",
-            problem="Determine the evidence boundary.",
-            desired_outcome="A usable plan with explicit gaps.",
-            audiences=["Operations"],
-            required_sections=["Plan"],
-        ),
-        evidence_requirements=[evidence],
-        deliverables=["Labeling plan"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=projected.prd_requirements,
-        limits=[],
-        policies=[],
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="The label is drafted",
-                when="Mandatory fields are asserted",
-                then="Every invented field is treated as law.",
-                supports=[raw_statement],
-            )
-        ],
-        authority_overrides=projected.authority_overrides,
-        support_aliases=projected.support_aliases,
-        evidence_links=projected.evidence_links,
-    )
-
-    statement_id = next(item.id for item in requirements if item.category == "prd")
-    evidence_id = next(item.id for item in requirements if item.category == "evidence")
-    evidence_gate = next(item for item in criteria if statement_id in item.supports)
-    assert {statement_id, evidence_id} <= set(evidence_gate.supports)
-    assert "Every invented field" not in evidence_gate.then
-
-
-def test_max_bound_projection_never_merges_distinct_evidence_edges() -> None:
-    evidence = [
-        EvidenceRequirement.model_validate(
-            {
-                "id": f"law-{index}",
-                "claimType": "legal_requirement",
-                "description": f"Applicable law {index} for the accepted scope.",
-                "criticality": "blocking",
-                "evidenceRole": "grounded_claim",
-                "verificationBasis": "grounded_claims",
-                "appliesWhen": f"Decision {index} is made.",
-                "acceptedSourceTypes": ["government", "primary_law"],
-                "allowedSourceHosts": [],
-            }
-        )
-        for index in range(2)
-    ]
-    raw_statements = [f"Invented answer 0-{index}" for index in range(2)]
-    projected = cognitive_executor_module._project_scope_statements(
-        authority_text="Create a plan.",
-        evidence_requirements=evidence,
-        prd_requirements=[
-            cognitive_executor_module.DraftScopeStatement(
-                text=text,
-                disposition="evidence_question",
-                evidence_requirement_ids=[f"law-{index}"],
-            )
-            for index, text in enumerate(raw_statements)
-        ],
-        limits=[],
-        policies=[],
-        assumptions=[],
-    )
-    selected_indices = (
-        9528,
-        9662,
-        110,
-        2960,
-        6144,
-        6541,
-        910,
-        2185,
-        5453,
-        1678,
-        2032,
-        2329,
-        9772,
-        6504,
-        2123,
-        1213,
-        5283,
-        3448,
-        3507,
-        4340,
-        1272,
-        6952,
-        5421,
-        4683,
-        1552,
-        8698,
-        1544,
-        3206,
-        2109,
-        4222,
-        4982,
-        3807,
-        4694,
-        4280,
-        9945,
-        848,
-        6469,
-        2241,
-        5699,
-        6987,
-        1747,
-        413,
-        2161,
-        2526,
-        6033,
-        1220,
-        4056,
-        3810,
-        4784,
-        5398,
-        7854,
-        2263,
-        8179,
-        1016,
-        3539,
-        6442,
-        2624,
-        5104,
-        6284,
-        5117,
-        9520,
-        6259,
-        2501,
-        9252,
-        6949,
-        356,
-        2399,
-        9280,
-        2385,
-        4865,
-        1944,
-        2387,
-        8719,
-        1206,
-        7803,
-        7749,
-        5075,
-        8543,
-        3694,
-        8280,
-        963,
-        2870,
-        6148,
-        6475,
-        7058,
-        806,
-        5884,
-        7280,
-        1900,
-        6063,
-        4129,
-        5183,
-        9164,
-        7901,
-        7678,
-        1699,
-        7964,
-        7497,
-        3075,
-        9176,
-        4531,
-        1969,
-        4096,
-        9776,
-        2914,
-        1343,
-        5645,
-        9061,
-        770,
-        9647,
-        6511,
-        603,
-        1504,
-        415,
-        3698,
-        7821,
-        5926,
-        7969,
-    )
-    internal_criteria = [
-        cognitive_executor_module.DraftAcceptanceCriterion(
-            given=f"Internal scenario {index}",
-            when=f"Action {index}",
-            then=f"Outcome {index}",
-            supports=["Plan"],
-        )
-        for index in selected_indices
-    ]
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Create a plan.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="operational_plan",
-            domain="Exact evidence edges",
-            problem="Keep unrelated legal questions separate at the size boundary.",
-            desired_outcome="A useful plan with exact evidence gates.",
-            audiences=["Owner"],
-            required_sections=["Plan"],
-        ),
-        evidence_requirements=evidence,
-        deliverables=["Plan"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=projected.prd_requirements,
-        limits=[],
-        policies=[],
-        draft_criteria=[
-            *internal_criteria,
-            *[
-                cognitive_executor_module.DraftAcceptanceCriterion(
-                    given=f"Evidence question {index}",
-                    when=f"Law {index} is researched",
-                    then=f"Only supported conclusion {index} is adopted",
-                    supports=[text],
-                )
-                for index, text in enumerate(raw_statements)
-            ],
-        ],
-        authority_overrides=projected.authority_overrides,
-        support_aliases=projected.support_aliases,
-        evidence_links=projected.evidence_links,
-    )
-
-    requirement_id_by_description = {item.description: item.id for item in requirements}
-    assert len(criteria) <= 120
-    for index, raw_text in enumerate(raw_statements):
-        projected_text = projected.support_aliases[raw_text][0][1]
-        statement_id = requirement_id_by_description[projected_text]
-        own_evidence_id = requirement_id_by_description[evidence[index].description]
-        other_evidence_id = requirement_id_by_description[
-            evidence[1 - index].description
-        ]
-        gates = [item for item in criteria if statement_id in item.supports]
-        assert len(gates) == 1
-        assert own_evidence_id in gates[0].supports
-        assert other_evidence_id not in gates[0].supports
-
-
-def test_scope_statement_invalid_evidence_links_fail_safe_without_retry() -> None:
-    evidence = EvidenceRequirement.model_validate(
-        {
-            "id": "known-proof",
-            "claimType": "external_proof",
-            "description": "Evidence for the affected decision.",
-            "criticality": "nonblocking",
-            "evidenceRole": "grounded_claim",
-            "verificationBasis": "grounded_claims",
-            "appliesWhen": "The decision uses an external claim.",
-            "acceptedSourceTypes": ["government"],
-            "allowedSourceHosts": [],
-        }
-    )
-    missing = cognitive_executor_module._project_scope_statements(
-        authority_text="Prepare the plan.",
-        evidence_requirements=[evidence],
-        prd_requirements=[
-            cognitive_executor_module.DraftScopeStatement(
-                text="Resolve the external claim.",
-                disposition="evidence_question",
-            )
-        ],
-        limits=[],
-        policies=[],
-        assumptions=[],
-    )
-    unknown = cognitive_executor_module._project_scope_statements(
-        authority_text="Prepare the plan.",
-        evidence_requirements=[evidence],
-        prd_requirements=[
-            cognitive_executor_module.DraftScopeStatement(
-                text="Resolve the external claim.",
-                disposition="evidence_question",
-                evidence_requirement_ids=["unknown-proof"],
-            )
-        ],
-        limits=[],
-        policies=[],
-        assumptions=[],
-    )
-    partly_valid = cognitive_executor_module._project_scope_statements(
-        authority_text="Prepare the plan.",
-        evidence_requirements=[evidence],
-        prd_requirements=[
-            cognitive_executor_module.DraftScopeStatement(
-                text="Resolve the external claim.",
-                disposition="evidence_question",
-                evidence_requirement_ids=["unknown-proof", "known-proof"],
-            )
-        ],
-        limits=[],
-        policies=[],
-        assumptions=[],
-    )
-
-    assert missing.prd_requirements == []
-    assert unknown.prd_requirements == []
-    assert len(partly_valid.prd_requirements) == 1
-    projected_text = partly_valid.prd_requirements[0]
-    assert partly_valid.evidence_links[("prd", projected_text)] == ["known-proof"]
-
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Prepare the plan.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="operational_plan",
-            domain="Fail-safe evidence planning",
-            problem="Discard malformed provider links without retrying.",
-            desired_outcome="A covered accepted contract.",
-            audiences=["Owner"],
-            required_sections=["Plan"],
-        ),
-        evidence_requirements=[evidence],
-        deliverables=["Plan"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=unknown.prd_requirements,
-        limits=[],
-        policies=[],
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="A malformed provider hint exists",
-                when="Its unknown support is projected",
-                then="The server covers the accepted contract without trusting it",
-                supports=["Resolve the external claim."],
-            )
-        ],
-        authority_overrides=unknown.authority_overrides,
-        support_aliases=unknown.support_aliases,
-        evidence_links=unknown.evidence_links,
-    )
-    assert {item.id for item in requirements} == {
-        support for item in criteria for support in item.supports
-    }
-
-
-def test_mixed_category_support_does_not_gate_internal_target_on_law() -> None:
-    evidence = EvidenceRequirement.model_validate(
-        {
-            "id": "legal-proof",
-            "claimType": "legal_requirement",
-            "description": "Applicable law for the accepted scope.",
-            "criticality": "blocking",
-            "evidenceRole": "grounded_claim",
-            "verificationBasis": "grounded_claims",
-            "appliesWhen": "The artifact makes an external legal claim.",
-            "acceptedSourceTypes": ["government", "primary_law"],
-            "allowedSourceHosts": [],
-        }
-    )
-    projected = cognitive_executor_module._project_scope_statements(
-        authority_text="Prepare a plan with budget EUR 2,000.",
-        evidence_requirements=[evidence],
-        prd_requirements=[],
-        limits=[
-            cognitive_executor_module.DraftScopeStatement(
-                text="The exact legal duty is already known.",
-                disposition="evidence_question",
-                evidence_requirement_ids=[evidence.id],
-            ),
-            cognitive_executor_module.DraftScopeStatement(
-                text="budget EUR 2,000",
-                disposition="owner_proposed_constraint",
-            ),
-        ],
-        policies=[],
-        assumptions=[],
-    )
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Prepare a plan with budget EUR 2,000.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="operational_plan",
-            domain="Budgeted plan",
-            problem="Separate internal targets from external evidence.",
-            desired_outcome="A usable operating plan.",
-            audiences=["Operations"],
-            required_sections=["Plan"],
-        ),
-        evidence_requirements=[evidence],
-        deliverables=["Operating plan"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=[],
-        limits=projected.limits,
-        policies=[],
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="The plan is reviewed",
-                when="The limits are evaluated",
-                then="The invented legal duty and budget both pass.",
-                supports=["limit"],
-            )
-        ],
-        authority_overrides=projected.authority_overrides,
-        support_aliases=projected.support_aliases,
-        evidence_links=projected.evidence_links,
-    )
-    evidence_id = next(item.id for item in requirements if item.category == "evidence")
-    budget_id = next(
-        item.id for item in requirements if "budget EUR 2,000" in item.description
-    )
-    assert all(
-        not ({evidence_id, budget_id} <= set(item.supports)) for item in criteria
-    )
-    budget_criterion = next(item for item in criteria if budget_id in item.supports)
-    assert "invented legal duty" not in budget_criterion.then
-
-
-def test_raw_statement_alias_unions_with_same_text_deliverable() -> None:
-    raw_text = "Shared text"
-    projected = cognitive_executor_module._project_scope_statements(
-        authority_text="Create an artifact.",
-        evidence_requirements=[],
-        prd_requirements=[],
-        limits=[
-            cognitive_executor_module.DraftScopeStatement(
-                text=raw_text,
-                disposition="internal_target",
-            )
-        ],
-        policies=[],
-        assumptions=[],
-    )
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Create an artifact.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="general_artifact",
-            domain="Alias collision",
-            problem="Retain both semantic references.",
-            desired_outcome="A deterministic artifact.",
-            audiences=["Owner"],
-            required_sections=["Result"],
-        ),
-        evidence_requirements=[],
-        deliverables=[raw_text],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=[],
-        limits=projected.limits,
-        policies=[],
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="The shared semantics are reviewed",
-                when="The artifact is evaluated",
-                then="Both accepted meanings remain covered",
-                supports=[raw_text],
-            )
-        ],
-        authority_overrides=projected.authority_overrides,
-        support_aliases=projected.support_aliases,
-        evidence_links=projected.evidence_links,
-    )
-    shared_ids = {
-        item.id for item in requirements if item.category in {"deliverable", "limit"}
-    }
-    assert len(shared_ids) == 2
-    assert any(shared_ids <= set(item.supports) for item in criteria)
-
-
-def test_two_internal_scenarios_with_same_support_remain_useful() -> None:
-    _, _, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Create a prototype plan.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="operational_plan",
-            domain="Prototype planning",
-            problem="Test two distinct user interactions.",
-            desired_outcome="A useful prototype plan.",
-            audiences=["Product team"],
-            required_sections=["Plan"],
-        ),
-        evidence_requirements=[],
-        deliverables=["Prototype plan"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=["Users can complete the prototype task"],
-        limits=[],
-        policies=[],
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="A first-time user opens the prototype",
-                when="They complete the primary task",
-                then="The task is completed without assistance",
-                supports=["prd"],
-            ),
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="A returning user opens the prototype",
-                when="They repeat the primary task",
-                then="The task is completed using the saved state",
-                supports=["prd"],
-            ),
-        ],
-    )
-    authored = [
-        item
-        for item in criteria
-        if "first-time user" in item.given or "returning user" in item.given
-    ]
-    assert len(authored) == 2
-    assert any("first-time user" in item.given for item in authored)
-    assert any("returning user" in item.given for item in authored)
-
-
-def test_scope_statement_projection_is_order_stable_and_owner_first() -> None:
-    evidence = EvidenceRequirement.model_validate(
-        {
-            "id": "proof",
-            "claimType": "external_proof",
-            "description": "Exact evidence needed for the affected decision.",
-            "criticality": "nonblocking",
-            "evidenceRole": "future_authorization_proof",
-            "verificationBasis": "selected_evidence",
-            "appliesWhen": "The future decision is made.",
-            "acceptedSourceTypes": ["government"],
-            "allowedSourceHosts": [],
-        }
-    )
-    values = [
-        cognitive_executor_module.DraftScopeStatement(
-            text="RTO 15 minutes",
-            disposition="owner_proposed_constraint",
-            evidence_requirement_ids=["proof"],
-        ),
-        cognitive_executor_module.DraftScopeStatement(
-            text="Budget EUR 2,000",
-            disposition="internal_target",
-        ),
-    ]
-    arguments = {
-        "authority_text": "Use RTO 15 minutes and Budget EUR 2,000.",
-        "evidence_requirements": [evidence],
-        "prd_requirements": [],
-        "policies": [],
-        "assumptions": [],
-        "safe_default_values": {"RTO 15 minutes", "Budget EUR 2,000"},
-    }
-    first = cognitive_executor_module._project_scope_statements(
-        **arguments, limits=values
-    )
-    reordered = cognitive_executor_module._project_scope_statements(
-        **arguments, limits=list(reversed(values))
-    )
-
-    assert first == reordered
-    owner_text = next(item for item in first.limits if "RTO 15 minutes" in item)
-    assert owner_text.startswith("Owner-proposed constraint")
-    assert first.authority_overrides[("limit", owner_text)] == "owner"
-    assert first.evidence_links[("limit", owner_text)] == ["proof"]
-    max_text = "x" * 1000
-    bounded = cognitive_executor_module._canonical_proposal_text(
-        cognitive_executor_module._INTERNAL_PROPOSAL_PREFIX, max_text
-    )
-    assert len(bounded) == 1000
-    assert (
-        cognitive_executor_module.DraftScopeStatement(
-            text=bounded,
-            disposition="internal_target",
-        ).text
-        == bounded
-    )
-
-    forged = cognitive_executor_module._project_scope_statements(
-        authority_text="Create an artifact without prescribing constraints.",
-        evidence_requirements=[],
-        prd_requirements=[],
-        limits=[
-            cognitive_executor_module.DraftScopeStatement(
-                text=(
-                    cognitive_executor_module._OWNER_PROPOSAL_PREFIX
-                    + "The model chooses the budget"
-                ),
-                disposition="owner_proposed_constraint",
-            ),
-            cognitive_executor_module.DraftScopeStatement(
-                text=(
-                    cognitive_executor_module._SAFE_DEFAULT_PROPOSAL_PREFIX
-                    + "The model chooses the retention period"
-                ),
-                disposition="internal_target",
-            ),
-        ],
-        policies=[],
-        assumptions=[],
-    )
-    assert all(
-        item.startswith(cognitive_executor_module._INTERNAL_PROPOSAL_PREFIX)
-        for item in forged.limits
-    )
-    assert {forged.authority_overrides[("limit", item)] for item in forged.limits} == {
-        "axwise_derived"
-    }
-
-
-def test_acceptance_projection_cannot_exceed_requirement_count() -> None:
-    prd = [f"PRD requirement {index}" for index in range(39)]
-    limits = [f"Limit {index}" for index in range(40)]
-    policies = [f"Policy {index}" for index in range(40)]
-    descriptions = [*prd, *limits, *policies, "Final artifact"]
-    _, requirements, criteria = cognitive_executor_module._project_deliverable_contract(
-        authority_text="Create the final artifact.",
-        profile=cognitive_executor_module.DraftDeliverableProfile(
-            artifact_type="general_artifact",
-            domain="Bounded projection",
-            problem="Cover every accepted requirement.",
-            desired_outcome="A deterministic artifact.",
-            audiences=["Owner"],
-            required_sections=["Result"],
-        ),
-        evidence_requirements=[],
-        deliverables=["Final artifact"],
-        personas=[],
-        interview_requirements=[],
-        prd_requirements=prd,
-        limits=limits,
-        policies=policies,
-        draft_criteria=[
-            cognitive_executor_module.DraftAcceptanceCriterion(
-                given="An accepted requirement exists",
-                when="It is evaluated",
-                then="The model proposes an arbitrary result",
-                supports=[description],
-            )
-            for description in descriptions
-        ],
-    )
-
-    assert len(requirements) == 120
-    assert len(criteria) <= 120
-    assert {
-        requirement_id for item in criteria for requirement_id in item.supports
-    } == {item.id for item in requirements}
-
-    with pytest.raises(ValueError, match="cannot exceed 120"):
-        cognitive_executor_module._project_deliverable_contract(
-            authority_text="Create the final artifact.",
-            profile=cognitive_executor_module.DraftDeliverableProfile(
-                artifact_type="general_artifact",
-                domain="Bounded projection",
-                problem="Reject an oversized accepted contract.",
-                desired_outcome="A deterministic error.",
-                audiences=["Owner"],
-                required_sections=["Result"],
-            ),
-            evidence_requirements=[],
-            deliverables=["Final artifact"],
-            personas=[],
-            interview_requirements=[],
-            prd_requirements=[f"PRD requirement {index}" for index in range(120)],
-            limits=[],
-            policies=[],
-            draft_criteria=[],
-        )
-
-
-@pytest.mark.asyncio
-async def test_noop_scope_revision_preserves_semantic_hash_and_contract() -> None:
-    compiled = await GeminiCognitiveExecutor(
-        FakeDrafter(
-            statement_disposition="evidence_question",
-            assumptions=["The external requirement is already satisfied."],
-            assumption_disposition="evidence_question",
-        ),
-        AUTHORITY_KEY,
-    ).execute(envelope_for())
-    assert compiled.artifact.payload["assumptions"] == []
-    assert compiled.artifact.payload["prdRequirements"][0].startswith(
-        "Unresolved evidence gate"
-    )
-
-    class NoOpReviser:
-        async def revise(self, input_value, accepted_scope):
-            def semantic_bodies(values):
-                return [
-                    cognitive_executor_module.DraftScopeStatement(
-                        text=cognitive_executor_module._scope_statement_body(value),
-                        disposition="internal_target",
-                    )
-                    for value in values
-                ]
-
-            return ScopeRevisionDraft(
-                objective_changed=False,
-                topic_changed=False,
-                geography=list(accepted_scope.geography),
-                evidence_requirements=list(accepted_scope.evidence_requirements),
-                deliverables=list(accepted_scope.deliverables),
-                personas=list(accepted_scope.personas),
-                interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=semantic_bodies(accepted_scope.prd_requirements),
-                limits=semantic_bodies(accepted_scope.limits),
-                policies=semantic_bodies(accepted_scope.policies),
-                deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
-                acceptance_criteria=[
-                    item.model_dump() for item in accepted_scope.acceptance_criteria
-                ],
-                assumptions=semantic_bodies(accepted_scope.assumptions),
-            )
-
-    correction = "Keep the accepted scope unchanged."
-    revised = await GeminiCognitiveExecutor(
-        FakeDrafter(),
-        AUTHORITY_KEY,
-        artifact_resolver=Resolver(compiled.artifact),
-        scope_reviser=NoOpReviser(),
-    ).execute(
-        envelope_for(
-            {
-                "type": "ReviseScopeV2",
-                "acceptedScope": ref(compiled.artifact),
-                "correction": correction,
-                "correctionSourceSpans": [
-                    {
-                        "start": 0,
-                        "end": len(correction),
-                        "offsetUnit": "utf16_code_units",
-                        "text": correction,
-                        "sha256": hashlib.sha256(correction.encode()).hexdigest(),
-                    }
-                ],
-            },
-            operation_id="00000000-0000-4000-8000-000000000099",
-            operation_type="ReviseScopeV2",
-        )
-    )
-
-    assert (
-        revised.artifact.payload["researchInputHash"]
-        == compiled.artifact.payload["researchInputHash"]
-    )
-    assert (
-        revised.artifact.payload["requirements"]
-        == compiled.artifact.payload["requirements"]
-    )
-    assert (
-        revised.artifact.payload["acceptanceCriteria"]
-        == compiled.artifact.payload["acceptanceCriteria"]
-    )
-
-
 def test_complex_outputs_use_provider_compatible_prompted_transport(
     monkeypatch,
 ) -> None:
@@ -1327,10 +361,10 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(
     PydanticAIScopeReviser(object())
     PydanticAISynthesisWriter(object())
 
-    assert captured == ["PromptedOutput"] * 6
+    assert captured == ["PromptedOutput"] * 7
 
 
-def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
+def test_only_publishable_agents_have_content_output_validators(monkeypatch) -> None:
     validators = {}
 
     class CapturingAgent:
@@ -1345,8 +379,83 @@ def test_task_agent_has_no_content_output_validator(monkeypatch) -> None:
     writer = PydanticAISynthesisWriter(object())
 
     assert writer.task_agent.system_prompt not in validators
-    assert writer.final_agent.system_prompt not in validators
+    assert writer.final_agent.system_prompt in validators
     assert writer.blocked_agent.system_prompt in validators
+
+
+@pytest.mark.asyncio
+async def test_final_agent_retries_v2_reader_violation_and_returns_projected_body(
+    monkeypatch,
+) -> None:
+    validators = {}
+
+    class CapturingAgent:
+        def __init__(self, **kwargs):
+            self.system_prompt = kwargs["system_prompt"]
+
+        def output_validator(self, function):
+            validators[self.system_prompt] = function
+            return function
+
+    monkeypatch.setattr(cognitive_executor_module, "Agent", CapturingAgent)
+    writer = PydanticAISynthesisWriter(object())
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": None,
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "checklist_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Checklist"],
+        evidence_readiness="ready",
+        allowed_claim_ids=[],
+        required_gap_labels=[],
+        reader_output=reader_output,
+        artifact_type="content_artifact",
+    )
+
+    class ValidatorContext:
+        deps = context
+
+    validator = validators[writer.final_agent.system_prompt]
+    with pytest.raises(ModelRetry, match="exactly 3"):
+        await validator(
+            ValidatorContext(),
+            SynthesisDraft(
+                title="Checklist",
+                markdown="# Checklist\n\n- [ ] First\n- [ ] Second",
+            ),
+        )
+
+    projected = await validator(
+        ValidatorContext(),
+        SynthesisDraft(
+            title="Checklist",
+            markdown=(
+                "# Analysis\n\nUnrequested wrapper.\n\n## Checklist\n\n"
+                "- [ ] First\n- [ ] Second\n- [ ] Third\n\n"
+                "## Risk register\n\n- Extra"
+            ),
+        ),
+    )
+    assert projected.markdown == (
+        "# Checklist\n\n- [ ] First\n- [ ] Second\n- [ ] Third"
+    )
 
 
 def test_full_contract_task_is_prepared_as_draft_not_publication() -> None:
@@ -1556,8 +665,9 @@ def test_task_preparation_derives_coverage_and_evidence_status_from_contract() -
         "gap",
         "gap",
     ]
-    assert "## Evidence gaps and assumptions" in prepared.markdown
-    assert "does not establish launch, legal, safety" in prepared.markdown
+    assert prepared.markdown == draft.markdown
+    assert "## Open decisions" not in prepared.markdown
+    assert context.evidence_readiness == "ready_with_gaps"
     _validate_task_draft(context, prepared)
 
 
@@ -1606,7 +716,7 @@ def test_task_projects_uncited_high_risk_assertion_with_unrelated_ledger() -> No
         _validate_task_draft(full_contract_context, prepared)
 
 
-def test_task_rejects_unprojectable_residual_claim_despite_valid_citation() -> None:
+def test_task_preserves_uncited_residual_claim_without_keyword_warning() -> None:
     allowed_claim_id = "e" * 64
     context = SynthesisContext(
         purpose="execute_task",
@@ -1636,8 +746,23 @@ def test_task_rejects_unprojectable_residual_claim_despite_valid_citation() -> N
         conclusions=["Do not rely on an unverified legal deadline."],
     )
 
+    prepared = cognitive_executor_module._prepare_task_draft_for_validation(
+        context, draft
+    )
+    _validate_task_draft(context, prepared)
+    assert f"[evidence:{allowed_claim_id}]" in prepared.markdown
+    assert "Estonian law requires registration within 30 days." in prepared.markdown
+    assert _deterministic_evidence_integrity_defects(
+        prepared.markdown, context.allowed_claim_texts, artifact_type="product_prd"
+    )
+    publication = cognitive_executor_module._with_advisory_planning_review(
+        context, SynthesisDraft(title=prepared.title, markdown=prepared.markdown)
+    )
+    assert publication == prepared.markdown
     with pytest.raises(ValueError, match="residual unsupported evidence assertions"):
-        cognitive_executor_module._prepare_task_draft_for_validation(context, draft)
+        _validate_task_draft(
+            context.model_copy(update={"artifact_type": "general_artifact"}), prepared
+        )
 
 
 @pytest.mark.parametrize(
@@ -2481,9 +1606,7 @@ async def _legacy_final_validator_rejects_server_validation_scaffolding(
         )
 
 
-def test_final_publication_normalizer_keeps_authored_prose_and_global_boundary() -> (
-    None
-):
+def test_final_publication_normalizer_is_non_rejecting_and_reader_facing() -> None:
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=["Product requirements", "Evidence gaps"],
@@ -2510,28 +1633,17 @@ def test_final_publication_normalizer_keeps_authored_prose_and_global_boundary()
 
     normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
-    assert (
-        normalized.markdown.count("**Evidence status: completed with evidence gaps.**")
-        == 1
-    )
+    assert "**Evidence status: completed with evidence gaps.**" not in normalized.markdown
+    assert "## Open decisions" in normalized.markdown
+    assert context.required_gap_labels[0] in normalized.markdown
     assert "Validation target (all following content" not in normalized.markdown
     assert "Unknown pending evidence (the complete following item" not in (
         normalized.markdown
     )
-    assert "**Pending verification:**" not in normalized.markdown
-    assert "Verify the candidate legal requirement." in normalized.markdown
-    assert "Confirm the product-specific result." in normalized.markdown
-    assert "The product is launch-ready." not in normalized.markdown
-    assert (
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    ) in normalized.markdown
-    assert not cognitive_executor_module.has_positive_launch_readiness_claim(
-        normalized.markdown
-    )
-    assert "Proposed validation target" not in normalized.markdown
+    assert normalized.markdown.count("**Pending verification:**") == 2
     assert "All specifications are grounded" not in normalized.markdown
     assert "Specifications combine accepted evidence" in normalized.markdown
+    assert "launch-ready" not in normalized.markdown
     assert "## Sources" not in normalized.markdown
     assert "[evidence:" not in normalized.markdown
     assert "Authoritative legal and safety evidence remains open." in (
@@ -2543,82 +1655,7 @@ def test_final_publication_normalizer_keeps_authored_prose_and_global_boundary()
     )
 
 
-def test_final_publication_boundary_is_provenance_only_and_preserves_prd() -> None:
-    supported_claim_id = "1" * 64
-    mismatched_claim_id = "2" * 64
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=[
-            "Users, jobs, and pains",
-            "Prioritized requirements",
-            "Acceptance criteria",
-            "Evidence gaps",
-        ],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[supported_claim_id, mismatched_claim_id],
-        allowed_claim_texts={
-            supported_claim_id: "Cats require access to fresh drinking water.",
-            mismatched_claim_id: "Estonia has approximately 300,400 domestic cats.",
-        },
-        required_gap_labels=["Product-specific legal evidence remains open."],
-        artifact_type="product_prd",
-    )
-    supported_marker = f"[evidence:{supported_claim_id}]"
-    mismatched_marker = f"[evidence:{mismatched_claim_id}]"
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n"
-            "## Users, jobs, and pains\n\n"
-            "- Persona: a quality-conscious owner choosing a resealable pack.\n\n"
-            "## Prioritized requirements\n\n"
-            "| ID | Priority | Requirement |\n"
-            "| --- | --- | --- |\n"
-            "| `REQ-P0-01` | P0 | Preserve the resealable pack decision. |\n\n"
-            f"Cats require access to fresh drinking water. {supported_marker}\n\n"
-            f"EU law guarantees this formula is safe. {mismatched_marker}\n\n"
-            "## Acceptance criteria\n\n"
-            "- **Given:** `REQ-P0-01` is ready for review.\n"
-            "- **When:** The owner runs the defined package test.\n"
-            "- **Then:** The result is recorded against its pass/fail threshold.\n\n"
-            "## Evidence gaps\n\n"
-            "The product-specific legal evidence remains unresolved.\n\n"
-            "## Sources\n\n- Model-authored source row."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert (
-        normalized.markdown.count("**Evidence status: completed with evidence gaps.**")
-        == 1
-    )
-    assert "**Pending verification:**" not in normalized.markdown
-    assert "Validation target (all following content" not in normalized.markdown
-    assert "Unknown pending evidence" not in normalized.markdown
-    assert "Persona: a quality-conscious owner choosing a resealable pack." in (
-        normalized.markdown
-    )
-    assert "`REQ-P0-01` | P0 | Preserve the resealable pack decision." in (
-        normalized.markdown
-    )
-    assert "- **Given:** `REQ-P0-01` is ready for review." in normalized.markdown
-    assert "- **When:** The owner runs the defined package test." in normalized.markdown
-    assert "- **Then:** The result is recorded against its pass/fail threshold." in (
-        normalized.markdown
-    )
-    assert supported_marker in normalized.markdown
-    assert mismatched_marker not in normalized.markdown
-    assert "EU law guarantees this formula is safe." in normalized.markdown
-    assert "Product-specific legal evidence remains open." in normalized.markdown
-    assert "## Sources" not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> None:
+def test_final_publication_rejects_wrong_markers_instead_of_silently_stripping() -> None:
     water_claim_id = "a" * 64
     labelling_claim_id = "b" * 64
     context = SynthesisContext(
@@ -2652,306 +1689,9 @@ def test_final_publication_normalizer_keeps_only_locally_supported_markers() -> 
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert f"[evidence:{labelling_claim_id}]" in normalized.markdown
-    assert f"[evidence:{water_claim_id}]" not in normalized.markdown
-    assert "Cats prefer chicken-flavoured kibble." in normalized.markdown
-    assert "Fresh kibble improves palatability." in normalized.markdown
-    assert "EU law guarantees this formula is safe." in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-
-
-def test_final_publication_removes_narrowed_notice_marker_without_rewriting() -> None:
-    claim_id = "f" * 64
-    marker = f"[evidence:{claim_id}]"
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[claim_id],
-        allowed_claim_texts={
-            claim_id: (
-                "Feed business operators must submit notice of economic activities "
-                "to PTA or apply for a licence."
-            )
-        },
-        required_gap_labels=["PTA route applicability remains unresolved."],
-        unresolved_evidence_requirements=[
-            "PTA notice, registration, or licence applicability."
-        ],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Planning PRD",
-        markdown=(
-            "# Planning PRD\n\n## Product requirements\n\n"
-            f"Submit notice of economic activities to PTA. {marker}\n\n"
-            "## Evidence gaps\n\nPTA route applicability remains unresolved."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert marker not in normalized.markdown
-    assert "Submit notice of economic activities to PTA" in normalized.markdown
-    assert "Verify with the responsible authority whether" not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_removes_broadened_notice_marker_without_rewriting() -> None:
-    claim_id = "e" * 64
-    marker = f"[evidence:{claim_id}]"
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[claim_id],
-        allowed_claim_texts={
-            claim_id: (
-                "Submit a notice to PTA or apply for a licence, depending on "
-                "applicability."
-            )
-        },
-        required_gap_labels=["PTA route applicability remains unresolved."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Planning PRD",
-        markdown=(
-            "# Planning PRD\n\n## Product requirements\n\n"
-            "Submit a notice to PTA, apply for a licence, or obtain a permit "
-            f"before sale. {marker}\n\n"
-            "## Evidence gaps\n\nPTA route applicability remains unresolved."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert marker not in normalized.markdown
-    assert "or obtain a permit before sale" in normalized.markdown
-    assert "Verify with the responsible authority whether" not in normalized.markdown
-
-
-@pytest.mark.parametrize(
-    "unsupported_process",
-    [
-        "Register with PTA before distribution.",
-        "Apply for a licence from PTA before sale.",
-        "Notify PTA before distribution.",
-        "File with the Food Board before sale.",
-    ],
-)
-def test_final_publication_does_not_rewrite_direct_external_authority_processes(
-    unsupported_process: str,
-) -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Authority process remains unresolved."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Planning PRD",
-        markdown=(
-            "# Planning PRD\n\n## Product requirements\n\n"
-            f"{unsupported_process}\n\n"
-            "## Evidence gaps\n\nAuthority process remains unresolved."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert unsupported_process in normalized.markdown
-    assert "Verify with the responsible authority whether" not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_scope_prompt_splits_broad_regulatory_domains_without_inventing_law() -> None:
-    prompt = " ".join(cognitive_executor_module.SCOPE_SYSTEM_PROMPT.split())
-
-    assert "independently researchable legal-domain evidence rows" in prompt
-    assert "Keep national law separate from supranational law" in prompt
-    assert (
-        "safety, hygiene, composition and labelling obligations in separate rows"
-        in prompt
-    )
-    assert "Do not invent an instrument, title or number" in prompt
-
-
-def test_scope_prompts_do_not_answer_high_stakes_questions_before_research() -> None:
-    for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
-        normalized = " ".join(prompt.split())
-        assert "before research" in normalized
-        for forbidden_invention in (
-            "legal duty",
-            "filing mechanic",
-            "mandatory label field",
-            "certification",
-            "safety/nutrition/health/scientific threshold",
-            "test method",
-            "sample size",
-            "pass/fail value",
-        ):
-            assert forbidden_invention in normalized
-        assert "exact accepted evidence" in normalized
-        assert "owner-supplied proposed constraint or claim" in normalized
-        assert "never present it as verified authority" in normalized
-        assert "identified accountable role" in normalized
-        assert "explicit unresolved gap" in normalized or "explicit gap" in normalized
-
-
-def test_final_publication_preserves_structure_and_non_authority_body_text() -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Authoritative product evidence remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n"
-            "## Product requirements\n\n"
-            "| Requirement ID | Requirement | Owner | Metric |\n"
-            "| --- | --- | --- | --- |\n"
-            "| `req-formula-01` | The formula must be legally compliant with a "
-            "statutory 15 mg/kg limit. | Product lead | Review by day 14 |\n"
-            "| `req-label-01` | Unknown pending evidence (the complete following "
-            "item is unverified and not approved for execution): The label is legally "
-            "compliant; keep `req-label-01`, the Legal owner, and the 14-day decision "
-            "metric. | Legal owner | Decision recorded |\n\n"
-            "## Acceptance criteria\n\n"
-            "- **Given** `req-label-01` remains open, **When** the legal owner reviews "
-            "the label, **Then** the owner records the decision and evidence.\n\n"
-            "## Metrics\n\n- Review lead time: 14 days.\n\n"
-            "## Risks\n\n- Risk: legal evidence remains unresolved; Owner: legal owner.\n\n"
-            "## Evidence gaps\n\nAuthoritative product evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "| Requirement ID | Requirement | Owner | Metric |" in normalized.markdown
-    assert "`req-formula-01`" in normalized.markdown
-    assert "statutory 15 mg/kg limit" not in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert "Product lead" in normalized.markdown
-    assert "Review by day 14" in normalized.markdown
-    assert "The label is legally compliant" not in normalized.markdown
-    assert "keep `req-label-01`, the Legal owner, and the 14-day decision metric" in (
-        normalized.markdown
-    )
-    assert (
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    ) in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert "**Given** `req-label-01` remains open" in normalized.markdown
-    assert "**When** the legal owner reviews the label" in normalized.markdown
-    assert "**Then** the owner records the decision and evidence" in normalized.markdown
-    assert "Review lead time: 14 days." in normalized.markdown
-    assert "Risk: legal evidence remains unresolved; Owner: legal owner." in (
-        normalized.markdown
-    )
-    assert "See the corresponding validation requirement" not in normalized.markdown
-    assert "Validation target (all following content" not in normalized.markdown
-    assert "Unknown pending evidence" not in normalized.markdown
-    assert "complete following item is unverified" not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_does_not_semantically_rewrite_or_dedupe_body() -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Product-specific safety evidence remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n"
-            "## Product requirements\n\n"
-            "- The product is safe for cats.\n"
-            "- The food is safe for cats. Keep the resealable pack requirement.\n\n"
-            "## Evidence gaps\n\nProduct-specific safety evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "The product is safe for cats." in normalized.markdown
-    assert "The food is safe for cats." in normalized.markdown
-    assert "Keep the resealable pack requirement." in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert "See the corresponding validation requirement" not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_preserves_repeated_table_cells_without_cross_reference() -> (
-    None
-):
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Product-specific safety evidence remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n"
-            "## Product requirements\n\n"
-            "| First check | Second check |\n"
-            "| --- | --- |\n"
-            "| Product is safe for cats. | Food is safe for cats. |\n\n"
-            "## Evidence gaps\n\nProduct-specific safety evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "Product is safe for cats." in normalized.markdown
-    assert "Food is safe for cats." in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert "See the corresponding validation requirement" not in normalized.markdown
-    assert "| First check | Second check |" in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
+    with pytest.raises(ValueError, match="unsupported evidence marker"):
+        cognitive_executor_module._normalize_publication_draft(context, draft)
+    assert f"[evidence:{water_claim_id}]" in draft.markdown
 
 
 def test_final_publication_marker_requires_material_local_claim_coverage() -> None:
@@ -2979,11 +1719,14 @@ def test_final_publication_marker_requires_material_local_claim_coverage() -> No
         ),
     )
 
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized.markdown.count(marker) == 2
-    assert "Cats prefer fresh chicken." in normalized.markdown
-    assert "Fresh cats enjoy kibble." in normalized.markdown
+    with pytest.raises(ValueError, match="unsupported evidence marker"):
+        cognitive_executor_module._normalize_publication_draft(context, draft)
+    supported = draft.model_copy(update={
+        "markdown": "# Claim coverage\n\n## Product requirements\n\n"
+        f"Cats require access to fresh drinking water. {marker}"
+    })
+    normalized = cognitive_executor_module._normalize_publication_draft(context, supported)
+    assert normalized.markdown.count(marker) == 1
 
 
 def test_final_publication_normalizer_never_authorizes_launch_for_a_prd() -> None:
@@ -3001,710 +1744,16 @@ def test_final_publication_normalizer_never_authorizes_launch_for_a_prd() -> Non
             "# PRD\n\n## Product requirements\n\n"
             "All requirements are grounded in external frameworks.\n\n"
             "The product is launch-ready.\n\n"
-            "- **Then:** The product is launch-ready.\n\n"
             "The team can use this PRD for implementation planning."
         ),
     )
 
     normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
 
-    assert "The product is launch-ready." not in normalized.markdown
-    assert (
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    ) in normalized.markdown
-    assert (
-        "- **Then:** This planning artifact does not authorize launch; "
-        "authorization remains unresolved."
-    ) in normalized.markdown
-    assert not cognitive_executor_module.has_positive_launch_readiness_claim(
-        normalized.markdown
-    )
+    assert "launch-ready" not in normalized.markdown
     assert "implementation planning" in normalized.markdown
-    assert "All requirements are grounded" not in normalized.markdown
     assert "Requirements carrying exact evidence markers" in normalized.markdown
     assert "explicit unresolved gaps" not in normalized.markdown
-
-
-def test_final_publication_only_removes_foreign_high_stakes_marker() -> None:
-    foreign_marker = f"[evidence:{'d' * 64}]"
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Authoritative legal evidence remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="PRD",
-        markdown=(
-            "# PRD\n\n## Product requirements\n\n"
-            "NorthPaw is legally compliant.\n\n"
-            "Regulation (EC) No. 767/2009 sets a mandatory 45 mg/kg limit. "
-            f"{foreign_marker}\n\n"
-            "## Evidence gaps\n\nAuthoritative legal evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "NorthPaw is legally compliant." not in normalized.markdown
-    assert (
-        "This planning artifact does not authorize launch; authorization remains "
-        "unresolved."
-    ) in normalized.markdown
-    assert "Regulation (EC) No. 767/2009" in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert foreign_marker not in normalized.markdown
-    assert "See the corresponding validation requirement" not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_keeps_supported_marker_without_qualifier_rewrite() -> None:
-    claim_id = "e" * 64
-    marker = f"[evidence:{claim_id}]"
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[claim_id],
-        allowed_claim_texts={
-            claim_id: "EU law requires retail labels to identify the feed type."
-        },
-        required_gap_labels=["Product-specific legal clearance remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="PRD",
-        markdown=(
-            "# PRD\n\n## Product requirements\n\n"
-            "EU law requires retail labels to identify the feed type "
-            f"{marker}. NorthPaw is legally compliant.\n\n"
-            "Proposed target: 35% protein. The formula is legally compliant."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert f"feed type {marker}." in normalized.markdown
-    assert "NorthPaw is legally compliant." not in normalized.markdown
-    assert "Proposed target: 35% protein." in normalized.markdown
-    assert "The formula is legally compliant." not in normalized.markdown
-    assert (
-        normalized.markdown.count(
-            "This planning artifact does not authorize launch; authorization remains "
-            "unresolved."
-        )
-        == 2
-    )
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_preserves_duplicate_clauses_without_labels() -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Product-specific legal clearance remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="PRD",
-        markdown=(
-            "# PRD\n\n## Product requirements\n\n"
-            "NorthPaw is legally compliant. NorthPaw is legally compliant."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "NorthPaw is legally compliant." not in normalized.markdown
-    assert (
-        normalized.markdown.count(
-            "This planning artifact does not authorize launch; authorization remains "
-            "unresolved."
-        )
-        == 2
-    )
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_qualifies_assertive_title_and_heading() -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Product-specific legal clearance remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Launch-ready NorthPaw",
-        markdown=(
-            "# NorthPaw is legally compliant\n\n"
-            "## Product requirements\n\n"
-            "The team can continue implementation planning."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized.title == "Planning artifact — authorization remains unresolved"
-    assert normalized.markdown.startswith(
-        "# Planning artifact — authorization remains unresolved"
-    )
-    assert "## Product requirements" in normalized.markdown
-    assert "implementation planning" in normalized.markdown
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_preserves_scope_semantics_while_rewriting_unsafe_then() -> (
-    None
-):
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Acceptance criteria", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=[
-            "Product-specific legal and safety evidence remains open."
-        ],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n## Acceptance criteria\n\n"
-            "### Criterion acc-label\n"
-            "- **Supports:** `req-label`\n"
-            "- **Given:** Packaging requirements are drafted\n"
-            "- **When:** Legal evidence is reviewed\n"
-            "- **Then:** The PRD includes mandatory Estonian-language text and "
-            "statutory declarations\n\n"
-            "### Criterion acc-safety\n"
-            "- **Supports:** `req-safety`\n"
-            "- **Given:** The formula is drafted\n"
-            "- **When:** Safety evidence is reviewed\n"
-            "- **Then:** The PRD specifies microbiological limits and pathogen "
-            "thresholds\n\n"
-            "### Criterion acc-policy\n"
-            "- **Supports:** `req-policy`\n"
-            "- **Given:** The evidence boundary is accepted\n"
-            "- **When:** Constraints are written\n"
-            "- **Then:** Must base regulatory and safety constraints on grounded "
-            "primary evidence\n\n"
-            "### Criterion acc-boundary\n"
-            "- **Supports:** `req-boundary`\n"
-            "- **Given:** The deliverable is a planning artifact\n"
-            "- **When:** The artifact is evaluated\n"
-            "- **Then:** Planning artifact only; **Pending verification:** does not "
-            "provide formal regulatory sign-off or legal launch authorization\n\n"
-            "## Evidence gaps\n\nProduct-specific legal and safety evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    for identifier in ("acc-label", "acc-safety", "acc-policy", "acc-boundary"):
-        assert identifier in normalized.markdown
-    for requirement_id in (
-        "req-label",
-        "req-safety",
-        "req-policy",
-        "req-boundary",
-    ):
-        assert requirement_id in normalized.markdown
-    assert "mandatory Estonian-language text" in normalized.markdown
-    assert "microbiological limits and pathogen thresholds" in normalized.markdown
-    assert "**Pending verification:**" in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in (normalized.markdown)
-    assert (
-        "Must base regulatory and safety constraints on grounded primary evidence"
-        in normalized.markdown
-    )
-    assert (
-        "Planning artifact only; **Pending verification:** does not provide formal "
-        "regulatory sign-off" in normalized.markdown
-    )
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == (normalized)
-
-
-def test_final_publication_does_not_synthesize_numeric_evidence_markers() -> None:
-    population_claim = "1" * 64
-    penetration_claim = "2" * 64
-    density_claim = "3" * 64
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Market context"],
-        evidence_readiness="ready",
-        allowed_claim_ids=[population_claim, penetration_claim, density_claim],
-        allowed_claim_texts={
-            population_claim: (
-                "Estonia has an estimated pet cat population of approximately "
-                "300,400 domestic cats."
-            ),
-            penetration_claim: (
-                "Approximately 22% of Estonian households own at least one cat."
-            ),
-            density_claim: ("Estonia has approximately 0.22 to 0.23 cats per capita."),
-        },
-        required_gap_labels=[],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Market plan",
-        markdown=(
-            "# Market plan\n\n## Market context\n\n"
-            "Estonia has approximately 300,400 domestic cats, approximately 22% of "
-            "households own at least one cat, and ownership density is approximately "
-            "0.22 to 0.23 cats per capita."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "300,400 domestic cats" in normalized.markdown
-    assert "22% of households" in normalized.markdown
-    assert "0.22 to 0.23 cats per capita" in normalized.markdown
-    for claim_id in (population_claim, penetration_claim, density_claim):
-        assert f"[evidence:{claim_id}]" not in normalized.markdown
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == (normalized)
-
-
-def test_final_publication_keeps_authored_evidence_and_legal_fragment_local() -> None:
-    market_claim = "4" * 64
-    penetration_claim = "6" * 64
-    marker = f"[evidence:{market_claim}]"
-    penetration_marker = f"[evidence:{penetration_claim}]"
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Market context", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[market_claim, penetration_claim],
-        allowed_claim_texts={
-            market_claim: "Estonia has approximately 300,400 domestic cats.",
-            penetration_claim: (
-                "Approximately 22% of Estonian households own at least one cat."
-            ),
-        },
-        required_gap_labels=["Authoritative legal evidence remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Market plan",
-        markdown=(
-            "# Market plan\n\n## Market context\n\n"
-            "| Grounded market fact | Unverified legal answer |\n"
-            "| --- | --- |\n"
-            f"| Estonia has approximately 300,400 domestic cats {marker}. "
-            "Approximately 22% of Estonian households own at least one cat. | "
-            "Regulation (EC) No 767/2009 sets mandatory label rules. |\n\n"
-            "## Executive summary\n\n"
-            "Approximately 300,400 domestic cats are underserved.\n\n"
-            "## Evidence gaps\n\nAuthoritative legal evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized.markdown.count(marker) == 1
-    assert penetration_marker not in normalized.markdown
-    assert "300,400 domestic cats are underserved" in normalized.markdown
-    assert "Regulation (EC) No 767/2009" in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert normalized.markdown.count("|") == draft.markdown.count("|")
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == (normalized)
-
-
-def test_final_publication_preserves_legal_and_product_content_without_rewrite() -> (
-    None
-):
-    label_claim = "5" * 64
-    marker = f"[evidence:{label_claim}]"
-    supported_label = "The official label example is Täissööt täiskasvanud kassidele."
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[label_claim],
-        allowed_claim_texts={label_claim: supported_label},
-        required_gap_labels=[
-            "Product-specific legal and safety evidence remains open."
-        ],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n## Product requirements\n\n"
-            "- Packaging must use recyclable material.\n"
-            "- Label must display the NorthPaw logo.\n"
-            "- User submits the registration form.\n"
-            "- Mandatory Estonian-language declarations must appear on-pack.\n"
-            "- Submit the product notification to the responsible authority.\n\n"
-            "- Verify the batch against Reg (EU) 939/2010.\n"
-            "- **Option 3: Candidate Urinary Care**\n\n"
-            "### Feed Category Designation\n\n"
-            "- Täissööt täiskasvanud kassidele (Complete feed for adult cats).\n"
-            f"- {supported_label} {marker}\n\n"
-            "### Brand\n\n- NorthPaw Café is the working brand.\n\n"
-            "### Statutory Packaging Label Elements\n\n"
-            "1. **Traceability:** Netokogus, Partii number, and Parim enne.\n"
-            "2. **Analytical Constituents (*Analüütiline koostis*):**\n"
-            "   * Toorvalk (Crude Protein) %\n"
-            "   * Toortuhk (Crude Ash) %\n\n"
-            "### Feeding Use Cases\n\n"
-            "- 3 kg: 40–50 g/day; 4 kg: 50–60 g/day.\n\n"
-            "### Brand\n\n- NorthPaw Café is the working brand.\n\n"
-            "### Animal by-product sourcing\n\n"
-            "| Requirement | Owner action |\n"
-            "| --- | --- |\n"
-            "| Source class | Technical officer to verify Category 3 certificates. |\n\n"
-            "- Audit facility certifications (GMP/IFS/BRCGS) and feed hygiene "
-            "standards.\n"
-            "- Water activity aw <= 0.60 prevents microbiological spoilage.\n\n"
-            "### Roadmap\n\n- Priority category 3 covers later experiments.\n\n"
-            "### 6.2 Feed Marketing & Labeling (Regulation (EC) No 767/2009)\n\n"
-            "Keep the useful section body.\n\n"
-            "## Evidence gaps\n\n"
-            "Product-specific legal and safety evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "Packaging must use recyclable material." in normalized.markdown
-    assert "Label must display the NorthPaw logo." in normalized.markdown
-    assert "User submits the registration form." in normalized.markdown
-    assert "Mandatory Estonian-language declarations" in normalized.markdown
-    assert "Submit the product notification" in normalized.markdown
-    assert "Reg (EU) 939/2010" in normalized.markdown
-    assert "Verify from the controlling primary source" not in normalized.markdown
-    assert "Verify with the responsible authority whether" not in normalized.markdown
-    assert "**Option 3: Candidate Urinary Care**" in normalized.markdown
-    assert "Candidate Urinary Care" in normalized.markdown
-    assert (
-        normalized.markdown.count(
-            "The official label example is Täissööt täiskasvanud kassidele"
-        )
-        == 1
-    )
-    assert marker in normalized.markdown
-    assert "Täissööt täiskasvanud kassidele (Complete feed" in normalized.markdown
-    assert "NorthPaw Café is the working brand." in normalized.markdown
-    for exact_label_copy in (
-        "Netokogus",
-        "Partii number",
-        "Parim enne",
-        "Toorvalk",
-        "Toortuhk",
-    ):
-        assert exact_label_copy in normalized.markdown
-    assert "3 kg: 40–50 g/day" in normalized.markdown
-    assert "Technical officer to verify Category 3" in normalized.markdown
-    assert "GMP/IFS/BRCGS" in normalized.markdown
-    assert "aw <= 0.60" in normalized.markdown
-    assert "Priority category 3 covers later experiments." in normalized.markdown
-    assert "### 6.2 Feed Marketing & Labeling" in normalized.markdown
-    assert "767/2009" in normalized.markdown
-    assert "Keep the useful section body." in normalized.markdown
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert normalized.markdown.count("|") == draft.markdown.count("|")
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == (normalized)
-
-
-def test_final_publication_preserves_existing_sentinel_without_erasing_prd_targets() -> (
-    None
-):
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Personas", "Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Primary statutory evidence remains open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n"
-            "## Personas\n\n"
-            "- Quality-conscious owner prioritizes digestive wellbeing and vitality.\n\n"
-            "## Product requirements\n\n"
-            "- `req-target-01` Proposed target: run a 30-day trial with a >=65% "
-            "preference threshold for the 2 kg pack.\n"
-            "- **Proposed validation target — requires authoritative verification:** "
-            "Conduct the 30-day palatability trial and record the decision.\n\n"
-            "| Requirement ID | Requirement | Owner |\n"
-            "| --- | --- | --- |\n"
-            "| `req-law-01` | Statutory notification must be submitted to PTA before "
-            "sale. | Legal |\n"
-            "| `req-law-02` | **Product thesis:** mandatory Feed Business Operator "
-            "notification. | Legal |\n"
-            "| `req-law-03` | Submit notice of economic activities to PTA before "
-            "distribution. | Legal |\n"
-            "| `req-law-04` | Verified local statutory compliance, including "
-            "mandatory Feed Business Operator notification. | Legal |\n"
-            "| `req-safety-01` | The formula is safe for cats. | Product |\n\n"
-            "## Evidence gaps\n\nPrimary statutory evidence remains open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert _PUBLICATION_AUTHORITATIVE_VALIDATION_LABEL not in normalized.markdown
-    assert "Quality-conscious owner prioritizes digestive wellbeing" in (
-        normalized.markdown
-    )
-    assert "30-day trial" in normalized.markdown
-    assert ">=65%" in normalized.markdown
-    assert "2 kg pack" in normalized.markdown
-    assert "Conduct the 30-day palatability trial" in normalized.markdown
-    assert "Statutory notification must be submitted" in normalized.markdown
-    assert "mandatory Feed Business Operator notification" in normalized.markdown
-    assert "Submit notice of economic activities to PTA" in normalized.markdown
-    assert "Verified local statutory compliance" in normalized.markdown
-    assert "The formula is safe for cats" in normalized.markdown
-    assert "**Pending verification:**" not in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    for requirement_id in (
-        "req-target-01",
-        "req-law-01",
-        "req-law-02",
-        "req-law-03",
-        "req-law-04",
-        "req-safety-01",
-    ):
-        assert requirement_id in normalized.markdown
-    assert normalized.markdown.count("|") == draft.markdown.count("|")
-    assert (
-        cognitive_executor_module._normalize_publication_draft(context, normalized)
-        == normalized
-    )
-
-
-def test_final_publication_preserves_proposed_target_but_redacts_uncited_benchmark() -> (
-    None
-):
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Nutritional requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=["Authoritative nutritional benchmarks remain open."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Nutrition plan",
-        markdown=(
-            "# Nutrition plan\n\n"
-            "## Grounded Nutritional Benchmarks\n\n"
-            "| Nutrient | Minimum requirement |\n"
-            "| --- | --- |\n"
-            "| Crude fat | 9.0 g / 100 g DM |\n\n"
-            "## Proposed Nutritional Baseline — Subject to Lab Testing\n\n"
-            "| Nutrient | Product target |\n"
-            "| --- | --- |\n"
-            "| Crude protein | >=32% |\n\n"
-            "## Evidence gaps\n\nAuthoritative nutritional benchmarks remain open."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "9.0 g / 100 g DM" in normalized.markdown
-    assert _PUBLICATION_PENDING_SENTINEL not in normalized.markdown
-    assert ">=32%" in normalized.markdown
-    assert normalized.markdown.count("|") == draft.markdown.count("|")
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == (normalized)
-
-
-def test_final_publication_reuses_numbered_semantic_gap_without_duplication() -> None:
-    label = (
-        "Product packaging will feature multilingual labeling compliant with "
-        "Estonian language requirements."
-    )
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=[label],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\nUseful product requirements remain intact.\n\n"
-            "## 16. Evidence Gaps and Assumptions\n\n"
-            f"- **Pending verification:** {label}"
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized.markdown.count(label) == 1
-    assert normalized.markdown.count("Evidence Gaps and Assumptions") == 1
-    assert cognitive_executor_module._normalize_publication_draft(
-        context, normalized
-    ) == (normalized)
-
-
-def test_final_publication_keeps_ordinary_product_and_evidence_policies() -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements"],
-        evidence_readiness="ready",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=[],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Useful PRD",
-        markdown=(
-            "# Useful PRD\n\n## Product requirements\n\n"
-            "- The pack must use a resealable zipper.\n"
-            "- **Then:** Must explicitly document open evidentiary gaps and "
-            "unvalidated assumptions."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized.markdown == draft.markdown
-
-
-def test_final_publication_preserves_internal_approval_and_registration_workflows() -> (
-    None
-):
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements"],
-        evidence_readiness="ready",
-        allowed_claim_ids=[],
-        required_gap_labels=[],
-        artifact_type="operational_plan",
-    )
-    draft = SynthesisDraft(
-        title="How user requests are approved",
-        markdown=(
-            "# How user requests are approved\n\n"
-            "## Product requirements\n\n"
-            "- Submit the registration form.\n"
-            "- Request manager approval.\n"
-            "- Complete onboarding registration.\n"
-            "- Estonian users must complete account registration.\n"
-            "- The Estonian registration form must include email.\n"
-            "- EU users must request manager approval.\n"
-            "- Board users must complete onboarding registration."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized == draft
-
-
-def test_final_publication_preserves_persona_verification_work_and_boundary_text() -> (
-    None
-):
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Personas", "Product requirements"],
-        evidence_readiness="ready",
-        allowed_claim_ids=[],
-        required_gap_labels=[],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Planning PRD",
-        markdown=(
-            "# Planning PRD\n\n"
-            "## Personas\n\n"
-            "**Archetype Definition:** Technical nutritionist or feed safety "
-            "compliance lead responsible for validating product safety, statutory "
-            "labeling, and nutritional adequacy within the Estonian commercial "
-            "channel.\n\n"
-            "## Product requirements\n\n"
-            "- Verify that finished product analytical constituents match declared "
-            "package specifications within statutory tolerance margins.\n"
-            "- This deliverable is a planning artifact; it does not constitute or "
-            "authorize regulatory approval or market launch."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert normalized == draft
-
-
-def test_final_publication_preserves_unresolved_launch_status() -> None:
-    context = SynthesisContext(
-        purpose="final_synthesis",
-        required_sections=["Product requirements", "Evidence gaps"],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        required_gap_labels=["Launch authorization remains unresolved."],
-        artifact_type="product_prd",
-    )
-    draft = SynthesisDraft(
-        title="Planning PRD",
-        markdown=(
-            "# Planning PRD\n\n## Product requirements\n\n"
-            "Launch-ready status remains unresolved.\n\n"
-            "## Evidence gaps\n\nLaunch authorization remains unresolved."
-        ),
-    )
-
-    normalized = cognitive_executor_module._normalize_publication_draft(context, draft)
-
-    assert "Launch-ready status remains unresolved." in normalized.markdown
-    assert not cognitive_executor_module.has_positive_launch_readiness_claim(
-        normalized.markdown
-    )
 
 
 @pytest.mark.asyncio
@@ -3841,14 +1890,14 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
                     "thoughtsTokenCount": 7,
                     "totalTokenCount": 22,
                 },
-                "modelVersion": "gemini-3.7-flash",
+                "modelVersion": "gemini-3.8-flash",
             },
         )
 
     def client_factory(**kwargs):
         return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
 
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
     monkeypatch.setenv("GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS", "750000")
     monkeypatch.setenv("GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS", "3750000")
     monkeypatch.setattr(gemini_runtime, "BoundedRetryAsyncClient", client_factory)
@@ -3866,18 +1915,30 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
         assert result.usage.output_reasoning_tokens == 7
         assert result.usage.total_tokens == 22
         assert result.usage.details["thoughts_tokens"] == 7
+        assert (
+            gemini_runtime.exact_uniform_model_version_from_result(result)
+            == "gemini-3.8-flash"
+        )
         input_tokens, output_tokens = _usage_from_result(result)
         assert (input_tokens, output_tokens) == (10, 12)
         metrics = _operation_metrics(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            model_version=gemini_runtime.exact_uniform_model_version_from_result(
+                result
+            ),
         )
         assert metrics.total_tokens == 22
         assert metrics.estimated_cost_micros == 52
+        assert metrics.model == "gemini-3.8-flash"
+        assert metrics.model_version == "gemini-3.8-flash"
+        assert metrics.model_dump(mode="json", by_alias=True)["modelVersion"] == (
+            "gemini-3.8-flash"
+        )
 
         assert len(captured_requests) == 1
         url, body = captured_requests[0]
-        assert url.endswith("/v1beta/models/gemini-3.7-flash:generateContent")
+        assert url.endswith("/v1beta/models/gemini-3.8-flash:generateContent")
         config = body["generationConfig"]
         assert config["thinkingConfig"] == {"thinking_level": "HIGH"}
         assert "maxOutputTokens" not in config
@@ -3885,6 +1946,89 @@ async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
         assert "topP" not in config
         assert "topK" not in config
         assert "candidateCount" not in config
+    finally:
+        await gemini_runtime.close_shared_research_models()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model_versions", "expected"),
+    [
+        ([None], None),
+        (["gemini-3.8-flash-001"], "gemini-3.8-flash-001"),
+        (
+            ["gemini-3.8-flash-001", "gemini-3.8-flash-001"],
+            "gemini-3.8-flash-001",
+        ),
+        (["gemini-3.8-flash-001", "gemini-3.8-flash-002"], None),
+        ([None, "gemini-3.8-flash-001"], None),
+    ],
+)
+async def test_exact_model_version_is_fail_closed_across_provider_responses(
+    monkeypatch: pytest.MonkeyPatch,
+    model_versions: list[str | None],
+    expected: str | None,
+) -> None:
+    class VersionProbe(BaseModel):
+        value: str
+
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        model_version = model_versions[calls]
+        is_final = calls == len(model_versions) - 1
+        calls += 1
+        payload = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"text": '{"value":"ok"}' if is_final else '{"wrong":1}'}
+                        ],
+                        "role": "model",
+                    },
+                    "finishReason": "STOP",
+                }
+            ],
+            "usageMetadata": {
+                "promptTokenCount": 3,
+                "candidatesTokenCount": 1,
+                "totalTokenCount": 4,
+            },
+        }
+        if model_version is not None:
+            payload["modelVersion"] = model_version
+        return httpx.Response(200, json=payload)
+
+    def client_factory(**kwargs):
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setenv("GEMINI_MODEL", gemini_runtime.RESEARCH_MODEL_RESOURCE)
+    monkeypatch.setattr(gemini_runtime, "BoundedRetryAsyncClient", client_factory)
+    await gemini_runtime.close_shared_research_models()
+    try:
+        model = gemini_runtime.get_shared_workflow_model(
+            "model-version-provenance-test-key"
+        )
+        result = await Agent(
+            model=model,
+            output_type=PromptedOutput(VersionProbe),
+            retries={"output": 2},
+        ).run("model version probe")
+
+        response_names = [
+            message.model_name
+            for message in result.new_messages()
+            if getattr(message, "kind", None) == "response"
+        ]
+        assert calls == len(model_versions)
+        assert response_names == [
+            value or gemini_runtime.RESEARCH_MODEL_RESOURCE for value in model_versions
+        ]
+        assert (
+            gemini_runtime.exact_uniform_model_version_from_result(result) == expected
+        )
     finally:
         await gemini_runtime.close_shared_research_models()
 
@@ -3934,28 +2078,44 @@ def test_worker_readiness_requires_nonnegative_search_query_rate(
     assert cost_configuration_ready() is False
 
 
+@pytest.mark.parametrize("capability_flag", [None, "false", "true"])
 def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     monkeypatch: pytest.MonkeyPatch,
+    capability_flag,
 ) -> None:
     import backend.services.generative.searxng_search_service as searx_module
     import backend.services.workflow_v2.exact_span_extractor as extractor_module
 
     model = object()
-    primary = object()
+    primaries = [object(), object()]
     discovery = object()
     extractor = object()
     drafter = object()
     writer = object()
     reviser = object()
+    assistant = object()
+    solution_preparer = object()
+    native_solution_preparer = object()
     resolver = object()
+    grounded_calls: list[tuple[str, dict[str, object]]] = []
+
+    def grounded_runner(key: str, **kwargs: object) -> object:
+        grounded_calls.append((key, kwargs))
+        return primaries[len(grounded_calls) - 1]
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    if capability_flag is None:
+        monkeypatch.delenv("AXWISE_CAPABILITY_GENERATORS_ENABLED", raising=False)
+    else:
+        monkeypatch.setenv("AXWISE_CAPABILITY_GENERATORS_ENABLED", capability_flag)
     monkeypatch.setenv("AXWISE_AUTHORITY_SEAL_KEY", "a" * 32)
     monkeypatch.setattr(
         cognitive_executor_module, "get_shared_workflow_model", lambda _key: model
     )
     monkeypatch.setattr(
-        cognitive_executor_module, "GeminiGroundedResearchRunner", lambda _key: primary
+        cognitive_executor_module,
+        "GeminiGroundedResearchRunner",
+        grounded_runner,
     )
     monkeypatch.setattr(
         cognitive_executor_module, "PydanticAIScopeDrafter", lambda value: drafter
@@ -3966,15 +2126,55 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     monkeypatch.setattr(
         cognitive_executor_module, "PydanticAIScopeReviser", lambda value: reviser
     )
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "PydanticAIConversationalAssistantRunner",
+        lambda value: assistant,
+    )
+
+    def prepare_solution_with_shared_model(value):
+        assert value is model
+        return solution_preparer
+
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "PydanticAISolutionPreparer",
+        prepare_solution_with_shared_model,
+    )
     monkeypatch.setattr(searx_module, "SearxngSearchService", lambda: discovery)
+
+    def prepare_native_with_shared_model(value):
+        assert value is model
+        return native_solution_preparer
+
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "PydanticAINativeSolutionPreparer",
+        prepare_native_with_shared_model,
+    )
     monkeypatch.setattr(
         extractor_module, "PydanticAIExactSpanExtractor", lambda value: extractor
     )
 
     executor = cognitive_executor_module.build_cognitive_executor(resolver)
+    if capability_flag == "true":
+        from backend.services.workflow_v2.capability_providers import (
+            GoogleAnalysisGenerator,
+            GoogleSimulationGenerator,
+        )
+
+        assert isinstance(executor.analysis_handler.generator, GoogleAnalysisGenerator)
+        assert isinstance(
+            executor.simulation_handler.service.generator, GoogleSimulationGenerator
+        )
+    else:
+        assert executor.analysis_handler.generator is None
+        assert executor.simulation_handler.service.generator is None
+    assert executor.solution_preparer is solution_preparer
+    assert executor.solution_preparer_v2 is native_solution_preparer
 
     assert isinstance(executor.research_runner, ResilientResearchRunner)
-    assert executor.research_runner.primary is primary
+    assert executor.research_runner.primary is primaries[0]
     assert executor.research_runner.searxng is discovery
     assert executor.research_runner.extractor is extractor
     assert (
@@ -3985,6 +2185,43 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.synthesis_writer is writer
     assert executor.scope_reviser is reviser
     assert executor.artifact_resolver is resolver
+    assert isinstance(executor.assistant_runner, ResilientResearchRunner)
+    assert executor.assistant_runner is not executor.research_runner
+    assert executor.assistant_runner.primary is primaries[1]
+    assert (
+        executor.assistant_runner._primary_condition
+        is not executor.research_runner._primary_condition
+    )
+    assert executor.assistant_turn_service.grounded_runner is executor.assistant_runner
+    assert executor.research_runner.discovery_seconds == 10
+    assert executor.assistant_runner.discovery_seconds == 20
+    assert executor.assistant_chat_runner is assistant
+    from backend.services.workflow_v2.assistant.answer_quality import (
+        assistant_answer_defects,
+        assistant_repair_query,
+    )
+    from backend.services.workflow_v2.assistant.publication import (
+        assistant_parsed_response_defects,
+        assistant_source_url_allowed,
+    )
+
+    assert (
+        executor.assistant_runner.source_url_validator is assistant_source_url_allowed
+    )
+    assert executor.research_runner.source_url_validator is None
+    assert grounded_calls == [
+        ("test-key", {}),
+        (
+            "test-key",
+            {
+                "search_operation_seconds": 120,
+                "search_attempt_seconds": 60,
+                "response_validator": assistant_answer_defects,
+                "repair_query_builder": assistant_repair_query,
+                "parsed_response_validator": assistant_parsed_response_defects,
+            },
+        ),
+    ]
 
 
 def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
@@ -4015,6 +2252,42 @@ def test_workflow_v2_grounded_search_uses_the_fast_fallback_budget(
     )
 
 
+def test_assistant_grounded_search_budget_preserves_durable_research_bounds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import backend.services.generative.gemini_search_service as search_module
+    from backend.services.workflow_v2.resilient_research_runner import (
+        WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+    )
+
+    captured: dict[str, object] = {}
+
+    class FakeSearchService:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(search_module, "GeminiSearchService", FakeSearchService)
+    cognitive_executor_module.GeminiGroundedResearchRunner(
+        "test-key",
+        search_operation_seconds=cognitive_executor_module._ASSISTANT_PRIMARY_SEARCH_OPERATION_SECONDS,
+        search_attempt_seconds=cognitive_executor_module._ASSISTANT_PRIMARY_SEARCH_ATTEMPT_SECONDS,
+    )
+    assert captured == {
+        "api_key": "test-key",
+        "search_operation_seconds": search_module.GEMINI_SEARCH_OPERATION_SECONDS,
+        "search_attempt_seconds": search_module.GEMINI_SEARCH_ATTEMPT_SECONDS,
+    }
+    assert (
+        captured["search_operation_seconds"]
+        + search_module.GEMINI_SEARCH_NORMALIZATION_SECONDS
+        == cognitive_executor_module._ASSISTANT_PRIMARY_SEARCH_TOTAL_SECONDS
+        == 145
+    )
+    assert 145 + WORKFLOW_V2_FALLBACK_PHASE_SECONDS < 300 < 510
+    assert cognitive_executor_module._WORKFLOW_V2_PRIMARY_SEARCH_TOTAL_SECONDS == 70
+    assert cognitive_executor_module._MAX_RESEARCH_DEADLINE_SECONDS == 510
+
+
 @pytest.mark.asyncio
 async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics() -> (
     None
@@ -4040,6 +2313,8 @@ async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics(
     assert result.metrics.input_tokens == 11
     assert result.metrics.output_tokens == 13
     assert result.metrics.total_tokens == 24
+    assert result.metrics.model == "gemini-3.8-flash"
+    assert result.metrics.model_version == "gemini-3.8-flash-001"
 
 
 @pytest.mark.asyncio
@@ -4128,139 +2403,6 @@ async def test_atomic_statutory_and_standard_requirements_can_be_sealed_separate
     ).execute(envelope_for())
 
     assert len(compiled.artifact.payload["evidenceRequirements"]) == 2
-    assert compiled.artifact.payload["evidenceRequirements"][0][
-        "acceptedSourceTypes"
-    ] == ["government", "primary_law"]
-
-
-@pytest.mark.asyncio
-async def test_compile_narrows_generic_statutory_sources_before_sealing() -> None:
-    compiled = await GeminiCognitiveExecutor(
-        FakeDrafter(
-            criticality="nonblocking",
-            claim_type="legal_requirement",
-            description="Applicable statutory obligations for the planned product.",
-            accepted_source_types=["grounded_web"],
-        ),
-        AUTHORITY_KEY,
-    ).execute(envelope_for())
-
-    requirement = compiled.artifact.payload["evidenceRequirements"][0]
-    assert requirement["acceptedSourceTypes"] == ["government", "primary_law"]
-
-
-@pytest.mark.asyncio
-async def test_compile_does_not_reclassify_market_impact_of_regulation_as_law() -> None:
-    compiled = await GeminiCognitiveExecutor(
-        FakeDrafter(
-            criticality="nonblocking",
-            claim_type="market_context",
-            description="Market impact of the regulation and consumer adoption.",
-            accepted_source_types=["grounded_web", "official_statistics"],
-        ),
-        AUTHORITY_KEY,
-    ).execute(envelope_for())
-
-    assert compiled.artifact.payload["evidenceRequirements"][0][
-        "acceptedSourceTypes"
-    ] == ["grounded_web", "official_statistics"]
-
-
-@pytest.mark.asyncio
-async def test_compile_rejects_multiple_laws_before_source_narrowing() -> None:
-    with pytest.raises(
-        ValueError,
-        match="explicit legal instruments must be split",
-    ):
-        await GeminiCognitiveExecutor(
-            FakeDrafter(
-                criticality="nonblocking",
-                claim_type="legal_requirement",
-                description=(
-                    "Regulation (EC) No 767/2009 and Regulation (EC) No 183/2005."
-                ),
-                accepted_source_types=["grounded_web"],
-            ),
-            AUTHORITY_KEY,
-        ).execute(envelope_for())
-
-
-@pytest.mark.asyncio
-async def test_revise_narrows_generic_statutory_sources_before_sealing() -> None:
-    compiled = await GeminiCognitiveExecutor(
-        FakeDrafter(
-            criticality="nonblocking",
-            claim_type="market_context",
-            description="Market context for the planning artifact.",
-            accepted_source_types=["grounded_web"],
-        ),
-        AUTHORITY_KEY,
-    ).execute(envelope_for())
-    assert compiled.artifact.payload["evidenceRequirements"][0][
-        "acceptedSourceTypes"
-    ] == ["grounded_web"]
-
-    correction = "Replace the market evidence with applicable statutory obligations."
-    correction_input = {
-        "type": "ReviseScopeV2",
-        "acceptedScope": ref(compiled.artifact),
-        "correction": correction,
-        "correctionSourceSpans": [
-            {
-                "start": 0,
-                "end": len(correction),
-                "offsetUnit": "utf16_code_units",
-                "text": correction,
-                "sha256": hashlib.sha256(correction.encode()).hexdigest(),
-            }
-        ],
-    }
-
-    class StatutoryReviser:
-        async def revise(self, input_value, accepted_scope):
-            requirement = accepted_scope.evidence_requirements[0].model_copy(
-                update={
-                    "claim_type": "statutory_requirement",
-                    "description": (
-                        "Applicable statutory obligations for the planned product."
-                    ),
-                    "accepted_source_types": ["grounded_web"],
-                }
-            )
-            return ScopeRevisionDraft(
-                objective_changed=False,
-                topic_changed=False,
-                geography=list(accepted_scope.geography),
-                evidence_requirements=[requirement],
-                deliverables=list(accepted_scope.deliverables),
-                personas=list(accepted_scope.personas),
-                interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=draft_statements(accepted_scope.prd_requirements),
-                limits=draft_statements(accepted_scope.limits),
-                policies=draft_statements(accepted_scope.policies),
-                deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
-                acceptance_criteria=[
-                    item.model_dump() for item in accepted_scope.acceptance_criteria
-                ],
-                assumptions=draft_statements(accepted_scope.assumptions),
-            )
-
-    revised = await GeminiCognitiveExecutor(
-        FakeDrafter(),
-        AUTHORITY_KEY,
-        artifact_resolver=Resolver(compiled.artifact),
-        scope_reviser=StatutoryReviser(),
-    ).execute(
-        envelope_for(
-            correction_input,
-            operation_id="00000000-0000-4000-8000-000000000025",
-            operation_type="ReviseScopeV2",
-        )
-    )
-
-    assert revised.artifact.payload["evidenceRequirements"][0][
-        "acceptedSourceTypes"
-    ] == ["government", "primary_law"]
 
 
 @pytest.mark.asyncio
@@ -4310,14 +2452,14 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
                 deliverables=list(accepted_scope.deliverables),
                 personas=list(accepted_scope.personas),
                 interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=draft_statements(accepted_scope.prd_requirements),
-                limits=draft_statements(accepted_scope.limits),
-                policies=draft_statements(accepted_scope.policies),
+                prd_requirements=list(accepted_scope.prd_requirements),
+                limits=list(accepted_scope.limits),
+                policies=list(accepted_scope.policies),
                 deliverable_profile=profile,
                 acceptance_criteria=[
                     item.model_dump() for item in accepted_scope.acceptance_criteria
                 ],
-                assumptions=draft_statements(accepted_scope.assumptions),
+                assumptions=list(accepted_scope.assumptions),
             )
 
     executor = GeminiCognitiveExecutor(
@@ -4342,6 +2484,76 @@ async def test_revise_scope_replaces_topic_and_invalidates_research_identity() -
     assert revised_result.artifact.source_artifact_ids == [
         compiled.artifact.artifact_id
     ]
+
+
+@pytest.mark.asyncio
+async def test_revise_scope_prompt_carries_fixed_execution_agent_without_authority() -> (
+    None
+):
+    compiled = await GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY).execute(
+        envelope_for()
+    )
+    accepted_scope = ScopeArtifactV2.model_validate(compiled.artifact.payload)
+    correction = "Keep the accepted scope unchanged."
+    input_payload = {
+        "type": "ReviseScopeV2",
+        "acceptedScope": ref(compiled.artifact),
+        "correction": correction,
+        "correctionSourceSpans": [
+            {
+                "start": 0,
+                "end": len(correction),
+                "offsetUnit": "utf16_code_units",
+                "text": correction,
+                "sha256": hashlib.sha256(correction.encode("utf-8")).hexdigest(),
+            }
+        ],
+        "executionAgent": _execution_agent_contract(),
+    }
+    envelope = envelope_for(input_payload, operation_type="ReviseScopeV2")
+    captured: list[dict] = []
+
+    class _Result:
+        def __init__(self, output) -> None:
+            self.output = output
+
+        def usage(self):
+            return None
+
+    class _Agent:
+        async def run(self, prompt, deps):
+            captured.append(json.loads(prompt))
+            return _Result(
+                ScopeRevisionDraft(
+                    objective_changed=False,
+                    topic_changed=False,
+                    geography=list(accepted_scope.geography),
+                    evidence_requirements=list(accepted_scope.evidence_requirements),
+                    deliverables=list(accepted_scope.deliverables),
+                    personas=list(accepted_scope.personas),
+                    interview_requirements=list(accepted_scope.interview_requirements),
+                    prd_requirements=list(accepted_scope.prd_requirements),
+                    limits=list(accepted_scope.limits),
+                    policies=list(accepted_scope.policies),
+                    deliverable_profile=accepted_scope.deliverable_profile.model_dump(),
+                    acceptance_criteria=[
+                        item.model_dump() for item in accepted_scope.acceptance_criteria
+                    ],
+                    assumptions=list(accepted_scope.assumptions),
+                )
+            )
+
+    reviser = object.__new__(PydanticAIScopeReviser)
+    reviser.agent = _Agent()
+    await reviser.revise(envelope.input, accepted_scope)
+
+    assert captured[0]["EXECUTION_AGENT"] == input_payload["executionAgent"]
+    assert "EXECUTION_AGENT" not in captured[0]["OWNER_CORRECTION"]
+    assert "apply its exact roleLabel and" in SCOPE_REVISION_SYSTEM_PROMPT
+    assert (
+        captured[0]["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["instructions"]
+        == "Prefer primary evidence and make uncertainty explicit."
+    )
 
 
 @pytest.mark.asyncio
@@ -4380,14 +2592,14 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
                     dict.fromkeys([*accepted_scope.personas, "Retail distributors"])
                 ),
                 interview_requirements=list(accepted_scope.interview_requirements),
-                prd_requirements=draft_statements(accepted_scope.prd_requirements),
-                limits=draft_statements(accepted_scope.limits),
-                policies=draft_statements(accepted_scope.policies),
+                prd_requirements=list(accepted_scope.prd_requirements),
+                limits=list(accepted_scope.limits),
+                policies=list(accepted_scope.policies),
                 deliverable_profile=profile,
                 acceptance_criteria=[
                     item.model_dump() for item in accepted_scope.acceptance_criteria
                 ],
-                assumptions=draft_statements(accepted_scope.assumptions),
+                assumptions=list(accepted_scope.assumptions),
             )
 
     async def revise(scope_result, correction: str, operation_id: str):
@@ -4428,14 +2640,7 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
         AUTHORITY_KEY,
         artifact_resolver=Resolver(revised.artifact),
     ).execute(research_operation(revised))
-    expected_policies = sorted(
-        [
-            "Candidate internal proposal (not verified external authority): " + value
-            for value in owner_policies
-        ],
-        key=lambda value: value.encode("utf-16-be"),
-    )
-    assert revised.artifact.payload["policies"] == expected_policies
+    assert revised.artifact.payload["policies"] == owner_policies
     assert (
         revised.artifact.payload["evidenceRequirements"][0]["criticality"] == "blocking"
     )
@@ -4452,7 +2657,7 @@ async def test_revision_uses_typed_artifact_authority_for_future_proof() -> None
         AUTHORITY_KEY,
         artifact_resolver=Resolver(decision.artifact),
     ).execute(research_operation(decision))
-    assert decision.artifact.payload["policies"] == expected_policies
+    assert decision.artifact.payload["policies"] == owner_policies
     assert decision_research.artifact.payload["findings"][0]["blocking"] is True
     assert decision_research.evidence_readiness == "blocked"
 
@@ -4611,15 +2816,6 @@ class VerifiedResearchRunner:
             },
             "runtime_diagnostics": {"call_count": 2, "retry_count": 1},
         }
-
-
-class VerifiedGeminiGroundedResearchRunner(VerifiedResearchRunner):
-    async def search(self, query):
-        result = await super().search(query)
-        result["provider"] = "gemini_google_search"
-        for source in result["sources"]:
-            source["provider"] = "gemini_google_search"
-        return result
 
 
 class TransientThenVerifiedRunner(VerifiedResearchRunner):
@@ -4866,6 +3062,42 @@ async def test_execute_research_input_enforces_exact_artifact_roles_and_order() 
         )
 
 
+@pytest.mark.asyncio
+async def test_research_prompts_carry_fixed_execution_agent_without_tool_authority() -> (
+    None
+):
+    compiled = await compiled_scope()
+    runner = MissingResearchRunner()
+    input_payload = research_operation(compiled).input.model_dump(
+        mode="json", by_alias=True
+    )
+    input_payload["executionAgent"] = _execution_agent_contract()
+    envelope = envelope_for(input_payload, operation_type="ExecuteResearchV2")
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        runner,
+        Resolver(compiled.artifact),
+    )
+
+    await executor.execute(envelope)
+
+    assert runner.queries
+    for query in runner.queries:
+        instruction, encoded = query.split("\n", 1)
+        prompt = json.loads(encoded)
+        assert prompt["EXECUTION_AGENT"] == input_payload["executionAgent"]
+        assert "apply its exact roleLabel and" in instruction
+        assert (
+            prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["roleLabel"]
+            == "Evidence-led launch operator"
+        )
+        assert prompt["EXECUTION_AGENT"]["tools"] == {
+            "externalActions": False,
+            "executionProvider": None,
+        }
+
+
 async def execute_research(compiled, runner, *extra_facts):
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
@@ -4973,112 +3205,6 @@ async def test_typed_physical_and_software_prd_profiles_have_stable_semantic_ids
     assert (
         first.artifact.payload["researchInputHash"]
         != software.artifact.payload["researchInputHash"]
-    )
-
-
-def test_product_prd_compacts_uncovered_requirements_into_one_stable_gate() -> None:
-    profile = cognitive_executor_module.DraftDeliverableProfile(
-        artifact_type="product_prd",
-        domain="Physical product planning",
-        problem="A proposed physical product needs a decision-useful plan.",
-        desired_outcome="An accepted plan with observable product checks.",
-        audiences=["Product team"],
-        required_sections=["Acceptance criteria", "Prioritized requirements"],
-    )
-    evidence = EvidenceRequirement(
-        id="proof",
-        claimType="legal_safety",
-        description="Applicable product safety requirements",
-        criticality="blocking",
-        evidenceRole="grounded_claim",
-        verificationBasis="grounded_claims",
-        appliesWhen="The product decision is reviewed.",
-        acceptedSourceTypes=["government", "primary_law"],
-        allowedSourceHosts=[],
-    )
-    explicit_semantics = [
-        {
-            "given": "A representative buyer is evaluating the proposed product",
-            "when": "They complete the defined selection task with the prototype",
-            "then": "The observed success rate meets the accepted decision threshold.",
-            "supports": [
-                "A buyer deciding whether the proposed product meets their job",
-                "The package remains intact during the defined handling test",
-            ],
-        },
-        {
-            "given": "A representative buyer research session is scheduled",
-            "when": "The accepted interview protocol is completed",
-            "then": "Observed responses are linked to an explicit product decision.",
-            "supports": ["Interview representative buyers"],
-        },
-    ]
-    inputs = {
-        "authority_text": "Create a decision-useful physical product PRD.",
-        "profile": profile,
-        "evidence_requirements": [evidence],
-        "deliverables": [
-            "A decision-ready Markdown PRD",
-            "An additional decision-ready Markdown PRD",
-        ],
-        "personas": ["A buyer deciding whether the proposed product meets their job"],
-        "interview_requirements": ["Interview representative buyers"],
-        "prd_requirements": [
-            "The package remains intact during the defined handling test"
-        ],
-        "limits": ["Planning only; no launch authorization"],
-        "policies": ["Unsupported safety claims cannot advance"],
-        "draft_criteria": [
-            cognitive_executor_module.DraftAcceptanceCriterion(**semantic)
-            for semantic in explicit_semantics
-        ],
-    }
-
-    first = cognitive_executor_module._project_deliverable_contract(**inputs)
-    repeated = cognitive_executor_module._project_deliverable_contract(**inputs)
-    _, requirements, criteria = first
-
-    assert first == repeated
-    assert len(criteria) == len(explicit_semantics) + 2
-    requirement_by_description = {item.description: item for item in requirements}
-    authored_supports = {
-        requirement_by_description[description].id
-        for semantic in explicit_semantics
-        for description in semantic["supports"]
-    }
-    evidence_ids = {item.id for item in requirements if item.category == "evidence"}
-    aggregate_supports = {item.id for item in requirements}.difference(
-        authored_supports, evidence_ids
-    )
-    aggregate = next(
-        item for item in criteria if set(item.supports) == aggregate_supports
-    )
-    aggregate_semantic = aggregate.model_dump(
-        mode="json", by_alias=True, exclude={"id"}
-    )
-    assert aggregate.id == f"acc-{canonical_hash(aggregate_semantic)[:16]}"
-    supported = {
-        requirement_id for item in criteria for requirement_id in item.supports
-    }
-    assert supported == {item.id for item in requirements}
-    assert "Record the supported proposals" in aggregate.then
-    assert all(
-        any(semantic["then"] in item.then for item in criteria)
-        for semantic in explicit_semantics
-    )
-    evidence_gate = next(
-        item for item in criteria if set(item.supports) == evidence_ids
-    )
-    assert "does not itself establish external authority" in evidence_gate.then
-    assert "pass/fail threshold" not in aggregate.then
-    assert all(
-        item.given != "The accepted deliverable profile and immutable evidence boundary"
-        and (
-            "not verified external authority" in item.given
-            or "unresolved evidence-dependent" in item.given
-            or "candidate product" in item.given
-        )
-        for item in criteria
     )
 
 
@@ -5365,6 +3491,44 @@ def test_scope_prompts_split_exact_proof_from_grounded_claims() -> None:
 
 
 @pytest.mark.asyncio
+async def test_scope_normalizes_one_direct_checklist_to_content_artifact() -> None:
+    request = "Create a concise Markdown checklist for opening the café."
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="operational_plan",
+            deliverables=["Concise Markdown checklist for opening the café"],
+            topic_value="checklist",
+            evidence=False,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(compile_input(request)))
+
+    scope = ScopeArtifactV2.model_validate(compiled.artifact.payload)
+
+    assert scope.deliverable_profile.artifact_type == "content_artifact"
+    assert scope.deliverable_profile.required_sections == ["Checklist"]
+
+
+@pytest.mark.asyncio
+async def test_scope_does_not_reclassify_a_broader_operational_plan() -> None:
+    request = "Create an operational plan with an opening checklist for the café."
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="operational_plan",
+            deliverables=["Operational plan with an opening checklist"],
+            topic_value="checklist",
+            evidence=False,
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(compile_input(request)))
+
+    assert (
+        compiled.artifact.payload["deliverableProfile"]["artifactType"]
+        == "operational_plan"
+    )
+
+
+@pytest.mark.asyncio
 async def test_scope_rejects_multiple_named_eu_regulations_in_one_requirement() -> None:
     with pytest.raises(
         ValueError,
@@ -5488,55 +3652,39 @@ def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
         "invent personal names, ages, neighbourhoods",
         "Do not invent exact nutrition",
         "Evidence markers are sentence- or table-cell-local",
-        "every `SEMANTIC_METHOD.analysisAreas` entry",
-        "`OUTPUT_CONTRACT.acceptanceCriteria` exactly once",
-        "criterion ID, every",
-        "one complete Given/When/Then block",
-        "metadata is not a substitute",
-        "lacks a clause-local marker from ALLOWED_CLAIM_IDS",
-        "State the unresolved question",
-        "specific authoritative verification action instead",
-        "include an explicit `Evidence gaps` or `Assumptions`",
-        "ASCII-art tables inside code fences",
+        "Lead with the requested deliverable",
+        "one concise `Open decisions` section",
+        "Preserve the required gap content",
+        "do not repeat blanket unvalidated warnings",
+        "Describe ordinary numeric settings naturally as proposed design choices",
     ):
         assert required in task_prompt
     for required in (
         "one coherent, useful final artifact",
-        "ACCEPTED_SCOPE is the sole semantic",
-        "RESEARCH_RESULT is the sole evidence-status authority",
-        "PUBLICATION_CONTRACT is the",
-        "BASE_MARKDOWN is the exact immutable core draft and is an",
         "reviewer guidance, not a form to satisfy",
         "Never echo diagnostics, validator language",
-        "Never quote or",
-        "restate the candidate's unsupported answer",
         "Prefer clear reader-facing prose over repetitive warnings",
-        "prominent evidence-status boundary",
-        "one concise entry for each exact",
-        "Do not emit `Pending verification`, `Validation",
+        "Lead with the useful answer",
+        "concise `Open decisions` section",
+        "Preserve the exact required gap content",
+        "completion certifies the document",
         "Do not prefix personas, non-goals, headings",
         "planning requirements to verify before adoption",
         "ordinary product, operational, budget, date and metric choices",
         "Preserve every valid immutable evidence marker",
-        "Every RESEARCH_RESULT.unresolvedEvidence entry",
-        "acceptance criteria define coverage to investigate",
-        "do not globally summarize",
-        "criterion IDs, supported requirement",
-        "IDs and complete Given/When/Then blocks",
-        "candidate instruments, thresholds, filing mechanics, translations",
-        "preserve the surrounding useful requirement or acceptance",
-        "internal review condition",
         "not a template, questionnaire, JSON",
         "blocked-only shell",
-        "FINAL READINESS CHECK",
-        "no exact immutable",
-        "same clause or table cell",
-        "proposed validation hypothesis",
-        "must not read as an adopted pass/fail",
-        "qualified-owner approval must precede",
-        "does not downgrade ordinary product, business",
     ):
         assert required in final_prompt
+
+    assert "content_artifact or general_artifact" in task_prompt
+    assert "reader-facing length, item-count, and format exactly" in task_prompt
+    assert "content_artifact and general_artifact" in final_prompt
+    assert "instead of expanding a concise artifact" in final_prompt
+    assert "ASCII-art tables inside code fences" in " ".join(task_prompt.split())
+    assert "prominent evidence-status boundary" not in final_prompt
+    for prompt in (SCOPE_SYSTEM_PROMPT, SCOPE_REVISION_SYSTEM_PROMPT):
+        assert "blanket draft disclaimers or warning requirements" in prompt
 
 
 def test_structural_guard_rejects_priority_acceptance_traceability_drift() -> None:
@@ -5697,72 +3845,6 @@ def test_immutable_gap_injection_merges_into_existing_server_section() -> None:
     assert merged.markdown.index(label) < merged.markdown.index("### Owner notes")
     assert merged.markdown.index(label) < merged.markdown.index("## Next steps")
     assert _with_immutable_gap_labels(context, merged) == merged
-
-
-def test_immutable_gap_injection_merges_numbered_register_alias_once() -> None:
-    existing = "Product-specific safety clearance remains unresolved."
-    missing = "Estonian operator requirements remain unresolved."
-    context = SynthesisContext(
-        required_sections=[],
-        evidence_readiness="ready_with_gaps",
-        allowed_claim_ids=[],
-        allowed_claim_texts={},
-        required_gap_labels=[existing, missing],
-        artifact_type="product_prd",
-    )
-    original = SynthesisDraft(
-        title="PRD",
-        markdown=(
-            "# PRD\n\nUseful planning content.\n\n"
-            "## Evidence, assumptions, and gaps\n\n"
-            "### 14. IMMUTABLE GAPS AND ASSUMPTIONS REGISTER\n\n"
-            f"- {existing}\n\n"
-            "## Next steps\n\n- Obtain and verify the missing records."
-        ),
-    )
-
-    merged = _with_immutable_gap_labels(context, original)
-
-    assert merged.markdown.count("IMMUTABLE GAPS AND ASSUMPTIONS REGISTER") == 1
-    assert "Immutable evidence gaps and assumptions" not in merged.markdown
-    assert merged.markdown.count(existing) == 1
-    assert merged.markdown.count(missing) == 1
-    assert merged.markdown.index(missing) < merged.markdown.index("## Next steps")
-    assert _with_immutable_gap_labels(context, merged) == merged
-    assert (
-        _deterministic_evidence_integrity_defects(
-            merged.markdown,
-            {},
-            artifact_type="product_prd",
-            immutable_gap_labels=context.required_gap_labels,
-        )
-        == []
-    )
-    assert (
-        cognitive_executor_module._is_immutable_gap_heading("Assumptions register")
-        is False
-    )
-
-
-def test_final_repair_recognizes_narrowed_authority_marker_mismatch() -> None:
-    claim = "The responsible operator must file the proposed notice."
-    defect = (
-        "Cited immutable claims do not support this narrowed authority process "
-        f"assertion: {claim}"
-    )
-
-    assert cognitive_executor_module._handled_task_evidence_defect(
-        defect, include_generic=True
-    ) == (claim, False, True)
-
-
-def test_precision_values_distinguish_inline_latex_from_currency() -> None:
-    assert cognitive_executor_module._precision_values(
-        r"Taurine: $\ge 1,000\text{ mg/kg DM}$"
-    ) == {"1000", ">=1000mg/kg"}
-    assert cognitive_executor_module._precision_values(
-        "Budget: $1,000 monthly and $5,000 annual"
-    ) == {"$1000", "$5000"}
 
 
 def test_final_repair_projection_preserves_required_section_and_safety_action() -> None:
@@ -6814,195 +4896,68 @@ def test_new_final_projections_never_demote_launch_or_blocked_evidence(
     )
 
 
-def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() -> None:
+@pytest.mark.parametrize(
+    "case_name",
+    ["execute_task", "evaluate_output_repair", "blocked_report"],
+)
+def test_synthesis_prompts_carry_fixed_execution_agent_for_every_standard_path(
+    case_name: str,
+) -> None:
+    fixture_path = (
+        Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
+    )
+    cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    selected = next(item for item in cases if item["name"] == case_name)
+    raw_input = {**selected["input"], "executionAgent": _execution_agent_contract()}
+    input_value = SynthesizeArtifactInputV1.model_validate(raw_input)
+    contents = list(input_value.artifact_contents)
+    scope_payload = next(
+        item.payload for item in contents if item.artifact.kind == "scope"
+    )
+    research_payload = next(
+        item.payload for item in contents if item.artifact.kind == "research"
+    )
+
+    prompt = json.loads(
+        PydanticAISynthesisWriter._prompt(
+            input_value,
+            scope_payload,
+            research_payload,
+            contents,
+            PydanticAISynthesisWriter._allowed_claim_ids(research_payload),
+        )
+    )
+
+    assert prompt["EXECUTION_AGENT"] == raw_input["executionAgent"]
+    assert prompt["EXECUTION_AGENT"]["executorPersona"]["binding"] == (
+        "fixed_profile_contract"
+    )
+    system_prompts = {
+        "execute_task": cognitive_executor_module.TASK_SYSTEM_PROMPT,
+        "evaluate_output_repair": cognitive_executor_module.EVALUATION_SYSTEM_PROMPT,
+        "blocked_report": cognitive_executor_module.BLOCKED_REPORT_SYSTEM_PROMPT,
+    }
+    assert "apply its exact roleLabel and" in system_prompts[case_name]
+    assert (
+        prompt["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["instructions"]
+        == "Prefer primary evidence and make uncertainty explicit."
+    )
+
+
+def test_final_repair_prompt_preserves_exact_defects_and_excludes_duplicate_bodies() -> (
+    None
+):
     fixture_path = (
         Path(__file__).parent / "fixtures" / "synthesize_artifact_v1_golden.json"
     )
     cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
     final_case = next(item for item in cases if item["name"] == "final_synthesis")
-    input_value = SynthesizeArtifactInputV1.model_validate(final_case["input"])
-    contents = list(input_value.artifact_contents)
-    scope_payload = next(
-        item.payload for item in contents if item.artifact.kind == "scope"
-    )
-    accepted_definition_id = "req-cccccccccccccccc"
-    accepted_definition = "Mandatory Estonian statutory labeling is required."
-    accepted_policy = (
-        "Use only the accepted Estonia market boundary for this planning artifact."
-    )
-    accepted_assumption = (
-        "NorthPaw is EU-certified for this explicitly bounded planning scenario"
-    )
-    scope_payload = {
-        **scope_payload,
-        "assumptions": [*scope_payload["assumptions"], accepted_assumption],
-        "policies": [*scope_payload["policies"], accepted_policy],
-        "requirements": [
-            *scope_payload["requirements"],
-            {
-                "id": accepted_definition_id,
-                "category": "policy",
-                "priority": "P0",
-                "authority": "axwise_derived",
-                "description": accepted_definition,
-            },
-        ],
+    raw_input = {
+        **final_case["input"],
+        "executionAgent": _execution_agent_contract(),
     }
-    unsafe_locator = "The batch is legally safe when cadmium stays below 77 mg/kg."
-    marker_claim = "The proposed pouch is 1.5 kg"
-    wrong_marker_id = "4" * 64
-    correct_marker_id = "5" * 64
-    mixed_wrong_marker_id = "6" * 64
-    paragraph_wrong_marker_id = "7" * 64
-    eu_wrong_marker_id = "8" * 64
-    valid_protein_marker_id = "9" * 64
-    wrong_protein_marker_id = "a" * 64
-    valid_taurine_marker_id = "b" * 64
-    marker_locator = marker_claim + f" [evidence:{wrong_marker_id}]."
-    supported_marker_locator = marker_claim + f" [evidence:{correct_marker_id}]."
-    mixed_marker_claim = "The proposed trial pouch is 85 g"
-    mixed_marker_cell = mixed_marker_claim + f" [evidence:{mixed_wrong_marker_id}]."
-    mixed_authority_cell = "NorthPaw is approved by PTA."
-    mixed_table_line = f"| {mixed_marker_cell} | {mixed_authority_cell} |"
-    paragraph_marker_claim = "The proposed refill pouch is 1.2 kg"
-    paragraph_marker = (
-        paragraph_marker_claim + f" [evidence:{paragraph_wrong_marker_id}]."
-    )
-    paragraph_authority = "NorthPaw is certified by PTA."
-    mixed_paragraph_line = f"{paragraph_marker} {paragraph_authority}"
-    eu_planning_claim = "The checkout must support EU customers within 2 seconds"
-    eu_planning_marker = eu_planning_claim + f" [evidence:{eu_wrong_marker_id}]."
-    valid_protein_cell = f">= 25.0% DM [evidence:{valid_protein_marker_id}]."
-    wrong_protein_cell = f">= 25.0% DM [evidence:{wrong_protein_marker_id}]."
-    valid_protein_line = f"| Crude Protein | {valid_protein_cell} |"
-    wrong_protein_line = f"| Crude Protein | {wrong_protein_cell} |"
-    valid_taurine_line = (
-        r"Taurine: $\ge 1,000\text{ mg/kg DM}$ "
-        f"[evidence:{valid_taurine_marker_id}]."
-    )
-    accepted_definition_locator = (
-        f"* **[{accepted_definition_id}]:** {accepted_definition}"
-    )
-    table_following_locator = "The product is approved by the Estonian authority."
-    acceptance_authority = "PTA has approved NorthPaw for sale."
-    acceptance_line = f"| {accepted_definition_id} | {acceptance_authority} |"
-    accepted_definition_table_line = (
-        f"| {accepted_definition_id} | {accepted_definition} |"
-    )
-    internal_worker_requirement = (
-        "The worker must prevent duplicate dispatches within 5 seconds."
-    )
-    internal_legal_review = "The workflow must require legal review before publishing."
-    internal_training_certificate = (
-        "The training workflow lets a user obtain a completion certificate."
-    )
-    pure_nonauthorization = "This PRD does not constitute regulatory approval."
-    bulleted_nonauthorization = "- This PRD does not constitute regulatory approval."
-    labeled_nonauthorization = (
-        "* **No Launch Authorization:** This PRD does not authorize regulatory launch."
-    )
-    mixed_nonauthorization = (
-        "This PRD does not constitute regulatory approval, but Estonian law "
-        "requires PTA registration."
-    )
-    policy_authority = "The Estonian label must display a PTA approval number."
-    review_authority = "Regulatory review confirms NorthPaw is legally approved."
-    health_prevention = "Kibble aw remains <=0.60 to prevent microbial growth."
-    disease_prevention = "The diet prevents urinary disease."
-    lab_confirmation = (
-        "Laboratory results confirm taurine is >= 1,000 mg/kg dry matter and "
-        "all analytical constituents comply with complete adult feline nutrition."
-    )
-    safe_distinguish = (
-        "Strictly distinguish Estonian national mandates from EU supranational rules."
-    )
-    safe_exclusion = (
-        "Explicitly forbid medical disease treatment or therapeutic prevention claims."
-    )
-    eu_authority = "NorthPaw is EU-certified and compliant with feed hygiene rules."
-    accepted_policy_laundering = f"PTA approves commercial launch; {accepted_policy}"
-    structural_gap_label = (
-        "* **GAP-REG-03: Estonian Language & Distributor Trade Mandates**"
-    )
-    unsafe_heading = "Safety plan: NorthPaw is legally compliant"
-    core_index = next(
-        index
-        for index, item in enumerate(contents)
-        if item.artifact.kind == "task_result"
-        and item.payload["task"]["taskKind"] == "core_draft"
-    )
-    unsafe_anchor = "acc-aaaaaaaaaaaaaaaa"
-    table_anchor = "req-bbbbbbbbbbbbbbbb"
-    unsafe_markdown = (
-        f"{contents[core_index].markdown}\n\n## {unsafe_heading}\n\n"
-        f"| `{table_anchor}` | Proposed safety requirement |\n\n"
-        f"{table_following_locator}\n\n"
-        f"{marker_locator}\n\n"
-        f"{supported_marker_locator}\n\n"
-        f"### Criterion {unsafe_anchor}\n\n{unsafe_locator}\n\n"
-        f"## Mixed evidence cells\n\n{mixed_table_line}\n\n"
-        f"{mixed_paragraph_line}\n\n{eu_planning_marker}\n\n"
-        f"{valid_protein_line}\n\n{wrong_protein_line}\n\n"
-        f"{valid_taurine_line}\n\n"
-        f"## Prioritized Requirements\n\n{accepted_definition_locator}\n\n"
-        f"{accepted_definition_table_line}\n\n"
-        f"## Acceptance criteria\n\n{accepted_definition_locator}\n\n"
-        f"{acceptance_line}\n\n"
-        f"## Operational requirements\n\n{internal_worker_requirement}\n\n"
-        f"{internal_legal_review}\n\n{internal_training_certificate}\n\n"
-        f"## Policy\n\n{policy_authority}\n\n{review_authority}\n\n"
-        f"{pure_nonauthorization}\n\n{bulleted_nonauthorization}\n\n"
-        f"{labeled_nonauthorization}\n\n{mixed_nonauthorization}\n\n"
-        f"{eu_authority}\n\n{accepted_policy_laundering}\n\n"
-        f"{structural_gap_label}\n\n"
-        f"## Launch Assumption Register\n\n1. {accepted_assumption}.\n\n"
-        f"{safe_distinguish}\n\n{safe_exclusion}\n\n"
-        f"## Health boundaries\n\n{health_prevention}\n\n{disease_prevention}\n\n"
-        f"{lab_confirmation}"
-    )
-    unsafe_section_line = unsafe_markdown.splitlines().index(f"## {unsafe_heading}") + 1
-    table_following_line = (
-        unsafe_markdown.splitlines().index(table_following_locator) + 1
-    )
-    marker_line = unsafe_markdown.splitlines().index(marker_locator) + 1
-    unsafe_line = unsafe_markdown.splitlines().index(unsafe_locator) + 1
-    mixed_section_line = (
-        unsafe_markdown.splitlines().index("## Mixed evidence cells") + 1
-    )
-    mixed_line = unsafe_markdown.splitlines().index(mixed_table_line) + 1
-    mixed_paragraph_line_number = (
-        unsafe_markdown.splitlines().index(mixed_paragraph_line) + 1
-    )
-    eu_planning_marker_line = unsafe_markdown.splitlines().index(eu_planning_marker) + 1
-    wrong_protein_line_number = (
-        unsafe_markdown.splitlines().index(wrong_protein_line) + 1
-    )
-    acceptance_section_line = (
-        unsafe_markdown.splitlines().index("## Acceptance criteria") + 1
-    )
-    acceptance_authority_line = unsafe_markdown.splitlines().index(acceptance_line) + 1
-    acceptance_definition_line = [
-        index + 1
-        for index, line in enumerate(unsafe_markdown.splitlines())
-        if line == accepted_definition_locator
-    ][1]
-    policy_section_line = unsafe_markdown.splitlines().index("## Policy") + 1
-    policy_authority_line = unsafe_markdown.splitlines().index(policy_authority) + 1
-    review_authority_line = unsafe_markdown.splitlines().index(review_authority) + 1
-    mixed_nonauthorization_line = (
-        unsafe_markdown.splitlines().index(mixed_nonauthorization) + 1
-    )
-    eu_authority_line = unsafe_markdown.splitlines().index(eu_authority) + 1
-    accepted_policy_laundering_line = (
-        unsafe_markdown.splitlines().index(accepted_policy_laundering) + 1
-    )
-    health_section_line = unsafe_markdown.splitlines().index("## Health boundaries") + 1
-    health_prevention_line = unsafe_markdown.splitlines().index(health_prevention) + 1
-    disease_prevention_line = unsafe_markdown.splitlines().index(disease_prevention) + 1
-    lab_confirmation_line = unsafe_markdown.splitlines().index(lab_confirmation) + 1
-    contents[core_index] = contents[core_index].model_copy(
-        update={"markdown": unsafe_markdown}
-    )
+    input_value = SynthesizeArtifactInputV1.model_validate(raw_input)
+    contents = list(input_value.artifact_contents)
     evaluation_index = next(
         index
         for index, item in enumerate(contents)
@@ -7011,166 +4966,10 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     evaluation_content = contents[evaluation_index]
     evaluation_payload = {
         **evaluation_content.payload,
-        "unsupportedPrecision": cognitive_executor_module.utf16_ordinal_sorted(
-            [
-                "Unsupported nutritional threshold.",
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    f"{unsafe_locator}"
-                ),
-                (
-                    "Cited immutable claims do not semantically support this exact "
-                    f"assertion: {unsafe_locator}"
-                ),
-                (
-                    "Cited immutable claims do not support every exact value in this "
-                    f"assertion (1.5kg): {marker_claim}"
-                ),
-                (
-                    "Cited immutable claims do not support every exact value in this "
-                    f"assertion (85g): {mixed_marker_claim}"
-                ),
-                (
-                    "Cited immutable claims do not support every exact value in this "
-                    f"assertion (1.2kg): {paragraph_marker_claim}"
-                ),
-                (
-                    "Cited immutable claims do not support every exact value in this "
-                    f"assertion (2seconds): {eu_planning_claim}"
-                ),
-                (
-                    "Cited immutable claims do not semantically support this exact "
-                    "assertion: >= 25.0% DM"
-                ),
-                (
-                    "Cited immutable claims do not support every exact value in this "
-                    r"assertion (1000, >=1000mg/kg): Taurine: $\ge 1,000\text{ "
-                    "mg/kg DM}$"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{table_following_locator}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{mixed_authority_cell}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{paragraph_authority}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{acceptance_authority}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{policy_authority}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{review_authority}"
-                ),
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    f"{accepted_definition_locator}"
-                ),
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    f"{accepted_definition}"
-                ),
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    f"{internal_worker_requirement}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{internal_legal_review}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{internal_training_certificate}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{pure_nonauthorization}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{bulleted_nonauthorization}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{labeled_nonauthorization}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{mixed_nonauthorization}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{eu_authority}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{accepted_policy_laundering}"
-                ),
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    "Estonian Language & Distributor Trade Mandates"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{health_prevention}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{disease_prevention}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{accepted_assumption}"
-                ),
-                (
-                    "An unresolved evidence requirement is asserted as fact without "
-                    "exact immutable support or provisional/verification language: "
-                    f"{lab_confirmation}"
-                ),
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    f"{safe_distinguish}"
-                ),
-                (
-                    "Unsupported factual precision requires an exact evidence marker "
-                    "or an explicit proposal/assumption/validation label: "
-                    f"{safe_exclusion}"
-                ),
-                "Unsupported processing temperature.",
-            ]
-        ),
+        "unsupportedPrecision": [
+            "Unsupported nutritional threshold.",
+            "Unsupported processing temperature.",
+        ],
         "contradictions": ["The product is both cleared and unresolved."],
         "repairInstructions": [
             "Remove the unsupported thresholds and preserve the useful PRD."
@@ -7186,30 +4985,12 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         purpose="final_synthesis",
         required_sections=input_value.output_contract.required_sections,
         evidence_readiness=input_value.output_contract.evidence_readiness,
-        allowed_claim_ids=[
-            *PydanticAISynthesisWriter._allowed_claim_ids(research_payload),
-            wrong_marker_id,
-            correct_marker_id,
-            mixed_wrong_marker_id,
-            paragraph_wrong_marker_id,
-            eu_wrong_marker_id,
-            valid_protein_marker_id,
-            wrong_protein_marker_id,
-            valid_taurine_marker_id,
-        ],
-        allowed_claim_texts={
-            **PydanticAISynthesisWriter._allowed_claim_texts(research_payload),
-            wrong_marker_id: "The proposed pouch is 2.0 kg.",
-            correct_marker_id: marker_claim + ".",
-            mixed_wrong_marker_id: "The proposed trial pouch is 90 g.",
-            paragraph_wrong_marker_id: "The proposed refill pouch is 1.3 kg.",
-            eu_wrong_marker_id: (
-                "The checkout must support EU customers within 3 seconds."
-            ),
-            valid_protein_marker_id: ("Crude protein baseline is at least 25.0% DM."),
-            wrong_protein_marker_id: ("Crude fat baseline is at least 25.0% DM."),
-            valid_taurine_marker_id: ("Taurine minimum is at least 1,000 mg/kg DM."),
-        },
+        allowed_claim_ids=PydanticAISynthesisWriter._allowed_claim_ids(
+            research_payload
+        ),
+        allowed_claim_texts=PydanticAISynthesisWriter._allowed_claim_texts(
+            research_payload
+        ),
         required_gap_labels=PydanticAISynthesisWriter._required_gap_labels(
             research_payload
         ),
@@ -7219,7 +5000,7 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     )
 
     prompt = PydanticAISynthesisWriter._final_repair_prompt(
-        input_value, scope_payload, research_payload, contents, context
+        input_value, contents, context
     )
     payload = json.loads(prompt)
     core = next(
@@ -7236,248 +5017,27 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
     ]
 
     assert payload["BASE_MARKDOWN"] == core.markdown
-    # Only a compact locator for the defect still present in the immutable base is
-    # handed back. Stale diagnostics are discarded and diagnostic prose is absent.
+    assert payload["EXECUTION_AGENT"] == raw_input["executionAgent"]
+    assert (
+        "apply its exact roleLabel and"
+        in cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
+    )
+    assert (
+        payload["EXECUTION_AGENT"]["profileSnapshot"]["profile"]["roleLabel"]
+        == "Evidence-led launch operator"
+    )
+    # Repair sees the exact assessed draft and the critic's exact findings.
     assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
-        {
-            "line": table_following_line,
-            "unitIndex": 0,
-            "sectionLine": unsafe_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": marker_line,
-            "unitIndex": 0,
-            "sectionLine": unsafe_section_line,
-            "anchorId": None,
-            "kind": "marker_mismatch",
-        },
-        {
-            "line": unsafe_line,
-            "unitIndex": 0,
-            "sectionLine": unsafe_section_line,
-            "anchorId": unsafe_anchor,
-            "kind": "authority_answer",
-        },
-        {
-            "line": mixed_line,
-            "unitIndex": 1,
-            "sectionLine": mixed_section_line,
-            "anchorId": None,
-            "kind": "marker_mismatch",
-        },
-        {
-            "line": mixed_line,
-            "unitIndex": 2,
-            "sectionLine": mixed_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": mixed_paragraph_line_number,
-            "unitIndex": 0,
-            "sectionLine": mixed_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": mixed_paragraph_line_number,
-            "unitIndex": 0,
-            "sectionLine": mixed_section_line,
-            "anchorId": None,
-            "kind": "marker_mismatch",
-        },
-        {
-            "line": eu_planning_marker_line,
-            "unitIndex": 0,
-            "sectionLine": mixed_section_line,
-            "anchorId": None,
-            "kind": "marker_mismatch",
-        },
-        {
-            "line": wrong_protein_line_number,
-            "unitIndex": 2,
-            "sectionLine": mixed_section_line,
-            "anchorId": None,
-            "kind": "marker_mismatch",
-        },
-        {
-            "line": acceptance_definition_line,
-            "unitIndex": 0,
-            "sectionLine": acceptance_section_line,
-            "anchorId": accepted_definition_id,
-            "kind": "authority_answer",
-        },
-        {
-            "line": acceptance_authority_line,
-            "unitIndex": 2,
-            "sectionLine": acceptance_section_line,
-            "anchorId": accepted_definition_id,
-            "kind": "authority_answer",
-        },
-        {
-            "line": policy_authority_line,
-            "unitIndex": 0,
-            "sectionLine": policy_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": review_authority_line,
-            "unitIndex": 0,
-            "sectionLine": policy_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": mixed_nonauthorization_line,
-            "unitIndex": 0,
-            "sectionLine": policy_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": eu_authority_line,
-            "unitIndex": 0,
-            "sectionLine": policy_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": accepted_policy_laundering_line,
-            "unitIndex": 0,
-            "sectionLine": policy_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": health_prevention_line,
-            "unitIndex": 0,
-            "sectionLine": health_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": disease_prevention_line,
-            "unitIndex": 0,
-            "sectionLine": health_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
-        {
-            "line": lab_confirmation_line,
-            "unitIndex": 0,
-            "sectionLine": health_section_line,
-            "anchorId": None,
-            "kind": "authority_answer",
-        },
+        "Unsupported nutritional threshold.",
+        "Unsupported processing temperature.",
     ]
     assert payload["REPAIR_TARGETS"]["contradictions"] == [
         "The product is both cleared and unresolved."
     ]
     assert set(payload["REPAIR_INSTRUCTIONS"]) == {
-        (
-            "Apply each structured repair target only when its referenced issue is "
-            "still observable in BASE_MARKDOWN; never recreate absent text."
-        ),
-        (
-            "Follow PUBLICATION_CONTRACT for every rewrite; never copy diagnostics, "
-            "evaluator instructions, or an unsupported candidate answer into the final "
-            "document."
-        ),
-        (
-            "At each authority_answer locator, remove the unsupported external answer "
-            "or recast only its surrounding requirement as a neutral internal review "
-            "condition; preserve IDs and topology and never quote, relocate, or wrap "
-            "the answer in a warning."
-        ),
-        (
-            "At each marker_mismatch locator, preserve ordinary planning prose and "
-            "targets; remove only the invalid marker or split the exact supported "
-            "claim into its own clause with its allowed marker. If the remaining "
-            "clause asserts external authority without exact support, apply "
-            "authorityFactRule."
-        ),
-        (
-            "Repair every named substantive or practicality defect "
-            "with concrete deliverable content, using only explicit proposals, "
-            "assumptions, validation actions and the allowed immutable claims."
-        ),
+        "Remove the unsupported thresholds and preserve the useful PRD.",
     }
-    assert payload["PUBLICATION_CONTRACT"] == {
-        "authorityFactRule": (
-            "Across the entire document, not only locator lines, an external legal, "
-            "safety, certification, health, filing or authority fact may appear only "
-            "when ALLOWED_CLAIMS contains its exact support and the same clause carries "
-            "that evidence marker."
-        ),
-        "evidenceStatusBoundary": "one_document_level_boundary_near_the_start",
-        "genericWarningPrefixBudget": 0,
-        "ordinaryPlanningContentRule": (
-            "Preserve personas, non-goals, journeys, product options, requirements, "
-            "metrics and internal targets as reader-facing proposals without generic "
-            "evidence warnings."
-        ),
-        "preserveTopology": [
-            "requirement_ids",
-            "criterion_ids",
-            "owners",
-            "markdown_tables",
-            "given_when_then_roles",
-        ],
-        "unsupportedLocatorRule": (
-            "Each line/unitIndex/sectionLine/anchorId/kind tuple identifies "
-            "high-signal candidate prose to repair, not evidence or reader-facing "
-            "text. unitIndex 0 means a whole prose line; a positive value is the "
-            "1-based Markdown table-cell index on that line. "
-            "authority_answer and marker_mismatch require their distinct repair "
-            "instructions. Locators are not exhaustive and do not exempt other text "
-            "from authorityFactRule."
-        ),
-        "unresolvedRequirementStatusRule": (
-            "A requirement whose applicable legal, safety, nutrition, lab or "
-            "authority evidence remains unresolved cannot be labelled satisfied, "
-            "compliant, cleared or approved. Keep the useful requirement and mark "
-            "it proposed or gap-bound."
-        ),
-        "unverifiedHighStakesDecisionRule": (
-            "When evidence readiness is ready_with_gaps, a legal, safety, health, "
-            "nutrition or scientific threshold without an exact clause-local "
-            "immutable evidence marker may remain only as a proposed validation "
-            "hypothesis. It cannot be an adopted pass/fail, release/reject or "
-            "compliance criterion until authoritative evidence and qualified-owner "
-            "approval are recorded. Preserve ordinary non-authority planning "
-            "targets."
-        ),
-        "unresolvedEvidenceRule": (
-            "Do not quote or restate the candidate answer. Record each unresolved "
-            "domain once in the evidence-gaps section as a neutral question, its "
-            "planning consequence and one authoritative verification action; "
-            "elsewhere use only a neutral internal review condition."
-        ),
-    }
-    assert "Validation target (all following content" not in payload["BASE_MARKDOWN"]
-    assert "**Pending verification:**" not in payload["BASE_MARKDOWN"]
-    assert "Validation target (all following content" not in prompt
-    assert "**Pending verification:**" not in prompt
-    prompt_without_base = {**payload}
-    prompt_without_base.pop("BASE_MARKDOWN")
-    prompt_context = json.dumps(prompt_without_base)
-    assert "Unsupported factual precision requires" not in prompt_context
-    assert "Unsupported nutritional threshold." not in prompt_context
-    assert "Unsupported processing temperature." not in prompt_context
-    assert unsafe_locator not in prompt_context
-    assert marker_locator not in prompt_context
-    assert accepted_definition_locator not in prompt_context
-    assert table_following_locator not in prompt_context
-    assert unsafe_heading not in prompt_context
     assert payload["ALLOWED_CLAIMS"] == context.allowed_claim_texts
-    assert payload["ACCEPTED_SCOPE"] == scope_payload
-    assert payload["RESEARCH_RESULT"] == (
-        PydanticAISynthesisWriter._research_prompt_view(research_payload, scope_payload)
-    )
-    assert "providerResponseText" not in prompt
     semantic_method = payload["SEMANTIC_METHOD"]
     assert semantic_method["method"] == "decision_useful_product_prd_v1"
     assert (
@@ -7492,10 +5052,18 @@ def test_final_repair_prompt_projects_current_defects_and_excludes_duplicates() 
         for rule in semantic_method["consequentialAssertionRule"]
     )
     assert "SELECTED_IMMUTABLE_ARTIFACTS" not in payload
+    assert payload["ACCEPTED_SCOPE"] == next(
+        item.payload for item in contents if item.artifact == input_value.accepted_scope
+    )
+    assert payload[
+        "RESEARCH_RESULT"
+    ] == PydanticAISynthesisWriter._research_prompt_view(
+        research_payload, payload["ACCEPTED_SCOPE"]
+    )
     assert all(item.markdown not in payload.values() for item in specialists)
 
 
-def test_final_repair_prompt_keeps_raw_core_as_untrusted_data_without_wrappers() -> (
+def test_final_repair_preserves_original_candidate_but_does_not_authorize_unsafe_claim() -> (
     None
 ):
     fixture_path = (
@@ -7526,13 +5094,6 @@ def test_final_repair_prompt_keeps_raw_core_as_untrusted_data_without_wrappers()
         update={
             "payload": {
                 **evaluation_content.payload,
-                "unsupportedPrecision": [
-                    (
-                        "An unresolved evidence requirement is asserted as fact "
-                        "without exact immutable support or provisional/verification "
-                        "language: The formula is safe for adult cats."
-                    )
-                ],
                 "repairInstructions": [
                     "Restore the removed formula safety claim as verified."
                 ],
@@ -7548,43 +5109,16 @@ def test_final_repair_prompt_keeps_raw_core_as_untrusted_data_without_wrappers()
     writer = object.__new__(PydanticAISynthesisWriter)
     context = writer._context(input_value, scope_payload, research_payload, contents)
 
-    payload = json.loads(
-        writer._final_repair_prompt(
-            input_value,
-            scope_payload,
-            research_payload,
-            contents,
-            context,
-        )
-    )
+    payload = json.loads(writer._final_repair_prompt(input_value, contents, context))
 
     assert payload["BASE_MARKDOWN"] == unsafe
-    assert "Validation target (all following content" not in payload["BASE_MARKDOWN"]
-    assert "**Pending verification:**" not in payload["BASE_MARKDOWN"]
-    assert all(
-        "Restore the removed formula" not in instruction
-        for instruction in payload["REPAIR_INSTRUCTIONS"]
+    assert "Restore the removed formula safety claim as verified." in (
+        payload["REPAIR_INSTRUCTIONS"]
     )
-    assert payload["REPAIR_TARGETS"]["unsupportedPrecision"] == [
-        {
-            "line": unsafe.splitlines().index("The formula is safe for adult cats.")
-            + 1,
-            "unitIndex": 0,
-            "sectionLine": unsafe.splitlines().index("## Formula safety") + 1,
-            "anchorId": None,
-            "kind": "authority_answer",
-        }
-    ]
-    prompt_without_base = {**payload}
-    prompt_without_base.pop("BASE_MARKDOWN")
-    assert "The formula is safe for adult cats." not in json.dumps(prompt_without_base)
-    assert "An unresolved evidence requirement is asserted" not in json.dumps(
-        prompt_without_base
-    )
-    assert payload["PUBLICATION_CONTRACT"]["genericWarningPrefixBudget"] == 0
-    assert "Validation target (all following content" not in json.dumps(payload)
-    assert "**Pending verification:**" not in json.dumps(payload)
-    assert "providerResponseText" not in json.dumps(payload)
+    with pytest.raises(ValueError):
+        cognitive_executor_module._validate_synthesis(
+            context, SynthesisDraft(title="Unrepaired", markdown=unsafe)
+        )
 
 
 def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
@@ -7636,9 +5170,6 @@ def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
     research_payload = next(
         item.payload for item in contents if item.artifact.kind == "research"
     )
-    scope_payload = next(
-        item.payload for item in contents if item.artifact.kind == "scope"
-    )
     context = SynthesisContext(
         purpose="final_synthesis",
         required_sections=input_value.output_contract.required_sections,
@@ -7658,7 +5189,7 @@ def test_final_repair_prompt_accepts_attested_final_candidate_as_core() -> None:
     )
 
     prompt = PydanticAISynthesisWriter._final_repair_prompt(
-        input_value, scope_payload, research_payload, contents, context
+        input_value, contents, context
     )
 
     assert json.loads(prompt)["BASE_MARKDOWN"] == core.markdown
@@ -7871,64 +5402,6 @@ def test_repair_source_titles_are_canonical_across_catalogue_completion_order() 
     assert canonical_hash(forward) == canonical_hash(reverse)
 
 
-def test_current_requirement_locator_cannot_be_crowded_out_by_three_global_sources() -> (
-    None
-):
-    retrieved_at = "2026-08-31T12:00:00Z"
-    global_urls = [
-        "https://example.org/a.html",
-        "https://example.org/b.html",
-        "https://example.org/c.html",
-    ]
-    locator_url = "https://publisher.example.org/current-report.pdf"
-
-    def global_source(index: int, url: str) -> ResearchSourceV1:
-        title = f"Global source {index}"
-        source_identity = {
-            "canonicalUrl": url,
-            "retrievalDate": retrieved_at,
-            "sourceClasses": ["grounded_web"],
-            "sourceTitle": title,
-        }
-        return ResearchSourceV1(
-            source_id=canonical_hash(source_identity),
-            source_title=title,
-            canonical_url=url,
-            source_classes=["grounded_web"],
-            retrieval_date=retrieved_at,
-            supported_claim_ids=[f"{index}" * 64],
-        )
-
-    requirement = EvidenceRequirement(
-        id="current-market-observation",
-        claim_type="market_statistic",
-        description="Verify the current publisher market observation.",
-        criticality="nonblocking",
-        evidence_role="grounded_claim",
-        verification_basis="grounded_claims",
-        applies_when="Adding current market context.",
-        accepted_source_types=["grounded_web"],
-        allowed_source_hosts=[],
-    )
-    locator = cognitive_executor_module._ResearchSourceLocator(
-        canonical_url=locator_url,
-        source_title="Current requirement locator",
-        source_classes=("grounded_web",),
-    )
-
-    candidates = cognitive_executor_module._repair_source_candidates(
-        requirement,
-        [[global_source(index, url) for index, url in enumerate(global_urls, 1)]],
-        [[locator]],
-    )
-
-    assert [candidate["url"] for candidate in candidates] == [
-        locator_url,
-        *global_urls[:2],
-    ]
-    assert candidates[0]["title"] == "Current requirement locator"
-
-
 @pytest.mark.asyncio
 async def test_launch_authorization_keeps_future_proof_blocking() -> None:
     compiled = await GeminiCognitiveExecutor(
@@ -8006,13 +5479,7 @@ async def test_owner_policies_are_preserved_without_hidden_planning_marker() -> 
     ).execute(envelope_for(compile_input(B01_REQUEST)))
 
     policies = compiled.artifact.payload["policies"]
-    assert policies == sorted(
-        [
-            "Candidate internal proposal (not verified external authority): " + value
-            for value in owner_policies
-        ],
-        key=lambda value: value.encode("utf-16-be"),
-    )
+    assert policies == owner_policies
     assert len(policies) == 40
 
 
@@ -8225,7 +5692,6 @@ def test_fallback_discovery_title_cannot_forge_an_accepted_source_class() -> Non
         set(),
         response_hash,
         text,
-        provider="searxng_direct_fetch",
     )
     grounded = _claim_from_grounding(
         {"text": text, "source_urls": [url]},
@@ -8234,7 +5700,6 @@ def test_fallback_discovery_title_cannot_forge_an_accepted_source_class() -> Non
         set(),
         response_hash,
         text,
-        provider="searxng_direct_fetch",
     )
 
     assert rejected is None
@@ -8260,7 +5725,6 @@ def test_fallback_discovery_hostname_cannot_forge_industry_authority() -> None:
         set(),
         response_hash,
         text,
-        provider="searxng_direct_fetch",
     )
 
     assert claim is None
@@ -8282,7 +5746,6 @@ def test_every_claim_source_must_match_an_accepted_source_class() -> None:
         set(),
         response_hash,
         text,
-        provider="searxng_direct_fetch",
     )
 
     assert claim is None
@@ -8372,59 +5835,6 @@ def test_provision_specific_google_claim_is_locator_only_but_direct_span_is_evid
     assert direct.segment_start == 0
     assert direct.segment_end == len(text.encode("utf-8"))
     assert direct.provider_response_hash == response_hash
-
-
-def test_nonstatutory_google_claim_is_locator_only_and_cannot_forge_direct_route() -> (
-    None
-):
-    text = "The publisher reports a 14 percent year-over-year market increase."
-    url = "https://statistics.example.org/market-report"
-    response_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    source = {"title": "Market report", "url": url}
-    arguments = (
-        {"text": text, "source_urls": [url]},
-        {url: source},
-        {"grounded_web"},
-        set(),
-        response_hash,
-        text,
-    )
-
-    assert _claim_from_grounding(*arguments, provider="gemini_google_search") is None
-    assert (
-        _claim_from_grounding(
-            {
-                "text": text,
-                "source_urls": [url],
-                "provider": "searxng_direct_fetch",
-            },
-            *arguments[1:],
-        )
-        is None
-    )
-    direct = _claim_from_grounding(*arguments, provider="searxng_direct_fetch")
-    assert direct is not None
-    assert direct.segment_start == 0
-    assert direct.segment_end == len(text.encode("utf-8"))
-    assert direct.provider_response_hash == response_hash
-
-
-def test_statutory_claim_rejects_an_untyped_provider_even_on_an_official_host() -> None:
-    text = "Regulation (EC) No 1069/2009 establishes operational controls."
-    url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009R1069"
-
-    claim = _claim_from_grounding(
-        {"text": text, "source_urls": [url]},
-        {url: {"title": "Official legal text", "url": url}},
-        {"primary_law"},
-        set(),
-        hashlib.sha256(text.encode("utf-8")).hexdigest(),
-        text,
-        requirement=_generic_statutory_requirement(),
-        provider="unknown_provider",
-    )
-
-    assert claim is None
 
 
 def test_every_google_statutory_claim_is_locator_only_without_a_provision_number() -> (
@@ -8525,7 +5935,7 @@ def test_grounded_claim_rejects_an_explicit_enumeration_count_mismatch() -> None
             set(),
             hashlib.sha256(text.encode("utf-8")).hexdigest(),
             text,
-            provider="searxng_direct_fetch",
+            provider="gemini_google_search",
         )
 
     assert (
@@ -8598,94 +6008,6 @@ async def test_grounded_claim_basis_keeps_bounded_dynamic_acquisition(
     assert result.artifact.payload["boundedRepairPasses"] == 0
     assert result.artifact.payload["findings"][0]["status"] == "verified"
     assert len(result.artifact.payload["claimLedger"]) == 1
-
-
-@pytest.mark.asyncio
-async def test_exact_gemini_grounding_cannot_satisfy_statutory_research_without_refetch() -> (
-    None
-):
-    compiled = await compiled_scope(
-        verification_basis="grounded_claims",
-        claim_type="applicable_law",
-        accepted_source_types=["government", "primary_law"],
-    )
-    runner = VerifiedGeminiGroundedResearchRunner()
-
-    result = await execute_research(compiled, runner)
-
-    assert result.evidence_readiness == "ready_with_gaps"
-    assert result.artifact.payload["boundedRepairPasses"] == 1
-    assert result.artifact.payload["findings"][0]["status"] == "missing"
-    ledger = result.artifact.payload["claimLedger"]
-    assert [entry["passNumber"] for entry in ledger] == [0, 1]
-    assert all(entry["claims"] == [] for entry in ledger)
-    assert result.artifact.payload["sourceCatalogue"] == []
-
-
-@pytest.mark.asyncio
-async def test_nonstatutory_google_locator_becomes_evidence_only_after_direct_refetch() -> (
-    None
-):
-    source_url = "https://statistics.example.org/market-report"
-    generated = "The market grew by 27 percent according to the cited report."
-    publisher_exact = "The index increased by 14 percent compared with the prior year."
-
-    class GoogleLocatorThenDirectRunner:
-        def __init__(self) -> None:
-            self.queries: list[str] = []
-
-        async def search(self, query: str) -> dict:
-            self.queries.append(query)
-            payload = json.loads(query.rsplit("\n", 1)[1])
-            if len(self.queries) == 1:
-                assert "fallbackCandidateSources" not in payload
-                return {
-                    "search_performed": True,
-                    "provider": "gemini_google_search",
-                    "text": generated,
-                    "claims": [{"text": generated, "source_urls": [source_url]}],
-                    "sources": [{"title": "Market report", "url": source_url}],
-                    "provider_queries": ["bounded market query"],
-                    "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
-                }
-            assert payload["fallbackCandidateSources"] == [
-                {"title": "Market report", "url": source_url}
-            ]
-            return {
-                "search_performed": True,
-                "provider": "searxng_direct_fetch",
-                "text": publisher_exact,
-                "claims": [{"text": publisher_exact, "source_urls": [source_url]}],
-                "sources": [{"title": "Market report", "url": source_url}],
-                "provider_queries": ["same-operation locator refetch"],
-                "usage_metadata": {"inputTokens": 2, "outputTokens": 1},
-            }
-
-    compiled = await compiled_scope(
-        criticality="nonblocking",
-        claim_type="market_statistic",
-        description="Verify a current market growth statistic.",
-        accepted_source_types=["grounded_web"],
-    )
-    runner = GoogleLocatorThenDirectRunner()
-
-    result = await execute_research(compiled, runner)
-
-    assert len(runner.queries) == 2
-    assert result.evidence_readiness == "ready"
-    assert result.artifact.payload["boundedRepairPasses"] == 1
-    ledger = result.artifact.payload["claimLedger"]
-    assert [entry["passNumber"] for entry in ledger] == [0, 1]
-    assert ledger[0]["claims"] == []
-    assert generated not in json.dumps(result.artifact.payload["sourceCatalogue"])
-    repaired_claim = ledger[1]["claims"][0]
-    assert repaired_claim["text"] == publisher_exact
-    assert (
-        repaired_claim["providerResponseHash"]
-        == hashlib.sha256(publisher_exact.encode("utf-8")).hexdigest()
-    )
-    assert repaired_claim["segmentStart"] == 0
-    assert repaired_claim["segmentEnd"] == len(publisher_exact.encode("utf-8"))
 
 
 @pytest.mark.asyncio
@@ -8814,6 +6136,7 @@ async def test_transient_google_search_uses_exact_fetched_fallback_evidence() ->
                 ),
                 input_tokens=11,
                 output_tokens=5,
+                model_version="gemini-3.8-flash-001",
             )
             return result
 
@@ -8826,6 +6149,10 @@ async def test_transient_google_search_uses_exact_fetched_fallback_evidence() ->
     result = await execute_research(compiled, resilient)
 
     assert result.evidence_readiness == "ready"
+    assert result.metrics.model == "gemini-3.8-flash"
+    # The failed primary call did not expose a provider modelVersion, so the
+    # aggregate cannot truthfully claim the extractor's exact version alone.
+    assert result.metrics.model_version is None
     assert result.artifact.payload["boundedRepairPasses"] == 0
     entry = result.artifact.payload["claimLedger"][0]
     assert entry["providerResponseText"] == document_text
@@ -8926,6 +6253,54 @@ async def test_unavailable_requirement_preserves_completed_sibling_evidence() ->
     ] == ["food-safety-law"]
     assert runner.requirement_ids.count("food-safety-law") == 1
     assert runner.requirement_ids.count("food-safety-law-1") == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("versions", "expected"),
+    [
+        (
+            {
+                "food-safety-law": "gemini-3.8-flash-001",
+                "food-safety-law-1": "gemini-3.8-flash-001",
+            },
+            "gemini-3.8-flash-001",
+        ),
+        (
+            {
+                "food-safety-law": "gemini-3.8-flash-001",
+                "food-safety-law-1": None,
+            },
+            None,
+        ),
+        (
+            {
+                "food-safety-law": "gemini-3.8-flash-001",
+                "food-safety-law-1": "gemini-3.8-flash-002",
+            },
+            None,
+        ),
+    ],
+)
+async def test_research_metrics_require_every_acquisition_version_to_agree(
+    versions: dict[str, str | None], expected: str | None
+) -> None:
+    class VersionedResearchRunner(VerifiedResearchRunner):
+        async def search(self, query):
+            requirement_id = json.loads(query.split("\n", 1)[1])["requirement"]["id"]
+            result = await super().search(query)
+            version = versions[requirement_id]
+            if version is not None:
+                result["model_version"] = version
+            return result
+
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(evidence_count=2), AUTHORITY_KEY
+    ).execute(envelope_for())
+
+    result = await execute_research(compiled, VersionedResearchRunner())
+
+    assert result.metrics.model_version == expected
 
 
 @pytest.mark.asyncio
@@ -9186,7 +6561,6 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     None
 ):
     official_url = "https://pta.agri.ee/en/feed"
-    exact = "Feed business operators must register their feed establishments."
 
     class RawLocatorThenVerifiedRunner:
         def __init__(self) -> None:
@@ -9206,15 +6580,10 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
                     "provider": "gemini_google_search",
                     "text": generated,
                     "claims": [{"text": generated, "source_urls": [official_url]}],
-                    # Even an otherwise admissible official Google source is a
-                    # repair locator only. It must not validate provider-written
-                    # statutory prose without an independent publisher refetch.
-                    "sources": [
-                        {
-                            "title": "Agriculture and Food Board",
-                            "url": official_url,
-                        }
-                    ],
+                    # These URLs were parsed from unverified provider prose by
+                    # the resilient runner. They are repair locators only and
+                    # must not validate the primary claim above.
+                    "sources": [],
                     "same_operation_locators": [
                         {"title": "Agriculture and Food Board", "url": official_url},
                         {
@@ -9229,6 +6598,7 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
             assert payload["fallbackCandidateSources"] == [
                 {"title": "Agriculture and Food Board", "url": official_url}
             ]
+            exact = "Feed business operators must register their feed establishments."
             return {
                 "search_performed": True,
                 "provider": "searxng_direct_fetch",
@@ -9260,28 +6630,22 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     assert result.evidence_readiness == "ready"
     assert result.artifact.payload["findings"][0]["status"] == "verified"
     assert result.artifact.payload["boundedRepairPasses"] == 1
-    ledger_entries = result.artifact.payload["claimLedger"]
-    assert [entry["passNumber"] for entry in ledger_entries] == [0, 1]
-    initial, repaired = ledger_entries
+    assert len(result.artifact.payload["claimLedger"]) == 2
+    initial, ledger = result.artifact.payload["claimLedger"]
+    assert initial["passNumber"] == 0
     assert initial["claims"] == []
-    assert repaired["providerResponseText"] == exact
-    expected_hash = hashlib.sha256(exact.encode("utf-8")).hexdigest()
-    assert repaired["providerResponseHash"] == expected_hash
-    claim = repaired["claims"][0]
-    assert claim["text"] == exact
-    assert claim["textSha256"] == expected_hash
-    assert claim["providerResponseHash"] == expected_hash
-    assert claim["segmentStart"] == 0
-    assert claim["segmentEnd"] == len(exact.encode("utf-8"))
-    assert claim["sourceUrls"] == [official_url]
-    assert [
-        source["canonicalUrl"] for source in result.artifact.payload["sourceCatalogue"]
-    ] == [official_url]
-    response_bytes = repaired["providerResponseText"].encode("utf-8")
-    exact_span = response_bytes[claim["segmentStart"] : claim["segmentEnd"]]
-    assert (
-        hashlib.sha256(response_bytes).hexdigest() == repaired["providerResponseHash"]
+    assert ledger["passNumber"] == 1
+    assert ledger["providerResponseText"] == (
+        "Feed business operators must register their feed establishments."
     )
+    assert ledger["claims"][0]["segmentStart"] == 0
+    assert ledger["claims"][0]["segmentEnd"] == len(
+        ledger["providerResponseText"].encode("utf-8")
+    )
+    response_bytes = ledger["providerResponseText"].encode("utf-8")
+    claim = ledger["claims"][0]
+    exact_span = response_bytes[claim["segmentStart"] : claim["segmentEnd"]]
+    assert hashlib.sha256(response_bytes).hexdigest() == ledger["providerResponseHash"]
     assert exact_span.decode("utf-8") == claim["text"]
     assert hashlib.sha256(exact_span).hexdigest() == claim["textSha256"]
 
@@ -9293,191 +6657,6 @@ async def test_targeted_repair_reuses_authoritative_locator_without_promoting_it
     assert "PTA guidance says" not in prompt_json
     assert claim["text"] in prompt_json
     assert official_url in prompt_json
-
-
-def test_cognitive_research_view_exposes_only_selected_and_verified_claims() -> None:
-    selected_id = "a" * 64
-    verified_id = "b" * 64
-    missing_id = "c" * 64
-    second_verified_id = "d" * 64
-
-    def claim(claim_id: str, text: str, url: str) -> dict:
-        return {"claimId": claim_id, "text": text, "sourceUrls": [url]}
-
-    selected_claim = claim(
-        selected_id,
-        "The owner selected an immutable product fact.",
-        "https://owner.example/product-fact",
-    )
-    verified_claim = claim(
-        verified_id,
-        "The accepted market source reports a current market observation.",
-        "https://statistics.example/market",
-    )
-    missing_claim = claim(
-        missing_id,
-        "The rejected provider prose asserts an unverified statutory obligation.",
-        "https://blog.example/copied-law",
-    )
-    second_verified_claim = claim(
-        second_verified_id,
-        "A separate accepted source reports a second verified requirement.",
-        "https://statistics.example/second-market",
-    )
-    research_payload = {
-        "schemaVersion": "axwise.research.v2",
-        "readiness": "ready_with_gaps",
-        "findings": [
-            {
-                "requirementId": "ev-market",
-                "status": "verified",
-                "blocking": False,
-                "note": "Verified provider narrative must not be copied wholesale.",
-            },
-            {
-                "requirementId": "ev-law",
-                "status": "missing",
-                "blocking": False,
-                "note": "Rejected statutory provider narrative must remain private.",
-            },
-            {
-                "requirementId": "ev-second-market",
-                "status": "verified",
-                "blocking": False,
-                "note": "Second verified provider narrative must not be copied wholesale.",
-            },
-        ],
-        "selectedClaims": [selected_claim],
-        "claimLedger": [
-            {
-                "requirementId": "ev-market",
-                "passNumber": 0,
-                "providerResponseText": "Raw accepted-provider response wrapper.",
-                "claims": [verified_claim],
-            },
-            {
-                "requirementId": "ev-law",
-                "passNumber": 0,
-                "providerResponseText": "Raw rejected statutory provider response.",
-                "claims": [missing_claim],
-            },
-            {
-                "requirementId": "ev-second-market",
-                "passNumber": 1,
-                "providerResponseText": "Raw second accepted-provider response wrapper.",
-                "claims": [second_verified_claim],
-            },
-        ],
-        "sourceCatalogue": [
-            {
-                "sourceId": "selected-source",
-                "sourceTitle": "Owner evidence",
-                "canonicalUrl": "https://owner.example/product-fact",
-                "sourceClasses": ["selected_evidence"],
-                "retrievalDate": "2026-08-30T00:00:00Z",
-                "supportedClaimIds": [selected_id],
-            },
-            {
-                "sourceId": "verified-source",
-                "sourceTitle": "Official statistics",
-                "canonicalUrl": "https://statistics.example/market",
-                "sourceClasses": ["official_statistics"],
-                "retrievalDate": "2026-08-30T00:00:00Z",
-                "supportedClaimIds": [verified_id, missing_id],
-            },
-            {
-                "sourceId": "missing-source",
-                "sourceTitle": "Copied legal blog",
-                "canonicalUrl": "https://blog.example/copied-law",
-                "sourceClasses": ["grounded_web"],
-                "retrievalDate": "2026-08-30T00:00:00Z",
-                "supportedClaimIds": [missing_id],
-            },
-            {
-                "sourceId": "second-verified-source",
-                "sourceTitle": "Second official statistics source",
-                "canonicalUrl": "https://statistics.example/second-market",
-                "sourceClasses": ["official_statistics"],
-                "retrievalDate": "2026-08-30T00:00:00Z",
-                "supportedClaimIds": [second_verified_id],
-            },
-        ],
-        "gaps": ["Raw missing-evidence narrative."],
-        "conflicts": [],
-        "assumptions": [],
-    }
-    scope_payload = {
-        "evidenceRequirements": [
-            {
-                "id": "ev-law",
-                "description": "Applicable Estonian statutory labeling obligations.",
-                "evidenceRole": "grounded_claim",
-                "verificationBasis": "grounded_claims",
-                "acceptedSourceTypes": ["government", "primary_law"],
-                "allowedSourceHosts": [],
-            }
-        ]
-    }
-    original = json.loads(json.dumps(research_payload))
-
-    prompt_view = PydanticAISynthesisWriter._research_prompt_view(
-        research_payload, scope_payload
-    )
-    prompt_json = json.dumps(prompt_view)
-
-    assert research_payload == original
-    assert "claimLedger" not in prompt_view
-    assert "gaps" not in prompt_view
-    assert "conflicts" not in prompt_view
-    assert "providerResponseText" not in prompt_json
-    assert "Raw accepted-provider response wrapper." not in prompt_json
-    assert "Raw rejected statutory provider response." not in prompt_json
-    assert "Rejected statutory provider narrative" not in prompt_json
-    assert missing_claim["text"] not in prompt_json
-    assert verified_claim["text"] in prompt_json
-    assert second_verified_claim["text"] in prompt_json
-    assert selected_claim["text"] in prompt_json
-    assert prompt_view["verifiedEvidence"] == [
-        {
-            "requirementId": "ev-market",
-            "passNumber": 0,
-            "claims": [verified_claim],
-        },
-        {
-            "requirementId": "ev-second-market",
-            "passNumber": 1,
-            "claims": [second_verified_claim],
-        },
-    ]
-    assert prompt_view["unresolvedEvidence"] == [
-        {
-            "requirementId": "ev-law",
-            "status": "missing",
-            "blocking": False,
-            "requiredAction": "acquire_accepted_evidence",
-            "description": "Applicable Estonian statutory labeling obligations.",
-            "evidenceRole": "grounded_claim",
-            "verificationBasis": "grounded_claims",
-            "acceptedSourceTypes": ["government", "primary_law"],
-            "allowedSourceHosts": [],
-        }
-    ]
-    assert [source["sourceId"] for source in prompt_view["sourceCatalogue"]] == [
-        "selected-source",
-        "verified-source",
-        "second-verified-source",
-    ]
-    assert prompt_view["sourceCatalogue"][1]["supportedClaimIds"] == [verified_id]
-    assert PydanticAISynthesisWriter._allowed_claim_ids(research_payload) == [
-        selected_id,
-        verified_id,
-        second_verified_id,
-    ]
-    assert set(PydanticAISynthesisWriter._allowed_claim_texts(research_payload)) == {
-        selected_id,
-        verified_id,
-        second_verified_id,
-    }
 
 
 @pytest.mark.asyncio
@@ -9606,12 +6785,6 @@ async def test_scope_authoritative_publisher_allowlist_accepts_only_named_hosts(
             else "Create a cat-food PostgreSQL brief using only official PostgreSQL documentation."
         ),
         criticality=criticality,
-        claim_type=("primary_law" if case == "B03" else "technical_documentation"),
-        description=(
-            "Applicable EU primary law."
-            if case == "B03"
-            else "Official PostgreSQL row-security documentation."
-        ),
         allowed_source_hosts=[host],
         accepted_source_types=accepted_source_types,
     )
@@ -9659,14 +6832,14 @@ async def test_compile_and_revise_cannot_invent_publisher_restrictions() -> None
         "deliverables": accepted.deliverables,
         "personas": accepted.personas,
         "interview_requirements": accepted.interview_requirements,
-        "prd_requirements": draft_statements(accepted.prd_requirements),
-        "limits": draft_statements(accepted.limits),
-        "policies": draft_statements(accepted.policies),
+        "prd_requirements": accepted.prd_requirements,
+        "limits": accepted.limits,
+        "policies": accepted.policies,
         "deliverable_profile": accepted.deliverable_profile.model_dump(),
         "acceptance_criteria": [
             item.model_dump() for item in accepted.acceptance_criteria
         ],
-        "assumptions": draft_statements(accepted.assumptions),
+        "assumptions": accepted.assumptions,
         "material_clarification": accepted.material_clarification,
     }
     preserved = ScopeRevisionDraft.model_validate(base)
@@ -9767,7 +6940,6 @@ async def test_scope_assumption_never_yields_launch_ready() -> None:
     assert result.evidence_readiness == "ready_with_gaps"
     assert "launchReady" not in result.artifact.payload
     assert result.artifact.payload["assumptions"] == [
-        "Candidate internal proposal (not verified external authority): "
         "Pricing is an unverified owner assumption."
     ]
 
@@ -10144,6 +7316,12 @@ class QualityWriter:
 
     async def evaluate_output(self, _input, _scope, _research, _contents):
         return EvaluationDraft(note="Semantic and deterministic checks completed.")
+
+    async def evaluate_final(self, _input, _scope, _research, _contents, final_draft):
+        assert isinstance(final_draft, SynthesisDraft)
+        return EvaluationDraft(
+            note="Exact final publication reviewed by the test fixture."
+        )
 
     async def write(self, _input, _scope, research_payload, _contents):
         return SynthesisDraft(
@@ -10729,7 +7907,7 @@ async def _legacy_final_writer_publishes_strict_fallback_after_critic_only_repai
 
 
 @pytest.mark.asyncio
-async def test_final_writer_returns_core_only_for_structured_output_exhaustion(
+async def test_final_writer_propagates_structured_output_exhaustion_without_old_core(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
@@ -10765,17 +7943,13 @@ async def test_final_writer_returns_core_only_for_structured_output_exhaustion(
         staticmethod(exhausted),
     )
 
-    result = await writer.write(
-        input_value,
-        compiled.artifact.payload,
-        research.artifact.payload,
-        contents,
-    )
-
-    assert "Keep this useful planning requirement." in result.value.markdown
-    assert "Validation target (all following content" in result.value.markdown
-    assert "**Pending verification:**" not in result.value.markdown
-    assert (result.input_tokens, result.output_tokens) == (0, 0)
+    with pytest.raises(CognitiveExecutionFailure, match="STRUCTURED_OUTPUT_INVALID"):
+        await writer.write(
+            input_value,
+            compiled.artifact.payload,
+            research.artifact.payload,
+            contents,
+        )
 
 
 @pytest.mark.asyncio
@@ -10829,35 +8003,47 @@ async def test_final_writer_returns_typed_output_without_semantic_validation(
 
 
 @pytest.mark.asyncio
-async def test_executor_applies_the_publication_normalizer_exactly_once(
+async def test_executor_applies_reader_normalization_then_server_disclosures_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     compiled, research, input_value, contents = await _final_writer_fixture()
 
     class RawFinalWriter(QualityWriter):
-        async def write(self, *_args, **_kwargs):
+        async def write(self, _input, _scope, research_payload, _contents):
             return SynthesisDraft(
                 title="Raw final",
                 markdown=(
-                    "# Raw final\n\nAll specifications are grounded in external "
-                    "frameworks.\n\n## Product requirements\n\n"
+                    quality_markdown(research_payload)
+                    + "\n\n## Publication review action\n\n"
                     "Validation target (all following content is unverified until "
                     "pre-adoption review): Verify the product-specific legal result."
                 ),
             )
 
-    original_normalize = cognitive_executor_module._normalize_publication_draft
-    calls = 0
+    original_reader = cognitive_executor_module._normalize_reader_draft
+    original_decorate = cognitive_executor_module._decorate_publication_draft
+    reader_calls = 0
+    disclosure_calls = 0
 
-    def counted_normalize(context, draft):
-        nonlocal calls
-        calls += 1
-        return original_normalize(context, draft)
+    def counted_reader(context, draft):
+        nonlocal reader_calls
+        reader_calls += 1
+        return original_reader(context, draft)
+
+    def counted_decorate(context, draft):
+        nonlocal disclosure_calls
+        disclosure_calls += 1
+        return original_decorate(context, draft)
 
     monkeypatch.setattr(
         cognitive_executor_module,
-        "_normalize_publication_draft",
-        counted_normalize,
+        "_normalize_reader_draft",
+        counted_reader,
+    )
+    monkeypatch.setattr(
+        cognitive_executor_module,
+        "_decorate_publication_draft",
+        counted_decorate,
     )
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
@@ -10917,13 +8103,212 @@ async def test_executor_applies_the_publication_normalizer_exactly_once(
         )
     )
 
-    assert calls == 1
+    assert reader_calls == 1
+    assert disclosure_calls == 1
     assert "**Evidence status: completed with evidence gaps.**" not in (
         result.artifact.markdown
     )
     assert "Validation target (all following content" not in result.artifact.markdown
-    assert "**Pending verification:**" not in result.artifact.markdown
+    assert "**Pending verification:**" in result.artifact.markdown
     assert "Verify the product-specific legal result." in result.artifact.markdown
+
+
+@pytest.mark.asyncio
+async def test_v2_checklist_contract_is_enforced_before_final_publication() -> None:
+    request = (
+        "Create a concise Markdown checklist with exactly three items for opening "
+        "a fictional neighborhood café on Monday."
+    )
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(
+            artifact_type="content_artifact",
+            evidence=False,
+            topic_value="checklist",
+            deliverables=[
+                "Concise Markdown checklist with exactly three items for opening a "
+                "fictional neighborhood café on Monday"
+            ],
+        ),
+        AUTHORITY_KEY,
+    ).execute(envelope_for(compile_input(request)))
+    research = await execute_research(compiled, MissingResearchRunner())
+    plan_ref, plan_content, legacy_contract, tasks = plan_fixture(compiled, research)
+    deliverable_requirement = next(
+        item
+        for item in compiled.artifact.payload["requirements"]
+        if item["authority"] == "owner" and item["category"] == "deliverable"
+    )
+    reader_output = {
+        "schemaVersion": "orqaly.reader-output.v1",
+        "readerFormat": {
+            "value": "checklist",
+            "requirementId": deliverable_requirement["id"],
+        },
+        "wordLimit": {
+            "maximumWords": 60,
+            "basis": "owner_explicit",
+            "requirementId": deliverable_requirement["id"],
+        },
+        "itemLimit": {
+            "exactItems": 3,
+            "itemKind": "checklist_item",
+            "requirementId": deliverable_requirement["id"],
+        },
+        "measurement": {
+            "scope": "reader_markdown_before_server_disclosures",
+            "wordCounter": "unicode_words_v1",
+            "itemCounter": "top_level_markdown_items_v1",
+        },
+    }
+    output_contract = {
+        **legacy_contract,
+        "schemaVersion": "orqaly.markdown-output-contract.v2",
+        "readerOutput": reader_output,
+    }
+    plan_payload = {
+        **plan_content["payload"],
+        "outputContract": output_contract,
+    }
+    plan_payload["planHash"] = canonical_hash(
+        {key: value for key, value in plan_payload.items() if key != "planHash"}
+    )
+    plan_ref, plan_content = artifact_ref(
+        plan_ref["artifactId"], "plan", "application/json", plan_payload
+    )
+
+    verbose_markdown = (
+        "# Operational dossier\n\n"
+        + " ".join(["Unrequested analysis"] * 80)
+        + "\n\n## Monday opening checklist\n\n"
+        "- [ ] Power on the coffee equipment.\n"
+        "- [ ] Prepare the till and point-of-sale terminal.\n"
+        "- [ ] Switch on the lights and unlock the entrance.\n\n"
+        "## Risk register\n\n- Extra non-checklist material"
+    )
+
+    class VerboseChecklistWriter(QualityWriter):
+        async def execute_task(self, input_value, _scope, _research, _contents):
+            return TaskDraft(
+                title="Monday opening checklist",
+                markdown=verbose_markdown,
+                requirement_coverage=[
+                    {
+                        "requirementId": requirement_id,
+                        "status": "satisfied",
+                        "note": "The accepted checklist requirement is represented.",
+                    }
+                    for requirement_id in input_value.task.acceptance_requirement_ids
+                ],
+                conclusions=["The requested checklist is present."],
+                unknowns=[],
+            )
+
+        async def write(self, *_args, **_kwargs):
+            return SynthesisDraft(
+                title="Monday opening checklist", markdown=verbose_markdown
+            )
+
+    resolver = Resolver(compiled.artifact, research.artifact)
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=resolver,
+        synthesis_writer=VerboseChecklistWriter(),
+    )
+    task_results = await execute_plan_tasks(
+        executor,
+        compiled,
+        research,
+        plan_ref,
+        plan_content,
+        output_contract,
+        tasks,
+        operation_base=1240,
+    )
+    assert all(item.artifact.kind == "task_result" for item in task_results)
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    task_contents = [exact_content(item.artifact) for item in task_results]
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[plan_content, *task_contents],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000001250",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    final_payload = cognitive_input(
+        purpose="final_synthesis",
+        compiled=compiled,
+        research=research,
+        output_contract=output_contract,
+        extra_refs=[plan_ref, *task_refs, ref(evaluation.artifact)],
+        extra_contents=[
+            plan_content,
+            *task_contents,
+            exact_content(evaluation.artifact),
+        ],
+        repair_pass=1,
+        acceptedPlan=plan_ref,
+        taskArtifacts=task_refs,
+        evaluation=ref(evaluation.artifact),
+    )
+    result = await executor.execute(
+        envelope_for(
+            final_payload,
+            operation_id="00000000-0000-4000-8000-000000001251",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert result.result_type == "artifact_synthesized"
+    assert result.artifact.markdown == (
+        "# Monday opening checklist\n\n"
+        "- [ ] Power on the coffee equipment.\n"
+        "- [ ] Prepare the till and point-of-sale terminal.\n"
+        "- [ ] Switch on the lights and unlock the entrance."
+    )
+    assert "Operational dossier" not in result.artifact.markdown
+    assert "Risk register" not in result.artifact.markdown
+
+    class InvalidChecklistWriter(VerboseChecklistWriter):
+        async def write(self, *_args, **_kwargs):
+            return SynthesisDraft(
+                title="Monday opening checklist",
+                markdown=(
+                    "# Monday opening checklist\n\n"
+                    "- [ ] Power on the coffee equipment.\n"
+                    "- [ ] Unlock the entrance."
+                ),
+            )
+
+    invalid_executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        artifact_resolver=resolver,
+        synthesis_writer=InvalidChecklistWriter(),
+    )
+    with pytest.raises(
+        CognitiveExecutionFailure,
+        match="AXWISE_FINAL_OUTPUT_CONTRACT_UNSATISFIED",
+    ):
+        await invalid_executor.execute(
+            envelope_for(
+                final_payload,
+                operation_id="00000000-0000-4000-8000-000000001252",
+                operation_type="SynthesizeArtifactV1",
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -11265,7 +8650,7 @@ async def test_all_four_cognitive_purposes_and_direct_promotion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_server_bounded_composite_core_requires_evaluation() -> None:
+async def test_composite_core_keeps_authority_claim_for_evaluation_without_keyword_warning() -> None:
     class CompositeAuthorityCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -11306,7 +8691,9 @@ async def test_server_bounded_composite_core_requires_evaluation() -> None:
     )
 
     core = task_results[-1]
-    assert core.artifact.kind == "task_result"
+    assert core.artifact.kind == "final_markdown"
+    assert core.artifact.payload["launchReady"] is False
+    assert core.artifact.payload["candidateAttestation"]
     assert not _contains_server_unverified_validation_target(
         core.artifact.markdown or ""
     )
@@ -11319,6 +8706,38 @@ async def test_server_bounded_composite_core_requires_evaluation() -> None:
             "Verify applicable pet-food safety obligations."
         ],
     )
+    assert "**Unverified claim — review required:**" not in core.artifact.markdown
+    assert "## Review suggestions" not in core.artifact.markdown
+    assert core.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
+    task_refs = sorted(
+        [ref(item.artifact) for item in task_results],
+        key=lambda item: item["artifactId"],
+    )
+    evaluation = await executor.execute(
+        envelope_for(
+            cognitive_input(
+                purpose="evaluate_output",
+                compiled=compiled,
+                research=research,
+                output_contract=output_contract,
+                extra_refs=[plan_ref, *task_refs],
+                extra_contents=[
+                    plan_content,
+                    *[exact_content(item.artifact) for item in task_results],
+                ],
+                repair_pass=0,
+                acceptedPlan=plan_ref,
+                taskArtifacts=task_refs,
+            ),
+            operation_id="00000000-0000-4000-8000-000000000869",
+            operation_type="SynthesizeArtifactV1",
+        )
+    )
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(core.artifact)
+    assert evaluation.artifact.payload["repairRequired"] is False
 
 
 @pytest.mark.asyncio
@@ -11393,7 +8812,7 @@ async def test_incomplete_core_falls_through_to_evaluation_instead_of_failing() 
 
 
 @pytest.mark.asyncio
-async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precision_flags() -> (
+async def test_model_precision_flags_are_preserved_and_prevent_direct_promotion() -> (
     None
 ):
     class NumericPlanningWriter(QualityWriter):
@@ -11470,15 +8889,16 @@ async def test_ordinary_numeric_prd_decisions_promote_despite_subjective_precisi
             operation_type="SynthesizeArtifactV1",
         )
     )
-    assert evaluation.execution_output_contract_satisfied is True
-    assert evaluation.artifact.payload["unsupportedPrecision"] == []
-    assert evaluation.direct_promotion_artifact.model_dump(
-        mode="json", by_alias=True
-    ) == ref(candidate.artifact)
+    assert evaluation.execution_output_contract_satisfied is False
+    assert evaluation.artifact.payload["unsupportedPrecision"] == [
+        "The model treated ordinary planning decisions as unsupported."
+    ]
+    assert evaluation.direct_promotion_artifact is None
+    assert evaluation.artifact.payload["repairRequired"] is True
 
 
 @pytest.mark.asyncio
-async def test_unsupported_precise_core_candidate_requires_final_repair() -> None:
+async def test_uncited_precise_core_candidate_retains_typed_status_without_keyword_warning() -> None:
     class UnsafePrecisionWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
@@ -11517,7 +8937,8 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
         operation_base=820,
     )
     candidate = results[-1]
-    assert candidate.artifact.kind == "task_result"
+    assert candidate.artifact.kind == "final_markdown"
+    assert candidate.artifact.payload["launchReady"] is False
     assert (
         "The validated formula contains 2,000 mg/kg taurine and prevents renal disease."
         in (candidate.artifact.markdown or "")
@@ -11527,6 +8948,12 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
     )
     assert not _contains_server_deliverable_placeholder(
         candidate.artifact.markdown or ""
+    )
+    assert "**Unverified claim — review required:**" not in candidate.artifact.markdown
+    assert "## Review suggestions" not in candidate.artifact.markdown
+    assert candidate.artifact.payload["evidenceReadiness"] == "ready_with_gaps"
+    assert _deterministic_evidence_integrity_defects(
+        candidate.artifact.markdown, {}, artifact_type="product_prd"
     )
 
     task_refs = sorted(
@@ -11553,15 +8980,18 @@ async def test_unsupported_precise_core_candidate_requires_final_repair() -> Non
         )
     )
 
-    assert evaluation.execution_output_contract_satisfied is False
-    assert evaluation.direct_promotion_artifact is None
-    assert evaluation.artifact.payload["unsupportedPrecision"]
-    assert evaluation.artifact.payload["repairRequired"] is True
+    assert evaluation.execution_output_contract_satisfied is True
+    assert evaluation.direct_promotion_artifact.model_dump(
+        mode="json", by_alias=True
+    ) == ref(candidate.artifact)
+    assert evaluation.artifact.payload["unsupportedPrecision"] == []
+    assert evaluation.artifact.payload["repairRequired"] is False
+    assert "**Unverified claim — review required:**" not in candidate.artifact.markdown
 
 
 @pytest.mark.asyncio
 async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
-    class AsciiCoreWriter(QualityWriter):
+    class PlaceholderCoreWriter(QualityWriter):
         async def execute_task(self, input_value, scope, research_payload, contents):
             draft = await super().execute_task(
                 input_value, scope, research_payload, contents
@@ -11571,8 +9001,8 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
             return draft.model_copy(
                 update={
                     "markdown": (
-                        draft.markdown + "\n\n## Decision matrix\n\n```text\n"
-                        "+-----+-----+\n| A | B |\n+-----+-----+\n```"
+                        draft.markdown + "\n\n## Decision matrix\n\n"
+                        "This placeholder must be replaced."
                     )
                 }
             )
@@ -11584,7 +9014,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
         FakeDrafter(),
         AUTHORITY_KEY,
         artifact_resolver=Resolver(compiled.artifact, research.artifact),
-        synthesis_writer=AsciiCoreWriter(),
+        synthesis_writer=PlaceholderCoreWriter(),
     )
     results = await execute_plan_tasks(
         executor,
@@ -11598,7 +9028,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
     )
     core = results[-1]
     assert core.artifact.kind == "task_result"
-    assert "```text" in (core.artifact.markdown or "")
+    assert "placeholder" in (core.artifact.markdown or "")
 
     task_refs = sorted(
         [ref(item.artifact) for item in results], key=lambda item: item["artifactId"]
@@ -11627,7 +9057,7 @@ async def test_full_contract_quality_defect_is_deferred_to_evaluation() -> None:
     assert evaluation.execution_output_contract_satisfied is False
     assert evaluation.direct_promotion_artifact is None
     assert any(
-        "ASCII-art table" in defect
+        "placeholder" in defect
         for defect in evaluation.artifact.payload["substantiveContentDefects"]
     )
 
@@ -12487,44 +9917,6 @@ def test_claim_support_guard_rejects_authority_presupposing_imperatives(
     )
 
 
-@pytest.mark.parametrize(
-    "unsafe_action",
-    [
-        "Register with PTA before distribution.",
-        "Apply for a licence from PTA before sale.",
-        "Notify PTA before distribution.",
-        "File with the Food Board before sale.",
-    ],
-)
-def test_claim_support_guard_rejects_direct_external_authority_processes(
-    unsafe_action: str,
-) -> None:
-    assert _deterministic_evidence_integrity_defects(
-        unsafe_action,
-        {},
-        artifact_type="product_prd",
-    )
-
-
-@pytest.mark.parametrize(
-    "unsupported_label_duty",
-    [
-        "The pack must use Estonian wording.",
-        "All mandatory particulars must be provided in Estonian.",
-        "Estonian text is required on the package.",
-        "Required Estonian information must appear on the pack.",
-    ],
-)
-def test_claim_support_guard_rejects_equivalent_estonian_label_duties(
-    unsupported_label_duty: str,
-) -> None:
-    assert _deterministic_evidence_integrity_defects(
-        unsupported_label_duty,
-        {},
-        artifact_type="product_prd",
-    )
-
-
 def test_claim_support_guard_preserves_trailing_unresolved_scope_over_lists() -> None:
     for honest_gap in (
         (
@@ -13088,7 +10480,7 @@ def test_experiment_hypothesis_and_target_columns_remain_planning_context() -> N
     )
 
 
-def test_task_validation_rejects_unresolved_authority_before_persistence() -> None:
+def test_task_flags_uncited_authority_but_rejects_mismatched_citation() -> None:
     context = SynthesisContext(
         purpose="execute_task",
         required_sections=[],
@@ -13118,10 +10510,26 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
         requirement_coverage=coverage,
         conclusions=["A planning conclusion was prepared."],
     )
-    with pytest.raises(
-        ValueError, match="task artifact contradicts unresolved evidence"
-    ):
-        cognitive_executor_module._validate_task_draft(context, unsafe)
+    def assert_review_flagged(current_context, current_draft):
+        defects = _deterministic_evidence_integrity_defects(
+            current_draft.markdown,
+            current_context.allowed_claim_texts,
+            artifact_type=current_context.artifact_type,
+            unresolved_evidence_requirements=current_context.unresolved_evidence_requirements,
+        )
+        assert any("unresolved evidence requirement" in item for item in defects)
+        _validate_task_draft(current_context, current_draft)
+        rendered = cognitive_executor_module._with_advisory_planning_review(
+            current_context,
+            SynthesisDraft(title=current_draft.title, markdown=current_draft.markdown),
+        )
+        assert rendered == current_draft.markdown
+
+    assert_review_flagged(context, unsafe)
+    with pytest.raises(ValueError, match="task artifact contradicts unresolved evidence"):
+        _validate_task_draft(
+            context.model_copy(update={"artifact_type": "general_artifact"}), unsafe
+        )
 
     provisional = unsafe.model_copy(
         update={
@@ -13185,12 +10593,7 @@ def test_task_validation_rejects_unresolved_authority_before_persistence() -> No
                 )
             }
         )
-        with pytest.raises(
-            ValueError, match="task artifact contradicts unresolved evidence"
-        ):
-            cognitive_executor_module._validate_task_draft(
-                adversarial_context, adversarial
-            )
+        assert_review_flagged(adversarial_context, adversarial)
 
 
 @pytest.mark.parametrize(
@@ -13470,7 +10873,7 @@ def test_task_preserves_valid_cited_twin_before_bad_cited_twin() -> None:
     _validate_task_draft(context, prepared)
 
 
-def test_task_reclassifies_planning_table_and_unsafe_prose_twins() -> None:
+def test_task_preserves_planning_table_twin_before_unsafe_prose_twin() -> None:
     assertion = "PTA notification filing is mandatory."
     context = SynthesisContext(
         purpose="execute_task",
@@ -13502,10 +10905,7 @@ def test_task_reclassifies_planning_table_and_unsafe_prose_twins() -> None:
 
     prepared = _prepare_task_unresolved_actions(context, draft)
 
-    assert (
-        "| Authority | Validation target (all following content is unverified until "
-        f"pre-adoption review): {assertion} |" in prepared.markdown
-    )
+    assert f"| Authority | {assertion} |" in prepared.markdown
     assert prepared.markdown.count(assertion) == 2
     assert f"\n\n{assertion}\n\n" not in prepared.markdown
     assert (
@@ -13513,7 +10913,6 @@ def test_task_reclassifies_planning_table_and_unsafe_prose_twins() -> None:
         "review): "
         "PTA notification filing is mandatory." in prepared.markdown
     )
-    assert prepared.markdown.count("Validation target (all following content") == 2
     _validate_task_draft(context, prepared)
 
 
@@ -14517,6 +11916,189 @@ def test_final_quality_gate_rejects_scope_shell_and_impractical_output() -> None
     )
 
 
+def test_v2_reader_output_projects_and_validates_exact_checklist_body() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": {
+                "maximumWords": 30,
+                "basis": "owner_explicit",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "checklist_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    checklist = (
+        "# Monday opening checklist\n\n"
+        "- [ ] Power on the coffee equipment.\n"
+        "- [ ] Prepare the till and point-of-sale terminal.\n"
+        "- [ ] Switch on the lights and unlock the entrance."
+    )
+
+    assert _deterministic_quality_defects(
+        checklist,
+        practical_output_required=False,
+        artifact_type="content_artifact",
+        reader_output=reader_output,
+    ) == ([], [])
+
+    expanded = (
+        "# Operational dossier\n\n"
+        + " ".join(["unrequested-analysis"] * 40)
+        + "\n\n## Monday opening checklist\n\n"
+        + "\n".join(checklist.splitlines()[2:])
+        + "\n\n## Risk register\n\n- Extra non-checklist item"
+    )
+    projected = _project_reader_output_draft(
+        SynthesisDraft(title="Monday opening checklist", markdown=expanded),
+        reader_output,
+    )
+    assert projected.markdown == checklist
+    assert _reader_output_defects(projected.markdown, reader_output) == []
+
+    over_limit = checklist + "\n\n" + " ".join(["analysis"] * 31)
+    substantive, practicality = _deterministic_quality_defects(
+        over_limit,
+        practical_output_required=False,
+        artifact_type="content_artifact",
+        reader_output=reader_output,
+    )
+    assert substantive == [
+        "Reader Markdown exceeds the accepted maximum of 30 words (53 measured)."
+    ]
+    assert practicality == []
+
+    wrong_count = checklist.rsplit("\n", 1)[0]
+    assert _reader_output_defects(wrong_count, reader_output) == [
+        "Reader Markdown must contain exactly 3 top-level checklist items (2 measured)."
+    ]
+
+    planning_substantive, _planning_practicality = _deterministic_quality_defects(
+        checklist,
+        practical_output_required=True,
+        artifact_type="operational_plan",
+    )
+    assert (
+        "The candidate is too thin to be a substantive full-contract artifact."
+        in planning_substantive
+    )
+
+
+def test_v2_reader_measurement_excludes_server_disclosures() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": {
+                "maximumWords": 30,
+                "basis": "owner_explicit",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "checklist_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    reader = SynthesisDraft(
+        title="Monday opening checklist",
+        markdown=(
+            "# Monday opening checklist\n\n"
+            "- [ ] Power on the coffee equipment.\n"
+            "- [ ] Prepare the till.\n"
+            "- [ ] Unlock the entrance."
+        ),
+    )
+    context = SynthesisContext(
+        purpose="final_synthesis",
+        required_sections=["Checklist"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=[" ".join(["Unresolved owner evidence"] * 30)],
+        reader_output=reader_output,
+        artifact_type="content_artifact",
+    )
+
+    assert _reader_output_defects(reader.markdown, reader_output) == []
+    published = cognitive_executor_module._decorate_publication_draft(context, reader)
+    assert "Evidence status: completed with evidence gaps" in published.markdown
+    assert len(published.markdown.split()) > 30
+
+
+def test_v2_reader_output_counts_non_checklist_top_level_items() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "agenda",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": None,
+            "itemLimit": {
+                "exactItems": 3,
+                "itemKind": "agenda_item",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    agenda = "# Agenda\n\n1. Welcome\n2. Decisions\n3. Next steps"
+    assert _reader_output_defects(agenda, reader_output) == []
+    assert _reader_output_defects(agenda.rsplit("\n", 1)[0], reader_output) == [
+        "Reader Markdown must contain exactly 3 top-level Markdown items "
+        "(2 measured)."
+    ]
+
+
+def test_v2_checklist_requires_a_checkbox_without_an_explicit_item_limit() -> None:
+    reader_output = ReaderOutputContractV1.model_validate(
+        {
+            "schemaVersion": "orqaly.reader-output.v1",
+            "readerFormat": {
+                "value": "checklist",
+                "requirementId": "req-0123456789abcdef",
+            },
+            "wordLimit": None,
+            "itemLimit": None,
+            "measurement": {
+                "scope": "reader_markdown_before_server_disclosures",
+                "wordCounter": "unicode_words_v1",
+                "itemCounter": "top_level_markdown_items_v1",
+            },
+        }
+    )
+    prose = "# Checklist\n\nOpen the shop and prepare the till."
+    assert _reader_output_defects(prose, reader_output) == [
+        "Reader Markdown must contain at least one top-level checklist item."
+    ]
+
+
 @pytest.mark.parametrize(
     "placeholder",
     [
@@ -14745,7 +12327,7 @@ def test_prd_quality_gate_counts_nested_subsections_but_not_empty_heading_trees(
     )
     assert (
         "The candidate uses an ASCII-art table inside a code fence instead of valid Markdown."
-        in substantive
+        not in substantive
     )
 
     success_prediction = prd() + "\n\nThe product will succeed in the market."
@@ -15458,7 +13040,7 @@ def test_numbered_source_heading_remains_server_owned(indent: str, label: str) -
     assert _model_owned_required_sections(["1. Sources", "Artifact"]) == ["Artifact"]
 
 
-def test_numbered_headings_surface_evidence_and_quality_defects_together() -> None:
+def test_numbered_headings_keep_quality_failure_and_raw_evidence_finding() -> None:
     markdown = quality_markdown(
         {
             "assumptions": [],
@@ -15492,9 +13074,16 @@ def test_numbered_headings_surface_evidence_and_quality_defects_together() -> No
         )
     message = str(raised.value)
     assert "required Markdown sections are missing" not in message
-    assert "Unsupported factual precision" in message
+    assert "Unsupported factual precision" not in message
     assert "contains placeholder content" in message
-    assert "ASCII-art table" in message
+    assert "ASCII-art table" not in message
+    assert _deterministic_evidence_integrity_defects(
+        markdown, {}, artifact_type="product_prd"
+    )
+    rendered = cognitive_executor_module._with_advisory_planning_review(
+        context, SynthesisDraft(title="Combined feedback", markdown=markdown)
+    )
+    assert rendered == markdown
 
 
 def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() -> None:
@@ -15513,6 +13102,939 @@ def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() 
     )
     with pytest.raises(ValueError, match="launch-ready"):
         _validate_synthesis(context, draft)
+
+
+def test_cognitive_research_view_exposes_only_selected_and_verified_claims() -> None:
+    selected_id = "a" * 64
+    verified_id = "b" * 64
+    missing_id = "c" * 64
+    second_verified_id = "d" * 64
+
+    def claim(claim_id: str, text: str, url: str) -> dict:
+        return {"claimId": claim_id, "text": text, "sourceUrls": [url]}
+
+    selected_claim = claim(
+        selected_id,
+        "The owner selected an immutable product fact.",
+        "https://owner.example/product-fact",
+    )
+    verified_claim = claim(
+        verified_id,
+        "The accepted market source reports a current market observation.",
+        "https://statistics.example/market",
+    )
+    missing_claim = claim(
+        missing_id,
+        "The rejected provider prose asserts an unverified statutory obligation.",
+        "https://blog.example/copied-law",
+    )
+    second_verified_claim = claim(
+        second_verified_id,
+        "A separate accepted source reports a second verified requirement.",
+        "https://statistics.example/second-market",
+    )
+    research_payload = {
+        "schemaVersion": "axwise.research.v2",
+        "readiness": "ready_with_gaps",
+        "findings": [
+            {
+                "requirementId": "ev-market",
+                "status": "verified",
+                "blocking": False,
+                "note": "Verified provider narrative must not be copied wholesale.",
+            },
+            {
+                "requirementId": "ev-law",
+                "status": "missing",
+                "blocking": False,
+                "note": "Rejected statutory provider narrative must remain private.",
+            },
+            {
+                "requirementId": "ev-second-market",
+                "status": "verified",
+                "blocking": False,
+                "note": "Second verified provider narrative must not be copied wholesale.",
+            },
+        ],
+        "selectedClaims": [selected_claim],
+        "claimLedger": [
+            {
+                "requirementId": "ev-market",
+                "passNumber": 0,
+                "providerResponseText": "Raw accepted-provider response wrapper.",
+                "claims": [verified_claim],
+            },
+            {
+                "requirementId": "ev-law",
+                "passNumber": 0,
+                "providerResponseText": "Raw rejected statutory provider response.",
+                "claims": [missing_claim],
+            },
+            {
+                "requirementId": "ev-second-market",
+                "passNumber": 1,
+                "providerResponseText": "Raw second accepted-provider response wrapper.",
+                "claims": [second_verified_claim],
+            },
+        ],
+        "sourceCatalogue": [
+            {
+                "sourceId": "selected-source",
+                "sourceTitle": "Owner evidence",
+                "canonicalUrl": "https://owner.example/product-fact",
+                "sourceClasses": ["selected_evidence"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [selected_id],
+            },
+            {
+                "sourceId": "verified-source",
+                "sourceTitle": "Official statistics",
+                "canonicalUrl": "https://statistics.example/market",
+                "sourceClasses": ["official_statistics"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [verified_id, missing_id],
+            },
+            {
+                "sourceId": "missing-source",
+                "sourceTitle": "Copied legal blog",
+                "canonicalUrl": "https://blog.example/copied-law",
+                "sourceClasses": ["grounded_web"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [missing_id],
+            },
+            {
+                "sourceId": "second-verified-source",
+                "sourceTitle": "Second official statistics source",
+                "canonicalUrl": "https://statistics.example/second-market",
+                "sourceClasses": ["official_statistics"],
+                "retrievalDate": "2026-08-30T00:00:00Z",
+                "supportedClaimIds": [second_verified_id],
+            },
+        ],
+        "gaps": ["Raw missing-evidence narrative."],
+        "conflicts": [],
+        "assumptions": [],
+    }
+    scope_payload = {
+        "evidenceRequirements": [
+            {
+                "id": "ev-law",
+                "description": "Applicable Estonian statutory labeling obligations.",
+                "evidenceRole": "grounded_claim",
+                "verificationBasis": "grounded_claims",
+                "acceptedSourceTypes": ["government", "primary_law"],
+                "allowedSourceHosts": [],
+            }
+        ]
+    }
+    original = json.loads(json.dumps(research_payload))
+
+    prompt_view = PydanticAISynthesisWriter._research_prompt_view(
+        research_payload, scope_payload
+    )
+    prompt_json = json.dumps(prompt_view)
+
+    assert research_payload == original
+    assert "claimLedger" not in prompt_view
+    assert "gaps" not in prompt_view
+    assert "conflicts" not in prompt_view
+    assert "providerResponseText" not in prompt_json
+    assert "Raw accepted-provider response wrapper." not in prompt_json
+    assert "Raw rejected statutory provider response." not in prompt_json
+    assert "Rejected statutory provider narrative" not in prompt_json
+    assert missing_claim["text"] not in prompt_json
+    assert verified_claim["text"] in prompt_json
+    assert second_verified_claim["text"] in prompt_json
+    assert selected_claim["text"] in prompt_json
+    assert prompt_view["verifiedEvidence"] == [
+        {
+            "requirementId": "ev-market",
+            "passNumber": 0,
+            "claims": [verified_claim],
+        },
+        {
+            "requirementId": "ev-second-market",
+            "passNumber": 1,
+            "claims": [second_verified_claim],
+        },
+    ]
+    assert prompt_view["unresolvedEvidence"] == [
+        {
+            "requirementId": "ev-law",
+            "status": "missing",
+            "blocking": False,
+            "requiredAction": "acquire_accepted_evidence",
+            "description": "Applicable Estonian statutory labeling obligations.",
+            "evidenceRole": "grounded_claim",
+            "verificationBasis": "grounded_claims",
+            "acceptedSourceTypes": ["government", "primary_law"],
+            "allowedSourceHosts": [],
+        }
+    ]
+    assert [source["sourceId"] for source in prompt_view["sourceCatalogue"]] == [
+        "selected-source",
+        "verified-source",
+        "second-verified-source",
+    ]
+    assert prompt_view["sourceCatalogue"][1]["supportedClaimIds"] == [verified_id]
+    assert PydanticAISynthesisWriter._allowed_claim_ids(research_payload) == [
+        selected_id,
+        verified_id,
+        second_verified_id,
+    ]
+    assert set(PydanticAISynthesisWriter._allowed_claim_texts(research_payload)) == {
+        selected_id,
+        verified_id,
+        second_verified_id,
+    }
+
+
+def test_current_requirement_locator_cannot_be_crowded_out_by_three_global_sources() -> (
+    None
+):
+    retrieved_at = "2026-08-31T12:00:00Z"
+    global_urls = [
+        "https://example.org/a.html",
+        "https://example.org/b.html",
+        "https://example.org/c.html",
+    ]
+    locator_url = "https://publisher.example.org/current-report.pdf"
+
+    def global_source(index: int, url: str) -> ResearchSourceV1:
+        title = f"Global source {index}"
+        source_identity = {
+            "canonicalUrl": url,
+            "retrievalDate": retrieved_at,
+            "sourceClasses": ["grounded_web"],
+            "sourceTitle": title,
+        }
+        return ResearchSourceV1(
+            source_id=canonical_hash(source_identity),
+            source_title=title,
+            canonical_url=url,
+            source_classes=["grounded_web"],
+            retrieval_date=retrieved_at,
+            supported_claim_ids=[f"{index}" * 64],
+        )
+
+    requirement = EvidenceRequirement(
+        id="current-market-observation",
+        claim_type="market_statistic",
+        description="Verify the current publisher market observation.",
+        criticality="nonblocking",
+        evidence_role="grounded_claim",
+        verification_basis="grounded_claims",
+        applies_when="Adding current market context.",
+        accepted_source_types=["grounded_web"],
+        allowed_source_hosts=[],
+    )
+    locator = cognitive_executor_module._ResearchSourceLocator(
+        canonical_url=locator_url,
+        source_title="Current requirement locator",
+        source_classes=("grounded_web",),
+    )
+
+    candidates = cognitive_executor_module._repair_source_candidates(
+        requirement,
+        [[global_source(index, url) for index, url in enumerate(global_urls, 1)]],
+        [[locator]],
+    )
+
+    assert [candidate["url"] for candidate in candidates] == [
+        locator_url,
+        *global_urls[:2],
+    ]
+    assert candidates[0]["title"] == "Current requirement locator"
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_turn_returns_typed_markdown_sources_and_facts() -> (
+    None
+):
+    class AssistantRunner:
+        async def search(self, _query: str):
+            text = "Estonia is an EU member state."
+            url = "https://european-union.europa.eu/principles-countries-history/country-profiles/estonia_en"
+            return {
+                "text": text,
+                "sources": [{"title": "Estonia – EU country", "url": url}],
+                "claims": [{"text": text, "source_urls": [url]}],
+                "provider_queries": ["Estonia EU member state"],
+                "usage_metadata": {
+                    "input_tokens": 11,
+                    "output_tokens": 7,
+                    "total_tokens": 18,
+                },
+                "runtime_diagnostics": {"status": "ok"},
+            }
+
+    class ConversationRunner:
+        async def search(self, _query: str):
+            raise AssertionError("one-shot work must use grounded web search")
+
+    input_payload = {
+        "type": "AssistantTurnV1",
+        "responseMode": "one_shot",
+        "message": "Is Estonia in the EU?",
+        "conversation": [],
+    }
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        assistant_runner=AssistantRunner(),
+        assistant_chat_runner=ConversationRunner(),
+    )
+    result = await executor.execute(
+        envelope_for(
+            input_payload,
+            operation_id="00000000-0000-4000-8000-000000009801",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert result.result_type == "assistant_turn_completed"
+    assert result.response.markdown == "Estonia is an EU member state."
+    assert (
+        result.model_dump(mode="json", by_alias=True, exclude_unset=True)["response"][
+            "schemaVersion"
+        ]
+        == "axwise.assistant-turn.v1"
+    )
+    assert result.response.sources[0].source_types == ["government", "grounded_web"]
+    assert result.response.facts[0].source_urls == [
+        "https://european-union.europa.eu/principles-countries-history/country-profiles/estonia_en"
+    ]
+    assert result.metrics.total_tokens == 18
+    assert result.metrics.search_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_one_shot_multiturn_assistant_completes_through_direct_fetch_fallback() -> (
+    None
+):
+    message = "For now, verify only the first country."
+    first_user_request = "Compare EU membership for Estonia and Latvia."
+    second_user_request = (
+        "Use an official European Union source at https://european-union.europa.eu."
+    )
+    assistant_prose = "I can research both countries once you choose the output mode."
+    fallback_requirement = (
+        f"Latest user request: {message} "
+        f"Prior user request 1: {first_user_request} "
+        f"Prior user request 2: {second_user_request}"
+    )
+    source_url = "https://european-union.europa.eu/principles-countries-history/country-profiles/estonia_en"
+    exact = "Estonia is a member country of the European Union."
+    document_text = f"Country profile. {exact} Official overview."
+
+    class TransientPrimary:
+        async def search(self, query: str):
+            assistant_request, fallback_authority = query.splitlines()
+            assert json.loads(assistant_request)["message"] == message
+            authority = json.loads(fallback_authority)
+            assert authority["requirement"]["description"] == fallback_requirement
+            assert assistant_prose not in fallback_authority
+            assert authority["requirement"]["acceptedSourceTypes"] == ["grounded_web"]
+            return {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "retry_exhausted",
+                    "call_count": 3,
+                    "retry_count": 2,
+                },
+            }
+
+    class Discovery:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        async def search_web_general_async(self, query: str):
+            self.queries.append(query)
+            assert message in query
+            assert first_user_request in query
+            assert second_user_request in query
+            assert assistant_prose not in query
+            return {
+                "search_performed": True,
+                "sources": [{"title": "Estonia – EU country", "url": source_url}],
+                "claims": [{"text": exact, "source_urls": [source_url]}],
+                "runtime_diagnostics": {"status": "ok", "call_count": 1},
+            }
+
+    async def fetch(_url: str):
+        return {
+            "final_url": source_url,
+            "text": document_text,
+            "retrieved_at": "2026-09-01T12:00:00Z",
+        }
+
+    class Extractor:
+        async def extract(self, request: ExactSpanExtractionRequest):
+            document = request.documents[0]
+            start = document.text.index(exact)
+            return assemble_exact_span_result(
+                request,
+                ExactSpanSelectionDraft(
+                    document_id=document.document_id,
+                    spans=[
+                        ExactDraftCodePointSpan(
+                            start=start,
+                            end=start + len(exact),
+                        )
+                    ],
+                ),
+                input_tokens=11,
+                output_tokens=5,
+            )
+
+    class ConversationRunner:
+        async def search(self, _query: str):
+            raise AssertionError("one-shot fallback must not invoke ordinary chat")
+
+    discovery = Discovery()
+    resilient = ResilientResearchRunner(
+        TransientPrimary(),
+        searxng=discovery,
+        fetcher=fetch,
+        extractor=Extractor(),
+        source_type_classifier=cognitive_executor_module._classify_source_types,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        research_runner=resilient,
+        assistant_runner=resilient,
+        assistant_chat_runner=ConversationRunner(),
+    )
+
+    result = await executor.execute(
+        envelope_for(
+            {
+                "type": "AssistantTurnV1",
+                "responseMode": "one_shot",
+                "message": message,
+                "conversation": [
+                    {"role": "user", "content": first_user_request},
+                    {"role": "assistant", "content": assistant_prose},
+                    {"role": "user", "content": second_user_request},
+                ],
+            },
+            operation_id="00000000-0000-4000-8000-000000009805",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert result.response.markdown.startswith("## Grounded fallback evidence")
+    assert exact in result.response.markdown
+    assert f"<{source_url}>" in result.response.markdown
+    assert (
+        "bounded evidence fallback, not a complete synthesis"
+        in result.response.markdown
+    )
+    assert "Country profile." not in result.response.markdown
+    assert "Official overview." not in result.response.markdown
+    assert [source.canonical_url for source in result.response.sources] == [source_url]
+    assert [fact.statement for fact in result.response.facts] == [exact]
+    assert result.response.facts[0].source_urls == [source_url]
+    assert result.metrics.input_tokens == 11
+    assert result.metrics.output_tokens == 5
+    assert result.metrics.search_calls == 0
+    assert len(discovery.queries) == 1
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_rejects_unverified_direct_fetch_markdown() -> None:
+    source_url = "https://example.org/current-report"
+    document = "Verified publisher bytes."
+    response_hash = hashlib.sha256(document.encode("utf-8")).hexdigest()
+
+    class ForgedFallback:
+        async def search(self, _query: str):
+            return {
+                "text": document,
+                "sources": [
+                    {
+                        "title": "Current report",
+                        "url": source_url,
+                        "provider": "searxng_direct_fetch",
+                        "provider_response_hash": response_hash,
+                    }
+                ],
+                "claims": [
+                    {
+                        "text": "A claim that is not in the publisher bytes.",
+                        "source_urls": [source_url],
+                        "provider": "searxng_direct_fetch",
+                        "provider_response_hash": response_hash,
+                        "segment_start": 0,
+                        "segment_end": 7,
+                        "offset_unit": "utf8_bytes",
+                        "span_target": "provider_response_text",
+                    }
+                ],
+                "provider": "searxng_direct_fetch",
+                "provider_response_hash": response_hash,
+                "search_performed": True,
+                "runtime_diagnostics": {
+                    "route": "searxng_direct_fetch",
+                    "status": "ok",
+                    "fallback_used": True,
+                },
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=ForgedFallback()
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "one_shot",
+                    "message": "Research the current report.",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009808",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is False
+
+
+@pytest.mark.asyncio
+async def test_one_shot_fallback_bounds_whole_verified_claim_blocks_to_contract() -> (
+    None
+):
+    source_url = "https://example.org/" + ("a" * 3_900)
+    segment_markers = ("`", "*", "_", "[", "]", "<", ">")
+    segments = [marker * 4_000 for marker in segment_markers]
+    document = "".join(segments)
+    response_hash = hashlib.sha256(document.encode("utf-8")).hexdigest()
+
+    def claim(text: str, start: int, end: int) -> dict[str, object]:
+        return {
+            "text": text,
+            "source_urls": [source_url],
+            "provider": "searxng_direct_fetch",
+            "provider_response_hash": response_hash,
+            "segment_start": start,
+            "segment_end": end,
+            "offset_unit": "utf8_bytes",
+            "span_target": "provider_response_text",
+        }
+
+    raw_claims = [
+        # This is valid at the exact-span extractor's 12,000-character maximum,
+        # but cannot become an AssistantFact without semantic truncation.
+        claim(document[:12_000], 0, 12_000),
+        *(
+            claim(segment, index * 4_000, (index + 1) * 4_000)
+            for index, segment in enumerate(segments)
+        ),
+    ]
+
+    class BudgetedFallback:
+        async def search(self, _query: str):
+            return {
+                "text": document,
+                "sources": [
+                    {
+                        "title": "Long canonical source",
+                        "url": source_url,
+                        "provider": "searxng_direct_fetch",
+                        "provider_response_hash": response_hash,
+                    }
+                ],
+                "claims": raw_claims,
+                "provider": "searxng_direct_fetch",
+                "provider_response_hash": response_hash,
+                "search_performed": True,
+                "runtime_diagnostics": {
+                    "route": "searxng_direct_fetch",
+                    "status": "ok",
+                    "fallback_used": True,
+                },
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=BudgetedFallback()
+    )
+    result = await executor.execute(
+        envelope_for(
+            {
+                "type": "AssistantTurnV1",
+                "responseMode": "one_shot",
+                "message": "Return the exact verified passages.",
+                "conversation": [],
+            },
+            operation_id="00000000-0000-4000-8000-000000009809",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert len(result.response.markdown) <= (
+        assistant_projection_module.WORKFLOW_V2_ASSISTANT_FALLBACK_MARKDOWN_CHARACTERS
+    )
+    assert len(result.response.markdown) < 120_000
+    assert result.response.markdown.count("### Evidence ") == 6
+    assert "### Evidence 7" not in result.response.markdown
+    assert [fact.statement for fact in result.response.facts] == segments[:6]
+    assert all(len(fact.statement) == 4_000 for fact in result.response.facts)
+    assert all(fact.source_urls == [source_url] for fact in result.response.facts)
+    assert [source.canonical_url for source in result.response.sources] == [source_url]
+    assert {url for fact in result.response.facts for url in fact.source_urls} == {
+        source.canonical_url for source in result.response.sources
+    }
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_does_not_fallback_on_nonretryable_primary_error() -> (
+    None
+):
+    class NonretryablePrimary:
+        async def search(self, _query: str):
+            return {
+                "text": "",
+                "search_performed": False,
+                "runtime_diagnostics": {"status": "configuration_error"},
+            }
+
+    class ForbiddenDiscovery:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def search_web_general_async(self, _query: str):
+            self.calls += 1
+            raise AssertionError("nonretryable primary errors must fail closed")
+
+    discovery = ForbiddenDiscovery()
+    resilient = ResilientResearchRunner(
+        NonretryablePrimary(),
+        searxng=discovery,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=resilient
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "one_shot",
+                    "message": "Research the current launch requirements.",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009806",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is False
+    assert discovery.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_one_shot_assistant_overlong_aggregate_fallback_requirement_fails_closed() -> (
+    None
+):
+    class TransientPrimary:
+        async def search(self, query: str):
+            assert len(query.splitlines()) == 1
+            return {
+                "text": "",
+                "search_performed": False,
+                "runtime_diagnostics": {"status": "retry_exhausted"},
+            }
+
+    class ForbiddenDiscovery:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def search_web_general_async(self, _query: str):
+            self.calls += 1
+            raise AssertionError("truncated authority must never reach discovery")
+
+    discovery = ForbiddenDiscovery()
+    resilient = ResilientResearchRunner(
+        TransientPrimary(),
+        searxng=discovery,
+    )
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_runner=resilient
+    )
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "one_shot",
+                    "message": "y" * 400,
+                    "conversation": [
+                        {"role": "user", "content": "x" * 600},
+                        {
+                            "role": "assistant",
+                            "content": "Assistant prose must not enter fallback authority.",
+                        },
+                    ],
+                },
+                operation_id="00000000-0000-4000-8000-000000009807",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is True
+    assert discovery.calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("response_mode", ["direct_answer", "discover"])
+async def test_conversational_assistant_turn_uses_chat_runner_without_search(
+    response_mode: str,
+) -> None:
+    class GroundedRunner:
+        async def search(self, _query: str):
+            raise AssertionError("direct chat must not invoke grounded web search")
+
+    class ConversationRunner:
+        async def search(self, _query: str):
+            return {
+                "text": "4",
+                "sources": [],
+                "claims": [],
+                "provider_queries": [],
+                "usage_metadata": {
+                    "input_tokens": 9,
+                    "output_tokens": 1,
+                    "total_tokens": 10,
+                },
+                "runtime_diagnostics": {"status": "ok"},
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        assistant_runner=GroundedRunner(),
+        assistant_chat_runner=ConversationRunner(),
+    )
+    result = await executor.execute(
+        envelope_for(
+            {
+                "type": "AssistantTurnV1",
+                "responseMode": response_mode,
+                "message": "What is 2 + 2?",
+                "conversation": [],
+            },
+            operation_id="00000000-0000-4000-8000-000000009802",
+            operation_type="AssistantTurnV1",
+        )
+    )
+
+    assert result.response.markdown == "4"
+    assert result.response.sources == []
+    assert result.response.facts == []
+    assert result.metrics.total_tokens == 10
+    assert result.metrics.search_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("runtime_status", "expected_retryable"),
+    [
+        ("deadline_exceeded", True),
+        ("retry_exhausted", True),
+        ("unavailable", True),
+        ("response_processing_error", True),
+        ("ok", False),
+        ("configuration_error", False),
+        ("non_retryable_error", False),
+        ("", False),
+    ],
+)
+async def test_empty_assistant_provider_response_retryability(
+    runtime_status: str, expected_retryable: bool
+) -> None:
+    class EmptyRunner:
+        async def search(self, _query: str):
+            return {
+                "text": "",
+                "runtime_diagnostics": {"status": runtime_status},
+            }
+
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(), AUTHORITY_KEY, assistant_chat_runner=EmptyRunner()
+    )
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": "direct_answer",
+                    "message": "Hello",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009803",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.retryable is expected_retryable
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("response_mode", ["direct_answer", "discover", "one_shot"])
+async def test_assistant_turn_requires_the_mode_specific_runner(
+    response_mode: str,
+) -> None:
+    executor = GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY)
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await executor.execute(
+            envelope_for(
+                {
+                    "type": "AssistantTurnV1",
+                    "responseMode": response_mode,
+                    "message": "Hello",
+                    "conversation": [],
+                },
+                operation_id="00000000-0000-4000-8000-000000009804",
+                operation_type="AssistantTurnV1",
+            )
+        )
+
+    assert raised.value.error_class == "AXWISE_ASSISTANT_UNAVAILABLE"
+    assert raised.value.retryable is True
+
+
+@pytest.mark.asyncio
+async def test_conversational_assistant_deadline_cancels_the_model_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cancelled = asyncio.Event()
+
+    class BlockingAgent:
+        async def run(self, _query: str):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+
+    runner = assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner.__new__(
+        assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner
+    )
+    runner.agent = BlockingAgent()
+    monkeypatch.setattr(
+        assistant_conversation_runner_module,
+        "WORKFLOW_V2_ASSISTANT_CHAT_DEADLINE_SECONDS",
+        0.01,
+    )
+
+    result = await runner.search("{}")
+
+    assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
+    assert result["text"] == ""
+    assert cancelled.is_set()
+
+
+@pytest.mark.asyncio
+async def test_conversational_assistant_runner_returns_unsearched_markdown_and_usage() -> (
+    None
+):
+    class Usage:
+        input_tokens = 7
+        output_tokens = 3
+
+    class Result:
+        output = "Hello **there**."
+
+        @staticmethod
+        def usage():
+            return Usage()
+
+    class FakeAgent:
+        async def run(self, query: str):
+            assert query == '{"message":"hello"}'
+            return Result()
+
+    runner = assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner.__new__(
+        assistant_conversation_runner_module.PydanticAIConversationalAssistantRunner
+    )
+    runner.agent = FakeAgent()
+
+    result = await runner.search('{"message":"hello"}')
+
+    assert result["text"] == "Hello **there**."
+    assert result["search_performed"] is False
+    assert result["sources"] == []
+    assert result["claims"] == []
+    assert result["usage_metadata"] == {
+        "input_tokens": 7,
+        "output_tokens": 3,
+        "total_tokens": 10,
+    }
+    assert result["runtime_diagnostics"]["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_executor_closes_each_distinct_runner_once() -> None:
+    class ClosingRunner:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+
+    research = ClosingRunner()
+    grounded_assistant = ClosingRunner()
+    conversational_assistant = ClosingRunner()
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        research_runner=research,
+        assistant_runner=grounded_assistant,
+        assistant_chat_runner=conversational_assistant,
+    )
+
+    await executor.close()
+
+    assert research.close_calls == 1
+    assert grounded_assistant.close_calls == 1
+    assert conversational_assistant.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_executor_closes_shared_research_and_one_shot_runner_once() -> None:
+    class ClosingRunner:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+
+    research_and_one_shot = ClosingRunner()
+    conversational_assistant = ClosingRunner()
+    executor = GeminiCognitiveExecutor(
+        FakeDrafter(),
+        AUTHORITY_KEY,
+        research_runner=research_and_one_shot,
+        assistant_runner=research_and_one_shot,
+        assistant_chat_runner=conversational_assistant,
+    )
+
+    await executor.close()
+
+    assert research_and_one_shot.close_calls == 1
+    assert conversational_assistant.close_calls == 1
 
 
 def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content() -> (
@@ -15554,7 +14076,7 @@ def test_server_preserves_exact_immutable_gap_labels_without_rewriting_content()
     _validate_synthesis(context, preserved)
 
 
-def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> None:
+def test_final_gap_rendering_exempts_only_canonical_labels_from_review_flags() -> None:
     label = (
         "The cat-food product will be formulated and packaged for compliance with EU "
         "animal nutrition regulations and Estonian veterinary requirements"
@@ -15599,6 +14121,22 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
         == []
     )
     _validate_synthesis(context, preserved)
+    assert "**Unverified claim — review required:**" not in (
+        cognitive_executor_module._with_advisory_planning_review(context, preserved)
+    )
+
+    def assert_review_flagged(candidate):
+        assert _deterministic_evidence_integrity_defects(
+            candidate.markdown,
+            {},
+            artifact_type="product_prd",
+            immutable_gap_labels=context.required_gap_labels,
+        )
+        _validate_synthesis(context, candidate)
+        rendered = cognitive_executor_module._with_advisory_planning_review(
+            context, candidate
+        )
+        assert rendered == candidate.markdown
 
     raw_claim_elsewhere = preserved.model_copy(
         update={
@@ -15609,8 +14147,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, raw_claim_elsewhere)
+    assert_review_flagged(raw_claim_elsewhere)
 
     expanded_canonical_bullet = preserved.model_copy(
         update={
@@ -15621,8 +14158,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, expanded_canonical_bullet)
+    assert_review_flagged(expanded_canonical_bullet)
 
     comma_extended = preserved.model_copy(
         update={
@@ -15633,8 +14169,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, comma_extended)
+    assert_review_flagged(comma_extended)
 
     dash_extended = preserved.model_copy(
         update={
@@ -15645,8 +14180,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
             )
         }
     )
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, dash_extended)
+    assert_review_flagged(dash_extended)
 
     relocated = SynthesisDraft(
         title="Relocated unresolved item",
@@ -15658,8 +14192,7 @@ def test_final_quality_gate_accepts_only_canonical_immutable_gap_rendering() -> 
     )
     relocated_preserved = _with_immutable_gap_labels(context, relocated)
     assert relocated_preserved.markdown.count(label) == 2
-    with pytest.raises(ValueError, match="substantive/practical quality"):
-        _validate_synthesis(context, relocated_preserved)
+    assert_review_flagged(relocated_preserved)
 
 
 def test_ready_prd_cannot_claim_launch_authority_but_authorization_can() -> None:

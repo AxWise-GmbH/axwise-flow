@@ -1,0 +1,17 @@
+FROM node:22-bookworm-slim AS tooling
+RUN apt-get update && apt-get install -y --no-install-recommends util-linux ca-certificates && rm -rf /var/lib/apt/lists/*
+
+FROM tooling AS pristine
+RUN mkdir -p /workspace /approved-tests && find / -xdev -type f -perm /6000 -exec chmod a-s {} +
+
+FROM tooling AS supervisor
+WORKDIR /app
+COPY deploy/workflow-v2/service-package/package.json ./package.json
+COPY deploy/workflow-v2/service-package/package-lock.json ./package-lock.json
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY --from=pristine / /opt/coding-rootfs/
+COPY server/workflow-v2/coding-worker-main.js server/workflow-v2/coding-worker-cloud-run.js server/workflow-v2/coding-worker-contracts.js ./server/workflow-v2/
+COPY shared/workflow-v2/solution-build-secrets.js ./shared/workflow-v2/
+COPY services/agentic-control-plane/src/domain/canonical.js ./services/agentic-control-plane/src/domain/
+ENV NODE_ENV=production PORT=8080
+CMD ["node", "server/workflow-v2/coding-worker-main.js"]

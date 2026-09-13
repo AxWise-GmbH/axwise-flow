@@ -1,0 +1,270 @@
+{
+  "environment": "preview",
+  "secretVersions": {
+    "adminDatabasePassword": "<positive numeric version>",
+    "clerkPublishableKey": "<positive numeric version>",
+    "clerkSecretKey": "<positive numeric version>",
+    "orqalyIdentityDatabaseUrl": "<positive numeric version>",
+    "orqalyApiDatabaseUrl": "<positive numeric version>",
+    "orqalyWorkerDatabaseUrl": "<positive numeric version>",
+    "axwiseApiDatabaseUrl": "<positive numeric version>",
+    "axwiseWorkerDatabaseUrl": "<positive numeric version>",
+    "axwiseGeminiApiKey": "<positive numeric version>",
+    "axwiseAuthoritySeal": "<positive numeric version>"
+  },
+  "clerk": {
+    "issuer": "<observed Preview Clerk issuer URL>",
+    "instanceFingerprint": "<observed lowercase SHA-256 fingerprint>",
+    "verification": {
+      "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+      "generation": "<positive generation>",
+      "reportSha256": "<raw report SHA-256>",
+      "caseId": "identity.clerk_preview_instance"
+    }
+  },
+  "model": { "name": "models/gemini-3.8-flash", "reasoningLevel": "high" },
+  "cloudSql": {
+    "connectionName": "axwise-v2-preview-001:europe-west4:orqaly-v2-preview-001-pg",
+    "orqalyDatabase": "orqaly_v2_preview_001",
+    "axwiseDatabase": "axwise_v2_preview_001",
+    "freshBaseline": true,
+    "releaseMarkers": {
+      "orqaly": {
+        "component": "orqaly",
+        "migrationNumber": 1,
+        "migrationPath": "database/workflow-v2/migrations/001_clean_workflow_v2.sql",
+        "migrationSha256": "<exact tracked Orqaly 001 SHA-256>",
+        "bindingsPath": "infra/gcp/workflow-v2/preview-role-bindings.sql",
+        "bindingsSha256": "<exact tracked Orqaly bindings SHA-256>",
+        "sourceCommit": "<exact 40-character Orqaly HEAD>",
+        "additiveMigrations": [
+          {
+            "migrationNumber": 2,
+            "migrationPath": "database/workflow-v2/migrations/002_assistant_goal.sql",
+            "migrationSha256": "<exact tracked Orqaly 002 SHA-256>",
+            "sourceCommit": "<exact 40-character Orqaly HEAD>"
+          },
+          {
+            "migrationNumber": 3,
+            "migrationPath": "database/workflow-v2/migrations/003_personal_tenant_jit.sql",
+            "migrationSha256": "<exact tracked Orqaly 003 SHA-256>",
+            "sourceCommit": "<exact 40-character Orqaly HEAD>"
+          },
+          {
+            "migrationNumber": 4,
+            "migrationPath": "database/workflow-v2/migrations/004_assistant_retry_lineage.sql",
+            "migrationSha256": "<exact tracked Orqaly 004 SHA-256>",
+            "sourceCommit": "<exact 40-character Orqaly HEAD>"
+          },
+          {
+            "migrationNumber": 5,
+            "migrationPath": "database/workflow-v2/migrations/005_assistant_turn_events.sql",
+            "migrationSha256": "<exact tracked Orqaly 005 SHA-256>",
+            "sourceCommit": "<exact 40-character Orqaly HEAD>"
+          },
+          {
+            "migrationNumber": 6,
+            "migrationPath": "database/workflow-v2/migrations/006_assistant_turn_provenance.sql",
+            "migrationSha256": "<exact tracked Orqaly 006 SHA-256>",
+            "sourceCommit": "<exact 40-character Orqaly HEAD>"
+          },
+          {
+            "migrationNumber": 7,
+            "migrationPath": "database/workflow-v2/migrations/007_assistant_grounded_sources_reason.sql",
+            "migrationSha256": "<exact tracked Orqaly 007 SHA-256>",
+            "sourceCommit": "<exact 40-character Orqaly HEAD>"
+          }
+        ]
+      },
+      "axwise": {
+        "component": "axwise",
+        "migrationNumber": 1,
+        "migrationPath": "backend/database/workflow_v2/001_cognitive_operations.sql",
+        "migrationSha256": "<exact tracked AxWise 001 SHA-256>",
+        "bindingsPath": "deploy/workflow-v2/preview-role-bindings.sql",
+        "bindingsSha256": "<exact tracked AxWise bindings SHA-256>",
+        "sourceCommit": "<exact 40-character AxWise HEAD>",
+        "additiveMigrations": []
+      }
+    },
+    "structuralVerification": {
+      "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+      "generation": "<positive generation>",
+      "reportSha256": "<raw report SHA-256>",
+      "caseId": "cloudsql.structural_rls"
+    }
+  },
+  "e2e": {
+    "simple": {
+      "observability": {
+        "traceId": "<correlated trace ID>",
+        "correlatedLogs": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.simple.correlated_logs"
+        },
+        "leases": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.simple.leases"
+        },
+        "retries": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.simple.retries"
+        },
+        "tenantBoundary": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.simple.tenant_boundary"
+        }
+      },
+      "gcsExport": {
+        "uri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/tenants/<tenant UUID>/runs/<run UUID>/artifacts/<artifact UUID>/<artifact hash>.md",
+        "generation": "<positive generation>",
+        "artifactContentHash": "<same immutable DB final artifact hash>",
+        "rawSha256": "<raw Markdown bytes SHA-256>"
+      }
+    },
+    "advanced": {
+      "observability": {
+        "traceId": "<correlated trace ID>",
+        "correlatedLogs": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.advanced.correlated_logs"
+        },
+        "leases": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.advanced.leases"
+        },
+        "retries": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.advanced.retries"
+        },
+        "tenantBoundary": {
+          "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+          "generation": "<positive generation>",
+          "reportSha256": "<raw report SHA-256>",
+          "caseId": "e2e.advanced.tenant_boundary"
+        }
+      },
+      "gcsExport": {
+        "uri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/tenants/<tenant UUID>/runs/<run UUID>/artifacts/<artifact UUID>/<artifact hash>.md",
+        "generation": "<positive generation>",
+        "artifactContentHash": "<same immutable DB final artifact hash>",
+        "rawSha256": "<raw Markdown bytes SHA-256>"
+      }
+    }
+  },
+  "faultGates": {
+    "axwise_500_attempt_n_plus_1_same_stage": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.axwise_500_attempt_n_plus_1_same_stage"
+      }
+    },
+    "poll_202_no_new_attempt_or_job": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.poll_202_no_new_attempt_or_job"
+      }
+    },
+    "lost_post_or_completion_adopts_same_result": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.lost_post_or_completion_adopts_same_result"
+      }
+    },
+    "deployment_rotation_preserves_durable_identity": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.deployment_rotation_preserves_durable_identity"
+      }
+    },
+    "expired_or_stale_lease_cannot_finalize": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.expired_or_stale_lease_cannot_finalize"
+      }
+    },
+    "duplicate_approval_is_idempotent": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.duplicate_approval_is_idempotent"
+      }
+    },
+    "cross_tenant_read_claim_reference_denied": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.cross_tenant_read_claim_reference_denied"
+      }
+    },
+    "optional_gaps_complete_without_launch_ready_claim": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.optional_gaps_complete_without_launch_ready_claim"
+      }
+    },
+    "essential_legal_or_safety_gap_blocks": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.essential_legal_or_safety_gap_blocks"
+      }
+    },
+    "outbox_replay_does_not_duplicate_downstream_work": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.outbox_replay_does_not_duplicate_downstream_work"
+      }
+    },
+    "tenant_agent_filter_precedes_rank_and_limit": {
+      "passed": true,
+      "evidence": {
+        "reportUri": "gs://axwise-v2-preview-001-orqaly-v2-preview-001-artifacts/release-evidence/<report>.json",
+        "generation": "<positive generation>",
+        "reportSha256": "<raw report SHA-256>",
+        "caseId": "fault.tenant_agent_filter_precedes_rank_and_limit"
+      }
+    }
+  }
+}

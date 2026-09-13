@@ -5,6 +5,7 @@ import hashlib
 import json
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from backend.domain.workflow_v2.contracts import canonical_json
@@ -16,10 +17,9 @@ from backend.services.workflow_v2.exact_span_extractor import (
     assemble_exact_span_result,
 )
 from backend.services.workflow_v2.resilient_research_runner import (
-    ResilientResearchRunner,
     WORKFLOW_V2_FALLBACK_PHASE_SECONDS,
+    ResilientResearchRunner,
 )
-
 
 pytestmark = pytest.mark.contract
 
@@ -213,7 +213,9 @@ async def test_primary_success_exposes_accepted_response_url_as_locator_only() -
 
 
 @pytest.mark.asyncio
-async def test_same_operation_repair_locator_is_refetched_without_reasking_primary() -> None:
+async def test_same_operation_repair_locator_is_refetched_without_reasking_primary() -> (
+    None
+):
     url = "https://pta.agri.ee/pet-food-rules"
     exact = "Feed business operators must notify the competent authority."
     primary = FakePrimary(
@@ -346,9 +348,12 @@ async def test_transient_primary_official_url_is_refetched_as_locator_only() -> 
     )
     assert result["sources"][0]["url"] == official_url
     claim = result["claims"][0]
-    assert result["text"].encode("utf-8")[
-        claim["segment_start"] : claim["segment_end"]
-    ].decode("utf-8") == exact
+    assert (
+        result["text"]
+        .encode("utf-8")[claim["segment_start"] : claim["segment_end"]]
+        .decode("utf-8")
+        == exact
+    )
     assert claim["provider_response_hash"] == expected_hash
     assert claim["source_urls"] == [official_url]
 
@@ -462,6 +467,7 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
             "elapsed_ms": 41_669,
             "call_count": 3,
             "retry_count": 2,
+            "upstream_status_code": 400,
         },
     }
     primary = FakePrimary(mixed_failure)
@@ -479,6 +485,8 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
         "elapsed_ms": 41_669,
         "call_count": 3,
         "retry_count": 2,
+        "upstream_status_code": 400,
+        "retry_after_seconds": 450,
     }
     assert second["runtime_diagnostics"]["primary"] == {
         "route": "gemini_google_search",
@@ -488,11 +496,14 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
         "retry_count": 0,
         "primary_skipped": True,
         "circuit_state": "open",
+        "retry_after_seconds": 450,
     }
 
 
 @pytest.mark.asyncio
-async def test_sync_only_discovery_is_rejected_without_starting_background_work() -> None:
+async def test_sync_only_discovery_is_rejected_without_starting_background_work() -> (
+    None
+):
     class SyncOnlySearx:
         def __init__(self) -> None:
             self.calls = 0
@@ -511,7 +522,9 @@ async def test_sync_only_discovery_is_rejected_without_starting_background_work(
 
 
 @pytest.mark.asyncio
-async def test_concurrent_transient_uses_one_primary_probe_and_zero_call_skips() -> None:
+async def test_concurrent_transient_uses_one_primary_probe_and_zero_call_skips() -> (
+    None
+):
     class BlockingTransientPrimary(FakePrimary):
         def __init__(self) -> None:
             result = metered_transient()
@@ -558,6 +571,7 @@ async def test_concurrent_transient_uses_one_primary_probe_and_zero_call_skips()
             "retry_count": 0,
             "primary_skipped": True,
             "circuit_state": "open",
+            "retry_after_seconds": 450,
         }
         assert diagnostics["primary_provider_query_count"] == 0
         assert result["usage_metadata"] == {
@@ -609,6 +623,7 @@ async def test_cooldown_skips_then_reprobes_primary_at_exact_expiry() -> None:
     skipped = await runner.search(server_query())
     assert len(primary.queries) == 1
     assert skipped["runtime_diagnostics"]["primary"]["primary_skipped"] is True
+    assert skipped["runtime_diagnostics"]["primary"]["retry_after_seconds"] == 10
 
     now[0] = 110.0
     reprobed = await runner.search(server_query())
@@ -750,7 +765,9 @@ async def test_cancelled_gate_owner_without_waiter_leaves_no_orphan() -> None:
 
 
 @pytest.mark.asyncio
-async def test_double_cancellation_while_releasing_probe_gate_restores_invariants() -> None:
+async def test_double_cancellation_while_releasing_probe_gate_restores_invariants() -> (
+    None
+):
     class ReturningPrimary(FakePrimary):
         def __init__(self) -> None:
             super().__init__(transient())
@@ -1208,6 +1225,54 @@ def test_virtual_max_cardinality_fallback_fits_research_deadline() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("fallback_seconds", [60.0, 5.0])
+async def test_assistant_discovery_twenty_seconds_stays_inside_aggregate_deadline(
+    monkeypatch: pytest.MonkeyPatch, fallback_seconds: float
+) -> None:
+    deadlines: list[tuple[float, float]] = []
+    original_timeout_at = asyncio.timeout_at
+
+    def record_timeout_at(deadline: float):
+        deadlines.append((asyncio.get_running_loop().time(), deadline))
+        return original_timeout_at(deadline)
+
+    monkeypatch.setattr(asyncio, "timeout_at", record_timeout_at)
+    url = "https://publisher.example/pricing"
+    exact = "The listed chair price is EUR 120."
+
+    async def fetch(_url: str) -> dict:
+        return document(url, exact)
+
+    runner = ResilientResearchRunner(
+        FakePrimary(transient()),
+        searxng=FakeSearx(discovery(sources=[{"url": url, "title": "Price"}])),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+        discovery_seconds=20.0,
+        fallback_phase_seconds=fallback_seconds,
+    )
+    started = asyncio.get_running_loop().time()
+    result = await runner.search(server_query(accepted_source_types=["grounded_web"]))
+
+    assert result["search_performed"] is True
+    assert len(deadlines) == 3  # discovery, fetch, extraction
+    assert deadlines[0][1] - deadlines[0][0] == pytest.approx(
+        min(20.0, fallback_seconds), abs=0.05
+    )
+    assert all(
+        deadline <= started + fallback_seconds + 0.05 for _, deadline in deadlines
+    )
+    assert WORKFLOW_V2_FALLBACK_PHASE_SECONDS == 60.0
+    assert ResilientResearchRunner(FakePrimary(transient())).discovery_seconds == 10.0
+
+
+@pytest.mark.parametrize("seconds", [0, -1, float("nan"), float("inf"), 20.01])
+def test_discovery_allowance_cannot_exceed_twenty_seconds(seconds: float) -> None:
+    with pytest.raises(ValueError, match="discovery_seconds"):
+        ResilientResearchRunner(FakePrimary(transient()), discovery_seconds=seconds)
+
+
+@pytest.mark.asyncio
 async def test_discovery_is_cancelled_by_aggregate_fallback_deadline() -> None:
     class BlockingSearx(FakeSearx):
         def __init__(self) -> None:
@@ -1227,6 +1292,7 @@ async def test_discovery_is_cancelled_by_aggregate_fallback_deadline() -> None:
         FakePrimary(transient()),
         searxng=searx,
         fallback_phase_seconds=0.01,
+        discovery_seconds=20.0,
     )
 
     result = await asyncio.wait_for(runner.search(server_query()), timeout=1)
@@ -1337,9 +1403,10 @@ async def test_exact_unique_searx_snippet_is_bound_to_direct_document() -> None:
     assert result["search_performed"] is True
     assert result["provider"] == "searxng_direct_fetch"
     assert result["text"] == response
-    assert result["provider_response_hash"] == hashlib.sha256(
-        response.encode("utf-8")
-    ).hexdigest()
+    assert (
+        result["provider_response_hash"]
+        == hashlib.sha256(response.encode("utf-8")).hexdigest()
+    )
     assert result["claims"] == [
         {
             "text": exact,
@@ -1372,10 +1439,12 @@ class ExactExtractor:
         *,
         input_tokens: int = 0,
         output_tokens: int = 0,
+        model_version: str | None = None,
     ) -> None:
         self.text = text
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
+        self.model_version = model_version
         self.requests: list[ExactSpanExtractionRequest] = []
         self.closed = 0
 
@@ -1397,10 +1466,52 @@ class ExactExtractor:
             ),
             input_tokens=self.input_tokens,
             output_tokens=self.output_tokens,
+            model_version=self.model_version,
         )
 
     async def close(self) -> None:
         self.closed += 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("primary_version", "extractor_version", "expected"),
+    [
+        (None, None, None),
+        ("gemini-3.8-flash-001", None, None),
+        (None, "gemini-3.8-flash-001", None),
+        (
+            "gemini-3.8-flash-001",
+            "gemini-3.8-flash-001",
+            "gemini-3.8-flash-001",
+        ),
+        ("gemini-3.8-flash-001", "gemini-3.8-flash-002", None),
+    ],
+)
+async def test_fallback_model_version_requires_every_call_to_agree(
+    primary_version: str | None,
+    extractor_version: str | None,
+    expected: str | None,
+) -> None:
+    url = "https://pta.agri.ee/model-version"
+    exact = "Feed operators shall retain exact traceability records."
+    primary_result = metered_transient("unavailable")
+    if primary_version is not None:
+        primary_result["model_version"] = primary_version
+
+    async def fetch(_url: str) -> dict:
+        return document(url, f"Preamble. {exact} Annex.")
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_result),
+        searxng=FakeSearx(
+            discovery(sources=[{"url": url, "title": "Official rules"}])
+        ),
+        fetcher=fetch,
+        extractor=ExactExtractor(exact, model_version=extractor_version),
+    ).search(server_query())
+
+    assert result.get("model_version") == expected
 
 
 class EmptyExtractor:
@@ -1418,7 +1529,9 @@ class EmptyExtractor:
 
 
 @pytest.mark.asyncio
-async def test_exact_search_snippet_without_typed_extractor_preserves_transient() -> None:
+async def test_exact_search_snippet_without_typed_extractor_preserves_transient() -> (
+    None
+):
     url = "https://pta.agri.ee/rules"
     exact = "This snippet is also present in the publisher document."
 
@@ -1444,7 +1557,9 @@ async def test_exact_search_snippet_without_typed_extractor_preserves_transient(
 
 
 @pytest.mark.asyncio
-async def test_snippet_mismatch_is_rejected_and_typed_extractor_may_supply_span() -> None:
+async def test_snippet_mismatch_is_rejected_and_typed_extractor_may_supply_span() -> (
+    None
+):
     url = "https://eur-lex.europa.eu/legal-content/EN/TXT/"
     exact = "Cats require €-denominated compliant labels."
     extractor = ExactExtractor(exact)
@@ -1504,7 +1619,9 @@ async def test_extractor_span_repeated_in_document_preserves_transient() -> None
 
 
 @pytest.mark.asyncio
-async def test_untrusted_snippet_only_locates_a_bounded_fetched_document_window() -> None:
+async def test_untrusted_snippet_only_locates_a_bounded_fetched_document_window() -> (
+    None
+):
     url = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=window"
     exact = "The exact legal passage is near the end of the publisher document."
     raw_text = "irrelevant preface " * 20 + exact + " annex"
@@ -1795,12 +1912,18 @@ async def test_operation_local_duplicate_keeps_title_and_merges_fresh_snippet() 
     assert fetched == [reused_url]
     assert result["sources"][0]["title"] == "Accepted title"
     assert result["claims"][0]["text"] == exact
-    assert result["text"].encode("utf-8")[
-        result["claims"][0]["segment_start"] : result["claims"][0]["segment_end"]
-    ].decode("utf-8") == exact
-    assert result["provider_response_hash"] == hashlib.sha256(
-        result["text"].encode("utf-8")
-    ).hexdigest()
+    assert (
+        result["text"]
+        .encode("utf-8")[
+            result["claims"][0]["segment_start"] : result["claims"][0]["segment_end"]
+        ]
+        .decode("utf-8")
+        == exact
+    )
+    assert (
+        result["provider_response_hash"]
+        == hashlib.sha256(result["text"].encode("utf-8")).hexdigest()
+    )
 
 
 @pytest.mark.asyncio
@@ -2048,9 +2171,10 @@ async def test_explicit_eu_regulation_outranks_degraded_search_results() -> None
     assert result["provider"] == "searxng_direct_fetch"
     assert result["sources"][0]["url"] == regulation_767
     assert result["claims"][0]["text"] == exact
-    assert result["provider_response_hash"] == hashlib.sha256(
-        result["text"].encode("utf-8")
-    ).hexdigest()
+    assert (
+        result["provider_response_hash"]
+        == hashlib.sha256(result["text"].encode("utf-8")).hexdigest()
+    )
 
 
 @pytest.mark.asyncio
@@ -2186,7 +2310,9 @@ async def test_healthy_empty_searx_result_is_successful_zero_evidence() -> None:
 
 
 @pytest.mark.asyncio
-async def test_empty_result_with_every_engine_unresponsive_preserves_transient() -> None:
+async def test_empty_result_with_every_engine_unresponsive_preserves_transient() -> (
+    None
+):
     searx_result = discovery(status="empty", search_performed=False)
     searx_result["runtime_diagnostics"]["unresponsive_engines"] = [
         {"engine": engine, "reason": "unavailable"}
@@ -2225,7 +2351,49 @@ async def test_unavailable_searx_preserves_primary_transient_status() -> None:
 
 
 @pytest.mark.asyncio
-async def test_untrusted_search_performed_flag_cannot_override_bad_discovery_status() -> None:
+async def test_missing_primary_grounding_evidence_attempts_verified_fallback() -> None:
+    url = "https://example.gov.ee/current-rules"
+    exact = "Current rules require the responsible operator to be identified."
+    primary_result = transient("response_processing_error")
+    primary_result.update(
+        {
+            "text": "",
+            "sources": [],
+            "claims": [],
+            "error": "MissingGroundingEvidence",
+        }
+    )
+    primary = FakePrimary(primary_result)
+    searx = FakeSearx(
+        discovery(sources=[{"url": url, "title": "Current rules"}])
+    )
+
+    async def fetch(_url: str) -> dict:
+        return document(url, f"Publisher heading. {exact} Publisher footer.")
+
+    result = await ResilientResearchRunner(
+        primary,
+        searxng=searx,
+        fetcher=fetch,
+        extractor=ExactExtractor(exact),
+    ).search(server_query())
+
+    assert len(primary.queries) == 1
+    assert len(searx.queries) == 1
+    assert result["search_performed"] is True
+    assert result["provider"] == "searxng_direct_fetch"
+    assert result["claims"][0]["text"] == exact
+    assert result["runtime_diagnostics"]["primary_status"] == (
+        "response_processing_error"
+    )
+    assert result["runtime_diagnostics"]["fallback_attempted"] is True
+    assert result["runtime_diagnostics"]["fallback_used"] is True
+
+
+@pytest.mark.asyncio
+async def test_untrusted_search_performed_flag_cannot_override_bad_discovery_status() -> (
+    None
+):
     malformed = discovery(
         sources=[],
         status="response_processing_error",
@@ -2250,7 +2418,9 @@ async def test_untrusted_search_performed_flag_cannot_override_bad_discovery_sta
 
 
 @pytest.mark.asyncio
-async def test_real_adapter_mixed_malformed_rows_cannot_become_healthy_missing() -> None:
+async def test_real_adapter_mixed_malformed_rows_cannot_become_healthy_missing() -> (
+    None
+):
     url = "https://eur-lex.europa.eu/legal-content/EN/TXT/"
     response = MagicMock()
     response.raise_for_status.return_value = None
@@ -2364,7 +2534,9 @@ async def test_real_adapter_preserves_late_authority_for_runner_filtering() -> N
 
 
 @pytest.mark.asyncio
-async def test_unsafe_candidates_and_cross_host_redirects_cannot_become_evidence() -> None:
+async def test_unsafe_candidates_and_cross_host_redirects_cannot_become_evidence() -> (
+    None
+):
     allowed = "pta.agri.ee"
     safe_url = f"https://{allowed}/rules"
     fetched: list[str] = []
@@ -2398,7 +2570,9 @@ async def test_unsafe_candidates_and_cross_host_redirects_cannot_become_evidence
 
 
 @pytest.mark.asyncio
-async def test_ranked_candidate_order_dedupe_and_one_document_hash_are_deterministic() -> None:
+async def test_ranked_candidate_order_dedupe_and_one_document_hash_are_deterministic() -> (
+    None
+):
     first_url = "https://a.example.ee/rules"
     second_url = "https://b.example.ee/rules"
     exact = "This exact sentence appears once."
@@ -2452,12 +2626,14 @@ async def test_ranked_candidate_order_dedupe_and_one_document_hash_are_determini
 @pytest.mark.asyncio
 async def test_all_direct_fetch_errors_preserve_primary_transient() -> None:
     url = "https://example.ee/source"
+    primary_failure = transient()
+    primary_failure["runtime_diagnostics"]["upstream_status_code"] = 503
 
     async def unavailable_fetch(_url: str) -> dict:
         raise TimeoutError("temporary fetch outage")
 
     result = await ResilientResearchRunner(
-        FakePrimary(transient()),
+        FakePrimary(primary_failure),
         searxng=FakeSearx(
             discovery(sources=[{"url": url, "title": "Publisher"}])
         ),
@@ -2466,7 +2642,29 @@ async def test_all_direct_fetch_errors_preserve_primary_transient() -> None:
 
     assert result["search_performed"] is False
     assert result["runtime_diagnostics"]["status"] == "deadline_exceeded"
+    assert result["runtime_diagnostics"]["upstream_status_code"] == 503
     assert result["runtime_diagnostics"]["fallback"]["status"] == "direct_fetch_error"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "unsafe_status_code",
+    [True, "503", 503.0, 99, 600, "503\nsensitive provider response"],
+)
+async def test_fallback_diagnostics_reject_unsafe_primary_status_codes(
+    unsafe_status_code: object,
+) -> None:
+    primary_failure = transient()
+    primary_failure["runtime_diagnostics"]["upstream_status_code"] = unsafe_status_code
+
+    result = await ResilientResearchRunner(
+        FakePrimary(primary_failure),
+        searxng=FakeSearx(discovery()),
+    ).search("not a canonical fallback query")
+
+    assert result["runtime_diagnostics"]["fallback_used"] is False
+    assert "upstream_status_code" not in result["runtime_diagnostics"]
+    assert "sensitive provider response" not in str(result)
 
 
 class BlockingSearx(FakeSearx):
@@ -2612,6 +2810,109 @@ async def test_incomplete_query_may_still_yield_exact_verified_evidence() -> Non
 
 
 @pytest.mark.asyncio
+async def test_verified_partial_source_survives_another_fetch_failure_with_safe_logs(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    first_url = "https://unavailable.example/prices?secret=never-log-this"
+    second_url = "https://publisher.example/prices"
+    exact = "The listed chair price is EUR 120."
+
+    async def partial_fetch(url: str) -> dict:
+        if url == first_url:
+            raise TimeoutError("secret=never-log-this and raw provider response")
+        return document(second_url, exact)
+
+    with caplog.at_level(
+        "INFO", logger="backend.services.workflow_v2.resilient_research_runner"
+    ):
+        result = await ResilientResearchRunner(
+            FakePrimary(transient()),
+            searxng=FakeSearx(
+                discovery(
+                    sources=[
+                        {"url": first_url, "title": "Unavailable publisher"},
+                        {"url": second_url, "title": "Publisher prices"},
+                    ]
+                )
+            ),
+            fetcher=partial_fetch,
+            extractor=ExactExtractor(exact),
+            discovery_seconds=20.0,
+        ).search(server_query(accepted_source_types=["grounded_web"]))
+
+    assert result["search_performed"] is True
+    assert [claim["text"] for claim in result["claims"]] == [exact]
+    assert [source["url"] for source in result["sources"]] == [second_url]
+    assert 'failure_categories={"timeout": 1}' in caplog.text
+    assert "selected=True fetched=1 incomplete_fetches=1" in caplog.text
+    assert "never-log-this" not in caplog.text
+    assert "raw provider response" not in caplog.text
+    assert second_url not in caplog.text
+    assert exact not in caplog.text
+    assert "failure_categories" not in canonical_json(result)
+
+
+@pytest.mark.parametrize(
+    ("error", "category"),
+    [
+        (TimeoutError("secret"), "timeout"),
+        (httpx.ConnectError("secret"), "transport"),
+        (ValueError("direct source returned an access challenge"), "access_challenge"),
+        (
+            ValueError("direct source encoded responses are disabled"),
+            "encoded_response",
+        ),
+        (ValueError("direct source is not textual"), "unsupported_content_type"),
+        (ValueError("unsafe direct source connection peer"), "security_rejected"),
+        (ValueError("direct source exceeds size limit"), "size_limit"),
+        (ValueError("unknown secret message"), "other"),
+        (RuntimeError("secret"), "other"),
+        (
+            httpx.HTTPStatusError(
+                "secret",
+                request=httpx.Request("GET", "https://example.org"),
+                response=httpx.Response(403),
+            ),
+            "http_4xx",
+        ),
+        (
+            httpx.HTTPStatusError(
+                "secret",
+                request=httpx.Request("GET", "https://example.org"),
+                response=httpx.Response(503),
+            ),
+            "http_5xx",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_fetch_failure_logs_use_only_allowlisted_categories(
+    caplog: pytest.LogCaptureFixture, error: Exception, category: str
+) -> None:
+    url = "https://publisher.example/private-query?secret=hidden"
+
+    async def failing_fetch(_url: str) -> dict:
+        raise error
+
+    with caplog.at_level(
+        "INFO", logger="backend.services.workflow_v2.resilient_research_runner"
+    ):
+        result = await ResilientResearchRunner(
+            FakePrimary(transient()),
+            searxng=FakeSearx(
+                discovery(sources=[{"url": url, "title": "Secret title"}])
+            ),
+            fetcher=failing_fetch,
+        ).search(server_query())
+
+    assert result["runtime_diagnostics"]["fallback"]["status"] == "direct_fetch_error"
+    assert f'failure_categories={{"{category}": 1}}' in caplog.text
+    assert "secret" not in caplog.text.lower()
+    assert "publisher.example" not in caplog.text
+    assert "failure_categories" not in canonical_json(result)
+
+
+@pytest.mark.asyncio
 async def test_partial_direct_retrieval_without_evidence_preserves_transient() -> None:
     first_url = "https://one.example.ee/rules"
     second_url = "https://two.example.ee/rules"
@@ -2644,7 +2945,9 @@ async def test_partial_direct_retrieval_without_evidence_preserves_transient() -
 
 
 @pytest.mark.asyncio
-async def test_invalid_fetched_mappings_cannot_become_successful_empty_evidence() -> None:
+async def test_invalid_fetched_mappings_cannot_become_successful_empty_evidence() -> (
+    None
+):
     allowed = "pta.agri.ee"
     first_url = f"https://{allowed}/invalid-final"
     second_url = f"https://{allowed}/empty-text"
@@ -2676,7 +2979,9 @@ async def test_invalid_fetched_mappings_cannot_become_successful_empty_evidence(
 
 
 @pytest.mark.asyncio
-async def test_malformed_and_wholly_rejected_discovery_rows_preserve_transient() -> None:
+async def test_malformed_and_wholly_rejected_discovery_rows_preserve_transient() -> (
+    None
+):
     discovery_result = discovery()
     discovery_result["sources"] = [
         "not a source row",
@@ -2806,7 +3111,15 @@ async def test_extractor_exception_retains_only_observable_primary_metering() ->
         return document(url, "A fetched source document.")
 
     primary_result = metered_transient()
-    primary_result["runtime_diagnostics"]["elapsed_ms"] = 17
+    primary_result["runtime_diagnostics"].update(
+        {
+            "elapsed_ms": 17,
+            "input_tokens": 31,
+            "output_tokens": 11,
+            "total_tokens": 42,
+            "usage_complete": True,
+        }
+    )
     result = await ResilientResearchRunner(
         FakePrimary(primary_result),
         searxng=TimedSearx(
@@ -2819,10 +3132,19 @@ async def test_extractor_exception_retains_only_observable_primary_metering() ->
 
     assert result["search_performed"] is False
     assert result["usage_metadata"] == {
-        "inputTokens": 31,
-        "outputTokens": 11,
-        "totalTokens": 42,
+        "inputTokens": None,
+        "outputTokens": None,
+        "totalTokens": None,
+        "input_tokens": None,
+        "output_tokens": None,
+        "total_tokens": None,
+        "usage_complete": False,
     }
+    primary_receipt = result["runtime_diagnostics"]["primary"]
+    assert primary_receipt["input_tokens"] == 31
+    assert primary_receipt["output_tokens"] == 11
+    assert primary_receipt["total_tokens"] == 42
+    assert primary_receipt["usage_complete"] is True
     assert len(result["provider_queries"]) == 2
     fallback = result["runtime_diagnostics"]["fallback"]
     assert fallback["status"] == "extraction_error"

@@ -8,11 +8,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 
 from backend.services.llm.gemini_runtime import close_shared_research_models
-from backend.services.workflow_v2.worker_main import build_worker, cost_configuration_ready
+from backend.services.workflow_v2.worker_logging import configure_worker_logging
+from backend.services.workflow_v2.worker_main import (
+    build_worker,
+    cost_configuration_ready,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_worker_logging()
     store, worker = build_worker()
     app.state.operation_store = store
     app.state.operation_worker_task = asyncio.create_task(worker.run_forever())

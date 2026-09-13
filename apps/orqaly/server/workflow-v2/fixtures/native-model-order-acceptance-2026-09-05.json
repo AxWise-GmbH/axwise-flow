@@ -1,0 +1,1475 @@
+{
+  "_notice": "Recorded synthetic REAL-MODEL design and repair, not runtime evidence. No n8n or customer provider actions were executed by this smoke. Runtime results must be separately verified; advisory model claims are not proof.",
+  "scope": "synthetic_authoring_only",
+  "runtimeExecuted": false,
+  "modelVersion": "gemini-3.8-flash",
+  "designUsage": {
+    "inputTokens": 23513,
+    "outputTokens": 20930
+  },
+  "repairUsage": {
+    "inputTokens": 25709,
+    "outputTokens": 5085
+  },
+  "repairDescription": "Restored an intentionally injected static responseCode 201 defect to 200; frozen acceptance cases unchanged. No runtime test was claimed by the model.",
+  "buildRequestId": "00000000-0000-4000-8000-000000000601",
+  "workflowHash": "6049d0a1c2cb844588221640bcd90f02774d333c982622f8f543bc9a418d211b",
+  "workflow": {
+    "name": "Synthetic Order Checker",
+    "nodes": [
+      {
+        "id": "webhook-trigger",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          240,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "solution-00000000-0000-4000-8000-000000000601",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "00000000-0000-4000-8000-000000000601"
+      },
+      {
+        "id": "transform-order",
+        "name": "Transform Order",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.5,
+        "position": [
+          460,
+          300
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "assign-order-id",
+                "name": "orderId",
+                "type": "string",
+                "value": "={{ $json.body.orderId }}"
+              },
+              {
+                "id": "assign-contact-email",
+                "name": "contactEmail",
+                "type": "string",
+                "value": "={{ ($json.body.email || '').trim().toLowerCase() }}"
+              },
+              {
+                "id": "assign-quantity",
+                "name": "quantity",
+                "type": "number",
+                "value": "={{ $json.body.quantity }}"
+              },
+              {
+                "id": "assign-unit-price",
+                "name": "unitPrice",
+                "type": "number",
+                "value": "={{ $json.body.unitPrice }}"
+              },
+              {
+                "id": "assign-total",
+                "name": "total",
+                "type": "number",
+                "value": "={{ $json.body.quantity * $json.body.unitPrice }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "check-order-validity",
+        "name": "Check Order Validity",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.3,
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cond-quantity",
+                "leftValue": "={{ $json.quantity }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              },
+              {
+                "id": "cond-unit-price",
+                "leftValue": "={{ $json.unitPrice }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "gte"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "respond-valid-order",
+        "name": "Respond Valid Order",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          920,
+          200
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { accepted: true, orderId: $json.orderId, contactEmail: $json.contactEmail, total: $json.total } }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "x-orqaly-execution-id",
+                  "value": "={{ $execution.id }}"
+                },
+                {
+                  "name": "x-orqaly-invocation-id",
+                  "value": "={{ $(\"Webhook\").first().json.headers[\"x-orqaly-invocation-id\"] }}"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "respond-invalid-order",
+        "name": "Respond Invalid Order",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          920,
+          400
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\n  \"accepted\": false,\n  \"error\": \"invalid_order\"\n}",
+          "options": {
+            "responseCode": 422,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "x-orqaly-execution-id",
+                  "value": "={{ $execution.id }}"
+                },
+                {
+                  "name": "x-orqaly-invocation-id",
+                  "value": "={{ $(\"Webhook\").first().json.headers[\"x-orqaly-invocation-id\"] }}"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Transform Order",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transform Order": {
+        "main": [
+          [
+            {
+              "node": "Check Order Validity",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Order Validity": {
+        "main": [
+          [
+            {
+              "node": "Respond Valid Order",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond Invalid Order",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "executionTimeout": 30,
+      "saveDataSuccessExecution": "none",
+      "saveDataErrorExecution": "none",
+      "saveManualExecutions": false,
+      "availableInMCP": false
+    }
+  },
+  "spec": {
+    "kind": "n8n_workflow_v2",
+    "requirements": [
+      {
+        "id": "req-receive-order",
+        "description": "Receive HTTP POST requests containing order payload {orderId, email, quantity, unitPrice} via Webhook."
+      },
+      {
+        "id": "req-transform-order",
+        "description": "Extract fields, compute total price as quantity * unitPrice, and format contactEmail as trimmed lowercase string."
+      },
+      {
+        "id": "req-validate-order",
+        "description": "Check that quantity is strictly greater than 0 and unitPrice is greater than or equal to 0."
+      },
+      {
+        "id": "req-respond-accepted",
+        "description": "Return HTTP 200 JSON with accepted=true, orderId, contactEmail, and total when order is valid."
+      },
+      {
+        "id": "req-respond-invalid",
+        "description": "Return HTTP 422 JSON with accepted=false and error='invalid_order' when order is invalid."
+      }
+    ],
+    "inputSchema": {
+      "type": "object",
+      "description": "Incoming order payload via HTTP POST body",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Unique identifier for the order"
+        },
+        "email": {
+          "type": "string",
+          "description": "Customer contact email address"
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Item quantity in the order"
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Price per item unit"
+        }
+      },
+      "required": [
+        "orderId",
+        "email",
+        "quantity",
+        "unitPrice"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "Response payload for order processing",
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "Whether the order passed validation"
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Original order identifier"
+        },
+        "contactEmail": {
+          "type": "string",
+          "description": "Normalized lowercase trimmed contact email"
+        },
+        "total": {
+          "type": "number",
+          "description": "Calculated total price of the order"
+        },
+        "error": {
+          "type": "string",
+          "description": "Error identifier when order is rejected"
+        }
+      },
+      "required": [
+        "accepted"
+      ],
+      "additionalProperties": false
+    },
+    "acceptanceCases": [
+      {
+        "id": "case-valid-order",
+        "description": "Valid order with positive quantity and unit price returns HTTP 200 with computed total and normalized email.",
+        "requirementIds": [
+          "req-receive-order",
+          "req-transform-order",
+          "req-validate-order",
+          "req-respond-accepted"
+        ],
+        "input": {
+          "orderId": "ORD-1001",
+          "email": "  Customer@Example.com  ",
+          "quantity": 3,
+          "unitPrice": 19.99
+        },
+        "expectedOutput": {
+          "accepted": true,
+          "orderId": "ORD-1001",
+          "contactEmail": "customer@example.com",
+          "total": 59.97
+        },
+        "expectedStatus": 200,
+        "assertions": [
+          {
+            "path": "/accepted",
+            "operator": "equals",
+            "value": true
+          },
+          {
+            "path": "/orderId",
+            "operator": "equals",
+            "value": "ORD-1001"
+          },
+          {
+            "path": "/contactEmail",
+            "operator": "equals",
+            "value": "customer@example.com"
+          },
+          {
+            "path": "/total",
+            "operator": "equals",
+            "value": 59.97
+          }
+        ]
+      },
+      {
+        "id": "case-zero-quantity",
+        "description": "Order with quantity equal to 0 fails validation and returns HTTP 422 with error invalid_order.",
+        "requirementIds": [
+          "req-receive-order",
+          "req-validate-order",
+          "req-respond-invalid"
+        ],
+        "input": {
+          "orderId": "ORD-1002",
+          "email": "user@example.com",
+          "quantity": 0,
+          "unitPrice": 25
+        },
+        "expectedOutput": {
+          "accepted": false,
+          "error": "invalid_order"
+        },
+        "expectedStatus": 422,
+        "assertions": [
+          {
+            "path": "/accepted",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "path": "/error",
+            "operator": "equals",
+            "value": "invalid_order"
+          }
+        ]
+      },
+      {
+        "id": "case-negative-unit-price",
+        "description": "Order with negative unit price fails validation and returns HTTP 422 with error invalid_order.",
+        "requirementIds": [
+          "req-receive-order",
+          "req-validate-order",
+          "req-respond-invalid"
+        ],
+        "input": {
+          "orderId": "ORD-1003",
+          "email": "buyer@example.com",
+          "quantity": 2,
+          "unitPrice": -10.5
+        },
+        "expectedOutput": {
+          "accepted": false,
+          "error": "invalid_order"
+        },
+        "expectedStatus": 422,
+        "assertions": [
+          {
+            "path": "/accepted",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "path": "/error",
+            "operator": "equals",
+            "value": "invalid_order"
+          }
+        ]
+      }
+    ],
+    "connections": [],
+    "runtimeProfile": "request_automation"
+  },
+  "input": {
+    "instruction": "Build a native branching n8n request workflow for a synthetic order checker.\nPOST JSON is {orderId:string,email:string,quantity:integer,unitPrice:number}.\nIf quantity > 0 and unitPrice >= 0, return HTTP 200 JSON\n{accepted:true,orderId:<original>,contactEmail:<trimmed lowercase email>,total:<quantity*unitPrice>}.\nOtherwise return HTTP 422 JSON {accepted:false,error:\"invalid_order\"}.\nUse a webhook, transformation, condition and two response branches; no external\nconnections, code nodes, registration, payments, or provider actions. Include\nagreed synthetic cases for a valid order, zero quantity and negative unit price.\nDo not claim the graph has run. This is authoring only.",
+    "source": {
+      "runId": "00000000-0000-4000-8000-000000000603",
+      "taskHash": "ab5766f42a2eac09b3ebea0712ff5e8c64886d8403bbe7e2dc76d1c5f27f1246",
+      "title": "Synthetic native order checker",
+      "taskText": "Build a native branching n8n request workflow for a synthetic order checker.\nPOST JSON is {orderId:string,email:string,quantity:integer,unitPrice:number}.\nIf quantity > 0 and unitPrice >= 0, return HTTP 200 JSON\n{accepted:true,orderId:<original>,contactEmail:<trimmed lowercase email>,total:<quantity*unitPrice>}.\nOtherwise return HTTP 422 JSON {accepted:false,error:\"invalid_order\"}.\nUse a webhook, transformation, condition and two response branches; no external\nconnections, code nodes, registration, payments, or provider actions. Include\nagreed synthetic cases for a valid order, zero quantity and negative unit price.\nDo not claim the graph has run. This is authoring only.",
+      "contextHash": "ee311c72f65c7e1068fafa897a866bfefe201b761c494ccf442927f45a2f7dbe"
+    },
+    "agent": {
+      "id": "00000000-0000-4000-8000-000000000602",
+      "name": "Workflow builder",
+      "profileVersion": 1,
+      "roleLabel": "Automation specialist",
+      "description": "Prepares customer workflows.",
+      "instructions": "Use only this selected task.",
+      "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "canonicalInputHash": "cad1bd93481df0055e800b19761db16cab2c4860d73333dd1b28ebe233ee2421",
+    "knowledge": {
+      "version": "n8n-native-2.37.10-v1",
+      "catalogHash": "a90edbfc2314a1ec0a650c27e6adb45de013db73ba4069f80b35a19630f9ef98",
+      "skills": [
+        {
+          "id": "n8n-workflow-lifecycle-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "af03a33f79e2701b8224bb789e9cb6286e4fc3f3ab562e11da757c779a5876c3"
+        },
+        {
+          "id": "n8n-node-configuration-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "d2a9da497d6511cd580ae624dfcb27184f1f206ff59ba592f937e26f8a35ef53"
+        },
+        {
+          "id": "n8n-expressions-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "3ce40b035add4e14d989ad873cca3dd89f4b04a0a4f3a03703d4f6dc637e8c39"
+        },
+        {
+          "id": "n8n-credentials-and-security-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "e1396beedd49ee3d308a3921b136372fa4c6535edbd127451155da50e6e3710d"
+        },
+        {
+          "id": "n8n-loops-official",
+          "sourceCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139",
+          "contentHash": "aefb91628a900edf49366ef39e4e7965b2a62a0cdfffd9418e53afc554d35cc1"
+        }
+      ],
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.5
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2
+        },
+        {
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2.1
+        },
+        {
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.5
+        },
+        {
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.5
+        },
+        {
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2.3
+        },
+        {
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 3.4
+        },
+        {
+          "type": "n8n-nodes-base.filter",
+          "typeVersion": 2.3
+        },
+        {
+          "type": "n8n-nodes-base.merge",
+          "typeVersion": 3.2
+        },
+        {
+          "type": "n8n-nodes-base.aggregate",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.splitOut",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.sort",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.limit",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.noOp",
+          "typeVersion": 1
+        },
+        {
+          "type": "n8n-nodes-base.stopAndError",
+          "typeVersion": 1
+        }
+      ]
+    }
+  },
+  "pins": {
+    "version": "n8n-native-2.37.10-v1",
+    "n8nVersion": "2.37.10",
+    "imageDigest": "sha256:848166b4051fd4251869f48c18455bddff922f04cb2f2676929463ba973dbde2",
+    "catalogHash": "836badc7047e9b1d09bdfc69a6f87e0f204e00efc393307d1b8b58f07b12bf8d",
+    "skillsCommit": "180b8415e3b73f78828cfa01e908e67f89f2a139"
+  },
+  "frozenAcceptanceCases": [
+    {
+      "id": "case-valid-order",
+      "description": "Valid order with positive quantity and unit price returns HTTP 200 with computed total and normalized email.",
+      "requirementIds": [
+        "req-receive-order",
+        "req-transform-order",
+        "req-validate-order",
+        "req-respond-accepted"
+      ],
+      "input": {
+        "orderId": "ORD-1001",
+        "email": "  Customer@Example.com  ",
+        "quantity": 3,
+        "unitPrice": 19.99
+      },
+      "expectedOutput": {
+        "accepted": true,
+        "orderId": "ORD-1001",
+        "contactEmail": "customer@example.com",
+        "total": 59.97
+      },
+      "expectedStatus": 200,
+      "assertions": [
+        {
+          "path": "/accepted",
+          "operator": "equals",
+          "value": true
+        },
+        {
+          "path": "/orderId",
+          "operator": "equals",
+          "value": "ORD-1001"
+        },
+        {
+          "path": "/contactEmail",
+          "operator": "equals",
+          "value": "customer@example.com"
+        },
+        {
+          "path": "/total",
+          "operator": "equals",
+          "value": 59.97
+        }
+      ]
+    },
+    {
+      "id": "case-zero-quantity",
+      "description": "Order with quantity equal to 0 fails validation and returns HTTP 422 with error invalid_order.",
+      "requirementIds": [
+        "req-receive-order",
+        "req-validate-order",
+        "req-respond-invalid"
+      ],
+      "input": {
+        "orderId": "ORD-1002",
+        "email": "user@example.com",
+        "quantity": 0,
+        "unitPrice": 25
+      },
+      "expectedOutput": {
+        "accepted": false,
+        "error": "invalid_order"
+      },
+      "expectedStatus": 422,
+      "assertions": [
+        {
+          "path": "/accepted",
+          "operator": "equals",
+          "value": false
+        },
+        {
+          "path": "/error",
+          "operator": "equals",
+          "value": "invalid_order"
+        }
+      ]
+    },
+    {
+      "id": "case-negative-unit-price",
+      "description": "Order with negative unit price fails validation and returns HTTP 422 with error invalid_order.",
+      "requirementIds": [
+        "req-receive-order",
+        "req-validate-order",
+        "req-respond-invalid"
+      ],
+      "input": {
+        "orderId": "ORD-1003",
+        "email": "buyer@example.com",
+        "quantity": 2,
+        "unitPrice": -10.5
+      },
+      "expectedOutput": {
+        "accepted": false,
+        "error": "invalid_order"
+      },
+      "expectedStatus": 422,
+      "assertions": [
+        {
+          "path": "/accepted",
+          "operator": "equals",
+          "value": false
+        },
+        {
+          "path": "/error",
+          "operator": "equals",
+          "value": "invalid_order"
+        }
+      ]
+    }
+  ],
+  "modelResponses": {
+    "design": {
+      "schemaVersion": "axwise.solution-preparation.v2",
+      "buildRequestId": "00000000-0000-4000-8000-000000000601",
+      "outcome": "candidate",
+      "name": "Synthetic Order Checker",
+      "workflow": {
+        "name": "Synthetic Order Checker",
+        "nodes": [
+          {
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+              240,
+              300
+            ],
+            "parameters": {
+              "httpMethod": "POST",
+              "path": "order-checker",
+              "responseMode": "responseNode",
+              "options": {}
+            }
+          },
+          {
+            "id": "transform-order",
+            "name": "Transform Order",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.5,
+            "position": [
+              460,
+              300
+            ],
+            "parameters": {
+              "mode": "manual",
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "assign-order-id",
+                    "name": "orderId",
+                    "type": "string",
+                    "value": "={{ $json.body.orderId }}"
+                  },
+                  {
+                    "id": "assign-contact-email",
+                    "name": "contactEmail",
+                    "type": "string",
+                    "value": "={{ ($json.body.email || '').trim().toLowerCase() }}"
+                  },
+                  {
+                    "id": "assign-quantity",
+                    "name": "quantity",
+                    "type": "number",
+                    "value": "={{ $json.body.quantity }}"
+                  },
+                  {
+                    "id": "assign-unit-price",
+                    "name": "unitPrice",
+                    "type": "number",
+                    "value": "={{ $json.body.unitPrice }}"
+                  },
+                  {
+                    "id": "assign-total",
+                    "name": "total",
+                    "type": "number",
+                    "value": "={{ $json.body.quantity * $json.body.unitPrice }}"
+                  }
+                ]
+              },
+              "options": {}
+            }
+          },
+          {
+            "id": "check-order-validity",
+            "name": "Check Order Validity",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+              680,
+              300
+            ],
+            "parameters": {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-quantity",
+                    "leftValue": "={{ $json.quantity }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  },
+                  {
+                    "id": "cond-unit-price",
+                    "leftValue": "={{ $json.unitPrice }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "looseTypeValidation": true,
+              "options": {}
+            }
+          },
+          {
+            "id": "respond-valid-order",
+            "name": "Respond Valid Order",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+              920,
+              200
+            ],
+            "parameters": {
+              "respondWith": "json",
+              "responseBody": "={{ { accepted: true, orderId: $json.orderId, contactEmail: $json.contactEmail, total: $json.total } }}",
+              "options": {
+                "responseCode": 200
+              }
+            }
+          },
+          {
+            "id": "respond-invalid-order",
+            "name": "Respond Invalid Order",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+              920,
+              400
+            ],
+            "parameters": {
+              "respondWith": "json",
+              "responseBody": "={\n  \"accepted\": false,\n  \"error\": \"invalid_order\"\n}",
+              "options": {
+                "responseCode": 422
+              }
+            }
+          }
+        ],
+        "connections": {
+          "Webhook": {
+            "main": [
+              [
+                {
+                  "node": "Transform Order",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Transform Order": {
+            "main": [
+              [
+                {
+                  "node": "Check Order Validity",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Check Order Validity": {
+            "main": [
+              [
+                {
+                  "node": "Respond Valid Order",
+                  "type": "main",
+                  "index": 0
+                }
+              ],
+              [
+                {
+                  "node": "Respond Invalid Order",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          }
+        },
+        "settings": {
+          "executionOrder": "v1"
+        }
+      },
+      "spec": {
+        "kind": "n8n_workflow_v2",
+        "requirements": [
+          {
+            "id": "req-receive-order",
+            "description": "Receive HTTP POST requests containing order payload {orderId, email, quantity, unitPrice} via Webhook."
+          },
+          {
+            "id": "req-transform-order",
+            "description": "Extract fields, compute total price as quantity * unitPrice, and format contactEmail as trimmed lowercase string."
+          },
+          {
+            "id": "req-validate-order",
+            "description": "Check that quantity is strictly greater than 0 and unitPrice is greater than or equal to 0."
+          },
+          {
+            "id": "req-respond-accepted",
+            "description": "Return HTTP 200 JSON with accepted=true, orderId, contactEmail, and total when order is valid."
+          },
+          {
+            "id": "req-respond-invalid",
+            "description": "Return HTTP 422 JSON with accepted=false and error='invalid_order' when order is invalid."
+          }
+        ],
+        "inputSchema": {
+          "type": "object",
+          "description": "Incoming order payload via HTTP POST body",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "description": "Unique identifier for the order"
+            },
+            "email": {
+              "type": "string",
+              "description": "Customer contact email address"
+            },
+            "quantity": {
+              "type": "integer",
+              "description": "Item quantity in the order"
+            },
+            "unitPrice": {
+              "type": "number",
+              "description": "Price per item unit"
+            }
+          },
+          "required": [
+            "orderId",
+            "email",
+            "quantity",
+            "unitPrice"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "description": "Response payload for order processing",
+          "properties": {
+            "accepted": {
+              "type": "boolean",
+              "description": "Whether the order passed validation"
+            },
+            "orderId": {
+              "type": "string",
+              "description": "Original order identifier"
+            },
+            "contactEmail": {
+              "type": "string",
+              "description": "Normalized lowercase trimmed contact email"
+            },
+            "total": {
+              "type": "number",
+              "description": "Calculated total price of the order"
+            },
+            "error": {
+              "type": "string",
+              "description": "Error identifier when order is rejected"
+            }
+          },
+          "required": [
+            "accepted"
+          ],
+          "additionalProperties": false
+        },
+        "acceptanceCases": [
+          {
+            "id": "case-valid-order",
+            "description": "Valid order with positive quantity and unit price returns HTTP 200 with computed total and normalized email.",
+            "requirementIds": [
+              "req-receive-order",
+              "req-transform-order",
+              "req-validate-order",
+              "req-respond-accepted"
+            ],
+            "input": {
+              "orderId": "ORD-1001",
+              "email": "  Customer@Example.com  ",
+              "quantity": 3,
+              "unitPrice": 19.99
+            },
+            "expectedOutput": {
+              "accepted": true,
+              "orderId": "ORD-1001",
+              "contactEmail": "customer@example.com",
+              "total": 59.97
+            },
+            "expectedStatus": 200,
+            "assertions": [
+              {
+                "path": "/accepted",
+                "operator": "equals",
+                "value": true
+              },
+              {
+                "path": "/orderId",
+                "operator": "equals",
+                "value": "ORD-1001"
+              },
+              {
+                "path": "/contactEmail",
+                "operator": "equals",
+                "value": "customer@example.com"
+              },
+              {
+                "path": "/total",
+                "operator": "equals",
+                "value": 59.97
+              }
+            ]
+          },
+          {
+            "id": "case-zero-quantity",
+            "description": "Order with quantity equal to 0 fails validation and returns HTTP 422 with error invalid_order.",
+            "requirementIds": [
+              "req-receive-order",
+              "req-validate-order",
+              "req-respond-invalid"
+            ],
+            "input": {
+              "orderId": "ORD-1002",
+              "email": "user@example.com",
+              "quantity": 0,
+              "unitPrice": 25
+            },
+            "expectedOutput": {
+              "accepted": false,
+              "error": "invalid_order"
+            },
+            "expectedStatus": 422,
+            "assertions": [
+              {
+                "path": "/accepted",
+                "operator": "equals",
+                "value": false
+              },
+              {
+                "path": "/error",
+                "operator": "equals",
+                "value": "invalid_order"
+              }
+            ]
+          },
+          {
+            "id": "case-negative-unit-price",
+            "description": "Order with negative unit price fails validation and returns HTTP 422 with error invalid_order.",
+            "requirementIds": [
+              "req-receive-order",
+              "req-validate-order",
+              "req-respond-invalid"
+            ],
+            "input": {
+              "orderId": "ORD-1003",
+              "email": "buyer@example.com",
+              "quantity": 2,
+              "unitPrice": -10.5
+            },
+            "expectedOutput": {
+              "accepted": false,
+              "error": "invalid_order"
+            },
+            "expectedStatus": 422,
+            "assertions": [
+              {
+                "path": "/accepted",
+                "operator": "equals",
+                "value": false
+              },
+              {
+                "path": "/error",
+                "operator": "equals",
+                "value": "invalid_order"
+              }
+            ]
+          }
+        ],
+        "connections": [],
+        "runtimeProfile": "request_automation"
+      },
+      "questions": [],
+      "dependencies": [],
+      "inputVersion": 1,
+      "purpose": "Validates synthetic order requests received via webhook, computing total price and normalizing email for valid orders, and returning HTTP 422 for invalid orders.",
+      "explanation": "Constructed a native n8n branching workflow with a Webhook node set to responseNode mode, an Edit Fields (Set) transformation node to compute the order total and normalize the contact email, an If condition node validating quantity > 0 and unitPrice >= 0, and two Respond to Webhook nodes returning HTTP 200 (accepted) and HTTP 422 (invalid_order). No external connections or code nodes are used.",
+      "baseWorkflowHash": null,
+      "semanticReview": {
+        "advisory": true,
+        "summary": "The authored workflow accurately fulfills the order checker requirements using only native n8n nodes: Webhook, Edit Fields (Set), If, and two Respond to Webhook nodes. Responses strictly conform to the expected HTTP statuses (200 and 422) and JSON data shapes.",
+        "concerns": []
+      }
+    },
+    "repair": {
+      "schemaVersion": "axwise.solution-preparation.v2",
+      "buildRequestId": "00000000-0000-4000-8000-000000000601",
+      "outcome": "candidate",
+      "name": "Synthetic Order Checker",
+      "workflow": {
+        "name": "Synthetic Order Checker",
+        "nodes": [
+          {
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+              240,
+              300
+            ],
+            "parameters": {
+              "httpMethod": "POST",
+              "path": "order-checker",
+              "responseMode": "responseNode",
+              "options": {}
+            }
+          },
+          {
+            "id": "transform-order",
+            "name": "Transform Order",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.5,
+            "position": [
+              460,
+              300
+            ],
+            "parameters": {
+              "mode": "manual",
+              "assignments": {
+                "assignments": [
+                  {
+                    "id": "assign-order-id",
+                    "name": "orderId",
+                    "type": "string",
+                    "value": "={{ $json.body.orderId }}"
+                  },
+                  {
+                    "id": "assign-contact-email",
+                    "name": "contactEmail",
+                    "type": "string",
+                    "value": "={{ ($json.body.email || '').trim().toLowerCase() }}"
+                  },
+                  {
+                    "id": "assign-quantity",
+                    "name": "quantity",
+                    "type": "number",
+                    "value": "={{ $json.body.quantity }}"
+                  },
+                  {
+                    "id": "assign-unit-price",
+                    "name": "unitPrice",
+                    "type": "number",
+                    "value": "={{ $json.body.unitPrice }}"
+                  },
+                  {
+                    "id": "assign-total",
+                    "name": "total",
+                    "type": "number",
+                    "value": "={{ $json.body.quantity * $json.body.unitPrice }}"
+                  }
+                ]
+              },
+              "options": {}
+            }
+          },
+          {
+            "id": "check-order-validity",
+            "name": "Check Order Validity",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+              680,
+              300
+            ],
+            "parameters": {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-quantity",
+                    "leftValue": "={{ $json.quantity }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  },
+                  {
+                    "id": "cond-unit-price",
+                    "leftValue": "={{ $json.unitPrice }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "looseTypeValidation": true,
+              "options": {}
+            }
+          },
+          {
+            "id": "respond-valid-order",
+            "name": "Respond Valid Order",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+              920,
+              200
+            ],
+            "parameters": {
+              "respondWith": "json",
+              "responseBody": "={{ { accepted: true, orderId: $json.orderId, contactEmail: $json.contactEmail, total: $json.total } }}",
+              "options": {
+                "responseCode": 200
+              }
+            }
+          },
+          {
+            "id": "respond-invalid-order",
+            "name": "Respond Invalid Order",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+              920,
+              400
+            ],
+            "parameters": {
+              "respondWith": "json",
+              "responseBody": "={\n  \"accepted\": false,\n  \"error\": \"invalid_order\"\n}",
+              "options": {
+                "responseCode": 422
+              }
+            }
+          }
+        ],
+        "connections": {
+          "Webhook": {
+            "main": [
+              [
+                {
+                  "node": "Transform Order",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Transform Order": {
+            "main": [
+              [
+                {
+                  "node": "Check Order Validity",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          },
+          "Check Order Validity": {
+            "main": [
+              [
+                {
+                  "node": "Respond Valid Order",
+                  "type": "main",
+                  "index": 0
+                }
+              ],
+              [
+                {
+                  "node": "Respond Invalid Order",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          }
+        },
+        "settings": {
+          "executionOrder": "v1"
+        }
+      },
+      "spec": {
+        "kind": "n8n_workflow_v2",
+        "requirements": [
+          {
+            "id": "req-receive-order",
+            "description": "Receive HTTP POST requests containing order payload {orderId, email, quantity, unitPrice} via Webhook."
+          },
+          {
+            "id": "req-transform-order",
+            "description": "Extract fields, compute total price as quantity * unitPrice, and format contactEmail as trimmed lowercase string."
+          },
+          {
+            "id": "req-validate-order",
+            "description": "Check that quantity is strictly greater than 0 and unitPrice is greater than or equal to 0."
+          },
+          {
+            "id": "req-respond-accepted",
+            "description": "Return HTTP 200 JSON with accepted=true, orderId, contactEmail, and total when order is valid."
+          },
+          {
+            "id": "req-respond-invalid",
+            "description": "Return HTTP 422 JSON with accepted=false and error='invalid_order' when order is invalid."
+          }
+        ],
+        "inputSchema": {
+          "type": "object",
+          "description": "Incoming order payload via HTTP POST body",
+          "properties": {
+            "orderId": {
+              "type": "string",
+              "description": "Unique identifier for the order"
+            },
+            "email": {
+              "type": "string",
+              "description": "Customer contact email address"
+            },
+            "quantity": {
+              "type": "integer",
+              "description": "Item quantity in the order"
+            },
+            "unitPrice": {
+              "type": "number",
+              "description": "Price per item unit"
+            }
+          },
+          "required": [
+            "orderId",
+            "email",
+            "quantity",
+            "unitPrice"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": {
+          "type": "object",
+          "description": "Response payload for order processing",
+          "properties": {
+            "accepted": {
+              "type": "boolean",
+              "description": "Whether the order passed validation"
+            },
+            "orderId": {
+              "type": "string",
+              "description": "Original order identifier"
+            },
+            "contactEmail": {
+              "type": "string",
+              "description": "Normalized lowercase trimmed contact email"
+            },
+            "total": {
+              "type": "number",
+              "description": "Calculated total price of the order"
+            },
+            "error": {
+              "type": "string",
+              "description": "Error identifier when order is rejected"
+            }
+          },
+          "required": [
+            "accepted"
+          ],
+          "additionalProperties": false
+        },
+        "acceptanceCases": [
+          {
+            "id": "case-valid-order",
+            "description": "Valid order with positive quantity and unit price returns HTTP 200 with computed total and normalized email.",
+            "requirementIds": [
+              "req-receive-order",
+              "req-transform-order",
+              "req-validate-order",
+              "req-respond-accepted"
+            ],
+            "input": {
+              "orderId": "ORD-1001",
+              "email": "  Customer@Example.com  ",
+              "quantity": 3,
+              "unitPrice": 19.99
+            },
+            "expectedOutput": {
+              "accepted": true,
+              "orderId": "ORD-1001",
+              "contactEmail": "customer@example.com",
+              "total": 59.97
+            },
+            "expectedStatus": 200,
+            "assertions": [
+              {
+                "path": "/accepted",
+                "operator": "equals",
+                "value": true
+              },
+              {
+                "path": "/orderId",
+                "operator": "equals",
+                "value": "ORD-1001"
+              },
+              {
+                "path": "/contactEmail",
+                "operator": "equals",
+                "value": "customer@example.com"
+              },
+              {
+                "path": "/total",
+                "operator": "equals",
+                "value": 59.97
+              }
+            ]
+          },
+          {
+            "id": "case-zero-quantity",
+            "description": "Order with quantity equal to 0 fails validation and returns HTTP 422 with error invalid_order.",
+            "requirementIds": [
+              "req-receive-order",
+              "req-validate-order",
+              "req-respond-invalid"
+            ],
+            "input": {
+              "orderId": "ORD-1002",
+              "email": "user@example.com",
+              "quantity": 0,
+              "unitPrice": 25
+            },
+            "expectedOutput": {
+              "accepted": false,
+              "error": "invalid_order"
+            },
+            "expectedStatus": 422,
+            "assertions": [
+              {
+                "path": "/accepted",
+                "operator": "equals",
+                "value": false
+              },
+              {
+                "path": "/error",
+                "operator": "equals",
+                "value": "invalid_order"
+              }
+            ]
+          },
+          {
+            "id": "case-negative-unit-price",
+            "description": "Order with negative unit price fails validation and returns HTTP 422 with error invalid_order.",
+            "requirementIds": [
+              "req-receive-order",
+              "req-validate-order",
+              "req-respond-invalid"
+            ],
+            "input": {
+              "orderId": "ORD-1003",
+              "email": "buyer@example.com",
+              "quantity": 2,
+              "unitPrice": -10.5
+            },
+            "expectedOutput": {
+              "accepted": false,
+              "error": "invalid_order"
+            },
+            "expectedStatus": 422,
+            "assertions": [
+              {
+                "path": "/accepted",
+                "operator": "equals",
+                "value": false
+              },
+              {
+                "path": "/error",
+                "operator": "equals",
+                "value": "invalid_order"
+              }
+            ]
+          }
+        ],
+        "connections": [],
+        "runtimeProfile": "request_automation"
+      },
+      "questions": [],
+      "dependencies": [],
+      "inputVersion": 2,
+      "purpose": "Receive an order payload via webhook, validate that quantity > 0 and unitPrice >= 0, compute the total and normalized email, and return HTTP 200 for valid orders or HTTP 422 for invalid orders.",
+      "explanation": "Repaired the response status code on the Respond Valid Order node ('respond-valid-order') by changing responseCode from 201 back to 200 to satisfy the frozen acceptance test cases and requirements.",
+      "baseWorkflowHash": "0b1a4fde7b65be89fe72a00897ca97be221a23b07d06aae614d8d0726959ab78",
+      "semanticReview": {
+        "advisory": true,
+        "summary": "The workflow graph accurately models the required order validation logic. Incoming webhooks are normalized in Edit Fields, tested through an If condition checking quantity > 0 and unitPrice >= 0, and dispatched to two Respond to Webhook nodes returning HTTP 200 on success and HTTP 422 on invalid orders, resolving the status defect reported in diagnostics.",
+        "concerns": []
+      }
+    }
+  }
+}

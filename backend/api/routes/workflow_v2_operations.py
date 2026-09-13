@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, 
 
 from backend.domain.workflow_v2.contracts import (
     AxWiseOperationEnvelope,
+    OperationCancelResponse,
+    OperationEventPage,
     OperationResponse,
 )
 from backend.services.workflow_v2.operation_service import OperationService
@@ -64,7 +66,7 @@ async def submit_operation(
         )
     except OperationConflict as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
-    if result.status in {"accepted", "running"}:
+    if result.status in {"accepted", "running", "cancel_requested"}:
         response.status_code = status.HTTP_202_ACCEPTED
         response.headers["Retry-After"] = str(result.retry_after_seconds)
     return result
@@ -88,4 +90,53 @@ async def operation_status(
     )
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="operation not found")
+    return result
+
+
+@router.get(
+    "/{operation_id}/events",
+    response_model=OperationEventPage,
+    response_model_exclude_unset=True,
+    name="workflow_v2_operation_events",
+)
+async def operation_events(
+    operation_id: UUID,
+    tenant_id: UUID = Query(alias="tenantId"),
+    after: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
+    service: OperationService = Depends(get_operation_service),
+) -> OperationEventPage:
+    result = await service.events(
+        tenant_id,
+        operation_id,
+        after=after,
+        limit=limit,
+    )
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="operation not found")
+    return result
+
+
+@router.post(
+    "/{operation_id}/cancel",
+    response_model=OperationCancelResponse,
+    response_model_exclude_unset=True,
+    name="workflow_v2_operation_cancel",
+)
+async def cancel_operation(
+    operation_id: UUID,
+    response: Response,
+    tenant_id: UUID = Query(alias="tenantId"),
+    service: OperationService = Depends(get_operation_service),
+) -> OperationCancelResponse:
+    result = await service.cancel(
+        tenant_id,
+        operation_id,
+        _status_url(operation_id, tenant_id),
+    )
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="operation not found")
+    if result.status == "cancel_requested":
+        response.status_code = status.HTTP_202_ACCEPTED
+        response.headers["Retry-After"] = str(result.retry_after_seconds)
     return result

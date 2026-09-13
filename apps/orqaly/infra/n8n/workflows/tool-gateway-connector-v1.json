@@ -1,0 +1,154 @@
+{
+  "id": "orqalyToolGwV1",
+  "name": "Orqaly Tool Gateway Connector v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "orqaly-tool-gateway-connector-v1",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4f942e90-349d-4e47-8c13-7f9d19331f2b",
+      "name": "Private Orqaly Dispatch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "9784a010-80ec-4741-bf66-ae19014165dc"
+    },
+    {
+      "parameters": {
+        "url": "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https%3A%2F%2Ftool-gateway.agentic.internal",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "metadata-flavor",
+              "value": "Google"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 5000
+        }
+      },
+      "id": "b5a6fba7-6588-45b6-b11a-98b9f2491b84",
+      "name": "Acquire n8n Workload Identity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "retryOnFail": false,
+      "onError": "stopWorkflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://orqaly-agentic-tool-gateway-preview-161074549006.europe-west4.run.app/v1/effects/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-orqaly-request-id",
+              "value": "={{ $('Private Orqaly Dispatch').item.json.headers['x-orqaly-request-id'] }}"
+            },
+            {
+              "name": "idempotency-key",
+              "value": "={{ $('Private Orqaly Dispatch').item.json.headers['idempotency-key'] }}"
+            },
+            {
+              "name": "authorization",
+              "value": "={{ 'Bearer ' + $json.data }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({version:$('Private Orqaly Dispatch').item.json.body.version,contractVersion:$('Private Orqaly Dispatch').item.json.body.contractVersion,canonicalization:$('Private Orqaly Dispatch').item.json.body.canonicalization,organizationId:$('Private Orqaly Dispatch').item.json.body.organizationId,workspaceId:$('Private Orqaly Dispatch').item.json.body.workspaceId,runId:$('Private Orqaly Dispatch').item.json.body.runId,stepId:$('Private Orqaly Dispatch').item.json.body.stepId,attemptId:$('Private Orqaly Dispatch').item.json.body.attemptId,stepKind:$('Private Orqaly Dispatch').item.json.body.stepKind,actionIntentId:$('Private Orqaly Dispatch').item.json.body.actionIntentId,actionIntentHash:$('Private Orqaly Dispatch').item.json.body.actionIntentHash,effectId:$('Private Orqaly Dispatch').item.json.body.effectId,descriptor:$('Private Orqaly Dispatch').item.json.body.descriptor,executorBinding:$('Private Orqaly Dispatch').item.json.body.executorBinding,canonicalInput:$('Private Orqaly Dispatch').item.json.body.canonicalInput,canonicalInputHash:$('Private Orqaly Dispatch').item.json.body.canonicalInputHash,effectProfile:$('Private Orqaly Dispatch').item.json.body.effectProfile,dataEgressProfile:$('Private Orqaly Dispatch').item.json.body.dataEgressProfile,deadline:$('Private Orqaly Dispatch').item.json.body.deadline,policyDigest:$('Private Orqaly Dispatch').item.json.body.policyDigest,approvalBindingHash:$('Private Orqaly Dispatch').item.json.body.approvalBindingHash,idempotencyScope:$('Private Orqaly Dispatch').item.json.body.idempotencyScope,idempotencyKey:$('Private Orqaly Dispatch').item.json.body.idempotencyKey,targets:$('Private Orqaly Dispatch').item.json.body.targets,externalPreconditions:$('Private Orqaly Dispatch').item.json.body.externalPreconditions,connectionReference:$('Private Orqaly Dispatch').item.json.body.connectionReference,gatewayGrant:$('Private Orqaly Dispatch').item.json.body.gatewayGrant}) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "id": "6e5d97c0-0909-49eb-98e2-625a5eb40220",
+      "name": "Fixed Internal Tool Gateway",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 0],
+      "retryOnFail": false,
+      "onError": "stopWorkflow"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "9864668a-2678-4d59-b38b-24e58e329ae8",
+      "name": "Return Gateway Receipt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [780, 0]
+    }
+  ],
+  "connections": {
+    "Private Orqaly Dispatch": {
+      "main": [[{"node": "Acquire n8n Workload Identity", "type": "main", "index": 0}]]
+    },
+    "Acquire n8n Workload Identity": {
+      "main": [[{"node": "Fixed Internal Tool Gateway", "type": "main", "index": 0}]]
+    },
+    "Fixed Internal Tool Gateway": {
+      "main": [[{"node": "Return Gateway Receipt", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "executionTimeout": 30,
+    "callerPolicy": "none"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "c9d43b44-4628-41b5-a757-73145cf427c3",
+  "meta": {
+    "orqalyBinding": "tool_gateway_connector_v1",
+    "providerAccess": "forbidden",
+    "toolGatewayAudience": "https://tool-gateway.agentic.internal",
+    "workloadIdentitySource": "gcp_metadata_server",
+    "retriesOwnedBy": "orqaly_control_plane"
+  },
+  "tags": []
+}

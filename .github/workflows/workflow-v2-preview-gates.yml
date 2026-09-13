@@ -1,0 +1,293 @@
+name: Workflow v2 Preview gates
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/workflow-v2-preview-gates.yml'
+      - 'scripts/build-monorepo-preview.sh'
+      - 'apps/orqaly/database/workflow-v2/**'
+      - 'apps/orqaly/deploy/workflow-v2/**'
+      - 'apps/orqaly/infra/gcp/workflow-v2/**'
+      - 'apps/orqaly/index.html'
+      - 'apps/orqaly/lib/workflow-v2/**'
+      - 'apps/orqaly/package.json'
+      - 'apps/orqaly/package-lock.json'
+      - 'apps/orqaly/public-gcp/**'
+      - 'apps/orqaly/scripts/workflow-v2-*'
+      - 'apps/orqaly/server/workflow-v2/**'
+      - 'apps/orqaly/shared/workflow-v2/**'
+      - 'apps/orqaly/src/GcpApp.jsx'
+      - 'apps/orqaly/src/gcp-routes*'
+      - 'apps/orqaly/src/main.jsx'
+      - 'apps/orqaly/src/components/Auth/GcpClerkGate*'
+      - 'apps/orqaly/src/components/Common/LineOrb.jsx'
+      - 'apps/orqaly/src/components/Layout/GcpStandartShell.jsx'
+      - 'apps/orqaly/src/data/agentDemoCases.js'
+      - 'apps/orqaly/src/hooks/useSlidingTabIndicator.js'
+      - 'apps/orqaly/src/hooks/useTypedDemo.js'
+      - 'apps/orqaly/src/lib/orb/**'
+      - 'apps/orqaly/src/pages/Auth/**'
+      - 'apps/orqaly/src/pages/Public/**'
+      - 'apps/orqaly/src/pages/Settings/GcpClerkSettings.jsx'
+      - 'apps/orqaly/src/pages/Standart/**'
+      - 'apps/orqaly/src/pages/WorkflowV2/**'
+      - 'apps/orqaly/src/workflow-v2/**'
+      - 'apps/orqaly/.dockerignore'
+      - 'apps/orqaly/.gitignore'
+      - 'apps/orqaly/scripts/verify-workflow-v2-schema.mjs'
+      - 'apps/orqaly/scripts/workflow-v2/**'
+      - 'apps/orqaly/scripts/solution-*'
+      - 'apps/orqaly/scripts/native-*'
+      - 'apps/orqaly/scripts/workflow-worker-*'
+      - 'apps/orqaly/services/agentic-control-plane/src/domain/**'
+      - 'apps/orqaly/services/agentic-control-plane/src/executors/**'
+      - 'apps/orqaly/infra/n8n/executor-bindings.json'
+      - 'apps/orqaly/infra/n8n/workflows/**'
+      - 'apps/orqaly/infra/n8n/nodes-orqaly-bounded-http/**'
+      - 'apps/orqaly/src/pages/GcpWorkspace/**'
+      - 'apps/orqaly/src/components/Layout/Gcp*'
+      - 'apps/orqaly/src/components/Layout/gcpNav*'
+      - 'apps/orqaly/src/components/VoiceControl/AssistantMarkdown*'
+      - 'apps/orqaly/src/components/VoiceControl/CollapsibleMarkdownDocument*'
+      - 'apps/orqaly/src/components/Common/useInView*'
+      - 'apps/orqaly/src/index.css'
+      - 'apps/orqaly/src/lib/authReturnTo*'
+      - 'apps/orqaly/src/lib/sentry.js'
+      - 'apps/orqaly/src/theme/composerSurface*'
+      - 'apps/orqaly/src/theme/measures.js'
+      - 'apps/orqaly/src/theme/settingsMotion*'
+      - 'apps/orqaly/src/utils/mobileTouchScroll*'
+      - 'apps/orqaly/eslint.config.js'
+      - 'apps/orqaly/vitest.config.js'
+      - 'apps/orqaly/src/test/**'
+      - 'apps/orqaly/vite.config.js'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/workflow-v2-preview-gates.yml'
+      - 'scripts/build-monorepo-preview.sh'
+      - 'apps/orqaly/database/workflow-v2/**'
+      - 'apps/orqaly/deploy/workflow-v2/**'
+      - 'apps/orqaly/infra/gcp/workflow-v2/**'
+      - 'apps/orqaly/index.html'
+      - 'apps/orqaly/lib/workflow-v2/**'
+      - 'apps/orqaly/package.json'
+      - 'apps/orqaly/package-lock.json'
+      - 'apps/orqaly/public-gcp/**'
+      - 'apps/orqaly/scripts/workflow-v2-*'
+      - 'apps/orqaly/server/workflow-v2/**'
+      - 'apps/orqaly/shared/workflow-v2/**'
+      - 'apps/orqaly/src/GcpApp.jsx'
+      - 'apps/orqaly/src/gcp-routes*'
+      - 'apps/orqaly/src/main.jsx'
+      - 'apps/orqaly/src/components/Auth/GcpClerkGate*'
+      - 'apps/orqaly/src/components/Common/LineOrb.jsx'
+      - 'apps/orqaly/src/components/Layout/GcpStandartShell.jsx'
+      - 'apps/orqaly/src/data/agentDemoCases.js'
+      - 'apps/orqaly/src/hooks/useSlidingTabIndicator.js'
+      - 'apps/orqaly/src/hooks/useTypedDemo.js'
+      - 'apps/orqaly/src/lib/orb/**'
+      - 'apps/orqaly/src/pages/Auth/**'
+      - 'apps/orqaly/src/pages/Public/**'
+      - 'apps/orqaly/src/pages/Settings/GcpClerkSettings.jsx'
+      - 'apps/orqaly/src/pages/Standart/**'
+      - 'apps/orqaly/src/pages/WorkflowV2/**'
+      - 'apps/orqaly/src/workflow-v2/**'
+      - 'apps/orqaly/.dockerignore'
+      - 'apps/orqaly/.gitignore'
+      - 'apps/orqaly/scripts/verify-workflow-v2-schema.mjs'
+      - 'apps/orqaly/scripts/workflow-v2/**'
+      - 'apps/orqaly/scripts/solution-*'
+      - 'apps/orqaly/scripts/native-*'
+      - 'apps/orqaly/scripts/workflow-worker-*'
+      - 'apps/orqaly/services/agentic-control-plane/src/domain/**'
+      - 'apps/orqaly/services/agentic-control-plane/src/executors/**'
+      - 'apps/orqaly/infra/n8n/executor-bindings.json'
+      - 'apps/orqaly/infra/n8n/workflows/**'
+      - 'apps/orqaly/infra/n8n/nodes-orqaly-bounded-http/**'
+      - 'apps/orqaly/src/pages/GcpWorkspace/**'
+      - 'apps/orqaly/src/components/Layout/Gcp*'
+      - 'apps/orqaly/src/components/Layout/gcpNav*'
+      - 'apps/orqaly/src/components/VoiceControl/AssistantMarkdown*'
+      - 'apps/orqaly/src/components/VoiceControl/CollapsibleMarkdownDocument*'
+      - 'apps/orqaly/src/components/Common/useInView*'
+      - 'apps/orqaly/src/index.css'
+      - 'apps/orqaly/src/lib/authReturnTo*'
+      - 'apps/orqaly/src/lib/sentry.js'
+      - 'apps/orqaly/src/theme/composerSurface*'
+      - 'apps/orqaly/src/theme/measures.js'
+      - 'apps/orqaly/src/theme/settingsMotion*'
+      - 'apps/orqaly/src/utils/mobileTouchScroll*'
+      - 'apps/orqaly/eslint.config.js'
+      - 'apps/orqaly/vitest.config.js'
+      - 'apps/orqaly/src/test/**'
+      - 'apps/orqaly/vite.config.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: apps/orqaly
+
+concurrency:
+  group: workflow-v2-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview-gates:
+    name: Pure engine, real PostgreSQL, UI and immutable builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: preview_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGPASSWORD: preview_test_only
+      VITE_CLERK_PUBLISHABLE_KEY: pk_test_ci_placeholder
+      VITE_ORQALY_API_URL: https://orqaly-v2-api-preview.example.invalid
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/orqaly/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify declarative baseline inventory
+        run: npm run verify:workflow-v2-schema
+
+      - name: Run workflow contracts, state machine, fault, UI and release tests
+        run: npm run test:workflow-v2:release
+
+      - name: Run retained GCP workspace, routes, navigation and assistant rendering tests
+        run: >-
+          npm exec -- vitest run --maxWorkers=1
+          src/pages/GcpWorkspace
+          src/pages/Standart
+          src/gcp-routes
+          src/components/Auth/GcpClerkGate
+          src/components/Layout/Gcp
+          src/components/Layout/gcpNav
+          src/components/VoiceControl/AssistantMarkdown
+          src/components/VoiceControl/CollapsibleMarkdownDocument
+
+      - name: Create isolated real-PostgreSQL test databases
+        run: |
+          createdb --host=127.0.0.1 --username=postgres workflow_v2_structural
+          createdb --host=127.0.0.1 --username=postgres workflow_v2_api
+          createdb --host=127.0.0.1 --username=postgres workflow_v2_e2e_simple
+          createdb --host=127.0.0.1 --username=postgres workflow_v2_e2e_advanced
+
+      - name: Prove baseline, RLS and structural tenant invariants on PostgreSQL 16
+        env:
+          WORKFLOW_V2_TEST_DATABASE_URL: postgresql://postgres:preview_test_only@127.0.0.1:5432/workflow_v2_structural
+          WORKFLOW_V2_APPLY_BASELINE: '1'
+        run: npm run test:workflow-v2:pg
+
+      - name: Prove authenticated API idempotency on PostgreSQL 16
+        env:
+          WORKFLOW_V2_API_TEST_DATABASE_URL: postgresql://postgres:preview_test_only@127.0.0.1:5432/workflow_v2_api
+          WORKFLOW_V2_APPLY_BASELINE: '1'
+        run: npm run test:workflow-v2:api-pg
+
+      - name: Run the fresh Simple thin vertical on PostgreSQL 16
+        env:
+          WORKFLOW_V2_E2E_DATABASE_URL: postgresql://postgres:preview_test_only@127.0.0.1:5432/workflow_v2_e2e_simple
+          WORKFLOW_V2_APPLY_BASELINE: '1'
+          WORKFLOW_V2_E2E_MODE: simple
+        run: npm run test:workflow-v2:e2e-local
+
+      - name: Run the fresh Advanced thin vertical on PostgreSQL 16
+        env:
+          WORKFLOW_V2_E2E_DATABASE_URL: postgresql://postgres:preview_test_only@127.0.0.1:5432/workflow_v2_e2e_advanced
+          WORKFLOW_V2_APPLY_BASELINE: '1'
+          WORKFLOW_V2_E2E_MODE: advanced
+        run: npm run test:workflow-v2:e2e-local
+
+      - name: Lint changed workflow boundary
+        run: >-
+          npx eslint
+          lib/workflow-v2
+          shared/workflow-v2
+          server/workflow-v2
+          src/workflow-v2
+          src/pages/WorkflowV2
+          scripts/workflow-v2-*.mjs
+          scripts/workflow-v2-*.test.js
+
+      - name: Build and audit the isolated Simple and Advanced web application
+        working-directory: apps/orqaly/deploy/workflow-v2/web-package
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+          npm run verify
+          npm audit --omit=dev
+
+      - name: Build deployment images without publishing
+        run: |
+          docker build --pull \
+            --build-arg VITE_CLERK_PUBLISHABLE_KEY="$VITE_CLERK_PUBLISHABLE_KEY" \
+            --build-arg VITE_ORQALY_API_URL="$VITE_ORQALY_API_URL" \
+            -f deploy/workflow-v2/Dockerfile.web \
+            -t orqaly-v2-web:test \
+            .
+          docker build --pull -f deploy/workflow-v2/Dockerfile.service -t orqaly-v2-service:test .
+
+  capability-postgres:
+    name: Explicit capability PostgreSQL boundary (${{ matrix.owner-login }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        owner-login: [NOLOGIN, LOGIN]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: capability_025_admin
+          POSTGRES_DB: orqaly_capability_025_ci
+          # This service exists only inside this isolated credential-free test job.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U capability_025_admin -d orqaly_capability_025_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/orqaly/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Prove capability roles, consent, persistence and legacy compatibility
+        env:
+          WORKFLOW_V2_CAPABILITY_DISPOSABLE_APPROVED: new_empty_loopback_only
+          WORKFLOW_V2_CAPABILITY_DISPOSABLE_DATABASE_URL: postgresql://capability_025_admin@127.0.0.1:5432/orqaly_capability_025_ci
+          WORKFLOW_V2_CAPABILITY_TEST_OWNER_LOGIN: ${{ matrix.owner-login }}
+          WORKFLOW_V2_CAPABILITY_PG_RECEIPT: ${{ runner.temp }}/capability-postgres-receipt.json
+        run: node scripts/workflow-v2-capability-postgres.mjs

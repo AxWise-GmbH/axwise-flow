@@ -92,7 +92,7 @@ def _require_utility_model() -> None:
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
             "Structured Gemini utilities require "
-            "GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
 

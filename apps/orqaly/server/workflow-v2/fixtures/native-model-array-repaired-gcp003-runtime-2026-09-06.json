@@ -1,0 +1,131 @@
+{
+  "_notice": "Recorded real GCP003 runtime acceptance of the previously repaired model graph. This is separate from historical failed design/repair evidence and local runtime proof; it does not claim the full Orqaly UI/API rollout is complete.",
+  "scope": "synthetic_gcp003_runtime",
+  "recordedAt": "2026-09-06T06:59:58Z",
+  "runtimeExecuted": true,
+  "environmentId": "orqaly-customer-webhook-preview-003",
+  "service": "orqaly-solution-n8n-preview-003",
+  "revision": "orqaly-solution-n8n-preview-003-00001-sxg",
+  "imageDigest": "sha256:245aab7912f5fa74547ef832ddc2ed195176260ee16767e25a4769c72812bee2",
+  "packageHash": "2a8a544204006d48217725bde9fb1e4e81ffeca40895d91cf011370d1c558201",
+  "sourceFixture": "native-model-array-repaired-acceptance-2026-09-06.json",
+  "sourceFixtureHash": "f416982377ea3e3e2d8b5dd518614d6d2750563617921bc36e4b5c8452f70296",
+  "sourceWorkflowHash": "0dcd10698370b02738d9ea0b92216070cdc6ebeed3bb89eac0a6dd14c9139d52",
+  "configuredExecutionTimeoutSeconds": 30,
+  "policyCeilingSeconds": 60,
+  "receipts": [
+    {
+      "caseId": "case-empty-items-array",
+      "testId": "b547742a-e6c2-40ea-9287-a56dd8aad5fb",
+      "invocationId": "8dce9b1e-26b0-4c73-91d9-3ccce114587c",
+      "testArtifactHash": "98b934c97c58873e45e1b0ac0515f4f30c0633ed7846b48b88a17280a4defd1a",
+      "executionId": "1",
+      "responseStatus": 200,
+      "status": "succeeded",
+      "cleanup": "removed",
+      "passed": true,
+      "input": {
+        "order": {
+          "id": "ord-empty-001",
+          "items": []
+        }
+      },
+      "output": {
+        "orderId": "ord-empty-001",
+        "acceptedCount": 0,
+        "total": 0
+      },
+      "outputHash": "a185339fcd6ca8758c83f976a1ad9e3a24e3d4c3465eeeddd2858fe230126990"
+    },
+    {
+      "caseId": "case-all-nonpositive-array",
+      "testId": "5ddbe384-779a-4d0c-be92-a9265dd76de6",
+      "invocationId": "faf7b65c-19eb-490d-a06f-b0c4908d8806",
+      "testArtifactHash": "9bfb37a853e6d755b6eff67a03608de8951cf9012b900c1cf0fa4c7b3ea06798",
+      "executionId": "2",
+      "responseStatus": 200,
+      "status": "succeeded",
+      "cleanup": "removed",
+      "passed": true,
+      "input": {
+        "order": {
+          "id": "ord-nonpos-002",
+          "items": [
+            {
+              "sku": "B",
+              "quantity": 0,
+              "unitPrice": 3
+            },
+            {
+              "sku": "C",
+              "quantity": -1,
+              "unitPrice": 6
+            }
+          ]
+        }
+      },
+      "output": {
+        "orderId": "ord-nonpos-002",
+        "acceptedCount": 0,
+        "total": 0
+      },
+      "outputHash": "79c10c2de6c67ca21b2128a31a2677b28b0c126dde9e8e255d863d9e0ce5789a"
+    },
+    {
+      "caseId": "case-mixed-items-array",
+      "testId": "90b96b06-775f-48c7-969c-90d7e3f3b8d3",
+      "invocationId": "0262771c-097b-4a12-8c03-84b24669b778",
+      "testArtifactHash": "8e49c8abc16a5ab1d607e6f6595269c96bf4fe5ea201b363fbd1c57850d55ccc",
+      "executionId": "3",
+      "responseStatus": 200,
+      "status": "succeeded",
+      "cleanup": "removed",
+      "passed": true,
+      "input": {
+        "order": {
+          "id": "ord-mixed-003",
+          "items": [
+            {
+              "sku": "A",
+              "quantity": 2,
+              "unitPrice": 10
+            },
+            {
+              "sku": "B",
+              "quantity": 0,
+              "unitPrice": 3
+            },
+            {
+              "sku": "C",
+              "quantity": -1,
+              "unitPrice": 6
+            },
+            {
+              "sku": "D",
+              "quantity": 3,
+              "unitPrice": 5
+            }
+          ]
+        }
+      },
+      "output": {
+        "orderId": "ord-mixed-003",
+        "acceptedCount": 2,
+        "total": 35
+      },
+      "outputHash": "46c4bd1d69cf78adbcbf42b3f8b7cc4fd685aeedb30f0e04e0f6e36a92f7caea"
+    }
+  ],
+  "checks": {
+    "anonymousSettingsStatus": 403,
+    "exactArtifactHashesVerified": true,
+    "acceptanceCriteriaUnchanged": true,
+    "manualGraphEdits": false,
+    "additionalModelCalls": 0,
+    "customerDatabaseWrites": false,
+    "externalProviderActions": false,
+    "temporaryWorkflowsRemoved": 3,
+    "independentReadOnlyInventoryConfirmedAllThreeAbsent": true,
+    "credentialsLogged": false
+  }
+}

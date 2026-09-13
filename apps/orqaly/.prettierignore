@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vercel/
+
+# Supabase
+supabase/.temp/
+
+# Environment files (never format secrets)
+.env
+.env.*
+
+# Test / CI artefacts
+coverage/
+
+# Generated ESLint reports
+eslint-report.json
+eslint-critical-check.json
+
+# Lock files (managed by npm, not human-edited)
+package-lock.json
+
+# Generated / vendored assets
+public/

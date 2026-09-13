@@ -145,7 +145,7 @@ async def test_gemini_direct():
         generation_config = types.GenerateContentConfig(**config_fields)
 
         response = await client.aio.models.generate_content(
-            model="gemini-3.7-flash",
+            model="gemini-3.8-flash",
             contents=contents,
             config=generation_config,
         )
@@ -221,7 +221,7 @@ async def test_gemini_service_direct():
         # Create LLM service directly
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-3.7-flash",
+            "model": "gemini-3.8-flash",
         }
 
         llm_service = GeminiService(llm_config)
@@ -266,7 +266,7 @@ async def test_persona_formation_service():
         # Create LLM service directly
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-3.7-flash",
+            "model": "gemini-3.8-flash",
         }
 
         llm_service = GeminiService(llm_config)

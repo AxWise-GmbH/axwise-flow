@@ -1,0 +1,12 @@
+{
+  "name": "orqaly-nodes-bounded-http",
+  "version": "1.0.0",
+  "description": "Audited fixed-destination, byte-bounded Orqaly HTTPS delivery node",
+  "license": "UNLICENSED",
+  "private": true,
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": ["credentials/OrqalyBoundedHttp.credentials.js"],
+    "nodes": ["nodes/BoundedHttp.node.js"]
+  }
+}

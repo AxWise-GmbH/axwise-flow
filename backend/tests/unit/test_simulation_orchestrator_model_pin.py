@@ -16,12 +16,12 @@ def test_simulation_orchestrator_uses_deployment_pinned_gemini_model(
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
 
     orchestrator = SimulationOrchestrator(use_parallel=False)
 
     assert orchestrator.model is not None
-    assert orchestrator.model.model_name == "models/gemini-3.7-flash"
+    assert orchestrator.model.model_name == "models/gemini-3.8-flash"
 
 
 def test_simulation_orchestrator_defaults_to_gemini_3_7_flash(monkeypatch) -> None:
@@ -31,12 +31,12 @@ def test_simulation_orchestrator_defaults_to_gemini_3_7_flash(monkeypatch) -> No
     orchestrator = SimulationOrchestrator(use_parallel=False)
 
     assert orchestrator.model is not None
-    assert orchestrator.model.model_name == "models/gemini-3.7-flash"
+    assert orchestrator.model.model_name == "models/gemini-3.8-flash"
 
 
 def test_simulation_helper_routes_use_auth_and_canonical_runtime(monkeypatch) -> None:
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
 
     router_module = importlib.import_module(
         "backend.api.research.simulation_bridge.router"
@@ -58,5 +58,5 @@ def test_simulation_helper_routes_use_auth_and_canonical_runtime(monkeypatch) ->
     assert "/api/research/simulation-bridge/test-interview" in hidden_paths
 
     model = router_module.get_gemini_model()
-    assert model.model_name == "models/gemini-3.7-flash"
+    assert model.model_name == "models/gemini-3.8-flash"
     assert model.settings["max_tokens"] == 65_536

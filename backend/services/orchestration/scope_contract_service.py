@@ -56,7 +56,7 @@ from backend.domain.orchestration.scope_models import (
     TruthPolicyV1,
 )
 from backend.infrastructure.data.config import MODEL_CAPABILITIES
-from backend.services.llm.config.genai_config import GEMINI_37_MAX_OUTPUT_TOKENS
+from backend.services.llm.config.genai_config import GEMINI_FLASH_MAX_OUTPUT_TOKENS
 from backend.services.llm.gemini_runtime import (
     RESEARCH_MAX_OUTPUT_TOKENS,
     RESEARCH_MODEL,
@@ -272,12 +272,14 @@ def _trusted_runtime() -> TrustedRuntimeMetadataV1:
         raise ScopeContractError("Gemini runtime capability metadata is missing")
     if (
         capability.context_window != 1_048_576
-        or capability.max_output_tokens != GEMINI_37_MAX_OUTPUT_TOKENS
-        or RESEARCH_MAX_OUTPUT_TOKENS != GEMINI_37_MAX_OUTPUT_TOKENS
+        or capability.max_output_tokens != GEMINI_FLASH_MAX_OUTPUT_TOKENS
+        or RESEARCH_MAX_OUTPUT_TOKENS != GEMINI_FLASH_MAX_OUTPUT_TOKENS
         or str(RESEARCH_THINKING_LEVEL.value).upper() != "HIGH"
     ):
         raise ScopeContractError("Gemini runtime capability metadata is inconsistent")
     return TrustedRuntimeMetadataV1(
+        model=RESEARCH_MODEL,
+        model_resource=RESEARCH_MODEL_RESOURCE,
         context_window=capability.context_window,
         max_output_tokens=capability.max_output_tokens,
     )
@@ -1403,7 +1405,7 @@ def build_scope_proposal_binding(
             maximum_research_iterations=authority.research_maximum_iterations,
             maximum_evidence_items=authority.research_maximum_evidence_items,
             provider="google",
-            model_resource="models/gemini-3.7-flash",
+            model_resource=RESEARCH_MODEL_RESOURCE,
             thinking_level="HIGH",
         )
     from backend.services.orqaly_research_bundle_service import canonical_hash

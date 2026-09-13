@@ -1,0 +1,44 @@
+# Copy to terraform.tfvars and review every value before any apply.
+project_id = "replace-with-gcp-project-id"
+region     = "europe-west1"
+environment = "preview"
+
+# Default: create a dedicated, new and empty PostgreSQL instance and two empty
+# databases. This incurs an always-on Cloud SQL charge after apply.
+create_cloud_sql_instance = true
+manage_databases          = true
+
+# Reuse mode must also select the existing instance's VPC and private subnet:
+# create_cloud_sql_instance        = false
+# existing_cloud_sql_instance_name = "existing-instance"
+# existing_cloud_sql_connection_name = "project:europe-west1:existing-instance"
+# create_network                   = false
+# existing_network_id              = "projects/PROJECT/global/networks/NETWORK"
+# existing_subnetwork_id           = "projects/PROJECT/regions/europe-west1/subnetworks/SUBNET"
+# existing_sql_private_ip_cidrs    = ["10.20.0.15/32"]
+# manage_databases                 = false
+
+# Safe bootstrap state: no containers are deployed and dispatch remains off.
+deploy_runtime_services  = false
+agentic_execution_enabled = false
+control_plane_image       = ""
+n8n_image                 = ""
+
+# After secret versions and reviewed images exist, use immutable Artifact
+# Registry digests—not tags—and keep execution off through initial verification:
+# deploy_runtime_services = true
+# control_plane_image = "europe-west1-docker.pkg.dev/PROJECT/REPOSITORY/control-plane@sha256:REPLACE_WITH_64_HEX"
+# n8n_image           = "europe-west1-docker.pkg.dev/PROJECT/REPOSITORY/n8n@sha256:REPLACE_WITH_64_HEX"
+
+# Grant only the existing private Orqaly API identity. Do not add allUsers or
+# customer principals. Leave empty until that identity is known.
+control_plane_invoker_members = []
+n8n_operator_invoker_members  = []
+
+# Optional alert-only budget. It does not stop or cap GCP spend.
+# billing_account_id   = "000000-000000-000000"
+# monthly_budget_amount = 50
+# budget_currency       = "EUR"
+
+# Secret values never belong in this file. Terraform creates empty containers;
+# operators add versions through the approved secret bootstrap process.

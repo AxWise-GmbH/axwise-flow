@@ -31,6 +31,17 @@ SCOPE_ACTIVE_REVISION_STATUSES = (
     "accepted",
 )
 
+GeminiResearchModelV1 = Literal["gemini-3.7-flash", "gemini-3.8-flash"]
+GeminiResearchModelResourceV1 = Literal[
+    "models/gemini-3.7-flash",
+    "models/gemini-3.8-flash",
+]
+CURRENT_GEMINI_RESEARCH_MODEL = "gemini-3.8-flash"
+CURRENT_GEMINI_RESEARCH_MODEL_RESOURCE = "models/gemini-3.8-flash"
+SUPPORTED_GEMINI_RESEARCH_MODEL_RESOURCES = frozenset(
+    {"models/gemini-3.7-flash", CURRENT_GEMINI_RESEARCH_MODEL_RESOURCE}
+)
+
 
 class ScopeContractModel(BaseModel):
     """Strict base used before data enters a prompt or immutable snapshot."""
@@ -451,7 +462,7 @@ class ScopeProposalDisclosureV1(ImmutableScopeContractModel):
     maximum_research_iterations: int = Field(default=0, ge=0, le=3)
     maximum_evidence_items: int = Field(default=0, ge=0, le=100)
     provider: Optional[Literal["google"]] = None
-    model_resource: Optional[Literal["models/gemini-3.7-flash"]] = None
+    model_resource: Optional[GeminiResearchModelResourceV1] = None
     thinking_level: Optional[Literal["HIGH"]] = None
 
     @model_validator(mode="after")
@@ -489,7 +500,7 @@ class ScopeProposalDisclosureV1(ImmutableScopeContractModel):
             raise ValueError("research disclosure requires a positive evidence cap")
         if self.acquisition_mode != "none" and (
             self.provider != "google"
-            or self.model_resource != "models/gemini-3.7-flash"
+            or self.model_resource not in SUPPORTED_GEMINI_RESEARCH_MODEL_RESOURCES
             or self.thinking_level != "HIGH"
         ):
             raise ValueError("research disclosure requires its exact model boundary")
@@ -967,9 +978,9 @@ class TrustedRuntimeMetadataV1(ScopeContractModel):
         "axwise.runtime.gemini-research.v1"
     )
     provider: Literal["google"] = "google"
-    model: Literal["gemini-3.7-flash"] = "gemini-3.7-flash"
-    model_resource: Literal["models/gemini-3.7-flash"] = (
-        "models/gemini-3.7-flash"
+    model: GeminiResearchModelV1 = CURRENT_GEMINI_RESEARCH_MODEL
+    model_resource: GeminiResearchModelResourceV1 = (
+        CURRENT_GEMINI_RESEARCH_MODEL_RESOURCE
     )
     reasoning_mode: Literal["high"] = "high"
     context_window: Literal[1048576] = 1048576
@@ -986,6 +997,12 @@ class TrustedRuntimeMetadataV1(ScopeContractModel):
         min_length=3,
         max_length=3,
     )
+
+    @model_validator(mode="after")
+    def exact_model_resource_pair(self) -> "TrustedRuntimeMetadataV1":
+        if self.model_resource != f"models/{self.model}":
+            raise ValueError("Gemini runtime model and resource must match exactly")
+        return self
 
 
 class TruthPolicyV1(ScopeContractModel):
@@ -1261,7 +1278,9 @@ class ScopeCorrectionInterpretationV1(ImmutableScopeContractModel):
     correction_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
     parser_version: str = Field(..., min_length=1, max_length=120)
     parser_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
-    model_resource: Literal["models/gemini-3.7-flash"] = "models/gemini-3.7-flash"
+    model_resource: GeminiResearchModelResourceV1 = (
+        CURRENT_GEMINI_RESEARCH_MODEL_RESOURCE
+    )
     model_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
     prompt_version: str = Field(..., min_length=1, max_length=120)
     prompt_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
@@ -2002,8 +2021,8 @@ class ScopeCorrectionResearchDisclosureV1(ImmutableScopeContractModel):
     maximum_research_iterations: int = Field(default=0, ge=0, le=3)
     maximum_evidence_items: int = Field(default=25, ge=1, le=100)
     provider: Literal["google"] = "google"
-    model_resource: Literal["models/gemini-3.7-flash"] = (
-        "models/gemini-3.7-flash"
+    model_resource: GeminiResearchModelResourceV1 = (
+        CURRENT_GEMINI_RESEARCH_MODEL_RESOURCE
     )
     thinking_level: Literal["HIGH"] = "HIGH"
 
@@ -2966,8 +2985,8 @@ class ScopeCorrectionUsageV1(ScopeContractModel):
     version: Literal["axwise_scope_correction_usage_v1"] = (
         "axwise_scope_correction_usage_v1"
     )
-    model_resource: Literal["models/gemini-3.7-flash"] = (
-        "models/gemini-3.7-flash"
+    model_resource: GeminiResearchModelResourceV1 = (
+        CURRENT_GEMINI_RESEARCH_MODEL_RESOURCE
     )
     thinking_level: Literal["HIGH"] = "HIGH"
     requests: int = Field(default=0, ge=0, le=10)

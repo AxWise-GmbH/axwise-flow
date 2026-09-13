@@ -1,0 +1,83 @@
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  header,
+  nav,
+  aside,
+  button,
+  .MuiToolbar-root,
+  .MuiAppBar-root,
+  .MuiTabs-root,
+  .MuiDrawer-root,
+  .MuiDialog-root .MuiDialogTitle-root,
+  .MuiFab-root,
+  .report-section-nav {
+    display: none !important;
+  }
+
+  .MuiDialog-paper,
+  .MuiDialog-container,
+  .MuiPaper-root {
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .MuiDialog-paper {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .MuiDialog-container {
+    position: static !important;
+    height: auto !important;
+    align-items: flex-start !important;
+  }
+
+  .MuiBackdrop-root {
+    display: none !important;
+  }
+
+  [class*="MuiCardHeader"],
+  [class*="MuiCardContent"] {
+    page-break-inside: avoid;
+  }
+
+  .MuiGrid-container,
+  .MuiGrid-item {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  .recharts-responsive-container {
+    width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  @page {
+    margin: 14mm 12mm;
+    size: A4 portrait;
+  }
+}

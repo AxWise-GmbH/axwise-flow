@@ -1,0 +1,25 @@
+steps:
+  - id: "build-tool-gateway"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "--pull"
+      - "-t"
+      - "europe-west4-docker.pkg.dev/$PROJECT_ID/workflow-v2-preview/orqaly-agentic-tool-gateway:${_IMAGE_TAG}"
+      - "-f"
+      - "services/agentic-tool-gateway/Dockerfile"
+      - "."
+  - id: "build-n8n-bootstrap"
+    name: "gcr.io/kaniko-project/executor@sha256:9e69fd4330ec887829c780f5126dd80edc663df6def362cd22e79bcdf00ac53f"
+    args:
+      - "--dockerfile=infra/n8n/bootstrap/Dockerfile"
+      - "--context=dir:///workspace"
+      - "--destination=europe-west4-docker.pkg.dev/$PROJECT_ID/workflow-v2-preview/orqaly-agentic-n8n-bootstrap:${_IMAGE_TAG}"
+      - "--cache=false"
+images:
+  - "europe-west4-docker.pkg.dev/$PROJECT_ID/workflow-v2-preview/orqaly-agentic-tool-gateway:${_IMAGE_TAG}"
+substitutions:
+  _IMAGE_TAG: "manual"
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: "E2_HIGHCPU_8"

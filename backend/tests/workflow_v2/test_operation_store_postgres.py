@@ -15,7 +15,6 @@ from backend.services.workflow_v2.operation_store import (
     StaleOperationLease,
 )
 
-
 pytestmark = pytest.mark.contract
 DATABASE_URL = os.getenv("AXWISE_V2_TEST_DATABASE_URL")
 if not DATABASE_URL:
@@ -89,7 +88,9 @@ def engines():
 def stores(engines):
     admin, api, worker = engines
     with admin.begin() as connection:
-        connection.execute(text("TRUNCATE axwise.cognitive_operations"))
+        connection.execute(
+            text("TRUNCATE axwise.operation_events, axwise.cognitive_operations")
+        )
     return (
         admin,
         PostgresOperationStore(api),
@@ -137,6 +138,39 @@ def envelope(
     )
 
 
+def assistant_envelope(
+    *,
+    operation_id: str = "00000000-0000-4000-8000-000000000111",
+    tenant_id: str = "00000000-0000-4000-8000-000000000102",
+    attempt_id: str = "00000000-0000-4000-8000-000000000105",
+):
+    input_payload = {
+        "type": "AssistantTurnV1",
+        "responseMode": "direct_answer",
+        "message": "Explain the launch constraints.",
+        "conversation": [],
+    }
+    return AxWiseOperationEnvelope.model_validate(
+        {
+            "operationId": operation_id,
+            "operationType": "AssistantTurnV1",
+            "owner": {
+                "tenantId": tenant_id,
+                "organizationId": None,
+                "userId": "user_pgstoretest123",
+            },
+            "workflow": {
+                "runId": "00000000-0000-4000-8000-000000000103",
+                "stageId": "00000000-0000-4000-8000-000000000104",
+                "stageAttemptId": attempt_id,
+            },
+            "contractVersion": "axwise.operation.v2",
+            "canonicalInputHash": canonical_hash(input_payload),
+            "input": input_payload,
+        }
+    )
+
+
 def completion_result() -> dict:
     return {
         "resultType": "scope_compiled",
@@ -165,6 +199,103 @@ def test_same_id_and_hash_adopts_while_changed_input_or_stage_slot_conflicts(sto
         api.adopt_or_create(
             envelope(operation_id="00000000-0000-4000-8000-000000000109")
         )
+    with pytest.raises(OperationConflict, match="stage attempt"):
+        api.adopt_or_create(assistant_envelope())
+
+
+def test_latest_schema_allows_compile_scope_v3_and_one_operation_per_attempt(
+    stores,
+) -> None:
+    admin, _api, _worker = stores
+    with admin.connect() as connection:
+        constraints = connection.execute(
+            text(
+                "SELECT contype, pg_get_constraintdef(oid) AS definition "
+                "FROM pg_constraint "
+                "WHERE conrelid = 'axwise.cognitive_operations'::regclass"
+            )
+        ).mappings()
+        definitions = [
+            (row["contype"], row["definition"])
+            for row in constraints
+        ]
+
+    operation_type_checks = [
+        definition
+        for constraint_type, definition in definitions
+        if constraint_type == "c" and "operation_type" in definition
+    ]
+    uniqueness = {
+        definition
+        for constraint_type, definition in definitions
+        if constraint_type == "u"
+    }
+    assert len(operation_type_checks) == 1
+    assert "CompileScopeV3" in operation_type_checks[0]
+    assert "PrepareSolutionV1" in operation_type_checks[0]
+    assert "PrepareSolutionV2" in operation_type_checks[0]
+    assert "UNIQUE (tenant_id, stage_attempt_id)" in uniqueness
+    assert "UNIQUE (tenant_id, stage_attempt_id, operation_type)" not in uniqueness
+
+
+def test_prepare_solution_persists_claims_completes_and_preserves_tenant_isolation(stores):
+    from backend.tests.workflow_v2.test_solution_preparation import (
+        FIXTURE,
+    )
+    from backend.tests.workflow_v2.test_solution_preparation import (
+        envelope as solution_envelope,
+    )
+
+    _admin, api, worker = stores
+    operation = solution_envelope()
+    accepted = api.adopt_or_create(operation)
+    assert accepted.status == "accepted"
+    assert api.adopt_or_create(operation).operation_id == operation.operation_id
+    assert api.get(UUID("00000000-0000-4000-8000-000000000199"), operation.operation_id) is None
+    lease = uuid4()
+    claim = worker.claim_next(lease, 30)
+    assert claim.envelope.input == operation.input
+    result = {"resultType": "solution_prepared", "response": FIXTURE["needsInput"]}
+    worker.complete(operation.owner.tenant_id, operation.operation_id, lease, result)
+    completed = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert completed.status == "completed"
+    assert completed.result_payload == result
+    assert worker.claim_next(uuid4(), 30) is None
+    # Resolved answers require a new operation/stage-attempt and cannot overwrite
+    # this completed immutable design attempt using the old idempotency identity.
+    with pytest.raises(OperationConflict, match="changed input"):
+        api.adopt_or_create(solution_envelope(FIXTURE["answeredInput"]))
+
+
+def test_native_solution_persists_exact_hash_and_tenant_bound_completion(stores):
+    from backend.tests.workflow_v2.test_solution_preparation_v2 import (
+        candidate,
+        input_payload,
+    )
+    from backend.tests.workflow_v2.test_solution_preparation_v2 import (
+        envelope as native_envelope,
+    )
+
+    _admin, api, worker = stores
+    operation = native_envelope()
+    accepted = api.adopt_or_create(operation)
+    assert api.adopt_or_create(operation) == accepted
+    assert api.get(uuid4(), operation.operation_id) is None
+    lease = uuid4()
+    claimed = worker.claim_next(lease, 30)
+    assert claimed.envelope == operation
+    result = {"resultType": "solution_prepared", "response": candidate()}
+    worker.complete(operation.owner.tenant_id, operation.operation_id, lease, result)
+    stored = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert stored.status == "completed"
+    assert stored.result_payload == result
+    assert stored.canonical_input_hash == operation.canonical_input_hash
+    assert api.get(uuid4(), operation.operation_id) is None
+    assert worker.claim_next(uuid4(), 30) is None
+    changed = input_payload()
+    changed["inputVersion"] += 1
+    with pytest.raises(OperationConflict):
+        api.adopt_or_create(native_envelope(changed))
 
 
 def test_tenant_b_cannot_read_tenant_a_and_api_worker_cannot_directly_update(stores) -> None:
@@ -261,12 +392,19 @@ def test_schema_treats_exact_lease_boundary_as_expired(stores) -> None:
             "axwise.renew_cognitive_operation(uuid,uuid,uuid,integer)",
             "axwise.complete_cognitive_operation(uuid,uuid,uuid,jsonb)",
             "axwise.fail_cognitive_operation(uuid,uuid,uuid,boolean,text)",
+            "axwise.fail_cognitive_operation(uuid,uuid,uuid,boolean,text,"
+            "timestamp with time zone,integer,jsonb)",
+            "axwise.cancel_cognitive_operation(uuid,uuid,uuid)",
         ):
             definition = connection.execute(
                 text("SELECT pg_get_functiondef(CAST(:signature AS regprocedure))"),
                 {"signature": signature},
             ).scalar_one()
-            assert "lease_expires_at > clock_timestamp()" in definition
+            assert (
+                "lease_expires_at > clock_timestamp()" in definition
+                or "lease_expires_at > event_time" in definition
+                or "lease_expires_at > terminal_time" in definition
+            )
     assert "lease_expires_at <= clock_timestamp()" in claim_definition
 
 
@@ -277,6 +415,9 @@ def test_security_definer_ownership_drops_temporary_migration_privileges(stores)
         "axwise.renew_cognitive_operation(uuid,uuid,uuid,integer)",
         "axwise.complete_cognitive_operation(uuid,uuid,uuid,jsonb)",
         "axwise.fail_cognitive_operation(uuid,uuid,uuid,boolean,text)",
+        "axwise.fail_cognitive_operation(uuid,uuid,uuid,boolean,text,"
+        "timestamp with time zone,integer,jsonb)",
+        "axwise.cancel_cognitive_operation(uuid,uuid,uuid)",
     )
     with admin.connect() as connection:
         for signature in signatures:
@@ -302,6 +443,31 @@ def test_security_definer_ownership_drops_temporary_migration_privileges(stores)
                 {"signature": signature},
             ).scalar_one()
 
+        request_cancel_signature = (
+            "axwise.request_cognitive_operation_cancel(uuid,uuid)"
+        )
+        assert connection.execute(
+            text(
+                "SELECT pg_get_userbyid(proowner) FROM pg_proc "
+                "WHERE oid = CAST(:signature AS regprocedure)"
+            ),
+            {"signature": request_cancel_signature},
+        ).scalar_one() == "axwise_v2_owner"
+        assert connection.execute(
+            text(
+                "SELECT has_function_privilege("
+                "'axwise_v2_api', CAST(:signature AS regprocedure), 'EXECUTE')"
+            ),
+            {"signature": request_cancel_signature},
+        ).scalar_one()
+        assert not connection.execute(
+            text(
+                "SELECT has_function_privilege("
+                "'axwise_v2_worker', CAST(:signature AS regprocedure), 'EXECUTE')"
+            ),
+            {"signature": request_cancel_signature},
+        ).scalar_one()
+
         assert not connection.execute(
             text("SELECT has_schema_privilege('axwise_v2_owner', 'axwise', 'CREATE')")
         ).scalar_one()
@@ -316,6 +482,339 @@ def test_security_definer_ownership_drops_temporary_migration_privileges(stores)
                 "AND membership.set_option)"
             )
         ).scalar_one()
+
+
+def test_readiness_requires_latest_schema_surface_and_role_grants(stores) -> None:
+    admin, api, worker = stores
+    assert api.ready()
+    assert worker.ready()
+
+    with admin.begin() as connection:
+        connection.exec_driver_sql(
+            "REVOKE SELECT ON axwise.operation_events FROM axwise_v2_api"
+        )
+    try:
+        assert not api.ready()
+        assert worker.ready()
+    finally:
+        with admin.begin() as connection:
+            connection.exec_driver_sql(
+                "GRANT SELECT ON axwise.operation_events TO axwise_v2_api"
+            )
+
+    with admin.begin() as connection:
+        connection.exec_driver_sql(
+            "REVOKE SELECT ON axwise.cognitive_operations FROM axwise_v2_worker"
+        )
+    try:
+        assert api.ready()
+        assert not worker.ready()
+        with pytest.raises(DBAPIError):
+            worker.cancellation_requested(uuid4(), uuid4(), uuid4())
+    finally:
+        with admin.begin() as connection:
+            connection.exec_driver_sql(
+                "GRANT SELECT ON axwise.cognitive_operations TO axwise_v2_worker"
+            )
+
+    with admin.begin() as connection:
+        grant_owner_visibility(connection)
+        connection.exec_driver_sql(
+            "ALTER TABLE axwise.operation_events RENAME TO operation_events_unready"
+        )
+        revoke_owner_visibility(connection)
+    try:
+        assert not api.ready()
+        assert not worker.ready()
+    finally:
+        with admin.begin() as connection:
+            grant_owner_visibility(connection)
+            connection.exec_driver_sql(
+                "ALTER TABLE axwise.operation_events_unready RENAME TO operation_events"
+            )
+            revoke_owner_visibility(connection)
+
+    assert api.ready()
+    assert worker.ready()
+
+
+def test_readiness_returns_false_for_an_unmigrated_database() -> None:
+    unmigrated_engine = create_engine(
+        make_url(DATABASE_URL).set(database="postgres")
+    )
+    try:
+        assert not PostgresOperationStore(unmigrated_engine).ready()
+    finally:
+        unmigrated_engine.dispose()
+
+
+def test_retryable_failure_persists_safe_runtime_metadata(stores) -> None:
+    _admin, api, worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+    token = uuid4()
+    assert worker.claim_next(token, 30)
+    diagnostics = {
+        "route": "gemini_google_search",
+        "status": "retry_exhausted",
+        "elapsed_ms": 0,
+        "call_count": 0,
+        "retry_count": 0,
+        "primary_skipped": True,
+        "circuit_state": "open",
+        "retry_after_seconds": 23,
+    }
+
+    worker.fail(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        token,
+        retryable=True,
+        error_class="AXWISE_RESEARCH_UNAVAILABLE",
+        retry_at="2026-09-02T10:15:30Z",
+        retry_after_seconds=23,
+        failure_diagnostics=diagnostics,
+    )
+
+    failed = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert failed is not None
+    assert failed.status == "failed"
+    assert failed.retry_at == "2026-09-02T10:15:30Z"
+    assert failed.retry_after_seconds == 23
+    assert failed.failure_diagnostics == diagnostics
+
+
+@pytest.mark.parametrize(
+    "unsafe_diagnostics",
+    [
+        {},
+        {"route": "gemini_google_search"},
+        {"route": None, "status": "unavailable"},
+        {"route": "gemini_google_search", "status": None},
+        {
+            "route": "gemini_google_search",
+            "status": "unavailable",
+            "primary": {},
+        },
+        {
+            "route": "gemini_google_search",
+            "status": "unavailable",
+            "prompt": "private user content",
+        },
+    ],
+)
+def test_database_rejects_raw_failure_content(stores, unsafe_diagnostics) -> None:
+    _admin, api, worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+    token = uuid4()
+    assert worker.claim_next(token, 30)
+
+    with pytest.raises(DBAPIError, match="safe bounded schema"):
+        worker.fail(
+            operation.owner.tenant_id,
+            operation.operation_id,
+            token,
+            retryable=True,
+            error_class="AXWISE_RESEARCH_UNAVAILABLE",
+            failure_diagnostics=unsafe_diagnostics,
+        )
+
+    unchanged = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert unchanged is not None
+    assert unchanged.status == "running"
+
+
+def test_lifecycle_events_are_monotonic_atomic_and_cursor_addressable(stores) -> None:
+    _admin, api, worker = stores
+    operation = envelope()
+    accepted = api.adopt_or_create(operation)
+    first_page = api.events_after(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        after=0,
+        limit=1,
+    )
+    assert accepted.status == "accepted"
+    assert [(event.sequence, event.event_type) for event in first_page.events] == [
+        (1, "accepted")
+    ]
+    assert first_page.has_more is False
+
+    token = uuid4()
+    assert worker.claim_next(token, 30)
+    assert worker.renew(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        token,
+        30,
+    )
+    worker.complete(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        token,
+        completion_result(),
+    )
+
+    tail = api.events_after(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        after=1,
+        limit=2,
+    )
+    assert [(event.sequence, event.event_type) for event in tail.events] == [
+        (2, "running"),
+        (3, "heartbeat"),
+    ]
+    assert tail.has_more is True
+    terminal = api.events_after(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        after=tail.events[-1].sequence,
+        limit=10,
+    )
+    assert [(event.sequence, event.event_type) for event in terminal.events] == [
+        (4, "completed")
+    ]
+    assert api.get(operation.owner.tenant_id, operation.operation_id).status == "completed"
+
+
+def test_accepted_cancel_is_immediate_idempotent_and_append_only(stores) -> None:
+    admin, api, _worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+
+    first = api.request_cancel(operation.owner.tenant_id, operation.operation_id)
+    second = api.request_cancel(operation.owner.tenant_id, operation.operation_id)
+
+    assert first is not None and first.status == "cancelled"
+    assert second == first
+    events = api.events_after(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        after=0,
+        limit=10,
+    )
+    assert [(event.sequence, event.event_type) for event in events.events] == [
+        (1, "accepted"),
+        (2, "cancel_requested"),
+        (3, "cancelled"),
+    ]
+    with pytest.raises(DBAPIError, match="append-only"):
+        with admin.begin() as connection:
+            grant_owner_visibility(connection)
+            connection.execute(
+                text(
+                    "UPDATE axwise.operation_events SET event_type = 'heartbeat' "
+                    "WHERE operation_id = :operation_id AND sequence = 1"
+                ),
+                {"operation_id": operation.operation_id},
+            )
+
+
+def test_running_cancel_cooperates_with_lease_and_wins_terminal_race(stores) -> None:
+    _admin, api, worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+    token = uuid4()
+    assert worker.claim_next(token, 30)
+
+    requested = api.request_cancel(operation.owner.tenant_id, operation.operation_id)
+    assert requested is not None and requested.status == "cancel_requested"
+    assert worker.cancellation_requested(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        token,
+    )
+    with pytest.raises(StaleOperationLease):
+        worker.complete(
+            operation.owner.tenant_id,
+            operation.operation_id,
+            token,
+            completion_result(),
+        )
+    worker.cancel(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        token,
+    )
+
+    assert api.get(operation.owner.tenant_id, operation.operation_id).status == "cancelled"
+    events = api.events_after(
+        operation.owner.tenant_id,
+        operation.operation_id,
+        after=0,
+        limit=10,
+    )
+    assert [event.event_type for event in events.events] == [
+        "accepted",
+        "running",
+        "cancel_requested",
+        "cancelled",
+    ]
+
+
+def test_event_reads_are_tenant_isolated(stores) -> None:
+    _admin, api, _worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+
+    hidden = api.events_after(
+        UUID("00000000-0000-4000-8000-000000000199"),
+        operation.operation_id,
+        after=0,
+        limit=10,
+    )
+
+    assert hidden.events == ()
+    assert hidden.has_more is False
+
+
+def test_api_cancel_definer_rejects_cross_tenant_argument(stores) -> None:
+    _admin, api, _worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+    other_tenant = UUID("00000000-0000-4000-8000-000000000199")
+
+    with api.engine.begin() as connection:
+        connection.execute(
+            text("SELECT set_config('axwise.tenant_id', :tenant_id, true)"),
+            {"tenant_id": str(other_tenant)},
+        )
+        result = connection.execute(
+            text(
+                "SELECT axwise.request_cognitive_operation_cancel("
+                ":tenant_id, :operation_id)"
+            ),
+            {
+                "tenant_id": operation.owner.tenant_id,
+                "operation_id": operation.operation_id,
+            },
+        ).scalar_one_or_none()
+
+    assert result is None
+    assert api.get(operation.owner.tenant_id, operation.operation_id).status == "accepted"
+
+
+def test_event_foreign_key_rejects_cross_tenant_operation_ownership(stores) -> None:
+    admin, api, _worker = stores
+    operation = envelope()
+    api.adopt_or_create(operation)
+
+    with pytest.raises(DBAPIError):
+        with admin.begin() as connection:
+            grant_owner_visibility(connection)
+            connection.execute(
+                text(
+                    "INSERT INTO axwise.operation_events "
+                    "(tenant_id, operation_id, sequence, event_type, status) "
+                    "VALUES (:tenant_id, :operation_id, 2, 'accepted', 'accepted')"
+                ),
+                {
+                    "tenant_id": UUID("00000000-0000-4000-8000-000000000199"),
+                    "operation_id": operation.operation_id,
+                },
+            )
 
 
 def test_terminal_row_and_result_are_immutable(stores) -> None:

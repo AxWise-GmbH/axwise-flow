@@ -1,0 +1,1822 @@
+/* Accent tokens live at :root so they also reach portaled surfaces
+   (Dialog/Drawer/Snackbar render at <body>, outside .mkt-landing).
+   --app-accent* are written onto <html> by ThemeContext from the user's
+   Primary colour; the brand emerald hexes stay as first-paint fallbacks. */
+:root {
+  --neon: var(--app-accent, #10b981);
+  --neon-light: var(--app-accent-light, #34d399);
+  --neon-dark: var(--app-accent-dark, #059669);
+}
+
+.mkt-landing {
+  --bg: #0a0a0a;
+  --bg-paper: #0f0f0f;
+  /* Near-black tinted by the accent (was the green-black #111613) so every .mkt-tile
+     block follows the Primary colour. Default emerald resolves to ~#111613. */
+  --bg-tile: color-mix(in srgb, var(--app-accent, #10b981) 7%, #0f0f0f);
+  --text: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.55);
+  --border: rgba(var(--app-accent-rgb, 16, 185, 129), 0.15);
+  --border-hover: rgba(var(--app-accent-rgb, 16, 185, 129), 1);
+  --glow-outer: rgba(var(--app-accent-rgb, 16, 185, 129), 0.4);
+  --glow-far: rgba(var(--app-accent-rgb, 16, 185, 129), 0.12);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  position: relative;
+  min-height: calc(100vh - 32px);
+  margin: -8px 0 0;
+  padding: 32px 24px 64px;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(var(--app-accent-rgb, 16, 185, 129), 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(var(--app-accent-rgb, 16, 185, 129), 0.04), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* Light-mode token re-binds. The app's ThemeProvider sets
+   data-theme="light|dark" on <html>, so simple-mode pages follow the
+   global theme switch with no JS hook. Neon green accent is the brand
+   colour and stays unchanged in both modes. */
+[data-theme="light"] .mkt-landing {
+  --bg: #F1F5F9;
+  --bg-paper: #FFFFFF;
+  --bg-tile: #FFFFFF;
+  --text: #1E293B;
+  --text-dim: rgba(30, 41, 59, 0.62);
+  --border: rgba(var(--app-accent-rgb, 16, 185, 129), 0.22);
+  --border-hover: rgba(var(--app-accent-rgb, 16, 185, 129), 0.85);
+  --glow-outer: rgba(var(--app-accent-rgb, 16, 185, 129), 0.28);
+  --glow-far: rgba(var(--app-accent-rgb, 16, 185, 129), 0.10);
+}
+
+.mkt-landing__particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mkt-landing__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.mkt-section { margin-bottom: 10px; }
+.mkt-section:last-child { margin-bottom: 0; }
+
+.mkt-section__header { margin-bottom: 28px; text-align: center; animation: mktFadeInUp 600ms var(--ease) both; }
+.mkt-section__title {
+  font-family: "DM Sans", "Inter", sans-serif;
+  font-size: clamp(28px, 3.5vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: var(--text);
+  animation: mktHeaderGlow 5s ease-in-out infinite;
+}
+.mkt-section__subtitle {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.mkt-grid { display: grid; gap: 10px; }
+.mkt-grid--s1 { grid-template-columns: 2fr 1fr; grid-template-rows: repeat(3, 200px); }
+.mkt-grid--s2 { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 220px; }
+
+.mkt-tile {
+  position: relative;
+  background: linear-gradient(180deg, var(--bg-tile) 0%, var(--bg-paper) 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 250ms var(--ease), border-color 250ms var(--ease),
+    box-shadow 250ms var(--ease), filter 250ms var(--ease), opacity 250ms var(--ease);
+  animation:
+    mktFadeInUp 700ms var(--ease) both calc(var(--delay, 0ms) + 100ms),
+    mktTileBreath 4s ease-in-out infinite calc(var(--delay, 0ms) + 700ms);
+  box-shadow: inset 0 0 0 1px rgba(var(--app-accent-rgb, 16, 185, 129), 0.05);
+  color: inherit;
+}
+.mkt-tile:focus-visible {
+  outline: 2px solid var(--neon);
+  outline-offset: 4px;
+}
+.mkt-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 50%),
+    rgba(var(--app-accent-rgb, 16, 185, 129), 0.12),
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 250ms var(--ease);
+}
+.mkt-grid:hover .mkt-tile:not(:hover) { opacity: 0.6; filter: saturate(0.6); }
+.mkt-tile:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--border-hover);
+  box-shadow:
+    0 0 0 1px var(--neon),
+    0 0 30px var(--glow-outer),
+    0 0 60px var(--glow-far),
+    inset 0 0 30px rgba(var(--app-accent-rgb, 16, 185, 129), 0.06);
+}
+.mkt-tile:hover::before { opacity: 1; }
+.mkt-tile:active { transform: translateY(-2px) scale(0.985); transition-duration: 120ms; }
+
+.mkt-tile__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb, 16, 185, 129), 0.18), rgba(var(--app-accent-rgb, 16, 185, 129), 0.04));
+  border: 1px solid rgba(var(--app-accent-rgb, 16, 185, 129), 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon);
+  margin-bottom: 16px;
+  transition: transform 300ms var(--ease), background 300ms var(--ease),
+    box-shadow 300ms var(--ease);
+  animation: mktIconTilt 6s ease-in-out infinite;
+}
+.mkt-tile:hover .mkt-tile__icon {
+  transform: rotate(8deg) scale(1.1);
+  background: linear-gradient(135deg, rgba(var(--app-accent-rgb, 16, 185, 129), 0.35), rgba(var(--app-accent-rgb, 16, 185, 129), 0.1));
+  box-shadow: 0 0 20px var(--glow-outer);
+  animation-play-state: paused;
+}
+.mkt-tile__icon svg {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 6px var(--glow-far));
+}
+
+.mkt-tile__title {
+  font-family: "DM Sans", "Inter", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.mkt-tile__subtitle {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.5;
+}
+.mkt-tile__arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--neon);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 250ms var(--ease), transform 250ms var(--ease);
+}
+.mkt-tile:hover .mkt-tile__arrow { opacity: 1; transform: translateX(0); }
+
+/* ── Showcase tile ─────────────────────────────────────────────── */
+.mkt-tile--showcase {
+  grid-row: 1 / 4;
+  padding: 36px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(var(--app-accent-rgb, 16, 185, 129), 0.07), transparent 60%),
+    radial-gradient(circle at 70% 80%, rgba(var(--app-accent-rgb, 16, 185, 129), 0.03), transparent 60%),
+    linear-gradient(180deg, var(--bg-tile) 0%, var(--bg-paper) 100%);
+}
+.mkt-tile--showcase .mkt-tile__title {
+  font-size: clamp(32px, 3vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 16px 0 12px;
+}
+.mkt-tile--showcase .mkt-tile__subtitle {
+  font-size: 16px;
+  max-width: 380px;
+  line-height: 1.55;
+}
+
+.mkt-showcase__content {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  gap: 24px;
+}
+.mkt-showcase__head { position: relative; z-index: 4; }
+.mkt-showcase__foot { display: flex; justify-content: flex-end; }
+.mkt-tile--showcase .mkt-tile__arrow { font-size: 15px; opacity: 1; transform: none; }
+
+.mkt-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neon);
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.08);
+  border: 1px solid rgba(var(--app-accent-rgb, 16, 185, 129), 0.3);
+  border-radius: 999px;
+}
+.mkt-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon);
+  animation: mktLivePulse 1.6s ease-in-out infinite;
+}
+
+/* ── Orb illustration ──────────────────────────────────────────── */
+.mkt-orb {
+  position: absolute;
+  right: -120px;
+  top: 50%;
+  width: 380px;
+  height: 380px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.55;
+}
+.mkt-orb__blob {
+  position: absolute;
+  inset: 60px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(var(--app-accent-light-rgb, 52, 211, 153), 0.65) 0%,
+    rgba(var(--app-accent-rgb, 16, 185, 129), 0.3) 35%,
+    transparent 70%
+  );
+  filter: blur(6px);
+  animation: mktMorphBlob 8s ease-in-out infinite, mktOrbPulse 3s ease-in-out infinite;
+}
+.mkt-orb__blob--inner {
+  inset: 110px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(var(--app-accent-light-rgb, 52, 211, 153), 0.4) 30%,
+    transparent 70%
+  );
+  filter: blur(2px);
+  animation-duration: 6s, 2.4s;
+}
+/* Light mode: swap the bright white core for a saturated green so the orb
+   stays visible against a white tile (otherwise the core fades to nothing). */
+[data-theme="light"] .mkt-orb__blob--inner {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(var(--app-accent-dark-rgb, 6, 95, 70), 0.55) 0%,
+    rgba(var(--app-accent-rgb, 16, 185, 129), 0.42) 30%,
+    transparent 70%
+  );
+}
+[data-theme="light"] .mkt-orb { opacity: 0.7; }
+.mkt-orb__ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(var(--app-accent-rgb, 16, 185, 129), 0.3);
+  border-radius: 50%;
+  animation: mktRingRotate 14s linear infinite, mktRingPulse 4s ease-in-out infinite;
+}
+.mkt-orb__ring--2 { inset: 30px; animation-duration: 22s, 5s; animation-direction: reverse, normal; opacity: 0.6; }
+.mkt-orb__ring--3 { inset: 80px; animation-duration: 10s, 3s; opacity: 0.4; }
+
+/* ── Pill marquee ──────────────────────────────────────────────── */
+.mkt-pills {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  padding: 4px 0;
+}
+.mkt-pills__row {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  animation: mktMarquee var(--row-speed, 50s) linear infinite;
+}
+.mkt-pills__row--reverse { animation-direction: reverse; }
+.mkt-tile--showcase:hover .mkt-pills__row { animation-play-state: paused; }
+
+.mkt-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.06);
+  border: 1px solid rgba(var(--app-accent-rgb, 16, 185, 129), 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 200ms var(--ease), border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease), background 200ms var(--ease);
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+.mkt-pill:hover {
+  transform: scale(1.06);
+  border-color: rgba(var(--app-accent-rgb, 16, 185, 129), 0.85);
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.12);
+  box-shadow: 0 0 16px var(--glow-outer);
+  z-index: 5;
+}
+.mkt-pill:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+.mkt-pill__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon);
+}
+.mkt-pill__icon svg { width: 14px; height: 14px; }
+
+.mkt-pill__tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 10px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neon);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 6;
+}
+[data-theme="light"] .mkt-pill__tooltip {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+}
+.mkt-pill:hover .mkt-pill__tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Scan line ─────────────────────────────────────────────────── */
+.mkt-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 18px;
+  z-index: 3;
+}
+.mkt-scan::before {
+  content: "";
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(var(--app-accent-rgb, 16, 185, 129), 0.08) 50%,
+    transparent 100%
+  );
+  animation: mktScanSweep 6s ease-in-out infinite;
+}
+
+/* ── Cursor trail dot ─────────────────────────────────────────── */
+.mkt-cursor-dot {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon);
+  box-shadow: 0 0 10px var(--neon), 0 0 20px var(--glow-outer);
+  pointer-events: none;
+  z-index: 9999;
+  animation: mktCursorFade 500ms forwards;
+}
+
+/* ── Confetti ─────────────────────────────────────────────────── */
+.mkt-confetti {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  animation: mktConfetti 900ms ease-out forwards;
+}
+
+/* ── Keyframes ────────────────────────────────────────────────── */
+@keyframes mktFadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes mktTileBreath {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(var(--app-accent-rgb, 16, 185, 129), 0.05); }
+  50%      { box-shadow: inset 0 0 0 1px rgba(var(--app-accent-rgb, 16, 185, 129), 0.18); }
+}
+@keyframes mktHeaderGlow {
+  0%, 100% { text-shadow: 0 0 0 transparent; }
+  50%      { text-shadow: 0 0 18px rgba(var(--app-accent-rgb, 16, 185, 129), 0.35); }
+}
+@keyframes mktIconTilt {
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2deg); }
+}
+@keyframes mktMorphBlob {
+  0%, 100% { border-radius: 50% 40% 60% 50% / 50% 60% 40% 50%; transform: rotate(0deg); }
+  33%      { border-radius: 60% 40% 30% 70% / 40% 60% 30% 70%; transform: rotate(120deg); }
+  66%      { border-radius: 40% 60% 70% 30% / 60% 30% 70% 40%; transform: rotate(240deg); }
+}
+@keyframes mktOrbPulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+@keyframes mktRingRotate { to { transform: rotate(360deg); } }
+@keyframes mktRingPulse {
+  0%, 100% { border-color: rgba(var(--app-accent-rgb, 16, 185, 129), 0.15); }
+  50%      { border-color: rgba(var(--app-accent-rgb, 16, 185, 129), 0.5); }
+}
+@keyframes mktScanSweep {
+  0%   { top: -50%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes mktLivePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.5); opacity: 0.6; }
+}
+@keyframes mktMarquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes mktCursorFade {
+  0%   { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(0.2); }
+}
+@keyframes mktConfetti {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.3); opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Themed micro-animations for the 6 marketplace illustrations
+   (Skills / Tools / Consilium / Organizations / Business / Replicators).
+   All wrapped in prefers-reduced-motion: no-preference so the system
+   "Reduce Motion" setting fully disables them.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+
+  /* Skills — synapse blink: 6 hot brain-mesh nodes pulse in sequence. */
+  @keyframes mktArtSkillsBlink {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50%      { opacity: 0.55; transform: scale(1.25); }
+  }
+  .mkt-tile__illustration .mkt-art-skills__hot {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtSkillsBlink 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.4s);
+  }
+
+  /* Tools — endpoint relay: central core breathes, satellites pulse
+     in sequence around it. */
+  @keyframes mktArtToolsCore {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50%      { opacity: 0.42; transform: scale(1.20); }
+  }
+  @keyframes mktArtToolsSat {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50%      { opacity: 0.45; transform: scale(1.30); }
+  }
+  .mkt-tile__illustration .mkt-art-tools__core {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtToolsCore 2.6s ease-in-out infinite;
+  }
+  .mkt-tile__illustration .mkt-art-tools__sat {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtToolsSat 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.6s);
+  }
+
+  /* Consilium — radar sweep: 4 floor rings pulse outward, innermost first. */
+  @keyframes mktArtConsiliumRadar {
+    0%, 100% { opacity: 0.18; transform: scale(0.96); }
+    50%      { opacity: 0.55; transform: scale(1.04); }
+  }
+  .mkt-tile__illustration .mkt-art-consilium__ring {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtConsiliumRadar 3.5s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.45s);
+  }
+
+  /* Organizations — hierarchy data flow: dashes march along the
+     4 main connector lines from parent to child. */
+  @keyframes mktArtOrgsFlow {
+    to { stroke-dashoffset: -12; }
+  }
+  .mkt-tile__illustration .mkt-art-orgs__flow {
+    stroke-dasharray: 4 8;
+    animation: mktArtOrgsFlow 1.6s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.2s);
+  }
+
+  /* Business models — trend arrow draws itself left → right on a 3s loop. */
+  @keyframes mktArtBizDraw {
+    0%   { stroke-dashoffset: 220; }
+    60%  { stroke-dashoffset: 0; }
+    85%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 220; }
+  }
+  .mkt-tile__illustration .mkt-art-biz__trend {
+    stroke-dasharray: 220;
+    animation: mktArtBizDraw 3s ease-in-out infinite;
+  }
+
+  /* Replicators — central cube pulses; 6 satellite cores blink in
+     sequence around it, suggesting replication outward. */
+  @keyframes mktArtRepCore {
+    0%, 100% { opacity: 0.85; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.20); }
+  }
+  @keyframes mktArtRepSat {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.35); }
+  }
+  .mkt-tile__illustration .mkt-art-rep__core {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtRepCore 2.4s ease-in-out infinite;
+  }
+  .mkt-tile__illustration .mkt-art-rep__sat {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtRepSat 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.35s);
+  }
+
+  /* Account — key core breathes; wires carry marching-dash data flow. */
+  @keyframes mktArtAccountCore {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50%      { opacity: 0.50; transform: scale(1.25); }
+  }
+  @keyframes mktArtAccountWire {
+    to { stroke-dashoffset: -10; }
+  }
+  .mkt-tile__illustration .mkt-art-account__core {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: mktArtAccountCore 2.4s ease-in-out infinite;
+  }
+  .mkt-tile__illustration .mkt-art-account__wire {
+    animation: mktArtAccountWire 1.6s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.2s);
+  }
+}
+
+/* ── Mobile ───────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .mkt-landing { padding: 20px 12px 48px; }
+  .mkt-grid--s1 { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .mkt-grid--s2 { grid-template-columns: 1fr; }
+  .mkt-tile--showcase { grid-row: auto; min-height: 420px; }
+  .mkt-orb { width: 240px; height: 240px; right: -80px; opacity: 0.4; }
+  .mkt-section__title { font-size: 26px; }
+  .mkt-pills__row:nth-child(3) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mkt-landing *, .mkt-landing *::before, .mkt-landing *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .mkt-pills__row { animation: none !important; flex-wrap: wrap; }
+  .mkt-pills { mask-image: none; -webkit-mask-image: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Compact mode (simple-mode users) — fits everything in one
+   viewport without scrolling. Activated by data-compact="1" on
+   the .mkt-landing wrapper.
+   ───────────────────────────────────────────────────────────── */
+.mkt-landing[data-compact="1"] {
+  padding: 16px 16px 80px; /* leave room for the dock at bottom */
+  min-height: auto;
+}
+/* Calmer in simple mode — kill the floating particle backdrop. */
+.mkt-landing[data-compact="1"] .mkt-landing__particles { display: none; }
+/* Narrow the centered container so the marketplace doesn't spread edge-to-edge. */
+.mkt-landing[data-compact="1"] .mkt-landing__inner {
+  max-width: 920px;
+}
+.mkt-landing[data-compact="1"] .mkt-section { margin-bottom: 10px; }
+.mkt-landing[data-compact="1"] .mkt-section__header { margin-bottom: 12px; }
+.mkt-landing[data-compact="1"] .mkt-section__title {
+  font-size: clamp(20px, 2.4vw, 26px);
+  margin: 0 0 4px;
+}
+.mkt-landing[data-compact="1"] .mkt-section__subtitle { font-size: 12px; }
+.mkt-landing[data-compact="1"] .mkt-grid { gap: 10px; }
+.mkt-landing[data-compact="1"] .mkt-grid--s1 {
+  grid-template-rows: repeat(3, 160px);
+}
+.mkt-landing[data-compact="1"] .mkt-grid--s2 {
+  grid-auto-rows: 100px;
+}
+/* Stack content from the top so tiles don't look stretched. */
+.mkt-landing[data-compact="1"] .mkt-tile {
+  padding: 18px 24px 120px;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.mkt-landing[data-compact="1"] .mkt-tile__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+/* Shrink the SVG inside the icon frame so it breathes within the container. */
+.mkt-landing[data-compact="1"] .mkt-tile__icon svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Decorative right-side illustration — appears only when CategoryTile is
+   passed an `illustration` prop (simple-mode only). Tinted via currentColor
+   so the SVGs inherit the system primary green. */
+.mkt-landing[data-compact="1"] .mkt-tile__illustration {
+  position: absolute;
+  top: 50%;
+  right: 1px;
+  transform: translateY(-50%);
+  height: 170%;
+  width: 70%;
+  max-width: 360px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--neon, #10b981);
+  opacity: 0.15;
+  filter: brightness(0.55) saturate(0.8);
+  /* Fade the left edge into the tile background so text stays readable. */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 65%, black 100%);
+          mask-image: linear-gradient(to right, transparent 0%, black 65%, black 100%);
+}
+.mkt-landing[data-compact="1"] .mkt-tile__illustration::after {
+  /* Darker overlay layer so the illustration sits further back behind the text. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.30) 60%,
+    rgba(0, 0, 0, 0.20) 100%
+  );
+  pointer-events: none;
+}
+/* Light-mode illustration: drop the dark brightness filter (which turns the
+   SVG into a muddy smear on white) and fade the left edge into white so the
+   text stays readable. Same fade direction as dark mode, inverted polarity. */
+[data-theme="light"] .mkt-landing[data-compact="1"] .mkt-tile__illustration {
+  opacity: 0.22;
+  filter: none;
+}
+[data-theme="light"] .mkt-landing[data-compact="1"] .mkt-tile__illustration::after {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.55) 60%,
+    rgba(255, 255, 255, 0.35) 100%
+  );
+}
+.mkt-landing[data-compact="1"] .mkt-tile__illustration svg,
+.mkt-landing[data-compact="1"] .mkt-tile__illustration img {
+  width: 100%;
+  height: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  object-position: right center;
+}
+/* Make sure the text content stays above the illustration. */
+.mkt-landing[data-compact="1"] .mkt-tile__body,
+.mkt-landing[data-compact="1"] .mkt-tile__arrow,
+.mkt-landing[data-compact="1"] .mkt-tile--org-action__body,
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__header,
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__row,
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__metrics {
+  position: relative;
+  z-index: 1;
+}
+/* The org-action tiles have higher padding than CategoryTile, so push the
+   illustration in a touch and shrink it. */
+.mkt-landing[data-compact="1"] .mkt-tile--org-action .mkt-tile__illustration {
+  width: 55%;
+  max-width: 220px;
+  height: 150%;
+  opacity: 0.18;
+}
+[data-theme="light"] .mkt-landing[data-compact="1"] .mkt-tile--org-action .mkt-tile__illustration {
+  opacity: 0.26;
+}
+/* Showcase tile is wider - illustration can be bigger but stays subtle. */
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase .mkt-tile__illustration {
+  width: 45%;
+  max-width: 320px;
+  opacity: 0.12;
+}
+[data-theme="light"] .mkt-landing[data-compact="1"] .mkt-tile--org-showcase .mkt-tile__illustration {
+  opacity: 0.20;
+}
+
+/* Showcase header stat strip - big, bold inline numbers + tiny labels. */
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  align-items: baseline;
+}
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__metrics > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__metrics b {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  font-feature-settings: "tnum" 1;
+}
+.mkt-landing[data-compact="1"] .mkt-tile--org-showcase__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--neon, #10b981);
+  letter-spacing: 0.04em;
+  margin-left: 2px;
+}
+[data-theme="light"] .mkt-landing[data-compact="1"] .mkt-tile--org-showcase__trend {
+  color: var(--app-accent-dark, #047857);
+}
+
+/* Empty state shown inside the showcase tile when orgs.length === 0. */
+.mkt-tile--org-showcase__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 16px 12px 20px;
+  min-height: 160px;
+}
+.mkt-tile--org-showcase__empty h4 {
+  margin: 6px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+.mkt-tile--org-showcase__empty p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 460px;
+  line-height: 1.45;
+}
+.mkt-tile--org-showcase__empty-art {
+  width: 120px;
+  height: 80px;
+  color: var(--neon, #10b981);
+  opacity: 0.55;
+}
+
+/* Last-updated footer - subtle line below the grid. */
+.mkt-landing__updated {
+  margin: 14px auto 4px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mkt-landing__updated button {
+  background: none;
+  border: 0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font: inherit;
+  color: var(--neon, #10b981);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.mkt-landing__updated button:hover,
+.mkt-landing__updated button:focus-visible {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.10);
+  outline: none;
+}
+
+/* Mobile: smaller + more transparent so text always wins. */
+@media (max-width: 700px) {
+  .mkt-landing[data-compact="1"] .mkt-tile__illustration {
+    width: 50%;
+    max-width: 160px;
+    opacity: 0.35;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Shared tile additions used by SimpleOrganizations (and any
+   future page reusing the marketplace tile look).
+   ───────────────────────────────────────────────────────────── */
+
+/* Dashed variant for "Add ..." CTA tiles. */
+.mkt-tile--dashed {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-hover, rgba(var(--app-accent-rgb, 16, 185, 129), 0.4));
+}
+.mkt-tile--dashed:hover {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.05);
+  border-style: dashed;
+}
+
+/* Uppercase kicker label above tile title (e.g. org type). */
+.mkt-tile__kicker {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  color: var(--neon, #10b981);
+  text-transform: uppercase;
+  margin: 4px 0 4px;
+}
+
+/* Vertical metric rows inside an org tile (Invested · ROI · Teams). */
+.mkt-tile__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.mkt-tile__metrics-row b {
+  color: var(--neon, #10b981);
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+/* Org-hero layout: ONE big tile on top (full width).
+   Action tiles are in a separate carousel row below. */
+.mkt-landing[data-compact="1"] .mkt-grid--org-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto;
+  gap: 10px;
+}
+
+/* ── Action tiles grid — 2×2 on mobile, 4-col scrollable on desktop ── */
+.org-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 4px 0 8px;
+  margin-top: 10px;
+}
+.org-action-grid > * {
+  min-width: 0;
+}
+@media (min-width: 601px) and (max-width: 900px) {
+  .org-action-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 901px) {
+  .org-action-grid {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .org-action-grid > * {
+    scroll-snap-align: start;
+    flex: 0 0 calc(25% - 8px);
+    min-width: 220px;
+  }
+  .org-action-grid::-webkit-scrollbar { height: 6px; }
+  .org-action-grid::-webkit-scrollbar-thumb {
+    background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.30);
+    border-radius: 3px;
+  }
+  .org-action-grid::-webkit-scrollbar-track { background: transparent; }
+}
+/* Hide carousel dots on mobile (2×2 grid doesn't scroll) */
+.org-carousel-dots--desktop {
+  display: none;
+}
+@media (min-width: 901px) {
+  .org-carousel-dots--desktop {
+    display: flex;
+  }
+}
+
+/* ── Carousel dot indicators ──────────────────────────────────── */
+.org-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0 4px;
+}
+.org-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.20);
+  transition: background 250ms var(--ease, ease), transform 250ms var(--ease, ease),
+    box-shadow 250ms var(--ease, ease);
+}
+.org-carousel-dot:hover {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.45);
+  transform: scale(1.25);
+}
+.org-carousel-dot--active {
+  background: var(--neon, #10b981);
+  box-shadow: 0 0 8px rgba(var(--app-accent-rgb, 16, 185, 129), 0.5), 0 0 16px rgba(var(--app-accent-rgb, 16, 185, 129), 0.2);
+  transform: scale(1.15);
+}
+[data-theme="light"] .org-carousel-dot {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.15);
+}
+[data-theme="light"] .org-carousel-dot--active {
+  background: var(--app-accent-dark, #059669);
+  box-shadow: 0 0 6px rgba(var(--app-accent-dark-rgb, 5, 150, 105), 0.35);
+}
+.mkt-landing[data-compact="1"] .mkt-grid--org-hero > .mkt-tile--org-showcase {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-height: 200px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* Inside the showcase tile: header (kicker + title + subtitle) on top,
+   then a horizontal-scrolling row of compact org cards + dashed Add CTA. */
+.mkt-tile--org-showcase__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mkt-tile--org-showcase__title { font-size: 18px; font-weight: 800; margin: 4px 0 2px; color: var(--text); }
+.mkt-tile--org-showcase__sub   { font-size: 12px; color: var(--text-dim); margin: 0; }
+.mkt-tile--org-showcase__count {
+  font-size: 11px; font-weight: 800; color: var(--neon, #10b981);
+  letter-spacing: 0.10em; text-transform: uppercase;
+}
+.mkt-tile--org-showcase__row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 6px;
+  margin: 0 -4px;
+  scroll-snap-type: x mandatory;
+}
+.mkt-tile--org-showcase__row > * { scroll-snap-align: start; flex: 0 0 auto; }
+.mkt-tile--org-showcase__row::-webkit-scrollbar { height: 6px; }
+.mkt-tile--org-showcase__row::-webkit-scrollbar-thumb {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.30);
+  border-radius: 3px;
+}
+
+/* Action tiles in the carousel row (Consilium, Tools, Agents).
+   Title/subtitle on the left, large icon hero on the right. */
+.mkt-landing[data-compact="1"] .mkt-tile--org-action {
+  position: relative;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+  overflow: hidden;
+  min-height: 168px;
+}
+.mkt-tile--org-action__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mkt-landing[data-compact="1"] .mkt-tile--org-action .mkt-tile__icon {
+  margin-bottom: 12px;
+}
+@media (max-width: 700px) {
+  .mkt-landing[data-compact="1"] .mkt-tile--org-action {
+    min-height: 148px;
+  }
+}
+
+/* Action buttons rendered inside an org-action tile (e.g. Setup / My Assistant
+   on the Activate Assistant tile). Replaces the single whole-tile click. */
+.mkt-tile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.mkt-tile__cta {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--neon, #10b981);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--neon, #10b981) 45%, transparent);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.mkt-tile__cta:hover,
+.mkt-tile__cta:focus-visible {
+  background: color-mix(in srgb, var(--neon, #10b981) 12%, transparent);
+  border-color: var(--neon, #10b981);
+  outline: none;
+}
+.mkt-tile__cta--primary {
+  color: #04140d;
+  background: var(--neon, #10b981);
+  border-color: var(--neon, #10b981);
+}
+.mkt-tile__cta--primary:hover,
+.mkt-tile__cta--primary:focus-visible {
+  background: color-mix(in srgb, var(--neon, #10b981) 85%, #ffffff);
+  border-color: color-mix(in srgb, var(--neon, #10b981) 85%, #ffffff);
+}
+.mkt-landing[data-compact="1"] .mkt-tile__cta {
+  font-size: 12px;
+  padding: 7px 12px;
+}
+
+/* Reports hub — showcase row (Dashboard / Report / Communication) plus
+   instruments 2×2 grid below. Showcase reuses org-showcase tile styling. */
+.mkt-landing[data-compact="1"] .mkt-tile--hub-showcase {
+  min-height: 200px;
+  padding: 18px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.mkt-landing[data-compact="1"] .hub-card {
+  min-height: 108px;
+}
+.mkt-landing[data-compact="1"] .mkt-grid--hub-instruments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  grid-template-rows: 168px 168px;
+}
+.mkt-hub__section-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 14px 0 10px;
+}
+@media (max-width: 700px) {
+  .mkt-landing[data-compact="1"] .mkt-grid--hub-instruments {
+    grid-template-rows: 148px 148px;
+  }
+  .mkt-landing[data-compact="1"] .hub-card {
+    flex-basis: 220px;
+    min-width: 220px;
+  }
+}
+
+/* Compact org card used inside the showcase tile (smaller than .mkt-tile). */
+.org-card {
+  flex: 0 0 240px;
+  min-width: 240px;
+  border: 1px solid var(--border, rgba(var(--app-accent-rgb, 16, 185, 129), 0.15));
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(var(--app-accent-rgb, 16, 185, 129), 0.06), var(--bg-paper));
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+  color: inherit;
+  text-decoration: none;
+}
+.org-card:hover, .org-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--border-hover, rgba(var(--app-accent-rgb, 16, 185, 129), 0.4));
+  box-shadow: 0 6px 18px rgba(var(--app-accent-rgb, 16, 185, 129), 0.12);
+  outline: none;
+}
+.org-card__kicker {
+  font-size: 10px; font-weight: 800; color: var(--neon, #10b981);
+  letter-spacing: 0.10em; text-transform: uppercase;
+}
+.org-card__title { font-size: 14px; font-weight: 700; margin: 0; color: var(--text); }
+.org-card__sub   { font-size: 11px; color: var(--text-dim); margin: 0; }
+.org-card__metrics { display: flex; gap: 10px; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
+.org-card__metrics b { color: var(--neon, #10b981); font-weight: 700; margin-right: 2px; }
+.org-card--dashed {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-hover, rgba(var(--app-accent-rgb, 16, 185, 129), 0.4));
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 96px;
+}
+.org-card--dashed:hover { background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.05); }
+
+/* Mobile: keep 2-col grid for action tiles, showcase spans both cols.
+   Action-tile internals shrink so the 148px row height holds. */
+@media (max-width: 700px) {
+  .mkt-landing[data-compact="1"] .mkt-grid--org-hero > .mkt-tile--org-showcase {
+    grid-column: 1 / -1;
+  }
+  .org-card { flex-basis: 220px; min-width: 220px; }
+
+  /* Hide the "Updated X · Refresh" footer on mobile - too crowded for
+     phones. Data still refreshes; the JSX stays in the DOM. */
+  .mkt-landing[data-compact="1"] .mkt-landing__updated {
+    display: none;
+  }
+
+  /* Tighten action tiles so the title + 2-line subtitle + stats fit in 148px
+     at half-width without growing the row. Decorative illustration is hidden;
+     subtitle clamps to 2 lines with ellipsis. */
+  .mkt-landing[data-compact="1"] .mkt-tile--org-action {
+    padding: 12px 14px;
+  }
+  .mkt-landing[data-compact="1"] .mkt-tile--org-action .mkt-tile__illustration {
+    display: none;
+  }
+  .mkt-landing[data-compact="1"] .mkt-tile--org-action .mkt-tile__icon {
+    margin-bottom: 6px;
+  }
+  .mkt-landing[data-compact="1"] .mkt-tile--org-action .mkt-tile__subtitle {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+.mkt-landing[data-compact="1"] .mkt-tile__title {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.mkt-landing[data-compact="1"] .mkt-tile__subtitle { font-size: 11px; line-height: 1.35; }
+/* Showcase tile pill rows compacted */
+.mkt-landing[data-compact="1"] .mkt-tile--showcase { padding: 18px; }
+.mkt-landing[data-compact="1"] .mkt-pills__row { gap: 6px; }
+.mkt-landing[data-compact="1"] .mkt-pill { padding: 4px 10px; font-size: 11px; }
+
+/* Simple-mode marketplace — tile order:
+   Consilium → Organizations → AI Agents → Skills → Tools → Business → Account */
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "consilium orgs"
+    "agents    agents"
+    "skills    tools"
+    "business  account";
+  /* Half tiles match org-action height (168px); agents row stays taller. */
+  grid-template-rows: 168px 300px 168px 168px;
+  gap: 10px;
+}
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="teams"] { grid-area: consilium; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="orgs"] { grid-area: orgs; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="agents"] { grid-area: agents; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="skills"] { grid-area: skills; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="tools"] { grid-area: tools; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="businesses"] { grid-area: business; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple [data-tile-id="account"] { grid-area: account; }
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase {
+  grid-row: auto;
+  min-height: 0;
+  height: 100%;
+}
+/* Category tiles — same compact footprint as SimpleOrganizations action tiles. */
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile:not(.mkt-tile--showcase) {
+  padding: 18px 24px;
+  gap: 4px;
+  overflow: hidden;
+}
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile:not(.mkt-tile--showcase) .mkt-tile__icon {
+  margin-bottom: 6px;
+}
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile:not(.mkt-tile--showcase) .mkt-tile__arrow {
+  display: none;
+}
+.mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile:not(.mkt-tile--showcase) .mkt-tile__subtitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Mobile: flatten the two sections into a single 2-col grid, place each
+   tile by name. Rows 1, 3, 4 are 2-up half tiles; row 2 (Agents) spans
+   both columns at the same half-tile height (showcase internals shrink).
+   Scoped to .mkt-landing--marketplace so other pages that reuse .mkt-landing
+   (e.g. SimpleOrganizations) are not affected by this Marketplace-specific
+   grid template. */
+@media (max-width: 700px) {
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple {
+    grid-template-rows: 148px 260px 148px 148px;
+    row-gap: 6px;
+    column-gap: 10px;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile:not(.mkt-tile--showcase) {
+    padding: 12px 14px;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile:not(.mkt-tile--showcase) .mkt-tile__illustration {
+    display: none;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase {
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+    padding: 10px 12px;
+    overflow: hidden;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-orb {
+    display: none;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-showcase__content {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-live-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-tile__title {
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-pills__row:nth-child(3) {
+    display: none;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-showcase__foot {
+    margin-top: auto;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-showcase__foot .mkt-tile__arrow {
+    font-size: 12px;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-showcase__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .mkt-landing--marketplace[data-compact="1"] .mkt-grid--marketplace-simple .mkt-tile--showcase .mkt-tile__subtitle {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+}
+
+/* Simple-mode Home dashboard — transparent shell, org-action tiles. */
+.mkt-landing.mkt-landing--home {
+  background: transparent;
+  margin: 0;
+  min-height: auto;
+  border-radius: 0;
+  overflow-x: clip;
+  overflow-y: visible;
+  color: inherit;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.mkt-landing--home .mkt-landing__inner {
+  max-width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
+}
+.mkt-landing--home[data-compact="1"] .mkt-grid--home-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  grid-auto-rows: 148px;
+}
+.mkt-landing--home[data-compact="1"] .mkt-tile--org-showcase__row {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.mkt-landing--home[data-compact="1"] .mkt-tile--home-showcase {
+  min-height: 200px;
+  padding: 18px 20px 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.mkt-tile--home-metric__kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--neon, #10b981);
+  margin: 0;
+}
+.mkt-tile--home-metric__value {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.1;
+  color: var(--text);
+}
+.mkt-landing--home[data-compact="1"] .mkt-tile--home-metric .mkt-tile__icon {
+  margin-bottom: 6px;
+}
+.mkt-landing--home[data-compact="1"] .mkt-tile--home-metric .mkt-tile__subtitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (min-width: 600px) {
+  .mkt-landing--home[data-compact="1"] .mkt-grid--home-metrics {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 168px;
+  }
+}
+@media (min-width: 900px) {
+  .mkt-landing--home[data-compact="1"] .mkt-grid--home-metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .mkt-landing--home[data-compact="1"] .mkt-grid--home-metrics {
+    row-gap: 6px;
+    column-gap: 10px;
+  }
+  .mkt-landing--home[data-compact="1"] .mkt-tile--home-showcase .hub-card {
+    flex-basis: 220px;
+    min-width: 220px;
+  }
+  .mkt-landing--home[data-compact="1"] .mkt-tile--org-action {
+    padding: 12px 14px;
+  }
+  .mkt-landing--home[data-compact="1"] .mkt-tile--home-metric .mkt-tile__subtitle {
+    -webkit-line-clamp: 1;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Organisation Progress Tracker
+   Horizontal step timeline (desktop) → vertical (mobile).
+   Lives inside a .mkt-tile so it inherits the tile glassmorphism,
+   hover glow, breathing animation and neon border system.
+   ───────────────────────────────────────────────────────────── */
+
+.org-progress-section { margin-top: 4px; }
+
+.org-progress {
+  padding: 24px 28px 28px !important;
+  cursor: default !important;
+  gap: 18px !important;
+}
+.org-progress:hover {
+  transform: none !important;
+}
+
+/* Header row: title/subtitle left, percentage badge right */
+.org-progress__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.org-progress__title {
+  font-family: "DM Sans", "Inter", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 2px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.org-progress__subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Percentage badge */
+.org-progress__pct {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 12px;
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.08);
+  border: 1px solid rgba(var(--app-accent-rgb, 16, 185, 129), 0.2);
+}
+.org-progress__pct-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--neon, #10b981);
+  line-height: 1;
+  font-feature-settings: "tnum" 1;
+}
+.org-progress__pct-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+/* Overall bar */
+.org-progress__bar-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.08);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+.org-progress__bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--neon-dark, #059669), var(--neon, #10b981), var(--neon-light, #34d399));
+  transition: width 800ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.org-progress__bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--neon-light, #34d399);
+  box-shadow: 0 0 10px var(--neon, #10b981), 0 0 20px rgba(var(--app-accent-rgb, 16, 185, 129), 0.3);
+  animation: orgProgressDot 2s ease-in-out infinite;
+}
+@keyframes orgProgressDot {
+  0%, 100% { opacity: 0.7; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* ── Steps container ─────────────────────────── */
+/* Desktop: horizontal row of steps */
+.org-progress__steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+  margin-top: 6px;
+}
+
+/* Each step: node + label stacked vertically, with a connector to the left */
+.org-progress__step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+  padding-top: 8px;
+  animation: orgStepFadeIn 500ms var(--ease) both;
+  animation-delay: calc(var(--delay, 320ms) + var(--i, 0) * 80ms);
+}
+.org-progress__step:nth-child(1) { --i: 0; }
+.org-progress__step:nth-child(2) { --i: 1; }
+.org-progress__step:nth-child(3) { --i: 2; }
+.org-progress__step:nth-child(4) { --i: 3; }
+.org-progress__step:nth-child(5) { --i: 4; }
+.org-progress__step:nth-child(6) { --i: 5; }
+
+@keyframes orgStepFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Connector line — horizontal between nodes */
+.org-progress__connector {
+  position: absolute;
+  top: 20px; /* center of node */
+  right: 50%;
+  left: calc(-50% + 12px);
+  height: 2px;
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.12);
+  border-radius: 1px;
+  z-index: 0;
+}
+.org-progress__connector--done {
+  background: linear-gradient(90deg, var(--neon, #10b981), rgba(var(--app-accent-rgb, 16, 185, 129), 0.35));
+}
+
+/* Step node */
+.org-progress__node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+/* Uncompleted circle */
+.org-progress__circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--app-accent-rgb, 16, 185, 129), 0.2);
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 300ms var(--ease);
+}
+.org-progress__circle span {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-dim);
+  line-height: 1;
+}
+
+/* Active step: glowing ring + pulse */
+.org-progress__circle--active {
+  border-color: var(--neon, #10b981);
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.12);
+  box-shadow: 0 0 12px rgba(var(--app-accent-rgb, 16, 185, 129), 0.3), 0 0 24px rgba(var(--app-accent-rgb, 16, 185, 129), 0.1);
+  animation: orgActivePulse 2.4s ease-in-out infinite;
+}
+.org-progress__circle--active span {
+  color: var(--neon, #10b981);
+}
+@keyframes orgActivePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(var(--app-accent-rgb, 16, 185, 129), 0.2), 0 0 16px rgba(var(--app-accent-rgb, 16, 185, 129), 0.05); }
+  50%      { box-shadow: 0 0 16px rgba(var(--app-accent-rgb, 16, 185, 129), 0.45), 0 0 32px rgba(var(--app-accent-rgb, 16, 185, 129), 0.15); }
+}
+
+/* Labels under the node */
+.org-progress__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 0 4px;
+  min-width: 0;
+}
+.org-progress__label-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  line-height: 1.3;
+  transition: color 250ms var(--ease);
+}
+.org-progress__label-desc {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  line-height: 1.3;
+  max-width: 120px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Title row: step title + inline (i) info affordance */
+.org-progress__title-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Info (i) icon button */
+.org-progress__info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  line-height: 0;
+  opacity: 0.7;
+  transition: color 200ms var(--ease), opacity 200ms var(--ease);
+}
+.org-progress__info:hover,
+.org-progress__info:focus-visible {
+  color: var(--neon, #10b981);
+  opacity: 1;
+}
+
+/* "More" text button → opens the step guide popup */
+.org-progress__more {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--neon, #10b981);
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: opacity 200ms var(--ease);
+}
+.org-progress__more:hover,
+.org-progress__more:focus-visible {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* Done state: label title gets neon highlight */
+.org-progress__step--done .org-progress__label-title {
+  color: var(--neon, #10b981);
+}
+/* Active state: label title bright white */
+.org-progress__step--active .org-progress__label-title {
+  color: var(--text);
+  font-weight: 800;
+}
+.org-progress__step--active .org-progress__label-desc {
+  opacity: 0.85;
+}
+
+/* ── Light mode overrides ─────────────────────── */
+[data-theme="light"] .org-progress__pct {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.06);
+  border-color: rgba(var(--app-accent-rgb, 16, 185, 129), 0.18);
+}
+[data-theme="light"] .org-progress__bar-track {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.06);
+}
+[data-theme="light"] .org-progress__circle {
+  border-color: rgba(var(--app-accent-rgb, 16, 185, 129), 0.18);
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.03);
+}
+[data-theme="light"] .org-progress__circle--active {
+  border-color: var(--app-accent-dark, #059669);
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.08);
+  box-shadow: 0 0 10px rgba(var(--app-accent-rgb, 16, 185, 129), 0.18);
+}
+[data-theme="light"] .org-progress__connector {
+  background: rgba(var(--app-accent-rgb, 16, 185, 129), 0.10);
+}
+
+/* ── Mobile: vertical timeline ────────────────── */
+@media (max-width: 700px) {
+  .org-progress {
+    padding: 18px 16px 22px !important;
+    gap: 14px !important;
+  }
+  .org-progress__title { font-size: 14px; }
+  .org-progress__pct-value { font-size: 17px; }
+
+  .org-progress__steps {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .org-progress__step {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0;
+    gap: 12px;
+  }
+
+  /* Vertical connector — runs between nodes, not through them.
+     top: -2px is at the step boundary; we offset down by ~28px (node height)
+     from the previous step's icon bottom, and shorten height to stop above
+     the current step's icon. */
+  .org-progress__connector {
+    position: absolute;
+    top: -2px;
+    left: 13px;
+    right: auto;
+    width: 2px;
+    height: calc(100% - 26px);
+    transform: translateY(0);
+  }
+  .org-progress__step {
+    position: relative;
+    padding: 10px 0;
+  }
+  .org-progress__step:first-child { padding-top: 0; }
+  .org-progress__step:last-child  { padding-bottom: 0; }
+
+  .org-progress__node {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+  }
+
+  .org-progress__label {
+    align-items: flex-start;
+    text-align: left;
+    margin-top: 0;
+    padding: 2px 0 0;
+  }
+  .org-progress__label-title { font-size: 12px; }
+  .org-progress__label-desc {
+    max-width: none;
+    -webkit-line-clamp: 1;
+  }
+  .org-progress__title-row { justify-content: flex-start; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .org-progress__bar-fill::after { animation: none; }
+  .org-progress__circle--active  { animation: none; }
+  .org-progress__step            { animation: none; }
+}

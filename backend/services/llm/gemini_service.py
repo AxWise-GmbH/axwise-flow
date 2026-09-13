@@ -53,8 +53,8 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_SAFETY_SETTINGS_BLOCK_NONE,  # Assuming this constant exists for safety settings
 )
 from backend.services.llm.config.genai_config import (
-    GEMINI_37_MAX_OUTPUT_TOKENS,
-    is_gemini_37_flash,
+    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
+    is_supported_gemini_flash,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,13 +194,13 @@ class GeminiService:
     ) -> Dict[str, Any]:
         """Return a provider-safe copy of a generation config.
 
-        Public callers may keep passing legacy sampling options. Gemini 3.7
+        Public callers may keep passing legacy sampling options. Gemini 3.8
         requires model-default sampling and caps output at 65,536 tokens, so
         enforce that contract at the final request boundary.
         """
 
         safe_config = dict(config or {})
-        if is_gemini_37_flash(model_name):
+        if is_supported_gemini_flash(model_name):
             for parameter in (
                 "temperature",
                 "top_p",
@@ -211,7 +211,7 @@ class GeminiService:
             requested_tokens = safe_config.get("max_output_tokens")
             if requested_tokens is not None:
                 safe_config["max_output_tokens"] = min(
-                    int(requested_tokens), GEMINI_37_MAX_OUTPUT_TOKENS
+                    int(requested_tokens), GEMINI_FLASH_MAX_OUTPUT_TOKENS
                 )
         return safe_config
 
@@ -362,7 +362,7 @@ class GeminiService:
             # Add response_mime_type for JSON tasks
             if "response_mime_type" in config_dict:
                 config_kwargs = {
-                    "max_output_tokens": GEMINI_37_MAX_OUTPUT_TOKENS,
+                    "max_output_tokens": GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                     "safety_settings": safety_settings,
                 }
 
@@ -595,14 +595,14 @@ class GeminiService:
                 from google.genai import types
 
                 config_kwargs = {
-                    "max_output_tokens": GEMINI_37_MAX_OUTPUT_TOKENS,
+                    "max_output_tokens": GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                     "safety_settings": safety_settings,
                 }
 
                 # Add response_mime_type for JSON tasks
                 if "response_mime_type" in config_dict:
                     config_kwargs = {
-                        "max_output_tokens": GEMINI_37_MAX_OUTPUT_TOKENS,
+                        "max_output_tokens": GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                         "safety_settings": safety_settings,
                     }
 
@@ -783,7 +783,7 @@ class GeminiService:
                     model_class=Persona,
                     temperature=data.get("temperature", 0.0),
                     system_instruction=system_instruction,
-                    max_output_tokens=GEMINI_37_MAX_OUTPUT_TOKENS,
+                    max_output_tokens=GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                     response_mime_type="application/json",  # Force JSON output
                 )
             except Exception as e:
@@ -797,7 +797,7 @@ class GeminiService:
                     temperature=0.0,
                     system_instruction=system_instruction
                     + "\nYou MUST output valid JSON that conforms to the schema.",
-                    max_output_tokens=GEMINI_37_MAX_OUTPUT_TOKENS,
+                    max_output_tokens=GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                     response_mime_type="application/json",
                     top_p=1.0,
                     top_k=1,
@@ -1224,14 +1224,14 @@ Double-check your JSON for missing commas before responding.
             if (
                 task == "persona_formation"
                 and config_params.get("max_output_tokens")
-                != GEMINI_37_MAX_OUTPUT_TOKENS
+                != GEMINI_FLASH_MAX_OUTPUT_TOKENS
             ):
                 logger.warning(
                     "Overriding max_output_tokens for persona_formation to "
-                    f"{GEMINI_37_MAX_OUTPUT_TOKENS} "
+                    f"{GEMINI_FLASH_MAX_OUTPUT_TOKENS} "
                     f"(was {config_params.get('max_output_tokens')})"
                 )
-                config_params["max_output_tokens"] = GEMINI_37_MAX_OUTPUT_TOKENS
+                config_params["max_output_tokens"] = GEMINI_FLASH_MAX_OUTPUT_TOKENS
                 config_params["top_k"] = 1
                 config_params["top_p"] = 0.95
 

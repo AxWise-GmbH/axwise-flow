@@ -12,6 +12,11 @@ timestamp: "2026-07-04T10:00:00Z"
 ---
 # AxWise Flow OSS
 
+This is the Orqaly + AxWise monorepo: AxWise is in `backend/`, and the Orqaly
+application is in `apps/orqaly/`. Both preview applications build from one Git
+commit and remain separate Cloud Run services. See the
+[source layout and preview release guide](docs/monorepo-preview-release.md).
+
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow-oss.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow-oss)
 [![arXiv](https://img.shields.io/badge/arXiv-2501.11613-b31b1b.svg)](https://arxiv.org/abs/2501.11613)
 [![GitHub Star History](https://api.star-history.com/svg?repos=AxWise-GmbH/axwise-flow-oss&type=Date)](https://star-history.com/#AxWise-GmbH/axwise-flow-oss&Date)

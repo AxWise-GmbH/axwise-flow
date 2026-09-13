@@ -44,8 +44,8 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_TOP_P, GEMINI_TOP_K, ENV_GEMINI_API_KEY
 )
 from backend.services.llm.config.genai_config import (
-    GEMINI_37_MAX_OUTPUT_TOKENS,
-    is_gemini_37_flash,
+    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
+    is_supported_gemini_flash,
 )
 
 logger = logging.getLogger(__name__)
@@ -146,12 +146,12 @@ class UnifiedLLMClient:
                 "top_p": kwargs.get("top_p", GEMINI_TOP_P),
                 "top_k": kwargs.get("top_k", GEMINI_TOP_K)
             }
-            if is_gemini_37_flash(self.model_name):
+            if is_supported_gemini_flash(self.model_name):
                 for parameter in ("temperature", "top_p", "top_k", "candidate_count"):
                     generation_config.pop(parameter, None)
                 generation_config["max_output_tokens"] = min(
                     int(generation_config["max_output_tokens"]),
-                    GEMINI_37_MAX_OUTPUT_TOKENS,
+                    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                 )
             if system_instruction:
                 generation_config["system_instruction"] = system_instruction
@@ -226,12 +226,12 @@ class UnifiedLLMClient:
                 ),
                 "top_p": kwargs.get("top_p", 1.0),
             }
-            if is_gemini_37_flash(self.model_name):
+            if is_supported_gemini_flash(self.model_name):
                 for parameter in ("temperature", "top_p", "top_k", "candidate_count", "n"):
                     config_params.pop(parameter, None)
                 config_params["max_tokens"] = min(
                     int(config_params["max_tokens"]),
-                    GEMINI_37_MAX_OUTPUT_TOKENS,
+                    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                 )
 
             # Prepare messages

@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - ".github/workflows/workflow-v2.yml"
+      - "scripts/build-monorepo-preview.sh"
       - "backend/Dockerfile.workflow-v2"
       - "backend/workflow_v2_requirements.*"
       - "backend/api/app.py"
@@ -26,6 +27,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/workflow-v2.yml"
+      - "scripts/build-monorepo-preview.sh"
       - "backend/Dockerfile.workflow-v2"
       - "backend/workflow_v2_requirements.*"
       - "backend/api/app.py"
@@ -95,17 +97,25 @@ jobs:
           --set=ON_ERROR_STOP=1
           --command="CREATE ROLE axwise_v2_migration_admin LOGIN CREATEROLE;
           ALTER DATABASE axwise_v2_test OWNER TO axwise_v2_migration_admin;"
-      - name: Apply clean baseline 001
+      - name: Apply clean baseline migrations
         run: >-
-          psql "${AXWISE_V2_MIGRATION_DATABASE_URL}"
-          --set=ON_ERROR_STOP=1
+          psql "${AXWISE_V2_MIGRATION_DATABASE_URL}" --set=ON_ERROR_STOP=1
           --file=backend/database/workflow_v2/001_cognitive_operations.sql
+          --file=backend/database/workflow_v2/002_assistant_turn.sql
+          --file=backend/database/workflow_v2/003_assistant_runtime.sql
+          --file=backend/database/workflow_v2/004_operation_events.sql
+          --file=backend/database/workflow_v2/005_compile_scope_v3.sql
+          --file=backend/database/workflow_v2/006_prepare_solution.sql
+          --file=backend/database/workflow_v2/007_prepare_solution_v2.sql
+          --file=backend/database/workflow_v2/008_capability_analysis.sql
+          --file=backend/database/workflow_v2/009_capability_simulation.sql
       - name: Run pure contracts and durable worker/API tests
         run: >-
           python -m pytest -q
           --confcutdir=backend/tests/workflow_v2
           backend/tests/workflow_v2
           --ignore=backend/tests/workflow_v2/test_operation_store_postgres.py
+          --ignore=backend/tests/workflow_v2/test_capability_operations_postgres.py
       - name: Run grounded-search runtime tests
         run: >-
           python -m pytest -q
@@ -121,5 +131,6 @@ jobs:
           python -m pytest -q
           --confcutdir=backend/tests/workflow_v2
           backend/tests/workflow_v2/test_operation_store_postgres.py
+          backend/tests/workflow_v2/test_capability_operations_postgres.py
       - name: Build dedicated API and worker image
         run: docker build --file backend/Dockerfile.workflow-v2 --tag axwise-workflow-v2:ci backend
