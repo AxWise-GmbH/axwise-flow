@@ -1,6 +1,7 @@
 import express from 'express';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { createHash } from 'node:crypto';
 
 export const GOOSE_PROVIDER_MODEL = 'orqaly-gemini';
 const GOOGLE_CHAT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
@@ -93,6 +94,9 @@ export function createGooseProviderRouter({
   apiKey,
   model = 'gemini-3.8-flash',
   contextForRequest = null,
+  productGuidance = '',
+  desktopContextService = null,
+  desktopWorkService = null,
   rateLimiter = (_req, _res, next) => next(),
   timeoutMs = MAX_DEADLINE_MS,
 }) {
@@ -114,6 +118,9 @@ export function createGooseProviderRouter({
       const verified = await verifyDesktopAuth(req);
       if (typeof verified?.userId !== 'string' || !verified.userId)
         return sendError(res, 401, 'UNAUTHENTICATED');
+      const accountHash = req.get('X-Orqaly-Account-Hash');
+      if (accountHash !== undefined && accountHash !== createHash('sha256').update(verified.userId).digest('hex'))
+        return sendError(res, 403, 'ACCOUNT_CHANGED');
       req.authContext = { userId: verified.userId };
       return next();
     } catch (error) {
@@ -139,6 +146,26 @@ export function createGooseProviderRouter({
     object: 'list',
     data: [{ id: GOOSE_PROVIDER_MODEL, object: 'model', created: 0, owned_by: 'orqaly' }],
   }));
+  const desktopRead = (operation) => async (req, res) => {
+    try { res.json(await operation(req)); }
+    catch (error) {
+      if (error?.name === 'ZodError') return sendError(res, 400, 'INVALID_DESKTOP_REQUEST');
+      const status = [400, 401, 403, 404, 409, 413, 429].includes(error?.status) ? error.status : 503;
+      const code = typeof error?.code === 'string' && /^[A-Z_]{3,80}$/.test(error.code)
+        ? error.code : 'DESKTOP_WORK_UNAVAILABLE';
+      sendError(res, status, code);
+    }
+  };
+  if (desktopContextService) {
+    router.get('/goals/:runId/context', desktopRead((req) => desktopContextService.read(req.authContext, req.params.runId)));
+    router.get('/goals/:runId/artifacts/:artifactId', desktopRead((req) => desktopContextService.artifact(req.authContext, req.params.runId, req.params.artifactId)));
+  }
+  if (desktopWorkService) {
+    router.post('/work', express.json({ limit: '64kb', strict: true }), desktopRead((req) => desktopWorkService.start(req.authContext, req.body)));
+    router.get('/work/:conversationId/:requestId', desktopRead((req) => desktopWorkService.read(req.authContext, req.params)));
+    router.post('/work/:conversationId/:requestId/cancel', desktopRead((req) => desktopWorkService.cancel(req.authContext, req.params)));
+    router.get('/work/:conversationId/:requestId/events', desktopRead((req) => desktopWorkService.events(req.authContext, req.params, Number(req.query.after || 0), Number(req.query.limit || 100))));
+  }
   router.post('/chat/completions', express.json({ limit: MAX_REQUEST_BYTES, strict: true }), async (req, res) => {
     if (!validateGooseChatRequest(req.body)) return sendError(res, 400, 'INVALID_CHAT_REQUEST');
     const controller = new AbortController();
@@ -155,6 +182,15 @@ export function createGooseProviderRouter({
       // The pinned Gemini runtime does not accept legacy sampling controls.
       delete body.temperature;
       delete body.top_p;
+      if (productGuidance) {
+        const [leading, ...history] = body.messages;
+        if (leading.role === 'system') {
+          const content = Array.isArray(leading.content)
+            ? [...leading.content, { type: 'text', text: productGuidance }]
+            : `${leading.content || ''}\n\n${productGuidance}`;
+          body.messages = [{ ...leading, content }, ...history];
+        } else body.messages = [{ role: 'system', content: productGuidance }, ...body.messages];
+      }
       if (contextForRequest) {
         let context;
         try {
