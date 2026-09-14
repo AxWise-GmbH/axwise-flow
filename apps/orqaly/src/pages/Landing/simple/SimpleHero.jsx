@@ -1,5 +1,6 @@
 import { Box, Button, Container, Stack, Typography } from '@mui/material';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import { DesktopDownloadButton, DesktopReleaseDetails } from './DesktopDownload';
 
 export default function SimpleHero({ onPrimaryCta }) {
   return (
@@ -45,8 +46,9 @@ export default function SimpleHero({ onPrimaryCta }) {
             use local tools and skills in a Goose-powered desktop.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+            <DesktopDownloadButton descriptionId="hero-download-details" />
             <Button
-              variant="contained"
+              variant="outlined"
               size="large"
               onClick={onPrimaryCta}
               endIcon={<ArrowForwardRoundedIcon />}
@@ -54,13 +56,11 @@ export default function SimpleHero({ onPrimaryCta }) {
             >
               Open web preview
             </Button>
-            <Button component="a" href="#use-cases" size="large" sx={{ px: 3, minHeight: 48 }}>
-              Explore the possibilities
-            </Button>
           </Stack>
-          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-            Browser + macOS desktop · One account · Your tools, under your control
-          </Typography>
+          <DesktopReleaseDetails id="hero-download-details" />
+          <Button component="a" href="#use-cases" sx={{ px: 3, minHeight: 44 }}>
+            Explore the possibilities
+          </Button>
         </Stack>
       </Container>
     </Box>
