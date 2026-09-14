@@ -13,7 +13,7 @@ import GcpAuthPage from './pages/Auth/GcpAuthPage';
 import GcpInviteCallback from './pages/Auth/GcpInviteCallback';
 import GcpNotFound from './pages/Public/GcpNotFound';
 import GcpPublicPage from './pages/Public/GcpPublicPage';
-import StandartLanding from './pages/Standart/StandartLanding';
+import LandingPageSimple from './pages/Landing/LandingPageSimple';
 
 /* eslint-disable react-refresh/only-export-components -- route components and the exported route table must stay together so tests exercise the production manifest. */
 
@@ -252,7 +252,7 @@ export const gcpRoutePaths = [
 ];
 
 export const gcpRouter = createBrowserRouter([
-  { path: '/', element: <StandartLanding /> },
+  { path: '/', element: <LandingPageSimple /> },
   { path: '/standart', element: <Navigate to="/" replace /> },
   { path: '/login', element: <GcpAuthPage mode="login" /> },
   { path: '/signup', element: <GcpAuthPage mode="signup" /> },

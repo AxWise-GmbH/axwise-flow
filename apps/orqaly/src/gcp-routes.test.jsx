@@ -9,7 +9,7 @@ import {
   WorkflowRoute,
   WorkspaceRedirect,
 } from './gcp-routes';
-import StandartLanding from './pages/Standart/StandartLanding';
+import LandingPageSimple from './pages/Landing/LandingPageSimple';
 
 vi.mock('./pages/WorkflowV2/WorkflowV2.jsx', () => ({
   default: ({ initialDraft, onDraftConsumed }) => (
@@ -337,8 +337,8 @@ describe('GCP launch route allowlist', () => {
     expect(protectedGroup?.children).not.toContainEqual(expect.objectContaining({ path: '*' }));
   });
 
-  it('promotes the authoritative Standart landing to root and keeps its old URL as an alias', () => {
-    expect(leaf('/').element.type).toBe(StandartLanding);
+  it('uses the simplified product page at root and retains the old landing alias', () => {
+    expect(leaf('/').element.type).toBe(LandingPageSimple);
 
     const standartAlias = leaf('/standart');
     expect(standartAlias.element.type).toBe(Navigate);

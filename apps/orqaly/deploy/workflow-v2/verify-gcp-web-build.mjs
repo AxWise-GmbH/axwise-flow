@@ -11,7 +11,7 @@ if (existsSync(resolve(dist, 'sw.js')))
 const html = readFileSync(resolve(dist, 'index.html'), 'utf8');
 for (const marker of [
   'id="root"',
-  'Give the work to agents. Keep the control.',
+  'Cloud reasoning. Local action.',
   'theme-color" content="#0A0A0A',
 ]) {
   if (!html.includes(marker)) throw new Error(`GCP index.html is missing ${marker}`);

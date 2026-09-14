@@ -1,56 +1,63 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import LandingPageSimple from './LandingPageSimple';
 
-function renderPage(props) {
+function renderPage() {
   return render(
     <ThemeProvider theme={createTheme()}>
       <MemoryRouter>
-        <LandingPageSimple {...props} />
+        <Routes>
+          <Route path="/" element={<LandingPageSimple />} />
+          <Route path="/goals" element={<div>Preview destination</div>} />
+        </Routes>
       </MemoryRouter>
     </ThemeProvider>
   );
 }
 
 describe('LandingPageSimple', () => {
-  it('renders the hook, how-it-works steps, and final CTA', () => {
+  it('explains the actual local/cloud boundary without the old long marketing tour', () => {
     renderPage();
-    expect(screen.getByText('Your AI team, ready to work.')).toBeInTheDocument();
-    expect(screen.getByText('How it works')).toBeInTheDocument();
-    expect(screen.getByText('Tell it your goal')).toBeInTheDocument();
-    expect(screen.getByText('Agents form a team')).toBeInTheDocument();
-    expect(screen.getByText('You watch & approve')).toBeInTheDocument();
-    expect(screen.getByText('Ready to put your first agent to work?')).toBeInTheDocument();
-  });
-
-  it('renders the three example cards linking to their solution pages', () => {
-    renderPage();
-    expect(screen.getByRole('link', { name: /E-commerce/i })).toHaveAttribute(
-      'href',
-      '/solutions/ecommerce'
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Cloud reasoning.Local action.'
     );
-    expect(screen.getByRole('link', { name: /Hotels/i })).toHaveAttribute(
-      'href',
-      '/solutions/restaurants'
-    );
-    expect(screen.getByRole('link', { name: /Legal/i })).toHaveAttribute(
-      'href',
-      '/solutions/legal'
-    );
-  });
-
-  it('primary CTA buttons navigate toward signup', () => {
-    renderPage();
-    const startButtons = screen.getAllByRole('button', { name: 'Start free' });
-    expect(startButtons.length).toBeGreaterThan(0);
-  });
-
-  it('renders no Simple/Full variant switcher', () => {
-    renderPage();
-
-    expect(screen.queryByText('Prefer the full tour? Switch above ↑')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Local workspace. Connected cloud context.' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Automatic syncing of local files and chat history is not part of this preview/
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Start with the work in front of you.' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('main').querySelector('img')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Landing page style' })).not.toBeInTheDocument();
+  });
+
+  it('provides usable links to the examples, explanation, and preview', () => {
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Explore the possibilities' })).toHaveAttribute(
+      'href',
+      '#use-cases'
+    );
+    expect(screen.getByRole('link', { name: 'Local + cloud' })).toHaveAttribute(
+      'href',
+      '#how-it-works'
+    );
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open web preview' })[0]);
+    expect(screen.getByText('Preview destination')).toBeInTheDocument();
+  });
+
+  it('sets the page title and restores it when unmounted', () => {
+    const before = document.title;
+    const page = renderPage();
+    expect(document.title).toBe('Orqaly × AxWise — Cloud reasoning. Local action.');
+    page.unmount();
+    expect(document.title).toBe(before);
   });
 });
