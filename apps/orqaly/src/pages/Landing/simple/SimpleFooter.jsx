@@ -11,9 +11,14 @@ export default function SimpleFooter({ onSwitchToFull }) {
           alignItems="center"
           justifyContent="space-between"
         >
-          <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
-            © {new Date().getFullYear()} Orqaly
-          </Typography>
+          <Stack spacing={0.5} alignItems={{ xs: 'center', sm: 'flex-start' }}>
+            <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
+              © {new Date().getFullYear()} Orqaly
+            </Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+              Built on Goose · Powered by Gemini
+            </Typography>
+          </Stack>
 
           <Stack direction="row" spacing={2.5}>
             <Typography

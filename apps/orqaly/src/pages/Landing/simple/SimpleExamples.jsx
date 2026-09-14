@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import {
   Box,
   Button,
-  Chip,
   Container,
   IconButton,
   Stack,
@@ -12,10 +11,8 @@ import {
 } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import Reveal from '../../../components/Common/Reveal';
+import DesktopProductDemo from './DesktopProductDemo';
 
 const EXAMPLES = [
   {
@@ -26,7 +23,7 @@ const EXAMPLES = [
       'Use Goose skills to edit files, run checks, and keep the useful outputs beside your conversation.',
     request: 'Build a webhook receiver in this project. Check retries and duplicate events.',
     activity: 'Checking the implementation',
-    reply: 'I can use the project’s webhook skill, update the receiver, and run the local checks.',
+    reply: 'The receiver handles duplicate deliveries and retries. Local checks passed. You can inspect the code and results beside this conversation.',
     files: ['Implementation notes.md', 'webhook-handler.js', 'Check results'],
     artifactTitle: 'A useful handoff',
     artifactLines: [
@@ -81,7 +78,7 @@ const EXAMPLES = [
     request: 'Use our account manager’s playbook to prepare this customer handover.',
     activity: 'Preparing the handover',
     reply:
-      'I’ll use the selected role context and the supplied account notes to draft a handover for the team.',
+      'The handover brings together the selected role playbook and account notes, with clear follow-ups for your teammate.',
     files: ['Customer handover.md', 'Account manager role.md', 'Account notes.md'],
     artifactTitle: 'Ready for a teammate',
     artifactLines: [
@@ -100,7 +97,7 @@ const EXAMPLES = [
     request: 'Can you turn these launch updates into a short brief for the team?',
     activity: 'Shaping the team brief',
     reply:
-      'I’ll gather the supplied updates into a concise brief, keeping decisions and follow-ups easy to find.',
+      'The launch brief brings the supplied updates together. Decisions and follow-ups are ready to pick up next.',
     files: ['Launch brief.md', 'Decisions and follow-ups', 'Source updates'],
     artifactTitle: 'More than a reply',
     artifactLines: [
@@ -111,378 +108,6 @@ const EXAMPLES = [
     footer: 'Continue the conversation with its useful context.',
   },
 ];
-
-function Detail({ children, sx }) {
-  return (
-    <Box
-      sx={{
-        p: { xs: 1.75, sm: 2.25 },
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2.5,
-        ...sx,
-      }}
-    >
-      {children}
-    </Box>
-  );
-}
-
-function SceneDetail({ id }) {
-  const theme = useTheme();
-  const primary = theme.palette.primary.main;
-
-  if (id === 'local') {
-    return (
-      <Stack spacing={1.5}>
-        <Chip
-          icon={<AutoAwesomeOutlinedIcon />}
-          label="Goose skill · webhook development"
-          size="small"
-          sx={{
-            alignSelf: 'flex-start',
-            maxWidth: '100%',
-            bgcolor: alpha(primary, 0.07),
-            color: 'text.primary',
-            '& .MuiChip-icon': { color: primary },
-          }}
-        />
-        <Detail sx={{ bgcolor: alpha(theme.palette.text.primary, 0.035) }}>
-          <Typography
-            sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}
-          >
-            LOCAL PROJECT
-          </Typography>
-          <Box
-            component="pre"
-            sx={{
-              m: 0,
-              whiteSpace: 'pre-wrap',
-              overflowWrap: 'anywhere',
-              fontSize: { xs: '0.72rem', sm: '0.8rem' },
-              lineHeight: 1.8,
-              color: 'text.primary',
-            }}
-          >
-            {
-              'await receiveEvent(event);\nconst retry = await receiveEvent(event);\nexpect(retry.duplicate).toBe(true);'
-            }
-          </Box>
-          <Stack
-            direction="row"
-            spacing={0.75}
-            alignItems="center"
-            sx={{ mt: 1.75, color: 'text.secondary' }}
-          >
-            <CheckRoundedIcon sx={{ fontSize: 16, color: primary }} />
-            <Typography sx={{ fontSize: '0.75rem' }}>
-              Example check: duplicate event handled once
-            </Typography>
-          </Stack>
-        </Detail>
-      </Stack>
-    );
-  }
-
-  if (id === 'n8n') {
-    return (
-      <Detail
-        sx={{
-          backgroundImage: `radial-gradient(${alpha(primary, 0.18)} 1px, transparent 1px)`,
-          backgroundSize: '14px 14px',
-        }}
-      >
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mb: 2 }}>
-          WORKFLOW DRAFT
-        </Typography>
-        <Box
-          component="ol"
-          sx={{
-            listStyle: 'none',
-            p: 0,
-            m: 0,
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-            gap: 1.5,
-          }}
-        >
-          {['Order received', 'Look up stock', 'Check availability', 'Confirm or review'].map(
-            (label, index) => (
-              <Box
-                component="li"
-                key={label}
-                sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: index === 1 ? primary : 'divider',
-                  bgcolor: 'background.paper',
-                  display: 'flex',
-                  gap: 1,
-                  alignItems: 'center',
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 1,
-                    bgcolor: alpha(primary, 0.09),
-                    color: primary,
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  {index + 1}
-                </Box>
-                <Typography sx={{ fontSize: '0.76rem', fontWeight: 600 }}>{label}</Typography>
-              </Box>
-            )
-          )}
-        </Box>
-        <Typography sx={{ mt: 1.75, fontSize: '0.74rem', color: 'text.secondary' }}>
-          Stock check added · low-stock branch included
-        </Typography>
-      </Detail>
-    );
-  }
-
-  if (id === 'operations') {
-    return (
-      <Detail>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>
-          EXAMPLE INVENTORY · ITEM A
-        </Typography>
-        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-          {[
-            ['On hand', '10'],
-            ['Reserved', '2'],
-            ['Available', '8'],
-          ].map(([label, value]) => (
-            <Box
-              key={label}
-              sx={{ flex: 1, p: 1, bgcolor: alpha(primary, 0.05), borderRadius: 1.5 }}
-            >
-              <Typography sx={{ fontSize: '1.3rem', fontWeight: 750, color: 'text.primary' }}>
-                {value}
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>{label}</Typography>
-            </Box>
-          ))}
-        </Stack>
-        <Box
-          component="table"
-          sx={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontSize: '0.75rem',
-            textAlign: 'left',
-            '& th': { color: 'text.secondary', fontWeight: 500, pb: 1 },
-            '& td': { py: 1, borderTop: '1px solid', borderColor: 'divider' },
-          }}
-        >
-          <caption style={{ textAlign: 'left', marginBottom: 8, fontWeight: 600 }}>
-            Orders for item A
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Order</th>
-              <th scope="col">Units</th>
-              <th scope="col">Next action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1042</td>
-              <td>2 reserved</td>
-              <td>Fulfil</td>
-            </tr>
-            <tr>
-              <td>1043</td>
-              <td>12 requested</td>
-              <td>Review shortfall</td>
-            </tr>
-          </tbody>
-        </Box>
-      </Detail>
-    );
-  }
-
-  if (id === 'role') {
-    return (
-      <Detail>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>
-          SELECTED ROLE · ACCOUNT MANAGER
-        </Typography>
-        <Stack spacing={1.25}>
-          {[
-            ['Responsibilities', 'Customer continuity and clear next steps'],
-            ['Playbook', 'Include the account status, risks, and owner'],
-            ['Preferences', 'Concise, direct, and ready for a teammate'],
-          ].map(([label, value]) => (
-            <Box
-              key={label}
-              sx={{ borderLeft: '2px solid', borderColor: alpha(primary, 0.45), pl: 1.5 }}
-            >
-              <Typography sx={{ fontSize: '0.74rem', fontWeight: 700 }}>{label}</Typography>
-              <Typography sx={{ fontSize: '0.76rem', color: 'text.secondary', mt: 0.25 }}>
-                {value}
-              </Typography>
-            </Box>
-          ))}
-        </Stack>
-      </Detail>
-    );
-  }
-
-  return (
-    <Detail>
-      <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary', mb: 1.5 }}>
-        TEAM CONVERSATION
-      </Typography>
-      <Stack spacing={1.25}>
-        {[
-          ['Maya', 'The launch guide is ready for review.'],
-          ['Alex', 'Support still needs the final FAQ.'],
-        ].map(([name, message]) => (
-          <Stack direction="row" spacing={1} key={name}>
-            <Box
-              aria-hidden="true"
-              sx={{
-                width: 26,
-                height: 26,
-                borderRadius: 1.5,
-                bgcolor: alpha(primary, 0.1),
-                color: primary,
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              {name[0]}
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.73rem', fontWeight: 700 }}>{name}</Typography>
-              <Typography sx={{ fontSize: '0.76rem', color: 'text.secondary' }}>
-                {message}
-              </Typography>
-            </Box>
-          </Stack>
-        ))}
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-          sx={{ p: 1.25, borderRadius: 1.5, bgcolor: alpha(primary, 0.06) }}
-        >
-          <DescriptionOutlinedIcon sx={{ fontSize: 18, color: primary }} />
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-            Launch brief · decisions + follow-ups
-          </Typography>
-        </Stack>
-      </Stack>
-    </Detail>
-  );
-}
-
-function Workspace({ example }) {
-  const theme = useTheme();
-  const primary = theme.palette.primary.main;
-
-  return (
-    <Box
-      component="aside"
-      aria-label="Example workspace artifacts"
-      sx={{
-        minWidth: 0,
-        p: { xs: 2, md: 2.5 },
-        bgcolor: alpha(primary, 0.045),
-        borderLeft: { md: '1px solid' },
-        borderTop: { xs: '1px solid', md: 'none' },
-        borderColor: 'divider',
-      }}
-    >
-      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 700, mb: 1.75 }}>
-        WORKSPACE
-      </Typography>
-      <Stack component="ul" spacing={0.5} sx={{ p: 0, m: 0, listStyle: 'none' }}>
-        {example.files.map((file, index) => (
-          <Stack
-            component="li"
-            key={file}
-            direction="row"
-            spacing={0.9}
-            alignItems="center"
-            sx={{
-              px: 1.1,
-              py: 1,
-              borderRadius: 1.5,
-              bgcolor: index === 0 ? 'background.paper' : 'transparent',
-              border: '1px solid',
-              borderColor: index === 0 ? 'divider' : 'transparent',
-            }}
-          >
-            <DescriptionOutlinedIcon
-              sx={{ fontSize: 17, color: index === 0 ? primary : 'text.secondary', flexShrink: 0 }}
-            />
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: index === 0 ? 650 : 450,
-                overflowWrap: 'anywhere',
-              }}
-            >
-              {file}
-            </Typography>
-          </Stack>
-        ))}
-      </Stack>
-      <Box
-        sx={{
-          mt: 2.5,
-          p: 2,
-          borderRadius: 2,
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Typography sx={{ fontSize: '0.9rem', fontWeight: 750, mb: 1.5 }}>
-          {example.artifactTitle}
-        </Typography>
-        <Stack component="ul" spacing={1.3} sx={{ p: 0, m: 0, listStyle: 'none' }}>
-          {example.artifactLines.map((line) => (
-            <Stack component="li" key={line} direction="row" spacing={0.75} alignItems="flex-start">
-              <Box
-                aria-hidden="true"
-                sx={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  bgcolor: primary,
-                  flexShrink: 0,
-                  mt: '7px !important',
-                }}
-              />
-              <Typography sx={{ fontSize: '0.77rem', lineHeight: 1.65, color: 'text.secondary' }}>
-                {line}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
-      </Box>
-      <Typography sx={{ mt: 2, fontSize: '0.73rem', lineHeight: 1.6, color: 'text.secondary' }}>
-        {example.footer}
-      </Typography>
-    </Box>
-  );
-}
 
 export default function SimpleExamples() {
   const [selected, setSelected] = useState(0);
@@ -529,7 +154,7 @@ export default function SimpleExamples() {
               mb: 1.5,
             }}
           >
-            Illustrative examples
+            Explore the desktop
           </Typography>
           <Typography
             component="h2"
@@ -549,7 +174,7 @@ export default function SimpleExamples() {
           <Typography
             sx={{ textAlign: 'center', color: 'text.secondary', fontSize: '0.95rem', mb: 3.5 }}
           >
-            Research, build, and check as needed. Keep the conversation and its outputs together.
+            The Orqaly desktop, recreated in HTML. Click an artifact or play a cursor walkthrough.
           </Typography>
         </Reveal>
 
@@ -629,67 +254,7 @@ export default function SimpleExamples() {
               </Typography>
             </Box>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.75fr) minmax(0, 1fr)' },
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 4,
-                overflow: 'hidden',
-                bgcolor: 'background.paper',
-                boxShadow: `0 16px 50px ${alpha(theme.palette.text.primary, 0.055)}`,
-              }}
-            >
-              <Box sx={{ minWidth: 0, p: { xs: 2, sm: 3 }, minHeight: { md: 465 } }}>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  flexWrap="wrap"
-                  useFlexGap
-                  gap={1}
-                  sx={{ mb: 2.5 }}
-                >
-                  <Typography
-                    sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 700 }}
-                  >
-                    CONVERSATION
-                  </Typography>
-                  <Chip
-                    label={example.activity}
-                    size="small"
-                    sx={{
-                      bgcolor: alpha(primary, 0.07),
-                      color: 'text.secondary',
-                      fontSize: '0.69rem',
-                      height: 26,
-                    }}
-                  />
-                </Stack>
-                <Box
-                  sx={{
-                    ml: { xs: 1, sm: 5 },
-                    mb: 2,
-                    px: 2,
-                    py: 1.6,
-                    bgcolor: alpha(primary, 0.08),
-                    borderRadius: '16px 16px 4px 16px',
-                  }}
-                >
-                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 550, lineHeight: 1.55 }}>
-                    {example.request}
-                  </Typography>
-                </Box>
-                <Typography
-                  sx={{ fontSize: '0.86rem', color: 'text.secondary', lineHeight: 1.7, mb: 2 }}
-                >
-                  {example.reply}
-                </Typography>
-                <SceneDetail id={example.id} />
-              </Box>
-              <Workspace example={example} />
-            </Box>
+            <DesktopProductDemo key={example.id} example={example} />
           </Box>
 
           <Stack
