@@ -2036,7 +2036,7 @@ Do NOT use vague language. Include actual facts from search results about {indus
             # a verified claim/source pair as successful grounded research.
             has_grounded_evidence = bool(grounding_sources and grounded_claims)
             grounding_status = (
-                "ok" if has_grounded_evidence else "response_processing_error"
+                "ok" if has_grounded_evidence else "grounding_evidence_missing"
             )
             prior_call_count = int(runtime_diagnostics.get("call_count", 0))
             prior_model = str(runtime_diagnostics.get("model") or RESEARCH_MODEL)

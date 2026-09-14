@@ -158,14 +158,17 @@ async def test_valid_fact_does_not_hide_another_reader_visible_source_mismatch()
 
 
 @pytest.mark.asyncio
-async def test_quality_rejection_fallback_preserves_usage_without_other_query_cooldown() -> None:
+@pytest.mark.parametrize("status", ["quality_rejected", "grounding_evidence_missing"])
+async def test_quality_rejection_fallback_preserves_usage_without_other_query_cooldown(status) -> None:
     clean = {
         "text": "The second query receives its own primary response.",
         "search_performed": True,
         "runtime_diagnostics": {"status": "ok", "call_count": 1},
         "usage_metadata": {"input_tokens": 5, "output_tokens": 2, "total_tokens": 7},
     }
-    primary = Responses(quality_rejected(), clean)
+    rejected = quality_rejected()
+    rejected["runtime_diagnostics"]["status"] = status
+    primary = Responses(rejected, clean)
     searx = FakeSearx(discovery(status="empty"))
     runner = ResilientResearchRunner(primary, searxng=searx)
     first_query = request()
@@ -176,7 +179,7 @@ async def test_quality_rejection_fallback_preserves_usage_without_other_query_co
 
     assert primary.queries == [first_query, second_query]
     assert len(searx.queries) == 1
-    assert first["runtime_diagnostics"]["primary_status"] == "quality_rejected"
+    assert first["runtime_diagnostics"]["primary_status"] == status
     assert first["runtime_diagnostics"]["fallback_attempted"] is True
     assert "retry_after_seconds" not in first["runtime_diagnostics"]
     assert token_counts(first["usage_metadata"]) == (31, 11, 42)
@@ -187,7 +190,8 @@ async def test_quality_rejection_fallback_preserves_usage_without_other_query_co
 
 
 @pytest.mark.asyncio
-async def test_quality_rejection_releases_waiting_query_to_its_own_primary_call() -> None:
+@pytest.mark.parametrize("status", ["quality_rejected", "grounding_evidence_missing"])
+async def test_quality_rejection_releases_waiting_query_to_its_own_primary_call(status) -> None:
     entered = asyncio.Event()
     release = asyncio.Event()
 
@@ -197,7 +201,9 @@ async def test_quality_rejection_releases_waiting_query_to_its_own_primary_call(
                 entered.set()
                 self.queries.append(query)
                 await release.wait()
-                return quality_rejected()
+                rejected = quality_rejected()
+                rejected["runtime_diagnostics"]["status"] = status
+                return rejected
             return await super().search(query)
 
     clean = {"text": "Second query only", "search_performed": True}
@@ -211,7 +217,7 @@ async def test_quality_rejection_releases_waiting_query_to_its_own_primary_call(
     first_result, second_result = await asyncio.wait_for(asyncio.gather(first, second), 1)
 
     assert primary.queries == [first_query, second_query]
-    assert first_result["runtime_diagnostics"]["primary_status"] == "quality_rejected"
+    assert first_result["runtime_diagnostics"]["primary_status"] == status
     assert second_result is clean
 
 

@@ -13393,7 +13393,10 @@ async def test_one_shot_assistant_turn_returns_typed_markdown_sources_and_facts(
     )
 
     assert result.result_type == "assistant_turn_completed"
-    assert result.response.markdown == "Estonia is an EU member state."
+    assert result.response.markdown == (
+        "Estonia is an EU member state. [1](<https://european-union.europa.eu/"
+        "principles-countries-history/country-profiles/estonia_en>)"
+    )
     assert (
         result.model_dump(mode="json", by_alias=True, exclude_unset=True)["response"][
             "schemaVersion"
@@ -13736,7 +13739,7 @@ async def test_one_shot_assistant_does_not_fallback_on_nonretryable_primary_erro
             )
         )
 
-    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.error_class == "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE"
     assert raised.value.retryable is False
     assert discovery.calls == 0
 
@@ -13791,7 +13794,7 @@ async def test_one_shot_assistant_overlong_aggregate_fallback_requirement_fails_
             )
         )
 
-    assert raised.value.error_class == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert raised.value.error_class == "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE"
     assert raised.value.retryable is True
     assert discovery.calls == 0
 

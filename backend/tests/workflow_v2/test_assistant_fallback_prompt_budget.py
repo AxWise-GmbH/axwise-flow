@@ -284,7 +284,7 @@ async def test_504_then_missing_grounding_recovers_only_official_exact_evidence(
     assert fetched == [OFFICIAL]
     assert ledger == original
     assert raw["runtime_diagnostics"]["query_complete"] is True
-    assert raw["runtime_diagnostics"]["primary_status"] == "response_processing_error"
+    assert raw["runtime_diagnostics"]["primary_status"] == "grounding_evidence_missing"
     assert raw["runtime_diagnostics"]["fallback_used"] is True
     assert [claim["text"] for claim in raw["claims"]] == [EXACT]
     assert [source["url"] for source in raw["sources"]] == [OFFICIAL]

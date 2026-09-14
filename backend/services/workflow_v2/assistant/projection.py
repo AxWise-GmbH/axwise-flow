@@ -263,8 +263,25 @@ def project_assistant_result(
             if isinstance(runtime_diagnostics, dict)
             else ""
         )
+        if status == "grounding_evidence_missing":
+            # The provider returned, but neither it nor the existing fallback
+            # established usable support. This is not an upstream timeout and
+            # does not justify an outage retry/cooldown or publishing the prose.
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_EVIDENCE_UNAVAILABLE",
+                retryable=False,
+                diagnostics=runtime_diagnostics,
+            )
+        research_error = {
+            "deadline_exceeded": "AXWISE_ASSISTANT_RESEARCH_TIMEOUT",
+            "retry_exhausted": "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE",
+            "unavailable": "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE",
+            "response_processing_error": "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE",
+            "configuration_error": "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE",
+            "non_retryable_error": "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE",
+        }.get(status) if response_mode == "one_shot" else None
         raise CognitiveExecutionFailure(
-            "AXWISE_ASSISTANT_EMPTY_RESPONSE",
+            research_error or "AXWISE_ASSISTANT_EMPTY_RESPONSE",
             retryable=status
             in {
                 "deadline_exceeded",

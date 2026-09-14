@@ -351,7 +351,7 @@ async def test_projection_failure_flows_through_worker_failure_boundary() -> Non
     assert await worker.run_once() is True
     assert store.failed is not None
     assert store.failed["retryable"] is True
-    assert store.failed["error_class"] == "AXWISE_ASSISTANT_EMPTY_RESPONSE"
+    assert store.failed["error_class"] == "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE"
     assert store.failed["retry_after_seconds"] == 23
     assert store.failed["retry_at"] is not None
     assert store.failed["failure_diagnostics"] == {

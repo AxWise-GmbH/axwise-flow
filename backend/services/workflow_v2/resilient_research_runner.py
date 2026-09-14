@@ -55,6 +55,7 @@ _FALLBACK_PRIMARY_STATUSES = frozenset(
         "retry_exhausted",
         "unavailable",
         "response_processing_error",
+        "grounding_evidence_missing",
         "quality_rejected",
     }
 )
@@ -1799,10 +1800,10 @@ class ResilientResearchRunner:
             )
             now = self._monotonic_clock()
             status = _fallback_eligible_primary_status(primary)
-            if status == "quality_rejected":
-                # A task-specific publication defect proves neither a provider
-                # outage nor that other users' requests need fallback. Retain
-                # the existing circuit state; only this request uses fallback.
+            if status in {"quality_rejected", "grounding_evidence_missing"}:
+                # Returned prose without usable grounding, like a publication
+                # defect, proves no provider outage. Retain the circuit state;
+                # only this request uses the existing verified fallback.
                 pass
             elif status is not None:
                 # Any in-flight query that observes a transient latches the

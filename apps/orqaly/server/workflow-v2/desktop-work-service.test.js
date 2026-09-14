@@ -103,7 +103,7 @@ function harness() {
 describe('desktop bounded AxWise work', () => {
   it('reuses the real Assistant one-shot route and returns its persisted grounded artifact', async () => {
     const h = harness();
-    const result = await h.service.start(auth, { ...command, runId });
+    const result = await h.service.start(auth, { ...command, runId, artifactIds: [artifactId] });
     expect(result).toMatchObject({ ...identity, status: 'completed', kind: 'research', markdown: '# Findings\nRetry transient failures with backoff.' });
     expect(result.artifacts[0]).toMatchObject({ title: 'Research result', contentType: 'text/markdown' });
     expect(result.sources[0].url).toBe('https://example.com/docs/retries');
@@ -117,6 +117,14 @@ describe('desktop bounded AxWise work', () => {
     expect(await h.service.read(auth, identity)).toEqual(result);
     expect(h.axwiseClient.submit).toHaveBeenCalledTimes(1);
     expect(h.axwiseClient.poll).not.toHaveBeenCalled();
+  });
+
+  it('keeps focused research compact while still checking selected Goal ownership', async () => {
+    const h = harness();
+    await h.service.start(auth, { ...command, runId });
+    expect(h.contextService.read).toHaveBeenCalledWith(auth, runId);
+    expect(h.contextService.artifact).not.toHaveBeenCalled();
+    expect(h.axwiseClient.submit.mock.calls[0][0].input.message).toBe(command.question);
   });
 
   it('replays exact requests, rejects changed input and keeps separate conversations independent', async () => {
