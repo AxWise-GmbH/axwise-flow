@@ -108,7 +108,7 @@ def test_inline_code_and_markdown_fragments_do_not_become_supported_facts() -> N
     result = project(raw)
 
     assert [fact.statement for fact in result.response.facts] == [valid]
-    assert result.response.markdown == text.strip()
+    assert result.response.markdown == text.replace(valid, f"{valid} [1](<{SOURCE}>)").strip()
     assert raw == original, "raw provider evidence must remain immutable"
 
 

@@ -347,7 +347,7 @@ async def test_async_generated_text_without_grounding_metadata_fails_closed() ->
     assert result["sources"] == []
     assert result["claims"] == []
     assert result["error"] == "MissingGroundingEvidence"
-    assert result["runtime_diagnostics"]["status"] == "response_processing_error"
+    assert result["runtime_diagnostics"]["status"] == "grounding_evidence_missing"
     assert result["runtime_diagnostics"]["call_count"] == 1
     assert result["usage_metadata"] == {
         "input_tokens": 21,
@@ -369,7 +369,7 @@ def test_grounding_chunks_without_source_backed_support_fail_closed() -> None:
     assert result["sources"] == []
     assert result["claims"] == []
     assert result["error"] == "MissingGroundingEvidence"
-    assert result["runtime_diagnostics"]["status"] == "response_processing_error"
+    assert result["runtime_diagnostics"]["status"] == "grounding_evidence_missing"
 
 
 @pytest.mark.asyncio

@@ -2354,7 +2354,7 @@ async def test_unavailable_searx_preserves_primary_transient_status() -> None:
 async def test_missing_primary_grounding_evidence_attempts_verified_fallback() -> None:
     url = "https://example.gov.ee/current-rules"
     exact = "Current rules require the responsible operator to be identified."
-    primary_result = transient("response_processing_error")
+    primary_result = transient("grounding_evidence_missing")
     primary_result.update(
         {
             "text": "",
@@ -2384,7 +2384,7 @@ async def test_missing_primary_grounding_evidence_attempts_verified_fallback() -
     assert result["provider"] == "searxng_direct_fetch"
     assert result["claims"][0]["text"] == exact
     assert result["runtime_diagnostics"]["primary_status"] == (
-        "response_processing_error"
+        "grounding_evidence_missing"
     )
     assert result["runtime_diagnostics"]["fallback_attempted"] is True
     assert result["runtime_diagnostics"]["fallback_used"] is True

@@ -697,8 +697,8 @@ def render_assistant_citations(
 ) -> AssistantCitationRendering:
     """Return a separate canonical rendering, or unchanged text plus safe issues.
 
-    Citation-free answers remain unchanged. Repeated marker IDs have no identity
-    or authority. Descriptive/resource links, unlike opaque markers, must name
+    Citation-free answers receive links only at admitted exact assertion spans.
+    Repeated marker IDs have no identity or authority. Descriptive/resource links must name
     an actual locally admitted URL; never silently repoint a meaningful link.
     Callers must reject nonempty ``issues`` before publishing the answer.
     """
@@ -738,8 +738,6 @@ def render_assistant_citations(
         and not any(left <= start < right for left, right in definition_spans)
     ]
     citations = sorted([*tokens, *prose_links], key=lambda link: (link.start, link.end))
-    if not citations:
-        return AssistantCitationRendering(text)
     admitted_urls = {
         url
         for url in admitted_source_urls
@@ -772,6 +770,53 @@ def render_assistant_citations(
             span = _bound_span(raw, candidate)
             if span is not None:
                 bindings[span].update(urls)
+    if not citations:
+        # Google already supplies claim-to-source bindings. The model need not
+        # manufacture matching Markdown links. Add citations to this reader
+        # projection only; the provider text, hashes and claims remain intact.
+        # Include the insertion point at EOF, including an unclosed code block.
+        # A completed inline-code span ends before this sentinel; an open block
+        # still masks it, so a link cannot be swallowed by literal content.
+        mask = _literal_mask(text + " ")
+        positions: dict[int, set[str]] = defaultdict(set)
+        for (start, end), urls in bindings.items():
+            position = end
+            if (
+                text[start:end].lstrip().startswith("|")
+                and text[end - 1:end] == "|"
+                and "\n" not in text[start:end]
+                and not _escaped(text, end - 1)
+            ):
+                # A citation after the closing pipe would create an extra cell
+                # that the Markdown reader may discard. Keep it in the row.
+                position -= 1
+            if (
+                0 <= start < end <= len(text)
+                and not mask[position]
+                and any(not mask[index] and text[index].isalnum()
+                        for index in range(start, end))
+            ):
+                positions[position].update(urls)
+        used_urls = utf16_ordinal_sorted({url for urls in positions.values() for url in urls})
+        labels = {url: index + 1 for index, url in enumerate(used_urls)}
+        markdown = text
+        for end, urls in sorted(positions.items(), reverse=True):
+            links = " ".join(
+                f"[{labels[url]}](<{_canonical_destination(url)}>)"
+                for url in utf16_ordinal_sorted(urls)
+            )
+            markdown = markdown[:end] + " " + links + markdown[end:]
+        try:
+            expected_destinations = tuple(
+                normalize_reader_link_destination(url)
+                for _end, urls in sorted(positions.items())
+                for url in utf16_ordinal_sorted(urls)
+            )
+            if reader_link_destinations(markdown) != expected_destinations:
+                return AssistantCitationRendering(text, ("unresolved_citation_claim",))
+        except ValueError:
+            return AssistantCitationRendering(text, ("invalid_citation_response",))
+        return AssistantCitationRendering(markdown, rendered_citation_count=len(positions))
     characters = list(text)
     for citation in citations:
         for index in range(citation.start, citation.end):

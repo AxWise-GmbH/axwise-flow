@@ -153,10 +153,11 @@ export function createDesktopWorkService({ assistantService, contextService }) {
     if (command.runId) {
       // This read checks both tenant and owning user, unlike the general shared
       // tenant Goal list. Full artifact reads recheck snapshot membership/hash.
-      const context = await contextService.read(auth, command.runId);
-      const finalArtifact = context.artifacts.find((artifact) => artifact.kind === 'final_markdown');
-      const artifactIds = command.artifactIds
-        ?? (finalArtifact ? [finalArtifact.artifactId] : []);
+      await contextService.read(auth, command.runId);
+      // A selected project is not a request to append its entire design to
+      // every small research question. Goose can read the design and explicitly
+      // select relevant artifacts when the research actually depends on them.
+      const artifactIds = command.artifactIds ?? [];
       for (const artifactId of artifactIds) {
         artifacts.push(await contextService.artifact(auth, command.runId, artifactId));
       }

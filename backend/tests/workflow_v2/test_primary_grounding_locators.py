@@ -172,7 +172,7 @@ async def test_missing_support_retains_only_bounded_normalized_urls(caplog):
     assert FIELD not in raw["runtime_diagnostics"]
     assert all(url not in caplog.text for url in urls)
     with pytest.raises(
-        CognitiveExecutionFailure, match="AXWISE_ASSISTANT_EMPTY_RESPONSE"
+        CognitiveExecutionFailure, match="AXWISE_ASSISTANT_EVIDENCE_UNAVAILABLE"
     ):
         project_assistant_result(
             raw,

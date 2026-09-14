@@ -235,10 +235,95 @@ def test_numeric_markdown_link_cannot_keep_a_fabricated_destination() -> None:
     assert result.markdown == f"{statement} [1](<{SOURCE}>)"
 
 
-def test_plain_no_marker_answer_is_not_silently_rewritten() -> None:
+def test_plain_no_marker_answer_gets_citations_from_existing_exact_bindings() -> None:
     text = "  The setting is optional.\n"
     raw = grounded_response(text, ["The setting is optional."])
-    assert render(raw).markdown == text
+    original = copy.deepcopy(raw)
+    result = render(raw)
+    assert result.markdown == f"  The setting is optional. [1](<{SOURCE}>)\n"
+    assert result.issues == ()
+    assert result.rendered_citation_count == 1
+    assert raw == original
+
+
+def test_metadata_only_rendering_preserves_unbound_repetitions_and_code() -> None:
+    statement = "The café setting is optional."
+    first = statement + "\n\n```text\n" + statement + "\n```\n\n"
+    raw = grounded_response(first + statement, [statement], parts=[first, statement], part_index=1)
+    original = copy.deepcopy(raw)
+    result = render(raw)
+    assert result.markdown == first + statement + f" [1](<{SOURCE}>)"
+    assert result.rendered_citation_count == 1
+    assert raw == original
+
+
+def test_metadata_only_rendering_cannot_add_unadmitted_or_forged_sources() -> None:
+    statement = "The setting is optional."
+    raw = grounded_response(statement, [statement])
+    claims = normalize_assistant_citation_claims(raw)
+    assert render(raw, sources=[OTHER]).markdown == statement
+    raw["provider_response_hash"] = "0" * 64
+    result = render(raw, claims=claims)
+    assert result.markdown == statement
+    assert result.rendered_citation_count == 0
+
+
+def test_metadata_only_rendering_does_not_insert_links_inside_code() -> None:
+    for text in ("`The setting is optional.`", "```text\nThe setting is optional.\n```", "    The setting is optional."):
+        raw = grounded_response(text, ["The setting is optional."])
+        assert render(raw).markdown == text
+        assert render(raw).rendered_citation_count == 0
+
+
+def test_metadata_only_rendering_deduplicates_stable_source_labels() -> None:
+    first, second = "The first setting is optional.", "The second setting is required."
+    raw = grounded_response(f"{first}\n\n{second}", [first, second], urls=[OTHER, SOURCE])
+    raw["claims"][0]["source_urls"] = [OTHER, SOURCE, OTHER]
+    result = render(raw)
+    assert result.markdown == f"{first} [1](<{SOURCE}>) [2](<{OTHER}>)\n\n{second} [1](<{SOURCE}>)"
+    assert result.rendered_citation_count == 2
+
+
+def test_metadata_only_table_citation_stays_inside_the_supported_row() -> None:
+    row = "| Request method | POST |"
+    prefix = "| Setting | Value |\n| --- | --- |\n"
+    raw = grounded_response(prefix + row, [row])
+    result = render(raw)
+    assert result.issues == ()
+    assert result.markdown == prefix + row[:-1] + f" [1](<{SOURCE}>)|"
+    assert prose_link_destinations(result.markdown) == (SOURCE,)
+    assert result.rendered_citation_count == 1
+
+
+@pytest.mark.parametrize("reader_error", [False, True])
+def test_metadata_only_rendering_requires_the_reader_to_recognize_every_added_link(monkeypatch, reader_error) -> None:
+    statement = "The setting is optional."
+    raw = grounded_response(statement, [statement])
+    original_reader = citations_module.reader_link_destinations
+
+    def reader(markdown):
+        if markdown == statement:
+            return original_reader(markdown)
+        if reader_error:
+            raise ValueError("Reader rejected inserted markup")
+        return ()
+
+    monkeypatch.setattr(citations_module, "reader_link_destinations", reader)
+    result = render(raw)
+    assert result.markdown == statement
+    assert result.rendered_citation_count == 0
+    assert result.issues == (("invalid_citation_response" if reader_error else "unresolved_citation_claim"),)
+
+
+def test_metadata_only_eof_insertion_cannot_enter_an_unclosed_code_block(monkeypatch) -> None:
+    statement = "The setting is optional."
+    text = statement + "\n\n```text\nTrailing code"
+    raw = grounded_response(text, [statement])
+    # Keep the insertion-point defense independent from claim normalization.
+    monkeypatch.setattr(citations_module, "_bound_span", lambda *_args: (0, len(text)))
+    result = render(raw)
+    assert result.markdown == text
+    assert result.rendered_citation_count == 0
 
 
 def test_unversioned_adapter_requires_unique_exact_complete_statement() -> None:
@@ -631,7 +716,8 @@ def test_genuine_markdown_code_does_not_become_a_prose_citation(code: str) -> No
     assert prose_link_destinations(text) == ()
     result = render(raw)
     assert result.issues == ()
-    assert result.markdown == text
+    assert result.markdown == statement + f" [1](<{SOURCE}>)\n\n" + code
+    assert result.rendered_citation_count == 1
 
 
 @pytest.mark.parametrize("expression", ["{{ $json.items[0] }}", "{{ items[1, 2] }}"])

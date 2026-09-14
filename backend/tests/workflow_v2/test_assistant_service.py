@@ -122,6 +122,44 @@ def test_assistant_prompts_preserve_product_and_evidence_truth() -> None:
     )
 
 
+def test_research_prompt_requests_google_search_without_giving_chat_search_authority() -> None:
+    research = json.loads(assistant_turn_query(
+        assistant_input("one_shot", message="Explain HTTP Retry-After.")
+    ).splitlines()[0])
+    assert "use the available Google Search tool" in research["instruction"]
+    assert "Respect the user's source restrictions" in research["instruction"]
+    assert "Do not manually insert source URLs" in research["instruction"]
+    assert "application renders citations from Google Search grounding metadata" in research["instruction"]
+    for mode in ("direct_answer", "discover"):
+        conversational = json.loads(assistant_turn_query(assistant_input(mode)))
+        assert "use the available Google Search tool" not in conversational["instruction"]
+
+
+@pytest.mark.parametrize(
+    ("status", "code", "retryable"),
+    [
+        ("grounding_evidence_missing", "AXWISE_ASSISTANT_EVIDENCE_UNAVAILABLE", False),
+        ("deadline_exceeded", "AXWISE_ASSISTANT_RESEARCH_TIMEOUT", True),
+        ("retry_exhausted", "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE", True),
+        ("unavailable", "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE", True),
+        ("response_processing_error", "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE", True),
+        ("configuration_error", "AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE", False),
+    ],
+)
+def test_research_failure_distinguishes_missing_evidence_from_provider_failure(status, code, retryable) -> None:
+    diagnostics = {"route": "gemini_google_search", "status": status, "call_count": 1}
+    raw = {"text": "", "sources": [], "claims": [], "runtime_diagnostics": diagnostics}
+    with pytest.raises(CognitiveExecutionFailure) as caught:
+        project_assistant_result(
+            raw, response_mode="one_shot", source_type_classifier=source_types,
+            usage_reader=usage_reader, metrics_factory=metrics_factory,
+        )
+    assert caught.value.error_class == code
+    assert caught.value.retryable is retryable
+    assert caught.value.diagnostics == diagnostics
+    assert caught.value.retry_after_seconds is None
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("response_mode", ["direct_answer", "discover"])
 async def test_conversational_modes_use_only_the_unsearched_runner(
@@ -193,7 +231,7 @@ async def test_one_shot_uses_only_grounded_runner_and_carries_fallback_authority
         )
     )
 
-    assert result.response.markdown == "Grounded answer"
+    assert result.response.markdown == f"Grounded answer [1](<{source_url}>)"
     assert [source.canonical_url for source in result.response.sources] == [source_url]
     assert [fact.statement for fact in result.response.facts] == ["Grounded answer"]
     assert conversation.queries == []
