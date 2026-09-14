@@ -67,6 +67,9 @@ export default function SimpleTopBar() {
             <Button component={RouterLink} to="/login" variant="outlined" sx={{ minHeight: 44 }}>
               Log in
             </Button>
+            <Button component="a" href="#download" variant="contained" sx={{ minHeight: 44 }}>
+              Download
+            </Button>
           </Stack>
         </Stack>
       </Container>

@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import LandingPageSimple from './LandingPageSimple';
+import { DESKTOP_RELEASE } from './simple/desktop-release';
 
 function renderPage() {
   return render(
@@ -59,5 +60,31 @@ describe('LandingPageSimple', () => {
     expect(document.title).toBe('Orqaly × AxWise — Cloud reasoning. Local action.');
     page.unmount();
     expect(document.title).toBe(before);
+  });
+
+  it('offers the public installer with platform, sign-in and checksum details', () => {
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Download', exact: true })).toHaveAttribute(
+      'href',
+      '#download'
+    );
+    const downloads = screen.getAllByRole('link', { name: 'Download for macOS', exact: true });
+    expect(downloads).toHaveLength(2);
+    for (const download of downloads) {
+      expect(download).toHaveAttribute('href', DESKTOP_RELEASE.url);
+      expect(download).toHaveAttribute('download', DESKTOP_RELEASE.filename);
+      expect(download).toHaveAccessibleDescription(
+        /Apple Silicon.*257 MB.*Unsigned preview.*Sign in/
+      );
+    }
+    expect(screen.getByRole('link', { name: 'SHA-256 checksum' })).toHaveAttribute(
+      'href',
+      `${DESKTOP_RELEASE.url}.sha256`
+    );
+    expect(DESKTOP_RELEASE.sha256).toBe(
+      '02fc15a31ad2703e446c71792c8bf9467222117830a4d7e66843f867626011a6'
+    );
+    expect(DESKTOP_RELEASE.url).not.toMatch(/github\.com|token=|X-Goog-Signature/i);
+    expect(screen.queryByText(/available separately/)).not.toBeInTheDocument();
   });
 });
