@@ -1,11 +1,11 @@
 # Branded desktop and faithful website demo — 14 September 2026
 
-The updated HTML desktop demo is live at https://preview.orqanix.com/.
-The newly branded desktop package is built, launched and checked locally, but
-its installer has not been published. The public-versus-signed-in download
-choice is awaiting the user; neither private repository's visibility changed.
+The HTML desktop demo and public download buttons are live at
+https://preview.orqanix.com/#download. The branded installer is publicly
+downloadable; app sign-in remains required. Both source repositories stay private.
+Full anonymous download and website-button download checks passed.
 
-## Website
+## Initial interactive-demo website release
 
 The five-case carousel now reproduces the light desktop interface in HTML/CSS:
 sidebar, chat composer, tool activity, floating Workspace and clickable artifacts.
@@ -58,11 +58,85 @@ agent behavior, profile isolation, access controls and disabled updater remain.
 - This is an unsigned, non-notarized macOS Apple Silicon preview, not a signed
   public release or Intel/Windows acceptance.
 
-## Remaining distribution step
+## Public download release
 
-Confirm whether the installer should be publicly downloadable or restricted to
-signed-in preview users. Public download would still require app sign-in for
-cloud/model access. Then publish the immutable ZIP and checksum to an appropriate
-downloads-only location, verify a full download, and add the real website link.
-Do not open the existing private workflow-artifact or Cloud Build buckets, bundle
-the installer into the web image, or expose either source repository.
+[Installer ZIP](https://storage.googleapis.com/orqaly-preview-downloads-161074549006/releases/2026-09-14-cd7bc74b8/Orqaly-Preview-macOS-arm64.zip)
+and [SHA-256 checksum](https://storage.googleapis.com/orqaly-preview-downloads-161074549006/releases/2026-09-14-cd7bc74b8/Orqaly-Preview-macOS-arm64.zip.sha256)
+are available without login. This does not grant app/model access: an anonymous
+GET to the unchanged desktop `/desktop/v1/session` endpoint returned 401
+`UNAUTHENTICATED` after publication. No new model call or app build was made.
+
+- Website source: `c3d66c3ba651e9c14545e97df79322dbe844627d`, pushed to the private monorepo.
+- 74 focused tests and scoped ESLint passed. Retained GCP verifier passed with
+  32 scripts and 1,306,868 JavaScript bytes under the unchanged ceiling.
+- Cloud Build: `4ccaab5d-6cf1-46a8-a60f-b5ebaec26a90`.
+- Live web revision: `orqaly-v2-web-preview-download-c3d66c3b-mu1khqyw`, 100% traffic.
+- Image digest: `sha256:3062d35b9ae6220995e8b243732be3043e319a0782f7c9e40728a1de5667b530`.
+- Previous revision retained for rollback: `orqaly-v2-web-preview-desktopdemo-b86e9e36-mu1hprxm`.
+- Real Chrome verified the staged download section and triggered its download.
+  The downloaded file in Downloads is 256,916,482 bytes and matches the published
+  SHA-256. The same page and download links were verified on the live custom domain.
+- Separate anonymous full download returned HTTP 200, matched the source and
+  public checksum, and passed ZIP integrity. ZIP content type and attachment
+  filename are correct. Anonymous bucket listing remains 403.
+- Web settings, original five tags, all four API/worker services, application
+  authentication and domain mapping remained unchanged during the web release.
+
+Only the dedicated downloads bucket is publicly readable. The approved sharing
+exception is a new policy on preview project `161074549006`, not an edit to the
+organization policy. It permits sharing only when the resource has
+`tagKeys/281479634974898` / `tagValues/281477159239033`, attached only to the
+downloads bucket. Untagged resources retain the exact `C033e6mlq` restriction.
+The existing private artifact and Cloud Build buckets retain enforced public
+access prevention, uniform access, no exception tag and no anonymous IAM grant.
+OrgPolicy and Cloud Resource Manager APIs were enabled in the preview project
+as required prerequisites. No signing keys or broad IAM self-grants were created.
+
+Maintenance: never attach the exception tag to another resource or put private
+files in the downloads bucket; future objects there are publicly readable.
+The project override pins the current domain-policy fallback, so future parent
+policy changes must be reviewed and reflected here. Rollback removes the new
+public bucket binding first, restores project policy inheritance after verifying
+the recorded policy/etag, then removes only the dedicated bucket tag binding.
+
+Receipts and rollback baseline: `artifacts/preview-public-download-sep14/`.
+Publication receipt SHA-256:
+`b1606faaefb473debc7fa6f061690547c3cf12282248979032f2c87276dede68`.
+
+### Historical upload blockers (resolved by the approved exception above)
+
+The exact ZIP and its checksum are now uploaded to the newly created
+`orqaly-preview-downloads-161074549006` bucket, under
+`releases/2026-09-14-cd7bc74b8/Orqaly-Preview-macOS-arm64.zip` and `.zip.sha256`.
+They have immutable cache metadata, the correct ZIP content type and download
+filename. Object generations are `1789406168303829` and `1789406103307967`.
+Source checksum and size matched; only these two objects exist in the bucket.
+
+Initially, the anonymous read grant was rejected by the safety review because bucket-level
+access also covers future objects. The supported exact-object ACL alternative
+was rejected by GCP's existing `constraints/storage.uniformBucketLevelAccess`
+policy. IAM Conditions do not support `allUsers`. No organization/project policy
+was weakened. Bucket uniform access remains enabled; public-access prevention
+is inherited; no anonymous grant exists. Anonymous installer HEAD returns 403.
+
+The user subsequently authorized public get-only access to this dedicated bucket,
+including future objects. Safety review accepted the grant, but GCP rejected it
+with HTTP 412: policy members do not belong to a permitted customer. Effective
+`iam.allowedPolicyMemberDomains` permits only Workspace customer `C033e6mlq`,
+inherited from organization `150415609495`; no project override is present.
+The separate managed allowlist constraint is not enforcing another restriction.
+No organization policy, public IAM grant, or service configuration changed.
+
+The next step required new authority: a tag-scoped domain-restriction exception limited to the
+downloads bucket, preserving the existing rule for other resources. Google's
+documented alternative is a fixed download route issuing short-lived signed
+URLs, which requires additional backend work and scoped signing permissions.
+At that checkpoint, neither remedy had been implemented and deployment was held
+to avoid exposing a broken link. The approved exception and successful release
+are recorded above; the original blocked receipts remain intact.
+Local receipt: `artifacts/preview-public-download-sep14/publication-receipt.json`.
+Latest diagnosis: `artifacts/preview-public-download-sep14/blocked-after-public-approval.json`.
+
+The prepared website had primary macOS download buttons, a navigation anchor,
+platform/sign-in/unsigned-preview details and checksum link. Local tests, build
+and 390px browser layout checks passed before the now-completed deployment.
