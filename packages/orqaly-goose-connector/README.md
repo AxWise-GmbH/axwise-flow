@@ -1,5 +1,32 @@
 # Orqaly Goose authentication connector
 
+## Conversation tools
+
+The packaged desktop also starts `src/mcp.mjs` as a native Goose stdio extension,
+bound to one conversation and the verified account hash. It uses the same
+credential store internally; stdout contains only MCP protocol messages, never
+an access token. The gateway checks the expected account on every request.
+
+Available tools: `read_goal_artifact`, `ask_axwise`, `axwise_work_status`, and
+`cancel_axwise_work`. AxWise work produces written research/design advice through
+the existing durable Assistant operation. It does not create a Goal, fabricate
+scope approvals, execute local code, or deploy anything. Local skills/tools and
+their approvals remain with Goose. Questions and selected reference excerpts go
+to the Orqaly/AxWise preview and its configured model; results are saved in the
+conversation. Full project files are not automatically uploaded by this helper.
+
+An uncertain submission returns its request ID for status recovery instead of
+automatically submitting another operation. The 90-second HTTP deadline leaves
+room for token refresh and a recoverable result within the desktop extension's
+180-second timeout. Supported stdio messages use the documented
+[MCP transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
+
+Launch arguments are `--config PUBLIC_CONFIG --conversation-id SESSION_ID
+--account-hash SHA256_VERIFIED_USER_ID`. The packaged app supplies these values;
+neither conversation IDs nor account hashes are credentials or authorization.
+
+## Authentication
+
 Node 22+ CLI for Clerk public OAuth with PKCE. The shipped example contains only
 public preview connection metadata. It does not contain a password, Clerk secret,
 Gemini key, access token or refresh token.
