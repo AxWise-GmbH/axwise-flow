@@ -1,8 +1,8 @@
 # Orqanix preview hostname — 14 September 2026
 
-Status: domain ownership verified, DNS and API origin support configured;
-Google's managed HTTPS certificate is pending. New-domain E2E is not yet passed.
-The user confirmed `orqanix.com`; the planned web hostname is
+Status: domain ownership verified, managed HTTPS active, and the bounded
+new-domain web-to-desktop handoff passed. The user confirmed `orqanix.com`;
+the live preview web hostname is
 `https://preview.orqanix.com`. Existing apex and `www` routing stay unchanged.
 
 ## Prepared and checked
@@ -27,10 +27,11 @@ Prepared desktop package:
 
 SHA256: `7400fef6c71a091aaaa18603f0c0fe3555e941c6a0d62f4d15656fbc242c72ab`
 
-Size: 255,377,806 bytes. This package has not been launched, published as a
-GitHub release, or accepted against the new live hostname. Prior packages remain.
+Size: 255,377,806 bytes. This package was launched and accepted against the new
+live hostname. It remains local, unsigned and not published as a GitHub release.
+Prior packages remain intact.
 
-## Live configuration and remaining check
+## Live configuration and accepted handoff
 
 The user explicitly approved Google DNS verification. Hostinger received the
 exact Google-provided apex TXT record (TTL 300), public Google DNS returned it,
@@ -56,18 +57,41 @@ desktop OAuth issuer or production setting changed.
 Sanitized receipt: `artifacts/preview-domain-sep14/api-origin-final.json`.
 Receipt SHA256: `bed32ef4c398ec00fd198290295669f38234c6738e0d05c09ac2a3bb818ce169`.
 
-At **15:12:16 UTC**, Cloud Run reported `DomainRoutable=True` but
-`CertificateProvisioned=Unknown` / `CertificatePending`. Normal HTTPS still
-failed its TLS handshake; certificate validation was not bypassed. DNS is correct
-and no restrictive apex CAA record was found. Leave DNS and mapping intact while
-Google provisions the certificate; do not recreate them to force a retry.
+Google's managed certificate finished provisioning without further DNS changes.
+Cloud Run records `Ready=True` and `CertificateProvisioned=True` from
+**15:21:56.343 UTC**. An independent check at **15:35:04 UTC** returned HTTP 200
+from the new Goals URL with normal TLS validation (`ssl_verify_result=0`).
+All six API readiness/CORS/auth checks still passed. The earlier certificate
+delay is resolved; certificate validation was never bypassed.
 
-Remaining: verify real HTTPS sign-in and desktop Goal attachment once TLS is
-ready. The existing `workspace-final-sep14` app remains open. Its attempted
-restart was blocked by the safety reviewer to protect possible unsaved state;
-no workaround was used and the domain-enabled package has not been launched.
-The earlier canonical-URL E2E acceptance remains valid historical evidence,
-not proof that the new hostname is ready.
+The real browser-to-desktop handoff then passed:
+
+- Chrome completed the normal Google/Clerk sign-in using the same existing
+  preview account and returned to the requested saved Goal on the new domain.
+  Google's first consent submission hit an XHR transport error; one normal page
+  reload and retry succeeded. No authentication configuration was changed.
+- The existing canonical preview also loaded the same saved Goal and final
+  artifact, confirming the old origin remained usable.
+- After the user explicitly approved the restart, the old app was inspected as
+  idle with an empty composer, closed normally, and the prepared
+  `workspace-domain-sep14` app was launched. Login, profile and chats were retained.
+- The actual **Copy Goal link for desktop** button produced
+  `https://preview.orqanix.com/goals?section=goals&run=c5399f08-d34a-5a00-8afe-022bb2d6705b`.
+  That clipboard value was pasted into Project context in synthetic conversation
+  `20260914_2` (Node.js runtime check) and accepted by **Use in this chat**.
+- All nine saved Goal artifacts appeared. Opening the final document rendered
+  the expected webhook design in the right-hand desktop panel, with matching
+  SHA-256 `9358908c05b0b0489eb232640e96386c329cfedadeeb04abf0039e461d1744e7`.
+- Returning to original conversation `20260914_1` preserved its selected Goal,
+  completed research, native `webhook-prototype` skill evidence and historical
+  29-test result. It was left idle with an empty composer. The certificate/handoff
+  follow-up was paused after successful verification.
+
+This is a bounded domain/authentication/context/artifact acceptance, not a new
+generation or content-quality benchmark. No model call, research operation,
+implementation test run or production deployment was started. The earlier
+canonical-URL implementation/research/29-test acceptance remains historical
+evidence. Distribution remains an unsigned macOS Apple Silicon preview.
 
 The local Clerk CLI is authenticated to a different account and this repository
 is not linked there. Its account, linkage, keys and configuration were left
