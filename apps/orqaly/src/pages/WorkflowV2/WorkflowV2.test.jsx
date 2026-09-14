@@ -587,6 +587,7 @@ describe('WorkflowV2Surface', () => {
     ).toBeTruthy();
     expect(screen.queryByTestId('final-markdown')).toBeNull();
     expect(screen.getByRole('button', { name: 'Download .md' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Copy Goal link for desktop' })).toBeDisabled();
     expect(client.artifact).toHaveBeenCalledWith(RUN_ID, refs.final.artifactId, {
       markdown: true,
       includeMetadata: true,
@@ -1012,6 +1013,47 @@ describe('WorkflowV2Surface', () => {
     expect(
       screen.getAllByTestId('artifact-hash').some((node) => node.textContent.includes(FINAL_HASH))
     ).toBe(true);
+  });
+
+  it.each(['Simple', 'Advanced'])('offers an exact desktop context link in the %s projection without starting more work', async (projection) => {
+    const workflow = completedWorkflow();
+    const client = clientFor(workflow);
+    window.history.replaceState(null, '', `/assistant?section=assistant&run=${RUN_A_ID}`);
+    render(<WorkflowV2Surface client={client} routeSearch={`?run=${RUN_ID}`} />);
+
+    expect(await screen.findByTestId('final-markdown')).toHaveTextContent('Final artifact');
+    if (projection === 'Advanced') fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+    expect(screen.getByText('Written deliverable')).toBeTruthy();
+    expect(screen.getByText('Document ready')).toBeTruthy();
+    expect(screen.getByText('Plan for this deliverable')).toBeTruthy();
+    expect(screen.getByText(/paste this link into Project context in your current conversation/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Goal link for desktop' }));
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      `${window.location.origin}/goals?section=goals&run=${RUN_ID}`
+    ));
+    expect(screen.getByText('Link copied. Paste it into Project context in Orqaly Preview.')).toBeTruthy();
+    expect(client.start).not.toHaveBeenCalled();
+    expect(client.approve).not.toHaveBeenCalled();
+    expect(client.reviseScope).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Download .md' })).not.toBeDisabled();
+    expect(screen.getAllByTestId('artifact-hash').some((node) => node.textContent.includes(FINAL_HASH))).toBe(true);
+  });
+
+  it('offers a selectable link when clipboard access fails instead of claiming it was copied', async () => {
+    navigator.clipboard.writeText.mockRejectedValueOnce(new Error('clipboard denied'));
+    const client = clientFor(completedWorkflow());
+    render(<WorkflowV2Surface client={client} routeSearch={`?run=${RUN_ID}`} />);
+    await screen.findByTestId('final-markdown');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Goal link for desktop' }));
+    expect(await screen.findByLabelText('Goal link for desktop')).toHaveValue(
+      `${window.location.origin}/goals?section=goals&run=${RUN_ID}`
+    );
+    expect(screen.getByLabelText('Goal link for desktop')).toHaveAttribute('readonly');
+    expect(screen.queryByText('Link copied. Paste it into Project context in Orqaly Preview.')).toBeNull();
+    expect(client.start).not.toHaveBeenCalled();
+    expect(client.approve).not.toHaveBeenCalled();
   });
 
   it('renders long final Markdown as a collapsed semantic document with links and tables', async () => {

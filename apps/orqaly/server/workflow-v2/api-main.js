@@ -14,6 +14,8 @@ import {
   isClerkEnvironmentConfigured,
 } from './http-app.js';
 import { createGooseProviderFromEnvironment } from './goose-provider-config.js';
+import { createDesktopContextService } from './desktop-context-service.js';
+import { createDesktopWorkService } from './desktop-work-service.js';
 import { createPostgresRepositories } from './postgres-repository.js';
 import { createSolutionService } from './solution-service.js';
 import { createSolutionConversationService } from './solution-conversation-service.js';
@@ -128,6 +130,8 @@ const app = createWorkflowHttpApp({
   gooseProviderRouter: createGooseProviderFromEnvironment({
     commandService,
     rateLimiter: createMemoryRateLimiter({ limit: 30 }),
+    desktopWorkService: createDesktopWorkService({ assistantService,
+      contextService: createDesktopContextService({ commandService }) }),
   }),
   goalWorkflowViewService: createGoalWorkflowViewService({ repository }),
   capabilityWorkService: createCapabilityWorkService({ repository, enabled: enableCapabilityWork }),

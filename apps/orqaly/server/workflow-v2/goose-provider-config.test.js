@@ -27,7 +27,7 @@ describe('Goose desktop identity and source context', () => {
       markdown: null, inputHash: 'a'.repeat(64) };
     artifact.artifactHash = canonicalHash({ contentType: artifact.contentType,
       payload: artifact.payload, markdown: artifact.markdown });
-    const snapshot = { run: { ownerUserId: oauth.userId }, approvals: [
+    const snapshot = { run: { id: runId, ownerUserId: oauth.userId }, approvals: [
       { kind: 'scope', decision: 'approved', artifact, inputHash: artifact.inputHash },
     ] };
     const service = { read: vi.fn().mockResolvedValue(snapshot), artifact: vi.fn().mockResolvedValue(artifact) };

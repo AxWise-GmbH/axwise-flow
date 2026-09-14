@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import { createServer } from 'node:http';
 import { createGooseProviderRouter, GOOSE_PROVIDER_MODEL } from './goose-provider-http.js';
+import { DesktopWorkIdentitySchema, DesktopWorkStartSchema } from './desktop-work-service.js';
 
 const servers = [];
 afterEach(async () => {
@@ -10,6 +11,111 @@ afterEach(async () => {
     server.closeAllConnections();
     server.close(resolve);
   })));
+});
+
+describe('desktop context and bounded work routes', () => {
+  const conversationId = '20260914_1';
+  const requestId = '11111111-1111-4111-8111-111111111111';
+  const runId = '22222222-2222-4222-8222-222222222222';
+  const artifactId = '33333333-3333-4333-8333-333333333333';
+  const workPath = `/work/${conversationId}/${requestId}`;
+  const body = { conversationId, requestId, issuedAt: '2026-09-14T12:00:00.000Z', question: 'Investigate transient retries.' };
+
+  function services() {
+    return {
+      desktopContextService: {
+        read: vi.fn(async (auth, id) => ({ runId: id, owner: auth.userId, artifacts: [] })),
+        artifact: vi.fn(async (_auth, id, artifact) => ({ runId: id, artifactId: artifact, markdown: '# Design' })),
+      },
+      desktopWorkService: {
+        start: vi.fn(async (_auth, input) => ({ ...DesktopWorkStartSchema.parse(input), status: 'accepted' })),
+        read: vi.fn(async (_auth, input) => ({ ...DesktopWorkIdentitySchema.parse(input), status: 'running' })),
+        cancel: vi.fn(async (_auth, input) => ({ ...DesktopWorkIdentitySchema.parse(input), status: 'cancel_requested' })),
+        events: vi.fn(async () => ({ events: [], cursor: 0 })),
+      },
+    };
+  }
+
+  it('authenticates every added route before parsing, context lookup or AxWise work', async () => {
+    const s = services();
+    const f = await fixture(s);
+    for (const [path, payload] of [
+      ['/work', '{invalid'], [workPath, null], [`${workPath}/cancel`, {}],
+      [`${workPath}/events`, null], [`/goals/${runId}/context`, null],
+      [`/goals/${runId}/artifacts/${artifactId}`, null],
+    ]) {
+      const response = await f.call(path, payload, { headers: { 'Content-Type': 'application/json' } });
+      expect(response.status).toBe(401);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+    }
+    expect(f.commandService.session).not.toHaveBeenCalled();
+    for (const service of Object.values(s)) for (const method of Object.values(service)) expect(method).not.toHaveBeenCalled();
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('passes only the verified owner and exact path/body identities to services', async () => {
+    const s = services();
+    const f = await fixture(s);
+    expect((await f.call('/work', body)).status).toBe(200);
+    expect(s.desktopWorkService.start).toHaveBeenCalledWith({ userId: 'user-1' }, body);
+    expect((await f.call(workPath, null)).status).toBe(200);
+    expect(s.desktopWorkService.read).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId });
+    expect((await f.call(`${workPath}/cancel`, {})).status).toBe(200);
+    expect(s.desktopWorkService.cancel).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId });
+    expect((await f.call(`${workPath}/events?after=2&limit=10`, null)).status).toBe(200);
+    expect(s.desktopWorkService.events).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId }, 2, 10);
+    expect((await f.call(`/goals/${runId}/context`, null)).status).toBe(200);
+    expect(s.desktopContextService.read).toHaveBeenCalledWith({ userId: 'user-1' }, runId);
+    expect((await f.call(`/goals/${runId}/artifacts/${artifactId}`, null)).status).toBe(200);
+    expect(s.desktopContextService.artifact).toHaveBeenCalledWith({ userId: 'user-1' }, runId, artifactId);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('reports malformed desktop contracts as client errors instead of an unavailable service', async () => {
+    const f = await fixture(services());
+    const invalidQuestion = await f.call('/work', { ...body, question: '' });
+    expect(invalidQuestion.status).toBe(400);
+    expect(await invalidQuestion.json()).toMatchObject({ error: { code: 'INVALID_DESKTOP_REQUEST' } });
+    const invalidIdentity = await f.call(`/work/${conversationId}/not-a-uuid`, null);
+    expect(invalidIdentity.status).toBe(400);
+    expect(await invalidIdentity.json()).toMatchObject({ error: { code: 'INVALID_DESKTOP_REQUEST' } });
+    const untrustedIdentity = await f.call('/work', { ...body, userId: 'user-other' });
+    expect(untrustedIdentity.status).toBe(400);
+  });
+
+  it('does not turn pending, failed or cancellation-requested work into successful completion', async () => {
+    const s = services();
+    const f = await fixture(s);
+    expect(await (await f.call('/work', body)).json()).toMatchObject({ status: 'accepted' });
+    expect(await (await f.call(`${workPath}/cancel`, {})).json()).toMatchObject({ status: 'cancel_requested' });
+    s.desktopWorkService.read.mockResolvedValueOnce({ conversationId, requestId, status: 'failed', markdown: null, artifacts: [], error: { code: 'SOURCE_UNAVAILABLE' } });
+    expect(await (await f.call(workPath, null)).json()).toEqual({ conversationId, requestId, status: 'failed', markdown: null, artifacts: [], error: { code: 'SOURCE_UNAVAILABLE' } });
+  });
+
+  it('preserves owned not-found responses without echoing internal details or invoking another route', async () => {
+    const s = services();
+    s.desktopWorkService.cancel.mockRejectedValueOnce(Object.assign(new Error('secret owner state'), { status: 404, code: 'ASSISTANT_THREAD_NOT_FOUND' }));
+    const f = await fixture(s);
+    const response = await f.call(`${workPath}/cancel`, {});
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain('secret owner state');
+    expect(s.desktopWorkService.start).not.toHaveBeenCalled();
+    expect(s.desktopWorkService.read).not.toHaveBeenCalled();
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('adds product guidance alongside actual Goose instructions and context without changing tool history', async () => {
+    const f = await fixture({ productGuidance: 'Actual desktop capabilities.', contextForRequest: async () => 'Selected project reference.' });
+    const history = [
+      { role: 'user', content: 'Read the design.' },
+      { role: 'assistant', content: null, tool_calls: [{ id: 'tool-1', type: 'function', function: { name: 'read_goal_artifact', arguments: JSON.stringify({ runId }) }, extra_content: { google: { thought_signature: 'keep-signature' } } }] },
+      { role: 'tool', tool_call_id: 'tool-1', content: 'Design returned.' },
+    ];
+    expect((await f.call('/chat/completions', { model: GOOSE_PROVIDER_MODEL, messages: [{ role: 'system', content: 'Goose tool and skill instructions.' }, ...history] })).status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual([
+      { role: 'system', content: 'Goose tool and skill instructions.\n\nActual desktop capabilities.\n\nSelected project reference.' }, ...history,
+    ]);
+  });
 });
 const jsonResponse = (value) => new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 const requestBody = () => ({ model: GOOSE_PROVIDER_MODEL, messages: [{ role: 'user', content: 'Explain the next step.' }] });

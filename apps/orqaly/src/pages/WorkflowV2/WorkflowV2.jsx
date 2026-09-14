@@ -195,8 +195,8 @@ function RequestComposer({ advanced, busy, request, onRequestChange, onStart }) 
           What should we make?
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          AxWise compiles a concise scope with safe defaults. It asks no questionnaire and surfaces
-          at most one clarification that changes the outcome.
+          Turn your request into research, a design or a written plan with AxWise.
+          You can use the result as context for implementation in Orqaly Preview on your desktop.
         </Typography>
       </Box>
       <Paper
@@ -229,7 +229,7 @@ function RequestComposer({ advanced, busy, request, onRequestChange, onStart }) 
             <Typography variant="caption" color="text.secondary">
               {advanced
                 ? 'Review evidence, catalog selection, tools, budget, boundaries, DAG and retries.'
-                : 'Approve one scope and one plan before the final Markdown is produced.'}
+                : 'Review the brief and document plan before generating your deliverable.'}
             </Typography>
             <Button variant="contained" disabled={busy || !request.trim()} onClick={onStart}>
               {busy ? 'Starting…' : 'Compile scope'}
@@ -334,7 +334,7 @@ function planSummaryCopy(artifact) {
   if (!tasks.length) return null;
   const readerSummary = readerOutputSummary(artifact?.payload?.outputContract);
   return [
-    `Orqaly execution plan: ${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`,
+    `Plan for this deliverable: ${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`,
     readerSummary ? `Reader output: ${readerSummary}` : null,
     ...tasks.map((task, index) => `${index + 1}. ${task.title}`),
   ]
@@ -350,7 +350,7 @@ function ScopeSummary({ artifact, advanced = false }) {
     <Stack spacing={2}>
       <Box>
         <Typography variant="overline" color="text.secondary">
-          Accepted research authority
+          Task brief
         </Typography>
         <Typography variant="h6">{scope.objective}</Typography>
       </Box>
@@ -505,10 +505,13 @@ function PlanSummary({ artifact, advanced = false }) {
     <Stack spacing={2}>
       <Box>
         <Typography variant="overline" color="text.secondary">
-          Orqaly execution plan
+          Plan for this deliverable
         </Typography>
         <Typography variant="h6">
           {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} ready for approval
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          This plan produces a written deliverable. Local implementation can continue in Orqaly Preview.
         </Typography>
       </Box>
       {readerSummary && (
@@ -851,14 +854,15 @@ function ApprovalCard({ approval, artifact, busy, onApprove, onRevise, advanced 
       <Stack spacing={2}>
         <Box>
           <Typography variant="overline" color="primary.main">
-            {isScope ? 'Gate 1' : 'Gate 2'}
+            {advanced ? (isScope ? 'Gate 1' : 'Gate 2') : (isScope ? 'Review brief' : 'Review document plan')}
           </Typography>
           <Typography variant="h6">
-            Approve the exact {isScope ? 'scope' : 'plan'} before continuing
+            Review and approve this {isScope ? 'brief' : 'document plan'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Approval binds this immutable artifact and its input hash. Later edits require a new
-            scope attempt.
+            {advanced
+              ? 'Approval binds this immutable artifact and its input hash. Later edits require a new scope attempt.'
+              : `Your approval applies to this version of the Goal’s ${isScope ? 'brief' : 'document plan'}.`}
           </Typography>
         </Box>
         {!artifactMatches && <LinearProgress aria-label={`Loading ${approval.kind} approval`} />}
@@ -900,17 +904,21 @@ function ApprovalCard({ approval, artifact, busy, onApprove, onRevise, advanced 
   );
 }
 
-function FinalArtifact({ markdown, artifact, onDownload, wide = false }) {
+function FinalArtifact({ markdown, artifact, runId, onDownload, wide = false }) {
+  const [copyState, setCopyState] = useState(null);
   if (!artifact) return null;
+  const desktopLink = runId
+    ? `${window.location.origin}/goals?${new URLSearchParams({ section: 'goals', run: runId })}`
+    : null;
   return (
     <ConversationMessage wide={wide} copyValue={markdown} copyLabel="Copy final Markdown">
       <Stack spacing={2}>
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2}>
           <Box>
             <Typography variant="overline" color="success.main">
-              Final deliverable
+              Written deliverable
             </Typography>
-            <Typography variant="h6">Markdown artifact</Typography>
+            <Typography variant="h6">{markdown ? 'Document ready' : 'Loading document'}</Typography>
           </Box>
           <Stack direction="row" gap={0.5} alignSelf={{ xs: 'flex-start', sm: 'center' }}>
             <Button variant="outlined" disabled={!markdown} onClick={onDownload}>
@@ -918,6 +926,42 @@ function FinalArtifact({ markdown, artifact, onDownload, wide = false }) {
             </Button>
           </Stack>
         </Stack>
+        {desktopLink && (
+          <Box sx={{ borderLeft: '2px solid', borderColor: 'divider', pl: 1.5 }}>
+            <Typography variant="subtitle2">Continue in your desktop chat</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              In Orqaly Preview, paste this link into Project context in your current conversation.
+              Sign in with the same account, then ask for your next step: implement, research or revise.
+            </Typography>
+            <Button
+              size="small"
+              disabled={!markdown}
+              onClick={async () => setCopyState(await copyPlainText(desktopLink) ? 'copied' : 'failed')}
+              sx={{ mt: 0.5, ml: -1 }}
+            >
+              Copy Goal link for desktop
+            </Button>
+            {copyState === 'copied' && (
+              <Typography role="status" variant="caption" sx={{ display: 'block' }}>
+                Link copied. Paste it into Project context in Orqaly Preview.
+              </Typography>
+            )}
+            {copyState === 'failed' && (
+              <Stack spacing={1} sx={{ mt: 1 }}>
+                <Typography role="status" variant="caption">
+                  Clipboard access is unavailable. Select and copy this link:
+                </Typography>
+                <TextField
+                  label="Goal link for desktop"
+                  value={desktopLink}
+                  size="small"
+                  InputProps={{ readOnly: true }}
+                  onFocus={(event) => event.target.select()}
+                />
+              </Stack>
+            )}
+          </Box>
+        )}
         <ArtifactIdentity artifact={artifact} label="Immutable final artifact" />
         <Divider />
         {markdown ? (
@@ -1737,6 +1781,7 @@ export function WorkflowV2Surface({
                       key={workflow.run.finalArtifact?.artifactId || workflow.run.id}
                       markdown={finalMarkdown}
                       artifact={workflow.run.finalArtifact}
+                      runId={workflow.run.id}
                       onDownload={download}
                     />
                   </Stack>
@@ -1792,6 +1837,7 @@ export function WorkflowV2Surface({
                     wide
                     markdown={finalMarkdown}
                     artifact={workflow.run.finalArtifact}
+                    runId={workflow.run.id}
                     onDownload={download}
                   />
                 )}
