@@ -2,11 +2,12 @@
 
 ## Status
 
-Implemented and packaged locally. **Not yet accepted end-to-end or deployed.**
-The real preview-backed local gateway stopped before any Gemini call because
-gcloud token refresh requires interactive reauthentication. The owned gateway
-and proxy were cleaned up. The user has been asked to reauthenticate; the
-existing preview services and currently open desktop application were not changed.
+Implemented and packaged locally. **Images staged at zero default traffic;
+not accepted end-to-end and not promoted.** GCP reauthentication is resolved.
+Real authentication, account isolation, saved-artifact retrieval and the Gemini
+gateway passed. The existing AxWise research path failed two real comparisons,
+so normal preview traffic remains on the prior revisions. The local gateway
+and owned database proxy were stopped cleanly. See the real-call record below.
 
 ## Implemented
 
@@ -62,11 +63,12 @@ package as a verified release until the matching API and desktop flow are checke
 
 ## Remaining acceptance
 
-1. Reauthenticate gcloud, then start the prepared local gateway against preview
-   and make real context/model/research calls using the authorized synthetic
-   webhook case and saved Goal `c5399f08-d34a-5a00-8afe-022bb2d6705b`.
-2. Build and stage the exact Orqaly API/web revision, verify configuration and
-   health, and roll out preview only. No AxWise worker rollout is required.
+1. Resolve the existing grounded research dependency, then verify one real
+   completed AxWise result. Do not silently retry the failed requests or label
+   an accepted/running operation as complete. Any AxWise worker change requires
+   a separately agreed scope; no such change was made in this rollout.
+2. Promote the already built and staged exact API/web images only after the
+   acceptance blocker is resolved. Rebuild if their source changes.
 3. Open the new desktop build and perform one real conversation: attach the
    existing design, load relevant skill/document context, implement a bounded
    local prototype, use focused AxWise assistance, and run local checks.
@@ -76,3 +78,67 @@ package as a verified release until the matching API and desktop flow are checke
 
 No new production release, account permissions, background monitors, signing,
 notarization, or additional platform support is implied by this work.
+
+## Real-call acceptance record
+
+### Passed
+
+- Local preview-backed gateway: unsigned request rejected with 401; verified
+  OAuth session returned 200; mismatched account hash rejected with 403
+  `ACCOUNT_CHANGED`.
+- Selected Goal `c5399f08-d34a-5a00-8afe-022bb2d6705b` returned nine artifacts.
+  The final artifact has 48,219 characters and the expected SHA256
+  `9358908c05b0b0489eb232640e96386c329cfedadeeb04abf0039e461d1744e7`.
+- One real Gemini gateway call returned 200 in 4.6 seconds. Given the saved
+  written design and a new authorized local implementation request, it proposed
+  inspecting the folder, implementing the prototype and running local tests.
+  It did not invent a planning-mode switch or refuse under the historical scope.
+  This was a transport/guidance check, not evidence that files were implemented.
+- Staged API repeated the same authentication/account/context checks successfully.
+- API and web builds from commit `5eebb3c8c91e1da45b3f1ba39f0cd4aa44a9e590`
+  succeeded, with exact source/image verification. Staging retained original
+  default traffic, IAM, environment, network, resources, timeouts and existing
+  tag mappings. AxWise API/worker and Orqaly worker were unchanged.
+
+### Research failures retained, not rewritten
+
+1. Local diagnostic request `313b58b3-d4b7-487e-b502-a901677c10d8`, operation
+   `b00d369c-d9f9-51e5-bcb5-c4aaa650f869`: `AXWISE_HTTP_404`. The Mac attempted
+   to reach the deliberately internal-only AxWise service directly. An identity
+   token does not supply VPC connectivity. The route itself matches the deployed
+   API; testing moved to the staged Orqaly API's existing private connection.
+2. Staged request `3d852cf0-7b19-4756-8987-f8f6c557c6db`, operation
+   `2787ca7b-5ecb-5ca8-a7db-0c3af111b3b0`: accepted and ran, then failed
+   `AXWISE_ASSISTANT_EMPTY_RESPONSE`. The primary adapter reported no
+   source-backed claim after two calls / 58.9 seconds. This error does not prove
+   the model emitted no prose: the adapter clears text without usable grounding.
+   The automatically attached design excerpt also exceeded the existing
+   1,000-character fallback-request limit, so this request could not use fallback.
+3. Focused comparison, after the reported cooldown: request
+   `3f278422-2a41-4d6f-a12b-a7fb41b7303a`, operation
+   `e592ec54-7ae9-5b76-b0d9-559fad8ab5a1`. It explicitly requested Google Search
+   and omitted the unrelated design excerpt. Gemini's grounded provider returned
+   HTTP 504 errors across three attempts / 119.9 seconds. Existing fallback
+   discovered ten candidates, selected three, fetched two, encountered one HTTP
+   4xx, and produced no claim. The operation failed after approximately 135
+   seconds; this was not a completed research result. This comparison does not
+   establish that removing context fixes the primary grounding behavior.
+
+No further model retry or worker update followed these failures. The desktop
+fixture at `/private/tmp/orqaly-workspace-acceptance.GBMHL2` still contains only
+README.md and its local webhook skill. The packaged implementation, actual skill
+load, research-to-edit continuation, artifact viewer and history isolation have
+**not** yet received their real application acceptance check.
+
+Operator receipts are under `artifacts/goose-workspace-sep14/` (ignored):
+`build-verification.json`, `staged-verification.json`, and
+`held-verification.json`. Held-state verification passed at 12:17:06 UTC after
+removing the temporary candidate tag; original tags and settings were restored
+exactly. The previous desktop app was reopened with its existing history.
+Staged image digests:
+
+- API: `sha256:d99ede4b6aee382bf7d8a7b299ec10e9146f234b2868aaf08ff27778c88d7af1`
+- Web: `sha256:b0b4039e3b3b967b8879d7fdc21fa8d7b4e60d5240eb0d293eb8871cd16f5381`
+
+Normal preview traffic is retained on API `orqaly-v2-api-preview-goose-04606f0b`
+and web `orqaly-v2-web-preview-monorepo-26e447a9`, each at 100%.
