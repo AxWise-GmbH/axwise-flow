@@ -37,7 +37,7 @@ describe('SimpleExamples', () => {
     );
     expect(selectedPanel()).toHaveAttribute('data-case-id', 'local');
     expect(selectedPanel()).toHaveAccessibleName('From an idea to a working local prototype.');
-    expect(screen.getByText('Goose skill · webhook development')).toBeInTheDocument();
+    expect(screen.getByText('webhook-development')).toBeInTheDocument();
     expect(screen.getByLabelText('Example workspace artifacts')).toHaveTextContent(
       'webhook-handler.js'
     );
@@ -64,7 +64,8 @@ describe('SimpleExamples', () => {
       ).toHaveLength(1);
       expect(screen.getByLabelText('Example workspace artifacts')).toHaveTextContent(artifact);
     }
-    expect(screen.getAllByText('Illustrative examples')).toHaveLength(1);
+    expect(screen.getAllByText('Explore the desktop')).toHaveLength(1);
+    expect(screen.getAllByText(/Interactive product demo/)).toHaveLength(1);
     expect(screen.getAllByText('Connected-tool examples depend on your setup.')).toHaveLength(1);
   });
 
@@ -123,12 +124,14 @@ describe('SimpleExamples', () => {
   it('uses example records and reusable role context without unsupported live-integration claims', () => {
     renderExamples('dark');
     fireEvent.click(screen.getByRole('button', { name: 'Business operations' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Operations brief.md' }));
     expect(screen.getByRole('table', { name: 'Orders for item A' })).toHaveTextContent(
-      '12 requested'
+      'Review 2-unit shortfall'
     );
-    expect(screen.getByText('EXAMPLE INVENTORY · ITEM A')).toBeInTheDocument();
+    expect(screen.getByText('10 on hand − 8 allocated = 2 available.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Role-based copilot' }));
     expect(screen.getByText('Employee digital twin')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Account manager role.md' }));
     expect(screen.getByText('Responsibilities')).toBeInTheDocument();
     expect(screen.getByText('Preferences')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Connected chat' }));
