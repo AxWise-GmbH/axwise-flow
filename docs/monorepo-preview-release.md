@@ -65,6 +65,23 @@ updater: it is the broader provisioning/configuration workflow. Do not reapply
 schema or bootstrap scripts merely because files moved into this repository.
 Production is outside this preview release.
 
+## Preview domain
+
+The approved custom web hostname is `preview.orqanix.com`. Keep deterministic
+`run.app` origins as the service/build identities; add the custom web origin
+alongside the existing web origin in API `ORQALY_BROWSER_ORIGINS`. This single
+allowlist controls both CORS and Clerk authorized parties. The broader preview
+deployment and verification scripts include both exact origins, so a later
+configuration deployment does not silently remove the custom hostname.
+
+Domain ownership verification, the Cloud Run web-service domain mapping, and the
+actual returned DNS records must be completed before treating the hostname as
+live. Keep the domain's apex and `www` routing unchanged. Do not change the API
+address, desktop OAuth issuer, or worker configuration merely to add the web
+hostname. The desktop must accept the new exact Goal-link origin before the
+new-domain copy/paste handoff can be accepted. Deployment status and real browser
+acceptance are recorded separately; source support is not proof of live DNS/TLS.
+
 ## Goose boundary
 
 Keep Goose as a separate fork, with its own upstream remote and stable-release
