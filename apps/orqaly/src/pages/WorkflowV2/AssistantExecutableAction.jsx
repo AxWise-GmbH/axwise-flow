@@ -520,7 +520,7 @@ export default function AssistantExecutableAction({
         operation: OPERATION,
         input: {
           title: 'Completed Goal execution record',
-          details: `Registered from Orqaly Goal ${runId} as an approved tenant-scoped action through private n8n.`,
+          details: `Registered from Orqanix Goal ${runId} as an approved tenant-scoped action through private n8n.`,
         },
       };
       const response = await client.proposeExecutableAction(runId, proposeCommand);
@@ -545,8 +545,8 @@ export default function AssistantExecutableAction({
         decision,
         reason:
           decision === 'approve'
-            ? 'Approved in Orqaly Assistant after exact action review.'
-            : 'Rejected in Orqaly Assistant.',
+            ? 'Approved in Orqanix Assistant after exact action review.'
+            : 'Rejected in Orqanix Assistant.',
       };
       const response = await client.decideExecutableAction(action.id, command, action.rowVersion);
       if (runRef.current !== runId) return;
@@ -717,7 +717,7 @@ export default function AssistantExecutableAction({
             ) : action.status === 'outcome_unknown' ? (
               <Alert severity="error" icon={<ErrorOutlineIcon />}>
                 The outcome cannot be proven automatically. Do not run it again. Manual
-                reconciliation is required against Orqaly's saved action and Gateway receipt. n8n
+                reconciliation is required against Orqanix's saved action and Gateway receipt. n8n
                 does not retain execution data.
               </Alert>
             ) : null}

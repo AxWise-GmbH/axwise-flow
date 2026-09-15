@@ -117,7 +117,7 @@ describe('GcpStandardNav', () => {
     expect(GCP_STANDARD_NAV_COLLAPSE_CONTROL_SIZE).toBe(28);
     expect(screen.getByTestId('brand-orb')).toHaveAttribute('data-size', '38');
     expect(screen.queryByText('AxWise inside')).not.toBeInTheDocument();
-    expect(screen.getByText('AxWise & Orqaly')).toBeInTheDocument();
+    expect(screen.getByText('Orqanix')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Account' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Collapse workspace menu' })).toHaveAttribute(
       'data-control-size',
@@ -128,7 +128,7 @@ describe('GcpStandardNav', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Collapse workspace menu' }));
 
     expect(screen.getByTestId('gcp-standard-nav-aside')).toHaveAttribute('data-collapsed', 'true');
-    expect(screen.getByRole('navigation', { name: 'Orqaly workspace' })).toHaveAttribute(
+    expect(screen.getByRole('navigation', { name: 'Orqanix workspace' })).toHaveAttribute(
       'data-nav-mode',
       'rail'
     );
@@ -138,7 +138,7 @@ describe('GcpStandardNav', () => {
     openMoreMenu();
     expect(screen.getByRole('menuitem', { name: 'Notifications' })).toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
-    expect(screen.queryByText('AxWise & Orqaly')).not.toBeInTheDocument();
+    expect(screen.queryByText('Orqanix')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(window.localStorage.getItem(gcpNavCollapsedStorageKey('user_one'))).toBe('1')
     );
@@ -176,7 +176,7 @@ describe('GcpStandardNav', () => {
       'false'
     );
     const primaryList = screen
-      .getByRole('navigation', { name: 'Orqaly workspace' })
+      .getByRole('navigation', { name: 'Orqanix workspace' })
       .querySelector('ul');
     expect(primaryList).not.toBeNull();
     expect([...primaryList.children].every((child) => child.tagName === 'LI')).toBe(true);
@@ -331,7 +331,7 @@ describe('GcpStandardNav', () => {
     await waitFor(() => expect(screen.getByText('Launch research')).toBeInTheDocument());
 
     const utilities = screen.getByRole('group', { name: 'Workspace utilities' });
-    expect(within(utilities).getByText('AxWise & Orqaly')).toBeInTheDocument();
+    expect(within(utilities).getByText('Orqanix')).toBeInTheDocument();
     expect(within(utilities).getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(within(utilities).getByRole('button', { name: 'More' })).toHaveAttribute(
       'aria-haspopup',
@@ -357,10 +357,10 @@ describe('GcpStandardNav', () => {
 
   it('keeps the responsive phone drawer full-width and closes it after navigation', async () => {
     mount('/assistant', { variant: 'mobile' });
-    expect(screen.queryByRole('navigation', { name: 'Orqaly workspace' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Orqanix workspace' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open workspace menu' }));
-    const drawerNav = await screen.findByRole('navigation', { name: 'Orqaly workspace' });
+    const drawerNav = await screen.findByRole('navigation', { name: 'Orqanix workspace' });
     expect(drawerNav).toHaveAttribute('data-nav-mode', 'drawer');
     expect(screen.getByRole('button', { name: 'Close workspace menu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
@@ -368,7 +368,7 @@ describe('GcpStandardNav', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Home' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/home');
     await waitFor(() =>
-      expect(screen.queryByRole('navigation', { name: 'Orqaly workspace' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('navigation', { name: 'Orqanix workspace' })).not.toBeInTheDocument()
     );
   });
 });

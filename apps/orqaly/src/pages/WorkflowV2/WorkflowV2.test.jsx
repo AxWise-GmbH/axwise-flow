@@ -678,7 +678,7 @@ describe('WorkflowV2Surface', () => {
     render(<OrqalyV2Surface client={client} embedded />);
 
     expect(await screen.findByText('What do you want to get done?')).toBeTruthy();
-    expect(screen.queryByText('Orqaly')).toBeNull();
+    expect(screen.queryByText('Orqanix')).toBeNull();
     expect(screen.queryByLabelText('Organization switcher')).toBeNull();
     expect(screen.queryByLabelText('User menu')).toBeNull();
     expect(screen.getByRole('navigation', { name: 'Assistant sections' })).toBeTruthy();
@@ -1032,7 +1032,7 @@ describe('WorkflowV2Surface', () => {
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       `${window.location.origin}/goals?section=goals&run=${RUN_ID}`
     ));
-    expect(screen.getByText('Link copied. Paste it into Project context in Orqaly Preview.')).toBeTruthy();
+    expect(screen.getByText('Link copied. Paste it into Project context in Orqanix Preview.')).toBeTruthy();
     expect(client.start).not.toHaveBeenCalled();
     expect(client.approve).not.toHaveBeenCalled();
     expect(client.reviseScope).not.toHaveBeenCalled();
@@ -1051,7 +1051,7 @@ describe('WorkflowV2Surface', () => {
       `${window.location.origin}/goals?section=goals&run=${RUN_ID}`
     );
     expect(screen.getByLabelText('Goal link for desktop')).toHaveAttribute('readonly');
-    expect(screen.queryByText('Link copied. Paste it into Project context in Orqaly Preview.')).toBeNull();
+    expect(screen.queryByText('Link copied. Paste it into Project context in Orqanix Preview.')).toBeNull();
     expect(client.start).not.toHaveBeenCalled();
     expect(client.approve).not.toHaveBeenCalled();
   });

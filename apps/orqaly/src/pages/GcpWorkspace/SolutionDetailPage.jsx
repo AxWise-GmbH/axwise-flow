@@ -537,7 +537,7 @@ function SolutionWorkspaceContent({
           {solution.lastError ? (
             <Alert severity="warning">
               {pauseUnverified
-                ? 'Production calls are blocked in Orqaly, but the n8n pause is not yet verified. Verify the runtime pause before activating again.'
+                ? 'Production calls are blocked in Orqanix, but the n8n pause is not yet verified. Verify the runtime pause before activating again.'
                 : 'Deployment could not be verified. Check the environment and reconcile the same workflow; do not assume it is running.'}
             </Alert>
           ) : null}
@@ -700,11 +700,11 @@ function SolutionWorkspaceContent({
                     : 'Verified against the published n8n workflow.'
                   : 'The exact workflow awaiting your approval.'}{' '}
                 {solution.creationMethod === 'axwise_designed_native_reviewed'
-                  ? 'Designed with AxWise from your explicit task, then checked and handed off from the reviewed native draft. Deployment and activation remain separate approvals.'
+                  ? 'Designed from your explicit task, then checked and handed off from the reviewed native draft. Deployment and activation remain separate approvals.'
                   : solution.creationMethod === 'native_n8n_reviewed_revision'
-                    ? 'This native n8n revision passed the Orqaly workflow review. Its source build and prior versions remain available in history.'
+                    ? 'This native n8n revision passed the Orqanix workflow review. Its source build and prior versions remain available in history.'
                     : isNativeWorkflowSpec(solution.spec)
-                      ? 'Orqaly manages this native workflow and its reviewed versions. Generation, validation and real execution remain distinct.'
+                      ? 'Orqanix manages this native workflow and its reviewed versions. Generation, validation and real execution remain distinct.'
                       : 'Compiled from your mappings; not an autonomous AI build.'}
               </Typography>
               {solution.buildRequestId ? (
@@ -949,7 +949,7 @@ function SolutionWorkspaceContent({
             <TaskDisclosure title="Manual signed-in production check">
               <Stack gap={1}>
                 <Typography variant="body2">
-                  This sends a real production call using your current Orqaly sign-in. Use an
+                  This sends a real production call using your current Orqanix sign-in. Use an
                   application key for server integrations.
                 </Typography>
                 <JsonBlock
@@ -984,7 +984,7 @@ function SolutionWorkspaceContent({
           <Stack gap={2}>
             <Alert severity="warning">
               This sends each sample below once to the connected service. It may create real data or
-              incur provider charges. A failed or uncertain result stops further tests; Orqaly will
+              incur provider charges. A failed or uncertain result stops further tests; Orqanix will
               not automatically retry it.
             </Alert>
             {(solution.workflow?.nodes ?? [])

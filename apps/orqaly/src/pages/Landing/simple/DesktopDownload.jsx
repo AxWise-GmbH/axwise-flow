@@ -25,7 +25,7 @@ export function DesktopReleaseDetails({ id, showChecksum = false }) {
     <Typography id={id} sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.8 }}>
       Apple Silicon · {Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB · Unsigned preview
       <br />
-      Sign in with your Orqaly account to use the app.
+      Sign in with your Orqanix account to use the app.
       {showChecksum && (
         <>
           {' '}

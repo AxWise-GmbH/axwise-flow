@@ -42,7 +42,9 @@ describe('DesktopProductDemo', () => {
     expect(screen.getByLabelText('Desktop navigation preview')).toHaveTextContent(
       'Session History'
     );
-    expect(screen.getByLabelText('Example workspace artifacts')).toHaveTextContent('Skills loaded');
+    expect(screen.getByLabelText('Example workspace documents and results')).toHaveTextContent(
+      'Skills loaded'
+    );
     expect(screen.getByText('webhook-development')).toBeInTheDocument();
     expect(screen.getByText(LOCAL.request)).toBeInTheDocument();
     expect(screen.getByText(LOCAL.reply)).toBeInTheDocument();
@@ -72,7 +74,9 @@ describe('DesktopProductDemo', () => {
     render(<DesktopProductDemo example={LOCAL} />);
     fireEvent.click(screen.getByRole('button', { name: 'Open Implementation notes.md' }));
     fireEvent.click(screen.getByRole('button', { name: 'Close workspace' }));
-    expect(screen.queryByLabelText('Example workspace artifacts')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Example workspace documents and results')
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open workspace' }));
     expect(screen.getByRole('article', { name: 'Implementation notes.md' })).toBeInTheDocument();
   });
@@ -130,9 +134,11 @@ describe('DesktopProductDemo', () => {
     mockMedia({ mobile: true });
     render(<DesktopProductDemo example={LOCAL} />);
     expect(screen.getByText(LOCAL.request)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Example workspace artifacts')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Example workspace documents and results')
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open workspace' }));
-    expect(screen.getByLabelText('Example workspace artifacts')).toBeInTheDocument();
+    expect(screen.getByLabelText('Example workspace documents and results')).toBeInTheDocument();
   });
 
   it('renders a workflow graph and coherent stock records in their distinct artifacts', () => {

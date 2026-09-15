@@ -232,7 +232,7 @@ function ConnectionWorkspace({ client, build, disabled, onSaved, onRefresh, onBu
             <DialogContent>
               <Stack gap={2} sx={{ pt: 1 }}>
                 <Alert severity="info">
-                  Credentials go only to Orqaly’s scoped connection service, not to the Agent, chat
+                  Credentials go only to Orqanix’s scoped connection service, not to the Agent, chat
                   or native workflow JSON. Closing this dialog clears entered values.
                 </Alert>
                 <Typography variant="body2">{selected.reason}</Typography>

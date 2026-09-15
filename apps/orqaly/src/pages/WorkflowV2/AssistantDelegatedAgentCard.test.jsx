@@ -61,16 +61,28 @@ describe('AssistantDelegatedAgentCard', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Workflow queued')).toBeNull();
     expect(screen.getByText('Memory: This chat and Goal only')).toBeInTheDocument();
-    expect(screen.getByText('Orqaly GCP + AxWise')).toBeInTheDocument();
+    expect(screen.getByText('Orqanix cloud')).toBeInTheDocument();
+    expect(screen.queryByText('Orqaly GCP + AxWise')).toBeNull();
     expect(
       screen.getByText(
-        'AxWise executor · axwise_executor_persona_v1 · fixed profile contract bound to this Goal'
+        'Reasoning service · axwise_executor_persona_v1 · fixed profile contract bound to this Goal'
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(/External actions are not connected on this Agent yet\./u)
     ).toBeInTheDocument();
     expect(screen.queryByText(/n8n/iu)).toBeNull();
+  });
+
+  it('preserves an unfamiliar runtime label instead of claiming Orqanix owns it', () => {
+    render(
+      <AssistantDelegatedAgentCard
+        part={delegatedAgent({ runtime: { provider: 'other_runtime', label: 'Custom runtime' } })}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Agent permissions & task context' }));
+    expect(screen.getByText('Custom runtime')).toBeInTheDocument();
+    expect(screen.queryByText('Orqanix cloud')).toBeNull();
   });
 
   it('distinguishes a persistent digital twin without overstating its tool access', () => {

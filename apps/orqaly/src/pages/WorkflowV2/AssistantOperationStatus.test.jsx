@@ -43,7 +43,7 @@ describe('AssistantOperationStatus', () => {
 
     const activity = screen.getByRole('region', { name: 'Research activity' });
     expect(within(activity).getByRole('status')).toHaveTextContent(
-      'Orqaly could not complete this attempt.'
+      'Orqanix could not complete this attempt.'
     );
     fireEvent.click(within(activity).getByRole('button', { name: 'Retry' }));
     expect(onRetry).toHaveBeenCalledOnce();
@@ -85,12 +85,12 @@ describe('AssistantOperationStatus', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Research activity' })).toBeInTheDocument();
-    expect(screen.getByText('Researching with AxWise')).toBeInTheDocument();
+    expect(screen.getByText('Researching your request')).toBeInTheDocument();
     expect(
       screen.getByText('Verified execution activity—not private model reasoning.')
     ).toBeInTheDocument();
-    expect(screen.getByText('AxWise accepted the request')).toBeInTheDocument();
-    expect(screen.getByText('AxWise is still working')).toBeInTheDocument();
+    expect(screen.getByText('The reasoning service accepted your request')).toBeInTheDocument();
+    expect(screen.getByText('The reasoning service is still working')).toBeInTheDocument();
     expect(screen.queryByText('must never be rendered')).not.toBeInTheDocument();
   });
 

@@ -65,11 +65,13 @@ export function AssistantDelegatedAgentCard({ part, agent = null }) {
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {legacyUnverified
-              ? `AxWise executor · ${personaVersion} · legacy metadata; runtime binding was not recorded or verified`
-              : `AxWise executor · ${personaVersion} · fixed profile contract bound to this Goal`}
+              ? `Reasoning service · ${personaVersion} · legacy metadata; runtime binding was not recorded or verified`
+              : `Reasoning service · ${personaVersion} · fixed profile contract bound to this Goal`}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {part.runtime?.label || 'Orqaly GCP + AxWise'}
+            {part.runtime?.provider === 'orqaly_workflow_v2'
+              ? 'Orqanix cloud'
+              : part.runtime?.label || 'Orqanix cloud'}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Profile edits apply to new assignments. To change this task, use its scope approval

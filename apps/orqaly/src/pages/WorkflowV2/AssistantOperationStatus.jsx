@@ -21,10 +21,10 @@ function messageTime(createdAt) {
 
 function statusCopy(part, route, canStartNewAttempt) {
   if (part.status === 'failed') {
-    if (canStartNewAttempt) return 'Orqaly could not complete this attempt.';
+    if (canStartNewAttempt) return 'Orqanix could not complete this attempt.';
     return part.retryable
-      ? 'Orqaly paused this turn. Please try again shortly.'
-      : 'Orqaly could not complete this turn.';
+      ? 'Orqanix paused this turn. Please try again shortly.'
+      : 'Orqanix could not complete this turn.';
   }
   if (part.status === 'cancelled') {
     return route === 'AXWISE_ONE_SHOT' ? 'Research stopped.' : 'Response stopped.';

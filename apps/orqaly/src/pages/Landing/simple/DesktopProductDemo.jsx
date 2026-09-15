@@ -84,8 +84,8 @@ const NAVIGATION = [
   [HistoryRoundedIcon, 'Session History'],
 ];
 
-// A compact vector version of Orqaly's existing line-orb mark, not a screenshot.
-function OrqalyMark() {
+// A compact vector version of the existing line-orb mark, not a screenshot.
+function OrqanixMark() {
   return (
     <svg viewBox="-50 -50 100 100" aria-hidden="true" className="opd-mark">
       {Array.from({ length: 24 }, (_, i) => (
@@ -370,7 +370,7 @@ export default function DesktopProductDemo({ example }) {
     <div className="opd" data-playback={playback}>
       <div
         className={`opd-window ${workspaceOpen ? 'opd-has-workspace' : ''}`}
-        aria-label="Interactive Orqaly desktop example"
+        aria-label="Interactive Orqanix desktop example"
       >
         <aside className="opd-sidebar" aria-label="Desktop navigation preview">
           <div className="opd-traffic" aria-hidden="true">
@@ -380,9 +380,9 @@ export default function DesktopProductDemo({ example }) {
             <ViewSidebarOutlinedIcon />
           </div>
           <div className="opd-sidebar-brand">
-            <OrqalyMark />
+            <OrqanixMark />
             <span>
-              Orqaly<small>Built on Goose</small>
+              Orqanix<small>Built on Goose</small>
             </span>
           </div>
           <div className="opd-nav">
@@ -416,7 +416,7 @@ export default function DesktopProductDemo({ example }) {
           </span>
           <div className="opd-title-actions">
             <span className="opd-brand">
-              <OrqalyMark /> Orqaly
+              <OrqanixMark /> Orqanix
             </span>
             <button
               type="button"
@@ -434,7 +434,7 @@ export default function DesktopProductDemo({ example }) {
           <div className="opd-messages">
             {phase === 0 ? (
               <div className="opd-start">
-                <OrqalyMark />
+                <OrqanixMark />
                 <h3>What would you like to work on?</h3>
                 <p>Your project, conversation, and useful context. Together.</p>
               </div>
@@ -442,7 +442,9 @@ export default function DesktopProductDemo({ example }) {
               <>
                 <div className="opd-user-message">{example.request}</div>
                 <div className="opd-assistant-intro">
-                  I’ll use the context in this workspace and keep the useful outputs here.
+                  {inWalkthrough && phase < 4
+                    ? 'Orqanix is working…'
+                    : 'I’ll use the context in this workspace and keep the useful outputs here.'}
                 </div>
                 <div className="opd-tool-stack" aria-label="Example tool activity">
                   {scene.tools
@@ -499,7 +501,7 @@ export default function DesktopProductDemo({ example }) {
             </div>
             <div className="opd-composer-controls">
               <span>
-                <OrqalyMark /> orqaly-gemini
+                <OrqanixMark /> Gemini
               </span>
               <span>
                 <FolderOpenOutlinedIcon />
@@ -519,7 +521,7 @@ export default function DesktopProductDemo({ example }) {
           <aside
             className="opd-workspace"
             id={workspaceId}
-            aria-label="Example workspace artifacts"
+            aria-label="Example workspace documents and results"
           >
             <div className="opd-workspace-header">
               {openArtifact !== null ? (
@@ -565,7 +567,7 @@ export default function DesktopProductDemo({ example }) {
                   </section>
                   <section>
                     <h4>
-                      Artifacts <span>{example.files.length}</span>
+                      Documents &amp; results <span>{example.files.length}</span>
                     </h4>
                     <div className="opd-artifact-list">
                       {example.files.map((file, index) => (
@@ -632,7 +634,7 @@ export default function DesktopProductDemo({ example }) {
           : playback === 'paused'
             ? 'Walkthrough paused'
             : playback === 'complete'
-              ? 'Walkthrough complete. The example artifact is open.'
+              ? 'Walkthrough complete. The example document is open.'
               : ''}
       </span>
     </div>

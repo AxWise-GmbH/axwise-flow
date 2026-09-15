@@ -1,0 +1,321 @@
+.oq-flow {
+  --oq-ink: #171d35;
+  --oq-muted: #626882;
+  --oq-purple: #6f50e7;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px minmax(0, 1.7fr);
+  align-items: stretch;
+  color: var(--oq-ink);
+}
+.oq-flow *,
+.oq-flow *::before,
+.oq-flow *::after {
+  box-sizing: border-box;
+}
+.oq-flow h3,
+.oq-flow h4,
+.oq-flow p {
+  margin: 0;
+}
+.oq-flow .oq-flow-label {
+  display: block;
+  color: #737990;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.oq-flow-device {
+  padding: 22px 0 0;
+}
+.oq-flow-request {
+  display: grid;
+  gap: 5px;
+  padding: 17px;
+  margin-top: 20px;
+  border: 1px solid #e0e3ed;
+  border-radius: 13px;
+  background: #ffffffc9;
+  text-align: center;
+}
+.oq-flow-request strong {
+  font-size: 17px;
+}
+.oq-flow-request span {
+  font-size: 12px;
+  color: var(--oq-muted);
+}
+.oq-flow-down {
+  display: block;
+  color: #8d91a9;
+  font-size: 29px;
+  line-height: 1.35;
+  text-align: center;
+}
+.oq-flow-desktop {
+  padding: 20px 24px;
+  border-radius: 17px;
+  color: #fff;
+  background: #1b223a;
+}
+.oq-flow-signin {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #e1dafa;
+  font-size: 11px;
+  letter-spacing: 0.025em;
+}
+.oq-flow-desktop h4 {
+  font-size: clamp(21px, 2vw, 27px);
+  letter-spacing: -0.04em;
+}
+.oq-flow-desktop p {
+  margin-top: 8px;
+  color: #e1e2ee;
+  font-size: 15px;
+}
+.oq-flow-desktop small {
+  display: block;
+  margin-top: 6px;
+  color: #b7bfd8;
+  font-size: 12px;
+}
+.oq-flow-local {
+  display: grid;
+  gap: 7px;
+  padding: 17px 12px;
+  border-radius: 13px;
+  text-align: center;
+  background: #e9ecf5;
+}
+.oq-flow-local strong {
+  font-size: 14px;
+}
+.oq-flow-local span {
+  color: var(--oq-muted);
+  font-size: 11px;
+}
+.oq-flow-exchange {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 38px 7px 0;
+  text-align: center;
+  color: var(--oq-muted);
+}
+.oq-flow-exchange span {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.oq-flow-exchange i {
+  font-style: normal;
+  font-size: 41px;
+  color: var(--oq-purple);
+  line-height: 0.95;
+}
+.oq-flow-exchange i:nth-of-type(2) {
+  color: #9296ae;
+}
+.oq-flow-cloud {
+  padding: 22px 24px 18px;
+  background: #eeeafb;
+  border-radius: 22px;
+}
+.oq-flow-cloud-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+  min-height: 328px;
+}
+.oq-flow-gateway {
+  padding: 27px 21px;
+  background: var(--oq-purple);
+  color: #fff;
+  border-radius: 17px;
+}
+.oq-flow-gateway h4 {
+  font-size: 25px;
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+  margin-bottom: 15px;
+}
+.oq-flow-gateway p {
+  margin-top: 5px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.oq-flow-gateway span {
+  display: block;
+  color: #ece6ff;
+  font-size: 11px;
+  line-height: 1.65;
+  margin-top: 17px;
+}
+.oq-flow-cloud-services {
+  display: grid;
+  gap: 22px;
+}
+.oq-flow-service {
+  position: relative;
+  background: #fff;
+  border: 1px solid #dfd9f1;
+  border-radius: 16px;
+  padding: 22px 17px;
+}
+.oq-flow-service h4 {
+  font-size: 19px;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+.oq-flow-service p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--oq-muted);
+  margin-top: 8px;
+}
+.oq-flow-service-arrow {
+  position: absolute;
+  left: -28px;
+  top: calc(50% - 14px);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--oq-purple);
+}
+.oq-flow .oq-flow-key-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #645a84;
+}
+.oq-flow-outputs {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  margin-top: 30px;
+  padding: 24px 28px;
+  background: #fff;
+  border: 1px solid #e0e3ed;
+  border-radius: 17px;
+}
+.oq-flow-outputs h3 {
+  font-size: 23px;
+  letter-spacing: -0.03em;
+  margin: 5px 0 7px;
+}
+.oq-flow-outputs p {
+  font-size: 13px;
+  color: var(--oq-muted);
+  line-height: 1.6;
+}
+.oq-flow-outputs ul {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  justify-content: flex-end;
+  max-width: 425px;
+}
+.oq-flow-outputs li {
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #f3f0fd;
+  color: #625080;
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 950px) {
+  .oq-flow {
+    grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1.55fr);
+  }
+  .oq-flow-cloud {
+    padding-inline: 17px;
+  }
+  .oq-flow-cloud-body {
+    grid-template-columns: 1fr;
+    gap: 23px;
+    padding-top: 20px;
+  }
+  .oq-flow-gateway {
+    padding: 20px;
+  }
+  .oq-flow-cloud-services {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .oq-flow-service {
+    padding: 15px 12px;
+  }
+  .oq-flow-service-arrow {
+    top: -25px;
+    left: calc(50% - 10px);
+    transform: rotate(90deg);
+    font-size: 22px;
+  }
+  .oq-flow-service h4 {
+    font-size: 16px;
+  }
+  .oq-flow .oq-flow-key-note {
+    margin-top: 17px;
+  }
+  .oq-flow-outputs {
+    align-items: flex-start;
+  }
+  .oq-flow-outputs ul {
+    max-width: 235px;
+  }
+}
+@media (max-width: 600px) {
+  .oq-flow {
+    grid-template-columns: 1fr;
+  }
+  .oq-flow-device {
+    padding-top: 0;
+  }
+  .oq-flow-desktop {
+    padding: 22px;
+  }
+  .oq-flow-desktop h4 {
+    font-size: 27px;
+  }
+  .oq-flow-exchange {
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+    padding: 20px 0;
+  }
+  .oq-flow-exchange i {
+    font-size: 30px;
+    transform: rotate(90deg);
+  }
+  .oq-flow-exchange span {
+    font-size: 11px;
+  }
+  .oq-flow-cloud {
+    padding: 22px 18px;
+  }
+  .oq-flow-cloud-body {
+    min-height: 0;
+  }
+  .oq-flow-gateway h4 {
+    font-size: 25px;
+  }
+  .oq-flow-service {
+    padding: 20px 15px;
+  }
+  .oq-flow-outputs {
+    flex-direction: column;
+    gap: 18px;
+    padding: 22px;
+    margin-top: 22px;
+  }
+  .oq-flow-outputs ul {
+    max-width: none;
+    justify-content: flex-start;
+  }
+}

@@ -150,7 +150,7 @@ describe('Agent detail page', () => {
     );
     const profileStep = screen.getByRole('button', { name: /Agent profile/u });
     expect(profileStep).toHaveTextContent('Live');
-    expect(screen.getByRole('button', { name: /Orqaly Goal workflow/u })).toHaveTextContent(
+    expect(screen.getByRole('button', { name: /Orqanix Goal workflow/u })).toHaveTextContent(
       'Run recorded'
     );
     fireEvent.click(profileStep);

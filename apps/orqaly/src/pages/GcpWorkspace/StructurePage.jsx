@@ -13,7 +13,7 @@ import { agentName, humanize, workspaceName } from './workspaceViewModel.js';
 
 const WORKSPACE_STATUS = Object.freeze({
   available: Object.freeze([
-    'Personal Clerk identity mapped to an app-owned Orqaly workspace.',
+    'Your sign-in is linked to your personal Orqanix workspace.',
     'Live workspace readiness, agent catalogue, and capability coverage.',
   ]),
   remaining: Object.freeze([
@@ -38,7 +38,7 @@ export default function StructurePage() {
       <FeatureStatusNotice {...WORKSPACE_STATUS} />
       <DataBoundary loading={state.loading} error={state.error} onRetry={state.refresh}>
         <Alert severity="info" variant="outlined">
-          This Preview uses a personal Clerk account, not paid Clerk Organizations. Orqaly keeps
+          This Preview uses a personal Clerk account, not paid Clerk Organizations. Orqanix keeps
           workspace membership and domain data in its own GCP tenant boundary.
         </Alert>
 

@@ -40,7 +40,7 @@ vi.mock('../../workflow-v2/api.js', () => ({
   createWorkflowV2Client: (...args) => agentApi.createClient(...args),
 }));
 vi.mock('../../components/Common/LineOrb.jsx', () => ({
-  default: () => <div role="img" aria-label="Orqaly assistant" />,
+  default: () => <div role="img" aria-label="Orqanix assistant" />,
 }));
 
 const RUN_ID = '10000000-0000-4000-8000-000000000001';
@@ -233,7 +233,7 @@ describe('GCP workspace pages', () => {
     [
       'Workspace',
       StructurePage,
-      /Personal Clerk identity mapped to an app-owned Orqaly workspace/u,
+      /Your sign-in is linked to your personal Orqanix workspace/u,
       /App-owned units, memberships, groups, and role controls/u,
     ],
     [
@@ -307,7 +307,7 @@ describe('GCP workspace pages', () => {
     expect(screen.getAllByText('Persistent')).toHaveLength(1);
     expect(within(delegatedAgentCard).getByText('Active')).toBeInTheDocument();
     expect(
-      screen.getByText(/Task executor · AxWise · axwise_executor_persona_v1 · Contract bound/u)
+      screen.getByText(/Task executor · Reasoning service · axwise_executor_persona_v1 · Contract bound/u)
     ).toBeInTheDocument();
     expect(screen.getAllByText('Tenant + user')).toHaveLength(1);
     expect(screen.getByText('Gated until a reviewed connector is enabled')).toBeInTheDocument();

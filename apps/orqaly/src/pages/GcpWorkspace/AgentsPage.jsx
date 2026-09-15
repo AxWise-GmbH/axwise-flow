@@ -62,7 +62,7 @@ function personaLabel(persona) {
   const role = contractLabel(persona);
   const provider = persona?.provider
     ? persona.provider === 'axwise'
-      ? 'AxWise'
+      ? 'Reasoning service'
       : humanize(persona.provider)
     : null;
   const status =

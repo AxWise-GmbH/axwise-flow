@@ -22,7 +22,7 @@ export default function SimpleTopBar() {
           <Typography
             component={RouterLink}
             to="/"
-            aria-label="Orqaly - home"
+            aria-label="Orqanix - home"
             sx={{
               color: 'text.primary',
               fontWeight: 750,
@@ -31,18 +31,7 @@ export default function SimpleTopBar() {
               textDecoration: 'none',
             }}
           >
-            Orqaly{' '}
-            <Box
-              component="span"
-              sx={{
-                color: 'text.secondary',
-                fontWeight: 400,
-                fontSize: '0.9rem',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              × AxWise
-            </Box>
+            Orqanix
           </Typography>
           <Stack
             component="nav"

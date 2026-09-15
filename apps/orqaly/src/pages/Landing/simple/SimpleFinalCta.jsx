@@ -30,8 +30,8 @@ export default function SimpleFinalCta({ onPrimaryCta }) {
             Start with the work in front of you.
           </Typography>
           <Typography sx={{ color: 'text.secondary', maxWidth: 570 }}>
-            Download Orqaly, sign in, and choose a project folder. Bring a Goal into your
-            conversation when you want cloud context beside your local work.
+            Download Orqanix, sign in, and start with what you want to get done. Add a project
+            folder or useful documents when you need them.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
             <DesktopDownloadButton descriptionId="desktop-download-details" />
@@ -47,7 +47,7 @@ export default function SimpleFinalCta({ onPrimaryCta }) {
           </Stack>
           <DesktopReleaseDetails id="desktop-download-details" showChecksum />
           <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-            Unzip the download, then move Orqaly Preview to Applications. Built on Goose.
+            Unzip the download, then move Orqanix Preview to Applications. Built on Goose.
           </Typography>
         </Stack>
       </Container>

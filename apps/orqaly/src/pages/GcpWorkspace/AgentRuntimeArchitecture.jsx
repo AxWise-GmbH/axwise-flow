@@ -75,7 +75,7 @@ function buildNodes({ runtime, agent, latestRun, loading, error }) {
     {
       id: 'orqaly',
       category: 'Customer control',
-      title: 'Orqaly chat',
+      title: 'Orqanix chat',
       state: 'live',
       body: 'The customer can create or select a named Agent, assign work, inspect Goal progress, and approve scope and plan artifacts. Exact external-effect approval is not exposed in this release.',
       boundary: 'Clerk user + Agent ID',
@@ -97,16 +97,16 @@ function buildNodes({ runtime, agent, latestRun, loading, error }) {
     {
       id: 'axwise',
       category: 'Reasoning contract',
-      title: 'AxWise executor',
+      title: 'Reasoning service',
       state: 'not_verified',
-      body: 'Agent and Goal contracts identify AxWise as the reasoning executor, but the runtime-status response has no AxWise connectivity signal. This view therefore does not claim that AxWise execution is live.',
+      body: 'Agent and Goal contracts identify a reasoning service, but the runtime-status response has no connectivity signal for it. This view therefore does not claim that reasoning execution is live.',
       boundary: 'No external authority',
       next: 'reasoning result',
     },
     {
       id: 'workflow',
       category: 'Task record',
-      title: 'Orqaly Goal workflow',
+      title: 'Orqanix Goal workflow',
       state: latestRun ? 'recorded' : 'available',
       body: latestRun
         ? `Run ${latestRun.id || latestRun.runId || 'withheld'} is ${readable(selectedRunStatus)}. Its task history is separate from the reusable Agent profile.`

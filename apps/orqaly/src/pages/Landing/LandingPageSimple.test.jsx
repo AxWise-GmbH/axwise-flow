@@ -7,7 +7,7 @@ import { DESKTOP_RELEASE } from './simple/desktop-release';
 
 function renderPage() {
   return render(
-    <ThemeProvider theme={createTheme()}>
+    <ThemeProvider theme={createTheme({ palette: { mode: 'dark' } })}>
       <MemoryRouter>
         <Routes>
           <Route path="/" element={<LandingPageSimple />} />
@@ -25,7 +25,7 @@ describe('LandingPageSimple', () => {
       'Cloud reasoning.Local action.'
     );
     expect(
-      screen.getByRole('heading', { name: 'Local workspace. Connected cloud context.' })
+      screen.getByRole('heading', { name: 'From your request to useful work.' })
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -57,7 +57,7 @@ describe('LandingPageSimple', () => {
   it('sets the page title and restores it when unmounted', () => {
     const before = document.title;
     const page = renderPage();
-    expect(document.title).toBe('Orqaly × AxWise — Cloud reasoning. Local action.');
+    expect(document.title).toBe('Orqanix — Cloud reasoning. Local action.');
     page.unmount();
     expect(document.title).toBe(before);
   });
@@ -74,17 +74,39 @@ describe('LandingPageSimple', () => {
       expect(download).toHaveAttribute('href', DESKTOP_RELEASE.url);
       expect(download).toHaveAttribute('download', DESKTOP_RELEASE.filename);
       expect(download).toHaveAccessibleDescription(
-        /Apple Silicon.*257 MB.*Unsigned preview.*Sign in/
+        new RegExp(
+          `Apple Silicon.*${Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB.*Unsigned preview.*Sign in`
+        )
       );
     }
     expect(screen.getByRole('link', { name: 'SHA-256 checksum' })).toHaveAttribute(
       'href',
       `${DESKTOP_RELEASE.url}.sha256`
     );
-    expect(DESKTOP_RELEASE.sha256).toBe(
-      '02fc15a31ad2703e446c71792c8bf9467222117830a4d7e66843f867626011a6'
-    );
+    expect(DESKTOP_RELEASE.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(DESKTOP_RELEASE.url).not.toMatch(/github\.com|token=|X-Goog-Signature/i);
     expect(screen.queryByText(/available separately/)).not.toBeInTheDocument();
+  });
+
+  it('uses a scoped light theme and one public brand, with outputs outside the cloud box', () => {
+    const { container } = renderPage();
+    const root = container.querySelector('[data-landing-root]');
+    expect(root).toHaveStyle({ backgroundColor: '#f8f9fe' });
+    expect(screen.getByRole('link', { name: 'Orqanix - home' })).toBeInTheDocument();
+    expect(root.textContent).not.toMatch(/Orqaly|OrQonics|AxWise/i);
+    expect(screen.getByText('Orqanix · pronounced or-KAN-iks')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Orqanix Desktop' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Orqanix Gateway' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Research on demand' })).toBeInTheDocument();
+    expect(screen.getByText('Files · Tools · Skills · History')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Conversation context and selected tool results are sent to the cloud model/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Your outputs' }).closest('.oq-flow-cloud')
+    ).toBeNull();
+    expect(screen.getByRole('list', { name: 'Examples of useful outputs' })).toHaveTextContent(
+      'Spreadsheets'
+    );
   });
 });

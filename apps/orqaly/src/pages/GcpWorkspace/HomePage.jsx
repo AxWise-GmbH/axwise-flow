@@ -24,7 +24,7 @@ export default function HomePage() {
       <Box sx={{ pt: { xs: 8, md: 10 }, pb: { xs: 3, md: 5 } }}>
         <WorkspacePage
           title="Home"
-          description="Your current work, approvals, recent outcomes, and personal Orqaly workspace."
+          description="Your current work, approvals, recent outcomes, and personal Orqanix workspace."
           actions={<PageLink to="/assistant">New chat</PageLink>}
         >
           <DataBoundary loading={state.loading} error={state.error} onRetry={state.refresh}>
@@ -40,7 +40,7 @@ export default function HomePage() {
 
             <SectionCard
               title={workspaceName(state.workspace)}
-              description="Personal Clerk identity, app-owned Orqaly data."
+              description="Your sign-in and Orqanix account data."
             >
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2}>
                 <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 720 }}>

@@ -90,7 +90,7 @@ export function NavBrandHeader({ collapsed = false, mobile = false, onToggleColl
             onClick={onToggleCollapsed}
             sx={{ width: 40, height: 40, p: 0.125 }}
           >
-            <BrandOrb size={GCP_STANDARD_NAV_BRAND_SIZE} title="Orqaly" />
+            <BrandOrb size={GCP_STANDARD_NAV_BRAND_SIZE} title="Orqanix" />
           </IconButton>
         </Tooltip>
       </Box>
@@ -105,7 +105,7 @@ export function NavBrandHeader({ collapsed = false, mobile = false, onToggleColl
       alignItems="center"
       sx={{ minHeight: 72, px: 2, flexShrink: 0 }}
     >
-      <BrandOrb size={GCP_STANDARD_NAV_BRAND_SIZE} title="Orqaly" />
+      <BrandOrb size={GCP_STANDARD_NAV_BRAND_SIZE} title="Orqanix" />
       <Box sx={{ flex: 1, minWidth: 0 }} />
       <Tooltip title={mobile ? 'Close menu' : 'Collapse menu'} placement="bottom" arrow>
         <IconButton
@@ -408,7 +408,7 @@ export function GcpNavFooter({
           lineHeight: 1.4,
         }}
       >
-        AxWise &amp; Orqaly
+        Orqanix
       </Typography>
       <Stack direction="row" alignItems="center" gap={0.25} sx={{ flexShrink: 0 }}>
         {actions}

@@ -904,7 +904,7 @@ export function WorkflowBuildWorkspace({
                   <Typography variant="body2">
                     {build.testEligibility?.requiresEffectApproval
                       ? 'This workflow contacts an outgoing service. Review its destinations and exact test inputs before approving a real test. External effects are never automatically repeated.'
-                      : 'Runs the saved acceptance cases in an authorized n8n test environment without external effects. Orqaly may repair a failed draft within its recorded attempt limit; your active release stays unchanged.'}
+                      : 'Runs the saved acceptance cases in an authorized n8n test environment without external effects. Orqanix may repair a failed draft within its recorded attempt limit; your active release stays unchanged.'}
                   </Typography>
                   {build.testEligibility?.reason ? (
                     <Typography variant="body2" color="text.secondary">

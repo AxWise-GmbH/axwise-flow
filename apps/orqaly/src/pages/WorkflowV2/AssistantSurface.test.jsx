@@ -279,7 +279,7 @@ describe('AssistantSurface', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(trigger).toHaveAttribute('aria-controls', menu.id);
     expect(
-      screen.getByText('Orqaly chooses Assistant, Research, or Agent from your message.')
+      screen.getByText('Orqanix chooses Assistant, Research, or Agent from your message.')
     ).toBeVisible();
     expect(screen.getByRole('menuitemradio', { name: /^Auto/ })).toHaveAttribute(
       'aria-checked',
@@ -1861,7 +1861,7 @@ describe('AssistantSurface', () => {
 
     fireEvent.click(expand);
 
-    expect(await within(activity).findByText('AxWise is still working')).toBeInTheDocument();
+    expect(await within(activity).findByText('The reasoning service is still working')).toBeInTheDocument();
     expect(within(activity).getByRole('button', { name: 'Hide activity' })).toHaveAttribute(
       'aria-expanded',
       'true'
@@ -1987,7 +1987,7 @@ describe('AssistantSurface', () => {
     render(<AssistantSurface client={h.client} onOpenGoal={vi.fn()} />);
 
     const composer = screen.getByLabelText('Message Assistant');
-    expect(await screen.findByText('Orqaly could not complete this attempt.')).toBeTruthy();
+    expect(await screen.findByText('Orqanix could not complete this attempt.')).toBeTruthy();
     expect(h.client.assistantResume).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Plants convert light into chemical energy.')).toBeTruthy();
@@ -2264,7 +2264,7 @@ describe('AssistantSurface', () => {
         await Promise.resolve();
       });
       const activeActivity = screen.getByRole('region', { name: 'Research activity' });
-      expect(within(activeActivity).getByRole('status')).toHaveTextContent('AxWise');
+      expect(within(activeActivity).getByRole('status')).toHaveTextContent('Researching your request');
       expect(within(activeActivity).getByRole('button', { name: 'Hide activity' })).toHaveAttribute(
         'aria-expanded',
         'true'
@@ -2421,7 +2421,7 @@ describe('AssistantSurface', () => {
     render(<AssistantSurface client={h.client} onOpenGoal={vi.fn()} />);
 
     expect(await screen.findByRole('region', { name: 'Research activity' })).toBeInTheDocument();
-    expect(await screen.findByText('AxWise is still working')).toBeInTheDocument();
+    expect(await screen.findByText('The reasoning service is still working')).toBeInTheDocument();
     expect(
       screen.getByText('Verified execution activity—not private model reasoning.')
     ).toBeInTheDocument();
@@ -2475,7 +2475,7 @@ describe('AssistantSurface', () => {
     );
     expect(
       within(screen.getByRole('region', { name: 'Research activity' })).queryByText(
-        'Researching with AxWise'
+        'Researching your request'
       )
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Stop research' })).not.toBeInTheDocument();

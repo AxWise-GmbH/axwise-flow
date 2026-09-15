@@ -161,7 +161,7 @@ describe('AssistantExecutableAction', () => {
           operation: 'operational_record_create_v1',
           input: {
             title: 'Completed Goal execution record',
-            details: `Registered from Orqaly Goal ${RUN_ID} as an approved tenant-scoped action through private n8n.`,
+            details: `Registered from Orqanix Goal ${RUN_ID} as an approved tenant-scoped action through private n8n.`,
           },
         })
       )
@@ -196,7 +196,7 @@ describe('AssistantExecutableAction', () => {
           version: 'orqaly_executable_action_decision_v1',
           idempotencyKey: `${RUN_ID}:operational_record_create_v1:approve:${ACTION_ID}`,
           decision: 'approve',
-          reason: 'Approved in Orqaly Assistant after exact action review.',
+          reason: 'Approved in Orqanix Assistant after exact action review.',
         },
         3
       )

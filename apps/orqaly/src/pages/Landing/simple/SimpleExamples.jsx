@@ -20,10 +20,11 @@ const EXAMPLES = [
     label: 'Build locally',
     title: 'From an idea to a working local prototype.',
     outcome:
-      'Use Goose skills to edit files, run checks, and keep the useful outputs beside your conversation.',
+      'Use local skills to edit files, run checks, and keep the useful outputs beside your conversation.',
     request: 'Build a webhook receiver in this project. Check retries and duplicate events.',
     activity: 'Checking the implementation',
-    reply: 'The receiver handles duplicate deliveries and retries. Local checks passed. You can inspect the code and results beside this conversation.',
+    reply:
+      'The receiver handles duplicate deliveries and retries. Local checks passed. You can inspect the code and results beside this conversation.',
     files: ['Implementation notes.md', 'webhook-handler.js', 'Check results'],
     artifactTitle: 'A useful handoff',
     artifactLines: [
@@ -54,13 +55,13 @@ const EXAMPLES = [
   {
     id: 'operations',
     label: 'Business operations',
-    title: 'Turn operational records into the next action.',
+    title: 'See what needs your attention today.',
     outcome: 'Bring orders and stock into one brief, with the source records close at hand.',
-    request: 'Which orders need attention, and what should the team do next?',
+    request: 'Check these orders and stock levels. What needs my attention today?',
     activity: 'Reviewing the records',
     reply:
-      'In these example records, one order needs a stock decision. I’ve included the numbers and a suggested next action.',
-    files: ['Operations brief.md', 'Example orders.csv', 'Example inventory.csv'],
+      'One order needs a stock decision. I’ve put the numbers and a suggested next action in your brief.',
+    files: ['Operations brief.md', 'Orders.csv', 'Inventory.csv'],
     artifactTitle: 'Team brief',
     artifactLines: [
       'Order 1042: ready to fulfil',
@@ -110,7 +111,7 @@ const EXAMPLES = [
 ];
 
 export default function SimpleExamples() {
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState(2);
   const selectors = useRef([]);
   const theme = useTheme();
   const primary = theme.palette.primary.main;
@@ -169,16 +170,16 @@ export default function SimpleExamples() {
               mb: 1.5,
             }}
           >
-            One conversation. Many ways to work.
+            One chat. A connected workspace.
           </Typography>
           <Typography
             sx={{ textAlign: 'center', color: 'text.secondary', fontSize: '0.95rem', mb: 3.5 }}
           >
-            The Orqaly desktop, recreated in HTML. Click an artifact or play a cursor walkthrough.
+            Explore the Orqanix desktop. Open a document or play a cursor walkthrough.
           </Typography>
         </Reveal>
 
-        <Box role="region" aria-roledescription="carousel" aria-label="Ways to work with Orqaly">
+        <Box role="region" aria-roledescription="carousel" aria-label="Ways to work with Orqanix">
           <Stack
             direction="row"
             role="group"

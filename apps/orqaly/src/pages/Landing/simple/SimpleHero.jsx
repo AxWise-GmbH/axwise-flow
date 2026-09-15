@@ -16,7 +16,7 @@ export default function SimpleHero({ onPrimaryCta }) {
               color: 'text.secondary',
             }}
           >
-            Orqaly × AxWise · Desktop preview
+            Orqanix · Desktop preview
           </Typography>
           <Typography
             variant="h1"
@@ -30,7 +30,7 @@ export default function SimpleHero({ onPrimaryCta }) {
             }}
           >
             Cloud reasoning.
-            <Box component="span" sx={{ display: 'block', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'block', color: 'primary.main' }}>
               Local action.
             </Box>
           </Typography>
@@ -42,8 +42,11 @@ export default function SimpleHero({ onPrimaryCta }) {
               color: 'text.secondary',
             }}
           >
-            A conversation that moves work forward. Research with AxWise, reason with Gemini, and
-            use local tools and skills in a Goose-powered desktop.
+            One conversation to research, plan, build and check. Your files, tools and useful
+            outputs together in a connected workspace.
+          </Typography>
+          <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+            Built on Goose · Powered by Gemini
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
             <DesktopDownloadButton descriptionId="hero-download-details" />
