@@ -78,7 +78,7 @@ export async function startCallback(state, { timeoutMs = 300_000 } = {}) {
       return reply(400, 'Invalid callback.');
     }
     settled = true; clearTimeout(timer);
-    reply(denied ? 400 : 200, denied ? 'Sign-in was not approved.' : 'Sign-in received. Return to Orqaly.', () => {
+    reply(denied ? 400 : 200, denied ? 'Sign-in was not approved.' : 'Sign-in received. Return to Orqanix.', () => {
       server.close(); server.closeAllConnections();
       if (denied) reject(new AuthError('LOGIN_DENIED', 'Sign-in was not approved.'));
       else accept(code);
