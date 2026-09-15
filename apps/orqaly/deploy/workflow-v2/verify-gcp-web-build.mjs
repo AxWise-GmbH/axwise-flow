@@ -12,7 +12,8 @@ const html = readFileSync(resolve(dist, 'index.html'), 'utf8');
 for (const marker of [
   'id="root"',
   'Cloud reasoning. Local action.',
-  'theme-color" content="#0A0A0A',
+  '<title>Orqanix — Cloud reasoning. Local action.</title>',
+  'theme-color" content="#F7F7FC',
 ]) {
   if (!html.includes(marker)) throw new Error(`GCP index.html is missing ${marker}`);
 }

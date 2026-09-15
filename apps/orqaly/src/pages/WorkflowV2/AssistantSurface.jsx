@@ -1416,7 +1416,7 @@ export function AssistantSurface({
                     What do you want to get done?
                   </Typography>
                   <Typography color="text.secondary" sx={{ mt: 1.5 }}>
-                    Ask a question, explore an idea, or delegate work. Orqaly will create an Agent
+                    Ask a question, explore an idea, or delegate work. Orqanix will create an Agent
                     only when durable execution helps.
                   </Typography>
                 </Box>

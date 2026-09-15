@@ -34,10 +34,10 @@ describe('Agent runtime architecture', () => {
         .getAllByRole('button')
         .map((button) => button.textContent)
     ).toEqual([
-      expect.stringContaining('Orqaly chat'),
+      expect.stringContaining('Orqanix chat'),
       expect.stringContaining('Agent profile'),
-      expect.stringContaining('AxWise executor'),
-      expect.stringContaining('Orqaly Goal workflow'),
+      expect.stringContaining('Reasoning service'),
+      expect.stringContaining('Orqanix Goal workflow'),
       expect.stringContaining('Exact action approval'),
       expect.stringContaining('Private self-hosted n8n'),
       expect.stringContaining('Tool Gateway'),
@@ -49,19 +49,19 @@ describe('Agent runtime architecture', () => {
     expect(screen.getByRole('region', { name: 'Private self-hosted n8n' })).toHaveTextContent(
       /release gated.*treated as locked/iu
     );
-    expect(within(flow).getByRole('button', { name: /AxWise executor/u })).toHaveTextContent(
+    expect(within(flow).getByRole('button', { name: /Reasoning service/u })).toHaveTextContent(
       'Not verified'
     );
     expect(
       within(flow).getByRole('button', { name: /Private self-hosted n8n/u })
     ).not.toHaveTextContent('Live');
 
-    fireEvent.click(within(flow).getByRole('button', { name: /AxWise executor/u }));
+    fireEvent.click(within(flow).getByRole('button', { name: /Reasoning service/u }));
 
-    expect(screen.getByRole('region', { name: 'AxWise executor' })).toHaveTextContent(
-      /does not claim that AxWise execution is live/iu
+    expect(screen.getByRole('region', { name: 'Reasoning service' })).toHaveTextContent(
+      /does not claim that reasoning execution is live/iu
     );
-    expect(within(flow).getByRole('button', { name: /AxWise executor/u })).toHaveAttribute(
+    expect(within(flow).getByRole('button', { name: /Reasoning service/u })).toHaveAttribute(
       'aria-pressed',
       'true'
     );

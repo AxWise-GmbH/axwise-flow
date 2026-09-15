@@ -16,7 +16,7 @@ const ACTIVITY_STATUS = Object.freeze({
   ]),
   remaining: Object.freeze([
     'Aggregate token and tool totals plus detailed model and cost analytics.',
-    'AxWise diagnostics, workflow traces, filtering, and export.',
+    'Reasoning diagnostics, workflow traces, filtering, and export.',
   ]),
 });
 

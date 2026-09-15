@@ -219,7 +219,7 @@ export function SolutionConversationTurn({ controller, turn, onSelectDraft, onOp
           }}
         >
           <Typography variant="caption" color="text.secondary">
-            Orqaly ·{' '}
+            Orqanix ·{' '}
             {turn.id === clarification?.id
               ? 'Waiting for your answer'
               : turn.errorCode === 'WORKFLOW_CONVERSATION_BLOCKED' && turn.questions?.length
@@ -617,7 +617,7 @@ export function SolutionConversationActions({ controller }) {
                   value={invocationId}
                   disabled={busy}
                   onChange={(event) => setInvocationId(event.target.value)}
-                  helperText="Sends this selected run’s payload to AxWise/Gemini for this message only. Credentials are excluded."
+                  helperText="Sends this selected run’s payload to the cloud reasoning service and Gemini for this message only. Credentials are excluded."
                   sx={{ mt: 1 }}
                 >
                   {availableInvocations.map((item) => (

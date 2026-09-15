@@ -195,8 +195,8 @@ function RequestComposer({ advanced, busy, request, onRequestChange, onStart }) 
           What should we make?
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Turn your request into research, a design or a written plan with AxWise.
-          You can use the result as context for implementation in Orqaly Preview on your desktop.
+          Turn your request into research, a design or a written plan with Orqanix.
+          You can use the result as context for implementation in Orqanix Preview on your desktop.
         </Typography>
       </Box>
       <Paper
@@ -511,7 +511,7 @@ function PlanSummary({ artifact, advanced = false }) {
           {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} ready for approval
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          This plan produces a written deliverable. Local implementation can continue in Orqaly Preview.
+          This plan produces a written deliverable. Local implementation can continue in Orqanix Preview.
         </Typography>
       </Box>
       {readerSummary && (
@@ -930,7 +930,7 @@ function FinalArtifact({ markdown, artifact, runId, onDownload, wide = false }) 
           <Box sx={{ borderLeft: '2px solid', borderColor: 'divider', pl: 1.5 }}>
             <Typography variant="subtitle2">Continue in your desktop chat</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              In Orqaly Preview, paste this link into Project context in your current conversation.
+              In Orqanix Preview, paste this link into Project context in your current conversation.
               Sign in with the same account, then ask for your next step: implement, research or revise.
             </Typography>
             <Button
@@ -943,7 +943,7 @@ function FinalArtifact({ markdown, artifact, runId, onDownload, wide = false }) 
             </Button>
             {copyState === 'copied' && (
               <Typography role="status" variant="caption" sx={{ display: 'block' }}>
-                Link copied. Paste it into Project context in Orqaly Preview.
+                Link copied. Paste it into Project context in Orqanix Preview.
               </Typography>
             )}
             {copyState === 'failed' && (
@@ -1050,7 +1050,7 @@ function CurrentStageMessage({ workflow }) {
   if (!stage || stage.status === 'awaiting_approval') return null;
   const statusText =
     stage.status === 'polling'
-      ? 'AxWise accepted the same durable operation; Orqaly is polling without creating another attempt.'
+      ? 'The reasoning service accepted the same durable operation; Orqanix is polling without creating another attempt.'
       : `${readable(stage.status)}. This page will update from the durable workflow state.`;
   return (
     <ConversationMessage
@@ -1541,7 +1541,7 @@ export function WorkflowV2Surface({
             gap={2}
           >
             <Box>
-              <Typography variant="h4">Orqaly × AxWise</Typography>
+              <Typography variant="h4">Orqanix</Typography>
               <Typography color="text.secondary">
                 One durable workflow. Simple and Advanced are two views of the same run.
               </Typography>
@@ -1905,7 +1905,7 @@ export function OrqalyV2Surface({
             alignItems={{ xs: 'stretch', md: 'center' }}
             gap={2}
           >
-            <Typography variant="h5">Orqaly</Typography>
+            <Typography variant="h5">Orqanix</Typography>
             <Stack direction="row" alignItems="center" gap={1}>
               <UserButton />
             </Stack>
@@ -1990,7 +1990,7 @@ export default function WorkflowV2({
             borderColor: 'divider',
           }}
         >
-          <Typography variant="overline">Orqaly × AxWise</Typography>
+          <Typography variant="overline">Orqanix</Typography>
           <Box>
             <Typography variant="h3" component="h1" sx={{ maxWidth: 520 }}>
               Start with a conversation. Move durable work into a Goal.
@@ -2000,7 +2000,7 @@ export default function WorkflowV2({
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary">
-            Orqaly routes the work. AxWise executes grounded cognition.
+            One workspace for conversation, research and useful results.
           </Typography>
         </Stack>
         <Box sx={{ display: 'grid', placeItems: 'center', p: { xs: 2, sm: 4 } }}>

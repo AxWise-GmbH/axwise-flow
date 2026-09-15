@@ -10,12 +10,12 @@ export default function GcpClerkSettings() {
             Settings
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-            Manage the personal account used to sign in to Orqaly.
+            Manage the personal account used to sign in to Orqanix.
           </Typography>
         </Box>
         <Alert severity="info" variant="outlined">
           Clerk manages sign-in, password recovery, connected accounts, sessions, and multi-factor
-          security. Orqaly does not maintain a second Supabase user account.
+          security. The same account connects your desktop and cloud workspace.
         </Alert>
         <Paper variant="outlined" sx={{ overflow: 'hidden', bgcolor: '#0F0F0F' }}>
           <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>

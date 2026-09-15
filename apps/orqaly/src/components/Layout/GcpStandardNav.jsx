@@ -277,7 +277,7 @@ function GcpNavContent({
     return (
       <Box
         component="nav"
-        aria-label="Orqaly workspace"
+        aria-label="Orqanix workspace"
         data-nav-mode="rail"
         sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
@@ -452,7 +452,7 @@ function GcpNavContent({
   return (
     <Box
       component="nav"
-      aria-label="Orqaly workspace"
+      aria-label="Orqanix workspace"
       data-nav-mode={mobile ? 'drawer' : 'full'}
       sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
     >

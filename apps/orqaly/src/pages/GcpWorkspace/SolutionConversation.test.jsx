@@ -55,7 +55,7 @@ describe('workflow-scoped conversation', () => {
       'Should a missing email'
     );
     expect(screen.getAllByRole('textbox')).toHaveLength(1);
-    expect(screen.getByText('Orqaly · Waiting for your answer')).toBeInTheDocument();
+    expect(screen.getByText('Orqanix · Waiting for your answer')).toBeInTheDocument();
     expect(client.sendSolutionConversationTurn).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole('textbox', { name: 'Your answer' }), {
       target: { value: 'Reject it with a clear validation error.' },

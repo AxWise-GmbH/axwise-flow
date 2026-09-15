@@ -138,7 +138,7 @@ export default function HomeHero() {
         <LineOrb
           size={252}
           accent="#B7BBC2"
-          title="Orqaly assistant"
+          title="Orqanix assistant"
           sx={{
             width: { xs: 'clamp(132px, 24dvh, 204px)', sm: 252 },
             height: { xs: 'clamp(132px, 24dvh, 204px)', sm: 252 },
@@ -323,7 +323,7 @@ export default function HomeHero() {
           minRows={2}
           maxRows={8}
           inputProps={{
-            'aria-label': 'Message Orqaly',
+            'aria-label': 'Message Orqanix',
             enterKeyHint: 'send',
             maxLength: HOME_DRAFT_MAX_LENGTH,
           }}

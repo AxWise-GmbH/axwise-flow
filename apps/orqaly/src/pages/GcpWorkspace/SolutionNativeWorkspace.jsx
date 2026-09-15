@@ -931,7 +931,7 @@ function NativeWorkspace({
                   </Stack>
                 ) : null}
                 <Typography variant="caption" color="text.secondary">
-                  Orqaly checks the saved workflow against the available capability rules. A model
+                  Orqanix checks the saved workflow against the available capability rules. A model
                   assessment is not execution evidence.
                 </Typography>
               </>

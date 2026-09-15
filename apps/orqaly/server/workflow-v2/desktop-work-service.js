@@ -99,7 +99,7 @@ export function desktopWorkMessage(question, runId, artifacts) {
 function projectResult(work, result) {
   const message = result?.message;
   if (result?.route !== 'AXWISE_ONE_SHOT' || !message?.axwiseOperationId || !Array.isArray(message.parts)) {
-    throw new WorkflowCommandError('DESKTOP_WORK_RESULT_INVALID', 'AxWise returned an unexpected work result', 502);
+    throw new WorkflowCommandError('DESKTOP_WORK_RESULT_INVALID', 'The research service returned an unexpected work result', 502);
   }
   const operationStatus = message.parts.find((part) => part.type === 'operation_status');
   const artifacts = message.parts.filter((part) => part.type === 'artifact').map((part, index) => ({
@@ -110,7 +110,7 @@ function projectResult(work, result) {
     contentHash: sha256Hex(part.markdown),
   }));
   if (!operationStatus && (!result.persisted || !artifacts.length)) {
-    throw new WorkflowCommandError('DESKTOP_WORK_RESULT_INVALID', 'AxWise did not persist an artifact', 502);
+    throw new WorkflowCommandError('DESKTOP_WORK_RESULT_INVALID', 'The research service did not save a result', 502);
   }
   return {
     version: VERSION,

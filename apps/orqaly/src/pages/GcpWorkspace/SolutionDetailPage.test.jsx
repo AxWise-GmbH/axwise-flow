@@ -828,7 +828,7 @@ describe('customer solution controls', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: 'Purpose, requirements & supporting evidence' })
     );
-    expect(screen.getByText(/Designed with AxWise from your explicit task/)).toBeInTheDocument();
+    expect(screen.getByText(/Designed from your explicit task/)).toBeInTheDocument();
     expect(screen.queryByText(/not an autonomous AI build/i)).toBeNull();
     expect(
       screen.getByRole('link', { name: 'View source build, answers & review' })

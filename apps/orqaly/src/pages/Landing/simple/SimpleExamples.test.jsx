@@ -26,20 +26,20 @@ afterEach(() => {
 });
 
 describe('SimpleExamples', () => {
-  it('starts with a labelled local-build illustration and its workspace, without screenshots', () => {
+  it('starts with an everyday operations example and its workspace, without screenshots', () => {
     const { container } = renderExamples();
     expect(
-      screen.getByRole('heading', { name: 'One conversation. Many ways to work.' })
+      screen.getByRole('heading', { name: 'One chat. A connected workspace.' })
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Build locally' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Business operations' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-    expect(selectedPanel()).toHaveAttribute('data-case-id', 'local');
-    expect(selectedPanel()).toHaveAccessibleName('From an idea to a working local prototype.');
-    expect(screen.getByText('webhook-development')).toBeInTheDocument();
-    expect(screen.getByLabelText('Example workspace artifacts')).toHaveTextContent(
-      'webhook-handler.js'
+    expect(selectedPanel()).toHaveAttribute('data-case-id', 'operations');
+    expect(selectedPanel()).toHaveAccessibleName('See what needs your attention today.');
+    expect(screen.getByText('operations-review')).toBeInTheDocument();
+    expect(screen.getByLabelText('Example workspace documents and results')).toHaveTextContent(
+      'Operations brief.md'
     );
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('iframe')).toBeNull();
@@ -62,7 +62,9 @@ describe('SimpleExamples', () => {
           pressed: true,
         })
       ).toHaveLength(1);
-      expect(screen.getByLabelText('Example workspace artifacts')).toHaveTextContent(artifact);
+      expect(screen.getByLabelText('Example workspace documents and results')).toHaveTextContent(
+        artifact
+      );
     }
     expect(screen.getAllByText('Explore the desktop')).toHaveLength(1);
     expect(screen.getAllByText(/Interactive product demo/)).toHaveLength(1);
@@ -71,6 +73,7 @@ describe('SimpleExamples', () => {
 
   it('wraps previous and next controls and supports their arrow keys', () => {
     renderExamples();
+    fireEvent.click(screen.getByRole('button', { name: 'Build locally' }));
     fireEvent.click(screen.getByRole('button', { name: 'Previous use case' }));
     expect(selectedPanel()).toHaveAttribute('data-case-id', 'chat');
     fireEvent.click(screen.getByRole('button', { name: 'Next use case' }));
@@ -116,9 +119,9 @@ describe('SimpleExamples', () => {
     act(() => {
       vi.advanceTimersByTime(120_000);
     });
-    expect(selectedPanel()).toHaveAttribute('data-case-id', 'local');
+    expect(selectedPanel()).toHaveAttribute('data-case-id', 'operations');
     fireEvent.keyDown(selectedPanel(), { key: 'ArrowRight' });
-    expect(selectedPanel()).toHaveAttribute('data-case-id', 'local');
+    expect(selectedPanel()).toHaveAttribute('data-case-id', 'operations');
   });
 
   it('uses example records and reusable role context without unsupported live-integration claims', () => {

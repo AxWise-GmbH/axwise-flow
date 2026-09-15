@@ -256,7 +256,7 @@ function AppAccessWorkspace({ client, solution, example, onRefreshSolution }) {
   return (
     <SectionCard
       title="Connect your application"
-      description="Call this Solution from your server without keeping Orqaly open. App access keys allow production invocation only—not editing, deployment or activation."
+      description="Call this Solution from your server without keeping Orqanix open. App access keys allow production invocation only—not editing, deployment or activation."
     >
       <Stack gap={2}>
         <Chip

@@ -2,7 +2,7 @@ export const BUILD_STATES = {
   designing: {
     label: 'Designing workflow',
     color: 'info',
-    next: 'Orqaly is preparing the next native draft for this task.',
+    next: 'Orqanix is preparing the next native draft for this task.',
   },
   validating: {
     label: 'Validating saved workflow',

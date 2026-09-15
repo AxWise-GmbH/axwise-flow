@@ -97,7 +97,7 @@ describe('assistant routing provenance', () => {
       })
     ).toMatchObject({
       label: 'Auto · routing',
-      detail: 'Orqaly is choosing an action for this message.',
+      detail: 'Orqanix is choosing an action for this message.',
     });
   });
 });
@@ -226,9 +226,9 @@ describe('assistant activity view model', () => {
   );
 
   it.each([
-    ['accepted', 'accepted', 'AxWise accepted the request'],
+    ['accepted', 'accepted', 'The reasoning service accepted your request'],
     ['running', 'running', 'Grounded research running'],
-    ['heartbeat', 'heartbeat', 'AxWise is still working'],
+    ['heartbeat', 'heartbeat', 'The reasoning service is still working'],
     ['cancel_requested', 'cancel_requested', 'Stop requested'],
   ])('maps the allowlisted %s progress state to safe product copy', (eventType, key, label) => {
     const view = buildAssistantActivityView({
@@ -305,7 +305,7 @@ describe('assistant activity view model', () => {
     });
 
     expect(view.steps).toContainEqual(
-      expect.objectContaining({ key: 'accepted', label: 'AxWise accepted the request' })
+      expect.objectContaining({ key: 'accepted', label: 'The reasoning service accepted your request' })
     );
   });
 
@@ -346,7 +346,7 @@ describe('assistant activity view model', () => {
     expect(view.steps).toContainEqual(
       expect.objectContaining({
         key: 'heartbeat',
-        label: 'AxWise is still working',
+        label: 'The reasoning service is still working',
         detail: 'The worker lease is healthy.',
       })
     );

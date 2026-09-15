@@ -13,10 +13,13 @@ export default function SimpleFooter({ onSwitchToFull }) {
         >
           <Stack spacing={0.5} alignItems={{ xs: 'center', sm: 'flex-start' }}>
             <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
-              © {new Date().getFullYear()} Orqaly
+              © {new Date().getFullYear()} Orqanix
             </Typography>
             <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
               Built on Goose · Powered by Gemini
+            </Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+              Orqanix · pronounced or-KAN-iks
             </Typography>
           </Stack>
 
@@ -24,21 +27,36 @@ export default function SimpleFooter({ onSwitchToFull }) {
             <Typography
               component={RouterLink}
               to="/privacy"
-              sx={{ fontSize: '0.82rem', color: 'text.secondary', textDecoration: 'none', '&:hover': { color: 'text.primary' } }}
+              sx={{
+                fontSize: '0.82rem',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: 'text.primary' },
+              }}
             >
               Privacy
             </Typography>
             <Typography
               component={RouterLink}
               to="/terms"
-              sx={{ fontSize: '0.82rem', color: 'text.secondary', textDecoration: 'none', '&:hover': { color: 'text.primary' } }}
+              sx={{
+                fontSize: '0.82rem',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: 'text.primary' },
+              }}
             >
               Terms
             </Typography>
             <Typography
               component={RouterLink}
               to="/contact"
-              sx={{ fontSize: '0.82rem', color: 'text.secondary', textDecoration: 'none', '&:hover': { color: 'text.primary' } }}
+              sx={{
+                fontSize: '0.82rem',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: 'text.primary' },
+              }}
             >
               Contact
             </Typography>

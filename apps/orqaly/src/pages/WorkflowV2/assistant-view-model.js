@@ -110,7 +110,7 @@ export function assistantRoutingProvenance(message) {
   if (requestedIntent === 'auto') {
     label = optimistic ? 'Auto · routing' : `Auto → ${resolvedMode.label}`;
     detail = optimistic
-      ? 'Orqaly is choosing an action for this message.'
+      ? 'Orqanix is choosing an action for this message.'
       : reasonDetail(reasonCode, requestedIntent) ||
         `Auto selected ${resolvedMode.label} for this message.`;
   } else if (requestedIntent) {
@@ -452,7 +452,7 @@ function completedStep(route, hasResearchEvidence) {
     return {
       key: 'completed',
       label: 'Goal continued',
-      detail: 'Orqaly linked the existing tracked Goal.',
+      detail: 'Orqanix linked the existing tracked Goal.',
     };
   }
   return {
@@ -482,13 +482,13 @@ function activityStep(event, route, hasResearchEvidence) {
       return {
         key: 'submitted',
         label: 'Goal creation started',
-        detail: 'Orqaly started creating the tracked Goal.',
+        detail: 'Orqanix started creating the tracked Goal.',
       };
     }
     return {
       key: 'submitted',
-      label: 'AxWise dispatch started',
-      detail: 'Orqaly began sending the request to AxWise.',
+      label: 'Request sent to the reasoning service',
+      detail: 'Orqanix began sending your request to the cloud reasoning service.',
     };
   }
   if (event.type === 'running' || upstream === 'running') {
@@ -506,22 +506,22 @@ function activityStep(event, route, hasResearchEvidence) {
           ? intent === 'research'
             ? 'Grounded research running'
             : 'Response running'
-          : 'AxWise request in progress',
+          : 'Reasoning request in progress',
       detail:
-        upstream === 'running' ? mode.pendingDescription : 'AxWise is processing the request.',
+        upstream === 'running' ? mode.pendingDescription : 'The reasoning service is processing your request.',
     };
   }
   if (upstream === 'accepted' && axwiseBacked) {
     return {
       key: 'accepted',
-      label: 'AxWise accepted the request',
+      label: 'The reasoning service accepted your request',
       detail: 'Waiting for execution.',
     };
   }
   if (upstream === 'heartbeat' && axwiseBacked) {
     return {
       key: 'heartbeat',
-      label: 'AxWise is still working',
+      label: 'The reasoning service is still working',
       detail: 'The worker lease is healthy.',
     };
   }
@@ -573,22 +573,22 @@ function fallbackSteps(route, status, hasResearchEvidence) {
   if (axwiseBacked && (ACTIVE_ACTIVITY_TYPES.has(status) || TERMINAL_ACTIVITY_TYPES.has(status))) {
     steps.push({
       key: 'submitted',
-      label: 'AxWise dispatch started',
-      detail: 'Orqaly began sending the request to AxWise.',
+      label: 'Request sent to the reasoning service',
+      detail: 'Orqanix began sending your request to the cloud reasoning service.',
     });
   }
   if (axwiseBacked && status === 'accepted') {
     steps.push({
       key: 'accepted',
-      label: 'AxWise accepted the request',
+      label: 'The reasoning service accepted your request',
       detail: 'Waiting for execution.',
     });
   }
   if (axwiseBacked && ['running', 'cancel_requested'].includes(status)) {
     steps.push({
       key: 'running',
-      label: 'AxWise request in progress',
-      detail: 'Waiting for a terminal result from AxWise.',
+      label: 'Reasoning request in progress',
+      detail: 'Waiting for the reasoning service to finish.',
     });
   }
   if (status === 'cancel_requested') {
@@ -654,7 +654,7 @@ export function buildAssistantActivityView({
   else if (status === 'cancel_requested') headline = 'Stopping…';
   else if (status === 'completed') headline = completedStep(route, hasResearchEvidence).label;
   else if (status === 'accepted') headline = `${mode.label} queued`;
-  else if (intent === 'research') headline = 'Researching with AxWise';
+  else if (intent === 'research') headline = 'Researching your request';
   else headline = 'Assistant is responding';
 
   return {

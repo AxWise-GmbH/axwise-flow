@@ -77,7 +77,7 @@ export default function SolutionSchedules({ client, solution, example }) {
     <SectionCard title="Run automatically">
       <Stack gap={2}>
         <Typography variant="body2">
-          Orqaly triggers this exact n8n release on your schedule. You can leave the browser closed.
+          Orqanix triggers this exact n8n release on your schedule. You can leave the browser closed.
           Each run appears in execution history.
         </Typography>
         {error && (

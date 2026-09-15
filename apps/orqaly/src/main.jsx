@@ -8,6 +8,22 @@ import { initSentry } from './lib/sentry';
 initSentry();
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+// Preview branding is local to this client; the shared AxWise Clerk application
+// and its production instance keep their existing names and configuration.
+const previewLocalization = import.meta.env.MODE === 'gcp-launch' ? {
+  signIn: { start: {
+    title: 'Sign in to Orqanix',
+    titleCombined: 'Continue to Orqanix',
+    subtitle: 'Welcome back. Sign in to continue.',
+    subtitleCombined: 'Sign in or create an account to continue.',
+  } },
+  signUp: { start: {
+    title: 'Create your Orqanix account',
+    titleCombined: 'Continue to Orqanix',
+    subtitle: 'Your account connects your desktop and cloud workspace.',
+    subtitleCombined: 'Sign in or create an account to continue.',
+  } },
+} : undefined;
 if (!clerkPublishableKey) {
   throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for the clean workflow v2 app');
 }
@@ -41,6 +57,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ClerkProvider
       publishableKey={clerkPublishableKey}
+      localization={previewLocalization}
       signInFallbackRedirectUrl="/home"
       signUpFallbackRedirectUrl="/home"
     >

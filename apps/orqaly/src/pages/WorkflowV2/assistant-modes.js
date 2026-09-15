@@ -1,9 +1,9 @@
 export const ASSISTANT_MODES = Object.freeze({
   auto: Object.freeze({
     label: 'Auto',
-    description: 'Orqaly chooses Assistant, Research, or Agent from your message.',
+    description: 'Orqanix chooses Assistant, Research, or Agent from your message.',
     pendingDescription: 'Choosing the right action for this message.',
-    placeholder: 'Ask Orqaly anything…',
+    placeholder: 'Ask Orqanix anything…',
   }),
   assistant: Object.freeze({
     label: 'Assistant',
@@ -14,8 +14,8 @@ export const ASSISTANT_MODES = Object.freeze({
   research: Object.freeze({
     label: 'Research',
     description: 'Run grounded research and return sources.',
-    pendingDescription: 'Running a grounded AxWise research request.',
-    placeholder: 'Describe what Orqaly should research…',
+    pendingDescription: 'Researching your request with supporting sources.',
+    placeholder: 'Describe what Orqanix should research…',
   }),
   goal: Object.freeze({
     // `goal` remains the wire intent while Agent is the user-facing delegation model.

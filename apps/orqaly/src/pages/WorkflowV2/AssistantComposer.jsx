@@ -346,7 +346,7 @@ export function AssistantComposer({
             </Stack>
           )}
           <Typography variant="caption" color="text.secondary">
-            AxWise is the reasoning executor. External actions require a separate exact approval
+            The cloud reasoning service handles research. External actions require a separate exact approval
             before the private n8n runtime can start.
           </Typography>
         </Stack>

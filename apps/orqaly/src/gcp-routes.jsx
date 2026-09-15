@@ -37,7 +37,7 @@ const publicPages = {
   '/pricing': [
     'Pricing',
     'Launch access',
-    'Orqaly is launching with one controlled product surface. Commercial terms will be published before paid access begins.',
+    'Orqanix is launching with one connected workspace. Commercial terms will be published before paid access begins.',
   ],
   '/features': [
     'Product',
@@ -56,12 +56,12 @@ const publicPages = {
   ],
   '/about': [
     'Company',
-    'Orqaly gives agents work and keeps people in control.',
+    'Orqanix gives agents work and keeps people in control.',
     'The retained product centers on a personal workspace, Assistant, durable Goals, agents, capabilities, knowledge, explicit approvals, and evidence-backed results.',
   ],
   '/contact': [
     'Company',
-    'Talk to Orqaly',
+    'Talk to Orqanix',
     'Contact details and launch support channels will be published with the production release.',
   ],
   '/docs': [
@@ -88,7 +88,7 @@ const publicPages = {
   '/status': [
     'Operations',
     'Service status',
-    'The launch status page will report the GCP web, API, database, Clerk authentication, and AxWise execution path.',
+    'The launch status page will report the web app, API, database, authentication, and reasoning service.',
   ],
 };
 
@@ -216,7 +216,7 @@ function ScopedPreviewPage() {
     <GcpPublicPage
       eyebrow="Launch scope"
       title="This optional module is outside the retained workspace."
-      body="The GCP product keeps the agreed core workspace and hides deferred verticals. Return home to see the current Orqaly surface or sign in to open the retained modules."
+      body="The preview keeps the core workspace together. Return home to see Orqanix or sign in to open the available modules."
     />
   );
 }
