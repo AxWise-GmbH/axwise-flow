@@ -100,7 +100,9 @@ test('callback requires exact path, unique matching state, and a valid single co
     assert.equal((await fetch(new URL(path, callback.redirectUri))).status, status);
   }
   const success = new URL(callback.redirectUri); success.search = new URLSearchParams({ code: 'synthetic-code', state: proof.state });
-  assert.equal((await fetch(success)).status, 200);
+  const accepted = await fetch(success);
+  assert.equal(accepted.status, 200);
+  assert.equal(await accepted.text(), 'Sign-in received. Return to Orqanix.');
   assert.equal(await callback.result, 'synthetic-code');
 });
 

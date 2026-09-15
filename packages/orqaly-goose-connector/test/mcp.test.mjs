@@ -16,6 +16,7 @@ test('cloud work is bound to native conversation and token never becomes tool co
   assert.equal(value.isError, false);
   assert.equal(JSON.parse(calls[0][1].body).conversationId, base.conversationId);
   assert.equal(calls[0][1].headers.Authorization, 'Bearer test-secret');
+  assert.equal(calls[0][1].headers['X-Orqaly-Account-Hash'], base.accountHash);
   assert.equal(JSON.stringify(value).includes('test-secret'), false);
   await call('axwise_work_status', { requestId: id });
   assert.equal(calls[1][1].method, 'GET');
@@ -170,6 +171,13 @@ test('stdio handshake exposes native tools and emits only JSON-RPC', async () =>
   await run;
   const replies = received.trim().split('\n').map(JSON.parse);
   assert.equal(replies[0].result.serverInfo.name, 'orqaly');
+  assert.match(replies[0].result.instructions, /^Orqanix project context and on-demand research tools/);
   assert.equal(replies[1].result.tools.length, 4);
   assert.equal(replies[1].result.tools[0].annotations.readOnlyHint, false);
+  assert.deepEqual(replies[1].result.tools.map(tool => tool.name), [
+    'ask_axwise', 'axwise_work_status', 'cancel_axwise_work', 'read_goal_artifact',
+  ]);
+  assert.deepEqual(replies[1].result.tools.map(tool => tool.title), [
+    'Research on demand', 'Read research result', 'Cancel research', 'Read project document',
+  ]);
 });
