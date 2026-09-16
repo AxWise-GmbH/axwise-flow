@@ -1,0 +1,13 @@
+steps:
+  # Copy the immutable upstream image without asking Docker to unpack its layers.
+  # The pinned n8n image contains a layer that older Docker workers cannot
+  # reliably register ("invalid tar header"); crane preserves the registry
+  # bytes and digest while avoiding that unnecessary extraction boundary.
+  - name: 'gcr.io/go-containerregistry/crane@sha256:3a62904867999848c5b16bb9b1eb8b2a7bbaa6061203a90037c91bf33b6b567e'
+    args:
+      - 'copy'
+      - '--platform=linux/amd64'
+      - 'docker.io/n8nio/n8n:2.37.10@sha256:307d6065be25619aa24cfc63a7c2f04ca56d084a08c05c8e9f189a89f353b1ec'
+      - '$_IMAGE_NAME'
+options:
+  logging: CLOUD_LOGGING_ONLY

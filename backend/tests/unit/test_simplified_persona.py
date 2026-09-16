@@ -43,7 +43,7 @@ async def test_simplified_persona():
 
         # Create Gemini model
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+        gemini_model = GoogleModel("models/gemini-3.8-flash", provider=provider)
         print("✅ Gemini model initialized")
 
         # Create PydanticAI agent with SimplifiedPersona

@@ -35,7 +35,7 @@ class GeminiOptimizer:
         Returns:
             Optimized model settings dictionary
         """
-        # Gemini 3.7 uses model-default sampling. Keep the arguments for API
+        # Gemini 3.8 uses model-default sampling. Keep the arguments for API
         # compatibility, but do not return controls that the provider rejects.
         settings = {}
         

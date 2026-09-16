@@ -1,0 +1,102 @@
+{
+  "resultType": "scope_compiled",
+  "artifact": {
+    "artifactId": "00000000-0000-4000-8000-000000000201",
+    "artifactHash": "d88072cf3bcea046c594c7af17e8b9d7e44e9f533bd2877968330164fea2f43d",
+    "kind": "scope",
+    "contentType": "application/json",
+    "payload": {
+      "schemaVersion": "axwise.scope.v2",
+      "objective": "Create an Estonia cat-food launch PRD.",
+      "objectiveSourceSpans": [
+        {
+          "start": 0,
+          "end": 38,
+          "text": "Create an Estonia cat-food launch PRD.",
+          "sha256": "befce77ea8c7bc5df57a0e394b6bf132200a0db92987521a0bb32b813dd19683",
+          "offsetUnit": "utf16_code_units"
+        }
+      ],
+      "topicAnchors": [
+        {
+          "value": "cat-food",
+          "sourceSpans": [
+            {
+              "start": 18,
+              "end": 26,
+              "text": "cat-food",
+              "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8",
+              "offsetUnit": "utf16_code_units"
+            }
+          ]
+        }
+      ],
+      "geography": [
+        "Estonia"
+      ],
+      "evidenceRequirements": [],
+      "deliverables": [
+        "Product requirements document"
+      ],
+      "personas": [],
+      "interviewRequirements": [],
+      "prdRequirements": [],
+      "limits": [],
+      "policies": [],
+      "assumptions": [],
+      "deliverableProfile": {
+        "schemaVersion": "axwise.deliverable-profile.v1",
+        "artifactType": "product_prd",
+        "domain": "Commercial cat-food launch in Estonia",
+        "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+        "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+        "audiences": [
+          "Product decision-makers"
+        ],
+        "nonGoals": [
+          "Do not claim launch authority without verified evidence."
+        ],
+        "requiredSections": [
+          "Acceptance criteria",
+          "Evidence, assumptions, and gaps",
+          "Metrics and validation",
+          "Next steps",
+          "Prioritized requirements",
+          "Problem and desired outcome",
+          "Product thesis, scope, and non-goals",
+          "Risks",
+          "User journeys",
+          "Users, jobs, and pains"
+        ]
+      },
+      "requirements": [
+        {
+          "id": "req-8406b408a1efe030",
+          "category": "deliverable",
+          "description": "Product requirements document",
+          "priority": "P0",
+          "authority": "owner"
+        }
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "acc-54ff9697aaa48c75",
+          "given": "The accepted scope and immutable research are available.",
+          "when": "The product requirements document is evaluated.",
+          "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+          "supports": [
+            "req-8406b408a1efe030"
+          ]
+        }
+      ],
+      "materialClarification": null,
+      "researchInputHash": "1460da0887fd9ed029a3bb0441e5250d1fa0055be3c3d5bdff3ff4d6d48edd2d",
+      "authority": {
+        "canonicalInputHash": "93d549ffa3576a503d39ae090e2b177a8dceb36ef77c40d8e56b09fd35babdaf",
+        "seal": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    "markdown": null,
+    "sourceArtifactIds": []
+  }
+}

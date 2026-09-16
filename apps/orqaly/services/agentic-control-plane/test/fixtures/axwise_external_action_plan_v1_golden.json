@@ -1,0 +1,123 @@
+{
+  "contract_version": "1.0",
+  "canonicalization": "rfc8785_v1",
+  "plan_id": "golden-external-plan-2026-09-04",
+  "plan_version": 1,
+  "content_hash": "1894dc3355a689b42567e777afcb3b558aaea005390c40b9352ae8f0e3e9e53e",
+  "owning_agent_id": "11111111-1111-4111-8111-111111111111",
+  "team_id": "44444444-4444-4444-8444-444444444444",
+  "team_member_ids": [
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222"
+  ],
+  "nodes": [
+    {
+      "node_id": "update-record",
+      "title": "Update one CRM record",
+      "objective": "Apply the approved status to the exact record.",
+      "step_kind": "connector_write",
+      "descriptor": {
+        "contract_version": "1.0",
+        "descriptor_key": "record_update_v1",
+        "schema_version": "1.0",
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "executor_binding": {
+        "contract_version": "1.0",
+        "binding_key": "tool_gateway_connector_v1",
+        "binding_version": "1.0",
+        "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "assigned_agent_id": "22222222-2222-4222-8222-222222222222",
+      "persona_version": {
+        "contract_version": "1.0",
+        "persona_id": "worker-persona",
+        "persona_version": "1",
+        "content_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "requires_distinct_reviewer": false,
+      "dependencies": [],
+      "canonical_input_hash": "8cfaaf2cd017d5a1851172705ed5622c8e1d52cfe172035bf9f1999290134363",
+      "expected_output_schema_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "effect_profile": {
+        "externality": "write",
+        "mutation": "update",
+        "flags": []
+      },
+      "data_egress_profile": {
+        "mode": "policy_bound_external",
+        "destination_classes": [
+          "approved_connector"
+        ],
+        "provider_classes": [
+          "no_training"
+        ],
+        "region_classes": [
+          "eu"
+        ],
+        "permitted_input_classifications": [
+          "internal"
+        ],
+        "permitted_output_classifications": [
+          "internal"
+        ],
+        "redaction_required": true,
+        "dlp_required": true,
+        "provider_retention_policy_required": true,
+        "provider_training_policy_required": true
+      },
+      "external_action": {
+        "version": "orqaly_external_action_spec_v1",
+        "effect_id": "88888888-8888-4888-8888-888888888888",
+        "provider_operation": {
+          "contract_version": "1.0",
+          "operation_key": "records.update",
+          "operation_version": "1.0",
+          "content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "connection": {
+          "connection_reference": "connection-1",
+          "provider_key": "example_crm",
+          "credential_owner_principal_id": "user-1",
+          "requested_scopes": [
+            "records.read",
+            "records.write"
+          ]
+        },
+        "targets": [
+          {
+            "target_type": "business_record",
+            "target_reference": "record-1"
+          }
+        ],
+        "external_preconditions": [
+          {
+            "precondition_type": "record_version",
+            "target_reference": "record-1",
+            "expected_state_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "idempotency": {
+          "scope": "logical_effect",
+          "key": "update-record-1-v1"
+        },
+        "reconciliation": {
+          "strategy": "provider_idempotency"
+        },
+        "compensation": {
+          "strategy": "none"
+        }
+      },
+      "limits": {
+        "maximum_turns": 1,
+        "maximum_tokens": 1000,
+        "maximum_tool_calls": 1,
+        "maximum_runtime_seconds": 30,
+        "maximum_attempts": 1,
+        "maximum_cost_minor": 100,
+        "currency": "EUR"
+      }
+    }
+  ],
+  "created_at": "2026-09-04T10:00:00Z"
+}

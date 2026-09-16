@@ -1,0 +1,105 @@
+# Graphify knowledge graph (generated, don't commit)
+graphify-out/
+
+# Local voice service + helper (run separately; not part of the Vercel app)
+voicebox-main/
+start-voicebox.sh
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vercel
+# Keep local GitHub helpers ignored, but retain the reviewed preview gate in clones.
+.github/
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/workflow-v2-preview-gates.yml
+tmp/
+.claude/
+
+# Throwaway design mockups and root-level scratch files
+mockup-*.png
+mockup-*.html
+*-mockup.html
+*-mockup.png
+
+# Local landing-page experiments (lauku-ola family)
+lauku-ola-*/
+lauku-olas*/
+
+# Throwaway landing-page prototypes (root-level)
+/landing-pages/
+/luckyvegas-empire/
+/nova-jackpot-landing/
+/purrfresh-landing/
+/royalspin-palace/
+/inferno-stake-landing/
+
+# Throwaway design/research artifacts in docs/
+docs/design-briefs/
+docs/banners/
+docs/mockups/
+docs/*-landing/
+docs/business-plan-*
+docs/royalspin-palace/
+docs/luckyvegas-empire-landing/
+docs/novajackpot-landing/
+docs/latvijas-gala-landing/
+docs/latvian-fan-sales-landing/
+docs/latvian-pig-mug-landing/
+docs/daybreaker-landing/
+docs/latam-psp-*
+docs/research-*
+docs/design-brief-*
+docs/casino-landing-pages-spec.md
+docs/CAT_FOOD_LANDING_PAGE_DESIGN_BRIEF.md
+docs/competitor-analysis-*
+docs/qa-*
+docs/swiss-wool-*
+docs/wool-jacket-*
+docs/superpowers/
+docs/_generate-pdfs.mjs
+docs/dashboard-builder-mockup.html
+docs/goals-completion-reliability-plan.md
+
+# Lint reports — regenerate via `npm run lint`, never commit
+eslint-report.json
+eslint-critical-check.json
+
+# Playwright / vitest test results
+test-results/
+playwright-report/
+
+.venv/
+*.zip
+orqalyaxwise-presentation-main 2/
+
+# Supabase CLI local cache
+supabase/.temp/
+.env*

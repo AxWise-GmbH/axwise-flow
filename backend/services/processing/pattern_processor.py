@@ -69,7 +69,7 @@ class PatternProcessor(IProcessor):
                 return
 
             # The shared utility runtime owns and closes the provider transport.
-            # It also rejects any configured model other than exact Gemini 3.7
+            # It also rejects any configured model other than exact Gemini 3.8
             # Flash, so request-scoped processors cannot silently drift models.
             self.model = get_shared_structured_utility_model(api_key)
             self.pattern_agent = Agent(

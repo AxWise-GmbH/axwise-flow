@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100">
+  <!-- Standart mode's tab mark: the line orb, redrawn for 16-32px.
+       Same geometry as RadialSpokeOrb - three-harmonic spoke lengths, two
+       counter-leaning layers - but 40 thick strokes instead of ~130 hairlines,
+       and an opacity floor. At favicon size the real orb averages out to a
+       grey smudge: a stroke below roughly 0.6 alpha simply is not there, and
+       spokes packed closer than a couple of px merge into a solid ring and
+       take the hollow middle with them.
+       No animation: a favicon renders one static snapshot, so keyframes would
+       be dead weight. One fixed light-neutral stroke, because currentColor is
+       not honoured in a favicon and this has to read on both a light and a
+       dark tab strip. -->
+  <g stroke="#D5DAE1" stroke-linecap="round" fill="none" stroke-width="4.4">
+    <line x1="25.00" y1="0.00" x2="44.51" y2="9.02" opacity="0.95"/>
+    <line x1="24.15" y1="6.47" x2="41.61" y2="20.71" opacity="0.97"/>
+    <line x1="21.65" y1="12.50" x2="33.56" y2="29.65" opacity="0.94"/>
+    <line x1="17.68" y1="17.68" x2="23.69" y2="35.73" opacity="0.91"/>
+    <line x1="12.50" y1="21.65" x2="13.45" y2="40.10" opacity="0.90"/>
+    <line x1="6.47" y1="24.15" x2="2.59" y2="41.78" opacity="0.89"/>
+    <line x1="0.00" y1="25.00" x2="-8.05" y2="39.69" opacity="0.87"/>
+    <line x1="-6.47" y1="24.15" x2="-17.75" y2="35.66" opacity="0.86"/>
+    <line x1="-12.50" y1="21.65" x2="-27.87" y2="31.55" opacity="0.90"/>
+    <line x1="-17.68" y1="17.68" x2="-38.57" y2="25.57" opacity="0.96"/>
+    <line x1="-21.65" y1="12.50" x2="-45.93" y2="15.40" opacity="1.00"/>
+    <line x1="-24.15" y1="6.47" x2="-46.36" y2="2.87" opacity="0.97"/>
+    <line x1="-25.00" y1="0.00" x2="-41.74" y2="-8.46" opacity="0.90"/>
+    <line x1="-24.15" y1="-6.47" x2="-36.36" y2="-18.10" opacity="0.87"/>
+    <line x1="-21.65" y1="-12.50" x2="-30.89" y2="-27.29" opacity="0.88"/>
+    <line x1="-17.68" y1="-17.68" x2="-23.29" y2="-35.13" opacity="0.90"/>
+    <line x1="-12.50" y1="-21.65" x2="-13.39" y2="-39.94" opacity="0.90"/>
+    <line x1="-6.47" y1="-24.15" x2="-2.62" y2="-42.41" opacity="0.90"/>
+    <line x1="-0.00" y1="-25.00" x2="8.81" y2="-43.46" opacity="0.93"/>
+    <line x1="6.47" y1="-24.15" x2="20.46" y2="-41.12" opacity="0.96"/>
+    <line x1="12.50" y1="-21.65" x2="29.63" y2="-33.54" opacity="0.94"/>
+    <line x1="17.68" y1="-17.68" x2="34.64" y2="-22.96" opacity="0.89"/>
+    <line x1="21.65" y1="-12.50" x2="37.91" y2="-12.72" opacity="0.86"/>
+    <line x1="24.15" y1="-6.47" x2="41.97" y2="-2.60" opacity="0.90"/>
+  </g>
+  <g stroke="#D5DAE1" stroke-linecap="round" fill="none" stroke-width="3" opacity="0.5">
+    <line x1="26.28" y1="3.44" x2="38.45" y2="-0.77" opacity="0.92"/>
+    <line x1="22.96" y1="13.23" x2="35.80" y2="14.00" opacity="0.92"/>
+    <line x1="16.15" y1="21.01" x2="26.57" y2="25.52" opacity="0.87"/>
+    <line x1="6.88" y1="25.59" x2="14.50" y2="33.12" opacity="0.85"/>
+    <line x1="-3.44" y1="26.28" x2="0.78" y2="38.88" opacity="0.93"/>
+    <line x1="-13.23" y1="22.96" x2="-14.28" y2="36.51" opacity="0.94"/>
+    <line x1="-21.01" y1="16.15" x2="-25.16" y2="26.18" opacity="0.85"/>
+    <line x1="-25.59" y1="6.88" x2="-33.28" y2="14.57" opacity="0.85"/>
+    <line x1="-26.28" y1="-3.44" x2="-38.00" y2="0.76" opacity="0.91"/>
+    <line x1="-22.96" y1="-13.23" x2="-35.70" y2="-13.96" opacity="0.92"/>
+    <line x1="-16.15" y1="-21.01" x2="-28.47" y2="-27.36" opacity="0.95"/>
+    <line x1="-6.88" y1="-25.59" x2="-15.73" y2="-35.93" opacity="0.94"/>
+    <line x1="3.44" y1="-26.28" x2="-0.71" y2="-35.59" opacity="0.83"/>
+    <line x1="13.23" y1="-22.96" x2="12.73" y2="-32.57" opacity="0.81"/>
+    <line x1="21.01" y1="-16.15" x2="26.54" y2="-27.63" opacity="0.92"/>
+    <line x1="25.59" y1="-6.88" x2="35.95" y2="-15.74" opacity="0.95"/>
+  </g>
+</svg>

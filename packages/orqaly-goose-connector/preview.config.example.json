@@ -1,0 +1,6 @@
+{
+  "issuer": "https://distinct-rattler-76.clerk.accounts.dev",
+  "clientId": "UNciLDGl5PPmF9M8",
+  "apiUrl": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app",
+  "scopes": ["offline_access", "profile"]
+}

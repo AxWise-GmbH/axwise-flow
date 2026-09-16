@@ -1,0 +1,10 @@
+{
+  "name": "@orqaly/goose-connector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "orqaly-goose-auth": "./src/cli.mjs" },
+  "scripts": { "test": "node --test test/*.test.mjs", "auth": "node src/cli.mjs" },
+  "dependencies": { "@napi-rs/keyring": "2.0.0" }
+}

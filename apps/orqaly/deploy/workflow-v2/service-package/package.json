@@ -1,0 +1,14 @@
+{
+  "name": "orqaly-workflow-v2-service",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "@clerk/express": "2.1.63",
+    "canonicalize": "4.0.0",
+    "express": "5.2.1",
+    "google-auth-library": "10.3.0",
+    "pg": "8.23.0",
+    "zod": "4.3.6"
+  }
+}

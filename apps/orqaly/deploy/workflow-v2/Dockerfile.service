@@ -1,0 +1,16 @@
+FROM node:22-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY deploy/workflow-v2/service-package/package.json ./package.json
+COPY deploy/workflow-v2/service-package/package-lock.json ./package-lock.json
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY lib/workflow-v2 ./lib/workflow-v2
+COPY server/workflow-v2 ./server/workflow-v2
+COPY shared/workflow-v2 ./shared/workflow-v2
+COPY services/agentic-control-plane/src/domain ./services/agentic-control-plane/src/domain
+COPY services/agentic-control-plane/src/executors ./services/agentic-control-plane/src/executors
+COPY infra/n8n/executor-bindings.json ./n8n/executor-bindings.json
+COPY infra/n8n/workflows ./n8n/workflows
+COPY infra/n8n/nodes-orqaly-bounded-http ./infra/n8n/nodes-orqaly-bounded-http
+USER node
+CMD ["node", "server/workflow-v2/api-main.js"]

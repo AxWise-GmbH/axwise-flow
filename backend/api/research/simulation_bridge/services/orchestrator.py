@@ -56,7 +56,7 @@ class SimulationOrchestrator:
         # and offline tooling can import this module without requiring configuration.
         # Keep every durable research stage on the deployment-pinned Gemini model.
         # A hard-coded preview model here previously made grounded runs mixed-model
-        # even when production declared GEMINI_MODEL=models/gemini-3.7-flash.
+        # even when production declared GEMINI_MODEL=models/gemini-3.8-flash.
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if api_key:
             self.model = get_shared_research_model(api_key)

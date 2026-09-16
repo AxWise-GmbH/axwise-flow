@@ -1,0 +1,115 @@
+/* Themed micro-animations for the 4 page-hero illustrations
+   (KnowledgeBase, TaskManager, Projects, Replicators).
+   Wrapped in prefers-reduced-motion so they're disabled when the user opts out. */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* ── KnowledgeBaseArt — pages flutter, beam pulses ───────────────── */
+  @keyframes pageArtKbBeam {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.85; }
+  }
+  .page-art-kb__beam {
+    animation: pageArtKbBeam 2.8s ease-in-out infinite;
+  }
+  @keyframes pageArtKbPage {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-2px); }
+  }
+  .page-art-kb__page {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: pageArtKbPage 2.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.3s);
+  }
+
+  /* ── TaskManagerArt — kanban cards slide across columns ───────────── */
+  @keyframes pageArtTaskCard {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    50%      { transform: translateY(-3px); opacity: 0.85; }
+  }
+  .page-art-task__card {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: pageArtTaskCard 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.2s);
+  }
+  @keyframes pageArtTaskCheck {
+    0%   { stroke-dashoffset: 14; }
+    60%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 0; }
+  }
+  .page-art-task__check {
+    stroke-dasharray: 14;
+    animation: pageArtTaskCheck 3.2s ease-in-out infinite;
+  }
+
+  /* ── ProjectsArt — folder tabs pulse, timeline dots blink ─────────── */
+  @keyframes pageArtProjPulse {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
+  }
+  .page-art-proj__dot {
+    animation: pageArtProjPulse 2.0s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.35s);
+  }
+  @keyframes pageArtProjBar {
+    0%   { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+  }
+  .page-art-proj__progress {
+    transform-box: fill-box;
+    transform-origin: 0% 50%;
+    animation: pageArtProjBar 3.6s ease-in-out infinite alternate;
+  }
+
+  /* ── WorkflowArt — wires march, action nodes bob, checkmark draws ── */
+  @keyframes pageArtWfWire {
+    to { stroke-dashoffset: -16; }
+  }
+  .page-art-wf__wire {
+    stroke-dasharray: 4 6;
+    animation: pageArtWfWire 1.6s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.18s);
+  }
+  @keyframes pageArtWfNode {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(2px); }
+  }
+  .page-art-wf__node {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: pageArtWfNode 2.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.4s);
+  }
+  @keyframes pageArtWfCheck {
+    0%   { stroke-dashoffset: 16; }
+    60%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 0; }
+  }
+  .page-art-wf__check {
+    stroke-dasharray: 16;
+    animation: pageArtWfCheck 3.2s ease-in-out infinite;
+  }
+
+  /* ── ReplicatorsArt — clones radiate outward ─────────────────────── */
+  @keyframes pageArtRepClone {
+    0%   { transform: scale(0.6); opacity: 0; }
+    40%  { opacity: 1; }
+    100% { transform: scale(1); opacity: 0.85; }
+  }
+  .page-art-rep__clone {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: pageArtRepClone 2.6s ease-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.45s);
+  }
+  @keyframes pageArtRepRay {
+    0%, 100% { opacity: 0.15; }
+    50%      { opacity: 0.55; }
+  }
+  .page-art-rep__ray {
+    animation: pageArtRepRay 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.2s);
+  }
+}

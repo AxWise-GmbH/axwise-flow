@@ -1,0 +1,100 @@
+{
+  "operationId": "10000000-0000-4000-8000-000000000401",
+  "operationType": "CompileScopeV3",
+  "owner": {
+    "tenantId": "10000000-0000-4000-8000-000000000402",
+    "organizationId": null,
+    "userId": "user_contractfixture123"
+  },
+  "workflow": {
+    "runId": "10000000-0000-4000-8000-000000000403",
+    "stageId": "10000000-0000-4000-8000-000000000404",
+    "stageAttemptId": "10000000-0000-4000-8000-000000000405"
+  },
+  "contractVersion": "axwise.operation.v2",
+  "canonicalInputHash": "47f22aaf2746e6add69a7d0c590926dd6130b60baaecdcb100302117114bd7c0",
+  "input": {
+    "type": "CompileScopeV3",
+    "request": "Turn this into a launch plan 🚀.\n\nOWNER_PRIOR\nResearch café demand in Tallinn 🐈.\n\nASSISTANT_REFERENCE\nEvidence suggests a staged pilot.",
+    "assistantContext": {
+      "type": "AssistantContextEnvelopeV1",
+      "source": "orqaly_assistant_thread",
+      "purpose": "resolve_deictic_goal_instruction",
+      "threadId": "10000000-0000-4000-8000-000000000001",
+      "currentMessageId": "10000000-0000-4000-8000-000000000102",
+      "currentTurnId": "10000000-0000-4000-8000-000000000012",
+      "currentMessageHash": "a92859bc4f2cc294b78d4120288eb413d8c98c33ac8c10ff6869cb0f37b5f8ea",
+      "instruction": {
+        "content": "Turn this into a launch plan 🚀.",
+        "authority": "owner_current",
+        "provenance": "persisted_owner_message_projection",
+        "sourceSpan": {
+          "start": 0,
+          "end": 32,
+          "text": "Turn this into a launch plan 🚀.",
+          "sha256": "fc153fac9cc95b7456d96904dfdfd51edc4267c79e912535e0792d8b38fd8bba",
+          "offsetUnit": "utf16_code_units"
+        }
+      },
+      "selectionPolicy": "recent_completed_pairs_retry_folded_utf16_v1",
+      "authorityPolicy": "current_over_prior_over_assistant_reference_v1",
+      "turns": [
+        {
+          "rootTurnId": "10000000-0000-4000-8000-000000000011",
+          "route": "DIRECT_ANSWER",
+          "user": {
+            "messageId": "10000000-0000-4000-8000-000000000101",
+            "turnId": "10000000-0000-4000-8000-000000000011",
+            "contentKinds": [
+              "text"
+            ],
+            "content": "Research café demand in Tallinn 🐈.",
+            "contentSha256": "24a644762db5b5ac0a7ed9783e68fb0a80502e77838165ae7a2da729a25c54f5",
+            "sourceMessageHash": "4524d67ecc345c4da5ddccd6df4fd70d3dce97ddb3ec81f971b8dbd0334c6e8f",
+            "truncated": false,
+            "authority": "owner_prior",
+            "provenance": "persisted_owner_message",
+            "sourceSpan": {
+              "start": 46,
+              "end": 81,
+              "text": "Research café demand in Tallinn 🐈.",
+              "sha256": "24a644762db5b5ac0a7ed9783e68fb0a80502e77838165ae7a2da729a25c54f5",
+              "offsetUnit": "utf16_code_units"
+            }
+          },
+          "assistant": {
+            "messageId": "10000000-0000-4000-8000-000000000121",
+            "turnId": "10000000-0000-4000-8000-000000000011",
+            "contentKinds": [
+              "text"
+            ],
+            "content": "Evidence suggests a staged pilot.",
+            "contentSha256": "a18e666736039368a4a9043457de2624d806bf78985165f32fb10f61b4bd8526",
+            "sourceMessageHash": "1f4b67018dee31a76e95b34134442da3f7ebc5cfa04fafed608faadb81b3cf1f",
+            "truncated": false,
+            "authority": "assistant_reference",
+            "provenance": "axwise_operation_output",
+            "sourceSpan": {
+              "start": 103,
+              "end": 136,
+              "text": "Evidence suggests a staged pilot.",
+              "sha256": "a18e666736039368a4a9043457de2624d806bf78985165f32fb10f61b4bd8526",
+              "offsetUnit": "utf16_code_units"
+            }
+          }
+        }
+      ],
+      "omittedTurnCount": 0,
+      "truncatedMessageCount": 0,
+      "envelopeHash": "2428b5d28b484e28fe38d50d1aba5c72026763faa178dd95736891b3adc50a6e"
+    },
+    "objectiveOnlyContext": [],
+    "safeDefaults": {
+      "geography": [],
+      "acceptedSourceTypes": [],
+      "assumptions": [],
+      "limits": [],
+      "policies": []
+    }
+  }
+}

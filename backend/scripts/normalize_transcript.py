@@ -219,7 +219,7 @@ Example response:
     try:
         import json
         response = await client.aio.models.generate_content(
-            model="gemini-3.7-flash",
+            model="gemini-3.8-flash",
             contents=prompt
         )
         response_text = response.text.strip()

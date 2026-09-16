@@ -1,0 +1,12 @@
+Glass icon SVGs in this directory are derived from the
+"Liquid Glass Icons" pack by Icons8, licensed under the MIT License
+(see LICENSE in this directory).
+
+Source: https://github.com/icons8/liquid-glass-icons
+
+Modifications made when vendoring:
+  - Converted from .tsx to .jsx (TypeScript types stripped).
+  - Replaced gradient `stopColor: "#fff"` with `stopColor: "currentColor"`
+    so icons can be tinted via CSS `color`.
+
+Re-vendoring is handled by scripts/vendor-glass-icons.mjs.

@@ -1,0 +1,136 @@
+name: AxWise workflow v2
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/workflow-v2.yml"
+      - "scripts/build-monorepo-preview.sh"
+      - "backend/Dockerfile.workflow-v2"
+      - "backend/workflow_v2_requirements.*"
+      - "backend/api/app.py"
+      - "backend/api/routes/workflow_v2_operations.py"
+      - "backend/api/workflow_v2_app.py"
+      - "backend/api/workflow_v2_worker_app.py"
+      - "backend/database/workflow_v2/**"
+      - "backend/domain/workflow_v2/**"
+      - "backend/services/generative/gemini_search_service.py"
+      - "backend/services/generative/searxng_search_service.py"
+      - "backend/services/llm/gemini_runtime.py"
+      - "backend/services/workflow_v2/**"
+      - "backend/tests/scripts/test_workflow_v2_cloudbuild_contract.py"
+      - "backend/tests/scripts/test_gemini_search_runtime.py"
+      - "backend/tests/workflow_v2/**"
+      - "deploy/searxng/**"
+      - "deploy/workflow-v2/**"
+      - "scripts/deploy-workflow-v2-searxng-cloud-run.sh"
+  pull_request:
+    paths:
+      - ".github/workflows/workflow-v2.yml"
+      - "scripts/build-monorepo-preview.sh"
+      - "backend/Dockerfile.workflow-v2"
+      - "backend/workflow_v2_requirements.*"
+      - "backend/api/app.py"
+      - "backend/api/routes/workflow_v2_operations.py"
+      - "backend/api/workflow_v2_app.py"
+      - "backend/api/workflow_v2_worker_app.py"
+      - "backend/database/workflow_v2/**"
+      - "backend/domain/workflow_v2/**"
+      - "backend/services/generative/gemini_search_service.py"
+      - "backend/services/generative/searxng_search_service.py"
+      - "backend/services/llm/gemini_runtime.py"
+      - "backend/services/workflow_v2/**"
+      - "backend/tests/scripts/test_workflow_v2_cloudbuild_contract.py"
+      - "backend/tests/scripts/test_gemini_search_runtime.py"
+      - "backend/tests/workflow_v2/**"
+      - "deploy/searxng/**"
+      - "deploy/workflow-v2/**"
+      - "scripts/deploy-workflow-v2-searxng-cloud-run.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-v2:
+    name: Contracts, PostgreSQL, and image
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: axwise_v2_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d axwise_v2_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      AXWISE_SERVICE_URL: https://axwise-ci.invalid
+      AXWISE_V2_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/axwise_v2_test
+      AXWISE_V2_MIGRATION_DATABASE_URL: postgresql://axwise_v2_migration_admin@127.0.0.1:5432/axwise_v2_test
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/workflow_v2_requirements.lock
+            backend/workflow_v2_test_requirements.txt
+      - name: Install locked workflow-v2 dependencies
+        run: >-
+          python -m pip install --no-deps
+          -r backend/workflow_v2_test_requirements.txt
+      - name: Validate locked dependency graph
+        run: python -m pip check
+      - name: Verify clean baseline checksum
+        working-directory: backend/database/workflow_v2
+        run: sha256sum --check SCHEMA_SHA256
+      - name: Prepare Cloud SQL-equivalent migration role
+        run: >-
+          psql "${AXWISE_V2_TEST_DATABASE_URL}"
+          --set=ON_ERROR_STOP=1
+          --command="CREATE ROLE axwise_v2_migration_admin LOGIN CREATEROLE;
+          ALTER DATABASE axwise_v2_test OWNER TO axwise_v2_migration_admin;"
+      - name: Apply clean baseline migrations
+        run: >-
+          psql "${AXWISE_V2_MIGRATION_DATABASE_URL}" --set=ON_ERROR_STOP=1
+          --file=backend/database/workflow_v2/001_cognitive_operations.sql
+          --file=backend/database/workflow_v2/002_assistant_turn.sql
+          --file=backend/database/workflow_v2/003_assistant_runtime.sql
+          --file=backend/database/workflow_v2/004_operation_events.sql
+          --file=backend/database/workflow_v2/005_compile_scope_v3.sql
+          --file=backend/database/workflow_v2/006_prepare_solution.sql
+          --file=backend/database/workflow_v2/007_prepare_solution_v2.sql
+          --file=backend/database/workflow_v2/008_capability_analysis.sql
+          --file=backend/database/workflow_v2/009_capability_simulation.sql
+      - name: Run pure contracts and durable worker/API tests
+        run: >-
+          python -m pytest -q
+          --confcutdir=backend/tests/workflow_v2
+          backend/tests/workflow_v2
+          --ignore=backend/tests/workflow_v2/test_operation_store_postgres.py
+          --ignore=backend/tests/workflow_v2/test_capability_operations_postgres.py
+      - name: Run grounded-search runtime tests
+        run: >-
+          python -m pytest -q
+          --confcutdir=backend/tests/scripts
+          backend/tests/scripts/test_gemini_search_runtime.py
+      - name: Run workflow-v2 image and search-deploy contracts
+        run: >-
+          python -m pytest -q
+          --confcutdir=backend/tests/scripts
+          backend/tests/scripts/test_workflow_v2_cloudbuild_contract.py
+      - name: Run real PostgreSQL RLS and lease tests
+        run: >-
+          python -m pytest -q
+          --confcutdir=backend/tests/workflow_v2
+          backend/tests/workflow_v2/test_operation_store_postgres.py
+          backend/tests/workflow_v2/test_capability_operations_postgres.py
+      - name: Build dedicated API and worker image
+        run: docker build --file backend/Dockerfile.workflow-v2 --tag axwise-workflow-v2:ci backend

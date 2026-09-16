@@ -214,7 +214,7 @@ export async function generatePersonaImage(
 /**
  * Search for local news using Gemini's Google Search grounding.
  *
- * This uses Gemini 3.7 Flash's native integration with Google Search to fetch
+ * This uses Gemini 3.8 Flash's native integration with Google Search to fetch
  * news and events for a specific location.
  *
  * Supports both:

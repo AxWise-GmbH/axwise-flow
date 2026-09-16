@@ -1,0 +1,112 @@
+/* Themed micro-animations for the 4 DashboardHub Overview illustrations.
+   Each illustration JSX imports this file once. All animations are wrapped
+   in prefers-reduced-motion so they're disabled when the user opts out.
+
+   Targets: SVG elements decorated with the per-tile classes below. We use
+   opacity + transform + stroke-dashoffset only (compositor-only paints).
+   `transform-box: fill-box` + `transform-origin` pins SVG transforms to the
+   element's own bounding box. */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* ── DashboardsArt — bars in the center screen pulse up/down like an
+     equalizer, staggered. ───────────────────────────────────────────── */
+  @keyframes hubArtDashBar {
+    0%, 100% { transform: scaleY(1);    opacity: 0.85; }
+    50%      { transform: scaleY(0.55); opacity: 1;    }
+  }
+  .hub-art-dash__bar {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: hubArtDashBar 1.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.18s);
+  }
+
+  /* ── ReportsArt — donut arc rotates slowly + bars rise/fall. ──────── */
+  @keyframes hubArtRepDonut {
+    to { stroke-dashoffset: -60; }
+  }
+  .hub-art-rep__donut {
+    stroke-dasharray: 12 24;
+    animation: hubArtRepDonut 3.2s linear infinite;
+  }
+  @keyframes hubArtRepBar {
+    0%, 100% { transform: scaleY(1);   opacity: 0.85; }
+    50%      { transform: scaleY(0.6); opacity: 1;    }
+  }
+  .hub-art-rep__bar {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: hubArtRepBar 1.8s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.20s);
+  }
+
+  /* ── ResultsArt — rain flows downward, checkmark pulses, cards bob. ─ */
+  @keyframes hubArtResRain {
+    to { stroke-dashoffset: -10; }
+  }
+  .hub-art-res__rain {
+    animation: hubArtResRain 1.2s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.15s);
+  }
+  @keyframes hubArtResCheck {
+    0%, 100% { transform: scale(1);    opacity: 0.85; }
+    50%      { transform: scale(1.10); opacity: 1;    }
+  }
+  .hub-art-res__check {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hubArtResCheck 2.4s ease-in-out infinite;
+  }
+  @keyframes hubArtResCard {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-1.5px); }
+  }
+  .hub-art-res__card {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hubArtResCard 2.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.30s);
+  }
+
+  /* ── CommunicatorArt — three typing dots bounce, live pulse breathes. */
+  @keyframes hubArtCommDot {
+    0%, 80%, 100% { transform: translateY(0);    opacity: 0.55; }
+    40%           { transform: translateY(-2px); opacity: 1;    }
+  }
+  .hub-art-comm__dot {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hubArtCommDot 1.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.18s);
+  }
+  @keyframes hubArtCommPulse {
+    0%, 100% { transform: scale(1);    opacity: 0.18; }
+    50%      { transform: scale(1.45); opacity: 0.05; }
+  }
+  .hub-art-comm__pulse {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hubArtCommPulse 2.2s ease-in-out infinite;
+  }
+
+  /* ── BuildDashboardArt — brain hot nodes blink + wires to panels
+     have marching dashes. ───────────────────────────────────────────── */
+  @keyframes hubArtBuildHot {
+    0%, 100% { opacity: 0.25; transform: scale(1); }
+    50%      { opacity: 0.55; transform: scale(1.30); }
+  }
+  .hub-art-build__hot {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hubArtBuildHot 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.40s);
+  }
+  @keyframes hubArtBuildWire {
+    to { stroke-dashoffset: -10; }
+  }
+  .hub-art-build__wire {
+    animation: hubArtBuildWire 1.6s linear infinite;
+    animation-delay: calc(var(--i, 0) * 0.20s);
+  }
+}

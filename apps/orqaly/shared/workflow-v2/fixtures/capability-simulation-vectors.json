@@ -1,0 +1,4208 @@
+{
+  "schemaVersion": "orqaly.capability-simulation-vectors.v1",
+  "provenance": "Pure Python domain vectors using synthetic text and illustrative artifact references; references do not establish ownership or authenticity.",
+  "cases": [
+    {
+      "name": "unicode_cohort",
+      "request": {
+        "requested": true,
+        "scenario": {
+          "id": "scenario",
+          "description": "A fictional product planning scenario.",
+          "targetAudience": "Synthetic operations teams",
+          "problem": "Explore a fictional manual handoff."
+        },
+        "stakeholders": [
+          {
+            "stakeholderId": "group-0",
+            "label": "Group 0",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              },
+              {
+                "questionId": "question-2",
+                "text": "What hypothetical constraint 2 matters?"
+              }
+            ]
+          },
+          {
+            "stakeholderId": "group-1",
+            "label": "Group 1",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              },
+              {
+                "questionId": "question-2",
+                "text": "What hypothetical constraint 2 matters?"
+              }
+            ]
+          }
+        ],
+        "grounding": {
+          "mode": "scenario_only",
+          "sourceArtifacts": []
+        },
+        "sampling": {
+          "seed": 19,
+          "profileVersion": "hash_uniform_v1"
+        },
+        "responseStyle": "mixed",
+        "generationProfile": "bounded_v1"
+      },
+      "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+      "acceptedScope": {
+        "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+        "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "scope"
+      },
+      "grounding": [],
+      "candidate": {
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 305213,
+              "conscientiousness": 338647,
+              "extraversion": 494170,
+              "agreeableness": 307193,
+              "neuroticism": 600397
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "stakeholderId": "group-0",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 434797,
+              "conscientiousness": 421908,
+              "extraversion": 501444,
+              "agreeableness": 659607,
+              "neuroticism": 653888
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+            "stakeholderId": "group-1",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 640122,
+              "conscientiousness": 384307,
+              "extraversion": 606952,
+              "agreeableness": 682337,
+              "neuroticism": 315030
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+            "stakeholderId": "group-1",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 487831,
+              "conscientiousness": 628219,
+              "extraversion": 488011,
+              "agreeableness": 380776,
+              "neuroticism": 493355
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "interviews": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          }
+        ]
+      },
+      "plan": [
+        {
+          "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+          "stakeholderId": "group-0",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 305213,
+            "conscientiousness": 338647,
+            "extraversion": 494170,
+            "agreeableness": 307193,
+            "neuroticism": 600397
+          }
+        },
+        {
+          "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+          "stakeholderId": "group-0",
+          "slotIndex": 2,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 434797,
+            "conscientiousness": 421908,
+            "extraversion": 501444,
+            "agreeableness": 659607,
+            "neuroticism": 653888
+          }
+        },
+        {
+          "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+          "stakeholderId": "group-1",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 640122,
+            "conscientiousness": 384307,
+            "extraversion": 606952,
+            "agreeableness": 682337,
+            "neuroticism": 315030
+          }
+        },
+        {
+          "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+          "stakeholderId": "group-1",
+          "slotIndex": 2,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 487831,
+            "conscientiousness": 628219,
+            "extraversion": 488011,
+            "agreeableness": 380776,
+            "neuroticism": 493355
+          }
+        }
+      ],
+      "artifact": {
+        "schemaVersion": "axwise.simulation.v1",
+        "methodVersion": "axwise.simulate.bounded.v1",
+        "origin": "synthetic",
+        "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+        "acceptedScope": {
+          "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "request": {
+          "requested": true,
+          "scenario": {
+            "id": "scenario",
+            "description": "A fictional product planning scenario.",
+            "targetAudience": "Synthetic operations teams",
+            "problem": "Explore a fictional manual handoff."
+          },
+          "stakeholders": [
+            {
+              "stakeholderId": "group-0",
+              "label": "Group 0",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 2,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                },
+                {
+                  "questionId": "question-2",
+                  "text": "What hypothetical constraint 2 matters?"
+                }
+              ]
+            },
+            {
+              "stakeholderId": "group-1",
+              "label": "Group 1",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 2,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                },
+                {
+                  "questionId": "question-2",
+                  "text": "What hypothetical constraint 2 matters?"
+                }
+              ]
+            }
+          ],
+          "grounding": {
+            "mode": "scenario_only",
+            "sourceArtifacts": []
+          },
+          "sampling": {
+            "seed": 19,
+            "profileVersion": "hash_uniform_v1"
+          },
+          "responseStyle": "mixed",
+          "generationProfile": "bounded_v1"
+        },
+        "requestHash": "17c759ccef80ea67e67714e07b7a6f0b5c294d39c640b9bb84dc298105a21657",
+        "sourceArtifacts": [],
+        "grounding": {
+          "status": "not_requested",
+          "selectedReferences": []
+        },
+        "samplingReproducibility": "sampling_only",
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 305213,
+              "conscientiousness": 338647,
+              "extraversion": 494170,
+              "agreeableness": 307193,
+              "neuroticism": 600397
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "stakeholderId": "group-0",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 434797,
+              "conscientiousness": 421908,
+              "extraversion": 501444,
+              "agreeableness": 659607,
+              "neuroticism": 653888
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+            "stakeholderId": "group-1",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 640122,
+              "conscientiousness": 384307,
+              "extraversion": 606952,
+              "agreeableness": 682337,
+              "neuroticism": 315030
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+            "stakeholderId": "group-1",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 487831,
+              "conscientiousness": 628219,
+              "extraversion": 488011,
+              "agreeableness": 380776,
+              "neuroticism": 493355
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "613f7fb8-c9c9-5d08-b9aa-b52bad2158c4",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "34a499a50087dae724a9c4e0b45f42818c661a34f424a04ec90ff553c0818c76",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-1d011eeeee2828acec74219cd777ad2f49dd3c90a74501da8ad54ceb2fd123d6",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-1d011eeeee2828acec74219cd777ad2f49dd3c90a74501da8ad54ceb2fd123d6",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-c197e4f54b6266d76059563ef8e305030c668943cbffe449fe85a8860e0b7691",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-c197e4f54b6266d76059563ef8e305030c668943cbffe449fe85a8860e0b7691",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "a114e138-8a98-5d47-a4be-e24944a69989",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "34a499a50087dae724a9c4e0b45f42818c661a34f424a04ec90ff553c0818c76",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-dccf23c663c6db57b8be635e108a62dd5a63430959bf3d9e31d08291c54cce93",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-dccf23c663c6db57b8be635e108a62dd5a63430959bf3d9e31d08291c54cce93",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-f0e167f26cb3a660c4969a74a55e43b929dcde497e506f91dd7c4fc9741f1ce7",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-f0e167f26cb3a660c4969a74a55e43b929dcde497e506f91dd7c4fc9741f1ce7",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-a71b6c2cc223c9b0a61d4f5b1ce03e81a757b32df48fa2b360025bafae84ab2b",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-a71b6c2cc223c9b0a61d4f5b1ce03e81a757b32df48fa2b360025bafae84ab2b",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "88a6f768-59ae-5cd4-b9bd-ae52b302ac16",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "34a499a50087dae724a9c4e0b45f42818c661a34f424a04ec90ff553c0818c76",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-1"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-b807cfbb3af2b8ea147d6247a4daa06bdd20f8c59222dab2625f1886775ac277",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-b807cfbb3af2b8ea147d6247a4daa06bdd20f8c59222dab2625f1886775ac277",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-4423d919b22147515cf9ae42fc5c4692f2e8d1e00e96244d139f1008766225e4",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-4423d919b22147515cf9ae42fc5c4692f2e8d1e00e96244d139f1008766225e4",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-198d2cee359665895b277be7dd69bf37612af4c7e8ad2af93f00cb6ecb98320f",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-198d2cee359665895b277be7dd69bf37612af4c7e8ad2af93f00cb6ecb98320f",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "05ad0179-2de7-556e-a699-dea165710fab",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "34a499a50087dae724a9c4e0b45f42818c661a34f424a04ec90ff553c0818c76",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-1"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d0ac21a7559b7c97cca52cced99611a94fed9b0ecfa8f3895c1eaad8d06a1513",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d0ac21a7559b7c97cca52cced99611a94fed9b0ecfa8f3895c1eaad8d06a1513",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-d3290c41f833d8110ccc47ce9c20bb8d42ba3cf65138c8794b0b94110e7b9ec8",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d3290c41f833d8110ccc47ce9c20bb8d42ba3cf65138c8794b0b94110e7b9ec8",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-abae58a6e2981d52683aa054864b006b47540614deda922a04ff9ea1a848f710",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-abae58a6e2981d52683aa054864b006b47540614deda922a04ff9ea1a848f710",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "cohort": {
+          "expectedParticipants": 4,
+          "completedParticipants": 4,
+          "expectedResponses": 12,
+          "completedResponses": 12,
+          "complete": true
+        },
+        "limitations": [
+          "All participants and responses are synthetic, not human testimony.",
+          "Sampling is reproducible; model-generated text is not guaranteed to repeat.",
+          "This cohort does not establish population prevalence, customer demand or predictive accuracy.",
+          "Personality vectors use a versioned illustrative uniform profile, not measured population traits.",
+          "No external grounding was requested or applied."
+        ]
+      },
+      "artifactCanonicalHash": "7d7e46c3c785f837a80da0a9593ae2deb8e7e97538dcd7c9870db991034c953f"
+    },
+    {
+      "name": "maximum_cohort",
+      "request": {
+        "requested": true,
+        "scenario": {
+          "id": "scenario",
+          "description": "A fictional product planning scenario.",
+          "targetAudience": "Synthetic operations teams",
+          "problem": "Explore a fictional manual handoff."
+        },
+        "stakeholders": [
+          {
+            "stakeholderId": "group-0",
+            "label": "Group 0",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              },
+              {
+                "questionId": "question-2",
+                "text": "What hypothetical constraint 2 matters?"
+              },
+              {
+                "questionId": "question-3",
+                "text": "What hypothetical constraint 3 matters?"
+              },
+              {
+                "questionId": "question-4",
+                "text": "What hypothetical constraint 4 matters?"
+              },
+              {
+                "questionId": "question-5",
+                "text": "What hypothetical constraint 5 matters?"
+              }
+            ]
+          },
+          {
+            "stakeholderId": "group-1",
+            "label": "Group 1",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              },
+              {
+                "questionId": "question-2",
+                "text": "What hypothetical constraint 2 matters?"
+              },
+              {
+                "questionId": "question-3",
+                "text": "What hypothetical constraint 3 matters?"
+              },
+              {
+                "questionId": "question-4",
+                "text": "What hypothetical constraint 4 matters?"
+              },
+              {
+                "questionId": "question-5",
+                "text": "What hypothetical constraint 5 matters?"
+              }
+            ]
+          },
+          {
+            "stakeholderId": "group-2",
+            "label": "Group 2",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              },
+              {
+                "questionId": "question-2",
+                "text": "What hypothetical constraint 2 matters?"
+              },
+              {
+                "questionId": "question-3",
+                "text": "What hypothetical constraint 3 matters?"
+              },
+              {
+                "questionId": "question-4",
+                "text": "What hypothetical constraint 4 matters?"
+              },
+              {
+                "questionId": "question-5",
+                "text": "What hypothetical constraint 5 matters?"
+              }
+            ]
+          },
+          {
+            "stakeholderId": "group-3",
+            "label": "Group 3",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              },
+              {
+                "questionId": "question-2",
+                "text": "What hypothetical constraint 2 matters?"
+              },
+              {
+                "questionId": "question-3",
+                "text": "What hypothetical constraint 3 matters?"
+              },
+              {
+                "questionId": "question-4",
+                "text": "What hypothetical constraint 4 matters?"
+              },
+              {
+                "questionId": "question-5",
+                "text": "What hypothetical constraint 5 matters?"
+              }
+            ]
+          }
+        ],
+        "grounding": {
+          "mode": "scenario_only",
+          "sourceArtifacts": []
+        },
+        "sampling": {
+          "seed": 19,
+          "profileVersion": "hash_uniform_v1"
+        },
+        "responseStyle": "mixed",
+        "generationProfile": "bounded_v1"
+      },
+      "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+      "acceptedScope": {
+        "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+        "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "scope"
+      },
+      "grounding": [],
+      "candidate": {
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 305213,
+              "conscientiousness": 338647,
+              "extraversion": 494170,
+              "agreeableness": 307193,
+              "neuroticism": 600397
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "stakeholderId": "group-0",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 434797,
+              "conscientiousness": 421908,
+              "extraversion": 501444,
+              "agreeableness": 659607,
+              "neuroticism": 653888
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+            "stakeholderId": "group-0",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 671055,
+              "conscientiousness": 400982,
+              "extraversion": 371284,
+              "agreeableness": 359320,
+              "neuroticism": 346198
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+            "stakeholderId": "group-1",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 640122,
+              "conscientiousness": 384307,
+              "extraversion": 606952,
+              "agreeableness": 682337,
+              "neuroticism": 315030
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+            "stakeholderId": "group-1",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 487831,
+              "conscientiousness": 628219,
+              "extraversion": 488011,
+              "agreeableness": 380776,
+              "neuroticism": 493355
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+            "stakeholderId": "group-1",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 694082,
+              "conscientiousness": 442405,
+              "extraversion": 678610,
+              "agreeableness": 317080,
+              "neuroticism": 420214
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+            "stakeholderId": "group-2",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 328844,
+              "conscientiousness": 340404,
+              "extraversion": 361774,
+              "agreeableness": 308110,
+              "neuroticism": 368540
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+            "stakeholderId": "group-2",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 569414,
+              "conscientiousness": 371189,
+              "extraversion": 678346,
+              "agreeableness": 549356,
+              "neuroticism": 626173
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+            "stakeholderId": "group-2",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 328278,
+              "conscientiousness": 438333,
+              "extraversion": 559007,
+              "agreeableness": 332132,
+              "neuroticism": 397358
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+            "stakeholderId": "group-3",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 422537,
+              "conscientiousness": 335576,
+              "extraversion": 523575,
+              "agreeableness": 555132,
+              "neuroticism": 372761
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+            "stakeholderId": "group-3",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 557076,
+              "conscientiousness": 629105,
+              "extraversion": 427617,
+              "agreeableness": 652107,
+              "neuroticism": 538428
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+            "stakeholderId": "group-3",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 507625,
+              "conscientiousness": 586428,
+              "extraversion": 598434,
+              "agreeableness": 346539,
+              "neuroticism": 680679
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "interviews": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-2",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-3",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-4",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-5",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          }
+        ]
+      },
+      "plan": [
+        {
+          "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+          "stakeholderId": "group-0",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 305213,
+            "conscientiousness": 338647,
+            "extraversion": 494170,
+            "agreeableness": 307193,
+            "neuroticism": 600397
+          }
+        },
+        {
+          "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+          "stakeholderId": "group-0",
+          "slotIndex": 2,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 434797,
+            "conscientiousness": 421908,
+            "extraversion": 501444,
+            "agreeableness": 659607,
+            "neuroticism": 653888
+          }
+        },
+        {
+          "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+          "stakeholderId": "group-0",
+          "slotIndex": 3,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 671055,
+            "conscientiousness": 400982,
+            "extraversion": 371284,
+            "agreeableness": 359320,
+            "neuroticism": 346198
+          }
+        },
+        {
+          "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+          "stakeholderId": "group-1",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 640122,
+            "conscientiousness": 384307,
+            "extraversion": 606952,
+            "agreeableness": 682337,
+            "neuroticism": 315030
+          }
+        },
+        {
+          "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+          "stakeholderId": "group-1",
+          "slotIndex": 2,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 487831,
+            "conscientiousness": 628219,
+            "extraversion": 488011,
+            "agreeableness": 380776,
+            "neuroticism": 493355
+          }
+        },
+        {
+          "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+          "stakeholderId": "group-1",
+          "slotIndex": 3,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 694082,
+            "conscientiousness": 442405,
+            "extraversion": 678610,
+            "agreeableness": 317080,
+            "neuroticism": 420214
+          }
+        },
+        {
+          "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+          "stakeholderId": "group-2",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 328844,
+            "conscientiousness": 340404,
+            "extraversion": 361774,
+            "agreeableness": 308110,
+            "neuroticism": 368540
+          }
+        },
+        {
+          "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+          "stakeholderId": "group-2",
+          "slotIndex": 2,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 569414,
+            "conscientiousness": 371189,
+            "extraversion": 678346,
+            "agreeableness": 549356,
+            "neuroticism": 626173
+          }
+        },
+        {
+          "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+          "stakeholderId": "group-2",
+          "slotIndex": 3,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 328278,
+            "conscientiousness": 438333,
+            "extraversion": 559007,
+            "agreeableness": 332132,
+            "neuroticism": 397358
+          }
+        },
+        {
+          "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+          "stakeholderId": "group-3",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 422537,
+            "conscientiousness": 335576,
+            "extraversion": 523575,
+            "agreeableness": 555132,
+            "neuroticism": 372761
+          }
+        },
+        {
+          "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+          "stakeholderId": "group-3",
+          "slotIndex": 2,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 557076,
+            "conscientiousness": 629105,
+            "extraversion": 427617,
+            "agreeableness": 652107,
+            "neuroticism": 538428
+          }
+        },
+        {
+          "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+          "stakeholderId": "group-3",
+          "slotIndex": 3,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 507625,
+            "conscientiousness": 586428,
+            "extraversion": 598434,
+            "agreeableness": 346539,
+            "neuroticism": 680679
+          }
+        }
+      ],
+      "artifact": {
+        "schemaVersion": "axwise.simulation.v1",
+        "methodVersion": "axwise.simulate.bounded.v1",
+        "origin": "synthetic",
+        "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+        "acceptedScope": {
+          "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "request": {
+          "requested": true,
+          "scenario": {
+            "id": "scenario",
+            "description": "A fictional product planning scenario.",
+            "targetAudience": "Synthetic operations teams",
+            "problem": "Explore a fictional manual handoff."
+          },
+          "stakeholders": [
+            {
+              "stakeholderId": "group-0",
+              "label": "Group 0",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 3,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                },
+                {
+                  "questionId": "question-2",
+                  "text": "What hypothetical constraint 2 matters?"
+                },
+                {
+                  "questionId": "question-3",
+                  "text": "What hypothetical constraint 3 matters?"
+                },
+                {
+                  "questionId": "question-4",
+                  "text": "What hypothetical constraint 4 matters?"
+                },
+                {
+                  "questionId": "question-5",
+                  "text": "What hypothetical constraint 5 matters?"
+                }
+              ]
+            },
+            {
+              "stakeholderId": "group-1",
+              "label": "Group 1",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 3,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                },
+                {
+                  "questionId": "question-2",
+                  "text": "What hypothetical constraint 2 matters?"
+                },
+                {
+                  "questionId": "question-3",
+                  "text": "What hypothetical constraint 3 matters?"
+                },
+                {
+                  "questionId": "question-4",
+                  "text": "What hypothetical constraint 4 matters?"
+                },
+                {
+                  "questionId": "question-5",
+                  "text": "What hypothetical constraint 5 matters?"
+                }
+              ]
+            },
+            {
+              "stakeholderId": "group-2",
+              "label": "Group 2",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 3,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                },
+                {
+                  "questionId": "question-2",
+                  "text": "What hypothetical constraint 2 matters?"
+                },
+                {
+                  "questionId": "question-3",
+                  "text": "What hypothetical constraint 3 matters?"
+                },
+                {
+                  "questionId": "question-4",
+                  "text": "What hypothetical constraint 4 matters?"
+                },
+                {
+                  "questionId": "question-5",
+                  "text": "What hypothetical constraint 5 matters?"
+                }
+              ]
+            },
+            {
+              "stakeholderId": "group-3",
+              "label": "Group 3",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 3,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                },
+                {
+                  "questionId": "question-2",
+                  "text": "What hypothetical constraint 2 matters?"
+                },
+                {
+                  "questionId": "question-3",
+                  "text": "What hypothetical constraint 3 matters?"
+                },
+                {
+                  "questionId": "question-4",
+                  "text": "What hypothetical constraint 4 matters?"
+                },
+                {
+                  "questionId": "question-5",
+                  "text": "What hypothetical constraint 5 matters?"
+                }
+              ]
+            }
+          ],
+          "grounding": {
+            "mode": "scenario_only",
+            "sourceArtifacts": []
+          },
+          "sampling": {
+            "seed": 19,
+            "profileVersion": "hash_uniform_v1"
+          },
+          "responseStyle": "mixed",
+          "generationProfile": "bounded_v1"
+        },
+        "requestHash": "f2b08cc2886d58647b462480d837b88da7c95a9ec3b1eea72791c7548af0648a",
+        "sourceArtifacts": [],
+        "grounding": {
+          "status": "not_requested",
+          "selectedReferences": []
+        },
+        "samplingReproducibility": "sampling_only",
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 305213,
+              "conscientiousness": 338647,
+              "extraversion": 494170,
+              "agreeableness": 307193,
+              "neuroticism": 600397
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "stakeholderId": "group-0",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 434797,
+              "conscientiousness": 421908,
+              "extraversion": 501444,
+              "agreeableness": 659607,
+              "neuroticism": 653888
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+            "stakeholderId": "group-0",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 671055,
+              "conscientiousness": 400982,
+              "extraversion": 371284,
+              "agreeableness": 359320,
+              "neuroticism": 346198
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+            "stakeholderId": "group-1",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 640122,
+              "conscientiousness": 384307,
+              "extraversion": 606952,
+              "agreeableness": 682337,
+              "neuroticism": 315030
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+            "stakeholderId": "group-1",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 487831,
+              "conscientiousness": 628219,
+              "extraversion": 488011,
+              "agreeableness": 380776,
+              "neuroticism": 493355
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+            "stakeholderId": "group-1",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 694082,
+              "conscientiousness": 442405,
+              "extraversion": 678610,
+              "agreeableness": 317080,
+              "neuroticism": 420214
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+            "stakeholderId": "group-2",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 328844,
+              "conscientiousness": 340404,
+              "extraversion": 361774,
+              "agreeableness": 308110,
+              "neuroticism": 368540
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+            "stakeholderId": "group-2",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 569414,
+              "conscientiousness": 371189,
+              "extraversion": 678346,
+              "agreeableness": 549356,
+              "neuroticism": 626173
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+            "stakeholderId": "group-2",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 328278,
+              "conscientiousness": 438333,
+              "extraversion": 559007,
+              "agreeableness": 332132,
+              "neuroticism": 397358
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+            "stakeholderId": "group-3",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 422537,
+              "conscientiousness": 335576,
+              "extraversion": 523575,
+              "agreeableness": 555132,
+              "neuroticism": 372761
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+            "stakeholderId": "group-3",
+            "slotIndex": 2,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 557076,
+              "conscientiousness": 629105,
+              "extraversion": 427617,
+              "agreeableness": 652107,
+              "neuroticism": 538428
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+            "stakeholderId": "group-3",
+            "slotIndex": 3,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 507625,
+              "conscientiousness": 586428,
+              "extraversion": 598434,
+              "agreeableness": 346539,
+              "neuroticism": 680679
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "613f7fb8-c9c9-5d08-b9aa-b52bad2158c4",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-1d011eeeee2828acec74219cd777ad2f49dd3c90a74501da8ad54ceb2fd123d6",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-1d011eeeee2828acec74219cd777ad2f49dd3c90a74501da8ad54ceb2fd123d6",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-c197e4f54b6266d76059563ef8e305030c668943cbffe449fe85a8860e0b7691",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-c197e4f54b6266d76059563ef8e305030c668943cbffe449fe85a8860e0b7691",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-a0ed13758e95b7d85121f707347f49a20a865d9def5c6006f6960391605c9a49",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-a0ed13758e95b7d85121f707347f49a20a865d9def5c6006f6960391605c9a49",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-4826b85bec0e79eceabe3d08e9fd40a131dd70dfcb1b79a3245d4c4e47cf2b05",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-4826b85bec0e79eceabe3d08e9fd40a131dd70dfcb1b79a3245d4c4e47cf2b05",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-479dd50a87bdb9e99625e63d2e113774df4bc3477a5ed6091be860b39b20a470",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-479dd50a87bdb9e99625e63d2e113774df4bc3477a5ed6091be860b39b20a470",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "a114e138-8a98-5d47-a4be-e24944a69989",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-dccf23c663c6db57b8be635e108a62dd5a63430959bf3d9e31d08291c54cce93",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-dccf23c663c6db57b8be635e108a62dd5a63430959bf3d9e31d08291c54cce93",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-f0e167f26cb3a660c4969a74a55e43b929dcde497e506f91dd7c4fc9741f1ce7",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-f0e167f26cb3a660c4969a74a55e43b929dcde497e506f91dd7c4fc9741f1ce7",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-a71b6c2cc223c9b0a61d4f5b1ce03e81a757b32df48fa2b360025bafae84ab2b",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-a71b6c2cc223c9b0a61d4f5b1ce03e81a757b32df48fa2b360025bafae84ab2b",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-5a51cec75b271ea885f793bc45817eba04629ecfde89a280330584f1936cf94f",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-5a51cec75b271ea885f793bc45817eba04629ecfde89a280330584f1936cf94f",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-a8287e8f8436f1c7d36e72a822482a7db954143a5584e665fb913ff8da5310e0",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-a8287e8f8436f1c7d36e72a822482a7db954143a5584e665fb913ff8da5310e0",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-b4eccf1d5634c78cc3eac15ba90003b7046ef2c9cd8e534bc43c1b7581b18921",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-b4eccf1d5634c78cc3eac15ba90003b7046ef2c9cd8e534bc43c1b7581b18921",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "bcaa1dd5-dd9b-5c0e-b845-5e386692dd46",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-16298469c77b294af0cec9d8907db58f1099a022e4326cf68df068864f32f2a8",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-16298469c77b294af0cec9d8907db58f1099a022e4326cf68df068864f32f2a8",
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-7898de8fb1bc4ae821eb2968a98f070352aeb34e81c59827bef6a68005d1b456",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-7898de8fb1bc4ae821eb2968a98f070352aeb34e81c59827bef6a68005d1b456",
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-7628723cb5bef836bc0cf102cd46e9a2ca77922157feaf8df36d6727381e71e3",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-7628723cb5bef836bc0cf102cd46e9a2ca77922157feaf8df36d6727381e71e3",
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-37e03e2d720d1d89bfdb6170de6d1a6bafbef74aa8319b20ffcdace1283a4981",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-37e03e2d720d1d89bfdb6170de6d1a6bafbef74aa8319b20ffcdace1283a4981",
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-b7539de0c8fb0a350c2661a236b65a346850dd584477eff10f62548e052940ea",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-b7539de0c8fb0a350c2661a236b65a346850dd584477eff10f62548e052940ea",
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-96d7a311a7df93d2ec7522c82a6c34225ea2f0781b50e7779340463607a07250",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-96d7a311a7df93d2ec7522c82a6c34225ea2f0781b50e7779340463607a07250",
+                  "participantId": "d8d3ffe6-ad63-5522-ab51-e24faf7702c7",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "88a6f768-59ae-5cd4-b9bd-ae52b302ac16",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-1"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-b807cfbb3af2b8ea147d6247a4daa06bdd20f8c59222dab2625f1886775ac277",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-b807cfbb3af2b8ea147d6247a4daa06bdd20f8c59222dab2625f1886775ac277",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-4423d919b22147515cf9ae42fc5c4692f2e8d1e00e96244d139f1008766225e4",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-4423d919b22147515cf9ae42fc5c4692f2e8d1e00e96244d139f1008766225e4",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-198d2cee359665895b277be7dd69bf37612af4c7e8ad2af93f00cb6ecb98320f",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-198d2cee359665895b277be7dd69bf37612af4c7e8ad2af93f00cb6ecb98320f",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-0172d9dae7181bd99184fd373bf1d1a4d9ee6e83aea252311b5a14339294772c",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-0172d9dae7181bd99184fd373bf1d1a4d9ee6e83aea252311b5a14339294772c",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-2c8905e124f3948e30910b32b8318298a3a734255ffd312f7979c8bf007755c2",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-2c8905e124f3948e30910b32b8318298a3a734255ffd312f7979c8bf007755c2",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-3e452868d739d287e528f8f9325bea031c7890749e3ef2569e7b073d521148f0",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-3e452868d739d287e528f8f9325bea031c7890749e3ef2569e7b073d521148f0",
+                  "participantId": "c3d1e2f6-109a-5443-8936-c7861693c223",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "05ad0179-2de7-556e-a699-dea165710fab",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-1"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d0ac21a7559b7c97cca52cced99611a94fed9b0ecfa8f3895c1eaad8d06a1513",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d0ac21a7559b7c97cca52cced99611a94fed9b0ecfa8f3895c1eaad8d06a1513",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-d3290c41f833d8110ccc47ce9c20bb8d42ba3cf65138c8794b0b94110e7b9ec8",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d3290c41f833d8110ccc47ce9c20bb8d42ba3cf65138c8794b0b94110e7b9ec8",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-abae58a6e2981d52683aa054864b006b47540614deda922a04ff9ea1a848f710",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-abae58a6e2981d52683aa054864b006b47540614deda922a04ff9ea1a848f710",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-24719af91ad726fbdbfde9e8bee4273b218e0a7991622df86094758423eb2686",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-24719af91ad726fbdbfde9e8bee4273b218e0a7991622df86094758423eb2686",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-d02cbae9021eb0115120db3466cfe7c16aa452adc6771e551232417497d32f48",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d02cbae9021eb0115120db3466cfe7c16aa452adc6771e551232417497d32f48",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-c124aa37bc8b74cfd0fb1899050df4d54759b810fb651ed4d7a977c2e7ed6e09",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-c124aa37bc8b74cfd0fb1899050df4d54759b810fb651ed4d7a977c2e7ed6e09",
+                  "participantId": "36abcab7-0db7-5a00-ba4f-9591250d1bab",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "df54674b-e8cd-542d-af54-ca36edb54c31",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-1"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-2207d07c7f96d0525f9da706168ead0abf04cb68ad6a7e9b392088f46515981b",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-2207d07c7f96d0525f9da706168ead0abf04cb68ad6a7e9b392088f46515981b",
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-330d8713985878b33b394c96c6f0fcf9b7fa3c8cdf7f40268d40f4d3ba00cc87",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-330d8713985878b33b394c96c6f0fcf9b7fa3c8cdf7f40268d40f4d3ba00cc87",
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-ebbfecf06c3335c75326d645a7f3f53e6d89e575be8a7aa0f5ac69eed9d837f0",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-ebbfecf06c3335c75326d645a7f3f53e6d89e575be8a7aa0f5ac69eed9d837f0",
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-dc92bff36a48cc7607887575c24c19ba2d8b4f677090f936608aed7af9648ed1",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-dc92bff36a48cc7607887575c24c19ba2d8b4f677090f936608aed7af9648ed1",
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-a1699348d49f83850f91bccacbdfecae37c1f40d4f1b718b1c60ecda386c2fc0",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-a1699348d49f83850f91bccacbdfecae37c1f40d4f1b718b1c60ecda386c2fc0",
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-3df9eef726b5c0403e54d881017052e1d7250e688ca38f87142e5cf384370fa5",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-3df9eef726b5c0403e54d881017052e1d7250e688ca38f87142e5cf384370fa5",
+                  "participantId": "3fba268b-2e1a-54eb-b128-dadadcf2c2a6",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "b57bbd94-e2ca-5302-8257-80213739f69f",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-2"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-1ccd99bb8ad3c2bf8b76c0e50537e7d0ea1a6881028ac7d7578613657815ecf0",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-1ccd99bb8ad3c2bf8b76c0e50537e7d0ea1a6881028ac7d7578613657815ecf0",
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-176fb5d7f884b2e237f99fc9142f8ab0515ff062fbd661077996bedec8ea5f3e",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-176fb5d7f884b2e237f99fc9142f8ab0515ff062fbd661077996bedec8ea5f3e",
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-b5251470248e1e8c3e122fd012c412d5dadf56af5ee977ea836b51a1d6536e83",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-b5251470248e1e8c3e122fd012c412d5dadf56af5ee977ea836b51a1d6536e83",
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-4c7cc2a4f19c4497c24c0681affb203f3c2883205870ca5ddfeb2e07a56b7296",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-4c7cc2a4f19c4497c24c0681affb203f3c2883205870ca5ddfeb2e07a56b7296",
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-871684d6aa1efcdfdb5455eba86cd4449dfca2738e3fb4b636b306599590c8a7",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-871684d6aa1efcdfdb5455eba86cd4449dfca2738e3fb4b636b306599590c8a7",
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-0613965c679d7647721c6a4f8aa1a0ec25bbfe6ab3cb31d2b9a4d2b7516d7af0",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-0613965c679d7647721c6a4f8aa1a0ec25bbfe6ab3cb31d2b9a4d2b7516d7af0",
+                  "participantId": "71b79f0c-5528-5aaa-bb6b-038286bd9307",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "14e7d510-61aa-540b-a138-e26d4e511f66",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-2"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-ad5fb24339a163efa896f40f8fcd2bfc71e95e74c653f269f9ef3f39d411d032",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-ad5fb24339a163efa896f40f8fcd2bfc71e95e74c653f269f9ef3f39d411d032",
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-9b9279188766e13c3dfd929c102126837ba10f3b500b4a88d342ec4d27632f57",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-9b9279188766e13c3dfd929c102126837ba10f3b500b4a88d342ec4d27632f57",
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-fab768b7d4689ca560d685a8ca93a7805c2ff08a0dbe9929131b484c3bbc95bb",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-fab768b7d4689ca560d685a8ca93a7805c2ff08a0dbe9929131b484c3bbc95bb",
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-aaf8476142cf8491fc47ea4c3fe4016e2c344294e21634aea0632c453253cbba",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-aaf8476142cf8491fc47ea4c3fe4016e2c344294e21634aea0632c453253cbba",
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-d06d0e897ce9d61d1eccdad26d8c8af712296db960ea46465a503c0c0fc89441",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d06d0e897ce9d61d1eccdad26d8c8af712296db960ea46465a503c0c0fc89441",
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-5d6d42c61b1bde982cfcba3e4551b20f33483a05c110aae251b3b8770e47b850",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-5d6d42c61b1bde982cfcba3e4551b20f33483a05c110aae251b3b8770e47b850",
+                  "participantId": "9e8d2cab-d155-55f4-9401-5058482029d1",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "a2f2e2ed-ab67-5715-935b-8e9bf68e568d",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-2"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-7f407fc85ba8478b843c1e1f55aaa77cae93739a1ae668d17c3c5d02e52c510c",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-7f407fc85ba8478b843c1e1f55aaa77cae93739a1ae668d17c3c5d02e52c510c",
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-e2ed35b4da962bfe2e7a45d633c3bfab26195bb869cf51e182278670d38d3fd2",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-e2ed35b4da962bfe2e7a45d633c3bfab26195bb869cf51e182278670d38d3fd2",
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-fa9b99e2fc0323b05cb07abae6e2bb1a7b11b6b3760ef6c7e038751b4b0621a1",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-fa9b99e2fc0323b05cb07abae6e2bb1a7b11b6b3760ef6c7e038751b4b0621a1",
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-1bea13e6ef6c5d3d895a84f9044451b905cc8b4d484f025c62919c02fb5350a4",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-1bea13e6ef6c5d3d895a84f9044451b905cc8b4d484f025c62919c02fb5350a4",
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-7e0d5284ab203eb97520fe4448eae8dd8c1599fb8c48b40a39b2316001eff35b",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-7e0d5284ab203eb97520fe4448eae8dd8c1599fb8c48b40a39b2316001eff35b",
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-46e15aec4d522fa1c5801a3e5b82e3c04b76db2d7b325323d7c4c743a5eb19c2",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-46e15aec4d522fa1c5801a3e5b82e3c04b76db2d7b325323d7c4c743a5eb19c2",
+                  "participantId": "dc147747-0eb4-5ade-9f87-7bef33c39f12",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "03ee19d1-67d5-5f90-8de1-2ed83bd4af94",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-3"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-8a40913974144cbf8b8b2cfaec7825e64405a10f2e2ec0364f85a663e3b32ef9",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-8a40913974144cbf8b8b2cfaec7825e64405a10f2e2ec0364f85a663e3b32ef9",
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-6e0b47f14291ca2cedd3b8058984019c5db616b435629a1288920f2a19a5e7fb",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-6e0b47f14291ca2cedd3b8058984019c5db616b435629a1288920f2a19a5e7fb",
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-fb84cc743e0f7b604457177ece27c9d496be4f82101061e7c36f293fffdbc8b7",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-fb84cc743e0f7b604457177ece27c9d496be4f82101061e7c36f293fffdbc8b7",
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-9c66e16252ceb478606e5e86e32cf7e44d1ca1d7f0e31cb1599d78efd99fed9d",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-9c66e16252ceb478606e5e86e32cf7e44d1ca1d7f0e31cb1599d78efd99fed9d",
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-bfb2208b6cb92baf9e81f253a4aa8edb2d6ed39d977e404f15c9911f7bfc0b2b",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-bfb2208b6cb92baf9e81f253a4aa8edb2d6ed39d977e404f15c9911f7bfc0b2b",
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-1086bed3edd30f45b0f2945822348589df461604da877af417c78dcb122edd5b",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-1086bed3edd30f45b0f2945822348589df461604da877af417c78dcb122edd5b",
+                  "participantId": "10841ebc-bd40-5414-afce-fba49b6f6ec7",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "99a40ae7-4e0a-5f84-bee8-49163386af78",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-3"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d16a82ca21546171933113253e35faf9a46c70ae7db0fad97c02609ef894fe00",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d16a82ca21546171933113253e35faf9a46c70ae7db0fad97c02609ef894fe00",
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-5974b53d45d9dae2ed759fbbb277488c3d29f8a6b926b7ca4d5b00bedbb5861d",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-5974b53d45d9dae2ed759fbbb277488c3d29f8a6b926b7ca4d5b00bedbb5861d",
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-6c3441f7d16addb0302f6838b882b9203d9102b7d72d9841d7005a6f4d135424",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-6c3441f7d16addb0302f6838b882b9203d9102b7d72d9841d7005a6f4d135424",
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-dd40a572894b28a76353f1567b4e0f3e77c79d48d5bb49ded3f2b1667083482c",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-dd40a572894b28a76353f1567b4e0f3e77c79d48d5bb49ded3f2b1667083482c",
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-e17b6447d9cd58fb480414664e43dbef444c6f68b9614c355b30fdaacc750b82",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-e17b6447d9cd58fb480414664e43dbef444c6f68b9614c355b30fdaacc750b82",
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-e962c1dce81beb77928c3f05f1e788710b64afa6a2125c8b80fdf0ccff977795",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-e962c1dce81beb77928c3f05f1e788710b64afa6a2125c8b80fdf0ccff977795",
+                  "participantId": "ab5e2101-d087-5ad1-b78c-afa93709af3b",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "07e2209c-a735-5bed-8949-edc6d4bd45e1",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 2 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 3 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 4 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 5 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "754b504d576a2802d16b95e318e051e4a767cc1aed765cd85aa203785e3903fa",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-3"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-823a5f670a52d34e56ec37e62e5f40a5e59f65537dce93f7b772082bb3461394",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-823a5f670a52d34e56ec37e62e5f40a5e59f65537dce93f7b772082bb3461394",
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-c32c26ea0f591d2b2ab2746919075b6b39f458b983492e95dccfed0f29130b4e",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-c32c26ea0f591d2b2ab2746919075b6b39f458b983492e95dccfed0f29130b4e",
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-549ae096245cdc43bd3bd269a2ead4446a38621c7b07651e3bd162c9ad0fcd00",
+                  "participantId": "interviewer",
+                  "questionId": "question-2",
+                  "start": 286,
+                  "end": 325,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-549ae096245cdc43bd3bd269a2ead4446a38621c7b07651e3bd162c9ad0fcd00",
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "questionId": "question-2",
+                  "start": 334,
+                  "end": 413,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-3f68c120f94888cecf8aa21bb1f3ba2d605912129ac0ad69f7443cbd2bbb2485",
+                  "participantId": "interviewer",
+                  "questionId": "question-3",
+                  "start": 424,
+                  "end": 463,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-3f68c120f94888cecf8aa21bb1f3ba2d605912129ac0ad69f7443cbd2bbb2485",
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "questionId": "question-3",
+                  "start": 472,
+                  "end": 551,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-eedbb8394d1e6c5a08637bf3c9ee3f8dff3c69fd89edba6cb63e72edfeef618a",
+                  "participantId": "interviewer",
+                  "questionId": "question-4",
+                  "start": 562,
+                  "end": 601,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-eedbb8394d1e6c5a08637bf3c9ee3f8dff3c69fd89edba6cb63e72edfeef618a",
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "questionId": "question-4",
+                  "start": 610,
+                  "end": 689,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-346c791a201ed7469126e8c7f277820ff12f95478ca9e071ecf9bfbfd62136c5",
+                  "participantId": "interviewer",
+                  "questionId": "question-5",
+                  "start": 700,
+                  "end": 739,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-346c791a201ed7469126e8c7f277820ff12f95478ca9e071ecf9bfbfd62136c5",
+                  "participantId": "a177f79f-6df5-522c-80cf-6ad5226593bf",
+                  "questionId": "question-5",
+                  "start": 748,
+                  "end": 827,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "cohort": {
+          "expectedParticipants": 12,
+          "completedParticipants": 12,
+          "expectedResponses": 72,
+          "completedResponses": 72,
+          "complete": true
+        },
+        "limitations": [
+          "All participants and responses are synthetic, not human testimony.",
+          "Sampling is reproducible; model-generated text is not guaranteed to repeat.",
+          "This cohort does not establish population prevalence, customer demand or predictive accuracy.",
+          "Personality vectors use a versioned illustrative uniform profile, not measured population traits.",
+          "No external grounding was requested or applied."
+        ]
+      },
+      "artifactCanonicalHash": "34678d4a33f169fa2203ecbbc3bc28df254347d094252caeda43f2b72a9583e8"
+    },
+    {
+      "name": "maximum_seed_null_market",
+      "request": {
+        "requested": true,
+        "scenario": {
+          "id": "scenario",
+          "description": "A fictional product planning scenario.",
+          "targetAudience": "Synthetic operations teams",
+          "problem": "Explore a fictional manual handoff."
+        },
+        "stakeholders": [
+          {
+            "stakeholderId": "group-0",
+            "label": "Group 0",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 2,
+            "countryCode": null,
+            "locality": null,
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              }
+            ]
+          }
+        ],
+        "grounding": {
+          "mode": "scenario_only",
+          "sourceArtifacts": []
+        },
+        "sampling": {
+          "seed": 9007199254740991,
+          "profileVersion": "hash_uniform_v1"
+        },
+        "responseStyle": "mixed",
+        "generationProfile": "bounded_v1"
+      },
+      "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+      "acceptedScope": {
+        "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+        "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "scope"
+      },
+      "grounding": [],
+      "candidate": {
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": null,
+            "locality": null,
+            "oceanMicros": {
+              "openness": 490471,
+              "conscientiousness": 433486,
+              "extraversion": 304099,
+              "agreeableness": 517453,
+              "neuroticism": 410939
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "stakeholderId": "group-0",
+            "slotIndex": 2,
+            "countryCode": null,
+            "locality": null,
+            "oceanMicros": {
+              "openness": 515567,
+              "conscientiousness": 579019,
+              "extraversion": 405021,
+              "agreeableness": 371318,
+              "neuroticism": 405714
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "interviews": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          }
+        ]
+      },
+      "plan": [
+        {
+          "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+          "stakeholderId": "group-0",
+          "slotIndex": 1,
+          "countryCode": null,
+          "locality": null,
+          "oceanMicros": {
+            "openness": 490471,
+            "conscientiousness": 433486,
+            "extraversion": 304099,
+            "agreeableness": 517453,
+            "neuroticism": 410939
+          }
+        },
+        {
+          "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+          "stakeholderId": "group-0",
+          "slotIndex": 2,
+          "countryCode": null,
+          "locality": null,
+          "oceanMicros": {
+            "openness": 515567,
+            "conscientiousness": 579019,
+            "extraversion": 405021,
+            "agreeableness": 371318,
+            "neuroticism": 405714
+          }
+        }
+      ],
+      "artifact": {
+        "schemaVersion": "axwise.simulation.v1",
+        "methodVersion": "axwise.simulate.bounded.v1",
+        "origin": "synthetic",
+        "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+        "acceptedScope": {
+          "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "request": {
+          "requested": true,
+          "scenario": {
+            "id": "scenario",
+            "description": "A fictional product planning scenario.",
+            "targetAudience": "Synthetic operations teams",
+            "problem": "Explore a fictional manual handoff."
+          },
+          "stakeholders": [
+            {
+              "stakeholderId": "group-0",
+              "label": "Group 0",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 2,
+              "countryCode": null,
+              "locality": null,
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                }
+              ]
+            }
+          ],
+          "grounding": {
+            "mode": "scenario_only",
+            "sourceArtifacts": []
+          },
+          "sampling": {
+            "seed": 9007199254740991,
+            "profileVersion": "hash_uniform_v1"
+          },
+          "responseStyle": "mixed",
+          "generationProfile": "bounded_v1"
+        },
+        "requestHash": "95127d47869837a3a5691f774d9fa3bee9ba25d2823e7c5631f616ab35f6ba5a",
+        "sourceArtifacts": [],
+        "grounding": {
+          "status": "not_requested",
+          "selectedReferences": []
+        },
+        "samplingReproducibility": "sampling_only",
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": null,
+            "locality": null,
+            "oceanMicros": {
+              "openness": 490471,
+              "conscientiousness": 433486,
+              "extraversion": 304099,
+              "agreeableness": 517453,
+              "neuroticism": 410939
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          },
+          {
+            "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+            "stakeholderId": "group-0",
+            "slotIndex": 2,
+            "countryCode": null,
+            "locality": null,
+            "oceanMicros": {
+              "openness": 515567,
+              "conscientiousness": 579019,
+              "extraversion": 405021,
+              "agreeableness": 371318,
+              "neuroticism": 405714
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "613f7fb8-c9c9-5d08-b9aa-b52bad2158c4",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "144cda7d029005ce9e76910c49897424eab1e087216a12690d3a9de31ecbc823",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "a114e138-8a98-5d47-a4be-e24944a69989",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "144cda7d029005ce9e76910c49897424eab1e087216a12690d3a9de31ecbc823",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-dccf23c663c6db57b8be635e108a62dd5a63430959bf3d9e31d08291c54cce93",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-dccf23c663c6db57b8be635e108a62dd5a63430959bf3d9e31d08291c54cce93",
+                  "participantId": "611b3299-6255-523e-8ccc-8342a701d231",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "cohort": {
+          "expectedParticipants": 2,
+          "completedParticipants": 2,
+          "expectedResponses": 2,
+          "completedResponses": 2,
+          "complete": true
+        },
+        "limitations": [
+          "All participants and responses are synthetic, not human testimony.",
+          "Sampling is reproducible; model-generated text is not guaranteed to repeat.",
+          "This cohort does not establish population prevalence, customer demand or predictive accuracy.",
+          "Personality vectors use a versioned illustrative uniform profile, not measured population traits.",
+          "No external grounding was requested or applied."
+        ]
+      },
+      "artifactCanonicalHash": "ce64d88f9a9aa20f121cfe3d85bb0b8afb8976fdcd7adb9cb0e6d65975b64683"
+    },
+    {
+      "name": "selected_research_passage",
+      "request": {
+        "requested": true,
+        "scenario": {
+          "id": "scenario",
+          "description": "A fictional product planning scenario.",
+          "targetAudience": "Synthetic operations teams",
+          "problem": "Explore a fictional manual handoff."
+        },
+        "stakeholders": [
+          {
+            "stakeholderId": "group-0",
+            "label": "Group 0",
+            "description": "A hypothetical group, not real survey respondents.",
+            "participantCount": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "questions": [
+              {
+                "questionId": "question-0",
+                "text": "What hypothetical constraint 0 matters?"
+              },
+              {
+                "questionId": "question-1",
+                "text": "What hypothetical constraint 1 matters?"
+              }
+            ]
+          }
+        ],
+        "grounding": {
+          "mode": "source_grounded",
+          "sourceArtifacts": [
+            {
+              "artifactId": "b57b9807-87dd-464f-b7ef-904c07164f65",
+              "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "kind": "research"
+            }
+          ]
+        },
+        "sampling": {
+          "seed": 19,
+          "profileVersion": "hash_uniform_v1"
+        },
+        "responseStyle": "mixed",
+        "generationProfile": "bounded_v1"
+      },
+      "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+      "acceptedScope": {
+        "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+        "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "scope"
+      },
+      "grounding": [
+        {
+          "artifact": {
+            "artifactId": "b57b9807-87dd-464f-b7ef-904c07164f65",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "research"
+          },
+          "entryKind": "claim",
+          "entryId": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "text": "An exact caller-admitted passage, not authority established by this fixture.",
+          "textSha256": "5053b7123c67b54e6e0275896740448c3b5cc9cc0e9f5928084102b1482bfbb8"
+        }
+      ],
+      "candidate": {
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 305213,
+              "conscientiousness": 338647,
+              "extraversion": 494170,
+              "agreeableness": 307193,
+              "neuroticism": 600397
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "interviews": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "answers": [
+              {
+                "questionId": "question-0",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              },
+              {
+                "questionId": "question-1",
+                "text": "A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact."
+              }
+            ]
+          }
+        ]
+      },
+      "plan": [
+        {
+          "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+          "stakeholderId": "group-0",
+          "slotIndex": 1,
+          "countryCode": "LV",
+          "locality": "Riga",
+          "oceanMicros": {
+            "openness": 305213,
+            "conscientiousness": 338647,
+            "extraversion": 494170,
+            "agreeableness": 307193,
+            "neuroticism": 600397
+          }
+        }
+      ],
+      "artifact": {
+        "schemaVersion": "axwise.simulation.v1",
+        "methodVersion": "axwise.simulate.bounded.v1",
+        "origin": "synthetic",
+        "operationId": "e49c5125-a05c-49fb-93dd-f23989084d7f",
+        "acceptedScope": {
+          "artifactId": "17fdd706-6e92-4389-90cf-237866557afe",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "request": {
+          "requested": true,
+          "scenario": {
+            "id": "scenario",
+            "description": "A fictional product planning scenario.",
+            "targetAudience": "Synthetic operations teams",
+            "problem": "Explore a fictional manual handoff."
+          },
+          "stakeholders": [
+            {
+              "stakeholderId": "group-0",
+              "label": "Group 0",
+              "description": "A hypothetical group, not real survey respondents.",
+              "participantCount": 1,
+              "countryCode": "LV",
+              "locality": "Riga",
+              "questions": [
+                {
+                  "questionId": "question-0",
+                  "text": "What hypothetical constraint 0 matters?"
+                },
+                {
+                  "questionId": "question-1",
+                  "text": "What hypothetical constraint 1 matters?"
+                }
+              ]
+            }
+          ],
+          "grounding": {
+            "mode": "source_grounded",
+            "sourceArtifacts": [
+              {
+                "artifactId": "b57b9807-87dd-464f-b7ef-904c07164f65",
+                "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "kind": "research"
+              }
+            ]
+          },
+          "sampling": {
+            "seed": 19,
+            "profileVersion": "hash_uniform_v1"
+          },
+          "responseStyle": "mixed",
+          "generationProfile": "bounded_v1"
+        },
+        "requestHash": "3ec5e76ed7342751a797d59cde824c8a85e3b98bac96e8c5423189d236271c3e",
+        "sourceArtifacts": [
+          {
+            "artifactId": "b57b9807-87dd-464f-b7ef-904c07164f65",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "research"
+          }
+        ],
+        "grounding": {
+          "status": "applied",
+          "selectedReferences": [
+            {
+              "artifact": {
+                "artifactId": "b57b9807-87dd-464f-b7ef-904c07164f65",
+                "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "kind": "research"
+              },
+              "entryKind": "claim",
+              "entryId": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "textSha256": "5053b7123c67b54e6e0275896740448c3b5cc9cc0e9f5928084102b1482bfbb8"
+            }
+          ]
+        },
+        "samplingReproducibility": "sampling_only",
+        "participants": [
+          {
+            "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+            "stakeholderId": "group-0",
+            "slotIndex": 1,
+            "countryCode": "LV",
+            "locality": "Riga",
+            "oceanMicros": {
+              "openness": 305213,
+              "conscientiousness": 338647,
+              "extraversion": 494170,
+              "agreeableness": 307193,
+              "neuroticism": 600397
+            },
+            "displayName": "Fictional Person",
+            "biography": "A hypothetical participant who coordinates a fictional team's manual work.",
+            "motivations": ["Explore a synthetic benefit", "Compare hypothetical alternatives"],
+            "painPoints": ["A fictional delay", "A fictional extra handoff"],
+            "communicationStyle": "A direct and explicitly hypothetical explanation.",
+            "origin": "synthetic"
+          }
+        ],
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "613f7fb8-c9c9-5d08-b9aa-b52bad2158c4",
+              "title": "Synthetic interview — Fictional Person",
+              "text": "Question: What hypothetical constraint 0 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\nQuestion: What hypothetical constraint 1 matters?\nAnswer: A fictional answer with emoji 😀, combining café and CRLF\r\nkept byte-exact.\n",
+              "textSha256": "46cbd00e4daea75b1572e81f7676c72b015198860011b74c502bd3eef575c0c8",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "interviewer",
+                  "displayName": "Simulated interviewer",
+                  "role": "interviewer",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "displayName": "Fictional Person",
+                  "role": "participant",
+                  "stakeholderId": "group-0"
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "question-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "interviewer",
+                  "questionId": "question-0",
+                  "start": 10,
+                  "end": 49,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-d78f9404f6fbb2df787ae8e6d66cc8a719cfe8ff416009a54682b0b62913f0a3",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-0",
+                  "start": 58,
+                  "end": 137,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "question-1d011eeeee2828acec74219cd777ad2f49dd3c90a74501da8ad54ceb2fd123d6",
+                  "participantId": "interviewer",
+                  "questionId": "question-1",
+                  "start": 148,
+                  "end": 187,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "answer-1d011eeeee2828acec74219cd777ad2f49dd3c90a74501da8ad54ceb2fd123d6",
+                  "participantId": "ae5d4824-6a58-5d1b-ba31-b2279a774488",
+                  "questionId": "question-1",
+                  "start": 196,
+                  "end": 275,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "cohort": {
+          "expectedParticipants": 1,
+          "completedParticipants": 1,
+          "expectedResponses": 2,
+          "completedResponses": 2,
+          "complete": true
+        },
+        "limitations": [
+          "All participants and responses are synthetic, not human testimony.",
+          "Sampling is reproducible; model-generated text is not guaranteed to repeat.",
+          "This cohort does not establish population prevalence, customer demand or predictive accuracy.",
+          "Personality vectors use a versioned illustrative uniform profile, not measured population traits.",
+          "Grounding records selected source passages; it does not verify simulated responses as real-world facts."
+        ]
+      },
+      "artifactCanonicalHash": "ae4a473738b03e6f9c897f939d4580e8b7f56aa056d11cc5bcdc02fc0f0b365d"
+    }
+  ]
+}

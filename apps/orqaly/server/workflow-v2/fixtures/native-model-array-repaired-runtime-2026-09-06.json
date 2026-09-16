@@ -1,0 +1,62 @@
+{
+  "_notice": "Actual local n8n execution receipts for the recorded real-model array repair. This proves the three synthetic frozen cases in a disposable loopback-only runtime, not a cloud rollout or general capability guarantee.",
+  "scope": "synthetic_local_runtime",
+  "recordedAt": "2026-09-06T06:13:51Z",
+  "runtimeExecuted": true,
+  "fixture": "native-model-array-repaired-acceptance-2026-09-06.json",
+  "workflowHash": "0dcd10698370b02738d9ea0b92216070cdc6ebeed3bb89eac0a6dd14c9139d52",
+  "runner": "scripts/native-model-artifact-local-e2e.mjs",
+  "runtime": {
+    "imageTag": "n8nio/n8n:2.37.10",
+    "localImageDigest": "sha256:307d6065be25619aa24cfc63a7c2f04ca56d084a08c05c8e9f189a89f353b1ec",
+    "network": "loopback-only",
+    "container": "disposable, cleaned up"
+  },
+  "cases": [
+    {
+      "caseId": "case-empty-items-array",
+      "executionId": "1",
+      "responseStatus": 200,
+      "output": {
+        "orderId": "ord-empty-001",
+        "acceptedCount": 0,
+        "total": 0
+      },
+      "cleanup": "removed",
+      "passed": true
+    },
+    {
+      "caseId": "case-all-nonpositive-array",
+      "executionId": "2",
+      "responseStatus": 200,
+      "output": {
+        "orderId": "ord-nonpos-002",
+        "acceptedCount": 0,
+        "total": 0
+      },
+      "cleanup": "removed",
+      "passed": true
+    },
+    {
+      "caseId": "case-mixed-items-array",
+      "executionId": "3",
+      "responseStatus": 200,
+      "output": {
+        "orderId": "ord-mixed-003",
+        "acceptedCount": 2,
+        "total": 35
+      },
+      "cleanup": "removed",
+      "passed": true
+    }
+  ],
+  "checks": {
+    "allFrozenCases": true,
+    "exactTestArtifactHashCheckedByRunner": true,
+    "eachTemporaryWorkflowRemoved": true,
+    "manuallyCorrected": false,
+    "additionalModelCallsDuringExecution": 0,
+    "cloudResourcesChanged": false,
+    "externalProviderEffects": false
+  }
+}

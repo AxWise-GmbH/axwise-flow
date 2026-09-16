@@ -1,0 +1,68 @@
+{
+  "version": "orqaly_execution_descriptor_manifest_v1",
+  "contractVersion": "1.0",
+  "canonicalization": "rfc8785_v1",
+  "reference": {
+    "contractVersion": "1.0",
+    "descriptorKey": "operational_record_create_v1",
+    "schemaVersion": "1.0",
+    "contentHash": "c02032d38de3f05d6bd4c9d72e54e6b92e2c1c30d470edc62913e76c417add57"
+  },
+  "stepKind": "connector_write",
+  "effectProfile": {
+    "externality": "write",
+    "mutation": "create",
+    "flags": []
+  },
+  "dataEgressProfile": {
+    "mode": "internal_only",
+    "destinationClasses": [
+      "orqaly_private_tool_gateway"
+    ],
+    "providerClasses": [],
+    "regionClasses": [
+      "eu"
+    ],
+    "permittedInputClassifications": [
+      "internal"
+    ],
+    "permittedOutputClassifications": [
+      "internal"
+    ],
+    "redactionRequired": false,
+    "dlpRequired": false,
+    "providerRetentionPolicyRequired": false,
+    "providerTrainingPolicyRequired": false
+  },
+  "inputSchemaHash": "5b879b9a9b88978594523bf736ef3f37b80dab3de505a09524995c2378966cb0",
+  "outputSchemaHash": "77965ddf171a40b330737f1f9a94861a31b0d19375a9b5c1faf8b5a80856d144",
+  "supportedExecutorBindings": [
+    {
+      "contractVersion": "1.0",
+      "bindingKey": "tool_gateway_connector_v1",
+      "bindingVersion": "1.0",
+      "contentHash": "90da06a5e27263e11891eff9cc0982546b93d4b7425b7b6f5ca550131b9147ee"
+    }
+  ],
+  "approvalPolicy": "always",
+  "retryPolicy": "never",
+  "reconciliationPolicy": {
+    "strategy": "provider_idempotency",
+    "lookupOperation": null
+  },
+  "compensationPolicy": {
+    "strategy": "manual",
+    "operation": null
+  },
+  "maximumAttempts": 1,
+  "defaultTimeoutSeconds": 30,
+  "limitPolicy": {
+    "maximumTurns": 1,
+    "maximumTokens": 1000,
+    "maximumToolCalls": 1,
+    "maximumRuntimeSeconds": 30,
+    "cost": {
+      "mode": "forbidden"
+    }
+  }
+}

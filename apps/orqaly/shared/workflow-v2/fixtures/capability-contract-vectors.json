@@ -1,0 +1,396 @@
+{
+  "schemaVersion": "axwise.processing-consent-golden.v1",
+  "cases": [
+    {
+      "name": "analysis_unicode",
+      "envelope": {
+        "operationId": "00000000-0000-4000-8000-000000000904",
+        "operationType": "AnalyzeEvidenceV1",
+        "owner": {
+          "tenantId": "00000000-0000-4000-8000-000000000901",
+          "organizationId": null,
+          "userId": "user_analysisfixture123"
+        },
+        "workflow": {
+          "runId": "00000000-0000-4000-8000-000000000902",
+          "stageId": "00000000-0000-4000-8000-000000000903",
+          "stageAttemptId": "00000000-0000-4000-8000-000000000905"
+        },
+        "contractVersion": "axwise.operation.v2",
+        "canonicalInputHash": "c2ae5ad1e7116db17c89db5bb8c838771c34ce1e65b12257e98be6eb83feac81",
+        "input": {
+          "type": "AnalyzeEvidenceV1",
+          "acceptedScope": {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "870c8471cae54898487b20cf18d77efd0b49a3d508e586a15f8f19185832c4e2",
+            "kind": "scope"
+          },
+          "scope": {
+            "schemaVersion": "axwise.scope.v2",
+            "objective": "Create an Estonia cat-food launch PRD.",
+            "objectiveSourceSpans": [
+              {
+                "start": 0,
+                "end": 38,
+                "offsetUnit": "utf16_code_units",
+                "text": "Create an Estonia cat-food launch PRD.",
+                "sha256": "befce77ea8c7bc5df57a0e394b6bf132200a0db92987521a0bb32b813dd19683"
+              }
+            ],
+            "topicAnchors": [
+              {
+                "value": "cat-food",
+                "sourceSpans": [
+                  {
+                    "start": 18,
+                    "end": 26,
+                    "offsetUnit": "utf16_code_units",
+                    "text": "cat-food",
+                    "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8"
+                  }
+                ]
+              }
+            ],
+            "geography": [
+              "Estonia"
+            ],
+            "evidenceRequirements": [],
+            "deliverables": [
+              "Product requirements document"
+            ],
+            "personas": [],
+            "interviewRequirements": [],
+            "prdRequirements": [],
+            "limits": [],
+            "policies": [],
+            "deliverableProfile": {
+              "schemaVersion": "axwise.deliverable-profile.v1",
+              "artifactType": "product_prd",
+              "domain": "Commercial cat-food launch in Estonia",
+              "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+              "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+              "audiences": [
+                "Product decision-makers"
+              ],
+              "nonGoals": [
+                "Do not claim launch authority without verified evidence."
+              ],
+              "requiredSections": [
+                "Acceptance criteria",
+                "Evidence, assumptions, and gaps",
+                "Metrics and validation",
+                "Next steps",
+                "Prioritized requirements",
+                "Problem and desired outcome",
+                "Product thesis, scope, and non-goals",
+                "Risks",
+                "User journeys",
+                "Users, jobs, and pains"
+              ]
+            },
+            "requirements": [
+              {
+                "id": "req-8406b408a1efe030",
+                "category": "deliverable",
+                "description": "Product requirements document",
+                "priority": "P0",
+                "authority": "owner"
+              }
+            ],
+            "acceptanceCriteria": [
+              {
+                "id": "acc-54ff9697aaa48c75",
+                "given": "The accepted scope and immutable research are available.",
+                "when": "The product requirements document is evaluated.",
+                "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                "supports": [
+                  "req-8406b408a1efe030"
+                ]
+              }
+            ],
+            "assumptions": [],
+            "materialClarification": null,
+            "researchInputHash": "1460da0887fd9ed029a3bb0441e5250d1fa0055be3c3d5bdff3ff4d6d48edd2d",
+            "authority": {
+              "canonicalInputHash": "93d549ffa3576a503d39ae090e2b177a8dceb36ef77c40d8e56b09fd35babdaf",
+              "seal": "eba98204aa77dea04efd9bb06a93a451bb1f06b710522ccc08a1649f9b9643aa"
+            }
+          },
+          "source": {
+            "artifact": {
+              "artifactId": "00000000-0000-4000-8000-000000000102",
+              "artifactHash": "4594a7be9df88cf1a6bfad840b4218491dc4b4f174ae3bd582a2202918e0f3e5",
+              "kind": "transcript_corpus"
+            },
+            "contentType": "application/json",
+            "payload": {
+              "schemaVersion": "axwise.transcript-corpus.v1",
+              "documents": [
+                {
+                  "documentId": "00000000-0000-4000-8000-000000000001",
+                  "title": "Synthetic test fixture",
+                  "text": "Café é 🧭\r\nUpdates stay exact.",
+                  "textSha256": "77236f84a1418181aa1d62d20e8796ddf014cee4917400116a612b178894b889",
+                  "origin": "supplied_transcript",
+                  "originArtifactRefs": [],
+                  "participants": [
+                    {
+                      "participantId": "p1",
+                      "displayName": "Same label",
+                      "role": "participant",
+                      "stakeholderId": null
+                    }
+                  ],
+                  "turns": [
+                    {
+                      "turnId": "t1",
+                      "participantId": "p1",
+                      "questionId": null,
+                      "start": 0,
+                      "end": 35,
+                      "offsetUnit": "utf8_bytes"
+                    }
+                  ]
+                }
+              ]
+            },
+            "markdown": null
+          },
+          "request": {
+            "decisionQuestion": "Which update workflow needs improvement?",
+            "questions": [
+              {
+                "id": "analysis-q1",
+                "text": "What is difficult about updates?"
+              }
+            ],
+            "outputs": [
+              "jobs_pains"
+            ],
+            "analysisProfile": "qualitative_v1"
+          },
+          "limits": {
+            "deadlineMs": 180000,
+            "maxModelCalls": 3,
+            "maxInputTokens": 120000,
+            "maxOutputTokens": 65536
+          },
+          "processingConsent": {
+            "schemaVersion": "axwise.processing-consent.v1",
+            "granted": true,
+            "provider": "google",
+            "purpose": "AnalyzeEvidenceV1",
+            "operationId": "00000000-0000-4000-8000-000000000904",
+            "bindingHash": "c95f70733d22f57c9da6c91dad4df6c2060501cfce27708f183a5d32c8f4d8e5",
+            "noticeVersion": "google-selected-sources-v1"
+          }
+        }
+      }
+    },
+    {
+      "name": "simulation_selected_claim",
+      "envelope": {
+        "operationId": "00000000-0000-4000-8000-000000000904",
+        "operationType": "SimulateV1",
+        "owner": {
+          "tenantId": "00000000-0000-4000-8000-000000000901",
+          "organizationId": null,
+          "userId": "user_analysisfixture123"
+        },
+        "workflow": {
+          "runId": "00000000-0000-4000-8000-000000000902",
+          "stageId": "00000000-0000-4000-8000-000000000903",
+          "stageAttemptId": "00000000-0000-4000-8000-000000000905"
+        },
+        "contractVersion": "axwise.operation.v2",
+        "canonicalInputHash": "5f79073b670188a3e3fe346904b89ae65a7990ea3e849a65b324aa153da7f826",
+        "input": {
+          "type": "SimulateV1",
+          "acceptedScope": {
+            "artifactId": "00000000-0000-4000-8000-000000000101",
+            "artifactHash": "870c8471cae54898487b20cf18d77efd0b49a3d508e586a15f8f19185832c4e2",
+            "kind": "scope"
+          },
+          "scope": {
+            "schemaVersion": "axwise.scope.v2",
+            "objective": "Create an Estonia cat-food launch PRD.",
+            "objectiveSourceSpans": [
+              {
+                "start": 0,
+                "end": 38,
+                "offsetUnit": "utf16_code_units",
+                "text": "Create an Estonia cat-food launch PRD.",
+                "sha256": "befce77ea8c7bc5df57a0e394b6bf132200a0db92987521a0bb32b813dd19683"
+              }
+            ],
+            "topicAnchors": [
+              {
+                "value": "cat-food",
+                "sourceSpans": [
+                  {
+                    "start": 18,
+                    "end": 26,
+                    "offsetUnit": "utf16_code_units",
+                    "text": "cat-food",
+                    "sha256": "279580d8f28e31e8d924e3f6cb8d3c4296fa2e349892624b03e6730bd8486da8"
+                  }
+                ]
+              }
+            ],
+            "geography": [
+              "Estonia"
+            ],
+            "evidenceRequirements": [],
+            "deliverables": [
+              "Product requirements document"
+            ],
+            "personas": [],
+            "interviewRequirements": [],
+            "prdRequirements": [],
+            "limits": [],
+            "policies": [],
+            "deliverableProfile": {
+              "schemaVersion": "axwise.deliverable-profile.v1",
+              "artifactType": "product_prd",
+              "domain": "Commercial cat-food launch in Estonia",
+              "problem": "Define a useful, evidence-bounded cat-food product for Estonia.",
+              "desiredOutcome": "A decision-ready product requirements document with traceable evidence boundaries.",
+              "audiences": [
+                "Product decision-makers"
+              ],
+              "nonGoals": [
+                "Do not claim launch authority without verified evidence."
+              ],
+              "requiredSections": [
+                "Acceptance criteria",
+                "Evidence, assumptions, and gaps",
+                "Metrics and validation",
+                "Next steps",
+                "Prioritized requirements",
+                "Problem and desired outcome",
+                "Product thesis, scope, and non-goals",
+                "Risks",
+                "User journeys",
+                "Users, jobs, and pains"
+              ]
+            },
+            "requirements": [
+              {
+                "id": "req-8406b408a1efe030",
+                "category": "deliverable",
+                "description": "Product requirements document",
+                "priority": "P0",
+                "authority": "owner"
+              }
+            ],
+            "acceptanceCriteria": [
+              {
+                "id": "acc-54ff9697aaa48c75",
+                "given": "The accepted scope and immutable research are available.",
+                "when": "The product requirements document is evaluated.",
+                "then": "Every accepted requirement is visibly satisfied or explicitly marked as a gap.",
+                "supports": [
+                  "req-8406b408a1efe030"
+                ]
+              }
+            ],
+            "assumptions": [],
+            "materialClarification": null,
+            "researchInputHash": "1460da0887fd9ed029a3bb0441e5250d1fa0055be3c3d5bdff3ff4d6d48edd2d",
+            "authority": {
+              "canonicalInputHash": "93d549ffa3576a503d39ae090e2b177a8dceb36ef77c40d8e56b09fd35babdaf",
+              "seal": "eba98204aa77dea04efd9bb06a93a451bb1f06b710522ccc08a1649f9b9643aa"
+            }
+          },
+          "request": {
+            "requested": true,
+            "scenario": {
+              "id": "scenario",
+              "description": "A fictional product planning scenario.",
+              "targetAudience": "Synthetic operations teams",
+              "problem": "Explore a fictional manual handoff."
+            },
+            "stakeholders": [
+              {
+                "stakeholderId": "group-0",
+                "label": "Group 0",
+                "description": "A hypothetical group, not real survey respondents.",
+                "participantCount": 1,
+                "countryCode": "LV",
+                "locality": "Riga",
+                "questions": [
+                  {
+                    "questionId": "question-0",
+                    "text": "What hypothetical constraint 0 matters?"
+                  },
+                  {
+                    "questionId": "question-1",
+                    "text": "What hypothetical constraint 1 matters?"
+                  }
+                ]
+              }
+            ],
+            "grounding": {
+              "mode": "source_grounded",
+              "sourceArtifacts": [
+                {
+                  "artifactId": "00000000-0000-4000-8000-000000000103",
+                  "artifactHash": "f81215e26bcbc6bc517d33c58651b886938b1ff8346eeae6a7ce2937c7cdb7b4",
+                  "kind": "research"
+                }
+              ]
+            },
+            "sampling": {
+              "seed": 19,
+              "profileVersion": "hash_uniform_v1"
+            },
+            "responseStyle": "mixed",
+            "generationProfile": "bounded_v1"
+          },
+          "selectedGrounding": [
+            {
+              "artifact": {
+                "artifactId": "00000000-0000-4000-8000-000000000103",
+                "artifactHash": "f81215e26bcbc6bc517d33c58651b886938b1ff8346eeae6a7ce2937c7cdb7b4",
+                "kind": "research"
+              },
+              "entryKind": "claim",
+              "entryId": "d46e86c7e5514b479b47d81b65875c9fe113c49c0ecc26de50961a88fccac3b2"
+            }
+          ],
+          "limits": {
+            "deadlineMs": 180000,
+            "maxModelCalls": 3,
+            "maxInputTokens": 120000,
+            "maxOutputTokens": 65536
+          },
+          "processingConsent": {
+            "schemaVersion": "axwise.processing-consent.v1",
+            "granted": true,
+            "provider": "google",
+            "purpose": "SimulateV1",
+            "operationId": "00000000-0000-4000-8000-000000000904",
+            "bindingHash": "2436d87f0760c6ff9580f571bdc62e0d2dc236c696abb63e6d94d6fe2ff3816c",
+            "noticeVersion": "google-selected-sources-v1"
+          }
+        }
+      }
+    }
+  ],
+  "bindingOnlyCases": [
+    {
+      "name": "nested_member_stays_bound",
+      "bindingOnly": true,
+      "baseEnvelopeCase": "analysis_unicode",
+      "setTopLevelConsent": {
+        "ignored": "top-level consent is omitted only for binding"
+      },
+      "setInputRequestProcessingConsent": {
+        "nested": "must stay bound"
+      },
+      "expectedBaseHash": "c95f70733d22f57c9da6c91dad4df6c2060501cfce27708f183a5d32c8f4d8e5",
+      "expectedTopLevelReplacementHash": "c95f70733d22f57c9da6c91dad4df6c2060501cfce27708f183a5d32c8f4d8e5",
+      "expectedNestedAdditionHash": "0034fff978a165082a54a58dd731be13450e4ffbe9138a3337561ccbea731c61"
+    }
+  ]
+}

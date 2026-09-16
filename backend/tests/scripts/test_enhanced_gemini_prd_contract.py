@@ -1,4 +1,4 @@
-"""Behavioral contracts for Gemini 3.7 commercial PRD prompting."""
+"""Behavioral contracts for Gemini 3.8 commercial PRD prompting."""
 
 from __future__ import annotations
 
@@ -46,8 +46,8 @@ class _Structured(BaseModel):
 
 def _service() -> EnhancedGeminiLLMService:
     service = object.__new__(EnhancedGeminiLLMService)
-    service.config = {"model": "models/gemini-3.7-flash"}
-    service.model = "models/gemini-3.7-flash"
+    service.config = {"model": "models/gemini-3.8-flash"}
+    service.model = "models/gemini-3.8-flash"
     service.temperature = None
     service.max_tokens = 65_536
     service.client = _SpyClient()
@@ -1256,7 +1256,7 @@ async def test_final_prd_size_includes_service_metadata_and_never_caches():
 
 
 @pytest.mark.asyncio
-async def test_all_enhanced_gemini37_structured_calls_omit_sampling_controls():
+async def test_all_enhanced_gemini_flash_structured_calls_omit_sampling_controls():
     service = _service()
 
     await service.generate_text(

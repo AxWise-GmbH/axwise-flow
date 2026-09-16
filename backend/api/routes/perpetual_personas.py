@@ -15,6 +15,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Body
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -117,14 +118,16 @@ def _assert_ownership(db: Session, result_id: int, user: User) -> AnalysisResult
     )
     if not ar:
         raise HTTPException(status_code=404, detail="Analysis result not found")
-    # Verify the result belongs to the current user (when DB is available)
+    # Fail closed: media/persona endpoints must never expose a result merely
+    # because its ownership lookup failed or the legacy row lacks an owner.
     try:
         iv = db.query(InterviewData).filter(InterviewData.id == ar.data_id).first()
-        if iv and iv.user_id and user and iv.user_id != user.user_id:
-            raise HTTPException(status_code=403, detail="Forbidden")
-    except Exception:
-        # In OSS dev without DB, skip strict check
-        pass
+    except SQLAlchemyError as error:
+        raise HTTPException(status_code=503, detail="Ownership check unavailable") from error
+    if not iv:
+        raise HTTPException(status_code=404, detail="Analysis source not found")
+    if not user or not iv.user_id or iv.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return ar
 
 
@@ -981,5 +984,4 @@ async def generate_persona_berlin_profile(
     # Force city to Berlin and call the new endpoint
     payload["city"] = "Berlin"
     return await generate_persona_city_profile(result_id, persona_id, payload, db, user)
-
 

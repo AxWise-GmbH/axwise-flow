@@ -40,7 +40,7 @@ async def test_pydantic_ai_import():
         # Test Gemini model initialization
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "fake-key"
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+        gemini_model = GoogleModel("models/gemini-3.8-flash", provider=provider)
         print("✅ Gemini model initialization successful")
 
         # Test agent creation
@@ -112,7 +112,7 @@ async def test_simple_persona_generation():
         # Create agent
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "fake-key"
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+        gemini_model = GoogleModel("models/gemini-3.8-flash", provider=provider)
         agent = Agent(
             model=gemini_model,
             output_type=PersonaModel,

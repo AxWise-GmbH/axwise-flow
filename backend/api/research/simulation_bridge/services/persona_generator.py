@@ -195,7 +195,7 @@ Return a list of PersonaGenerationItem objects with all fields populated."""
             )
             logger.info(f"Person generation prompt: {prompt[:200]}...")
 
-            # Gemini 3.7 supports native JSON-schema output. PydanticAI owns
+            # Gemini 3.8 supports native JSON-schema output. PydanticAI owns
             # schema-repair retries; provider transport retries remain in the
             # configured HTTP client and we do not retry arbitrary exceptions.
             result = await self.agent.run(prompt, deps=run_contract)

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="base" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#10B981" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#064E3B" stop-opacity="1"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#10B981" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="highlight" cx="30%" cy="25%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="50%" cy="0%">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes spinR { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(-180deg) scale(1.05); } 100% { transform: rotate(-360deg) scale(1); } }
+    @keyframes pulse { 0%,100% { opacity: 0.25; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.06); } }
+    .swirl1 { animation: spin 12s linear infinite; transform-origin: 32px 32px; }
+    .swirl2 { animation: spinR 10s linear infinite; transform-origin: 32px 32px; }
+    .glow-ring { animation: pulse 4s ease-in-out infinite; transform-origin: 32px 32px; }
+  </style>
+  <!-- Outer glow -->
+  <circle class="glow-ring" cx="32" cy="32" r="30" fill="url(#glow)"/>
+  <!-- Main orb -->
+  <circle cx="32" cy="32" r="24" fill="url(#base)"/>
+  <!-- Swirl layer 1 -->
+  <g class="swirl1">
+    <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" stroke-opacity="0.3" stroke-width="4" stroke-dasharray="20 15 8 25" filter="url(#blur1)"/>
+  </g>
+  <!-- Swirl layer 2 -->
+  <g class="swirl2">
+    <circle cx="32" cy="32" r="18" fill="none" stroke="#10B981" stroke-opacity="0.35" stroke-width="5" stroke-dasharray="12 20 6 18" filter="url(#blur1)"/>
+  </g>
+  <!-- Highlight -->
+  <circle cx="32" cy="32" r="24" fill="url(#highlight)"/>
+  <!-- Rim light -->
+  <ellipse cx="32" cy="14" rx="12" ry="8" fill="url(#rim)" opacity="0.5"/>
+  <!-- Glass reflection -->
+  <ellipse cx="32" cy="18" rx="9" ry="5" fill="white" opacity="0.15"/>
+  <!-- Blur filter -->
+  <defs>
+    <filter id="blur1"><feGaussianBlur stdDeviation="1.5"/></filter>
+  </defs>
+</svg>

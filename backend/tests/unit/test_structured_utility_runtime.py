@@ -41,7 +41,7 @@ def _valid_pattern_response(*, evidence: str) -> PatternResponse:
 def test_utility_model_is_exact_shared_and_has_one_transport_retry_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.8-flash")
     api_key = "structured-utility-test-key"
 
     first = utility_runtime.get_shared_structured_utility_model(api_key)
@@ -49,7 +49,7 @@ def test_utility_model_is_exact_shared_and_has_one_transport_retry_owner(
     transport = first._provider.client._api_client._async_httpx_client
 
     assert first is second
-    assert first.model_name == "models/gemini-3.7-flash"
+    assert first.model_name == "models/gemini-3.8-flash"
     assert first.settings["max_tokens"] == 65_536
     assert first.settings["google_thinking_config"]["thinking_level"] == (
         ThinkingLevel.MEDIUM
@@ -69,7 +69,7 @@ def test_utility_runtime_rejects_model_drift(
 ) -> None:
     monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.5-flash")
 
-    with pytest.raises(RuntimeError, match="gemini-3.7-flash"):
+    with pytest.raises(RuntimeError, match="gemini-3.8-flash"):
         utility_runtime.get_shared_structured_utility_model("test-key")
 
 
@@ -134,7 +134,7 @@ def test_pattern_processor_fails_closed_on_model_drift(
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.5-flash")
 
-    with pytest.raises(RuntimeError, match="gemini-3.7-flash"):
+    with pytest.raises(RuntimeError, match="gemini-3.8-flash"):
         pattern_module.PatternProcessor()
 
 
