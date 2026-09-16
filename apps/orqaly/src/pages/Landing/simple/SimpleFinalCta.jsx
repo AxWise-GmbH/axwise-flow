@@ -47,7 +47,7 @@ export default function SimpleFinalCta({ onPrimaryCta }) {
           </Stack>
           <DesktopReleaseDetails id="desktop-download-details" showChecksum />
           <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-            Unzip the download, then move Orqanix Preview to Applications. Built on Goose.
+            Open the DMG, then drag Orqanix Preview to Applications. Built on Goose.
           </Typography>
         </Stack>
       </Container>

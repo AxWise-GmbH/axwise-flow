@@ -75,7 +75,7 @@ describe('LandingPageSimple', () => {
       expect(download).toHaveAttribute('download', DESKTOP_RELEASE.filename);
       expect(download).toHaveAccessibleDescription(
         new RegExp(
-          `Apple Silicon.*${Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB.*Unsigned preview.*Sign in`
+          `Apple Silicon.*${Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB.*Preview \\(not notarized\\).*Sign in`
         )
       );
     }
