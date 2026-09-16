@@ -1,0 +1,124 @@
+/* Global scrollbar styling — dark mode: black/invisible */
+[data-theme='dark'] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(33, 38, 45, 0.9);
+  border-radius: 4px;
+}
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(48, 54, 61, 0.95);
+}
+[data-theme='dark'] ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* Firefox */
+[data-theme='dark'] * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(33, 38, 45, 0.9) transparent;
+}
+
+/* One-finger vertical scroll on touch browsers (iOS Safari, Android Chrome). */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  touch-action: pan-y;
+  max-width: 100%;
+}
+
+#root:has(.app-shell) {
+  overflow-x: clip;
+  width: 100%;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Simple-mode shared side gutter for non-adapted pages (see SimpleContentFrame).
+   16px mirrors .mkt-landing[data-compact="1"] padding (MarketplaceLanding.css ~line 640).
+   Adapted pages already self-pad, so the frame collapses around them via :has(). */
+.simple-frame {
+  --simple-gutter: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: var(--simple-gutter);
+  padding-right: var(--simple-gutter);
+}
+.simple-frame__inner {
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+}
+/* Adapted pages already center their own 920px inner — neutralize both the
+   gutter and the cap so they render exactly as before (no double padding/cap). */
+.simple-frame:has(.mkt-landing[data-compact='1']) {
+  padding-left: 0;
+  padding-right: 0;
+}
+.simple-frame:has(.mkt-landing[data-compact='1']) .simple-frame__inner {
+  max-width: none;
+}
+
+/* iOS Safari/WebKit auto-zooms into any focused input whose font-size is < 16px
+   and never zooms back out (the zoom even survives SPA navigation). Force 16px on
+   phones for ALL inputs — not just `.app-shell` — so the login/auth page, public
+   pages, and portaled MUI dialogs/menus (rendered to <body>, outside .app-shell)
+   are covered too. */
+@media (max-width: 600px) {
+  input,
+  textarea,
+  select,
+  .MuiInputBase-input {
+    font-size: 16px !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  html,
+  body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+    overflow-y: visible;
+  }
+
+  /* Never promote landing/public roots to nested scrollports on touch (see mobileTouchScroll.js). */
+  [data-landing-root],
+  [data-landing-root] main {
+    overflow: visible !important;
+    touch-action: pan-y;
+    min-height: 0;
+  }
+
+  [data-landing-root] {
+    display: block !important;
+  }
+
+  /* react-grid-layout can block vertical pans on dashboard tiles when not dragging */
+  .dashboard-grid.react-grid-layout,
+  .dashboard-grid.react-grid-layout .react-grid-item {
+    touch-action: pan-y !important;
+  }
+
+  /* Landing marketing carousels: horizontal pan only inside the strip */
+  [data-landing-carousel='x'] {
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Decorative layers must not swallow vertical pans */
+  [data-landing-root] [aria-hidden='true'] {
+    pointer-events: none !important;
+  }
+}

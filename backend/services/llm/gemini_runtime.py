@@ -1,4 +1,4 @@
-"""Single exact-model runtime for durable Gemini 3.7 research."""
+"""Single exact-model runtime for durable Gemini 3.8 research."""
 
 from __future__ import annotations
 
@@ -14,11 +14,11 @@ from typing import Any, Optional
 import httpx
 from google.genai import Client as GoogleGenAIClient
 from google.genai.types import HttpOptions, HttpRetryOptions, ThinkingLevel
+from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
 from pydantic_ai.providers.google import GoogleProvider
 
-
-RESEARCH_MODEL = "gemini-3.7-flash"
+RESEARCH_MODEL = "gemini-3.8-flash"
 RESEARCH_MODEL_RESOURCE = f"models/{RESEARCH_MODEL}"
 RESEARCH_THINKING_LEVEL = ThinkingLevel.HIGH
 RESEARCH_MAX_OUTPUT_TOKENS = 65_536
@@ -37,6 +37,7 @@ class _SharedResearchRuntime:
 
 
 _SHARED_RESEARCH_MODELS: dict[str, _SharedResearchRuntime] = {}
+_SHARED_WORKFLOW_MODELS: dict[str, _SharedResearchRuntime] = {}
 
 
 class BoundedRetryAsyncClient(httpx.AsyncClient):
@@ -197,11 +198,48 @@ def normalized_research_model(value: str) -> str:
     return str(value or "").strip().removeprefix("models/")
 
 
+def exact_uniform_model_version_from_result(result: Any) -> str | None:
+    """Return one proven provider version for every Google response in a run.
+
+    PydanticAI 2.28 sets ``ModelResponse.model_name`` to the configured model
+    resource when Google omits ``modelVersion``. The configured resource is
+    therefore an ambiguity sentinel, not provider provenance. Output-validation
+    retries also create multiple model responses, so a single operation-level
+    version is truthful only when every current-run response exposes the same
+    non-sentinel value.
+    """
+
+    new_messages = getattr(result, "new_messages", None)
+    if not callable(new_messages):
+        return None
+    try:
+        messages = new_messages()
+    except (AttributeError, TypeError, ValueError):
+        return None
+    responses = [message for message in messages if isinstance(message, ModelResponse)]
+    if not responses:
+        return None
+    versions: list[str] = []
+    for response in responses:
+        value = response.model_name
+        if (
+            response.provider_name != "google"
+            or not isinstance(value, str)
+            or not value
+            or value != value.strip()
+            or len(value) > 200
+            or value == RESEARCH_MODEL_RESOURCE
+        ):
+            return None
+        versions.append(value)
+    return versions[0] if len(set(versions)) == 1 else None
+
+
 def _build_research_runtime(api_key: str) -> _SharedResearchRuntime:
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Durable research requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"Durable research requires GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     http_client = BoundedRetryAsyncClient(
@@ -261,7 +299,7 @@ def get_shared_research_model(api_key: str) -> GoogleModel:
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Durable research requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"Durable research requires GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
@@ -269,6 +307,35 @@ def get_shared_research_model(api_key: str) -> GoogleModel:
     if runtime is None:
         runtime = _build_research_runtime(api_key)
         _SHARED_RESEARCH_MODELS[credential_fingerprint] = runtime
+    return runtime.model
+
+
+def get_shared_workflow_model(api_key: str) -> GoogleModel:
+    """Exact Gemini 3.8 Flash/HIGH model without an application output cap."""
+
+    configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
+    if normalized_research_model(configured) != RESEARCH_MODEL:
+        raise RuntimeError(
+            f"Workflow cognition requires GEMINI_MODEL={RESEARCH_MODEL_RESOURCE}; "
+            f"received {configured!r}. Provider/model fallback is disabled."
+        )
+    credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    runtime = _SHARED_WORKFLOW_MODELS.get(credential_fingerprint)
+    if runtime is None:
+        research_runtime = _build_research_runtime(api_key)
+        model = GoogleModel(
+            RESEARCH_MODEL_RESOURCE,
+            provider=GoogleProvider(client=research_runtime.sdk_client),
+            settings=GoogleModelSettings(
+                google_thinking_config={"thinking_level": RESEARCH_THINKING_LEVEL},
+            ),
+        )
+        runtime = _SharedResearchRuntime(
+            model=model,
+            sdk_client=research_runtime.sdk_client,
+            http_client=research_runtime.http_client,
+        )
+        _SHARED_WORKFLOW_MODELS[credential_fingerprint] = runtime
     return runtime.model
 
 
@@ -292,8 +359,11 @@ async def close_shared_research_model(api_key: str) -> None:
 async def close_shared_research_models() -> None:
     """Close caller-owned google-genai transports during application shutdown."""
 
-    runtimes = list(_SHARED_RESEARCH_MODELS.values())
+    runtimes = list(_SHARED_RESEARCH_MODELS.values()) + list(
+        _SHARED_WORKFLOW_MODELS.values()
+    )
     _SHARED_RESEARCH_MODELS.clear()
+    _SHARED_WORKFLOW_MODELS.clear()
     closed_transports: set[int] = set()
     for runtime in runtimes:
         if id(runtime.http_client) in closed_transports:
@@ -306,7 +376,7 @@ def require_search_model() -> str:
     configured = os.getenv("GEMINI_SEARCH_MODEL", RESEARCH_MODEL)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Grounded research requires GEMINI_SEARCH_MODEL=gemini-3.7-flash; "
+            f"Grounded research requires GEMINI_SEARCH_MODEL={RESEARCH_MODEL}; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     return RESEARCH_MODEL

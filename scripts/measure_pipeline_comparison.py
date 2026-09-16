@@ -88,7 +88,7 @@ async def main():
 
     # 1. Initialize simulation LLM (PydanticAI)
     provider = GoogleProvider(api_key=api_key)
-    pydantic_ai_model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+    pydantic_ai_model = GoogleModel("models/gemini-3.8-flash", provider=provider)
 
     # 2. Initialize Pipeline B generator and simulators
     sampler = OCEANSampler()

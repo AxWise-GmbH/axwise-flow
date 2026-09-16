@@ -1,0 +1,28 @@
+/* Larger, more visible handles for workflow nodes */
+.react-flow__handle.workflow-handle {
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  background: #6366f1 !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  cursor: crosshair;
+}
+.react-flow__handle.workflow-handle:hover {
+  background: #4f46e5 !important;
+}
+
+/* Disconnect buttons are shown only on hover/selection to keep nodes clean. */
+.workflow-node .workflow-disconnect-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+.workflow-node:hover .workflow-disconnect-btn,
+.workflow-node.workflow-node--selected .workflow-disconnect-btn {
+  opacity: 1;
+  pointer-events: auto;
+}

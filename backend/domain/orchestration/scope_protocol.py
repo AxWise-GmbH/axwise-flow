@@ -75,7 +75,7 @@ def _proposal(*, corrected: bool, research: bool = False) -> ScopeProposalBindin
             "maximum_research_iterations": 1 if research else 0,
             "maximum_evidence_items": 25 if research else 0,
             "provider": "google" if research else None,
-            "model_resource": "models/gemini-3.7-flash" if research else None,
+            "model_resource": "models/gemini-3.8-flash" if research else None,
             "thinking_level": "HIGH" if research else None,
         },
     }

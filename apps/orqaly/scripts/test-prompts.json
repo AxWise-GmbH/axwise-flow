@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "subject": "Rustic Roots — fictional Brooklyn artisan sourdough subscription",
+    "consistent_brand": true,
+    "frozen_for_reproducibility": "2026-04-08",
+    "notes": "All 4 prompts target the same fictional brand so visual + tonal consistency can be measured across goals."
+  },
+  "landing-page": {
+    "title": "Landing page for Rustic Roots — artisan sourdough subscription",
+    "description": "Create a one-page landing site for 'Rustic Roots', a Brooklyn-based artisan sourdough subscription starting at $24 per week. Required sections: (1) hero with a clear headline and subheadline; (2) three benefit blocks (naturally fermented 48 hours, delivered fresh Saturday morning, starts at $24 per week); (3) three realistic customer testimonials with name, neighborhood, and one specific detail each (fictional is OK but must sound like a real Brooklynite wrote them); (4) FAQ with four items covering delivery area, dietary info, subscription pause, and first-week guarantee; (5) subscribe CTA. Deploy to a live Vercel URL. No Lorem ipsum, no placeholder text. The copy must sound like a food writer wrote it, not a marketer — specific, sensory, earned.",
+    "budget_usd": 10,
+    "mode": "simple",
+    "deliverable_type_expected": "deployment",
+    "rubric_focus": ["scoreCodeDeployment", "scoreCopywriting"]
+  },
+  "presentation": {
+    "title": "Investor pitch deck for Rustic Roots",
+    "description": "Create a 10-slide seed-round pitch deck for Rustic Roots, a Brooklyn-based artisan sourdough subscription ($24 per week). Slides: (1) cover with tagline, (2) problem — why supermarket bread fails food lovers, (3) solution — weekly naturally-fermented sourdough at the door, (4) product detail with real product photos, (5) market — US artisanal bread CAGR with a real cited source, (6) business model $24 per week AOV and simple unit economics, (7) traction — realistic plausible early metrics (can be fictional but must sound real, not '10x growth overnight'), (8) team — three fictional but credible founders with backgrounds, (9) financial ask $500,000 with use of funds, (10) contact. Must export as a real PDF file with a downloadable URL. Not a markdown file claiming to be a deck.",
+    "budget_usd": 10,
+    "mode": "simple",
+    "deliverable_type_expected": "presentation",
+    "rubric_focus": ["scoreVisualAsset", "scoreCopywriting"]
+  },
+  "smm-banners": {
+    "title": "SMM banners for Rustic Roots subscription launch",
+    "description": "Create a set of 5 social media banners for the Rustic Roots launch campaign: 2 Instagram square banners (1080x1080), 2 LinkedIn post banners (1200x627), 1 Twitter/X header banner (1600x900). Visual direction: warm earthy tones (flour white, crust brown, wheat gold), real sourdough bread photography feel — not cartoon or vector illustration. Each banner must prominently show the 'Rustic Roots' wordmark and the '$24/week' price. Must return real image URLs that resolve to actual image files (not placeholder URLs or markdown descriptions of images).",
+    "budget_usd": 12,
+    "mode": "simple",
+    "deliverable_type_expected": "asset",
+    "rubric_focus": ["scoreVisualAsset"]
+  },
+  "smm-strategy": {
+    "title": "30-day content calendar for Rustic Roots launch",
+    "description": "Create a 30-day social media content calendar for the Rustic Roots launch targeting Brooklyn food enthusiasts, ages 28-45, household income $75k+. Requirements: (1) platform mix with rationale — Instagram as primary, TikTok as secondary, explain why, cite at least one industry source; (2) four content pillars with one-sentence rationale each; (3) 30 specific post ideas dated Monday-Sunday across 4 weeks, each with platform + content type (Reel, carousel, story, post) + one-line hook; (4) KPIs with REAL benchmarked numbers — no fake '15% engagement rate' nonsense; look up actual industry averages for artisan food brands and cite the source; (5) week-by-week execution plan with priorities. Must cite at least 5 real sources (URLs that resolve to HTTP 200). No em-dashes. No 'in today's fast-paced' phrases.",
+    "budget_usd": 8,
+    "mode": "simple",
+    "deliverable_type_expected": "strategy",
+    "rubric_focus": ["scoreStrategyDoc", "scoreCopywriting"]
+  },
+  "code": {
+    "title": "Node.js CLI page-title scraper for Rustic Roots",
+    "description": "Build a minimal Node.js command-line tool that takes a URL as its first argument, fetches the page, extracts the contents of the <title> tag, and prints it to stdout. Requirements: (1) single file index.js using only Node.js built-in modules (node:fetch or node:https) — no npm dependencies; (2) package.json with name 'rustic-roots-title-scraper', version 1.0.0, and a bin entry that exposes the CLI as 'rrt' so it can be run via 'npx rrt <url>'; (3) README.md with install instructions (git clone + npm link) and a usage example with real output; (4) MIT LICENSE file; (5) commit everything to a fresh public GitHub repository via tool_github__create_repo and tool_github__put_file — do NOT just describe the code in markdown. End your response with GITHUB_REPO: https://github.com/<owner>/<repo> on its own line so the final-results extractor can surface it.",
+    "budget_usd": 5,
+    "mode": "simple",
+    "deliverable_type_expected": "code",
+    "rubric_focus": ["scoreCodeDeployment"]
+  }
+}

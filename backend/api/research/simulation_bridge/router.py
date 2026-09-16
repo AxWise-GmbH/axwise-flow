@@ -709,7 +709,7 @@ async def analyze_simulation_results(
 
         analysis_config = {
             "llm_provider": analysis_options.get("llm_provider", "gemini"),
-            "llm_model": analysis_options.get("llm_model", "gemini-3.7-flash"),
+            "llm_model": analysis_options.get("llm_model", "gemini-3.8-flash"),
             "industry": analysis_options.get("industry", "general"),
             "analysis_type": "comprehensive_simulation",
             "include_stakeholder_breakdown": True,

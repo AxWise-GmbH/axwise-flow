@@ -69,7 +69,7 @@ describe('API Client - Analysis Operations', () => {
 
     it('initiates analysis successfully with Gemini provider', async () => {
       // Call the method with Gemini provider
-      const result = await apiClient.analyzeData(123, 'gemini', 'models/gemini-3.7-flash');
+      const result = await apiClient.analyzeData(123, 'gemini', 'models/gemini-3.8-flash');
       
       // Verify the result structure
       expect(result).toEqual(expect.objectContaining({
@@ -86,7 +86,7 @@ describe('API Client - Analysis Operations', () => {
       expect(requestBody).toEqual(expect.objectContaining({
         data_id: 123,
         llm_provider: 'gemini',
-        llm_model: 'models/gemini-3.7-flash'
+        llm_model: 'models/gemini-3.8-flash'
       }));
     });
 

@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="lv" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Melnais Kakis - augstaklas kaku bariba, kas saknojas latviesu tradicijas. Grain-free, high-protein cat food delivered across Latvia." />
+  <title>Melnais Kakis | Premium Cat Food Latvia</title>
+
+  <!-- Google Fonts: Playfair Display + Inter — two family= params -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <!-- Lordicon -->
+  <script src="https://cdn.lordicon.com/lordicon.js"></script>
+
+  <style>
+    :root {
+      --color-bg: #0A0A0A;
+      --color-secondary: #1A1035;
+      --color-accent: #D4A843;
+      --color-surface: #F5F0E8;
+      --color-text: #E8E2D6;
+      --color-text-dark: #1E1E1E;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-16: 64px;
+      --space-20: 80px;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+      --shadow-gold: 0 0 20px rgba(212,168,67,0.3);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: var(--color-bg);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+      padding: 14px 32px;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .btn-primary:hover {
+      background: #E0B94F;
+      box-shadow: var(--shadow-gold);
+      transform: translateY(-1px) scale(1.05);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-accent);
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 16px;
+      padding: 12px 28px;
+      border: 1.5px solid var(--color-accent);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .btn-secondary:hover {
+      background: rgba(212,168,67,0.1);
+      border-color: #E0B94F;
+    }
+
+    .input-field {
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(232,226,214,0.2);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      color: var(--color-text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      width: 100%;
+      transition: border-color 0.2s ease;
+    }
+    .input-field:focus {
+      border-color: var(--color-accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(212,168,67,0.15);
+    }
+    .input-field::placeholder { color: rgba(232,226,214,0.4); }
+
+    .section-light { background: var(--color-surface); color: var(--color-text-dark); }
+
+    details > summary { list-style: none; cursor: pointer; }
+    details > summary::-webkit-details-marker { display: none; }
+
+    #mobile-menu { display: none; }
+    #mobile-menu.open { display: flex; }
+
+    #cookie-banner { display: none; }
+    #cookie-banner.show { display: flex; }
+
+    .glass {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ======================================================== NAV ======================================================== -->
+<nav class="sticky top-0 z-50 bg-[#0A0A0A] border-b border-[rgba(212,168,67,0.1)]">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2 text-[#D4A843] font-bold text-xl" style="font-family:'Playfair Display',serif;">
+      <span style="font-size:26px;">&#x1F408;</span>
+      <span>Melnais Kakis</span>
+    </a>
+
+    <!-- Desktop nav links -->
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#problem" class="text-[#E8E2D6] hover:text-[#D4A843] font-medium text-sm tracking-wide transition-colors duration-200">Par mums</a>
+      <a href="#features" class="text-[#E8E2D6] hover:text-[#D4A843] font-medium text-sm tracking-wide transition-colors duration-200">Produkti</a>
+      <a href="#pricing" class="text-[#E8E2D6] hover:text-[#D4A843] font-medium text-sm tracking-wide transition-colors duration-200">Cenas</a>
+      <a href="#faq" class="text-[#E8E2D6] hover:text-[#D4A843] font-medium text-sm tracking-wide transition-colors duration-200">FAQ</a>
+      <span class="text-[rgba(232,226,214,0.3)] text-sm border border-[rgba(232,226,214,0.15)] rounded px-2 py-0.5">EN / LV</span>
+    </div>
+
+    <!-- Hamburger (mobile) -->
+    <button id="hamburger-btn" class="md:hidden text-[#E8E2D6] p-2" aria-label="Toggle menu"
+      onclick="document.getElementById('mobile-menu').classList.toggle('open')">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="md:hidden bg-[#0A0A0A] border-t border-[rgba(212,168,67,0.1)] px-6 py-4 flex-col gap-2">
+    <a href="#problem" class="block text-[#E8E2D6] hover:text-[#D4A843] font-medium py-2 transition-colors duration-200"
+       onclick="document.getElementById('mobile-menu').classList.remove('open')">Par mums</a>
+    <a href="#features" class="block text-[#E8E2D6] hover:text-[#D4A843] font-medium py-2 transition-colors duration-200"
+       onclick="document.getElementById('mobile-menu').classList.remove('open')">Produkti</a>
+    <a href="#pricing" class="block text-[#E8E2D6] hover:text-[#D4A843] font-medium py-2 transition-colors duration-200"
+       onclick="document.getElementById('mobile-menu').classList.remove('open')">Cenas</a>
+    <a href="#faq" class="block text-[#E8E2D6] hover:text-[#D4A843] font-medium py-2 transition-colors duration-200"
+       onclick="document.getElementById('mobile-menu').classList.remove('open')">FAQ</a>
+    <span class="block text-[rgba(232,226,214,0.3)] text-sm py-2">EN / LV</span>
+  </div>
+</nav>
+
+<!-- ======================================================== HERO ======================================================== -->
+<header id="hero" class="relative min-h-screen flex items-center overflow-hidden"
+  style="background: radial-gradient(ellipse at 70% 40%, #1A1035 0%, #0A0A0A 65%), radial-gradient(ellipse at 10% 80%, rgba(212,168,67,0.06) 0%, transparent 50%);">
+
+  <!-- Background hero image -->
+  <div class="absolute inset-0 z-0">
+    <img
+      src="https://images.pexels.com/photos/18418977/pexels-photo-18418977.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      alt="Stray black and white cat sits beside bowls of food on a wooden plank outdoors."
+      class="w-full h-full object-cover opacity-20"
+      loading="eager"
+    />
+    <div class="absolute inset-0" style="background: radial-gradient(ellipse at center, transparent 0%, #0A0A0A 75%);"></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-6 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center w-full">
+    <!-- Left: Copy -->
+    <div data-aos="fade-in" data-aos-delay="100">
+      <p class="text-[#D4A843] font-semibold text-sm uppercase tracking-widest mb-4">Latvijas Premiums Kaku Bariba</p>
+      <h1 class="font-bold leading-tight text-5xl md:text-7xl text-[#E8E2D6] mb-3" style="letter-spacing:-0.02em; font-family:'Playfair Display',serif;">
+        Your cat deserves food worthy of a legend.
+      </h1>
+      <p class="text-[rgba(232,226,214,0.55)] text-lg italic mb-6" style="font-family:'Playfair Display',serif;">
+        Tavs kakis ir pelnijis baribu, kas cieniga legendai.
+      </p>
+      <p class="text-[#E8E2D6] text-lg leading-relaxed mb-2 max-w-lg">
+        Melnais Kakis - premium cat food rooted in Latvian tradition. Grain-free. High-protein. Delivered to your door.
+      </p>
+      <p class="text-[rgba(232,226,214,0.55)] text-base leading-relaxed italic mb-8 max-w-lg">
+        Augstaklas kaku bariba, kas saknojas latviesu tradicijas. Bez graudaugiem. Ar augstu olbaltumvielu saturu. Piegade lidz jusu durvim.
+      </p>
+
+      <!-- Email capture form -->
+      <form id="hero-form" onsubmit="handleHeroForm(event)" class="flex flex-col gap-4 max-w-md">
+        <input type="email" id="hero-email" class="input-field" placeholder="your@email.com" required />
+        <label class="flex items-start gap-3 text-sm text-[rgba(232,226,214,0.7)] cursor-pointer">
+          <input type="checkbox" id="hero-gdpr" required class="mt-1 accent-[#D4A843]" />
+          <span>
+            Es piekritu <a href="#privacy" class="text-[#D4A843] underline">privatuma politikai</a> un datu apstradei. /
+            I agree to the <a href="#privacy" class="text-[#D4A843] underline">privacy policy</a> and data processing.
+          </span>
+        </label>
+        <button type="submit" class="btn-primary rounded-full px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl w-full">
+          Get early access / Pieteikties agrinai pieejai
+        </button>
+      </form>
+      <div id="hero-success" class="hidden mt-4 text-[#D4A843] font-semibold">Paldies! / Thank you - we will be in touch!</div>
+    </div>
+
+    <!-- Right: hero image card (desktop) -->
+    <div data-aos="fade-in" data-aos-delay="300" class="relative hidden md:block">
+      <div class="rounded-2xl overflow-hidden border border-[rgba(212,168,67,0.25)] shadow-2xl">
+        <img
+          src="https://images.pexels.com/photos/18418977/pexels-photo-18418977.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="Black cat with golden eyes beside a premium food bowl - Melnais Kakis premium cat food Latvia"
+          class="w-full h-96 object-cover"
+          loading="eager"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-50 rounded-2xl pointer-events-none"></div>
+      </div>
+      <div class="absolute -bottom-4 -left-4 glass rounded-xl px-4 py-3 flex items-center gap-2">
+        <span class="material-symbols-outlined text-[#D4A843]">verified</span>
+        <span class="text-sm text-[#E8E2D6]">EU-certified production</span>
+      </div>
+      <div class="absolute -top-3 -right-3 glass rounded-xl px-3 py-2 flex items-center gap-2">
+        <span class="material-symbols-outlined text-[#D4A843] text-base">local_shipping</span>
+        <span class="text-xs text-[#E8E2D6]">Free over EUR 35</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-[rgba(232,226,214,0.35)] animate__animated animate__bounce animate__infinite">
+    <span class="material-symbols-outlined">keyboard_arrow_down</span>
+  </div>
+</header>
+
+<!-- ======================================================== PROBLEM ======================================================== -->
+<section id="problem" class="section-light py-20 md:py-32">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
+      <h2 class="font-bold text-3xl md:text-4xl text-[#1E1E1E] mb-4" style="letter-spacing:-0.01em; font-family:'Playfair Display',serif;">
+        Premium cat food in Latvia shouldn't mean choosing between a German label and a supermarket bag.
+      </h2>
+      <p class="text-[#1E1E1E] opacity-60 italic text-lg">
+        Augstaklas kaku baribai Latvija nevajadzetu nozImet izveli starp vacu etiketi un lielveikala maisinu.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8">
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow" data-aos="fade-up" data-aos-delay="100">
+        <span class="material-symbols-outlined text-[#D4A843] text-4xl mb-4 block">public_off</span>
+        <h3 class="font-bold text-xl text-[#1E1E1E] mb-3" style="font-family:'Playfair Display',serif;">Generic imports, no local identity</h3>
+        <p class="text-[#1E1E1E] opacity-70 text-base leading-relaxed">Every premium brand on PetShop.lv was designed for someone in Munich or Milan. None of them were made for Latvian cats or Latvian cat owners.</p>
+      </div>
+
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow" data-aos="fade-up" data-aos-delay="200">
+        <span class="material-symbols-outlined text-[#D4A843] text-4xl mb-4 block">price_change</span>
+        <h3 class="font-bold text-xl text-[#1E1E1E] mb-3" style="font-family:'Playfair Display',serif;">Price confusion</h3>
+        <p class="text-[#1E1E1E] opacity-70 text-base leading-relaxed">EUR 2/kg or EUR 18/kg? The gap between supermarket food and ultra-premium is a canyon. You need quality you can verify, at a price that makes sense.</p>
+      </div>
+
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow" data-aos="fade-up" data-aos-delay="300">
+        <span class="material-symbols-outlined text-[#D4A843] text-4xl mb-4 block">visibility_off</span>
+        <h3 class="font-bold text-xl text-[#1E1E1E] mb-3" style="font-family:'Playfair Display',serif;">No transparency</h3>
+        <p class="text-[#1E1E1E] opacity-70 text-base leading-relaxed">What's actually in the bag? Most brands bury their ingredient sourcing behind marketing language. You deserve to know where your cat's food comes from.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== SOLUTION ======================================================== -->
+<section id="solution" class="bg-[#0A0A0A] py-20 md:py-32">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
+      <h2 class="font-bold text-3xl md:text-4xl text-[#E8E2D6] mb-4" style="letter-spacing:-0.01em; font-family:'Playfair Display',serif;">
+        Food made for Latvian cats. By people who actually live here.
+      </h2>
+      <p class="text-[rgba(232,226,214,0.55)] italic text-lg">
+        Bariba, kas radita latviesu kakiem. No cilvekiem, kas te dzivo.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 mb-16">
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+        <span class="material-symbols-outlined text-[#D4A843] text-4xl mb-4 block">verified_user</span>
+        <h3 class="font-bold text-xl text-[#E8E2D6] mb-3" style="font-family:'Playfair Display',serif;">EU-Certified Production</h3>
+        <p class="text-[rgba(232,226,214,0.7)] text-sm leading-relaxed mb-4">Sourced from VAFO Group (Czech Republic) and United Petfood (Belgium) with full traceability. Every batch meets EU feed safety standards under Regulation (EC) No 183/2005.</p>
+      </div>
+
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+        <span class="material-symbols-outlined text-[#D4A843] text-4xl mb-4 block">fact_check</span>
+        <h3 class="font-bold text-xl text-[#E8E2D6] mb-3" style="font-family:'Playfair Display',serif;">Full Transparency</h3>
+        <p class="text-[rgba(232,226,214,0.7)] text-sm leading-relaxed mb-4">Named protein sources, no hidden fillers. Minimum 40% animal protein from chicken, turkey, or salmon. Full ingredient list on every bag - because we have nothing to hide.</p>
+        <img src="https://images.pexels.com/photos/7368034/pexels-photo-7368034.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="Close-up of raw beef on a wooden board with fresh herbs and vegetables." class="w-full h-28 object-cover rounded-lg opacity-60" loading="lazy" />
+      </div>
+
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+        <span class="material-symbols-outlined text-[#D4A843] text-4xl mb-4 block">local_shipping</span>
+        <h3 class="font-bold text-xl text-[#E8E2D6] mb-3" style="font-family:'Playfair Display',serif;">Free Delivery Over EUR 35</h3>
+        <p class="text-[rgba(232,226,214,0.7)] text-sm leading-relaxed">Omniva parcel lockers (EUR 2.49), DPD courier (EUR 3.50), or Venipak (EUR 2.89). The delivery networks you already use. 1-3 business days across Latvia, Estonia, and Lithuania.</p>
+      </div>
+    </div>
+
+    <div class="text-center" data-aos="fade-up">
+      <p class="text-[#D4A843] font-bold text-2xl">EUR 7.49 - 9.99/kg</p>
+      <p class="text-[rgba(232,226,214,0.45)] text-sm mt-1">Positioned above mass-market, below ultra-premium. Quality you can verify.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== SOCIAL PROOF ======================================================== -->
+<section id="social-proof" class="section-light py-20 md:py-32">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
+      <h2 class="font-bold text-3xl md:text-4xl text-[#1E1E1E] mb-2" style="font-family:'Playfair Display',serif;">What Latvian cat owners are saying</h2>
+      <p class="text-[#1E1E1E] opacity-55 italic">Ko saka latviesu kaku ipasnieki</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8 mb-16">
+      <!-- Testimonial 1 -->
+      <div class="relative backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6 shadow-md" data-aos="fade-up" data-aos-delay="100">
+        <span class="text-6xl opacity-20 absolute top-2 left-4 leading-none text-[#D4A843] select-none">"</span>
+        <img
+          src="https://images.pexels.com/photos/7980679/pexels-photo-7980679.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="Tattooed woman gently holding a cute black and white cat outdoors."
+          class="w-16 h-16 rounded-full object-cover mb-4 border-2 border-[#D4A843]"
+          loading="lazy"
+        />
+        <p class="text-[#1E1E1E] opacity-80 text-sm leading-relaxed mb-3 italic">
+          "Mans kakis Pukite bija izveligas edaja, lidz es atklaju Melnais Kakis. Tagad vina tukso bljodu piecas minutes. Un man patik, ka es zinu, no kurienes bariba nak."
+        </p>
+        <p class="text-[#1E1E1E] opacity-55 text-xs not-italic">
+          "My cat Pukite was a picky eater until I tried Melnais Kakis. Now she finishes her bowl in five minutes."
+        </p>
+        <p class="text-[#D4A843] font-semibold text-sm mt-3">Ieva Ozolina, Riga</p>
+      </div>
+
+      <!-- Testimonial 2 -->
+      <div class="relative backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6 shadow-md" data-aos="fade-up" data-aos-delay="200">
+        <span class="text-6xl opacity-20 absolute top-2 left-4 leading-none text-[#D4A843] select-none">"</span>
+        <img
+          src="https://images.pexels.com/photos/20211113/pexels-photo-20211113.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="Bengal kitten standing next to a cozy pet bed in a modern apartment interior."
+          class="w-16 h-16 rounded-full object-cover mb-4 border-2 border-[#D4A843]"
+          loading="lazy"
+        />
+        <p class="text-[#1E1E1E] opacity-80 text-sm leading-relaxed mb-3 italic">
+          "Es salidzinaju sastavdalas ar Royal Canin - Melnais Kakis ir lidsvertigs par zemaku cenu. Un iepakojums izskatas lielisks uz manas virtuves letes."
+        </p>
+        <p class="text-[#1E1E1E] opacity-55 text-xs not-italic">
+          "I compared the ingredient list against Royal Canin - Melnais Kakis matches up at a lower price. Plus the packaging actually looks good on my kitchen counter."
+        </p>
+        <p class="text-[#D4A843] font-semibold text-sm mt-3">Arturs Berzins, Liepaja</p>
+      </div>
+
+      <!-- Testimonial 3 -->
+      <div class="relative backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6 shadow-md" data-aos="fade-up" data-aos-delay="300">
+        <span class="text-6xl opacity-20 absolute top-2 left-4 leading-none text-[#D4A843] select-none">"</span>
+        <img
+          src="https://images.pexels.com/photos/15893334/pexels-photo-15893334.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="Captivating street scene capturing a family feeding a cat in a bustling outdoor market."
+          class="w-16 h-16 rounded-full object-cover mb-4 border-2 border-[#D4A843]"
+          loading="lazy"
+        />
+        <p class="text-[#1E1E1E] opacity-80 text-sm leading-relaxed mb-3 italic">
+          "Abonements ir izcils. Bariba ienak Omniva pakomata katru menesi, un man vairs nav japiedoma par to. Mans Nakts ir veseligaks neka jebkad."
+        </p>
+        <p class="text-[#1E1E1E] opacity-55 text-xs not-italic">
+          "The subscription is the best part. Food shows up at my Omniva locker every month and I don't have to think about it. My cat Nakts has never been healthier."
+        </p>
+        <p class="text-[#D4A843] font-semibold text-sm mt-3">Zane Kalnina, Jelgava</p>
+      </div>
+    </div>
+
+    <!-- Trust signals -->
+    <div class="grid grid-cols-3 gap-4 max-w-2xl mx-auto" data-aos="fade-up">
+      <div class="text-center p-4 rounded-xl bg-[#0A0A0A]">
+        <p class="text-2xl font-bold text-[#D4A843]">407K+</p>
+        <p class="text-[rgba(232,226,214,0.6)] text-xs mt-1">407,000+ kaku Latvija / cats in Latvia</p>
+      </div>
+      <div class="text-center p-4 rounded-xl bg-[#0A0A0A]">
+        <p class="text-2xl font-bold text-[#D4A843]">100%</p>
+        <p class="text-[rgba(232,226,214,0.6)] text-xs mt-1">ES sertificeta razsosana / EU-certified production</p>
+      </div>
+      <div class="text-center p-4 rounded-xl bg-[#0A0A0A]">
+        <p class="text-2xl font-bold text-[#D4A843]">1-3d</p>
+        <p class="text-[rgba(232,226,214,0.6)] text-xs mt-1">Piegade / Delivery in 1-3 business days</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== FEATURES ======================================================== -->
+<section id="features" class="bg-[#0A0A0A] py-20 md:py-32">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-2xl mx-auto mb-16" data-aos="fade-up">
+      <h2 class="font-bold text-3xl md:text-4xl text-[#E8E2D6]" style="font-family:'Playfair Display',serif;">Three pillars. Zero compromise.</h2>
+    </div>
+
+    <!-- Feature 1 -->
+    <div class="grid md:grid-cols-2 gap-12 items-center mb-20">
+      <div data-aos="fade-up" data-aos-delay="100">
+        <img
+          src="https://images.pexels.com/photos/12928244/pexels-photo-12928244.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="Aerial view of dry brown dog kibble in a pastel blue bowl against a beige backdrop, perfect for pet food advertisements."
+          class="w-full h-72 object-cover rounded-2xl shadow-xl"
+          loading="lazy"
+        />
+      </div>
+      <div data-aos="fade-up" data-aos-delay="200">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="material-symbols-outlined text-[#D4A843] text-3xl">restaurant</span>
+          <span class="text-[#D4A843] text-sm font-semibold uppercase tracking-widest">Feature 01</span>
+        </div>
+        <h3 class="font-bold text-2xl md:text-3xl text-[#E8E2D6] mb-2" style="font-family:'Playfair Display',serif;">Real meat first. Always.</h3>
+        <p class="text-[rgba(232,226,214,0.55)] italic mb-4">Ista gala vienmer ir pirma.</p>
+        <p class="text-[rgba(232,226,214,0.8)] text-base leading-relaxed">
+          Our dry food starts with named animal protein - chicken, turkey, or salmon - making up a minimum 40% of every formula. No corn. No wheat. No soy. No artificial colors or preservatives. Every ingredient is traceable to EU-approved suppliers operating under Regulation (EC) No 183/2005 feed hygiene standards. We print the full ingredient list on every bag because we have nothing to hide.
+        </p>
+      </div>
+    </div>
+
+    <!-- Feature 2 -->
+    <div class="grid md:grid-cols-2 gap-12 items-center mb-20">
+      <div class="md:order-2" data-aos="fade-up" data-aos-delay="100">
+        <img
+          src="https://images.pexels.com/photos/4820847/pexels-photo-4820847.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="Man operates coffee bag sealing machine in a workshop with production equipment."
+          class="w-full h-72 object-cover rounded-2xl shadow-xl"
+          loading="lazy"
+        />
+      </div>
+      <div class="md:order-1" data-aos="fade-up" data-aos-delay="200">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="material-symbols-outlined text-[#D4A843] text-3xl">health_and_safety</span>
+          <span class="text-[#D4A843] text-sm font-semibold uppercase tracking-widest">Feature 02</span>
+        </div>
+        <h3 class="font-bold text-2xl md:text-3xl text-[#E8E2D6] mb-2" style="font-family:'Playfair Display',serif;">Formulated with veterinary nutritionists. Not a marketing team.</h3>
+        <p class="text-[rgba(232,226,214,0.55)] italic mb-4">Izstradaja veterinarie uztura specialisti. Ne marketinga komanda.</p>
+        <p class="text-[rgba(232,226,214,0.8)] text-base leading-relaxed">
+          Every Melnais Kakis formula meets FEDIAF nutritional guidelines for complete and balanced cat nutrition. We work with veterinary nutritionists to ensure proper levels of taurine for heart and eye health, omega-3 and omega-6 fatty acids for coat condition, and added prebiotics for digestive comfort. Available in formulas tailored for indoor cats, sterilized cats, kittens, and senior cats.
+        </p>
+      </div>
+    </div>
+
+    <!-- Feature 3 -->
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      <div data-aos="fade-up" data-aos-delay="100">
+        <img
+          src="https://images.pexels.com/photos/35900946/pexels-photo-35900946.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+          alt="A winding wooden pathway through the tranquil wetlands of Estonia, surrounded by trees and muted winter tones."
+          class="w-full h-72 object-cover rounded-2xl shadow-xl"
+          loading="lazy"
+        />
+      </div>
+      <div data-aos="fade-up" data-aos-delay="200">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="material-symbols-outlined text-[#D4A843] text-3xl">workspace_premium</span>
+          <span class="text-[#D4A843] text-sm font-semibold uppercase tracking-widest">Feature 03</span>
+        </div>
+        <h3 class="font-bold text-2xl md:text-3xl text-[#E8E2D6] mb-2" style="font-family:'Playfair Display',serif;">Packaging you'll want to keep on the counter.</h3>
+        <p class="text-[rgba(232,226,214,0.55)] italic mb-4">Iepakojums, ko gribEsiet atstat uz letes.</p>
+        <p class="text-[rgba(232,226,214,0.8)] text-base leading-relaxed">
+          Matte-black pouches and tins with gold foil detailing. Each product line features original illustrations of black cats drawn from Latvian folk art motifs. In Latvian tradition, the black cat is the spirit of Rungis, god of harvests - a sign of abundance and good fortune. Our packaging honors that heritage. All materials are recyclable, with sorting instructions in Latvian on every item.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== PRICING ======================================================== -->
+<section id="pricing" class="section-light py-20 md:py-32">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
+      <h2 class="font-bold text-3xl md:text-4xl text-[#1E1E1E] mb-2" style="font-family:'Playfair Display',serif;">Join the colony. Be first to taste.</h2>
+      <p class="text-[#1E1E1E] opacity-55 italic text-lg">Pievienojies kolonijai. Esi pirmais, kas nogarso.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+      <!-- Meditajs -->
+      <div class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-8 shadow-md" data-aos="fade-up" data-aos-delay="100">
+        <h3 class="font-bold text-2xl text-[#1E1E1E] mb-1" style="font-family:'Playfair Display',serif;">Meditajs</h3>
+        <p class="text-[#D4A843] font-semibold text-sm uppercase tracking-wide mb-4">(Hunter) - Dry food</p>
+        <p class="text-[#1E1E1E] opacity-60 text-sm mb-6">2kg bag - Grain-free formula</p>
+        <div class="mb-6">
+          <span class="text-4xl font-bold text-[#1E1E1E]">EUR 17.99</span>
+          <span class="text-[#1E1E1E] opacity-55 text-sm block mt-1">EUR 9.00/kg</span>
+        </div>
+        <ul class="space-y-2 mb-8 text-sm text-[#1E1E1E] opacity-75">
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> Grain-free dry formula
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> Subscribe: EUR 15.99/month (-11%)
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> Free shipping over EUR 35
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> 30-day money-back guarantee
+          </li>
+        </ul>
+        <button class="btn-primary rounded-full px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl w-full"
+          onclick="handleStripeCheckout('meditajs')">
+          Pasutit tagad / Pre-order now
+        </button>
+        <p class="text-center text-xs text-[#1E1E1E] opacity-40 mt-3">Powered by <i class="fa-brands fa-stripe"></i> Stripe</p>
+      </div>
+
+      <!-- Karalis -->
+      <div class="relative backdrop-blur-md bg-white/10 border-2 border-[#D4A843] rounded-2xl p-8 shadow-xl" data-aos="fade-up" data-aos-delay="200">
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#D4A843] text-[#0A0A0A] text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full whitespace-nowrap">
+          Populars / Best Value
+        </div>
+        <h3 class="font-bold text-2xl text-[#1E1E1E] mb-1 mt-2" style="font-family:'Playfair Display',serif;">Karalis</h3>
+        <p class="text-[#D4A843] font-semibold text-sm uppercase tracking-wide mb-4">(King) - Dry + Wet combo</p>
+        <p class="text-[#1E1E1E] opacity-60 text-sm mb-6">2kg dry + 12x85g wet pouches</p>
+        <div class="mb-6">
+          <span class="text-4xl font-bold text-[#1E1E1E]">EUR 29.99</span>
+          <span class="text-[#1E1E1E] opacity-55 text-sm block mt-1">mixed per kg</span>
+        </div>
+        <ul class="space-y-2 mb-8 text-sm text-[#1E1E1E] opacity-75">
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> 2kg dry + 12x85g wet pouches
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> Subscribe: EUR 26.99/month (-10%)
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> Free shipping always
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[#D4A843] text-base">check_circle</span> 30-day money-back guarantee
+          </li>
+        </ul>
+        <button class="btn-primary rounded-full px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl w-full"
+          onclick="handleStripeCheckout('karalis')">
+          Pasutit tagad / Pre-order now
+        </button>
+        <p class="text-center text-xs text-[#1E1E1E] opacity-40 mt-3">Powered by <i class="fa-brands fa-stripe"></i> Stripe</p>
+      </div>
+    </div>
+
+    <!-- Guarantee -->
+    <div class="text-center mb-8" data-aos="fade-up">
+      <p class="text-[#1E1E1E] text-base">
+        <span class="font-semibold">Bez riska. 30 dienu naudas atdosanas garantija.</span><br/>
+        <span class="text-sm opacity-60">Risk-free. 30-day money-back guarantee.</span>
+      </p>
+    </div>
+
+    <!-- Payment icons -->
+    <div class="flex items-center justify-center gap-6 flex-wrap opacity-55 mb-12" data-aos="fade-up">
+      <span class="flex items-center gap-1 text-[#1E1E1E] text-sm font-medium"><i class="fa-brands fa-stripe text-2xl"></i> Stripe</span>
+      <span class="flex items-center gap-1 text-[#1E1E1E] text-sm font-medium"><i class="fa-brands fa-cc-visa text-2xl"></i> Visa</span>
+      <span class="flex items-center gap-1 text-[#1E1E1E] text-sm font-medium"><i class="fa-brands fa-cc-mastercard text-2xl"></i> Mastercard</span>
+      <span class="text-[#1E1E1E] text-sm font-medium px-3 py-1 border border-[rgba(30,30,30,0.2)] rounded-md">Montonio</span>
+      <span class="text-[#1E1E1E] text-sm font-medium px-3 py-1 border border-[rgba(30,30,30,0.2)] rounded-md">Kevin</span>
+    </div>
+
+    <!-- Newsletter secondary CTA -->
+    <div class="text-center" data-aos="fade-up">
+      <p class="text-[#1E1E1E] opacity-60 text-sm mb-4">Not ready to order? Stay in the loop.</p>
+      <form onsubmit="handleNewsletterForm(event)" class="inline-flex flex-col sm:flex-row gap-4 items-center justify-center max-w-md mx-auto w-full">
+        <input type="email" class="input-field" placeholder="your@email.com" required
+          style="background:rgba(30,30,30,0.06); border-color:rgba(30,30,30,0.15); color:#1E1E1E; flex:1;" />
+        <button type="submit" class="btn-secondary rounded-full px-8 py-4 whitespace-nowrap">
+          Pieteikties jaunumiem / Sign up for updates
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== FAQ ======================================================== -->
+<section id="faq" class="bg-[#0A0A0A] py-20 md:py-32">
+  <div class="max-w-3xl mx-auto px-6">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <h2 class="font-bold text-3xl md:text-4xl text-[#E8E2D6] mb-2" style="font-family:'Playfair Display',serif;">Frequently Asked Questions</h2>
+      <p class="text-[rgba(232,226,214,0.55)] italic">Biezi uzdotie jautajumi</p>
+    </div>
+
+    <div class="space-y-4">
+      <details class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100">
+        <summary class="font-medium text-lg text-[#E8E2D6] flex justify-between items-center gap-4">
+          <span>Ka notiek piegade? / How does shipping work?</span>
+          <span class="material-symbols-outlined text-[#D4A843] flex-shrink-0 transition-transform details-icon">expand_more</span>
+        </summary>
+        <p class="text-[rgba(232,226,214,0.7)] text-base leading-relaxed mt-4">
+          We deliver across Latvia via Omniva parcel lockers (EUR 2.49), DPD courier (EUR 3.50), and Venipak (EUR 2.89). Orders over EUR 35 ship free. Delivery takes 1-3 business days. We also ship to Estonia and Lithuania.
+        </p>
+      </details>
+
+      <details class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150">
+        <summary class="font-medium text-lg text-[#E8E2D6] flex justify-between items-center gap-4">
+          <span>Kadas ir sastavdalas? / What are the ingredients?</span>
+          <span class="material-symbols-outlined text-[#D4A843] flex-shrink-0">expand_more</span>
+        </summary>
+        <p class="text-[rgba(232,226,214,0.7)] text-base leading-relaxed mt-4">
+          Every product lists full ingredients on the packaging and on our product pages. Our dry food starts with named animal protein (minimum 40%) - chicken, turkey, or salmon. No corn, wheat, soy, artificial colors, or preservatives. All ingredients meet EU feed safety standards under Regulation (EC) No 183/2005.
+        </p>
+      </details>
+
+      <details class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+        <summary class="font-medium text-lg text-[#E8E2D6] flex justify-between items-center gap-4">
+          <span>Vai varu atgriezt produktu? / Can I return the product?</span>
+          <span class="material-symbols-outlined text-[#D4A843] flex-shrink-0">expand_more</span>
+        </summary>
+        <p class="text-[rgba(232,226,214,0.7)] text-base leading-relaxed mt-4">
+          Yes. If your cat doesn't love it, contact us within 30 days for a full refund. Unopened products can be returned at no cost. We comply with Latvia's Consumer Rights Protection Law (Pateretaju tiesibu aizsardzibas likums) for 14-day withdrawal rights on distance sales.
+        </p>
+      </details>
+
+      <details class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="250">
+        <summary class="font-medium text-lg text-[#E8E2D6] flex justify-between items-center gap-4">
+          <span>Ka darbojas abonements? / How does the subscription work?</span>
+          <span class="material-symbols-outlined text-[#D4A843] flex-shrink-0">expand_more</span>
+        </summary>
+        <p class="text-[rgba(232,226,214,0.7)] text-base leading-relaxed mt-4">
+          Choose your product and delivery frequency (every 2, 4, or 6 weeks). We charge your card automatically and ship to your preferred Omniva, DPD, or Venipak pickup point. Skip, pause, or cancel anytime - no lock-in contracts. Manage everything from your account dashboard.
+        </p>
+      </details>
+
+      <details class="backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="300">
+        <summary class="font-medium text-lg text-[#E8E2D6] flex justify-between items-center gap-4">
+          <span>Vai bariba ir piemErota visiem kakiem? / Is the food suitable for all cats?</span>
+          <span class="material-symbols-outlined text-[#D4A843] flex-shrink-0">expand_more</span>
+        </summary>
+        <p class="text-[rgba(232,226,214,0.7)] text-base leading-relaxed mt-4">
+          Our Standard formula is designed for healthy adult cats (1-7 years). We also offer formulas for kittens (up to 12 months), sterilized cats, indoor cats, and senior cats (7+). If your cat has specific medical dietary needs, consult your veterinarian first.
+        </p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== FINAL CTA ======================================================== -->
+<section class="bg-[#1A1035] py-20 md:py-32 text-center">
+  <div class="max-w-3xl mx-auto px-6" data-aos="fade-up">
+    <h2 class="font-bold text-3xl md:text-4xl text-[#E8E2D6] mb-4" style="font-family:'Playfair Display',serif;">Ready to make the switch?</h2>
+    <p class="text-[rgba(232,226,214,0.7)] text-lg leading-relaxed mb-8">
+      Join Latvian cat owners who choose quality, transparency, and local pride.
+      <br/><span class="text-[rgba(232,226,214,0.45)] italic text-base">Pievienojies latviesu kaku ipasniekiem, kas izvelkas kvalitati, caurspidIgumu un vietejos produktus.</span>
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="#pricing" class="btn-primary rounded-full px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl">
+        Pasutit tagad / Pre-order now
+      </a>
+      <a href="#hero" class="btn-secondary rounded-full px-8 py-4 text-lg font-semibold transition-all duration-300">
+        Pieteikties agrinai pieejai / Get early access
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== FOOTER ======================================================== -->
+<footer id="privacy" class="bg-[#0A0A0A] border-t border-[rgba(212,168,67,0.1)] py-12">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid md:grid-cols-4 gap-8 mb-10">
+      <!-- Brand -->
+      <div>
+        <p class="font-bold text-[#D4A843] text-xl mb-3" style="font-family:'Playfair Display',serif;">Melnais Kakis</p>
+        <p class="text-[rgba(232,226,214,0.45)] text-sm leading-relaxed">Melnais Kakis SIA<br/>Reg. Nr. [pending]<br/>Riga, Latvia</p>
+        <a href="mailto:info@melnaiskakis.lv" class="text-[rgba(232,226,214,0.45)] hover:text-[#D4A843] text-sm mt-2 block transition-colors">info@melnaiskakis.lv</a>
+        <p class="text-[rgba(232,226,214,0.3)] text-xs mt-3 leading-relaxed">Registrets PVD ka baribas aprites dalibnieks / Registered with PVD as a feed business operator</p>
+      </div>
+
+      <!-- Legal links -->
+      <div>
+        <p class="font-semibold text-[#E8E2D6] text-sm uppercase tracking-widest mb-4">Legal</p>
+        <ul class="space-y-2">
+          <li><a href="#privacy" class="text-[rgba(232,226,214,0.5)] hover:text-[#D4A843] text-sm transition-colors">Privatuma politika / Privacy Policy</a></li>
+          <li><a href="#privacy" class="text-[rgba(232,226,214,0.5)] hover:text-[#D4A843] text-sm transition-colors">Lietosanas noteikumi / Terms of Use</a></li>
+          <li><a href="#privacy" class="text-[rgba(232,226,214,0.5)] hover:text-[#D4A843] text-sm transition-colors">Atgriesanas politika / Return Policy</a></li>
+          <li><a href="mailto:info@melnaiskakis.lv" class="text-[rgba(232,226,214,0.5)] hover:text-[#D4A843] text-sm transition-colors">Kontakti / Contact</a></li>
+        </ul>
+      </div>
+
+      <!-- Social -->
+      <div>
+        <p class="font-semibold text-[#E8E2D6] text-sm uppercase tracking-widest mb-4">Sekot / Follow</p>
+        <div class="flex gap-4">
+          <a href="#" aria-label="Instagram" class="text-[rgba(232,226,214,0.4)] hover:text-[#D4A843] text-2xl transition-colors"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" aria-label="Facebook" class="text-[rgba(232,226,214,0.4)] hover:text-[#D4A843] text-2xl transition-colors"><i class="fa-brands fa-facebook"></i></a>
+          <a href="#" aria-label="TikTok" class="text-[rgba(232,226,214,0.4)] hover:text-[#D4A843] text-2xl transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+        </div>
+      </div>
+
+      <!-- Payments -->
+      <div>
+        <p class="font-semibold text-[#E8E2D6] text-sm uppercase tracking-widest mb-4">Maksajumi / Payments</p>
+        <div class="flex flex-wrap gap-3 items-center opacity-55">
+          <i class="fa-brands fa-stripe text-3xl text-[#E8E2D6]"></i>
+          <i class="fa-brands fa-cc-visa text-3xl text-[#E8E2D6]"></i>
+          <i class="fa-brands fa-cc-mastercard text-3xl text-[#E8E2D6]"></i>
+          <span class="text-[#E8E2D6] text-xs border border-[rgba(232,226,214,0.2)] rounded px-2 py-1">Montonio</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copyright bar -->
+    <div class="border-t border-[rgba(212,168,67,0.08)] pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-[rgba(232,226,214,0.35)] text-sm">&copy; 2026 Melnais Kakis SIA. Visas tiesibas aizsargatas / All rights reserved.</p>
+      <p class="text-[rgba(232,226,214,0.25)] text-xs">Photos by Pexels contributors. Used under Pexels license.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ======================================================== COOKIE BANNER ======================================================== -->
+<div id="cookie-banner" class="fixed bottom-0 left-0 right-0 bg-[#1A1035] border-t border-[rgba(212,168,67,0.2)] p-4 z-50 flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+  <p class="text-[#E8E2D6] text-sm max-w-2xl leading-relaxed">
+    Mes izmantojam sikdatnes, lai uzlabotu jusu pieredzi. Uzziniet vairak musu
+    <a href="#privacy" class="text-[#D4A843] underline">privatuma politika</a>.
+    / We use cookies to improve your experience. Learn more in our
+    <a href="#privacy" class="text-[#D4A843] underline">privacy policy</a>.
+  </p>
+  <div class="flex gap-3 flex-shrink-0">
+    <button onclick="acceptCookies()" class="btn-primary px-5 py-2 text-sm">Piekritu / Accept</button>
+    <button onclick="declineCookies()" class="btn-secondary px-5 py-2 text-sm">Atteikt / Decline</button>
+  </div>
+</div>
+
+<!-- AOS init -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  AOS.init({ duration: 800, once: true });
+
+  // Cookie consent
+  (function() {
+    if (!localStorage.getItem('mk_cookie_consent')) {
+      document.getElementById('cookie-banner').classList.add('show');
+    }
+  })();
+
+  function acceptCookies() {
+    localStorage.setItem('mk_cookie_consent', 'accepted');
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  function declineCookies() {
+    localStorage.setItem('mk_cookie_consent', 'declined');
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  // Hero early-access form
+  function handleHeroForm(e) {
+    e.preventDefault();
+    var gdpr = document.getElementById('hero-gdpr').checked;
+    if (!gdpr) {
+      alert('Ludzu piekritiet privatuma politikai. / Please accept the privacy policy.');
+      return;
+    }
+    var email = document.getElementById('hero-email').value;
+    console.log('[Melnais Kakis] Early access signup:', email);
+    document.getElementById('hero-form').style.display = 'none';
+    document.getElementById('hero-success').classList.remove('hidden');
+  }
+
+  // Newsletter form
+  function handleNewsletterForm(e) {
+    e.preventDefault();
+    alert('Paldies! Mes sazinasimies ar jums. / Thank you! We will be in touch.');
+    e.target.reset();
+  }
+
+  // Stripe checkout scaffold
+  function handleStripeCheckout(product) {
+    // Integration point: replace with real Stripe publishable key and price IDs
+    // Example: stripe.redirectToCheckout({ lineItems: [{ price: PRICE_ID, quantity: 1 }], mode: 'payment', ... })
+    console.log('[Melnais Kakis] Stripe checkout for:', product);
+    alert('Stripe piegades tuvumajs / Stripe checkout coming soon!\n\nPieteikties: info@melnaiskakis.lv');
+  }
+</script>
+</body>
+</html>

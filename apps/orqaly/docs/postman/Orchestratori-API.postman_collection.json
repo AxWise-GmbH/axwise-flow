@@ -1,0 +1,91 @@
+{
+  "info": {
+    "name": "Orchestrator API",
+    "description": "API collection for Orchestrator: health, transcription status, meeting transcription, and email sending. Use environment variables `baseUrl` and `supabaseAccessToken` for base URL and Supabase JWT.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://orchestratori.vercel.app" },
+    { "key": "supabaseAccessToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Simple health check. No authentication required. Returns `{ \"ok\": true }`."
+          }
+        },
+        {
+          "name": "Transcribe Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/transcribe-status",
+            "description": "Returns whether transcription is configured (Groq/AssemblyAI). Does not expose API keys. Use before recording to show setup instructions.\n\n**Response:** `configured` (boolean), `provider` (groq-whisper | assemblyai | none), `hint` (string | null)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transcription",
+      "item": [
+        {
+          "name": "Transcribe Audio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAccessToken}}",
+                "description": "Required when Supabase is configured"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"audioBase64\": \"<base64-encoded-audio-string>\",\n  \"mimeType\": \"audio/webm\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transcribe",
+            "description": "Transcribe meeting audio and get structured metadata (topics, action items, summary).\n\n**Auth:** Bearer token (Supabase access_token) required when SUPABASE_URL is set.\n**Rate limit:** 6 requests/minute (configurable via TRANSCRIBE_RATE_LIMIT_PER_MIN).\n**Body:**\n- `audioBase64` (string, required): Base64-encoded audio; max ~6M chars (~3–4 min).\n- `mimeType` (string, optional): Default `audio/webm`. Use `audio/mp4` for MP4.\n\n**Success (200):** `transcriptRaw`, `transcriptStructured` (meeting_topic, participants, summary, action_items, etc.).\n**Errors:** 400 (invalid body), 401 (unauthorized), 413 (audio too large), 429 (rate limit), 503 (transcription not configured)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Email",
+      "item": [
+        {
+          "name": "Send Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"recipient@example.com\",\n  \"subject\": \"Test from Orchestrator\",\n  \"text\": \"Plain text body.\",\n  \"html\": \"<p>Optional HTML body (max 50000 chars).</p>\"\n}"
+            },
+            "url": "{{baseUrl}}/api/send-email",
+            "description": "Send email via Resend.\n\n**Auth:** Bearer token (Supabase access_token) required.\n**Rate limit:** 12 requests/minute (configurable via SEND_EMAIL_RATE_LIMIT_PER_MIN).\n**Body:**\n- `to` (string | string[]): One or more valid emails (max 10).\n- `subject` (string, required, max 500).\n- `text` (string, optional, max 50000).\n- `html` (string, optional, max 50000). Provide at least one of `text` or `html`.\n\n**Success (200):** `{ \"success\": true, \"id\": \"<resend-id>\" }`.\n**Errors:** 400 (validation), 401 (unauthorized), 429 (rate limit), 500 (RESEND_API_KEY not set or Resend error)."
+          }
+        }
+      ]
+    }
+  ]
+}

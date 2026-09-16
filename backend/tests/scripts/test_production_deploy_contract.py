@@ -28,7 +28,7 @@ def test_production_backend_deploy_script_is_valid_bash() -> None:
 def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
 
-    assert 'GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.7-flash}"' in script
+    assert 'GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.8-flash}"' in script
     assert "GEMINI_SEARCH_MODEL=${GEMINI_MODEL}" in script
     assert "GEMINI_TEXT_MODEL=${GEMINI_MODEL}" in script
     assert "STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}" in script

@@ -22,8 +22,8 @@ from backend.infrastructure.constants.llm_constants import (
     ENV_GEMINI_API_KEY,
 )
 from backend.services.llm.config.genai_config import (
-    GEMINI_37_MAX_OUTPUT_TOKENS,
-    is_gemini_37_flash,
+    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
+    is_supported_gemini_flash,
 )
 
 logger = logging.getLogger(__name__)
@@ -102,10 +102,10 @@ class GeminiProvider(BaseLLMProvider):
             
             max_output_tokens = kwargs.get("max_tokens", self.config.max_tokens)
             config_kwargs = {"max_output_tokens": max_output_tokens}
-            if is_gemini_37_flash(self.config.model):
+            if is_supported_gemini_flash(self.config.model):
                 config_kwargs["max_output_tokens"] = min(
                     max_output_tokens,
-                    GEMINI_37_MAX_OUTPUT_TOKENS,
+                    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
                 )
             else:
                 config_kwargs.update(

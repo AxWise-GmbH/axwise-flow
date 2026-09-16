@@ -28,8 +28,8 @@ from backend.infrastructure.constants.llm_constants import (
     ENV_GEMINI_API_KEY,
 )
 from backend.services.llm.config.genai_config import (
-    GEMINI_37_MAX_OUTPUT_TOKENS,
-    is_gemini_37_flash,
+    GEMINI_FLASH_MAX_OUTPUT_TOKENS,
+    is_supported_gemini_flash,
 )
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ class EnhancedInstructorGeminiClient:
         self.enable_metrics = enable_metrics
         self.metrics_history: List[GenerationMetrics] = []
 
-        # Sampling controls are intentionally omitted for Gemini 3.7. Retain
+        # Sampling controls are intentionally omitted for Gemini 3.8. Retain
         # the retry-shape list for backward-compatible metrics and retry flow.
         # GENAI_TOOLS owns its structured-output transport, so response MIME
         # must not be forwarded as an extra provider kwarg.
@@ -229,10 +229,10 @@ class EnhancedInstructorGeminiClient:
         ):
             provider_kwargs.pop(parameter, None)
 
-        if is_gemini_37_flash(self.model_name):
+        if is_supported_gemini_flash(self.model_name):
             generation_config = {
                 "max_tokens": min(
-                    int(requested_max_tokens), GEMINI_37_MAX_OUTPUT_TOKENS
+                    int(requested_max_tokens), GEMINI_FLASH_MAX_OUTPUT_TOKENS
                 )
             }
         else:

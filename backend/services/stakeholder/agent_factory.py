@@ -30,7 +30,7 @@ class StakeholderAgentFactory:
         if not api_key:
             raise ValueError("Missing GEMINI_API_KEY or GOOGLE_API_KEY")
 
-        model_name = os.getenv("STAKEHOLDER_GEMINI_MODEL", "models/gemini-3.7-flash")
+        model_name = os.getenv("STAKEHOLDER_GEMINI_MODEL", "models/gemini-3.8-flash")
         provider = GoogleProvider(api_key=api_key)
         self.gemini_model = GoogleModel(model_name, provider=provider)
         self._agent_cache: Dict[str, Agent] = {}

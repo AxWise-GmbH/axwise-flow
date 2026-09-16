@@ -48,7 +48,7 @@ from services.conversational_analysis_agent import ConversationalAnalysisAgent
 from pydantic_ai.models.gemini import GeminiModel
 
 # Initialize agent
-gemini_model = GeminiModel(model="gemini-3.7-flash", api_key="your_api_key")
+gemini_model = GeminiModel(model="gemini-3.8-flash", api_key="your_api_key")
 agent = ConversationalAnalysisAgent(gemini_model)
 
 # Process simulation data
@@ -224,7 +224,7 @@ python test_conversational_analysis.py
 GEMINI_API_KEY=***REMOVED***
 
 # Optional
-GEMINI_MODEL=gemini-3.7-flash  # Default model
+GEMINI_MODEL=gemini-3.8-flash  # Default model
 MAX_FILE_SIZE=1048576              # 1MB default limit
 ```
 
@@ -232,7 +232,7 @@ MAX_FILE_SIZE=1048576              # 1MB default limit
 
 ```python
 gemini_model = GeminiModel(
-    model="gemini-3.7-flash",  # Preferred model
+    model="gemini-3.8-flash",  # Preferred model
     api_key=os.getenv("GEMINI_API_KEY"),
     # Additional model parameters can be configured here
 )

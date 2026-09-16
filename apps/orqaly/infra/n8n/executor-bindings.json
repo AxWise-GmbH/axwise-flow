@@ -1,0 +1,56 @@
+{
+  "version": "orqaly_n8n_executor_bindings_v1",
+  "canonicalization": "rfc8785_v1",
+  "manifestHash": "ee3c76ac1c0a2cb20928e437c082712177276b6587efadbe481e9bfd5d2cc6d2",
+  "runtime": {
+    "image": "europe-west4-docker.pkg.dev/axwise-v2-preview-001/workflow-v2-preview/n8n@sha256:848166b4051fd4251869f48c18455bddff922f04cb2f2676929463ba973dbde2",
+    "mode": "regular",
+    "concurrency": 1,
+    "retriesOwnedBy": "orqaly_control_plane",
+    "auditSourceOfTruth": "orqaly_cloud_sql"
+  },
+  "bindings": [
+    {
+      "contractVersion": "1.0",
+      "bindingKey": "tool_gateway_connector_v1",
+      "bindingVersion": "1.0",
+      "contentHash": "90da06a5e27263e11891eff9cc0982546b93d4b7425b7b6f5ca550131b9147ee",
+      "workflowFile": "workflows/tool-gateway-connector-v1.json",
+      "workflowContentHash": "bb70d048e588eb2be1ae706668e3c2016a4fc2b876c2830ba2f65838c1ca823b",
+      "workflowVersionId": "c9d43b44-4628-41b5-a757-73145cf427c3",
+      "webhookPath": "orqaly-tool-gateway-connector-v1",
+      "gatewayIdentityMode": "n8n_gcp_metadata_v1",
+      "metadataIdentityUrl": "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=https%3A%2F%2Ftool-gateway.agentic.internal",
+      "toolGatewayUrl": "https://orqaly-agentic-tool-gateway-preview-161074549006.europe-west4.run.app/v1/effects/execute",
+      "toolGatewayAudience": "https://tool-gateway.agentic.internal",
+      "toolGatewayExpectedSubject": "orqaly-n8n-preview@axwise-v2-preview-001.iam.gserviceaccount.com",
+      "acceptedStepKinds": [
+        "connector_read",
+        "connector_write",
+        "notify"
+      ],
+      "providerAccess": "forbidden",
+      "credentialAccess": "opaque_grant_only",
+      "executionDataRetention": "none"
+    }
+  ],
+  "descriptorBindings": [
+    {
+      "descriptor": {
+        "contractVersion": "1.0",
+        "descriptorKey": "operational_record_create_v1",
+        "schemaVersion": "1.0",
+        "contentHash": "c02032d38de3f05d6bd4c9d72e54e6b92e2c1c30d470edc62913e76c417add57"
+      },
+      "executorBinding": {
+        "contractVersion": "1.0",
+        "bindingKey": "tool_gateway_connector_v1",
+        "bindingVersion": "1.0",
+        "contentHash": "90da06a5e27263e11891eff9cc0982546b93d4b7425b7b6f5ca550131b9147ee"
+      },
+      "acceptedStepKinds": [
+        "connector_write"
+      ]
+    }
+  ]
+}

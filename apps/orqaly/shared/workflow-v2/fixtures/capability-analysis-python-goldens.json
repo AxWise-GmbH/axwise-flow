@@ -1,0 +1,994 @@
+{
+  "schemaVersion": "axwise.capability-analysis.python-goldens.v1",
+  "cases": [
+    {
+      "name": "complete_supplied",
+      "context": {
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "title": "Frozen transcript",
+              "text": "I lose time copying status updates.",
+              "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+              "origin": "supplied_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "p1",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "t1",
+                  "participantId": "p1",
+                  "questionId": null,
+                  "start": 0,
+                  "end": 35,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ]
+      },
+      "artifact": {
+        "schemaVersion": "axwise.qualitative-analysis.v1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ],
+        "corpusHash": "4db6ad4487350c00be992db22d3d99a9561476b9ea7abebc47f0c690884e594f",
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "methodVersion": "qualitative_v1.test",
+        "quotes": [
+          {
+            "quoteId": "052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39",
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "turnId": "t1",
+            "participantId": "p1",
+            "speakerRole": "participant",
+            "origin": "supplied_transcript",
+            "sourceTextSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+            "start": 0,
+            "end": 35,
+            "offsetUnit": "utf8_bytes",
+            "text": "I lose time copying status updates.",
+            "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8"
+          }
+        ],
+        "findings": [
+          {
+            "category": "pain",
+            "statement": "I lose time copying status updates.",
+            "basis": "source_statement",
+            "supportStatus": "supported",
+            "quoteIds": ["052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39"],
+            "questionIds": ["analysis-pain"],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": "p1"
+              }
+            ],
+            "findingId": "af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"
+          }
+        ],
+        "personas": [],
+        "gaps": [],
+        "limitations": ["Source acquisition is not proof of human authenticity."],
+        "coverageStatus": "complete",
+        "documentCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001"
+          }
+        ],
+        "participantCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "participantId": "p1",
+            "findingIds": ["af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"]
+          }
+        ],
+        "questionCoverage": [
+          {
+            "questionId": "analysis-pain",
+            "status": "answered",
+            "findingIds": ["af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"],
+            "issueCodes": []
+          }
+        ],
+        "outputCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "output": "jobs_pains",
+            "entryIds": ["af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"]
+          }
+        ],
+        "quoteLineage": [
+          {
+            "quoteId": "052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39",
+            "interviewQuestionId": null
+          }
+        ]
+      },
+      "artifactCanonicalHash": "c60285120d4999686bc1f369d1ccc781fa5f545cc4b8b44d572344f52e8eb000"
+    },
+    {
+      "name": "mixed_personas",
+      "context": {
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "title": "Frozen transcript",
+              "text": "I lose time copying status updates.",
+              "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+              "origin": "supplied_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "p1",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "t1",
+                  "participantId": "p1",
+                  "questionId": null,
+                  "start": 0,
+                  "end": 35,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            },
+            {
+              "documentId": "00000000-0000-4000-8000-000000000002",
+              "title": "Frozen transcript",
+              "text": "I lose time copying status updates.",
+              "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+              "origin": "synthetic_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "p1",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "t1",
+                  "participantId": "p1",
+                  "questionId": "sim-interview",
+                  "start": 0,
+                  "end": 35,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["personas"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ]
+      },
+      "artifact": {
+        "schemaVersion": "axwise.qualitative-analysis.v1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ],
+        "corpusHash": "f7d1cb87f653f62ab6372ede6d4fea36c6a31e187bd04d1bf1efb2dfa19a4977",
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["personas"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "methodVersion": "qualitative_v1.test",
+        "quotes": [
+          {
+            "quoteId": "052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39",
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "turnId": "t1",
+            "participantId": "p1",
+            "speakerRole": "participant",
+            "origin": "supplied_transcript",
+            "sourceTextSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+            "start": 0,
+            "end": 35,
+            "offsetUnit": "utf8_bytes",
+            "text": "I lose time copying status updates.",
+            "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8"
+          },
+          {
+            "quoteId": "2bbeacf0b5b1065d008c9d67ed4db380c092487df6f8d737eef53812befeffd5",
+            "documentId": "00000000-0000-4000-8000-000000000002",
+            "turnId": "t1",
+            "participantId": "p1",
+            "speakerRole": "participant",
+            "origin": "synthetic_transcript",
+            "sourceTextSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+            "start": 0,
+            "end": 35,
+            "offsetUnit": "utf8_bytes",
+            "text": "I lose time copying status updates.",
+            "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8"
+          }
+        ],
+        "findings": [
+          {
+            "category": "trait",
+            "statement": "Copying status updates costs time.",
+            "basis": "interpretation",
+            "supportStatus": "supported",
+            "quoteIds": ["052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39"],
+            "questionIds": ["analysis-pain"],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": "p1"
+              }
+            ],
+            "findingId": "395f0d9dade9bb4774ce609ad37e57453895042f8716ea555d3dc7ef09390386"
+          },
+          {
+            "category": "trait",
+            "statement": "Copying status updates costs time.",
+            "basis": "simulation_hypothesis",
+            "supportStatus": "supported",
+            "quoteIds": ["2bbeacf0b5b1065d008c9d67ed4db380c092487df6f8d737eef53812befeffd5"],
+            "questionIds": ["analysis-pain"],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000002",
+                "participantId": "p1"
+              }
+            ],
+            "findingId": "18226c1e2bd25a1cf4f3e4036daf987e0753a27372ba908c89b4249be0dded9c"
+          }
+        ],
+        "personas": [
+          {
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": "p1"
+              }
+            ],
+            "displayLabel": "Sam",
+            "origin": "supplied_transcript",
+            "traitFindingIds": ["395f0d9dade9bb4774ce609ad37e57453895042f8716ea555d3dc7ef09390386"],
+            "personaId": "2110e6098781a3d7b8502bccc800e46b34965c1d0b156d555ed711dafda41113"
+          },
+          {
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000002",
+                "participantId": "p1"
+              }
+            ],
+            "displayLabel": "Sam",
+            "origin": "synthetic_transcript",
+            "traitFindingIds": ["18226c1e2bd25a1cf4f3e4036daf987e0753a27372ba908c89b4249be0dded9c"],
+            "personaId": "8830ea264ea27feb0dab3742b37c3ad92131685f79fad627bb1f311244959f09"
+          }
+        ],
+        "gaps": [],
+        "limitations": ["Source acquisition is not proof of human authenticity."],
+        "coverageStatus": "complete",
+        "documentCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001"
+          },
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000002"
+          }
+        ],
+        "participantCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "participantId": "p1",
+            "findingIds": ["395f0d9dade9bb4774ce609ad37e57453895042f8716ea555d3dc7ef09390386"]
+          },
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000002",
+            "participantId": "p1",
+            "findingIds": ["18226c1e2bd25a1cf4f3e4036daf987e0753a27372ba908c89b4249be0dded9c"]
+          }
+        ],
+        "questionCoverage": [
+          {
+            "questionId": "analysis-pain",
+            "status": "answered",
+            "findingIds": [
+              "18226c1e2bd25a1cf4f3e4036daf987e0753a27372ba908c89b4249be0dded9c",
+              "395f0d9dade9bb4774ce609ad37e57453895042f8716ea555d3dc7ef09390386"
+            ],
+            "issueCodes": []
+          }
+        ],
+        "outputCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "output": "personas",
+            "entryIds": [
+              "2110e6098781a3d7b8502bccc800e46b34965c1d0b156d555ed711dafda41113",
+              "8830ea264ea27feb0dab3742b37c3ad92131685f79fad627bb1f311244959f09"
+            ]
+          }
+        ],
+        "quoteLineage": [
+          {
+            "quoteId": "052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39",
+            "interviewQuestionId": null
+          },
+          {
+            "quoteId": "2bbeacf0b5b1065d008c9d67ed4db380c092487df6f8d737eef53812befeffd5",
+            "interviewQuestionId": "sim-interview"
+          }
+        ]
+      },
+      "artifactCanonicalHash": "3a74ae1536cbad43eee7def757b444ad820e2acec75c80d7081a081bb1b9322d"
+    },
+    {
+      "name": "blocked_explicit_gaps",
+      "context": {
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "title": "Frozen transcript",
+              "text": "I lose time copying status updates.",
+              "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+              "origin": "supplied_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "p1",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "t1",
+                  "participantId": "p1",
+                  "questionId": null,
+                  "start": 0,
+                  "end": 35,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ]
+      },
+      "artifact": {
+        "schemaVersion": "axwise.qualitative-analysis.v1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ],
+        "corpusHash": "4db6ad4487350c00be992db22d3d99a9561476b9ea7abebc47f0c690884e594f",
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "methodVersion": "qualitative_v1.test",
+        "quotes": [],
+        "findings": [],
+        "personas": [],
+        "gaps": [
+          {
+            "code": "insufficient_evidence",
+            "questionId": "analysis-pain",
+            "participantRef": {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "participantId": "p1"
+            },
+            "output": "jobs_pains",
+            "message": "The available material does not support this conclusion."
+          }
+        ],
+        "limitations": ["Source acquisition is not proof of human authenticity."],
+        "coverageStatus": "blocked",
+        "documentCoverage": [
+          {
+            "status": "blocked",
+            "issueCodes": ["insufficient_evidence"],
+            "documentId": "00000000-0000-4000-8000-000000000001"
+          }
+        ],
+        "participantCoverage": [
+          {
+            "status": "blocked",
+            "issueCodes": ["insufficient_evidence"],
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "participantId": "p1",
+            "findingIds": []
+          }
+        ],
+        "questionCoverage": [
+          {
+            "questionId": "analysis-pain",
+            "status": "insufficient",
+            "findingIds": [],
+            "issueCodes": ["insufficient_evidence"]
+          }
+        ],
+        "outputCoverage": [
+          {
+            "status": "blocked",
+            "issueCodes": ["insufficient_evidence"],
+            "output": "jobs_pains",
+            "entryIds": []
+          }
+        ],
+        "quoteLineage": []
+      },
+      "artifactCanonicalHash": "9cbba533aeef0315c20c2ac5a1aa3634229883d585363f52a61cf649bc9424db"
+    },
+    {
+      "name": "utf16_order",
+      "context": {
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "title": "Frozen transcript",
+              "text": "AB",
+              "textSha256": "38164fbd17603d73f696b8b4d72664d735bb6a7c88577687fd2ae33fd6964153",
+              "origin": "supplied_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                },
+                {
+                  "participantId": "𐀀",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "t1",
+                  "participantId": "",
+                  "questionId": "interview-",
+                  "start": 0,
+                  "end": 1,
+                  "offsetUnit": "utf8_bytes"
+                },
+                {
+                  "turnId": "t2",
+                  "participantId": "𐀀",
+                  "questionId": "interview-𐀀",
+                  "start": 1,
+                  "end": 2,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "",
+              "text": "BMP question"
+            },
+            {
+              "id": "𐀀",
+              "text": "Astral question"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ]
+      },
+      "artifact": {
+        "schemaVersion": "axwise.qualitative-analysis.v1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ],
+        "corpusHash": "47f2e120fcf37d8b866e1125ffede12af5bff42e9434461fa634bd0a3818acab",
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "",
+              "text": "BMP question"
+            },
+            {
+              "id": "𐀀",
+              "text": "Astral question"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "methodVersion": "qualitative_v1.test",
+        "quotes": [
+          {
+            "quoteId": "edb72dbde1d3093f3909964c33616085b7f1b200f6edab3ad1425213b3ace293",
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "turnId": "t1",
+            "participantId": "",
+            "speakerRole": "participant",
+            "origin": "supplied_transcript",
+            "sourceTextSha256": "38164fbd17603d73f696b8b4d72664d735bb6a7c88577687fd2ae33fd6964153",
+            "start": 0,
+            "end": 1,
+            "offsetUnit": "utf8_bytes",
+            "text": "A",
+            "textSha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd"
+          },
+          {
+            "quoteId": "675c91e36fd7d75489cacf3f356a65a529b549ad50aed29183513d0d36f541da",
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "turnId": "t2",
+            "participantId": "𐀀",
+            "speakerRole": "participant",
+            "origin": "supplied_transcript",
+            "sourceTextSha256": "38164fbd17603d73f696b8b4d72664d735bb6a7c88577687fd2ae33fd6964153",
+            "start": 1,
+            "end": 2,
+            "offsetUnit": "utf8_bytes",
+            "text": "B",
+            "textSha256": "df7e70e5021544f4834bbee64a9e3789febc4be81470df629cad6ddb03320a5c"
+          }
+        ],
+        "findings": [
+          {
+            "category": "pain",
+            "statement": "A",
+            "basis": "source_statement",
+            "supportStatus": "supported",
+            "quoteIds": ["edb72dbde1d3093f3909964c33616085b7f1b200f6edab3ad1425213b3ace293"],
+            "questionIds": [""],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": ""
+              }
+            ],
+            "findingId": "55059d78414b7377762df89b9ca34e9370e5822ca5986a8894954f090f66b06a"
+          },
+          {
+            "category": "pain",
+            "statement": "B",
+            "basis": "source_statement",
+            "supportStatus": "supported",
+            "quoteIds": ["675c91e36fd7d75489cacf3f356a65a529b549ad50aed29183513d0d36f541da"],
+            "questionIds": ["𐀀"],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": "𐀀"
+              }
+            ],
+            "findingId": "18fec8985bca8e07a2137b3aeb780513634fa57c4aee68e924151fb63f210527"
+          }
+        ],
+        "personas": [],
+        "gaps": [],
+        "limitations": ["Source acquisition is not proof of human authenticity."],
+        "coverageStatus": "complete",
+        "documentCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001"
+          }
+        ],
+        "participantCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "participantId": "𐀀",
+            "findingIds": ["18fec8985bca8e07a2137b3aeb780513634fa57c4aee68e924151fb63f210527"]
+          },
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "participantId": "",
+            "findingIds": ["55059d78414b7377762df89b9ca34e9370e5822ca5986a8894954f090f66b06a"]
+          }
+        ],
+        "questionCoverage": [
+          {
+            "questionId": "𐀀",
+            "status": "answered",
+            "findingIds": ["18fec8985bca8e07a2137b3aeb780513634fa57c4aee68e924151fb63f210527"],
+            "issueCodes": []
+          },
+          {
+            "questionId": "",
+            "status": "answered",
+            "findingIds": ["55059d78414b7377762df89b9ca34e9370e5822ca5986a8894954f090f66b06a"],
+            "issueCodes": []
+          }
+        ],
+        "outputCoverage": [
+          {
+            "status": "complete",
+            "issueCodes": [],
+            "output": "jobs_pains",
+            "entryIds": [
+              "18fec8985bca8e07a2137b3aeb780513634fa57c4aee68e924151fb63f210527",
+              "55059d78414b7377762df89b9ca34e9370e5822ca5986a8894954f090f66b06a"
+            ]
+          }
+        ],
+        "quoteLineage": [
+          {
+            "quoteId": "675c91e36fd7d75489cacf3f356a65a529b549ad50aed29183513d0d36f541da",
+            "interviewQuestionId": "interview-𐀀"
+          },
+          {
+            "quoteId": "edb72dbde1d3093f3909964c33616085b7f1b200f6edab3ad1425213b3ace293",
+            "interviewQuestionId": "interview-"
+          }
+        ]
+      },
+      "artifactCanonicalHash": "e4c0c917164d99fc83ecf0dae809c89da406827620701278c538e31a3840b1dd"
+    },
+    {
+      "name": "partial_conflicting",
+      "context": {
+        "corpus": {
+          "schemaVersion": "axwise.transcript-corpus.v1",
+          "documents": [
+            {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "title": "Frozen transcript",
+              "text": "I lose time copying status updates.",
+              "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+              "origin": "supplied_transcript",
+              "originArtifactRefs": [],
+              "participants": [
+                {
+                  "participantId": "p1",
+                  "displayName": "Sam",
+                  "role": "participant",
+                  "stakeholderId": null
+                }
+              ],
+              "turns": [
+                {
+                  "turnId": "t1",
+                  "participantId": "p1",
+                  "questionId": null,
+                  "start": 0,
+                  "end": 35,
+                  "offsetUnit": "utf8_bytes"
+                }
+              ]
+            }
+          ]
+        },
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ]
+      },
+      "artifact": {
+        "schemaVersion": "axwise.qualitative-analysis.v1",
+        "acceptedScope": {
+          "artifactId": "00000000-0000-4000-8000-000000000091",
+          "artifactHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "kind": "scope"
+        },
+        "sourceArtifacts": [
+          {
+            "artifactId": "00000000-0000-4000-8000-000000000092",
+            "artifactHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "kind": "transcript_corpus"
+          }
+        ],
+        "corpusHash": "4db6ad4487350c00be992db22d3d99a9561476b9ea7abebc47f0c690884e594f",
+        "request": {
+          "decisionQuestion": "Which workflow should we improve?",
+          "questions": [
+            {
+              "id": "analysis-pain",
+              "text": "What is difficult?"
+            }
+          ],
+          "outputs": ["jobs_pains"],
+          "analysisProfile": "qualitative_v1"
+        },
+        "methodVersion": "qualitative_v1.test",
+        "quotes": [
+          {
+            "quoteId": "052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39",
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "turnId": "t1",
+            "participantId": "p1",
+            "speakerRole": "participant",
+            "origin": "supplied_transcript",
+            "sourceTextSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8",
+            "start": 0,
+            "end": 35,
+            "offsetUnit": "utf8_bytes",
+            "text": "I lose time copying status updates.",
+            "textSha256": "bde52fc2237f18b068b85bccdd54836d7d383e97e243c82e72d18d385fd64bc8"
+          }
+        ],
+        "findings": [
+          {
+            "category": "pain",
+            "statement": "I lose time copying status updates.",
+            "basis": "source_statement",
+            "supportStatus": "supported",
+            "quoteIds": ["052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39"],
+            "questionIds": ["analysis-pain"],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": "p1"
+              }
+            ],
+            "findingId": "af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"
+          },
+          {
+            "category": "pain",
+            "statement": "I lose time copying status updates.",
+            "basis": "source_statement",
+            "supportStatus": "conflicting",
+            "quoteIds": ["052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39"],
+            "questionIds": ["analysis-pain"],
+            "participantRefs": [
+              {
+                "documentId": "00000000-0000-4000-8000-000000000001",
+                "participantId": "p1"
+              }
+            ],
+            "findingId": "53d41609f7a50a4b1fa516efa10c8b53d938a4068fe59eaf5c79b8f471e4732a"
+          }
+        ],
+        "personas": [],
+        "gaps": [
+          {
+            "code": "conflicting_evidence",
+            "questionId": "analysis-pain",
+            "participantRef": {
+              "documentId": "00000000-0000-4000-8000-000000000001",
+              "participantId": "p1"
+            },
+            "output": "jobs_pains",
+            "message": "The available material does not support this conclusion."
+          }
+        ],
+        "limitations": ["Source acquisition is not proof of human authenticity."],
+        "coverageStatus": "partial",
+        "documentCoverage": [
+          {
+            "status": "partial",
+            "issueCodes": ["conflicting_evidence"],
+            "documentId": "00000000-0000-4000-8000-000000000001"
+          }
+        ],
+        "participantCoverage": [
+          {
+            "status": "partial",
+            "issueCodes": ["conflicting_evidence"],
+            "documentId": "00000000-0000-4000-8000-000000000001",
+            "participantId": "p1",
+            "findingIds": ["af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"]
+          }
+        ],
+        "questionCoverage": [
+          {
+            "questionId": "analysis-pain",
+            "status": "partial",
+            "findingIds": ["af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"],
+            "issueCodes": ["conflicting_evidence"]
+          }
+        ],
+        "outputCoverage": [
+          {
+            "status": "partial",
+            "issueCodes": ["conflicting_evidence"],
+            "output": "jobs_pains",
+            "entryIds": ["af1763973b57207a443d6ecf275e39817e26dbdadebcd0e6a2413c76c2916c56"]
+          }
+        ],
+        "quoteLineage": [
+          {
+            "quoteId": "052e40355c4993023aae5d50de151e5ee08902cae55b9b550df4d52e98435c39",
+            "interviewQuestionId": null
+          }
+        ]
+      },
+      "artifactCanonicalHash": "201046b13894b748b9bdfd9dcba3d3875b6706977b7244a1f474dc07c152d390"
+    }
+  ]
+}

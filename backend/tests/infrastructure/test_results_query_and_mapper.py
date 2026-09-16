@@ -45,7 +45,7 @@ def test_query_maps_row_to_dto(monkeypatch):
         analysis_date="2025-09-21T15:47:20.101122",
         status="completed",
         llm_provider="gemini",
-        llm_model="models/gemini-3.7-flash",
+        llm_model="models/gemini-3.8-flash",
         results={"k": "v"},
     )
     fake_repo.set_row(row)
@@ -62,5 +62,5 @@ def test_query_maps_row_to_dto(monkeypatch):
     assert dto.data_id == 7
     assert dto.status == "completed"
     assert dto.llm_provider == "gemini"
-    assert dto.llm_model == "models/gemini-3.7-flash"
+    assert dto.llm_model == "models/gemini-3.8-flash"
     assert dto.results == {"k": "v"}

@@ -1,0 +1,60 @@
+{
+  "id": "orqalyResponseCanary",
+  "name": "Orqaly isolated response canary — synthetic data only",
+  "nodes": [
+    {
+      "id": "canary-webhook",
+      "name": "Canary Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "local-response-canary",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "local-response-canary",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "canary-receipt",
+      "name": "Synthetic Receipt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "retryOnFail": false,
+      "onError": "stopWorkflow",
+      "parameters": {
+        "url": "http://fixture.internal:18080/receipt",
+        "options": {
+          "timeout": 5000,
+          "response": {
+            "response": { "fullResponse": false, "neverError": false, "responseFormat": "json" }
+          }
+        }
+      }
+    },
+    {
+      "id": "canary-response",
+      "name": "Return Gateway Receipt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [520, 0],
+      "parameters": { "respondWith": "firstIncomingItem", "options": { "responseCode": 200 } }
+    }
+  ],
+  "connections": {
+    "Canary Request": { "main": [[{ "node": "Synthetic Receipt", "type": "main", "index": 0 }]] },
+    "Synthetic Receipt": {
+      "main": [[{ "node": "Return Gateway Receipt", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 30,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "active": false,
+  "versionId": "5a3af773-37d1-46a4-bd20-a856e7ab80cd"
+}

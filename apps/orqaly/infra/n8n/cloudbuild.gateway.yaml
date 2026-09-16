@@ -1,0 +1,14 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --pull
+      - -f
+      - services/agentic-tool-gateway/Dockerfile
+      - -t
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/workflow-v2-preview/orqaly-agentic-tool-gateway:${_IMAGE_TAG}
+      - .
+images:
+  - europe-west4-docker.pkg.dev/$PROJECT_ID/workflow-v2-preview/orqaly-agentic-tool-gateway:${_IMAGE_TAG}
+options:
+  logging: CLOUD_LOGGING_ONLY

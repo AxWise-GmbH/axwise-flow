@@ -598,7 +598,7 @@ def _validate_delta_fields(
 
 
 class PydanticAIScopeSemanticInterpreter:
-    """Exact Gemini 3.7 Flash HIGH structured interpreter (no fallback model)."""
+    """Exact Gemini 3.8 Flash HIGH structured interpreter (no fallback model)."""
 
     def __init__(self, *, model: Any | None = None, api_key: str | None = None) -> None:
         self.last_usage: dict[str, int] | None = None
@@ -705,6 +705,7 @@ def _correction_usage(
         input_tokens + output_tokens,
     )
     return ScopeCorrectionUsageV1(
+        model_resource=RESEARCH_MODEL_RESOURCE,
         requests=int(usage.get("requests") or 0),
         input_tokens=input_tokens,
         output_tokens=output_tokens,
@@ -736,6 +737,7 @@ def wrap_scope_interpretation(
         correction_hash=request.correction_hash,
         parser_version=SCOPE_CORRECTION_PARSER_VERSION,
         parser_hash=_sha256_text(_PARSER_CONTRACT),
+        model_resource=RESEARCH_MODEL_RESOURCE,
         model_hash=_sha256_text(model_contract),
         prompt_version=SCOPE_CORRECTION_PROMPT_VERSION,
         prompt_hash=_sha256_text(SCOPE_CORRECTION_SYSTEM_PROMPT),
