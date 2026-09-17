@@ -79,8 +79,8 @@ _FALLBACK_DISCOVERY_SECONDS = 10.0
 # Assistant may match the discovery adapter's request allowance, including its
 # private-service authentication, without changing durable research's defaults.
 _MAX_FALLBACK_DISCOVERY_SECONDS = 20.0
-_FALLBACK_FETCH_SECONDS = 15.0
-_FALLBACK_EXTRACTION_SECONDS = 45.0
+_FALLBACK_FETCH_SECONDS = 25.0
+_FALLBACK_EXTRACTION_SECONDS = 25.0
 _DISCOVERY_SECTION_BUDGETS = {
     "requirement": 560,
     "applicability": 300,
