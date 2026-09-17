@@ -3,67 +3,64 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- SEO Meta Tags -->
     <title>
-      The Sparsity Nexus: A Foundational Analysis - White Paper | AxWise
-      Research
+      The Sparsity Nexus: Query-Routed KV Memory on a 24 GB Unified-Memory
+      System | AxWise
     </title>
     <meta
       name="description"
-      content="Comprehensive white paper analyzing the integration of classical data structures like Judy arrays with modern AI attention mechanisms. Academic research on bridging deterministic indexing with probabilistic attention."
+      content="Version 2.0 of The Sparsity Nexus, preserving the 2025 foundational thesis and June 2026 update while turning the Judy-array and attention analogy into a query-routed KV-memory experiment on a 24 GB M4 MacBook Air."
     />
     <meta
       name="keywords"
-      content="white paper, AI research, Judy arrays, attention mechanisms, sparse data structures, LLM optimization, academic research, computer science"
+      content="query-routed KV memory, sparse attention, long-context LLM, Qwen3.8-27B, Qwen3.8-Flash-Next, Apple Silicon, unified memory, Judy arrays, technical report"
     />
     <meta name="author" content="Vitalijs Visnevskis" />
     <meta name="robots" content="index, follow" />
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="article" />
     <meta
       property="og:title"
-      content="The Sparsity Nexus: A Foundational Analysis - White Paper"
+      content="The Sparsity Nexus: Query-Routed KV Memory on a 24 GB Unified-Memory System"
     />
     <meta
       property="og:description"
-      content="Comprehensive academic white paper on integrating classical data structures with modern AI attention mechanisms."
+      content="From the original classical-data-structure/attention thesis through the June 2026 update to a calibrated query-routed KV-memory experiment."
     />
     <meta
       property="og:url"
       content="https://axwise.de/blog/sparsity-nexus-white-paper"
     />
     <meta property="og:site_name" content="AxWise Research" />
-
-    <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta
       property="twitter:title"
-      content="The Sparsity Nexus: A Foundational Analysis - White Paper"
+      content="The Sparsity Nexus: Query-Routed KV Memory"
     />
     <meta
       property="twitter:description"
-      content="Comprehensive academic white paper on integrating classical data structures with modern AI attention mechanisms."
+      content="Version 2.0 preserves the foundational Sparsity Nexus thesis, records its June 2026 evolution, and defines a falsifiable 24 GB MacBook Air experiment."
     />
-
-    <!-- Canonical URL -->
     <link
       rel="canonical"
       href="https://axwise.de/blog/sparsity-nexus-white-paper"
     />
 
-    <!-- Schema.org structured data -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "ScholarlyArticle",
-        "headline": "The Sparsity Nexus: A Foundational Analysis",
-        "description": "Comprehensive white paper analyzing the integration of classical data structures like Judy arrays with modern AI attention mechanisms.",
+        "@type": "TechArticle",
+        "headline": "The Sparsity Nexus: Query-Routed KV Memory on a 24 GB Unified-Memory System",
+        "alternativeHeadline": "A Foundational Analysis: Bridging Classical Data Structures and Modern AI Attention Mechanisms",
+        "description": "Version 2.0 preserves the 2025 foundational thesis and June 2026 update, then narrows the Judy-array analogy into a query-routed KV-memory hypothesis and reproducible evaluation protocol for a fanless 24 GB M4 MacBook Air. No reproduced Apple Silicon result is claimed.",
         "author": {
           "@type": "Person",
           "name": "Vitalijs Visnevskis",
-          "url": "https://www.linkedin.com/in/vitalijs-visnevskis/"
+          "url": "https://www.linkedin.com/in/vitalijs-visnevskis/",
+          "affiliation": {
+            "@type": "Organization",
+            "name": "AxWise"
+          }
         },
         "publisher": {
           "@type": "Organization",
@@ -71,31 +68,33 @@
           "url": "https://axwise.de"
         },
         "datePublished": "2025-06-11",
-        "dateModified": "2026-03-26",
+        "dateModified": "2026-08-31",
+        "version": "2.0",
         "mainEntityOfPage": {
           "@type": "WebPage",
           "@id": "https://axwise.de/blog/sparsity-nexus-white-paper"
         },
-        "articleSection": "Computer Science Research",
+        "articleSection": "Computer Systems Research",
         "keywords": [
-          "AI research",
+          "query-routed KV memory",
+          "sparse attention",
+          "long-context inference",
+          "Apple Silicon",
           "Judy arrays",
-          "attention mechanisms",
-          "sparse data structures",
-          "LLM optimization"
+          "Qwen3.8"
         ],
         "about": [
           {
             "@type": "Thing",
-            "name": "Artificial Intelligence"
+            "name": "Long-context language-model inference"
           },
           {
             "@type": "Thing",
-            "name": "Data Structures"
+            "name": "Heterogeneous memory systems"
           },
           {
             "@type": "Thing",
-            "name": "Computer Architecture"
+            "name": "Sparse data structures"
           }
         ]
       }
@@ -105,905 +104,2730 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap"
       rel="stylesheet"
     />
 
     <style>
+      :root {
+        --ink: #172033;
+        --muted: #536079;
+        --blue: #1d4ed8;
+        --violet: #6d28d9;
+      }
+
       body {
+        background:
+          radial-gradient(circle at 12% 0%, #eef2ff 0, transparent 28rem),
+          #f1f5f9;
+        color: var(--ink);
         font-family: "Inter", sans-serif;
-        background-color: #fafafa;
-        color: #1a1a1a;
-        line-height: 1.7;
+        line-height: 1.72;
       }
-      .mono {
-        font-family: "JetBrains Mono", monospace;
+
+      .paper {
+        background: rgb(255 255 255 / 0.98);
+        box-shadow: 0 24px 70px -35px rgb(15 23 42 / 0.35);
       }
-      .paper-container {
-        max-width: 210mm;
-        margin: 0 auto;
-        background: white;
-        box-shadow:
-          0 4px 6px -1px rgb(0 0 0 / 0.1),
-          0 2px 4px -2px rgb(0 0 0 / 0.1);
-      }
-      .paper-header {
-        border-bottom: 3px solid #2563eb;
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      }
-      .section-number {
-        color: #2563eb;
-        font-weight: 600;
-      }
+
+      .mono,
       .formula {
-        background: #f1f5f9;
-        border-left: 4px solid #3b82f6;
         font-family: "JetBrains Mono", monospace;
       }
-      .table-container {
+
+      .section-kicker {
+        color: var(--violet);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .formula {
+        overflow-x: auto;
+        border: 1px solid #c7d2fe;
+        border-left: 4px solid #4f46e5;
+        border-radius: 0.8rem;
+        background: #eef2ff;
+        padding: 1rem 1.2rem;
+        color: #3730a3;
+        font-size: 0.88rem;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .table-shell {
         overflow-x: auto;
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
+        border-radius: 0.9rem;
       }
-      .reference-item {
-        border-left: 3px solid #10b981;
-        background: #f0fdf4;
+
+      .research-table {
+        width: 100%;
+        min-width: 48rem;
+        border-collapse: collapse;
+        background: white;
+        font-size: 0.875rem;
       }
-      .nav-link {
-        transition: all 0.2s;
+
+      .research-table th,
+      .research-table td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.85rem 1rem;
+        text-align: left;
+        vertical-align: top;
       }
-      .nav-link:hover {
-        color: #2563eb;
-        background-color: #eff6ff;
+
+      .research-table th {
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
       }
-      .download-btn {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        transition: all 0.3s;
+
+      .research-table tr:last-child td {
+        border-bottom: 0;
       }
-      .download-btn:hover {
-        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+      .citation {
+        color: #1d4ed8;
+        font-weight: 600;
+        text-decoration: none;
       }
+
+      .citation:hover {
+        text-decoration: underline;
+      }
+
       @media print {
+        body {
+          background: white;
+        }
+
         .no-print {
           display: none !important;
         }
-        .paper-container {
+
+        .paper {
+          max-width: none;
           box-shadow: none;
         }
-        body {
-          background: white;
+
+        a {
+          color: inherit !important;
+          text-decoration: none !important;
+        }
+
+        section,
+        .avoid-break {
+          break-inside: avoid;
         }
       }
     </style>
   </head>
+
   <body class="antialiased">
-    <!-- Navigation Bar -->
     <nav
-      class="bg-white border-b border-gray-200 sticky top-0 z-50 no-print"
-      aria-label="Breadcrumb"
+      class="no-print sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-lg"
+      aria-label="Document controls"
     >
-      <div class="container mx-auto px-4 py-3">
-        <div class="flex items-center justify-between">
-          <ol class="flex items-center space-x-2 text-sm">
-            <li>
-              <a
-                href="https://axwise.de"
-                class="text-blue-600 hover:text-blue-800"
-                >AxWise</a
-              >
-            </li>
-            <li class="text-gray-400">/</li>
-            <li>
-              <a
-                href="https://axwise.de/blog"
-                class="text-blue-600 hover:text-blue-800"
-                >Research</a
-              >
-            </li>
-            <li class="text-gray-400">/</li>
-            <li class="text-gray-600" aria-current="page">White Paper</li>
-          </ol>
-          <div class="flex items-center space-x-4">
-            <button
-              onclick="window.print()"
-              class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              📄 Print/PDF
-            </button>
-            <a
-              href="sparsity-nexus-judy-arrays-ai-attention.html"
-              class="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-            >
-              📖 Interactive Version
-            </a>
-          </div>
+      <div
+        class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3"
+      >
+        <div class="min-w-0 text-sm text-slate-500">
+          <a href="https://axwise.de" class="hover:text-blue-700">AxWise</a>
+          <span class="mx-2">/</span>
+          <span class="font-semibold text-slate-700"
+            >Technical report v2.0</span
+          >
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <a
+            href="sparsity-nexus-judy-arrays-ai-attention.html"
+            class="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+          >
+            Read the article
+          </a>
+          <button
+            type="button"
+            onclick="window.print()"
+            class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            Print / PDF
+          </button>
         </div>
       </div>
     </nav>
 
-    <!-- Paper Container -->
-    <div class="min-h-screen py-8 px-4">
-      <div class="paper-container">
-        <!-- Paper Header -->
-        <header class="paper-header p-8 text-center">
-          <div class="mb-6">
-            <h1 class="text-4xl font-bold text-gray-900 mb-4">
-              The Sparsity Nexus: A Foundational Analysis
-            </h1>
-            <h2 class="text-xl text-gray-600 font-medium">
-              Bridging Classical Data Structures and Modern AI Attention
-              Mechanisms
-            </h2>
+    <div class="px-3 py-6 md:px-6 md:py-10">
+      <article class="paper mx-auto max-w-5xl overflow-hidden rounded-2xl">
+        <header
+          class="border-b border-slate-200 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-950 px-6 py-12 text-white md:px-12 md:py-16"
+        >
+          <div
+            class="mb-6 inline-flex rounded-full border border-indigo-300/30 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-indigo-100"
+          >
+            Version 2.0 · revised technical report
           </div>
+          <h1
+            class="max-w-4xl text-4xl font-extrabold leading-tight md:text-6xl"
+          >
+            The Sparsity Nexus:
+            <span class="text-indigo-200"
+              >Query-Routed KV Memory on a 24 GB Unified-Memory System</span
+            >
+          </h1>
+          <p class="mt-6 max-w-4xl text-xl leading-relaxed text-slate-200">
+            System hypothesis and evaluation protocol for Qwen3.8-27B, with
+            Qwen3.8-Flash-Next as an architectural control
+          </p>
+          <p class="mt-4 max-w-4xl text-sm leading-relaxed text-indigo-200">
+            Continuing the original whitepaper,
+            <em
+              >A Foundational Analysis: Bridging Classical Data Structures and
+              Modern AI Attention Mechanisms</em
+            >.
+          </p>
 
-          <div class="text-sm text-gray-600 space-y-2">
-            <p><strong>Author:</strong> Vitalijs Visnevskis</p>
-            <p><strong>Institution:</strong> AxWise AI Research Laboratory</p>
-            <p><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/vitalijs-visnevskis/" class="text-blue-600 hover:text-blue-800">linkedin.com/in/vitalijs-visnevskis</a></p>
-            <p><strong>Publication Date:</strong> June 11, 2025</p>
-            <p><strong>Document Type:</strong> Technical White Paper</p>
-          </div>
-
-          <!-- Abstract -->
-          <div class="mt-8 p-6 bg-blue-50 rounded-lg text-left">
-            <h3 class="text-lg font-semibold text-blue-900 mb-3">Abstract</h3>
-            <p class="text-blue-800 leading-relaxed">
-              This white paper presents a comprehensive analysis of the
-              potential integration between classical data structures,
-              specifically Judy arrays, and modern neural attention mechanisms
-              used in Large Language Models (LLMs). We examine the fundamental
-              dichotomy between deterministic, cache-optimized data structures
-              designed for CPU architectures and probabilistic,
-              throughput-optimized attention mechanisms designed for GPU
-              architectures. Through detailed technical analysis, we propose
-              three novel hybrid architectures that could bridge this gap:
-              Tree-based Positional Encodings, Judy-Indexed KV Cache, and
-              Judy-Masked Attention. Our findings suggest that while direct
-              integration is technically infeasible, the principles underlying
-              Judy arrays offer compelling solutions to the quadratic scaling
-              challenges of attention mechanisms, particularly for long-context
-              inference scenarios.
-            </p>
+          <div
+            class="mt-9 grid gap-4 border-t border-white/15 pt-6 text-sm text-slate-300 md:grid-cols-2"
+          >
+            <div>
+              <div>
+                <strong class="text-white">Author:</strong> Vitalijs Visnevskis
+              </div>
+              <div>
+                <strong class="text-white">Affiliation:</strong> Independent
+                research at AxWise
+              </div>
+              <div>
+                <a
+                  href="https://www.linkedin.com/in/vitalijs-visnevskis/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-indigo-200 hover:underline"
+                  >linkedin.com/in/vitalijs-visnevskis</a
+                >
+              </div>
+            </div>
+            <div class="md:text-right">
+              <div>
+                <strong class="text-white">Original thesis:</strong> June 11,
+                2025
+              </div>
+              <div>
+                <strong class="text-white">Prior major update:</strong> June
+                2026
+              </div>
+              <div>
+                <strong class="text-white">Current v2 revision:</strong> August
+                31, 2026
+              </div>
+              <div>
+                <strong class="text-white">Status:</strong> Experimental
+                protocol; results pending
+              </div>
+            </div>
           </div>
         </header>
 
-        <!-- Table of Contents -->
-        <nav class="p-8 bg-gray-50 border-b no-print">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            Table of Contents
-          </h3>
-          <div class="grid md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <ul class="space-y-2">
-                <li>
-                  <a href="#section-1" class="nav-link px-2 py-1 rounded"
-                    >1. Deconstructing the Transformer Attention Mechanism</a
-                  >
-                </li>
-                <li>
-                  <a href="#section-2" class="nav-link px-2 py-1 rounded"
-                    >2. The Judy Array: A Deep Dive into Cache-Conscious Architecture</a
-                  >
-                </li>
-                <li>
-                  <a href="#section-3" class="nav-link px-2 py-1 rounded"
-                    >3. Contrasting Lookup Mechanisms</a
-                  >
-                </li>
-                <li>
-                  <a href="#section-4" class="nav-link px-2 py-1 rounded"
-                    >4. The Sparsity Nexus</a
-                  >
-                </li>
-              </ul>
-            </div>
-            <div>
-              <ul class="space-y-2">
-                <li>
-                  <a href="#section-5" class="nav-link px-2 py-1 rounded"
-                    >5. Hardware Dichotomy: CPU vs GPU</a
-                  >
-                </li>
-                <li>
-                  <a href="#section-6" class="nav-link px-2 py-1 rounded"
-                    >6. Integration Feasibility Analysis</a
-                  >
-                </li>
-                <li>
-                  <a href="#section-7" class="nav-link px-2 py-1 rounded"
-                    >7. Proposed Hybrid Architectures</a
-                  >
-                </li>
-                <li>
-                  <a href="#section-8" class="nav-link px-2 py-1 rounded"
-                    >8. Conclusions and Recommendations</a
-                  >
-                </li>
-              </ul>
-            </div>
-          </div>
-        </nav>
-
-        <!-- Paper Content -->
-        <main class="p-8 space-y-12">
-          <!-- Section 1: Deconstructing the Transformer Attention Mechanism -->
-          <section id="section-1">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">1.</span> Deconstructing the Transformer Attention Mechanism
-            </h2>
-
-            <p class="mb-6">
-              The ascendancy of Large Language Models (LLMs) is inextricably linked to the Transformer architecture, and at its core lies the attention mechanism. To comprehend the potential for integration with disparate data structures, it is imperative to move beyond surface-level analogies and deconstruct attention to its fundamental computational and mathematical principles. The mechanism is not merely a tool for focusing; it is a fully differentiable, probabilistic, soft-retrieval system implemented via parallelizable matrix operations, making it uniquely suited for modern deep learning hardware and training paradigms.
-            </p>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">1.1 The QKV Paradigm: A "Soft" Associative Lookup</h3>
-
-            <p class="mb-6">
-              The attention mechanism operates on a principle analogous to a database or dictionary lookup, but with a crucial distinction: it is "soft" and probabilistic rather than "hard" and deterministic. This operation is defined by three key vector representations derived from each input token's embedding:
-            </p>
-
-            <div class="bg-gray-50 p-6 rounded-lg mb-6">
-              <ul class="space-y-4">
-                <li><strong>Query (Q):</strong> This vector represents what a specific token is "looking for" or the information it seeks to complete its contextual understanding. It can be conceptualized as the search query submitted to the retrieval system.</li>
-                <li><strong>Key (K):</strong> This vector represents what information a token "offers" or contains. It serves as the searchable index or metadata against which queries are matched. The alignment between a query vector and a key vector determines the relevance of the corresponding token.</li>
-                <li><strong>Value (V):</strong> This vector contains the actual content or semantic representation of a token. It is the information that is ultimately retrieved and aggregated once its relevance has been established by the query-key interaction.</li>
-              </ul>
-            </div>
-
-            <p class="mb-6">
-              The core computation of attention is a weighted sum of all Value vectors in the sequence. The weights are not binary (0 or 1) as in a traditional lookup, but are continuous values derived from the similarity between a given token's Query vector and every other token's Key vector. This "soft" weighting is what makes the entire operation differentiable, allowing it to be trained end-to-end via gradient descent. This fundamental property enables the model to learn which tokens are relevant to one another in a given context, rather than relying on pre-programmed rules.
-            </p>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">1.2 Mathematical Formulation of Scaled Dot-Product Attention</h3>
-
-            <p class="mb-6">
-              The canonical implementation of this soft lookup is the Scaled Dot-Product Attention, introduced by Vaswani et al. (2017). Its mathematical formulation is expressed as:
-            </p>
-
-            <div class="formula p-4 rounded-lg mb-6">
-              <p class="text-center text-lg">
-                <strong>Attention(Q,K,V) = softmax(QK<sup>T</sup> / √d<sub>k</sub>) V</strong>
+        <div class="px-6 py-8 md:px-12">
+          <section
+            class="mb-10 rounded-2xl border border-blue-200 bg-blue-50 p-6 md:p-8"
+            aria-labelledby="abstract-heading"
+          >
+            <p class="section-kicker mb-2">Abstract</p>
+            <h2 id="abstract-heading" class="sr-only">Abstract</h2>
+            <div class="space-y-4 leading-relaxed text-blue-950/80">
+              <p>
+                This is a continuation—not a replacement—of the original
+                Sparsity Nexus thesis. The 2025 paper asked whether principles
+                from deterministic, cache-conscious structures such as Judy
+                arrays could inform probabilistic neural attention. It proposed
+                three branches: tree-based positional encodings, a Judy-indexed
+                KV cache, and Judy-masked attention. A June 2026 update added
+                compression and emerging sparse systems to that picture.
               </p>
-              <p class="text-center text-sm text-gray-600 mt-2">
-                The canonical scaled dot-product attention formula
+              <p>
+                This report investigates whether a large language model’s
+                addressable context can exceed its resident attention state by
+                routing each query to a small KV working set distributed across
+                unified memory and storage. It uses a fanless 24 GB M4 MacBook
+                Air as a deliberately constrained reference platform,
+                Qwen3.8-27B as the retrofit target, and Qwen3.8-Flash-Next as
+                evidence that query-aware sparse attention can be integrated
+                during model design.
               </p>
-            </div>
-
-            <p class="mb-6">
-              where Q, K, and V are matrices packing the query, key, and value vectors for all tokens in the sequence, and d<sub>k</sub> is the dimensionality of the key vectors. This elegant equation can be broken down into four distinct computational steps:
-            </p>
-
-            <div class="bg-blue-50 p-6 rounded-lg mb-6">
-              <ol class="space-y-3">
-                <li><strong>Similarity Scoring:</strong> The matrix product QK<sup>T</sup> computes the dot product between every query vector in Q and every key vector in K. This yields an N×N attention score matrix for a sequence of length N, where each element (i,j) represents the raw similarity or alignment between the i-th query and the j-th key.</li>
-                <li><strong>Scaling:</strong> The attention scores are scaled by dividing by √d<sub>k</sub>. This is not an arbitrary choice but a critical step for stabilizing the training process.</li>
-                <li><strong>Normalization:</strong> A softmax function is applied row-wise to the scaled score matrix. This transforms the scores into a probability distribution, where each row sums to 1. The resulting matrix contains the final attention weights, representing the proportion of attention the i-th token should pay to the j-th token.</li>
-                <li><strong>Weighted Aggregation:</strong> The attention weights matrix is multiplied by the Value matrix V. This produces an output vector for each token that is a weighted average of all Value vectors in the sequence, with the weights determined by the learned attention probabilities.</li>
-              </ol>
-            </div>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">1.3 The Crucial Role of the Scaling Factor (1/√d<sub>k</sub>)</h3>
-
-            <p class="mb-6">
-              The inclusion of the 1/√d<sub>k</sub> scaling factor is fundamental to the stability and scalability of Transformer models. Its necessity arises from the statistical properties of the dot product and its interaction with the softmax function's gradient.
-            </p>
-
-            <p class="mb-6">
-              The analysis begins with the assumption that the components of the query and key vectors are independent random variables with a mean of 0 and a variance of 1. This is a reasonable assumption, as network weights are typically initialized to meet these criteria (e.g., Xavier/Glorot initialization), and normalization layers help maintain these properties during training. For two such vectors q and k of dimension d<sub>k</sub>, their dot product q·k = Σ(i=1 to d<sub>k</sub>) q<sub>i</sub> * k<sub>i</sub> will have a mean of 0, but its variance will be d<sub>k</sub>.
-            </p>
-
-            <p class="mb-6">
-              As the dimensionality d<sub>k</sub> increases (e.g., to 64 or 128 in typical models), the variance of the dot-product scores grows linearly. This causes the inputs to the softmax function to become large in magnitude and widely spread. The softmax function, exp(z<sub>i</sub>) / Σ<sub>j</sub> exp(z<sub>j</sub>), is highly sensitive to the scale of its inputs. When one input is significantly larger than the others, the softmax output approaches a one-hot distribution, assigning a probability of nearly 1 to the largest input and nearly 0 to all others.
-            </p>
-
-            <p class="mb-6">
-              This saturation of the softmax function has a catastrophic effect on the learning process. During backpropagation, the gradient of the loss with respect to the softmax inputs becomes vanishingly small when the output probabilities are close to 0 or 1. This phenomenon, known as the vanishing gradient problem, effectively prevents the model from learning the attention patterns, as no meaningful error signal can propagate back to update the model's weights.
-            </p>
-
-            <p class="mb-6">
-              The scaling factor directly counteracts this. By dividing the dot product scores by √d<sub>k</sub> (which is the standard deviation of the dot product), the resulting scores are normalized to have a variance of 1, irrespective of the key dimension d<sub>k</sub>. This ensures that the inputs to the softmax function remain in a well-behaved, non-saturating region, which produces "softer" attention distributions and, most importantly, allows for stable gradient flow. This stability is not merely a minor tweak; it is a foundational pillar that enables the training of the incredibly deep and wide Transformer models that define the modern AI landscape.
-            </p>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">1.4 The Quadratic Scaling Challenge</h3>
-
-            <p class="mb-6">
-              The fundamental challenge that motivates this research lies in the quadratic scaling of the attention mechanism. For a sequence of length N, the attention computation requires O(N²) memory and computational complexity. This scaling challenge has been the primary driver for the development of sparse attention mechanisms. The core idea behind sparse attention is the observation that the final attention matrix is often highly sparse, with most tokens attending strongly to only a small subset of other tokens. Sparse attention methods aim to approximate the full attention matrix by computing only a fraction of the query-key interactions, thereby reducing the complexity from O(N²) to something more manageable, such as O(N log N) or even O(N). This pursuit of efficient, sparse computation forms the conceptual bridge to the world of specialized data structures like Judy arrays.
-            </p>
-          </section>
-
-          <!-- Section 2: The Judy Array: A Deep Dive into Cache-Conscious Architecture -->
-          <section id="section-2">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">2.</span> The Judy Array: A Deep Dive into Cache-Conscious Architecture
-            </h2>
-
-            <p class="mb-6">
-              In stark contrast to the probabilistic, learned world of neural attention, the Judy array represents a pinnacle of deterministic, hardware-aware algorithm design from the domain of classical computer science. It is not a single data structure but a complex, adaptive system engineered for a singular purpose: to provide the fastest possible associative array by minimizing latency within the physical constraints of the CPU memory hierarchy.
-            </p>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">2.1 Core Principles: A Deterministic, Sparse, Associative Array</h3>
-
-            <p class="mb-6">
-              A Judy array is a C library that implements a dynamic associative array, mapping integer or string keys to word-sized values or pointers. Its design is governed by a set of core principles:
-            </p>
-
-            <div class="bg-gray-50 p-6 rounded-lg mb-6">
-              <ul class="space-y-4">
-                <li>
-                  <strong>Sparsity:</strong> The structure is fundamentally designed to manage sparse key distributions. Its memory consumption is nearly proportional to the number of elements stored (k), not the size of the key space (N). This allows it to represent, for example, a handful of 64-bit integer keys out of a possible 2<sup>64</sup> with minimal memory overhead.
-                </li>
-                <li>
-                  <strong>Performance:</strong> For many workloads, particularly those involving large datasets or keys with sequential or clustered patterns, Judy arrays are benchmarked to be faster than conventional data structures like hash tables, B-trees, or AVL trees.
-                </li>
-                <li>
-                  <strong>Cache-Optimization:</strong> The primary and non-negotiable design criterion is the minimization of expensive CPU cache-line fills. The entire architecture is a software abstraction built to "play well with CPU caches".
-                </li>
-              </ul>
-            </div>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">2.2 Internal Architecture: The Highly-Optimized 256-ary Radix Trie</h3>
-
-            <p class="mb-6">
-              The foundational data structure of a Judy array is a 256-ary radix tree, also known as a digital trie. This choice is a direct consequence of its cache-optimization goal.
-            </p>
-
-            <div class="bg-blue-50 p-6 rounded-lg mb-6">
-              <h4 class="font-semibold text-blue-800 mb-3">Digital Decomposition</h4>
-              <p class="text-blue-700 text-sm mb-3">
-                A 256-way branching factor is "magic" because it corresponds to the 256 possible values of a single byte. This allows the tree to consume the key one byte (8 bits) at a time during traversal. A 64-bit key is thus decomposed into 8 bytes, leading to a tree with a maximum depth of only 8. In contrast, a binary search tree would require a depth of up to 64 for the same key space, leading to far more potential memory accesses.
+              <p>
+                Resource analysis shows that a heavily quantized 27B model may
+                fit on the reference system while a dense one-million-token KV
+                cache cannot. We therefore specify a hierarchy comprising a
+                protected recent and pinned region, semantic candidate
+                generation, a code-to-block directory, compressed cold storage,
+                accelerator-side refinement, and adaptive fallback. Judy arrays
+                are evaluated only as one possible directory representation.
               </p>
-
-              <h4 class="font-semibold text-blue-800 mb-3">Inherent Key Compression</h4>
-              <p class="text-blue-700 text-sm">
-                A natural and powerful consequence of the radix trie structure is key compression. The path taken from the root to a node implicitly represents the high-order bytes of the keys stored within that subtree. Therefore, these common prefixes do not need to be stored explicitly at the leaves, saving significant memory. For example, after traversing three levels, the first three bytes of all keys in the current subtree are known, and only the remaining five bytes need to be differentiated.
-              </p>
-            </div>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">2.3 Adaptive Node Structures: The Key to Performance and Memory Efficiency</h3>
-
-            <p class="mb-6">
-              A pure 256-ary trie would be catastrophically memory-inefficient for sparse data, as each node would require an array of 256 pointers, most of which would be null. The true innovation of the Judy array is its ability to dynamically and adaptively change the physical representation of its nodes based on the density and population of keys within a given sub-expanse. It is not one data structure, but a compendium of over 25 distinct structures for 32-bit keys (and over 85 for 64-bit keys), governed by a state machine that performs "just-in-time" optimization on the data layout itself.
-            </p>
-
-            <p class="mb-6">The node types fall into three broad categories:</p>
-
-            <div class="table-container mb-6">
-              <table class="w-full text-sm">
-                <thead class="bg-gray-100">
-                  <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Node Type</th>
-                    <th class="px-4 py-3 text-left font-semibold">Use Case</th>
-                    <th class="px-4 py-3 text-left font-semibold">Optimization Strategy</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Linear Nodes</td>
-                    <td class="px-4 py-3">Low Branching / Low Population (&lt;32 children)</td>
-                    <td class="px-4 py-3">Simple, sorted linear array of key-pointer pairs. Entire node fits in single CPU cache line (64 bytes). One memory fetch + fast linear search within cache.</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Bitmap Nodes</td>
-                    <td class="px-4 py-3">Intermediate Branching / Sparse Population</td>
-                    <td class="px-4 py-3">256-bit bitmap (32 bytes) + compact sorted array. Uses popcount instruction for O(1) offset calculation. At most two cache-line fills.</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Uncompressed Nodes</td>
-                    <td class="px-4 py-3">High Branching / Dense Population</td>
-                    <td class="px-4 py-3">Full 256-pointer array. Direct indexing using key byte. Memory cost justified by density.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p class="mb-6">
-              The transitions between these node types are governed by carefully tuned thresholds. For instance, the switch from a linear list to a tree structure occurs at a population of around 32 keys, precisely the point at which the number of expected cache-line fills for a tree traversal becomes competitive with a linear scan of a larger object. This continuous, adaptive restructuring is what allows the Judy array to maintain its high performance across an enormous range of data distributions.
-            </p>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">2.4 Performance Profile and Trade-offs</h3>
-
-            <p class="mb-6">
-              The lookup complexity of a Judy array is O(k), where k is the length of the key in bytes, which for fixed-size keys is effectively constant time, albeit with a larger constant factor than a hash table. Its performance relative to other structures is workload-dependent:
-            </p>
-
-            <div class="bg-yellow-50 p-6 rounded-lg mb-6">
-              <h4 class="font-semibold text-yellow-800 mb-3">vs. Hash Tables</h4>
-              <p class="text-yellow-700 text-sm mb-3">
-                For workloads with uniformly random integer keys, a well-tuned hash table can be faster. A good hash function results in few collisions, meaning a lookup often requires only a single memory access. The complex branching logic of a Judy array can lead to more cache misses in this scenario.
-              </p>
-              <p class="text-yellow-700 text-sm">
-                However, for keys that are sequential or clustered, Judy arrays can be significantly faster. The trie structure naturally exploits this data locality, leading to highly cache-friendly access patterns, whereas a hash function's purpose is to destroy locality and scatter keys randomly.
-              </p>
-            </div>
-
-            <div class="bg-green-50 p-6 rounded-lg mb-6">
-              <h4 class="font-semibold text-green-800 mb-3">Memory Usage</h4>
-              <p class="text-green-700 text-sm">
-                Judy arrays exhibit smooth memory consumption that scales linearly with the number of elements. Hash tables, by contrast, have a characteristic "sawtooth" memory profile, as they must be periodically resized (often by doubling), leading to periods of significant memory underutilization.
-              </p>
-            </div>
-
-            <p class="mb-6">
-              The design philosophy of the Judy array is a direct software response to the physical asymmetry of the CPU memory hierarchy. Accessing the L1 cache can be over 100 times faster than accessing main memory (DRAM). The entire adaptive node architecture—the linear nodes, the bitmap popcount trick, the high-radix branching—is engineered to perform as much work as possible within the confines of a single, precious cache line before triggering another slow fetch from DRAM. It trades increased logical complexity for minimized physical latency.
-            </p>
-          </section>
-
-          <!-- Section 3: Contrasting Mechanisms -->
-          <section id="section-3">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">3.</span> Contrasting Lookup
-              Mechanisms
-            </h2>
-
-            <p class="mb-6">
-              The foundational analysis reveals two technologies that, while
-              both abstractly described as "key-value" systems, operate on
-              fundamentally different principles and are optimized for entirely
-              different computational environments.
-            </p>
-
-            <div class="table-container mb-6">
-              <table class="w-full text-sm">
-                <thead class="bg-blue-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Feature</th>
-                    <th class="px-4 py-3 text-left font-semibold">
-                      Judy Array
-                    </th>
-                    <th class="px-4 py-3 text-left font-semibold">
-                      Attention Mechanism
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Lookup Type</td>
-                    <td class="px-4 py-3">Deterministic, Exact-Match</td>
-                    <td class="px-4 py-3">Probabilistic, Soft-Retrieval</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Key Representation</td>
-                    <td class="px-4 py-3">Integer/String (Discrete)</td>
-                    <td class="px-4 py-3">Dense Vector (Continuous)</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Sparsity Model</td>
-                    <td class="px-4 py-3">Inherent & Structural</td>
-                    <td class="px-4 py-3">Induced & Emergent</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Core Optimization</td>
-                    <td class="px-4 py-3">CPU Cache Latency</td>
-                    <td class="px-4 py-3">
-                      GPU Throughput & Differentiability
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="formula p-4 rounded-lg mb-6">
-              <p class="text-center">
-                <strong>Complexity Analysis:</strong><br />
-                Judy Array: O(k) where k = key length<br />
-                Attention: O(N²) where N = sequence length
+              <p>
+                This report does not claim a reproduced one-million-token Apple
+                Silicon result. Its contributions are a calibrated hypothesis, a
+                resource model, a related-work audit, and a reproducible
+                protocol for measuring quality, prompt-ingestion cost, decode
+                throughput, memory, storage traffic, and sustained thermal
+                behavior.
               </p>
             </div>
           </section>
 
-          <!-- Section 4: Sparsity Nexus -->
-          <section id="section-4">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">4.</span> The Sparsity Nexus
+          <aside
+            class="mb-12 rounded-2xl border-l-4 border-rose-500 bg-rose-50 p-6"
+          >
+            <h2 class="text-lg font-bold text-rose-950">
+              Evidence-status statement
             </h2>
-
-            <p class="mb-6">
-              The concept of sparsity serves as the most promising nexus between
-              classical data structures and modern neural networks. However,
-              they approach sparsity from philosophically different starting
-              points.
+            <p class="mt-2 text-sm leading-relaxed text-rose-900/80">
+              No Apple Silicon benchmark in this document demonstrates
+              one-million-token operation, 11–12 output tokens per second, or
+              near-reference quality. Those values are preregistered targets.
+              Results cited from other projects apply only to their reported
+              models, hardware, software, and evaluation settings.
             </p>
+          </aside>
 
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">
-              4.1 Inherent vs. Induced Sparsity
-            </h3>
+          <nav
+            class="no-print mb-16 rounded-2xl border border-slate-200 bg-slate-50 p-6"
+            aria-label="Table of contents"
+          >
+            <p
+              class="mb-4 text-sm font-bold uppercase tracking-wider text-slate-500"
+            >
+              Contents
+            </p>
+            <ol class="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
+              <li>
+                <a class="hover:text-blue-700" href="#lineage"
+                  >Research lineage: 2025 → June 2026 → v2.0</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#scope"
+                  >1. Research question and claim boundaries</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#platform"
+                  >2. Reference platform and model controls</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#resources"
+                  >3. Resource model and blocking constraints</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#architecture"
+                  >4. Proposed routed-memory hierarchy</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#evidence"
+                  >5. Related evidence and prior art</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#hypotheses"
+                  >6. Hypotheses and baselines</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#protocol"
+                  >7. Experimental protocol</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#results"
+                  >8. Results status</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#limitations"
+                  >9. Limitations and threats to validity</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#conclusion"
+                  >10. Conclusion</a
+                >
+              </li>
+              <li>
+                <a class="hover:text-blue-700" href="#references">References</a>
+              </li>
+            </ol>
+          </nav>
 
-            <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <main class="space-y-20">
+            <section id="lineage" class="scroll-mt-24">
+              <p class="section-kicker mb-2">Research lineage</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                The idea before the benchmark
+              </h2>
+              <p class="mt-5 text-lg leading-relaxed text-slate-600">
+                The Sparsity Nexus did not begin as a MacBook optimization
+                proposal. It began with a broader question: can the design
+                philosophy of a classical, deterministic, cache-conscious data
+                structure teach us anything useful about a learned,
+                probabilistic attention mechanism? The original paper treated
+                Judy arrays and attention as products of different computing
+                eras and different hardware, then looked for transferable
+                principles rather than a literal fusion.
+              </p>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Version 2.0 narrows one branch of that inquiry into a measurable
+                routed-KV experiment. It does not retroactively erase the other
+                branches or claim that the initial philosophical analogy was
+                already an implementation.
+              </p>
+
+              <div class="mt-8 grid gap-5 md:grid-cols-3">
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">June 2025 · origin</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    A Foundational Analysis
+                  </h3>
+                  <p class="mt-3 text-sm leading-relaxed text-slate-600">
+                    Compared deterministic Judy lookup with soft neural
+                    retrieval and proposed three hybrids: tree positional
+                    encodings, Judy-indexed KV, and Judy-masked attention.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-amber-200 bg-amber-50 p-6"
+                >
+                  <div class="section-kicker text-amber-700">
+                    June 2026 · major update
+                  </div>
+                  <h3 class="mt-2 text-xl font-bold text-amber-950">
+                    From analogy to related systems
+                  </h3>
+                  <p class="mt-3 text-sm leading-relaxed text-amber-900/75">
+                    Added compression as a third axis and compared the thesis
+                    with radix prefix caches, hierarchical pruning, sparse
+                    retrieval, and tree-to-matrix representations. Those were
+                    parallels—not proof that Judy itself had won.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-indigo-200 bg-indigo-50 p-6"
+                >
+                  <div class="section-kicker text-indigo-700">
+                    August 2026 · v2.0
+                  </div>
+                  <h3 class="mt-2 text-xl font-bold text-indigo-950">
+                    A falsifiable systems hypothesis
+                  </h3>
+                  <p class="mt-3 text-sm leading-relaxed text-indigo-900/75">
+                    Narrows Judy to a candidate directory inside semantic KV
+                    routing, adds the 24 GB M4 Air constraint, and preregisters
+                    capacity, quality, bandwidth, and thermal tests.
+                  </p>
+                </div>
+              </div>
+
+              <h3 class="mt-12 text-2xl font-bold text-slate-900">
+                The philosophical core: three kinds of “less”
+              </h3>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Both Judy and sparse attention exploit emptiness, but they begin
+                from philosophically different places. That distinction remains
+                central to the paper.
+              </p>
+              <div class="mt-6 grid gap-5 md:grid-cols-3">
+                <div
+                  class="rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-5"
+                >
+                  <h4 class="font-bold text-emerald-950">
+                    Inherent, structural sparsity
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-emerald-900/75">
+                    A Judy array assumes most of a vast discrete key space is
+                    empty. Its adaptive representation stores the occupied
+                    structure compactly and changes node layout with density.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-blue-500 bg-blue-50 p-5"
+                >
+                  <h4 class="font-bold text-blue-950">
+                    Induced, emergent sparsity
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-blue-900/75">
+                    Attention starts from continuous similarity. A sparse
+                    pattern is learned, estimated, or imposed because only some
+                    historical tokens matter strongly for the current query.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-amber-500 bg-amber-50 p-5"
+                >
+                  <h4 class="font-bold text-amber-950">
+                    Representational compression
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-amber-900/75">
+                    Added explicitly in the June 2026 update: quantization makes
+                    each stored weight or KV value cheaper. It complements
+                    routing, which reduces how many values become active.
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-8 table-shell">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Dimension</th>
+                      <th>Judy array</th>
+                      <th>Neural attention</th>
+                      <th>The bridge proposed here</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Lookup</td>
+                      <td>Hard, exact, deterministic membership or mapping.</td>
+                      <td>
+                        Soft, probabilistic relevance over continuous vectors.
+                      </td>
+                      <td>
+                        Use a semantic projection for recall, then a discrete
+                        directory for block and tier resolution.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Key space</td>
+                      <td>
+                        Discrete integers or byte strings with shared prefixes.
+                      </td>
+                      <td>Layer- and head-dependent query/key vectors.</td>
+                      <td>
+                        LSH, PQ, learned scores, or block summaries turn
+                        continuous relevance into searchable candidate codes.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Sparsity</td>
+                      <td>
+                        Known from occupied keys and represented structurally.
+                      </td>
+                      <td>
+                        Emerges from a query and can change at every layer.
+                      </td>
+                      <td>
+                        Keep a protected core, route a working set, and widen
+                        when uncertainty makes the sparse assumption unsafe.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Hardware objective</td>
+                      <td>
+                        Minimize pointer-chasing cost and CPU cache-line fills.
+                      </td>
+                      <td>
+                        Maximize dense parallel throughput and coalesced access.
+                      </td>
+                      <td>
+                        Let CPU-friendly irregular selection and GPU-friendly
+                        exact attention cooperate through a shared/tiered memory
+                        path.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Failure mode</td>
+                      <td>A poor key distribution or layout loses locality.</td>
+                      <td>
+                        A missed token can change an answer many steps later.
+                      </td>
+                      <td>
+                        Measure routing recall, miss traffic, adaptive widening,
+                        and fallback—not only lookup time.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="mt-12 text-2xl font-bold text-slate-900">
+                How the original three proposals evolved
+              </h3>
+              <div class="mt-5 table-shell">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Original branch</th>
+                      <th>Initial idea</th>
+                      <th>Status in this revision</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Tree-based positional encodings</strong></td>
+                      <td>
+                        Encode structural or vocabulary-trie paths as an
+                        inductive bias rather than relying only on linear
+                        position.
+                      </td>
+                      <td>
+                        Preserved as a speculative research branch, but outside
+                        the 24 GB inference experiment. It would require model
+                        training and its own quality study.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Judy-indexed KV cache</strong></td>
+                      <td>
+                        Project high-dimensional keys into discrete LSH/PQ codes
+                        and use a CPU-side Judy structure to resolve relevant
+                        KV.
+                      </td>
+                      <td>
+                        The main surviving branch. It has evolved into semantic
+                        candidate generation, a code-to-block/tier directory,
+                        compressed cold storage, exact reranking, and fallback.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Judy-masked attention</strong></td>
+                      <td>
+                        Represent dynamic sparse attention masks using
+                        Judy-inspired bitmap/radix organization.
+                      </td>
+                      <td>
+                        Conceptually related to hierarchical and learned
+                        block-sparse routing, but a literal pointer-rich Judy
+                        implementation is not GPU/Metal-native and remains
+                        unproven.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="mt-12 text-2xl font-bold text-slate-900">
+                Why the old hardware mismatch leads to the Air
+              </h3>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                The original paper emphasized a real mismatch: Judy trades more
+                branching logic for fewer expensive CPU cache misses, while
+                accelerators prefer regular, wide, coalesced work. A direct port
+                of a pointer-heavy CPU structure is therefore not the thesis.
+                The thesis is heterogeneous: irregular discovery on the side of
+                the system that handles it well, followed by compact dense work
+                on the accelerator.
+              </p>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Apple unified memory changes the transfer boundary but not the
+                physics. CPU and GPU can address one pool without a conventional
+                PCIe copy, yet they still share only 24 GB and 120 GB/s on the
+                reference Air. That is why this consumer machine is the next
+                chapter of the original hardware argument, not a different
+                thesis.
+              </p>
+
               <div
-                class="bg-green-50 p-6 rounded-lg border-l-4 border-green-500"
+                class="mt-8 rounded-2xl border border-indigo-200 bg-indigo-50 p-7"
               >
-                <h4 class="font-semibold text-green-800 mb-3">
-                  Inherent Sparsity (Judy Arrays)
-                </h4>
-                <p class="text-green-700 text-sm">
-                  Natural characteristic of the data domain. The structure
-                  acknowledges vast emptiness of the key space from the outset
-                  and is designed to represent it efficiently.
+                <p
+                  class="text-lg font-semibold leading-relaxed text-indigo-950"
+                >
+                  “The path forward is not simple fusion, but inspired
+                  adaptation.”
+                </p>
+                <p class="mt-2 text-sm leading-relaxed text-indigo-900/70">
+                  The current protocol keeps that 2025 conclusion, while making
+                  one descendant precise enough to fail.
                 </p>
               </div>
-              <div class="bg-blue-50 p-6 rounded-lg border-l-4 border-blue-500">
-                <h4 class="font-semibold text-blue-800 mb-3">
-                  Induced Sparsity (Attention)
-                </h4>
-                <p class="text-blue-700 text-sm">
-                  Emergent property discovered during training or inference.
-                  Sparsity is imposed as an optimization to reduce computational
-                  burden while maintaining model performance.
-                </p>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- 2026 Update: TurboQuant -->
-          <div class="bg-amber-50 p-6 rounded-lg border-l-4 border-amber-500 mb-8">
-            <h4 class="font-semibold text-amber-800 mb-3">📌 2026 Update: A Third Axis — Quantization-Based Compression</h4>
-            <p class="text-amber-700 text-sm mb-3">
-              Google's <strong>TurboQuant</strong> (March 2026) introduces a third, orthogonal approach to the KV cache
-              bottleneck. While this paper distinguishes between <em>inherent sparsity</em> (Judy arrays) and <em>induced
-              sparsity</em> (attention), TurboQuant operates on a different axis entirely: <strong>mathematical compression</strong>.
-              Using <em>PolarQuant</em> (converting Cartesian key vectors to polar coordinates via random geometric rotations)
-              and <em>Quantized Johnson-Lindenstrauss (QJL)</em> 1-bit error-checking projections, TurboQuant shrinks dense
-              KV cache values to ~3 bits per value with zero accuracy loss.
-            </p>
-            <p class="text-amber-700 text-sm">
-              <strong>Crucially, these approaches are complementary:</strong> structural sparsity (this paper) reduces
-              the <em>number of tokens computed</em>, while quantization (TurboQuant) reduces the <em>physical size of
-              tokens stored</em>. A hybrid system combining Judy-indexed sparse routing with 3-bit compressed leaf
-              values would compound both optimizations.
-            </p>
-          </div>
-
-          <!-- Section 5: Hardware Dichotomy -->
-          <section id="section-5">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">5.</span> Hardware Dichotomy: CPU vs GPU
-            </h2>
-
-            <p class="mb-6">
-              The practical feasibility of integration is fundamentally constrained by the profound architectural
-              differences between CPUs and GPUs. They embody entirely different philosophies of computation.
-            </p>
-
-            <div class="table-container mb-6">
-              <table class="w-full text-sm">
-                <thead class="bg-red-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Characteristic</th>
-                    <th class="px-4 py-3 text-left font-semibold">CPU Architecture</th>
-                    <th class="px-4 py-3 text-left font-semibold">GPU Architecture</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Core Philosophy</td>
-                    <td class="px-4 py-3">Latency-Optimized (single-thread speed)</td>
-                    <td class="px-4 py-3">Throughput-Optimized (massive parallelism)</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Memory Hierarchy</td>
-                    <td class="px-4 py-3">Deep, automatic caches (L1/L2/L3)</td>
-                    <td class="px-4 py-3">Shallow, user-managed caches + HBM</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Control Flow</td>
-                    <td class="px-4 py-3">Efficiently handled by branch prediction</td>
-                    <td class="px-4 py-3">Causes severe penalty (thread divergence)</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Ideal Algorithm</td>
-                    <td class="px-4 py-3">Complex logic, pointer-chasing</td>
-                    <td class="px-4 py-3">Simple logic, data-parallel</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <!-- Section 6: Integration Analysis -->
-          <section id="section-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">6.</span> Integration Feasibility Analysis
-            </h2>
-
-            <p class="mb-6">
-              A direct port of Judy arrays to GPU is architecturally infeasible. However, nuanced approaches
-              that leverage the strengths of each architecture offer promising avenues for exploration.
-            </p>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">6.1 CPU-Centric Integration</h3>
-
-            <div class="bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-500 mb-6">
-              <h4 class="font-semibold text-yellow-800 mb-3">Heterogeneous Computing Approach</h4>
-              <p class="text-yellow-700 text-sm mb-3">
-                In real-world LLM deployment scenarios, systems are heterogeneous, comprising both GPUs and CPUs.
-                This enables offloading specific sub-tasks to the CPU where Judy arrays can be used directly.
+            <section id="scope" class="scroll-mt-24">
+              <p class="section-kicker mb-2">1 · Scope</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Research question and claim boundaries
+              </h2>
+              <p class="mt-5 text-lg leading-relaxed text-slate-600">
+                The central question is not whether a quantized 27B model can be
+                loaded on a consumer laptop. It is whether the amount of context
+                that model can accurately <em>address</em> can grow much faster
+                than the KV state and attention work kept active for each
+                generated token.
               </p>
-              <ul class="text-yellow-700 text-sm space-y-1">
-                <li>• <strong>Sparse Attention Mask Management:</strong> CPU-side Judy1 arrays for efficient sparse bitmap storage</li>
-                <li>• <strong>KV Cache Indexing:</strong> CPU-based Judy arrays as high-performance indices for off-GPU cache</li>
-              </ul>
-            </div>
 
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">6.2 GPU-Centric Challenges</h3>
+              <blockquote
+                class="my-8 rounded-2xl border-l-4 border-indigo-500 bg-indigo-50 p-7 text-xl font-semibold leading-relaxed text-indigo-950"
+              >
+                Can a Qwen-class transformer maintain a one-million-token
+                logical memory while promoting only a small, query-dependent KV
+                working set into the active path—and do so without hiding the
+                cost in host RAM, SSD traffic, quality loss, or preprocessing?
+              </blockquote>
 
-            <div class="bg-red-50 p-6 rounded-lg border-l-4 border-red-500 mb-6">
-              <h4 class="font-semibold text-red-800 mb-3">Fundamental Porting Obstacles</h4>
-              <ul class="text-red-700 text-sm space-y-2">
-                <li>• <strong>Control Flow Divergence:</strong> Adaptive logic causes massive thread divergence</li>
-                <li>• <strong>Random Memory Access:</strong> Tree traversal via pointers creates uncoalesced memory patterns</li>
-                <li>• <strong>Recursive Structures:</strong> Pointer-based structures don't map well to parallel hardware</li>
-              </ul>
-            </div>
-          </section>
+              <div class="grid gap-5 md:grid-cols-3">
+                <div
+                  class="rounded-xl border border-emerald-200 bg-emerald-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-emerald-700">
+                    Supported direction
+                  </div>
+                  <h3 class="mt-2 font-bold text-emerald-950">
+                    Working-set routing
+                  </h3>
+                  <p class="mt-2 text-sm text-emerald-900/75">
+                    Multiple systems report query-aware KV selection, host
+                    offload, or learned block routing in their own settings.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                  <div class="text-xs font-bold uppercase text-amber-700">
+                    Open implementation hypothesis
+                  </div>
+                  <h3 class="mt-2 font-bold text-amber-950">
+                    Judy as directory
+                  </h3>
+                  <p class="mt-2 text-sm text-amber-900/75">
+                    No audited project establishes Judy as the best mapping from
+                    semantic codes to KV blocks or memory tiers.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-rose-200 bg-rose-50 p-5">
+                  <div class="text-xs font-bold uppercase text-rose-700">
+                    Unverified target
+                  </div>
+                  <h3 class="mt-2 font-bold text-rose-950">
+                    The 24 GB Air result
+                  </h3>
+                  <p class="mt-2 text-sm text-rose-900/75">
+                    One million logical tokens, near-reference quality, and
+                    11–12 effective tok/s have not been reproduced here.
+                  </p>
+                </div>
+              </div>
 
-          <!-- Section 7: Proposed Architectures -->
-          <section id="section-7">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">7.</span> Proposed Hybrid Architectures
-            </h2>
-
-            <p class="mb-6">
-              We propose three novel hybrid architectures that apply Judy array principles to solve specific
-              problems within the LLM pipeline.
-            </p>
-
-            <div class="table-container mb-6">
-              <table class="w-full text-sm">
-                <thead class="bg-purple-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Architecture</th>
-                    <th class="px-4 py-3 text-left font-semibold">Core Concept</th>
-                    <th class="px-4 py-3 text-left font-semibold">Benefits</th>
-                    <th class="px-4 py-3 text-left font-semibold">Challenges</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Tree-based Positional Encodings</td>
-                    <td class="px-4 py-3">Encode token position via vocabulary trie path</td>
-                    <td class="px-4 py-3">Structural inductive bias, morphology understanding</td>
-                    <td class="px-4 py-3">Scalable trie design, differentiable encoding</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Judy-Indexed KV Cache</td>
-                    <td class="px-4 py-3">CPU-side Judy array for KV cache indexing via LSH or Product Quantization (PQ). PQ compresses high-dimensional vectors into discrete bytes — the exact format a 256-ary Judy trie is optimized to consume.</td>
-                    <td class="px-4 py-3">Sub-linear O(log N) lookup, long-context acceleration</td>
-                    <td class="px-4 py-3">CPU-GPU overhead (PCIe/CXL), LSH/PQ accuracy loss, hybrid memory system, and autoregressive insertion latency during token-by-token generation</td>
-                  </tr>
-                  <tr>
-                    <td class="px-4 py-3 font-medium">Judy-Masked Attention</td>
-                    <td class="px-4 py-3">GPU-native sparse set for dynamic attention masks</td>
-                    <td class="px-4 py-3">Memory-efficient sparsity, dynamic prediction</td>
-                    <td class="px-4 py-3">Novel GPU radix tree/bitmap index library required</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="formula p-4 rounded-lg mb-6">
-              <p class="text-center">
-                <strong>Performance Target:</strong><br>
-                Reduce attention complexity from O(N²) to O(N log N) or O(N)<br>
-                Enable contexts > 1M tokens with practical memory constraints
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Why the consumer machine is scientifically useful
+              </h3>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                The fanless 24 GB M4 MacBook Air is chosen because it removes
+                convenient escape routes. It has one finite CPU–GPU memory pool,
+                no separate 100+ GB host-memory reservoir, and no active cooling
+                to mask sustained power and thermal behavior. At the same time,
+                its shared address space makes CPU-side irregular search and
+                GPU-side dense computation plausible without a conventional PCIe
+                copy. This combination turns a familiar consumer device into a
+                strict test of the working-set thesis.
               </p>
-            </div>
-          </section>
-
-          <!-- 2026 Update: Industry Convergence -->
-          <div class="bg-amber-50 p-6 rounded-lg border-l-4 border-amber-500 mb-8">
-            <h4 class="font-semibold text-amber-800 mb-3">📌 2026 Update: Empirical Validation — Industry Convergence on Radix Trees for Attention</h4>
-            <p class="text-amber-700 text-sm mb-4">
-              Since the publication of this paper, multiple independent research lines have converged on exactly
-              the hybrid architectures proposed in Section 7. The AI industry now recognizes Radix Trees and Tries
-              as fundamental to solving the attention bottleneck:
-            </p>
-            <div class="space-y-3 text-sm">
-              <div class="bg-white p-4 rounded-lg">
-                <p class="font-semibold text-gray-800">RadixAttention (SGLang & vLLM) — Production</p>
-                <p class="text-gray-600">Modern inference engines map all active sequences into a <strong>Radix Tree</strong>,
-                sharing KV cache entries across requests with overlapping prefixes. Achieves O(1) cache hits for common
-                token sequences, directly validating the Judy-Indexed KV Cache concept (Section 7.2).</p>
-              </div>
-              <div class="bg-white p-4 rounded-lg">
-                <p class="font-semibold text-gray-800">STATIC (Google/YouTube, February 2026)</p>
-                <p class="text-gray-600">Flattens a prefix tree (trie) into a <strong>Compressed Sparse Row (CSR) matrix</strong>,
-                transforming irregular tree traversals into fully vectorized sparse attention math. Achieves up to
-                1000× speedup for generative retrieval — the most direct solution to the GPU porting challenge described
-                in Section 6.2.
-                  <a href="https://arxiv.org/abs/2602.22647" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                </p>
-              </div>
-              <div class="bg-white p-4 rounded-lg">
-                <p class="font-semibold text-gray-800">Hierarchically Pruned Attention / HiP (2024–2025)</p>
-                <p class="text-gray-600">Reduces attention to <strong>O(T log T)</strong> using a tree-search algorithm
-                that builds a hierarchical tree of attention scores and navigates branches dynamically, generating
-                sparse masks by retrieving only top-k blocks. A direct parallel to Judy-Masked Attention (Section 7.3).
-                  <a href="https://arxiv.org/abs/2511.00527" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                </p>
-              </div>
-              <div class="bg-white p-4 rounded-lg">
-                <p class="font-semibold text-gray-800">Erwin Transformer & Ball Sparse Attention / BSA (ICML 2025)</p>
-                <p class="text-gray-600">Organizes tokens into a hierarchical <strong>Ball Tree</strong>, computing
-                attention linearly by processing nodes in parallel within local tree neighborhoods — validating
-                the thesis that classical tree structures can bypass quadratic attention complexity.
-                  <a href="https://arxiv.org/abs/2506.12541" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 8: Conclusions -->
-          <section id="section-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              <span class="section-number">8.</span> Conclusions and Strategic Recommendations
-            </h2>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">8.1 Key Findings</h3>
-
-            <div class="bg-blue-50 p-6 rounded-lg mb-6">
-              <ul class="space-y-3 text-blue-800">
-                <li>• <strong>Direct integration is technically infeasible</strong> due to fundamental hardware-algorithm mismatches</li>
-                <li>• <strong>Hybrid approaches show promise</strong> for specific sub-problems within the LLM pipeline</li>
-                <li>• <strong>Sparsity principles are transferable</strong> between classical and neural computing paradigms</li>
-                <li>• <strong>Hardware-aware design is crucial</strong> for any successful integration attempt</li>
-              </ul>
-            </div>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">8.2 Strategic Recommendations</h3>
-
-            <div class="space-y-6">
-              <div class="bg-green-50 p-6 rounded-lg border-l-4 border-green-500">
-                <h4 class="font-semibold text-green-800 mb-3">Short-Term (6-12 months)</h4>
-                <p class="text-green-700 text-sm">
-                  Focus on CPU-centric integration using existing Judy array libraries. Develop proof-of-concept
-                  systems for the Judy-Indexed KV Cache in heterogeneous inference environments.
-                </p>
-              </div>
-
-              <div class="bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-500">
-                <h4 class="font-semibold text-yellow-800 mb-3">Mid-Term (1-2 years)</h4>
-                <p class="text-yellow-700 text-sm">
-                  Develop a production-grade, CUDA-based library for sparse set representation inspired by
-                  Judy bitmap nodes. This enables the Judy-Masked Attention architecture.
-                </p>
-              </div>
-
-              <div class="bg-purple-50 p-6 rounded-lg border-l-4 border-purple-500">
-                <h4 class="font-semibold text-purple-800 mb-3">Long-Term (2-5 years)</h4>
-                <p class="text-purple-700 text-sm">
-                  Explore fundamental architectural shifts like Tree-based Positional Encodings and
-                  true hybrid CPU-GPU attention mechanisms through hardware-software co-design.
-                </p>
-              </div>
-            </div>
-
-            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">8.3 Final Verdict</h3>
-
-            <p class="mb-6">
-              While the Judy array and attention mechanism originate from different epochs of computer science
-              and are tailored for different hardware, the principles of the former offer compelling solutions
-              to the scaling challenges of the latter. The path forward is not one of simple fusion, but of
-              inspired adaptation, requiring deep, multi-disciplinary understanding of algorithms, architecture,
-              and the fundamental nature of computation itself.
-            </p>
-
-            <div class="bg-amber-50 p-6 rounded-lg border-l-4 border-amber-500 mb-6">
-              <h4 class="font-semibold text-amber-800 mb-3">📌 2026 Update: Core Thesis Validated by Industry Convergence</h4>
-              <p class="text-amber-700 text-sm mb-3">
-                Since publication, the AI industry has converged on this paper's central insight: <strong>attention is
-                ultimately a data structure and memory-routing problem.</strong> Multiple developments confirm this:
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Unified memory is not free transfer. CPU routing, GPU model
+                execution, KV reads, and page movement contend for the same
+                capacity and bandwidth. A successful result must account for all
+                of them.
               </p>
-              <ul class="text-amber-700 text-sm space-y-2 mb-3">
-                <li>• <strong>Mixture-of-Experts (MoE)</strong> architectures now dominate production scaling
-                (Qwen 3.5 397B, Nemotron 3 Super 120B/12B active), validating sparse activation patterns</li>
-                <li>• <strong>RadixAttention</strong> (SGLang, vLLM) implements the Judy-Indexed KV Cache concept in production</li>
-                <li>• <strong>STATIC</strong> (Google, Feb 2026) solves the GPU-porting problem via CSR matrix flattening of tries</li>
-                <li>• <strong>HiP</strong> achieves O(T log T) attention via tree-search, paralleling Judy-Masked Attention</li>
-                <li>• <strong>TurboQuant</strong> (Google, March 2026) adds a complementary quantization axis, compressing
-                KV values to ~3 bits alongside structural sparsity</li>
-              </ul>
-              <p class="text-amber-700 text-sm">
-                The structural sparsity approach proposed in this paper is now recognized as the bleeding edge
-                of open-source AI infrastructure.
+            </section>
+
+            <section id="platform" class="scroll-mt-24">
+              <p class="section-kicker mb-2">2 · Controls</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Reference platform and model disambiguation
+              </h2>
+
+              <div class="mt-7 grid gap-6 md:grid-cols-2">
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h3 class="text-xl font-bold text-slate-950">
+                    Reference device
+                  </h3>
+                  <ul
+                    class="mt-4 space-y-3 text-sm leading-relaxed text-slate-600"
+                  >
+                    <li>
+                      <strong>Class:</strong> 13-inch fanless MacBook Air with
+                      base M4.
+                    </li>
+                    <li>
+                      <strong>Memory:</strong> 24 GB unified memory; the OS and
+                      runtime share it.
+                    </li>
+                    <li>
+                      <strong>Bandwidth:</strong> Apple specifies 120 GB/s.
+                    </li>
+                    <li>
+                      <strong>Storage:</strong> exact SSD capacity and free
+                      space must be reported.
+                    </li>
+                    <li>
+                      <strong>Cooling:</strong> sustained results must include
+                      temperature and throttling behavior.
+                    </li>
+                  </ul>
+                  <a
+                    href="https://support.apple.com/en-us/122209"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation mt-4 inline-block text-sm"
+                    >Apple technical specifications</a
+                  >
+                </div>
+
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h3 class="text-xl font-bold text-slate-950">
+                    Disclosure required
+                  </h3>
+                  <p class="mt-4 text-sm leading-relaxed text-slate-600">
+                    “M4 Mac” is not a reproducible device label. The report must
+                    name display size, GPU-core count, SSD size, power mode,
+                    charger state, ambient temperature, macOS build, runtime
+                    commit, Metal configuration, idle memory, and swap policy.
+                    M4 Pro or M4 Max data may be reported as secondary controls
+                    but cannot be substituted for the fanless Air result.
+                  </p>
+                </div>
+              </div>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Qwen3.8-27B and Flash-Next answer different questions
+              </h3>
+              <div class="table-shell mt-5">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Model</th>
+                      <th>Role in this report</th>
+                      <th>What it supports</th>
+                      <th>What must not be inferred</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://huggingface.co/Qwen/Qwen3.8-27B"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Qwen3.8-27B</a
+                        >
+                      </td>
+                      <td>Retrofit target on the 24 GB Air.</td>
+                      <td>
+                        A dense-parameter, hybrid-attention 27B model: 64 layers
+                        arranged as groups of three Gated DeltaNet layers and
+                        one global Gated Attention layer. The global layers
+                        determine the linear KV growth calculated below.
+                      </td>
+                      <td>
+                        It does not contain Qwen Sparse Attention. Routed KV
+                        requires a modified runtime and attention path.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/QwenLM/Qwen3.8-Flash-Next"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Qwen3.8-Flash-Next</a
+                        >
+                      </td>
+                      <td>Architectural control, not a MacBook baseline.</td>
+                      <td>
+                        Native QSA shows that a learned micro-block indexer can
+                        select context regions. Qwen reports substantial
+                        one-million-token attention-kernel speedups.
+                      </td>
+                      <td>
+                        Kernel speedups are not end-to-end 27B Metal throughput.
+                        Flash-Next has 125B main plus 51B deterministic n-gram
+                        embedding parameters, with 6B main parameters active per
+                        token; selective computation does not prove selective KV
+                        residency.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                class="mt-6 rounded-2xl border border-violet-200 bg-violet-50 p-6"
+              >
+                <h3 class="font-bold text-violet-950">
+                  Architectural-control rule
+                </h3>
+                <p class="mt-2 text-sm leading-relaxed text-violet-900/80">
+                  QSA supports the proposition that attention routing can be
+                  learned. It does not grant Qwen3.8-27B a router, establish a
+                  Judy implementation, show that full one-million-token KV fits
+                  in 24 GB, or predict tokens per second on Apple Silicon.
+                </p>
+              </div>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Under-30B engineering alternatives
+              </h3>
+              <p class="mt-3 leading-relaxed text-slate-600">
+                The 27B target is intentionally tight. Smaller controls should
+                be used to validate the routing, storage, and Metal integration
+                before the full experiment. They compare different ways of
+                escaping the same memory wall; they are not claims of
+                quality-equivalence to Qwen3.8-27B.
               </p>
-            </div>
-          </section>
+              <div class="table-shell mt-5">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Control</th>
+                      <th>Published context and practical weights</th>
+                      <th>Experimental role</th>
+                      <th>Boundary</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://huggingface.co/Qwen/Qwen3.5-9B"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Qwen3.5-9B</a
+                        >
+                      </td>
+                      <td>
+                        9.65B; 262K native with an official YaRN recipe to about
+                        1.01M. Community Q4_K_M is approximately 5.68 GB.
+                      </td>
+                      <td>
+                        Best direct shakedown: 24 recurrent DeltaNet layers and
+                        only eight full-attention layers leave enough headroom
+                        to measure the router and tiers.
+                      </td>
+                      <td>
+                        Extension support is not guaranteed one-million-token
+                        task quality; lower weight traffic makes success less
+                        predictive of the 27B target.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://huggingface.co/openai/gpt-oss-20b"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >gpt-oss-20b</a
+                        >
+                      </td>
+                      <td>
+                        20.9B total / 3.6B active; architecture maximum 128K.
+                        Native MXFP4 is separately documented to run within 16
+                        GB.
+                      </td>
+                      <td>
+                        Official Apple Metal reference plus alternating full and
+                        local attention makes this the strongest ready-made
+                        consumer-runtime control.
+                      </td>
+                      <td>
+                        The 16 GB headline is not a full-128K memory result. The
+                        runtime must support Harmony; this is not the
+                        one-million-token retrofit.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Ministral 3 14B</a
+                        >
+                      </td>
+                      <td>
+                        13.95B; 262K; official FP8 is described as fitting
+                        within 24 GB VRAM; official Q4_K_M GGUF is about 8.24
+                        GB.
+                      </td>
+                      <td>
+                        Apache-2.0 all-global-attention control. If tiered KV
+                        helps it more than hybrids, that directly supports the
+                        active-memory thesis.
+                      </td>
+                      <td>
+                        The FP8 claim is CUDA/runtime-format oriented, not an
+                        Apple Metal result. Dense BF16 KV is about 40 GiB at
+                        256K.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://huggingface.co/google/gemma-3-27b-it"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Gemma 3 27B IT</a
+                        >
+                      </td>
+                      <td>
+                        27.43B; 128K; official QAT Q4 GGUF is approximately 17.2
+                        GB.
+                      </td>
+                      <td>
+                        Similar-scale control whose mostly local attention helps
+                        separate architectural memory savings from parameter
+                        count.
+                      </td>
+                      <td>
+                        Weights plus roughly 10.4 GiB BF16 KV at 128K exceed 24
+                        GB before runtime and OS; full context needs KV
+                        compression or tiering. Custom Gemma terms apply.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://huggingface.co/ibm-granite/granite-4.0-h-tiny"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Granite 4.0 H-Tiny</a
+                        >
+                      </td>
+                      <td>
+                        6.94B total / 1B active; 128K; Q4_K_M is approximately
+                        4.23 GB.
+                      </td>
+                      <td>
+                        Apache-2.0 architecture control: 36 Mamba-2 layers and
+                        only four attention layers make its KV state small.
+                      </td>
+                      <td>
+                        A systems integration baseline, not a quality-equivalent
+                        27B replacement.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="mt-4 text-sm leading-relaxed text-slate-500">
+                Recommended order: Granite for tier/index integration,
+                Qwen3.5-9B for a meaningful one-million-token routing test,
+                Ministral as an all-global KV stress control, then Qwen3.8-27B.
+                gpt-oss and Gemma remain architecture side controls.
+              </p>
+            </section>
 
-          <!-- References -->
-          <section id="references" class="border-t pt-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">References</h2>
+            <section id="resources" class="scroll-mt-24">
+              <p class="section-kicker mb-2">3 · Resource model</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                What blocks one million tokens
+              </h2>
 
-            <div class="space-y-4 text-sm">
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Vaswani, A., Shazeer, N., Parmar, N., et al. (2017)</p>
-                <p class="text-gray-600">Attention is all you need. <em>Advances in Neural Information Processing Systems</em>, 30.
-                  <a href="https://arxiv.org/abs/1706.03762" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
+              <h3 class="mt-8 text-2xl font-bold text-slate-900">
+                Prefill, decode, and storage are distinct costs
+              </h3>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Dense prefill over <em>N</em> prompt tokens performs O(N²)
+                attention work. With a KV cache, each autoregressive decode step
+                ordinarily scans O(N) historical keys and values, while KV
+                storage grows O(N). The proposed system principally targets the
+                repeated decode scan and resident-state requirement. It must
+                still disclose the cost of ingesting and indexing the prompt.
+              </p>
+
+              <div class="formula mt-6">
+                T_token = T_model + T_route + T_fetch + T_refine + T_attention
+              </div>
+              <p class="mt-3 text-sm text-slate-500">
+                A tree lookup alone does not make end-to-end inference O(log N).
+                Candidate enumeration, misses, transfer, exact attention, and
+                fallback remain in the critical path.
+              </p>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                KV capacity for Qwen3.8-27B
+              </h3>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Let <em>L<sub>A</sub></em> be the global-attention layer count,
+                <em>H<sub>KV</sub></em> the KV-head count,
+                <em>d<sub>h</sub></em> the head dimension, and <em>b</em> the
+                number of bits stored per K/V scalar:
+              </p>
+              <div class="formula mt-6">
+                M_KV(N) = N × L_A × 2(K,V) × H_KV × d_h × b/8
+              </div>
+              <div class="formula mt-4">
+                16 × 2 × 4 × 256 × 2 BF16 bytes = 65,536 bytes/token
+              </div>
+
+              <div class="table-shell mt-6">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Component</th>
+                      <th>Planning estimate</th>
+                      <th>Interpretation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Qwen3.8-27B, 3-bit runtime</td>
+                      <td>Approximately 13–16 GB</td>
+                      <td>
+                        Distribution estimates are not measurements of this
+                        runtime. Resident allocation and bytes read per pass
+                        must be recorded.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Dense 1M-token BF16 KV</td>
+                      <td>65.5 GB / approximately 61.0 GiB</td>
+                      <td>
+                        Cannot fit beside the model in 24 GB unified memory.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Idealized 4-bit 1M-token KV payload</td>
+                      <td>Approximately 15.3 GiB</td>
+                      <td>
+                        Excludes scales, metadata, alignment, recurrent state,
+                        and workspaces.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>12,288-token resident BF16 KV set</td>
+                      <td>Exactly 0.75 GiB</td>
+                      <td>
+                        Plausible only if retrieval accuracy and block reuse are
+                        sufficient.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <p class="mt-5 text-sm leading-relaxed text-slate-500">
+                Quantized-size estimates should be sourced from the exact model
+                artifact used. For orientation, the
+                <a
+                  href="https://unsloth.ai/models/qwen3.8-27b"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="citation"
+                  >Unsloth Qwen3.8-27B page</a
+                >
+                publishes multiple quantization footprints. This report does not
+                treat file size as measured runtime memory.
+              </p>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Resident capacity and bytes per token
+              </h3>
+              <div class="formula mt-5">
+                M_resident = M_weights + M_runtime + M_recurrent + M_hotKV +
+                M_index
+              </div>
+              <div class="formula mt-4">
+                B_token = B_weights + B_hotKV + (1 − h) × B_cold_miss
+              </div>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                Here <em>h</em> is the hot-block reuse ratio. If each token
+                requires a completely new 12,288-token BF16 set, 0.75 GiB must
+                be promoted per step—about 8.25 GiB/s at 11 tok/s before index
+                and model traffic. That is not a credible sustained SSD miss
+                path. High reuse, compressed transfers, prefetch, and overlap
+                are architectural requirements.
+              </p>
+
+              <div class="mt-8 grid gap-5 md:grid-cols-2">
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h3 class="font-bold text-slate-950">Bandwidth roofline</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Using a 13–16 GB checkpoint payload as a proxy with the
+                    theoretical 120 GB/s channel gives an ideal 7.5–9.2
+                    backbone-weight passes/s before dequantization, attention,
+                    routing, contention, and thermals. This is not a measured
+                    Metal roof. A higher output rate requires disclosed and
+                    measured MTP/speculative acceptance.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h3 class="font-bold text-slate-950">Thermal roofline</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    A fanless enclosure can sustain less than its short-burst
+                    peak. The protocol must report a warm-up period and a
+                    sustained run long enough to expose throttling, not only the
+                    fastest initial sample.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h3 class="font-bold text-slate-950">Ingestion budget</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    One million tokens must be tokenized, encoded, and indexed.
+                    Cache-build time, peak memory, on-disk size, and whether the
+                    cache was created on another machine must be reported.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h3 class="font-bold text-slate-950">Quality budget</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Weight quantization, KV compression, approximate retrieval,
+                    positional extension, and fallback policy introduce separate
+                    errors. A strong result must evaluate their composition.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section id="architecture" class="scroll-mt-24">
+              <p class="section-kicker mb-2">4 · Proposed system</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                A routed-memory hierarchy, not a magic lookup
+              </h2>
+              <p class="mt-5 text-lg leading-relaxed text-slate-600">
+                The system separates logical addressability from physical
+                residency. Cheap, approximate operations operate on a large
+                space; progressively more expensive operations see progressively
+                smaller candidate sets.
+              </p>
+
+              <div class="mt-8 space-y-4">
+                <div
+                  class="rounded-xl border-l-4 border-indigo-500 bg-indigo-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-indigo-700">
+                    Stage 1
+                  </div>
+                  <h3 class="mt-1 font-bold text-indigo-950">
+                    Protect a local core
+                  </h3>
+                  <p class="mt-1 text-sm text-indigo-900/75">
+                    Keep recent tokens, system instructions, structural anchors,
+                    and explicitly pinned state resident. These entries are not
+                    exposed to retrieval failure.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-violet-500 bg-violet-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-violet-700">
+                    Stage 2
+                  </div>
+                  <h3 class="mt-1 font-bold text-violet-950">
+                    Generate semantic codes
+                  </h3>
+                  <p class="mt-1 text-sm text-violet-900/75">
+                    Use LSH, product quantization, learned block scoring, coarse
+                    attention, or a hybrid to map layer/head queries and stored
+                    keys into searchable codes.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-amber-500 bg-amber-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-amber-700">
+                    Stage 3
+                  </div>
+                  <h3 class="mt-1 font-bold text-amber-950">
+                    Resolve code to block and tier
+                  </h3>
+                  <p class="mt-1 text-sm text-amber-900/75">
+                    A directory maps sparse codes to KV-block IDs and residency
+                    metadata. Judy is one candidate for this stage, not the
+                    semantic router itself.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-cyan-500 bg-cyan-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-cyan-700">
+                    Stage 4
+                  </div>
+                  <h3 class="mt-1 font-bold text-cyan-950">
+                    Promote and prefetch
+                  </h3>
+                  <p class="mt-1 text-sm text-cyan-900/75">
+                    Fetch or reconstruct only selected K/V blocks, exploit
+                    reuse, and overlap misses with ongoing model work.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-emerald-700">
+                    Stage 5
+                  </div>
+                  <h3 class="mt-1 font-bold text-emerald-950">
+                    Refine and attend exactly
+                  </h3>
+                  <p class="mt-1 text-sm text-emerald-900/75">
+                    Re-rank approximate candidates, combine them with the
+                    protected core, and run exact attention over the final set.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border-l-4 border-rose-500 bg-rose-50 p-5"
+                >
+                  <div class="text-xs font-bold uppercase text-rose-700">
+                    Stage 6
+                  </div>
+                  <h3 class="mt-1 font-bold text-rose-950">
+                    Widen or fall back
+                  </h3>
+                  <p class="mt-1 text-sm text-rose-900/75">
+                    When router confidence is low, expand the budget or use a
+                    denser path. Fallback rate is a first-class quality and cost
+                    metric.
+                  </p>
+                </div>
+              </div>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Three working-set variables
+              </h3>
+              <div class="mt-5 grid gap-5 md:grid-cols-3">
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono font-bold text-indigo-700">k_c</div>
+                  <p class="mt-2 text-sm text-slate-600">
+                    Coarse candidates returned by code lookup or block scoring.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono font-bold text-indigo-700">k_f</div>
+                  <p class="mt-2 text-sm text-slate-600">
+                    Full K/V entries fetched, reconstructed, or promoted.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono font-bold text-indigo-700">k_a</div>
+                  <p class="mt-2 text-sm text-slate-600">
+                    Entries retained for the exact attention operation.
+                  </p>
+                </div>
+              </div>
+              <p class="mt-4 text-sm leading-relaxed text-slate-500">
+                These values must be reported separately. A compact exact set
+                does not guarantee low cost if the coarse postings or cold fetch
+                set remain large.
+              </p>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Judy’s narrow role
+              </h3>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                A Judy array maps discrete keys to values. It does not know
+                which historical tokens are semantically relevant to a
+                transformer query. A semantic projection must therefore come
+                first. Judy’s testable role is as an adaptive radix directory
+                over sparsely populated codes, block IDs, and tier metadata,
+                potentially with efficient incremental insertion and ordered
+                prefix expansion.
+              </p>
+              <div class="formula mt-5">
+                query → semantic code → directory → block IDs / tier metadata →
+                exact attention
+              </div>
+              <p class="mt-4 leading-relaxed text-slate-600">
+                The directory must be compared with a hash table, adaptive radix
+                tree, sorted flat postings, IVF/PQ lists, and GPU-friendly
+                layouts while holding the router constant. The relevant metric
+                is end-to-end decode, not isolated lookup latency. The broader
+                routed-memory architecture remains viable if Judy loses.
+              </p>
+            </section>
+
+            <section id="evidence" class="scroll-mt-24">
+              <p class="section-kicker mb-2">5 · Evidence audit</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Related systems support pieces, not the complete claim
+              </h2>
+              <p class="mt-5 text-lg leading-relaxed text-slate-600">
+                Query-aware KV selection and heterogeneous placement predate the
+                original June 2025 article. The defensible contribution here is
+                a systems synthesis, a consumer-UMA evaluation target, and a
+                Judy-specific comparison—not invention of sparse attention or KV
+                retrieval.
+              </p>
+
+              <div
+                class="mt-7 rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-6"
+              >
+                <h3 class="font-bold text-amber-950">
+                  What the June 2026 update changed
+                </h3>
+                <p class="mt-2 text-sm leading-relaxed text-amber-900/75">
+                  The June 2026 revision was the paper’s first major evidence
+                  update. It added quantization as an orthogonal compression
+                  axis and compared the original ideas with RadixAttention,
+                  tree-to-sparse-matrix retrieval, hierarchical pruning, and
+                  related sparse-attention work. Version 2.0 preserves that
+                  historical step but retracts the old implication that
+                  “industry convergence” directly validated Judy arrays. Prefix
+                  reuse, hierarchical search, compression, and semantic KV
+                  retrieval support different parts of the broader
+                  memory-routing thesis.
                 </p>
               </div>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Dao, T., Fu, D. Y., Ermon, S., Rudra, A., & Ré, C. (2022)</p>
-                <p class="text-gray-600">FlashAttention: Fast and memory-efficient exact attention with IO-awareness. <em>Advances in Neural Information Processing Systems</em>, 35, 16344-16359.
-                  <a href="https://arxiv.org/abs/2205.14135" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
+              <div
+                class="mt-8 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-cyan-50 p-6"
+              >
+                <div class="text-xs font-bold uppercase text-emerald-700">
+                  Closest pipeline match
+                </div>
+                <h3 class="mt-2 text-2xl font-bold text-emerald-950">
+                  ParisKV
+                </h3>
+                <p class="mt-3 leading-relaxed text-emerald-900/80">
+                  <a
+                    href="https://github.com/amy-77/ParisKV"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >ParisKV</a
+                  >
+                  combines collision-based candidate retrieval, low-bit
+                  approximate inner-product reranking, full KV in pinned CPU
+                  memory, and on-demand fetching through CUDA unified virtual
+                  addressing. Its paper reports million-token scaling and up to
+                  2.8× peak decode throughput across batch-size sweeps within
+                  full attention’s runnable 64K–256K range.
+                </p>
+                <p class="mt-3 text-sm leading-relaxed text-emerald-900/70">
+                  This closely matches the route–rerank–offload–fetch pipeline.
+                  It does not validate Judy, Metal, a fanless MacBook, or a 24
+                  GB total-memory configuration.
+                  <a
+                    href="https://arxiv.org/abs/2602.07721"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Paper</a
+                  >
                 </p>
               </div>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Baskins, D. (2004)</p>
-                <p class="text-gray-600">Judy Arrays. <em>HP Labs Technical Report</em>.
-                  <a href="http://judy.sourceforge.net/" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[sourceforge]</a>
+              <div class="table-shell mt-8">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>System</th>
+                      <th>Relevant mechanism</th>
+                      <th>What it supports</th>
+                      <th>Boundary</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/microsoft/RetrievalAttention"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >RetrievalAttention / RetroInfer</a
+                        >
+                      </td>
+                      <td>
+                        Attention-aware vector retrieval across CPU and GPU.
+                      </td>
+                      <td>
+                        KV can be treated as searchable storage with a small
+                        accessed fraction.
+                      </td>
+                      <td>
+                        Discrete retrieval stack and NVIDIA-oriented system; not
+                        Judy or Metal.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/HugoZHL/PQCache"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >PQCache</a
+                        >
+                      </td>
+                      <td>
+                        Product-quantized keys, approximate MIPS, selected
+                        full-KV fetch.
+                      </td>
+                      <td>
+                        A semantic-code stage can precede exact attention.
+                      </td>
+                      <td>
+                        PQ provides candidates; it does not establish the best
+                        postings directory.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/mit-han-lab/Quest"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Quest</a
+                        >
+                      </td>
+                      <td>
+                        Query-aware top-K KV pages using page-level min/max
+                        metadata.
+                      </td>
+                      <td>
+                        Block-level metadata can prune attention efficiently in
+                        evaluated models.
+                      </td>
+                      <td>
+                        Reported speedups are setup-specific and do not imply 1M
+                        laptop viability.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/Infini-AI-Lab/MagicPIG"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >MagicPIG</a
+                        >
+                      </td>
+                      <td>CPU-resident LSH tables and sparse attention.</td>
+                      <td>
+                        Discrete semantic buckets can drive a heterogeneous
+                        attention path.
+                      </td>
+                      <td>
+                        Diffuse attention and CPU work can weaken retrieval
+                        efficiency.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/DeepAuto-AI/hip-attention"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >HiP / InfiniteHiP</a
+                        >
+                      </td>
+                      <td>Hierarchical pruning and host-KV offload.</td>
+                      <td>
+                        Large logical contexts can use small hierarchical
+                        attention sets.
+                      </td>
+                      <td>
+                        InfiniteHiP’s 24 GB consumer-GPU run still uses 128 GB
+                        host RAM; its 3M L40S run also offloads to a large host.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://github.com/ByteDance-Seed/ShadowKV"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >ShadowKV</a
+                        >
+                      </td>
+                      <td>
+                        Resident low-rank key state, offloaded values, selective
+                        reconstruction.
+                      </td>
+                      <td>
+                        Full KV residency can be replaced by compact predictors
+                        plus on-demand state.
+                      </td>
+                      <td>
+                        Different representation and hardware path from the
+                        proposed directory.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Published result matrix
+              </h3>
+              <p class="mt-3 leading-relaxed text-slate-600">
+                The following values are author-reported and deliberately not
+                plotted on one axis. They vary by model, context, batch size,
+                hardware, cache precision, baseline, and whether the measurement
+                covers one kernel or the entire token path.
+              </p>
+              <div class="table-shell mt-5">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>System</th>
+                      <th>Reported result</th>
+                      <th>Evaluated system</th>
+                      <th>Transfer boundary</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://arxiv.org/abs/2602.07721"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >ParisKV</a
+                        >
+                      </td>
+                      <td>
+                        49 ms/decode step at 1,024K for Llama-3.1-8B; 2.1–2.8×
+                        dense peak throughput across batch sweeps at 64K–256K.
+                        RULER 128K: 83.49 versus 84.12 dense.
+                      </td>
+                      <td>
+                        CUDA/UVA, pinned CPU KV, top-K 100; GPU undisclosed.
+                      </td>
+                      <td>
+                        The host had 167 GB free RAM. This is not a 24 GB-total
+                        Apple result, and its speed and long-generation quality
+                        values come from different experiments.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://arxiv.org/abs/2505.02922"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >RetroInfer</a
+                        >
+                      </td>
+                      <td>
+                        Up to 4.4× decode throughput over full attention at
+                        120K; 10.5× over MagicPIG and 12.2× over PQCache at 1M.
+                      </td>
+                      <td>A100 80 GB, AMD EPYC host, 1.7 TB RAM, PCIe 4×16.</td>
+                      <td>
+                        Datacenter capacity and serving result; its largest
+                        gains use batching and enormous host memory.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://arxiv.org/abs/2502.08910"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >InfiniteHiP</a
+                        >
+                      </td>
+                      <td>
+                        About 19× attention-only versus a simulated dense-FA2
+                        baseline at 1M; 40.1 tok/s measured for batch-1 3K-Flash
+                        offload on the reported passkey run.
+                      </td>
+                      <td>
+                        RTX 4090 24 GB, Ryzen 7950X, 128 GB host RAM, FP8 KV.
+                      </td>
+                      <td>
+                        A valuable consumer-GPU precedent that still stores
+                        about 64 GB of one-million-token KV outside the GPU.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://arxiv.org/abs/2406.10774"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Quest</a
+                        >
+                      </td>
+                      <td>
+                        7.03× attention-kernel and 2.23× end-to-end speedup with
+                        4-bit weights at 32K and a 2,048-token budget.
+                      </td>
+                      <td>
+                        RTX 4090/Ada 6000; full KV remains accelerator-resident.
+                      </td>
+                      <td>
+                        Supports query-aware page pruning, not the cold-tier
+                        capacity claim.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a
+                          href="https://qwen.ai/blog?id=qwen3.8-flash-next"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="citation"
+                          >Qwen QSA</a
+                        >
+                      </td>
+                      <td>
+                        Up to 7.6× prefill-kernel and 4.9× decode-kernel speedup
+                        at one million tokens.
+                      </td>
+                      <td>
+                        Flash-Next: 125B main plus 51B n-gram embedding
+                        parameters; 6B main parameters active/token; hardware
+                        undisclosed.
+                      </td>
+                      <td>
+                        Model-native kernel result, not a Qwen3.8-27B retrofit,
+                        KV-offload result, or end-to-end Metal benchmark.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="mt-4 text-sm leading-relaxed text-slate-500">
+                ParisKV’s 83.49/84.12 RULER aggregate is 99.25% of dense at
+                128K. That bounded comparison does not justify a universal “99%
+                quality” statement across tasks or million-token generation.
+              </p>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Native routing and adjacent evidence
+              </h3>
+              <div class="mt-5 grid gap-5 md:grid-cols-2">
+                <div
+                  class="rounded-xl border border-violet-200 bg-violet-50 p-5"
+                >
+                  <h4 class="font-bold text-violet-950">Qwen QSA</h4>
+                  <p class="mt-2 text-sm leading-relaxed text-violet-900/75">
+                    The official
+                    <a
+                      href="https://qwen.ai/blog?id=qwen3.8-flash-next"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="citation"
+                      >Flash-Next explanation</a
+                    >
+                    reports up to 7.6× prefill-kernel and 4.9× decode-kernel
+                    speedups at one million tokens. This validates learned
+                    query-aware block selection in that architecture, not the
+                    present end-to-end target.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border border-violet-200 bg-violet-50 p-5"
+                >
+                  <h4 class="font-bold text-violet-950">
+                    SeerAttention and MoBA
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-violet-900/75">
+                    <a
+                      href="https://github.com/microsoft/SeerAttention"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="citation"
+                      >SeerAttention</a
+                    >
+                    learns block gates, while
+                    <a
+                      href="https://github.com/MoonshotAI/MoBA"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="citation"
+                      >MoBA</a
+                    >
+                    applies MoE-style top-K routing to context blocks. Both
+                    support the router analogy but require model adaptation or
+                    continued training.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  <h4 class="font-bold text-slate-950">KTransformers</h4>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    <a
+                      href="https://github.com/kvcache-ai/ktransformers"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="citation"
+                      >KTransformers</a
+                    >
+                    supports heterogeneous active parameter and memory working
+                    sets. Its documented one-million-token example uses a 24 GB
+                    GPU plus roughly 145 GB of host KV memory, not a 24 GB total
+                    laptop.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  <h4 class="font-bold text-slate-950">
+                    RadixAttention and HiCache
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    <a
+                      href="https://github.com/sgl-project/sglang"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="citation"
+                      >SGLang</a
+                    >
+                    uses radix trees for exact prefix reuse and tiers KV through
+                    accelerator, host, and storage. It does not discover
+                    semantically relevant tokens inside one sequence.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border border-slate-200 bg-slate-50 p-5 md:col-span-2"
+                >
+                  <h4 class="font-bold text-slate-950">TurboQuant</h4>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    <a
+                      href="https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="citation"
+                      >TurboQuant</a
+                    >
+                    reports roughly three-bit KV representations while
+                    preserving quality in its evaluated models and tasks. It
+                    reduces the size of each stored item; routing reduces how
+                    many items are touched. The axes are complementary, but
+                    universal zero-loss behavior is not assumed.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section id="hypotheses" class="scroll-mt-24">
+              <p class="section-kicker mb-2">6 · Preregistration</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Hypotheses and comparison baselines
+              </h2>
+
+              <div class="mt-7 space-y-4">
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono text-sm font-bold text-indigo-700">
+                    H1 · Capacity
+                  </div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    A named 3-bit Qwen3.8-27B artifact, runtime state, router,
+                    protected core, and active KV set can remain below a
+                    predeclared resident-memory ceiling derived from measured
+                    idle availability, with swap disabled or zero swap activity.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono text-sm font-bold text-indigo-700">
+                    H2 · Context-speed retention
+                  </div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    After a reusable prompt cache is built, one-million-token
+                    logical-context decode retains at least 80% of the same
+                    machine’s 32K routed-context speed under thermal steady
+                    state. The percentage is primary; absolute tok/s is
+                    reported.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono text-sm font-bold text-indigo-700">
+                    H3 · Quality
+                  </div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Routed inference remains within one absolute percentage
+                    point of the same dense, quantized reference on declared
+                    RULER and LongBench tasks, below 1% relative perplexity
+                    increase on named corpora, and above a declared attention
+                    recall threshold where dense inspection is available.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono text-sm font-bold text-indigo-700">
+                    H4 · Judy contribution
+                  </div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    With semantic codes and candidate budgets held constant, the
+                    Judy directory improves a declared end-to-end metric—memory,
+                    update cost, p95 lookup plus enumeration, or decode latency—
+                    versus at least four alternative layouts.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <div class="mono text-sm font-bold text-indigo-700">
+                    H5 · Sustained operation
+                  </div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Throughput, latency, and memory remain within declared
+                    bounds during a minimum 30-minute generation workload after
+                    warm-up.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="mt-7 rounded-2xl border border-amber-200 bg-amber-50 p-6"
+              >
+                <h3 class="font-bold text-amber-950">
+                  Stretch target, not primary hypothesis
+                </h3>
+                <p class="mt-2 text-sm leading-relaxed text-amber-900/80">
+                  11–12 effective output tok/s is retained as an aspirational
+                  result only if multi-token prediction or speculation is
+                  enabled and fully disclosed. The report must separately show
+                  raw model passes per second, proposed tokens, accepted tokens,
+                  and final output tokens per second. Without such a mechanism,
+                  the base-M4 bandwidth roofline makes this target aggressive.
                 </p>
               </div>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Child, R., Gray, S., Radford, A., & Sutskever, I. (2019)</p>
-                <p class="text-gray-600">Generating long sequences with sparse transformers.
-                  <a href="https://arxiv.org/abs/1904.10509" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">Baselines</h3>
+              <div class="table-shell mt-5">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Baseline</th>
+                      <th>Purpose</th>
+                      <th>Required comparison rule</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Local dense/routine inference at 32K and 262K</td>
+                      <td>
+                        Short- and native-context speed, quality, memory, and
+                        thermal reference.
+                      </td>
+                      <td>
+                        Same model artifact, quantization, prompts, runtime, and
+                        device.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Dense 1M reference on larger hardware</td>
+                      <td>
+                        Quality oracle where the 24 GB machine cannot hold dense
+                        state.
+                      </td>
+                      <td>
+                        Same checkpoint and positional settings; hardware
+                        difference disclosed.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Routed system without Judy</td>
+                      <td>Separates working-set gains from directory gains.</td>
+                      <td>
+                        Identical semantic codes, candidate order, budgets, and
+                        cache policy.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Qwen3.5-9B prototype</td>
+                      <td>
+                        Validates end-to-end Metal, storage, and quality
+                        instrumentation.
+                      </td>
+                      <td>
+                        Reported as an engineering control, never as the 27B
+                        result.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Flash-Next published QSA results</td>
+                      <td>Architectural precedent for learned selection.</td>
+                      <td>
+                        No direct speed or memory ratio is computed across
+                        models or hardware.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section id="protocol" class="scroll-mt-24">
+              <p class="section-kicker mb-2">7 · Evaluation</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Reproducible experimental protocol
+              </h2>
+
+              <div class="mt-8 grid gap-5 md:grid-cols-2">
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">Phase A</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    Freeze the platform
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Publish device SKU, OS, ambient temperature, power state,
+                    runtime and model hashes, Metal settings, quantization,
+                    YaRN, KV precision, MTP/speculation, idle memory, and swap
+                    policy.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">Phase B</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    Build and account for the cache
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Measure tokenization, prefill, semantic-code generation,
+                    directory build, peak memory, cold-state size, SSD writes,
+                    and cache reuse. State whether every step occurred locally.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">Phase C</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    Sweep context and budget
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Test 32K, 128K, 262K, 512K, and 1M logical contexts against
+                    2K, 8K, 12K, and 32K exact-attention budgets, plus adaptive
+                    widening. Record k<sub>c</sub>, k<sub>f</sub>, and k<sub
+                      >a</sub
+                    >
+                    separately.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">Phase D</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    Measure the whole path
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Report TTFT, cache-build time, p50/p95 decode latency,
+                    output tok/s, model passes/s, resident memory, swap, cold
+                    reads, bytes fetched, hit ratio, reuse distance, index
+                    updates, and fallback rate.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">Phase E</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    Test quality adversarially
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Include declared RULER and LongBench subsets, single- and
+                    multi-hop needles, multi-key aggregation, code-repository
+                    questions, perplexity, long generation, and deliberately
+                    misleading semantic neighbors.
+                  </p>
+                </div>
+                <div
+                  class="rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                >
+                  <div class="section-kicker">Phase F</div>
+                  <h3 class="mt-2 text-xl font-bold text-slate-950">
+                    Run to thermal steady state
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Warm the system, then run at least 30 minutes. Publish
+                    throughput and latency over time rather than one aggregate,
+                    and record thermal pressure or frequency information exposed
+                    by the operating system.
+                  </p>
+                </div>
+              </div>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Quality gates
+              </h3>
+              <p class="mt-3 leading-relaxed text-slate-600">
+                “99% quality” is not a standalone metric. The following gates
+                bind the claim to a named dense, quantized reference:
+              </p>
+              <ul
+                class="mt-5 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm leading-relaxed text-slate-600"
+              >
+                <li>
+                  • No more than one absolute percentage point average loss on
+                  the declared long-context task suite.
+                </li>
+                <li>
+                  • Less than 1% relative perplexity increase on named corpora.
+                </li>
+                <li>
+                  • At least 99% attention-mass recall where dense attention can
+                  be inspected, reported by layer/head and not only as a global
+                  mean.
+                </li>
+                <li>
+                  • Separate results for retrieval, multi-hop reasoning, code,
+                  adversarial needles, and long generation.
+                </li>
+                <li>
+                  • Fallback rate, widening distribution, and worst-case
+                  failures reported alongside averages.
+                </li>
+              </ul>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Directory ablation
+              </h3>
+              <p class="mt-3 leading-relaxed text-slate-600">
+                The Judy comparison holds the semantic router, candidates,
+                memory tier, and block order constant. Compare lookup plus
+                enumeration latency, insert/update cost, memory per posting,
+                cache misses, cold-read amplification, and end-to-end decode
+                against a flat hash table, adaptive radix tree, sorted postings,
+                IVF/PQ list representation, and one GPU-friendly layout.
+              </p>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Reproducibility package
+              </h3>
+              <p class="mt-3 leading-relaxed text-slate-600">
+                A defensible release includes source code, build instructions,
+                model and runtime hashes, configuration files, prompt manifests,
+                cache schema, raw measurements, analysis scripts, failure logs,
+                and a machine-readable environment report. If licensing prevents
+                redistribution of model artifacts, publish exact immutable
+                identifiers and acquisition instructions.
+              </p>
+
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Research program inherited from the original roadmap
+              </h3>
+              <div class="mt-5 grid gap-5 md:grid-cols-3">
+                <div
+                  class="rounded-xl border border-emerald-200 bg-emerald-50 p-5"
+                >
+                  <div class="section-kicker text-emerald-700">Phase A</div>
+                  <h4 class="mt-2 font-bold text-emerald-950">
+                    Router and directory shakedown
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-emerald-900/75">
+                    Prove candidate recall, cache accounting, incremental
+                    insertion, and controlled Judy-versus-alternatives ablation
+                    on the smaller model ladder.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-blue-200 bg-blue-50 p-5">
+                  <div class="section-kicker text-blue-700">Phase B</div>
+                  <h4 class="mt-2 font-bold text-blue-950">
+                    Metal tiered-KV path
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-blue-900/75">
+                    Integrate unified-memory hot state, compressed cold pages,
+                    prefetch, and exact accelerator attention; then attempt the
+                    27B Air benchmark.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border border-violet-200 bg-violet-50 p-5"
+                >
+                  <div class="section-kicker text-violet-700">Phase C</div>
+                  <h4 class="mt-2 font-bold text-violet-950">
+                    Model/runtime co-design
+                  </h4>
+                  <p class="mt-2 text-sm leading-relaxed text-violet-900/75">
+                    Revisit the other original branches—structured positional
+                    representations and Judy-inspired sparse masks—only where
+                    training and hardware-native layouts justify them.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section id="results" class="scroll-mt-24">
+              <p class="section-kicker mb-2">8 · Results</p>
+              <div
+                class="rounded-2xl border-2 border-rose-300 bg-rose-50 p-7 md:p-9"
+              >
+                <h2 class="text-3xl font-bold tracking-tight text-rose-950">
+                  No empirical results yet
+                </h2>
+                <p class="mt-4 text-lg leading-relaxed text-rose-900/80">
+                  Version 2.0 is an evidence-calibrated research proposal and
+                  preregistration. It contains resource arithmetic and results
+                  attributed to other projects, but no measured Apple Silicon
+                  implementation of the proposed stack.
+                </p>
+                <p class="mt-4 text-sm font-semibold text-rose-900">
+                  The one-million-token, near-reference-quality, 11–12 tok/s
+                  statement remains a target until reproduced on the named
+                  fanless 24 GB MacBook Air.
                 </p>
               </div>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Hennessy, J. L., & Patterson, D. A. (2019)</p>
-                <p class="text-gray-600">Computer architecture: a quantitative approach. <em>Morgan Kaufmann</em>.</p>
+              <h3 class="mt-10 text-2xl font-bold text-slate-900">
+                Results table reserved for a future revision
+              </h3>
+              <div class="table-shell mt-5">
+                <table class="research-table">
+                  <thead>
+                    <tr>
+                      <th>Outcome</th>
+                      <th>Status in v2.0</th>
+                      <th>Required evidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>27B model plus routed state fits without swap</td>
+                      <td>
+                        <strong class="text-rose-700">Not measured</strong>
+                      </td>
+                      <td>
+                        Peak and time-series resident memory on the named
+                        machine.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>1M logical context remains accurately addressable</td>
+                      <td>
+                        <strong class="text-rose-700">Not measured</strong>
+                      </td>
+                      <td>
+                        Declared long-context suite against a dense reference.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Context-speed retention meets H2</td>
+                      <td>
+                        <strong class="text-rose-700">Not measured</strong>
+                      </td>
+                      <td>
+                        Thermally sustained local 32K versus 1M comparison.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>11–12 effective output tok/s</td>
+                      <td>
+                        <strong class="text-rose-700">Stretch target</strong>
+                      </td>
+                      <td>
+                        Raw passes, speculative/MTP acceptance, and output-rate
+                        trace.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Judy outperforms alternatives</td>
+                      <td>
+                        <strong class="text-rose-700">Not measured</strong>
+                      </td>
+                      <td>
+                        Controlled directory ablation and end-to-end impact.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+            </section>
 
-              <!-- 2026 Update References -->
-              <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-2">2026 Update References</h3>
+            <section id="limitations" class="scroll-mt-24">
+              <p class="section-kicker mb-2">9 · Limitations</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Threats to validity
+              </h2>
+              <div class="mt-7 grid gap-5 md:grid-cols-2">
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <h3 class="font-bold text-slate-950">
+                    Attention is layer-dependent
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    A single global semantic index may not preserve the targets
+                    used by every layer and head. Per-layer codes increase index
+                    and build cost.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <h3 class="font-bold text-slate-950">
+                    Addressable is not understood
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Successfully fetching a token does not prove the model can
+                    reason over it at one-million-token positional extension.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <h3 class="font-bold text-slate-950">Errors compose</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Low-bit weights, low-bit KV, approximate search, pruning,
+                    and YaRN may interact nonlinearly.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <h3 class="font-bold text-slate-950">
+                    The dense oracle differs in hardware
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    A one-million-token dense reference may require another
+                    machine, introducing runtime and numerical differences.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <h3 class="font-bold text-slate-950">
+                    SSD endurance and latency matter
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Repeated cache construction or high miss traffic can cause
+                    write amplification, latency spikes, and device wear.
+                  </p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-5">
+                  <h3 class="font-bold text-slate-950">
+                    Flash-Next is not the target model
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Native QSA results cannot be transferred numerically to a
+                    retrofit 27B model, Metal runtime, or consumer thermal
+                    envelope.
+                  </p>
+                </div>
+                <div
+                  class="rounded-xl border border-slate-200 p-5 md:col-span-2"
+                >
+                  <h3 class="font-bold text-slate-950">
+                    Judy may be the wrong directory
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                    Modern vector-search, flat postings, or GPU-oriented layouts
+                    may outperform a pointer-rich CPU structure. A negative Judy
+                    result does not falsify the larger routed-memory thesis.
+                  </p>
+                </div>
+              </div>
+            </section>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Zheng, L., Yin, L., et al. (2024–2026)</p>
-                <p class="text-gray-600">SGLang: Efficient Execution of Structured Language Model Programs. RadixAttention for KV cache reuse via radix tree indexing.
-                  <a href="https://arxiv.org/abs/2312.07104" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                  <a href="https://lmsys.org/blog/2024-01-17-sglang/" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[blog]</a>
+            <section id="conclusion" class="scroll-mt-24">
+              <p class="section-kicker mb-2">10 · Conclusion</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                A narrower claim, and a stronger experiment
+              </h2>
+              <div
+                class="mt-5 space-y-5 text-lg leading-relaxed text-slate-600"
+              >
+                <p>
+                  Judy arrays and attention still come from different eras of
+                  computer science and are optimized for different hardware. The
+                  original conclusion therefore survives: the path is not simple
+                  fusion, but inspired adaptation grounded in algorithms,
+                  architecture, and physical memory behavior.
+                </p>
+                <p>
+                  The defensible implementation thesis is narrower than “Judy
+                  arrays solve attention.” Future inference systems may
+                  virtualize both parameters and context: large state remains
+                  addressable while only a query-dependent working set becomes
+                  active.
+                </p>
+                <p>
+                  Quantization reduces the physical size of state. Expert
+                  routing reduces active parameter work. KV routing attempts to
+                  reduce active memory and attention work. Existing systems
+                  demonstrate important pieces of this stack, while Flash-Next
+                  shows that routing can become part of model architecture.
+                </p>
+                <p>
+                  The fanless 24 GB MacBook Air is not evidence that the target
+                  already works. It is the deliberately constrained instrument
+                  chosen to test whether logical context can be decoupled from
+                  resident context without hiding the cost elsewhere.
+                </p>
+                <p class="font-semibold text-slate-900">
+                  The Judy choice, difficult-task recall, storage behavior,
+                  sustained speed, and one-million-token Apple result remain the
+                  experiment.
                 </p>
               </div>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Google Research / YouTube (February 2026)</p>
-                <p class="text-gray-600">STATIC: Vectorizing prefix trees into Compressed Sparse Row (CSR) matrices for generative retrieval.
-                  <a href="https://arxiv.org/abs/2602.22647" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                  <a href="https://www.marktechpost.com/2026/03/01/google-ai-introduces-static-a-sparse-matrix-framework-delivering-948x-faster-constrained-decoding-for-llm-based-generative-retrieval/" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[article]</a>
+              <div
+                class="mt-9 rounded-2xl border border-indigo-200 bg-indigo-50 p-6"
+              >
+                <h3 class="font-bold text-indigo-950">
+                  Plain-language companion
+                </h3>
+                <p class="mt-2 text-sm leading-relaxed text-indigo-900/80">
+                  The companion article explains the working-set intuition,
+                  related GitHub projects, and consumer-laptop case in a more
+                  accessible narrative.
                 </p>
+                <a
+                  href="sparsity-nexus-judy-arrays-ai-attention.html"
+                  class="mt-4 inline-flex rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600"
+                  >Read “The Sparsity Nexus: From Judy Arrays to Routed LLM
+                  Memory”</a
+                >
               </div>
+            </section>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">HiP Authors (2024–2025)</p>
-                <p class="text-gray-600">Hierarchically Pruned Attention (HiP): O(T log T) sparse attention via tree-search-based dynamic mask generation.
-                  <a href="https://arxiv.org/abs/2511.00527" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                </p>
-              </div>
+            <section
+              id="references"
+              class="scroll-mt-24 border-t border-slate-200 pt-12"
+            >
+              <p class="section-kicker mb-2">Sources</p>
+              <h2 class="text-3xl font-bold tracking-tight text-slate-950">
+                Primary references
+              </h2>
+              <ol class="mt-7 space-y-4 text-sm leading-relaxed text-slate-600">
+                <li>
+                  1. Qwen Team.
+                  <a
+                    href="https://huggingface.co/Qwen/Qwen3.8-27B"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Qwen3.8-27B model card</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/QwenLM/Qwen3.8"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >official repository</a
+                  >.
+                </li>
+                <li>
+                  2. Qwen Team.
+                  <a
+                    href="https://github.com/QwenLM/Qwen3.8-Flash-Next"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Qwen3.8-Flash-Next repository</a
+                  >
+                  and
+                  <a
+                    href="https://qwen.ai/blog?id=qwen3.8-flash-next"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >architecture note</a
+                  >.
+                </li>
+                <li>
+                  3. Apple.
+                  <a
+                    href="https://support.apple.com/en-us/122209"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >MacBook Air (13-inch, M4, 2025) technical specifications</a
+                  >.
+                </li>
+                <li>
+                  4. ParisKV authors.
+                  <a
+                    href="https://arxiv.org/abs/2602.07721"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >ParisKV paper</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/amy-77/ParisKV"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  5. RetrievalAttention authors.
+                  <a
+                    href="https://arxiv.org/abs/2409.10516"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >RetrievalAttention paper</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/microsoft/RetrievalAttention"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  6. PQCache authors.
+                  <a
+                    href="https://arxiv.org/abs/2407.12820"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >PQCache paper</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/HugoZHL/PQCache"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  7. Quest authors.
+                  <a
+                    href="https://arxiv.org/abs/2406.10774"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Quest paper</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/mit-han-lab/Quest"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  8. MagicPIG authors.
+                  <a
+                    href="https://arxiv.org/abs/2410.16179"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >MagicPIG paper</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/Infini-AI-Lab/MagicPIG"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  9. HiP and InfiniteHiP authors.
+                  <a
+                    href="https://arxiv.org/abs/2406.09827"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >HiP paper</a
+                  >,
+                  <a
+                    href="https://arxiv.org/abs/2502.08910"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >InfiniteHiP paper</a
+                  >, and
+                  <a
+                    href="https://github.com/DeepAuto-AI/hip-attention"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  10. ShadowKV authors.
+                  <a
+                    href="https://arxiv.org/abs/2410.21465"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >ShadowKV paper</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/ByteDance-Seed/ShadowKV"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >code</a
+                  >.
+                </li>
+                <li>
+                  11. KTransformers contributors.
+                  <a
+                    href="https://github.com/kvcache-ai/ktransformers"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >KTransformers repository</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/kvcache-ai/ktransformers/blob/main/doc/en/long_context_introduction.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >long-context documentation</a
+                  >.
+                </li>
+                <li>
+                  12. SGLang contributors.
+                  <a
+                    href="https://github.com/sgl-project/sglang"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >SGLang repository</a
+                  >; Zheng et al.
+                  <a
+                    href="https://arxiv.org/abs/2312.07104"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >SGLang and RadixAttention paper</a
+                  >.
+                </li>
+                <li>
+                  13. Google Research.
+                  <a
+                    href="https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >TurboQuant overview</a
+                  >
+                  and
+                  <a
+                    href="https://arxiv.org/abs/2504.19874"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >paper</a
+                  >.
+                </li>
+                <li>
+                  14. Qwen Team.
+                  <a
+                    href="https://huggingface.co/Qwen/Qwen3.5-9B"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Qwen3.5-9B model card</a
+                  >
+                  ; community GGUF sizes:
+                  <a
+                    href="https://huggingface.co/unsloth/Qwen3.5-9B-GGUF"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Unsloth Qwen3.5-9B-GGUF</a
+                  >.
+                </li>
+                <li>
+                  15. OpenAI.
+                  <a
+                    href="https://huggingface.co/openai/gpt-oss-20b"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >gpt-oss-20b model card</a
+                  >
+                  and
+                  <a
+                    href="https://github.com/openai/gpt-oss"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >reference implementations</a
+                  >.
+                </li>
+                <li>
+                  16. Mistral AI.
+                  <a
+                    href="https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Ministral 3 14B model card</a
+                  >
+                  and
+                  <a
+                    href="https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512-GGUF"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >official GGUF</a
+                  >.
+                </li>
+                <li>
+                  17. Google DeepMind.
+                  <a
+                    href="https://ai.google.dev/gemma/docs/core/model_card_3"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Gemma 3 model card</a
+                  >
+                  and
+                  <a
+                    href="https://huggingface.co/google/gemma-3-27b-it-qat-q4_0-gguf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >official QAT GGUF</a
+                  >.
+                </li>
+                <li>
+                  18. IBM.
+                  <a
+                    href="https://huggingface.co/ibm-granite/granite-4.0-h-tiny"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >Granite 4.0 H-Tiny model card</a
+                  >
+                  and
+                  <a
+                    href="https://huggingface.co/ibm-granite/granite-4.0-h-tiny-GGUF"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="citation"
+                    >official GGUF</a
+                  >.
+                </li>
+              </ol>
+            </section>
+          </main>
 
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Erwin Authors (ICML 2025); BSA Authors (June 2025)</p>
-                <p class="text-gray-600">Erwin Transformer and Ball Sparse Attention: Hierarchical Ball Tree-based linear-complexity attention for physical systems.
-                  <a href="https://arxiv.org/abs/2506.12541" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[arxiv]</a>
-                </p>
-              </div>
-
-              <div class="reference-item p-4 rounded-lg">
-                <p class="font-semibold">Google Research (March 2026)</p>
-                <p class="text-gray-600">TurboQuant: Near-lossless KV cache quantization to ~3 bits via PolarQuant and Quantized Johnson-Lindenstrauss (QJL) projections.
-                  <a href="https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/" class="text-blue-600 hover:text-blue-800 ml-1" target="_blank" rel="noopener">[blog]</a>
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <!-- Footer -->
-          <footer class="border-t pt-8 mt-12 text-center text-sm text-gray-600">
-            <div class="mb-4">
-              <p><strong>© 2025–2026 AxWise AI Research Laboratory</strong></p>
-              <p>This white paper is published under Creative Commons Attribution 4.0 International License</p>
-            </div>
-            <div class="flex justify-center space-x-6">
-              <a href="https://axwise.de" class="text-blue-600 hover:text-blue-800">AxWise Home</a>
-              <a href="https://axwise.de/blog" class="text-blue-600 hover:text-blue-800">Research Blog</a>
-            </div>
+          <footer
+            class="mt-16 border-t border-slate-200 pt-8 text-center text-sm text-slate-500"
+          >
+            <p>
+              © 2025–2026 Vitalijs Visnevskis / AxWise. Version 2.0 is a
+              technical research proposal, not a claim of completed experimental
+              validation.
+            </p>
           </footer>
-        </main>
-      </div>
+        </div>
+      </article>
     </div>
   </body>
 </html>

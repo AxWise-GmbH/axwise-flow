@@ -2,7 +2,28 @@
 
 **Date:** 4 September 2026
 
-**Status:** approved implementation baseline; M0–M5 foundations in progress, live dispatch disabled
+**Status:** historical 4 September implementation baseline; customer-solution and native n8n requirements updated on 5 September.
+
+**Design precedence — 5 September 2026:** the accepted
+[Native n8n integration design](./orqaly-native-n8n-integration-design-2026-09-05.md)
+governs the customer Solution experience. Orqaly owns Agent control and approval,
+AxWise supplies cognition/evidence/semantic analysis, and self-hosted n8n supplies
+the native viewer, authenticated customer-scoped draft editor and workflow execution.
+Earlier statements below requiring connector-only/shared n8n, hiding the native
+canvas, or prohibiting customer editor access are superseded. The internal connector
+adapter remains a useful capability. Existing isolation, scoped context, approval,
+evidence and executor-replaceability requirements continue to apply. Dated
+implementation snapshots below describe the earlier work, not the current preview.
+
+**Preview runtime correction — 6 September 2026:** use the approved min-0/max-1
+Cloud Run n8n environment003 and private Cloud Run Sandbox service, not a
+dedicated coding-worker VM. Reuse the existing Cloud SQL instance with an
+isolated n8n database/login; preserve environments001/002. Orqaly's existing
+durable worker wakes approved webhook schedules, so n8n need not remain awake
+for its own timer. Scale-to-zero does not promise zero total platform cost.
+The [dated implementation and evidence ledger](./orqaly-low-cost-execution-preview-2026-09-06.md)
+records the actual deployments, tested boundaries and remaining limitations. It does
+not turn the historical platform-wide checklist into a completion claim.
 
 **Product scope:** task-agnostic delegated Agents for research, operations, communications, data work, coding, documents, monitoring and mixed workflows
 
@@ -11,7 +32,9 @@
 
 ### Implementation snapshot — 4 September 2026
 
-This document is the active delivery plan, not an SMS-specific design. Work completed on the coordinated implementation branches currently includes:
+This snapshot records the task-agnostic foundations as of 4 September. Apply the
+5 September design precedence above when continuing implementation. Work completed
+on the coordinated implementation branches at that checkpoint included:
 
 - a pure AxWise delegated-Agent contract layer for durable Agent/team/persona identity, structured effects and data egress, immutable plan references, lifecycle and scheduling invariants;
 - an isolated Orqaly Agent control-plane service with short-lived tenant-and-action-scoped principals, per-route scope enforcement, tenant-scoped PostgreSQL RLS, proposal-only AxWise intake, RFC 8785 hash-bound executable plan v2, durable Agent/team/persona/run/step records, exact approval binding, append-only events and transactional outbox. Composite database keys now force every attempt, receipt and event reference to belong to one exact tenant/run/step chain;
@@ -49,7 +72,7 @@ The same execution system will then:
 2. give it only the knowledge and permissions relevant to that user, workspace, project and task;
 3. show the customer the exact plan, targets, risks and any applicable cost/recurrence;
 4. apply policy and request exact approval before sensitive, consequential, irreversible or costly actions;
-5. perform analysis, retrieval and artifact work in a bounded Agent harness, use self-hosted n8n for narrow API operations, and use an isolated sandbox for code or untrusted data processing;
+5. perform analysis, retrieval and artifact work in a bounded Agent harness, deliver customer automations through self-hosted n8n, and use isolated workers for code, builds, tests or untrusted data processing;
 6. let the customer pause, resume, cancel remaining work, reject, retry or revoke the Agent;
 7. use a separate reviewer wherever quality or separation of duties requires it;
 8. keep durable receipts and proactively notify the customer; and
@@ -61,13 +84,17 @@ Even a one-step operational task receives the same tenant-scoped Agent, run, ste
 
 ## 2. Decisions fixed by this plan
 
+Customer n8n rows below reflect the 5 September
+[native integration decision](./orqaly-native-n8n-integration-design-2026-09-05.md).
+Other foundation details retain their dated implementation context.
+
 | Decision | Proposal |
 |---|---|
 | Product authority | Orqaly owns identity, plans, approvals, budgets, run state, memory policy, credentials, events, notifications and customer UI. |
 | AxWise role | AxWise selects role/Agent candidates, compiles the executor persona, proposes context requirements/routing hints, plans over already authorized evidence, recommends guardrails and evaluates outcomes. Orqaly alone resolves memory namespaces and assembles sealed runtime context; AxWise never authorizes its own work. |
-| n8n role | One shared, self-hosted Community instance executes versioned, atomic connector actions. It is hidden behind an adapter and is replaceable. |
+| n8n role | Self-hosted n8n supplies customer-scoped workflow viewing, draft editing and execution. Its native UI is integrated into Orqaly; an execution adapter preserves replaceability. |
 | Sandbox execution | Generated code, repository checkout, builds, tests and untrusted data transforms run in a disposable sandbox per `sandbox_work` step or explicitly approved tightly coupled subgraph, never inside n8n. |
-| Customer control | The customer uses Orqaly, not the raw n8n canvas. Orqaly exposes plan, approval, status, controls, evidence and receipts. |
+| Customer control | Orqaly contains the native n8n canvas and authenticated editor. Edits create a candidate; semantic review, exact approval, verified deployment and activation govern production changes. |
 | Agent isolation | All Agent data and execution context are hard-scoped by organization/workspace/user/project/Agent. External actions receive short-lived tenant-bound grants; untrusted sandbox work receives a dedicated disposable process/job. Shared n8n never implies shared authority or memory. |
 | Connected-preview identity | Use Clerk Organizations in membership-required mode for the first B2B Preview, reusing the verified GCP identity direction already present in AxWise. A server gateway verifies the Clerk session/JWT and active organization membership; the browser never supplies trusted tenant IDs or signs an Agent principal. The interface remains replaceable by another OIDC provider later. |
 | Fresh membership mapping | A new Cloud SQL membership/mapping table binds Clerk user + organization IDs to internal Orqaly organization/workspace IDs and Agent roles. Rows are created only by an operator bootstrap or verified invitation/membership event; no Supabase users, workspaces or roles are imported. Existing users must be newly invited/enrolled into the Preview. |
@@ -76,7 +103,7 @@ Even a one-step operational task receives the same tenant-scoped Agent, run, ste
 | Supabase cutover | **No Supabase data is moved.** The GCP Agent data/execution plane starts with an empty Cloud SQL database and has no import, backfill, dual-write, fallback read or context dependency on Supabase. The existing Orqaly shell may keep its legacy auth temporarily only as a page-visibility guard; Supabase tokens must never become Agent principals or reach Agent routes, and the connected Agent preview requires a new non-Supabase auth gateway. |
 | Background work | Cloud Tasks pushes durable step work to private Cloud Run handlers. Cloud Run Jobs execute bounded sandbox and isolated-review tasks. There is no always-running Agent loop. |
 | First release safety | No automatic irreversible action, external send, purchase/spend, merge, deployment, deletion or publication without a matching exact approval. Proactive notifications and activated schedules run only under their narrow, revocable standing delegations. |
-| First deployment | Shared Preview infrastructure with hard quotas; no per-customer VM and no per-customer n8n instance. A customer-local executor can be added later through the same adapter contract. |
+| Customer solution deployment | Use a customer-scoped n8n environment with isolated identity, database and credentials. The Agent is durable without requiring an always-running VM. Draft editing cannot carry production authority. |
 
 ### Universal task and step model
 
@@ -229,6 +256,11 @@ Tenant context enforcement is part of the database contract:
 - only the migration role may bypass RLS. Runtime services do not receive a general `BYPASSRLS` role.
 
 ## 5. Target runtime
+
+**5 September update:** customer Solutions follow the
+[native n8n runtime and isolation design](./orqaly-native-n8n-integration-design-2026-09-05.md).
+The shared internal connector topology below describes the earlier adapter. It
+does not prohibit dedicated customer environments or authenticated draft editors.
 
 ### Hosting decision
 
@@ -822,6 +854,12 @@ Requested members and capabilities are recommendations. Orqaly validates team/de
 
 ## 10. Self-hosted n8n design
 
+**Historical connector profile:** this section documents the internal adapter.
+The [accepted native integration design](./orqaly-native-n8n-integration-design-2026-09-05.md)
+supersedes its product-wide connector-only restriction, shared-instance mandate
+and prohibition on customer accounts/canvas access. Native editing operates on
+drafts; Orqaly retains release approval and production authority.
+
 ### What n8n does
 
 n8n executes connector-shaped choreography whose inputs and outputs are fully typed. A workflow may:
@@ -1023,6 +1061,11 @@ Required behaviour:
 - an Agent wakes for a due event and shuts down after the bounded run.
 
 ## 13. Customer UI/UX
+
+The customer Solution UI additionally follows the
+[native viewer and editor design](./orqaly-native-n8n-integration-design-2026-09-05.md).
+Business summaries remain the default experience, with native workflow inspection
+and expert draft editing available inside the same Solution context.
 
 The current Orqaly branch contains a deliberately limited preview at `/agentic-control`, implemented in `src/pages/AgenticControl`, `src/components/AgenticControl` and `src/services/agenticControlPlaneService.js`. It is built against the implemented `/v1` Agent/run/approval resource shapes, but the default browser client has no principal-minting path and therefore cannot authenticate to a deployed control plane yet. Exact approval is the only implemented mutation shown as potentially actionable when an injected/test client returns an authoritative control; lifecycle, memory, connection, schedule, artifact and delivery controls are honestly disabled. The page currently inherits the existing `ProtectedRoute`/`AuthContext` application shell, which ultimately uses legacy Supabase Auth. That is only a temporary page-visibility guard: the Agent client does not inject that session, the control plane accepts only its short-lived signed principal envelope, and no connected deployment may expose the page until a trusted non-Supabase Orqaly gateway exchanges the user's platform identity for that envelope.
 
@@ -1496,6 +1539,12 @@ Retain:
 No existing feature should be deleted merely because it is not part of the new UI. Deletion requires a named replacement, consumer inventory, migration, telemetry window and rollback path.
 
 ## 19. Definition of done
+
+The [native integration acceptance criteria](./orqaly-native-n8n-integration-design-2026-09-05.md)
+extend this historical checklist. Customer delivery requires native viewing and
+authenticated editing through the draft → review → approval → release lifecycle.
+The connector-only criterion below applies to the internal connector adapter,
+not to the full set of workflows the customer product can deliver.
 
 ### Platform definition of done
 
