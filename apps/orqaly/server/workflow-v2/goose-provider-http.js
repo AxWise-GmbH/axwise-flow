@@ -11,7 +11,7 @@ const REQUEST_FIELDS = new Set([
   'model', 'messages', 'tools', 'tool_choice', 'parallel_tool_calls', 'stream',
   'stream_options', 'max_tokens', 'max_completion_tokens', 'temperature', 'top_p',
   'stop', 'n', 'seed', 'response_format', 'reasoning_effort', 'frequency_penalty',
-  'presence_penalty', 'logprobs', 'top_logprobs',
+  'presence_penalty', 'logprobs', 'top_logprobs', 'store',
 ]);
 const REMOTE_MESSAGE_FIELDS = ['audio', 'attachments', 'image_url', 'file', 'input_audio', 'video', 'video_url', 'file_data', 'inline_data'];
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -69,6 +69,7 @@ export function validateGooseChatRequest(body) {
   for (const name of ['parallel_tool_calls', 'logprobs']) {
     if (body[name] !== undefined && typeof body[name] !== 'boolean') return false;
   }
+  if (body.store !== undefined && typeof body.store !== 'boolean') return false;
   for (const name of ['temperature', 'top_p', 'frequency_penalty', 'presence_penalty']) {
     if (body[name] !== undefined && (typeof body[name] !== 'number' || !Number.isFinite(body[name]))) return false;
   }
@@ -182,6 +183,9 @@ export function createGooseProviderRouter({
       // The pinned Gemini runtime does not accept legacy sampling controls.
       delete body.temperature;
       delete body.top_p;
+      // OMP explicitly sends the OpenAI persistence preference. Orqanix never
+      // persists requests through the upstream compatibility endpoint.
+      delete body.store;
       if (productGuidance) {
         const [leading, ...history] = body.messages;
         if (leading.role === 'system') {
