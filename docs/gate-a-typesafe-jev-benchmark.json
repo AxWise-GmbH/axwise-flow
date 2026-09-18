@@ -1,0 +1,14 @@
+{
+  "query": "Estonian veterinary feed compliance, PTA activity licences, and Salmonella testing standards for pet food.",
+  "input_docs_count": 5,
+  "retained_docs_count": 2,
+  "retained_doc_ids": [
+    "doc-01",
+    "doc-03"
+  ],
+  "jev_triage_latency_seconds": 2.293,
+  "baseline_pipeline_seconds": 9.0,
+  "with_jev_pipeline_seconds": 5.89,
+  "speedup_factor": "1.53x",
+  "efficiency_gain_percent": "34.5%"
+}
