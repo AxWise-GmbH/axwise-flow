@@ -1,0 +1,27 @@
+{
+  "total_duration_seconds": 84.04,
+  "comparison_with_pre_gate_b": {
+    "pre_gate_b_duration_seconds": 74.96,
+    "new_duration_with_gate_b_and_caching_seconds": 84.04,
+    "speedup_factor": "0.89x faster",
+    "net_time_saved_seconds": -9.08
+  },
+  "stage_latencies": {
+    "1_scope_compilation": 0.814,
+    "2_auto_gate_1": 0.0,
+    "3_research_gate_a_triage": 2.177,
+    "4_plan_synthesis": 21.642,
+    "5_auto_gate_2": 0.0,
+    "6_parallel_specialist_analyses": 21.203,
+    "7_core_draft_synthesis": 37.488,
+    "8_gate_b_audit_typesafe_jev": 0.715,
+    "9_final_attestation_and_sealing": 0.0001
+  },
+  "deliverable_stats": {
+    "words": 3951,
+    "characters": 37216,
+    "sha256": "f8a77308d4ffa3164cc2b7def272c2f0d80d26a0418d8f46ce13f95636152a48",
+    "gate_b_audit": "PASSED (Zero compliance rejections)",
+    "all_acceptance_criteria_satisfied": true
+  }
+}
