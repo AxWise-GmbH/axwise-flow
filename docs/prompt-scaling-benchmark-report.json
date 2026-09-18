@@ -1,0 +1,41 @@
+{
+  "small": {
+    "prompt_chars": 73,
+    "discovery_docs_count": 3,
+    "retained_docs_count": 2,
+    "noise_dropped_pct": 33.3,
+    "triage_latency_seconds": 1.894,
+    "baseline_latency_seconds": 7.0,
+    "with_typesafe_latency_seconds": 5.69,
+    "speedup_factor": "1.23x",
+    "baseline_tokens": 4200,
+    "with_typesafe_tokens": 2920,
+    "token_reduction_pct": "30.5%"
+  },
+  "middle": {
+    "prompt_chars": 239,
+    "discovery_docs_count": 5,
+    "retained_docs_count": 3,
+    "noise_dropped_pct": 40.0,
+    "triage_latency_seconds": 1.859,
+    "baseline_latency_seconds": 10.0,
+    "with_typesafe_latency_seconds": 7.16,
+    "speedup_factor": "1.4x",
+    "baseline_tokens": 7000,
+    "with_typesafe_tokens": 4320,
+    "token_reduction_pct": "38.3%"
+  },
+  "longer": {
+    "prompt_chars": 512,
+    "discovery_docs_count": 6,
+    "retained_docs_count": 3,
+    "noise_dropped_pct": 50.0,
+    "triage_latency_seconds": 2.648,
+    "baseline_latency_seconds": 11.5,
+    "with_typesafe_latency_seconds": 7.95,
+    "speedup_factor": "1.45x",
+    "baseline_tokens": 8400,
+    "with_typesafe_tokens": 4320,
+    "token_reduction_pct": "48.6%"
+  }
+}
