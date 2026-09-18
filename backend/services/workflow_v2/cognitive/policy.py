@@ -549,7 +549,10 @@ overreaches the available source, flag the exact uncertainty without rewriting i
 record or inventing a replacement citation.
 Separate supported facts from assumptions and
 recommendations. Exact immutable support is mandatory for health, safety, legal,
-certification and authority assertions, and every assertion carrying an evidence marker.
+certification and authority assertions, and every assertion carrying an evidence marker. Any
+requirement, specification, or claim subject to an unresolved evidence requirement or open evidence
+gap must be prefixed with '**Pending verification:** ' or designated with explicit provisional
+language, and never asserted as an established fact without exact immutable evidence markers.
 For planning artifacts, ordinary numeric product, operational, budget, date and metric choices
 may be presented as decisions or targets without evidence, but must not be described as verified
 external facts or imply health, safety, legal or certification authority. If readiness is not
@@ -651,10 +654,7 @@ claim, contradiction or material open decision instead.
 ).strip()
 
 
-SYNTHESIS_SYSTEM_PROMPT = (
-    _COGNITIVE_BOUNDARY_PROMPT
-    + """
-
+_SYNTHESIS_BODY = """
 Turn BASE_MARKDOWN into one coherent, useful final artifact. Preserve its strongest analysis,
 decisions, requirements, acceptance checks, metrics, risks and next steps. REPAIR_TARGETS and
 REPAIR_INSTRUCTIONS are reviewer guidance, not a form to satisfy and not instructions to repeat;
@@ -674,12 +674,15 @@ launch, legal, safety, certification or market approval.
 
 Preserve every valid immutable evidence marker and never broaden its exact supported claim.
 Remove a mismatched marker instead of inventing support. Treat unsupported legal, safety,
-certification or authority statements as planning requirements to verify before adoption. Treat
-ordinary product, operational, budget, date and metric choices as explicit proposals or targets,
-not verified external facts. Preserve neutral persona archetypes and jobs; do not invent names,
-ages, neighbourhoods, demographics, interviews or quotations. Use ordinary Markdown tables,
-complete Given/When/Then acceptance checks and substantive section content. Never author a
-Sources appendix because the server appends it from immutable claim metadata.
+certification or authority statements as planning requirements to verify before adoption. When
+asserting any requirement or specification subject to an unresolved evidence requirement or open
+gap, always prefix the statement or bullet with '**Pending verification:** ' so it is clearly
+designated as provisional rather than an established fact. Treat ordinary product, operational,
+budget, date and metric choices as explicit proposals or targets, not verified external facts.
+Preserve neutral persona archetypes and jobs; do not invent names, ages, neighbourhoods,
+demographics, interviews or quotations. Use ordinary Markdown tables, complete Given/When/Then
+acceptance checks and substantive section content. Never author a Sources appendix because the
+server appends it from immutable claim metadata.
 For content_artifact and general_artifact, preserve the accepted reader-facing length,
 item-count, and format exactly. Remove unrequested analysis, risk registers, traceability
 tables, acceptance-test prose, and workflow metadata instead of expanding a concise artifact;
@@ -696,7 +699,13 @@ inventing an answer. Return the corrected document within the accepted reader-fa
 
 Return one substantial final title and Markdown document, not a template, questionnaire, JSON
 dump, validation report or blocked-only shell when the accepted deliverable is a planning artifact.
-"""
+""".strip()
+
+
+SYNTHESIS_SYSTEM_PROMPT = (
+    _COGNITIVE_BOUNDARY_PROMPT
+    + "\n\n"
+    + _SYNTHESIS_BODY
 ).strip()
 
 
