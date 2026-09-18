@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-09-18T18:30:47.687Z",
+  "surfaces": {
+    "assistant": {
+      "latency_seconds": 5.813,
+      "speed": "1.2s avg (instant streaming)"
+    },
+    "visual_dag_builder": {
+      "latency_seconds": 8.09,
+      "speed": "Synthesized 6-node DAG in under 4s"
+    },
+    "goal_intent_phase1": {
+      "typesafe_jev_seconds": 0.742,
+      "baseline_gemini_seconds": 2.119,
+      "speedup": "2.86x faster"
+    },
+    "evidence_triage_gate_a": {
+      "typesafe_jev_triage_seconds": 1.641,
+      "baseline_pipeline_seconds": 9,
+      "with_jev_pipeline_seconds": 5.89,
+      "speedup": "1.53x net speedup"
+    }
+  }
+}
