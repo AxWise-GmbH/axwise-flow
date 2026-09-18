@@ -523,6 +523,12 @@ def _has_positive_pattern(texts: Iterable[str], patterns: Iterable[str]) -> bool
 
 
 def _detected_document_intent(texts: list[str]) -> str | None:
+    # Phase 1: TypeSafe Jev accelerated intent classification
+    from backend.services.workflow_v2.cognitive.typesafe_triage import classify_intent_with_jev
+    jev_intent = classify_intent_with_jev(texts)
+    if jev_intent is not None:
+        return jev_intent
+
     globally_negated_work_types = _negated_work_types(texts)
     for intent in (
         "commercial_market_launch",
