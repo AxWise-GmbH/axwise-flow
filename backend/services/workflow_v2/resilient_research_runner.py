@@ -2465,6 +2465,13 @@ class ResilientResearchRunner:
                 )
             )
         if fetched_documents and self.extractor is not None:
+            # Gate A: TypeSafe Jev accelerated evidence triage
+            from backend.services.workflow_v2.cognitive.typesafe_triage import filter_documents_with_jev
+            filtered_docs = filter_documents_with_jev(
+                str(context.requirement.get("description") or ""),
+                [item[2] for item in fetched_documents],
+                min_kept=1,
+            )
             extraction_request = ExactSpanExtractionRequest(
                 requirement_query=ExactSpanRequirementQuery(
                     requirement_id=str(context.requirement.get("id") or "requirement"),
@@ -2472,7 +2479,7 @@ class ResilientResearchRunner:
                     applies_when=context.applies_when,
                     query=context.discovery_query,
                 ),
-                documents=[item[2] for item in fetched_documents],
+                documents=list(filtered_docs),
             )
             evidence_facts["stage"] = "extraction"
             try:
