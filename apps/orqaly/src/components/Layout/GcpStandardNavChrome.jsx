@@ -1,4 +1,6 @@
 import { createElement, useState } from 'react';
+import { UserButton, useAuth } from '@clerk/react';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import {
   Box,
   Divider,
@@ -287,6 +289,7 @@ export function GcpNavFooter({
   onToggleEditing,
 }) {
   const [menuAnchor, setMenuAnchor] = useState(null);
+  const { signOut } = useAuth();
   const closeMenu = () => setMenuAnchor(null);
   const moreActive =
     Boolean(menuAnchor) ||
@@ -309,6 +312,9 @@ export function GcpNavFooter({
         aria-controls={menuAnchor ? 'gcp-nav-more-menu' : undefined}
         onClick={(event) => setMenuAnchor(event.currentTarget)}
       />
+      <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', pr: 0.5 }}>
+        <UserButton />
+      </Box>
       <Menu
         id="gcp-nav-more-menu"
         anchorEl={menuAnchor}
@@ -357,6 +363,24 @@ export function GcpNavFooter({
           );
           return rows;
         })}
+        <Divider key="signout-divider" />
+        <MenuItem
+          key="signout"
+          onClick={async () => {
+            closeMenu();
+            await signOut({ redirectUrl: '/login?signout=true' });
+          }}
+          sx={{ minHeight: 36, gap: 1.25, fontSize: '0.8rem', color: 'error.main' }}
+        >
+          <Box
+            component="span"
+            aria-hidden
+            sx={{ width: 18, display: 'grid', placeItems: 'center', color: 'inherit' }}
+          >
+            <LogoutRoundedIcon sx={{ fontSize: 16 }} />
+          </Box>
+          Sign out
+        </MenuItem>
       </Menu>
     </>
   );

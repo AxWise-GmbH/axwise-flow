@@ -27,13 +27,15 @@ export default function GcpAuthPage({ mode }) {
   const requested = location.state?.from || new URLSearchParams(location.search).get('returnTo');
   const returnTo = safeAuthReturnTo(requested, '/home');
 
+  const isSignedOut = new URLSearchParams(location.search).get('signout') === 'true';
+
   if (!isLoaded)
     return (
       <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
         <CircularProgress size={28} aria-label="Loading authentication" />
       </Box>
     );
-  if (isSignedIn) return <Navigate to={returnTo} replace />;
+  if (isSignedIn && !isSignedOut) return <Navigate to={returnTo} replace />;
 
   const signingUp = mode === 'signup';
   return (

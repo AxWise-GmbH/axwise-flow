@@ -9,6 +9,7 @@ const h = vi.hoisted(() => ({
     isSignedIn: true,
     userId: 'user_one',
     getToken: vi.fn(async () => 'clerk-token'),
+    signOut: vi.fn(async () => {}),
   },
   client: {
     assistantThreads: vi.fn(),
@@ -19,7 +20,7 @@ const h = vi.hoisted(() => ({
 
 h.createClient.mockImplementation(() => h.client);
 
-vi.mock('@clerk/react', () => ({ useAuth: () => h.auth }));
+vi.mock('@clerk/react', () => ({ useAuth: () => h.auth, UserButton: () => <div data-testid="user-button" /> }));
 vi.mock('../../workflow-v2/api.js', () => ({
   createWorkflowV2Client: (...args) => h.createClient(...args),
 }));
