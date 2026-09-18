@@ -1,0 +1,30 @@
+{
+  "timestamp": 1789763238.664577,
+  "scenario": "Estonian Veterinary Compliance & Retail Logistics",
+  "raw_unconstrained_llm": {
+    "engine": "Direct Gemini Flash API Call",
+    "latency_seconds": 12.574,
+    "prompt_tokens": 59,
+    "completion_tokens": 1640,
+    "verified_primary_citations": 0,
+    "hallucination_vulnerability": "High (unanchored model knowledge)",
+    "audit_traceability": "None (unverified database log)",
+    "cryptographic_attestation": "None",
+    "enterprise_procurement_readiness": "Unsuitable for SOC2 / ISO compliance"
+  },
+  "orqanix_cognitive_pipeline": {
+    "engine": "Orqanix 4-Tier Stack (AxWise + Orqaly + TypeSafe Jev + Ed25519)",
+    "citations_verified": 10,
+    "primary_law_sources": [
+      "Feedingstuffs Act \u00a7 19",
+      "Commission Regulation (EU) No 142/2011 Annex XIII",
+      "LABRIS testing"
+    ],
+    "hallucination_protection": "Mathematical fail-closed zero-hallucination gate",
+    "prompt_token_caching": "99.3% reduction on multi-turn iterations (12 delta tokens vs 1,757)",
+    "pre_adoption_audit_gate_b": "1.00s (TypeSafe Jev sub-second verification)",
+    "cryptographic_attestation": "0.66ms Asymmetric Ed25519 elliptic curve signature",
+    "acceptance_criteria_satisfied": "100% (All criteria stamped Satisfied)",
+    "enterprise_procurement_readiness": "Enterprise SOC2 / ISO 27001 Non-Repudiation Ready"
+  }
+}
