@@ -278,6 +278,10 @@ def _validate_synthesis(context: SynthesisContext, draft: SynthesisDraft) -> Non
             reason="REQUIRED_SECTIONS_MISSING",
             counts={"required_sections": len(missing)},
         )
+    # Gate B: TypeSafe Jev pre-adoption deliverable integrity audit
+    from backend.services.workflow_v2.cognitive.typesafe_triage import validate_deliverable_with_jev
+    _jev_gate_b = validate_deliverable_with_jev(draft.markdown)
+
     positive_launch_claim = has_positive_launch_readiness_claim(draft.markdown)
     if positive_launch_claim and context.evidence_readiness != "ready":
         raise SynthesisValidationError(
