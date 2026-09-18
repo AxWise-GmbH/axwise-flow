@@ -224,8 +224,14 @@ request = urllib.request.Request(
     f"{base_url}/search?{query}",
     headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
 )
+import ssl
 try:
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    import certifi
+    ctx = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    ctx = ssl.create_default_context()
+try:
+    with urllib.request.urlopen(request, timeout=timeout, context=ctx) as response:
         status = int(response.status)
         content_type = response.headers.get_content_type()
         body = response.read(2_000_001)
