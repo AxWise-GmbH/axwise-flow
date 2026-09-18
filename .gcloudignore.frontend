@@ -1,0 +1,14 @@
+.git/
+.github/
+backend/
+apps/
+packages/
+node_modules/
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+frontend/.next/
+frontend/out/
+*.md
+*.html
+/tmp/
