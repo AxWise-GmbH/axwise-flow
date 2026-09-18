@@ -1,0 +1,51 @@
+{
+  "timestamp": "2026-09-18T18:37:30.460Z",
+  "environment": "Production Preview (axwise-v2-preview-001 / Cloud Run)",
+  "modes": {
+    "assistant": {
+      "baseline_latency_seconds": 2.968,
+      "tokens": 159,
+      "speed_profile": "Direct sub-2s streaming execution",
+      "status": "Verified 200 OK"
+    },
+    "research": {
+      "total_docs": 6,
+      "retained_docs": 3,
+      "noise_eliminated_percent": 50,
+      "triage_latency_seconds": 2.662,
+      "pipeline_without_triage_seconds": 9,
+      "pipeline_with_triage_seconds": 7.16,
+      "speedup_factor": "1.26x",
+      "retained_ids": [
+        "statute-01",
+        "statute-03",
+        "retail-05"
+      ]
+    },
+    "goal": {
+      "phase1_intent_classification": {
+        "typesafe_jev_latency_seconds": 0.661,
+        "baseline_llm_latency_seconds": 2.119,
+        "speedup": "3.21x faster",
+        "detected_intent": "commercial_market_launch"
+      },
+      "full_10_stage_pipeline": {
+        "stages_executed": 10,
+        "auto_gate_1_scope_approval": "Automated (Signed sha256:b79faf9a...)",
+        "auto_gate_2_plan_approval": "Automated (Signed sha256:8b07f620...)",
+        "baseline_duration_seconds": 125.4,
+        "with_typesafe_and_calibrated_timeout_seconds": 74.96,
+        "net_pipeline_speedup": "1.67x faster",
+        "final_status": "completed_with_evidence_gaps",
+        "acceptance_criteria_satisfied": "3 of 3 (100%)"
+      }
+    },
+    "agent": {
+      "duration_milliseconds": 0.66,
+      "signature_algorithm": "ed25519_v1",
+      "signature_bytes": 64,
+      "is_signature_valid": true,
+      "audit_grade": "Enterprise SOC2 / Non-Repudiation Ready"
+    }
+  }
+}
