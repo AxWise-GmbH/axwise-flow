@@ -48,6 +48,27 @@ export default function SimpleHero({ onPrimaryCta }) {
           <Typography sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
             Built on Goose · Powered by Gemini
           </Typography>
+          <Box sx={{ pt: 1, pb: 0.5 }}>
+            <Button
+              component="a"
+              href="/benchmark"
+              variant="outlined"
+              size="small"
+              sx={{
+                borderRadius: 999,
+                textTransform: 'none',
+                px: 2.25,
+                py: 0.625,
+                fontSize: '0.8125rem',
+                fontWeight: 650,
+                color: 'primary.main',
+                borderColor: 'rgba(99, 102, 241, 0.4)',
+                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(99, 102, 241, 0.08)' }
+              }}
+            >
+              ⚡ See Live Architecture & Multi-Surface Benchmarks →
+            </Button>
+          </Box>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
             <DesktopDownloadButton descriptionId="hero-download-details" />
             <Button
