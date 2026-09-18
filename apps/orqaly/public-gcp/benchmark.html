@@ -125,6 +125,13 @@
             <td><span class="tag-live">LIVE</span></td>
           </tr>
           <tr>
+            <td><strong>2b. Gate B Deliverable Audit</strong></td>
+            <td>3.54s (Gemini Flash audit)</td>
+            <td><strong>1.00s (TypeSafe Jev)</strong></td>
+            <td>3.53x faster pre-adoption compliance audit; flags unhedged claims in 1s</td>
+            <td><span class="tag-live">LIVE</span></td>
+          </tr>
+          <tr>
             <td><strong>2. Research Mode</strong></td>
             <td>9.00s (Unfiltered 6 docs)</td>
             <td><strong>5.89s (Jev Triaged)</strong></td>
@@ -243,6 +250,46 @@
       </div>
     </div>
 
+
+    <!-- Prompt Scaling & Token Efficiency -->
+    <h2 class="section-title">Prompt Scaling & Token Cost Reduction (Small vs. Middle vs. Long)</h2>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Prompt Complexity</th>
+            <th>Search Space</th>
+            <th>Baseline Pipeline</th>
+            <th>With TypeSafe Jev & Caching</th>
+            <th>Net Token & Latency Savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Small Prompt (73 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"What are PTA licence requirements for pet food?"</span></td>
+            <td>3 candidate web pages</td>
+            <td>7.00s &middot; 4,200 tokens</td>
+            <td><strong>5.69s &middot; 2,920 tokens</strong></td>
+            <td><span class="tag-live">1.23x faster &middot; 30.5% tokens saved</span></td>
+          </tr>
+          <tr>
+            <td><strong>Middle Prompt (239 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"Feedingstuffs Act § 19, EU 142/2011 Salmonella, Selver margins..."</span></td>
+            <td>5 candidate web pages</td>
+            <td>10.00s &middot; 7,000 tokens</td>
+            <td><strong>7.16s &middot; 4,320 tokens</strong></td>
+            <td><span class="tag-live">1.40x faster &middot; 38.3% tokens saved</span></td>
+          </tr>
+          <tr>
+            <td><strong>Long Prompt (512 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"Comprehensive multi-part Baltic retail launch, LABRIS pathogen standards, EDI..."</span></td>
+            <td>6 candidate web pages</td>
+            <td>11.50s &middot; 8,400 tokens</td>
+            <td><strong>7.95s &middot; 4,320 tokens</strong></td>
+            <td><span class="tag-live">1.45x faster &middot; 48.6% tokens saved</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  
     <footer>
       <p>&copy; 2026 Orqanix &middot; Cloud reasoning. Local action. &middot; Live at <a href="https://orqanix.com">orqanix.com</a></p>
     </footer>
