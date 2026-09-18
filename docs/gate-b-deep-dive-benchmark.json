@@ -1,0 +1,32 @@
+{
+  "benchmark": "Gate B Pre-Adoption Deliverable Integrity Audit",
+  "document_stats": {
+    "words": 3306,
+    "characters": 24904
+  },
+  "typesafe_jev": {
+    "model": "typesafe:jev-latest",
+    "latency_seconds": 1.003,
+    "latency_ms": 1003.1,
+    "decision": {
+      "has_unverified_factual_claims_without_pending_prefix": true,
+      "is_acceptance_criteria_traceability_intact": false
+    }
+  },
+  "baseline_gemini_flash": {
+    "model": "models/gemini-flash-latest",
+    "latency_seconds": 3.538,
+    "latency_ms": 3538.4,
+    "prompt_tokens": 856,
+    "output_tokens": 32,
+    "decision": {
+      "has_unverified_factual_claims_without_pending_prefix": true,
+      "is_acceptance_criteria_traceability_intact": false
+    }
+  },
+  "comparison": {
+    "speedup_factor": "3.53x",
+    "latency_reduction_percent": "71.7%",
+    "decision_agreement": true
+  }
+}
