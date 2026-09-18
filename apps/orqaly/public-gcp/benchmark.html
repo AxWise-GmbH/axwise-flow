@@ -306,6 +306,39 @@
 
 
     <!-- Prompt Scaling & Token Efficiency -->
+    
+    <!-- Two-Tier PRD Architecture (Fast vs Deep) -->
+    <h2 class="section-title">Two-Tier PRD Architecture: Fast Executive vs. Deep Comprehensive</h2>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>PRD Architecture Tier</th>
+            <th>Total Latency</th>
+            <th>Word Count / Output</th>
+            <th>Pipeline Topology & Gate Execution</th>
+            <th>Target Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tier 1: Fast Executive Hybrid</strong><br><span style="color:var(--text-muted);font-size:12px">Assistant mode & rapid prototyping</span></td>
+            <td><strong>19.08 seconds</strong><br><span class="tag-live">6.57x Net Speedup</span></td>
+            <td>767 words &middot; 2,500 tokens</td>
+            <td>Linear 4-stage pipeline with TypeSafe Jev Gate A evidence triage & Gate B audit</td>
+            <td>Instant conversational briefs, executive summaries, sub-20s turnaround</td>
+          </tr>
+          <tr>
+            <td><strong>Tier 2: Deep Comprehensive PRD</strong><br><span style="color:var(--text-muted);font-size:12px">Goals mode & enterprise runbooks</span></td>
+            <td><strong>74.96 seconds</strong><br><span class="tag-live">1.67x Net Speedup</span></td>
+            <td>3,306 words &middot; 23,000 tokens</td>
+            <td>Full 10-stage DAG with parallel specialist workers, 10 primary citations, and automated Gate 1 & 2</td>
+            <td>Enterprise audit runbooks, formal compliance cutovers, traceability matrices</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  
     <h2 class="section-title">Prompt Scaling & Token Cost Reduction (Small vs. Middle vs. Long)</h2>
     <div class="table-card">
       <table>
