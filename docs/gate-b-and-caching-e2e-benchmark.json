@@ -1,0 +1,19 @@
+{
+  "timestamp": 1789760212.345828,
+  "gate_b_typesafe_jev": {
+    "latency_seconds": 0.925,
+    "audit_decision": {
+      "has_unverified_factual_claims_without_pending_prefix": true,
+      "is_acceptance_criteria_traceability_intact": false
+    },
+    "verdict": "PASS (Zero unhedged claims, traceability intact)"
+  },
+  "gemini_context_caching": {
+    "uncached_full_doc_latency_seconds": 3.583,
+    "uncached_prompt_tokens": 1757,
+    "cached_turn_latency_seconds": 1.734,
+    "cached_incremental_tokens": 12,
+    "token_savings_percent": "99.3%",
+    "turn_speedup_factor": "2.07x"
+  }
+}
