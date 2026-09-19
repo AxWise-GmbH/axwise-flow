@@ -28,6 +28,11 @@ from backend.services.orchestration.scope_contract_service import (
     research_execution_inputs_hash,
     research_execution_inputs_payload,
 )
+from backend.services.orqaly_hybrid_run_service import HybridRunService
+from backend.services.research_topic_contract_service import (
+    TopicSeedContract,
+    product_topic_phrases,
+)
 from backend.tests.orchestration.scope_acceptance_helpers import accept_scope
 from backend.tests.orchestration.unit.test_uncertainty_router import (
     _ambiguous_research_payload,
@@ -451,6 +456,36 @@ def test_estonia_cat_food_scope_projects_strict_commercial_policy_through_adapte
     assert outputs.prd.type == "commercial_market_launch"
     market_scope = service.enqueue_kwargs["request"].business_context.market_scope
     assert market_scope.resolved_scope.countries[0].country_code == "EE"
+    assert len(task_context.title) > 300
+    country_codes = [
+        country.country_code
+        for country in market_scope.resolved_scope.countries
+    ]
+    immutable_goal = HybridRunService._immutable_topic_goal_fields(
+        service.enqueue_kwargs["request"],
+        task_context,
+    )
+    assert immutable_goal.title == ESTONIA_CAT_FOOD_LAUNCH_PROMPT
+    assert immutable_goal.problem_scope == ESTONIA_CAT_FOOD_LAUNCH_PROMPT
+    assert immutable_goal.desired_outcome == ESTONIA_CAT_FOOD_LAUNCH_PROMPT
+    assert immutable_goal.mission == ESTONIA_CAT_FOOD_LAUNCH_PROMPT
+    topic_seed = HybridRunService._topic_seed_contract(
+        service.enqueue_kwargs["request"],
+        task_context,
+        country_codes,
+    )
+    parsed_seed = TopicSeedContract.model_validate(topic_seed)
+    assert parsed_seed.goal_id == task_context.task_id
+    assert parsed_seed.confirmed_country_codes == ("EE",)
+    assert parsed_seed.seed_sha256
+    assert "distributing subscription cat food" in product_topic_phrases(
+        parsed_seed
+    )
+    assert topic_seed == HybridRunService._topic_seed_contract(
+        service.enqueue_kwargs["request"],
+        task_context,
+        country_codes,
+    )
 
 
 def test_grounded_noncommercial_scope_does_not_gain_commercial_claim_policy():

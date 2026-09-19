@@ -41,6 +41,13 @@ export default function SimpleTopBar() {
           >
             <Button
               component="a"
+              href="/benchmark"
+              sx={{ display: { xs: 'none', md: 'inline-flex' }, fontWeight: 600, color: 'primary.main' }}
+            >
+              ⚡ Benchmarks
+            </Button>
+            <Button
+              component="a"
               href="#use-cases"
               sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
             >

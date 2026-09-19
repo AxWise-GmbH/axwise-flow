@@ -21,9 +21,9 @@ describe('getAllowedOrigins', () => {
   it('falls back to the built-in prod + localhost list when ALLOWED_ORIGINS is unset', () => {
     delete process.env.ALLOWED_ORIGINS;
     const origins = getAllowedOrigins();
-    expect(origins).toContain('https://orqaly.com');
-    expect(origins).toContain('https://www.orqaly.com');
-    expect(origins).toContain('https://orchestratori.orqaly.com');
+    expect(origins).toContain('https://orqanix.com');
+    expect(origins).toContain('https://www.orqanix.com');
+    expect(origins).toContain('https://orchestratori.orqanix.com');
     expect(origins).toContain('https://orchestratori.vercel.app');
     expect(origins).toContain('http://localhost:5176');
   });
@@ -48,25 +48,25 @@ describe('cors', () => {
 
   it('reflects the origin back for orqaly.com in production', () => {
     const res = makeRes();
-    cors(res, { headers: { origin: 'https://orqaly.com' } });
-    expect(res.headers['Access-Control-Allow-Origin']).toBe('https://orqaly.com');
+    cors(res, { headers: { origin: 'https://orqanix.com' } });
+    expect(res.headers['Access-Control-Allow-Origin']).toBe('https://orqanix.com');
   });
 
   it('reflects the origin back for the app subdomain', () => {
     const res = makeRes();
-    cors(res, { headers: { origin: 'https://orchestratori.orqaly.com' } });
-    expect(res.headers['Access-Control-Allow-Origin']).toBe('https://orchestratori.orqaly.com');
+    cors(res, { headers: { origin: 'https://orchestratori.orqanix.com' } });
+    expect(res.headers['Access-Control-Allow-Origin']).toBe('https://orchestratori.orqanix.com');
   });
 
   it('rejects an unrecognized origin in production, falling back to the first allowed origin', () => {
     const res = makeRes();
     cors(res, { headers: { origin: 'https://evil.example.com' } });
     expect(res.headers['Access-Control-Allow-Origin']).not.toBe('https://evil.example.com');
-    expect(res.headers['Access-Control-Allow-Origin']).toBe('https://orqaly.com');
+    expect(res.headers['Access-Control-Allow-Origin']).toBe('https://orqanix.com');
   });
 
   it('rejects localhost origins in production once ALLOWED_ORIGINS is set to prod-only (as Vercel prod is configured)', () => {
-    process.env.ALLOWED_ORIGINS = 'https://orqaly.com,https://orchestratori.orqaly.com';
+    process.env.ALLOWED_ORIGINS = 'https://orqanix.com,https://orchestratori.orqanix.com';
     const res = makeRes();
     cors(res, { headers: { origin: 'http://localhost:5176' } });
     expect(res.headers['Access-Control-Allow-Origin']).not.toBe('http://localhost:5176');
@@ -75,7 +75,7 @@ describe('cors', () => {
   it('allows localhost origins outside production', () => {
     process.env.NODE_ENV = 'development';
     delete process.env.VERCEL_ENV;
-    process.env.ALLOWED_ORIGINS = 'https://orqaly.com';
+    process.env.ALLOWED_ORIGINS = 'https://orqanix.com';
     const res = makeRes();
     cors(res, { headers: { origin: 'http://localhost:5176' } });
     expect(res.headers['Access-Control-Allow-Origin']).toBe('http://localhost:5176');

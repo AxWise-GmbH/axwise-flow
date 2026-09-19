@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orqanix Lean Architecture: What to Keep on Orqaly vs What to Omit & Delegate</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-border: #334155;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #38bdf8;
+  --keep-bg: rgba(16, 185, 129, 0.1);
+  --keep-border: #10b981;
+  --keep-text: #34d399;
+  --omit-bg: rgba(239, 68, 68, 0.1);
+  --omit-border: #ef4444;
+  --omit-text: #f87171;
+  --goose-bg: rgba(56, 189, 248, 0.1);
+  --goose-border: #0ea5e9;
+  --goose-text: #7dd3fc;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding: 24px;
+}
+header {
+  max-width: 1400px;
+  margin: 0 auto 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--surface-border);
+}
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+.badge-core { background: var(--keep-bg); color: var(--keep-text); border: 1px solid var(--keep-border); }
+h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+p.subtitle { color: var(--text-muted); font-size: 16px; max-width: 900px; }
+
+/* Filter Tabs */
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tab-btn {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--surface-border);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn.active, .tab-btn:hover {
+  background: #273549;
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* Strategic Columns Layout */
+.columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto 40px;
+}
+.col-card {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.col-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--surface-border);
+}
+.col-header.keep { border-top: 4px solid var(--keep-border); }
+.col-header.omit { border-top: 4px solid var(--omit-border); }
+.col-header.goose { border-top: 4px solid var(--goose-border); }
+
+.col-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.col-desc { font-size: 13px; color: var(--text-muted); }
+
+.items-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+.item-card {
+  background: #182234;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 14px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.item-card:hover {
+  transform: translateY(-2px);
+  border-color: #475569;
+}
+.item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.item-title { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+.item-pill {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.pill-keep { background: var(--keep-bg); color: var(--keep-text); border: 1px solid var(--keep-border); }
+.pill-omit { background: var(--omit-bg); color: var(--omit-text); border: 1px solid var(--omit-border); }
+.pill-goose { background: var(--goose-bg); color: var(--goose-text); border: 1px solid var(--goose-border); }
+
+.item-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+.item-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #64748b;
+  background: #0f172a;
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Architecture Flow Section */
+.architecture-section {
+  max-width: 1400px;
+  margin: 0 auto 40px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.architecture-section h2 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+.architecture-section p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+
+/* Interactive Flow Visualizer */
+.flow-container {
+  background: #0f172a;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.flow-box {
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 18px;
+}
+.flow-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.flow-box ul { list-style: none; font-size: 13px; color: var(--text-muted); }
+.flow-box li { margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.flow-arrow {
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Checklist Section */
+.checklist-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.check-card {
+  background: #182234;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.check-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #e2e8f0; }
+.check-card ul { padding-left: 20px; font-size: 13px; color: var(--text-muted); }
+.check-card li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge badge-core">Strategic Monorepo Rationalization</div>
+  <h1>Orqanix Lean Architecture Blueprint</h1>
+  <p class="subtitle">
+    Detailed division of responsibilities: what belongs strictly in <strong>Orqaly Cloud</strong>, what should be <strong>Omitted / Deleted</strong> to eliminate technical debt, and what is <strong>Delegated to Goose Desktop</strong>.
+  </p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="filterView('all')">View All (Complete Strategy)</button>
+  <button class="tab-btn" onclick="filterView('keep')">Keep on Orqaly</button>
+  <button class="tab-btn" onclick="filterView('omit')">Omit / Delete</button>
+  <button class="tab-btn" onclick="filterView('goose')">Delegate to Goose</button>
+</div>
+
+<div class="columns-grid">
+
+  <!-- COLUMN 1: KEEP ON ORQALY -->
+  <div class="col-card" data-col="keep">
+    <div class="col-header keep">
+      <div class="col-title" style="color: var(--keep-text);">
+        <span>🛡️</span> 1. KEEP ON ORQALY (The Lean Cloud Core)
+      </div>
+      <div class="col-desc">High-value, multi-tenant cloud capabilities that provide identity, audit, durable queues, and cognitive interfaces.</div>
+    </div>
+    <div class="items-list">
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Multi-Tenant RBAC & PostgreSQL RLS</div>
+          <span class="item-pill pill-keep">Core Keep</span>
+        </div>
+        <div class="item-desc">Clerk authentication, tenant identity resolution, JIT provisioning, and strict Row-Level Security (SET LOCAL orqaly.tenant_id = $1) across all tenant tables.</div>
+        <div class="item-path">apps/orqaly/database/workflow-v2/migrations/001-025</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">AxWise &lt;-&gt; Orqaly Cognitive Contracts</div>
+          <span class="item-pill pill-keep">Core Keep</span>
+        </div>
+        <div class="item-desc">Wire contract (axwise.operation.v2), RFC 8785 canonical JSON hashing, Idempotency-Key handling, and Cloud Run IAM service authentication (GoogleAuth).</div>
+        <div class="item-path">apps/orqaly/shared/workflow-v2/contracts.js & backend/domain</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Desktop Gateway & Model Proxy</div>
+          <span class="item-pill pill-keep">Core Keep</span>
+        </div>
+        <div class="item-desc">Authenticated /desktop/v1 endpoints proxying Goose completions to Gemini 3.8 Flash (1M context), injecting run context and rate limiting without client keys.</div>
+        <div class="item-path">apps/orqaly/server/workflow-v2/goose-provider-http.js</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Durable Goals Timeline & Artifact Vault</div>
+          <span class="item-pill pill-keep">Core Keep</span>
+        </div>
+        <div class="item-desc">The 10-stage execution state machine (scope, plan, research, draft, review, final_markdown), transactional outbox (SKIP LOCKED), and immutable GCS artifact exports.</div>
+        <div class="item-path">apps/orqaly/server/workflow-v2/worker-engine.js</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Real-Time Assistant Turn Streaming (SSE)</div>
+          <span class="item-pill pill-keep">Core Keep</span>
+        </div>
+        <div class="item-desc">Server-Sent Events streaming (/v2/assistant/threads/:id/events), multi-turn conversational memory, retry/resume lineage, and human-in-the-loop approvals.</div>
+        <div class="item-path">apps/orqaly/server/workflow-v2/assistant-service.js</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Subscriptions, Quotas & Token Accounting</div>
+          <span class="item-pill pill-keep">Core Keep</span>
+        </div>
+        <div class="item-desc">Hourly tenant execution limits, plan quotas, LLM token metrics (input/output/cost in micros), and Clerk/Stripe subscription status enforcement.</div>
+        <div class="item-path">apps/orqaly/server/workflow-v2/postgres-repository.js</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COLUMN 2: OMIT / DELETE FROM ORQALY -->
+  <div class="col-card" data-col="omit">
+    <div class="col-header omit">
+      <div class="col-title" style="color: var(--omit-text);">
+        <span>🗑️</span> 2. OMIT / DELETE (Cut Technical Debt)
+      </div>
+      <div class="col-desc">Legacy code, mock catalogs, abandoned Vercel handlers, and unmounted stubs that create maintenance overhead.</div>
+    </div>
+    <div class="items-list">
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">40+ Legacy Vercel Serverless Handlers</div>
+          <span class="item-pill pill-omit">Delete</span>
+        </div>
+        <div class="item-desc">Unmounted historical handlers in apps/orqaly/api/: communicator real-time rooms, ElevenLabs audio TTS/transcribe, pitch deck investor CRM, and legacy PIN logins.</div>
+        <div class="item-path">apps/orqaly/api/* & apps/orqaly/lib/api-handlers/*</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Fake Static Tool Catalog (libraryMcpCatalog.js)</div>
+          <span class="item-pill pill-omit">Purge</span>
+        </div>
+        <div class="item-desc">Static JSON file with >80% non-executable tools (Carrd, Framer, Slidev, Marp). Pretentious metadata without actual MCP servers.</div>
+        <div class="item-path">apps/orqaly/shared/libraryMcpCatalog.js</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Naive Embedding Fallback (hashEmbedding)</div>
+          <span class="item-pill pill-omit">Replace</span>
+        </div>
+        <div class="item-desc">Crude word-modulo hash used in memory-manager.js when HuggingFace is unreachable. Destroys vector search semantic quality. Replace with Gemini Embeddings.</div>
+        <div class="item-path">apps/orqaly/lib/workflow-engine/memory-manager.js</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Fragmented Legacy Concilium Handlers</div>
+          <span class="item-pill pill-omit">Consolidate</span>
+        </div>
+        <div class="item-desc">Multi-agent consensus code split across legacy Supabase tables, snake_case wrappers, and cron loops. Consolidate cleanly into agentic-control-plane.</div>
+        <div class="item-path">apps/orqaly/lib/concilium-handlers/</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Direct Supabase Client Dependencies</div>
+          <span class="item-pill pill-omit">Purge</span>
+        </div>
+        <div class="item-desc">Legacy client-side Supabase tokens and table clients. Already blocked by gcpModuleBoundaryGuard; should be physically deleted from source tree.</div>
+        <div class="item-path">apps/orqaly/src/supabase.js & related shims</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COLUMN 3: DELEGATE TO GOOSE DESKTOP -->
+  <div class="col-card" data-col="goose">
+    <div class="col-header goose">
+      <div class="col-title" style="color: var(--goose-text);">
+        <span>💻</span> 3. DELEGATE TO GOOSE (Local Operator)
+      </div>
+      <div class="col-desc">Capabilities that inherently belong on the user's laptop with native OS access, zero latency, and local developer toolchains.</div>
+    </div>
+    <div class="items-list">
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Deep Engineering & AST Edits (Oh My Pi)</div>
+          <span class="item-pill pill-goose">Goose Exclusive</span>
+        </div>
+        <div class="item-desc">AST parsing, Tree-sitter inspection, LSP queries, and workspace file editing. Powered by omp-mcp-server with zero cloud container lag.</div>
+        <div class="item-path">packages/omp-mcp-server/ (Live in desktop app)</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Native OS & UI Automation (Peekaboo)</div>
+          <span class="item-pill pill-goose">Goose Exclusive</span>
+        </div>
+        <div class="item-desc">macOS Accessibility APIs, multi-window screen capture, button clicking, typing, and local system dialog control. Impossible inside headless cloud containers.</div>
+        <div class="item-path">Goose Computercontroller extension</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Local Shell, Compilers & Git Worktrees</div>
+          <span class="item-pill pill-goose">Goose Exclusive</span>
+        </div>
+        <div class="item-desc">Direct execution of cargo, npm, pytest, git branch creation, and local script execution within the user's explicit authorization perimeter.</div>
+        <div class="item-path">Goose Developer extension (bash / shell)</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Local Document Tooling (Word / PDF / Excel)</div>
+          <span class="item-pill pill-goose">Goose Exclusive</span>
+        </div>
+        <div class="item-desc">Direct filesystem manipulation of .docx, .xlsx, and .pdf documents via Python/Node office tool extensions without uploading sensitive enterprise files to cloud.</div>
+        <div class="item-path">Goose docxTool, pdfTool, xlsxTool</div>
+      </div>
+
+      <div class="item-card">
+        <div class="item-head">
+          <div class="item-title">Private Session Memory (Chatrecall)</div>
+          <span class="item-pill pill-goose">Goose Exclusive</span>
+        </div>
+        <div class="item-desc">Fast, local session transcripts and conversational recall stored safely on the user's machine (~/.goose) requiring zero cloud DB roundtrips.</div>
+        <div class="item-path">Goose Chatrecall extension</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ARCHITECTURE FLOW -->
+<div class="architecture-section">
+  <h2>Target Lean Architecture &amp; Data Flow</h2>
+  <p>How the streamlined system interacts once legacy bloat is stripped out:</p>
+  
+  <div class="flow-container">
+    <div class="flow-box">
+      <h3 style="color: var(--goose-text);">Goose Desktop (Tier 3 &amp; 4)</h3>
+      <ul>
+        <li>• Local shell &amp; compilers</li>
+        <li>• Oh My Pi (AST / LSP / Edits)</li>
+        <li>• Peekaboo macOS Automation</li>
+        <li>• Local Document Tools</li>
+        <li>• OS Keychain OAuth Store</li>
+      </ul>
+    </div>
+
+    <div class="flow-arrow">⮂<br><small style="font-size: 10px; color: #64748b;">MCP stdio /<br>/desktop/v1</small><br>⮃</div>
+
+    <div class="flow-box">
+      <h3 style="color: var(--keep-text);">Orqaly Cloud (Tier 1 &amp; 2)</h3>
+      <ul>
+        <li>• Clerk PKCE Auth &amp; Multi-Tenant RLS</li>
+        <li>• Real-Time Assistant SSE Stream</li>
+        <li>• 10-Stage Goals &amp; Outbox (SKIP LOCKED)</li>
+        <li>• Token Billing &amp; Subscriptions</li>
+        <li>• Immutable Artifact Vault (GCS)</li>
+      </ul>
+    </div>
+
+    <div class="flow-arrow">⮂<br><small style="font-size: 10px; color: #64748b;">IAM ID Token /<br>axwise.operation.v2</small><br>⮃</div>
+
+    <div class="flow-box">
+      <h3 style="color: var(--accent);">AxWise Cloud (Tier 2b)</h3>
+      <ul>
+        <li>• Cognitive Operation Worker</li>
+        <li>• Pipeline A (Empirical Quote Spans)</li>
+        <li>• Pipeline B (OCEAN Simulation)</li>
+        <li>• PRD Synthesis &amp; Topic Anchors</li>
+        <li>• Private SearXNG Search Proxy</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ACTION CHECKLIST -->
+<div class="architecture-section">
+  <h2>Action Checklist for Co-Founders</h2>
+  <div class="checklist-grid">
+    <div class="check-card">
+      <h4 style="color: var(--keep-text);">What We Are Finalizing on Orqaly</h4>
+      <ul>
+        <li><strong>Verify Tenant Boundaries:</strong> Ensure PostgreSQL 16 RLS policies in migrations 001-025 strictly govern all table access.</li>
+        <li><strong>Lock AxWise Operation Contracts:</strong> Guarantee RFC 8785 Canonical JSON SHA-256 hashes and 4,000-char topic contracts stay immutable.</li>
+        <li><strong>Enforce Subscription Quotas:</strong> Bind tenant execution rate limits and hourly job ceilings to Clerk metadata.</li>
+      </ul>
+    </div>
+    <div class="check-card">
+      <h4 style="color: var(--omit-text);">What We Are Safely Deleting</h4>
+      <ul>
+        <li><strong>Remove apps/orqaly/api/:</strong> Delete all 40+ unmounted Vercel serverless handlers to eliminate confusion.</li>
+        <li><strong>Drop libraryMcpCatalog.js:</strong> Delete the static non-executable tools file in favor of real MCP definitions.</li>
+        <li><strong>Clean Supabase Shims:</strong> Delete leftover Supabase client files that are already forbidden by the build boundary.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterView(type) {
+  const cards = document.querySelectorAll('.col-card');
+  const buttons = document.querySelectorAll('.tab-btn');
+  buttons.forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  cards.forEach(card => {
+    if (type === 'all' || card.dataset.col === type) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+
+</body>
+</html>

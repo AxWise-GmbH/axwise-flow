@@ -6,6 +6,7 @@ import pytest
 
 from backend.services.workflow_v2.cognitive.policy import (
     _DESIGN_CONSISTENCY_METHOD,
+    _SYNTHESIS_BODY,
     EVALUATION_SYSTEM_PROMPT,
     SYNTHESIS_SYSTEM_PROMPT,
     TASK_SYSTEM_PROMPT,
@@ -175,3 +176,27 @@ def test_existing_typed_output_and_immutable_scope_boundaries_remain() -> None:
         in EVALUATION_SYSTEM_PROMPT
     )
     assert "reviewer guidance, not a form to satisfy" in SYNTHESIS_SYSTEM_PROMPT
+
+
+def test_unresolved_evidence_must_use_pending_verification_prefix() -> None:
+    for prompt in (
+        TASK_SYSTEM_PROMPT,
+        EVALUATION_SYSTEM_PROMPT,
+        SYNTHESIS_SYSTEM_PROMPT,
+    ):
+        text = normalized(prompt)
+        assert (
+            "Any requirement, specification, or claim subject to an unresolved evidence requirement or open evidence gap must be prefixed with '**Pending verification:** ' or designated with explicit provisional language"
+            in text
+        )
+        assert (
+            "never asserted as an established fact without exact immutable evidence markers"
+            in text
+        )
+
+    synthesis_text = normalized(SYNTHESIS_SYSTEM_PROMPT)
+    assert normalized(_SYNTHESIS_BODY) in synthesis_text
+    assert (
+        "When asserting any requirement or specification subject to an unresolved evidence requirement or open gap, always prefix the statement or bullet with '**Pending verification:** ' so it is clearly designated as provisional rather than an established fact"
+        in synthesis_text
+    )
