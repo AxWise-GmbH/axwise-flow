@@ -523,6 +523,12 @@ def _has_positive_pattern(texts: Iterable[str], patterns: Iterable[str]) -> bool
 
 
 def _detected_document_intent(texts: list[str]) -> str | None:
+    # Phase 1: TypeSafe Jev accelerated intent classification
+    from backend.services.workflow_v2.cognitive.typesafe_triage import classify_intent_with_jev
+    jev_intent = classify_intent_with_jev(texts)
+    if jev_intent is not None:
+        return jev_intent
+
     globally_negated_work_types = _negated_work_types(texts)
     for intent in (
         "commercial_market_launch",
@@ -2034,6 +2040,16 @@ def _acceptance(
 def build_scope_packet(request: DecisionCreateRequestV1) -> ScopePacketV1:
     """Derive one canonical, order-independent packet from validated scope state."""
 
+    for field_name, value in (
+        ("task objective", request.task.objective),
+        ("task desired outcome", request.task.desired_outcome),
+    ):
+        if len(_text(value)) > 4_000:
+            raise ScopeContractError(
+                f"{field_name} exceeds the lossless 4000-character scope contract; "
+                "shorten it because longer scope remains blocked until Gate 1 "
+                "supports explicit exact-span topic anchors"
+            )
     state = request.scope_state or ScopeStateV1()
     corrections = _correction_texts(state)
     research_contract = _research_contract(request, state)

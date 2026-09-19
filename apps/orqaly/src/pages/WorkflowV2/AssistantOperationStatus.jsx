@@ -21,6 +21,9 @@ function messageTime(createdAt) {
 
 function statusCopy(part, route, canStartNewAttempt) {
   if (part.status === 'failed') {
+    if (part.errorClass === 'AXWISE_ASSISTANT_EVIDENCE_UNAVAILABLE') {
+      return 'Evidence unavailable: Live web sources did not return verifiable claims.';
+    }
     if (canStartNewAttempt) return 'Orqanix could not complete this attempt.';
     return part.retryable
       ? 'Orqanix paused this turn. Please try again shortly.'
@@ -149,6 +152,11 @@ export function AssistantOperationStatus({
             >
               {summary}
             </Typography>
+            {part.errorClass === 'AXWISE_ASSISTANT_EVIDENCE_UNAVAILABLE' ? (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                Ask as a general conversational question or attach source documents in a Goal to bypass web search.
+              </Typography>
+            ) : null}
           </Box>
           <Button
             type="button"

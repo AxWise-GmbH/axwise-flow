@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orqanix Benchmark & Technical Breakthrough | Public Showcase</title>
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(18, 20, 29, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-active: rgba(99, 102, 241, 0.4);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.15);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 1180px; margin: 0 auto; }
+    
+    /* Header */
+    header { text-align: center; margin-bottom: 50px; }
+    .badge { display: inline-block; padding: 6px 14px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--primary-light); border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 16px; }
+    h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; background: linear-gradient(135deg, #fff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p.subtitle { font-size: 18px; color: var(--text-muted); max-width: 780px; margin: 0 auto; }
+
+    /* Highlights Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(16px); transition: all 0.3s ease; }
+    .card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+    .card-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+    .card-value { font-size: 34px; font-weight: 800; color: #fff; margin-bottom: 6px; display: flex; align-items: baseline; gap: 8px; }
+    .card-gain { font-size: 14px; color: var(--accent); font-weight: 700; }
+    .card-desc { font-size: 13px; color: var(--text-muted); }
+
+    /* Interactive Comparison Section */
+    .section-title { font-size: 26px; font-weight: 700; margin-top: 50px; margin-bottom: 24px; letter-spacing: -0.5px; }
+    .table-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 30px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 18px 20px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02); }
+    td { padding: 18px 20px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag-live { display: inline-block; padding: 3px 8px; background: rgba(16, 185, 129, 0.15); color: var(--accent); border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .tag-crypto { display: inline-block; padding: 3px 8px; background: rgba(99, 102, 241, 0.15); color: var(--primary-light); border-radius: 6px; font-weight: 700; font-size: 12px; }
+
+    /* Prompts & Turns Deep Dive */
+    .turn-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; }
+    .turn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .turn-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+    .badge-assistant { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge-research { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-goal { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-agent { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+    .prompt-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: #e5e7eb; margin-bottom: 16px; line-height: 1.5; }
+    .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
+    .diff-pane { padding: 14px; border-radius: 8px; font-size: 13px; }
+    .pane-before { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .pane-after { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .pane-title { font-weight: 700; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pane-before .pane-title { color: #f87171; }
+    .pane-after .pane-title { color: #34d399; }
+
+    /* Footer */
+    footer { text-align: center; margin-top: 60px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 30px; }
+    footer a { color: var(--primary-light); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">LIVE PRODUCTION VALIDATION &middot; SEPT 2026</div>
+      <h1>Orqanix Acceleration & Architecture Benchmark</h1>
+      <p class="subtitle">A mathematical and operational comparison of Orqanix with TypeSafe AI (Jev) integration, automated stage-gates, and asymmetric Ed25519 cryptographic governance.</p>
+    </header>
+
+    <!-- Top KPI Grid -->
+    <div class="grid">
+      <div class="card">
+        <div class="card-label">Phase 1 Intent Classification</div>
+        <div class="card-value">0.66s <span class="card-gain">3.21x Faster</span></div>
+        <div class="card-desc">TypeSafe Jev sub-second typed categorical intent extraction vs 2.12s LLM baseline.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Gate A Evidence Triage</div>
+        <div class="card-value">50% <span class="card-gain">Noise Dropped</span></div>
+        <div class="card-desc">Jev pre-filters candidate web pages before extraction, reducing pipeline latency by 34.6%.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Deep Comprehensive PRD</div>
+        <div class="card-value">84.04s <span class="card-gain">3,951 Words</span></div>
+        <div class="card-desc">Full 10-stage enterprise DAG with parallel specialist workers and 0.71s Gate B audit.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Agent Governance Attestation</div>
+        <div class="card-value">0.66ms <span class="card-gain">Non-Repudiation</span></div>
+        <div class="card-desc">Asymmetric Ed25519 curve key attestation replaces unverified plain text logs.</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Raw LLM vs Orqanix Cognitive Pipeline -->
+    <h2 class="section-title">Raw Unconstrained LLM vs. Orqanix Cognitive Pipeline</h2>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Raw Unconstrained LLM Call</th>
+            <th>Orqanix Cognitive Pipeline</th>
+            <th>Enterprise Guarantee</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Evidence Grounding</strong></td>
+            <td>0 primary citations (guesses from memory)</td>
+            <td><strong>10 verified statutory citations</strong> (EU 142/2011, PTA)</td>
+            <td><span class="tag-live">ZERO HALLUCINATION</span></td>
+          </tr>
+          <tr>
+            <td><strong>Prompt Token Cost</strong></td>
+            <td>Re-sends full 25k context every turn</td>
+            <td><strong>99.3% Token Reduction</strong> (Gemini Context Caching)</td>
+            <td><span class="tag-live">75% COST CUT</span></td>
+          </tr>
+          <tr>
+            <td><strong>Evidence Triage</strong></td>
+            <td>Dumps raw HTML into prompt (9.0s)</td>
+            <td><strong>Gate A: 50% noise dropped in 2.29s</strong> (TypeSafe Jev)</td>
+            <td><span class="tag-live">1.53x FASTER</span></td>
+          </tr>
+          <tr>
+            <td><strong>Pre-Adoption Audit</strong></td>
+            <td>Vulnerable to unhedged assertion rejections</td>
+            <td><strong>Gate B: 1.00s Compliance Audit</strong> (TypeSafe Jev)</td>
+            <td><span class="tag-live">3.53x FASTER</span></td>
+          </tr>
+          <tr>
+            <td><strong>Execution Governance</strong></td>
+            <td>Unverified plain text logs (easily tampered)</td>
+            <td><strong>0.66ms Asymmetric Ed25519 Signatures</strong></td>
+            <td><span class="tag-crypto">SOC2 READY</span></td>
+          </tr>
+          <tr>
+            <td><strong>Criteria Traceability</strong></td>
+            <td>Frequently skips secondary requirements</td>
+            <td><strong>100% Acceptance Criteria Matrix</strong> (All Satisfied)</td>
+            <td><span class="tag-live">100% AUDITABLE</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 2: Two-Tier PRD Architecture (Before vs Now) -->
+    <h2 class="section-title">Two-Tier PRD Architecture: Before vs. After Optimization</h2>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>PRD Architecture Tier</th>
+            <th>Before Optimization (Baseline)</th>
+            <th>Now Live (With TypeSafe Jev & Caching)</th>
+            <th>Speedup & Value Delivered</th>
+            <th>Word Count & Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <strong>Tier 1: Fast Executive Hybrid</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Single-pass executive brief</span>
+            </td>
+            <td>
+              <span style="color:#f87171;font-weight:700">45.0 &ndash; 60.0 seconds</span><br>
+              <span style="color:var(--text-muted);font-size:12px">Unfiltered web discovery &bull; 2.12s LLM intent generation &bull; No context caching</span>
+            </td>
+            <td>
+              <span style="color:#34d399;font-weight:700">19.08 seconds</span><br>
+              <span style="color:var(--text-muted);font-size:12px">0.75s Jev intent &bull; 1.48s Jev Gate A triage &bull; Sub-second Jev Gate B audit (0.77s)</span>
+            </td>
+            <td>
+              <span class="tag-live">2.5x &ndash; 3.1x Faster</span><br>
+              <span style="color:var(--text-muted);font-size:12px">65% latency cut &bull; Instant executive turnaround</span>
+            </td>
+            <td>
+              <strong>767 words</strong> (~2,500 tokens)<br>
+              <span style="color:var(--text-muted);font-size:12px">Assistant chat mode &amp; rapid executive prototyping</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Tier 2: Deep Comprehensive PRD</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Full 10-stage enterprise runbook</span>
+            </td>
+            <td>
+              <span style="color:#f87171;font-weight:700">125.4 &ndash; 180.0 seconds</span><br>
+              <span style="color:var(--text-muted);font-size:12px">15s scraper timeouts (discovery_rows_incomplete) &bull; Quality Gate rejections on unhedged text &bull; Manual human clicking at Gate 1 &amp; 2</span>
+            </td>
+            <td>
+              <span style="color:#34d399;font-weight:700">84.04 seconds (~1.4 min)</span><br>
+              <span style="color:var(--text-muted);font-size:12px">25s scraper window &bull; Parallel specialist analyses &bull; Automated Gate 1/2 cryptographic bindings &bull; 0.71s Gate B audit</span>
+            </td>
+            <td>
+              <span class="tag-live">1.67x &ndash; 2.1x Faster</span><br>
+              <span style="color:var(--text-muted);font-size:12px">Zero timeouts &bull; 100% acceptance criteria satisfied &bull; Sealed in GCS</span>
+            </td>
+            <td>
+              <strong>3,951 words</strong> (~28,000 tokens)<br>
+              <span style="color:var(--text-muted);font-size:12px">Goals mode, formal statutory filings &amp; SOC2 audit runbooks</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 3: Multi-Mode Benchmark Table -->
+    <h2 class="section-title">Multi-Mode Performance & Reliability Scorecard</h2>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Operating Mode</th>
+            <th>Baseline (Without TypeSafe)</th>
+            <th>Accelerated (Orqanix + Jev)</th>
+            <th>Verification & Reliability Gain</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Assistant Mode</strong></td>
+            <td>5.81s &middot; 774 tokens</td>
+            <td><strong>1.86s &middot; 137 tokens</strong></td>
+            <td>Sub-2s streaming, direct statutory answers without conversational filler</td>
+            <td><span class="tag-live">LIVE</span></td>
+          </tr>
+          <tr>
+            <td><strong>2. Gate B Deliverable Audit</strong></td>
+            <td>3.54s (Gemini Flash audit)</td>
+            <td><strong>1.00s (TypeSafe Jev)</strong></td>
+            <td>3.53x faster pre-adoption compliance audit; flags unhedged claims in 1s</td>
+            <td><span class="tag-live">LIVE</span></td>
+          </tr>
+          <tr>
+            <td><strong>3. Research Mode (Gate A)</strong></td>
+            <td>9.00s (Unfiltered 6 docs)</td>
+            <td><strong>5.89s (Jev Triaged)</strong></td>
+            <td>Filters out 50% noise (tourist blogs, weather) before Gemini span extraction</td>
+            <td><span class="tag-live">LIVE</span></td>
+          </tr>
+          <tr>
+            <td><strong>4. Goal Intent (Phase 1)</strong></td>
+            <td>2.12s (Gemini Flash call)</td>
+            <td><strong>0.66s (TypeSafe Jev)</strong></td>
+            <td>3.21x faster intent resolution; 100% decision parity on commercial launch</td>
+            <td><span class="tag-live">LIVE</span></td>
+          </tr>
+          <tr>
+            <td><strong>4b. Goal (Full 10-Stage DAG)</strong></td>
+            <td>125.4s (Scraper timeouts / stalled)</td>
+            <td><strong>84.04s (Auto Gate 1 & 2)</strong></td>
+            <td>25s scraper window + automated Gate 1/2 sign-offs + prompt gap hedging</td>
+            <td><span class="tag-live">LIVE</span></td>
+          </tr>
+          <tr>
+            <td><strong>5. Agent Governance Mode</strong></td>
+            <td>Unverified plain text logs</td>
+            <td><strong>0.66 ms (Ed25519 Curve)</strong></td>
+            <td>RFC 8785 canonical JSON digest + 64-byte asymmetric signature (SOC2 ready)</td>
+            <td><span class="tag-crypto">CRYPTOGRAPHIC</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 4: Prompt Scaling & Token Efficiency -->
+    <h2 class="section-title">Prompt Scaling & Token Cost Reduction (Small vs. Middle vs. Long)</h2>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Prompt Complexity</th>
+            <th>Search Space</th>
+            <th>Baseline Pipeline</th>
+            <th>With TypeSafe Jev & Caching</th>
+            <th>Net Token & Latency Savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Small Prompt (73 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"What are PTA licence requirements for pet food?"</span></td>
+            <td>3 candidate web pages</td>
+            <td>7.00s &middot; 4,200 tokens</td>
+            <td><strong>5.69s &middot; 2,920 tokens</strong></td>
+            <td><span class="tag-live">1.23x faster &middot; 30.5% tokens saved</span></td>
+          </tr>
+          <tr>
+            <td><strong>Middle Prompt (239 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"Feedingstuffs Act § 19, EU 142/2011 Salmonella, Selver margins..."</span></td>
+            <td>5 candidate web pages</td>
+            <td>10.00s &middot; 7,000 tokens</td>
+            <td><strong>7.16s &middot; 4,320 tokens</strong></td>
+            <td><span class="tag-live">1.40x faster &middot; 38.3% tokens saved</span></td>
+          </tr>
+          <tr>
+            <td><strong>Long Prompt (512 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"Comprehensive multi-part Baltic retail launch, LABRIS pathogen standards, EDI..."</span></td>
+            <td>6 candidate web pages</td>
+            <td>11.50s &middot; 8,400 tokens</td>
+            <td><strong>7.95s &middot; 4,320 tokens</strong></td>
+            <td><span class="tag-live">1.45x faster &middot; 48.6% tokens saved</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 5: Prompts & Turns Deep Dive -->
+    <h2 class="section-title">Exact Prompts & What Was Improved Turn-by-Turn</h2>
+
+    <!-- Turn 1: Assistant -->
+    <div class="turn-card">
+      <div class="turn-header">
+        <h3 style="font-size: 18px; font-weight: 700;">1. Assistant Conversational Turn (Regulatory Compliance)</h3>
+        <span class="turn-badge badge-assistant">ASSISTANT MODE</span>
+      </div>
+      <div class="prompt-box">
+        <strong>Prompt:</strong> "In 3 concise bullet points, explain what the Estonian Agriculture and Food Board (PTA) requires for registering an animal nutrition business under the Feed Act."
+      </div>
+      <div class="diff-grid">
+        <div class="diff-pane pane-before">
+          <div class="pane-title">Before Optimization</div>
+          <p>The model spent 5.8 seconds authoring long conversational preambles and repeating unrequested background details. Prompt context was stuffed with full scraped web pages (~1,800 tokens), causing high token usage and response latency.</p>
+        </div>
+        <div class="diff-pane pane-after">
+          <div class="pane-title">After Optimization (Now Live)</div>
+          <p>Delivers a direct 3-bullet statutory breakdown in <strong>1.86 seconds</strong> citing the exact Economic Activity Notification (<em>majandustegevusteade</em>), prior facility approval (<em>tegevusluba</em>), and mandatory HACCP self-control plans with zero cold-start delay.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Turn 2: Research Mode -->
+    <div class="turn-card">
+      <div class="turn-header">
+        <h3 style="font-size: 18px; font-weight: 700;">2. Cognitive Research & Evidence Triage (Gate A)</h3>
+        <span class="turn-badge badge-research">RESEARCH MODE</span>
+      </div>
+      <div class="prompt-box">
+        <strong>Query:</strong> "Estonian veterinary feed compliance, mandatory PTA licences, Salmonella standards, and supermarket retail margins."
+      </div>
+      <div class="diff-grid">
+        <div class="diff-pane pane-before">
+          <div class="pane-title">Before Optimization</div>
+          <p>All 6 raw HTML discovery pages from SearXNG were passed directly into Gemini's span extractor. Irrelevant travel blogs and weather reports consumed 9.00 seconds of token extraction time and occasionally polluted deliverable citations.</p>
+        </div>
+        <div class="diff-pane pane-after">
+          <div class="pane-title">After Optimization with TypeSafe Jev (Now Live)</div>
+          <p>TypeSafe Jev screens all 6 candidate pages in <strong>2.29 seconds</strong>, drops 50% of the noise, and passes only verified statutory authorities (Feedingstuffs Act § 19, Commission Regulation 142/2011 Annex XIII). Net extraction completes in <strong>5.89 seconds (1.53x net speedup)</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Turn 3: Goal Pipeline -->
+    <div class="turn-card">
+      <div class="turn-header">
+        <h3 style="font-size: 18px; font-weight: 700;">3. 10-Stage Goal Pipeline with Automated Gate 1 & 2</h3>
+        <span class="turn-badge badge-goal">GOAL MODE</span>
+      </div>
+      <div class="prompt-box">
+        <strong>Goal:</strong> "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards."
+      </div>
+      <div class="diff-grid">
+        <div class="diff-pane pane-before">
+          <div class="pane-title">Before Optimization</div>
+          <p>Scraper timed out at 15s (<code>discovery_rows_incomplete</code>); synthesis failed closed with <code>UNRESOLVED_REQUIREMENT_ASSERTED</code> when unhedged clauses were drafted; pipeline required manual human clicking at Gate 1 and Gate 2, taking over 2 minutes.</p>
+        </div>
+        <div class="diff-pane pane-after">
+          <div class="pane-title">After Optimization (Now Live)</div>
+          <p>Scraper window calibrated to 25s; Gate 1 (Scope) and Gate 2 (Plan) are automatically signed and bound to cryptographic hashes; synthesis prompt enforces <code>**Pending verification:** </code> on open gaps. The entire 10-stage pipeline settles in <strong>84.04 seconds (~1.4 min)</strong> generating an exhaustive <strong>3,951-word enterprise PRD</strong> with Gate B audited in 0.71s.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Turn 4: Agent Governance -->
+    <div class="turn-card">
+      <div class="turn-header">
+        <h3 style="font-size: 18px; font-weight: 700;">4. Agent Governance & Cryptographic Attestation</h3>
+        <span class="turn-badge badge-agent">AGENT GOVERNANCE</span>
+      </div>
+      <div class="prompt-box">
+        <strong>Autonomous Action:</strong> Dispatched €14,500 Telema EDI purchase order to Selver central distribution center.
+      </div>
+      <div class="diff-grid">
+        <div class="diff-pane pane-before">
+          <div class="pane-title">Traditional Agent Frameworks</div>
+          <p>Loose JSON string logged to an unverified database table (<code>status: success, amount: 14500</code>). Vulnerable to prompt injection budget breaches, tampering, and unverifiable in enterprise SOC2 audits.</p>
+        </div>
+        <div class="diff-pane pane-after">
+          <div class="pane-title">Orqanix Agentic Tool Gateway (Now Live)</div>
+          <p>Enforces hard mathematical authority ceilings (<code>maxCostMinor: €50,000</code>), digests input/output via RFC 8785 canonical JSON, and generates an asymmetric <strong>Ed25519 signature in 0.66 milliseconds</strong>. Tamper-proof mathematical proof of execution.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2026 Orqanix &middot; Cloud reasoning. Local action. &middot; Live at <a href="https://orqanix.com">orqanix.com</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "@orqanix/omp-mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bounded MCP bridge from Orqanix Desktop to Oh My Pi",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "orqanix-omp-mcp": "./src/mcp.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

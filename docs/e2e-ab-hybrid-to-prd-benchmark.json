@@ -1,0 +1,24 @@
+{
+  "total_duration_seconds": 19.08,
+  "stages": {
+    "stage_1_scope_compilation": 0.75,
+    "stage_2_auto_gate_1_approval": 0.0,
+    "stage_3_pipeline_a_empirical": 1.481,
+    "stage_4_pipeline_b_simulation": 5.52,
+    "stage_5_ab_closed_loop_hybrid": 0.0,
+    "stage_6_auto_gate_2_approval": 0.0,
+    "stage_7_prd_synthesis_draft": 10.557,
+    "stage_8_gate_b_audit_jev": 0.775,
+    "stage_9_attestation_and_export": 0.0
+  },
+  "prd_metadata": {
+    "words": 767,
+    "characters": 5456,
+    "sha256": "2de967818bb2d52af8b92e5eea3a8027ffc1f3e28c0aad9daaee53f6acede88d",
+    "primary_statutes_cited": [
+      "Feedingstuffs Act \u00a7 19",
+      "Commission Regulation (EU) No 142/2011 Annex XIII"
+    ],
+    "gate_b_verdict": "PASS"
+  }
+}

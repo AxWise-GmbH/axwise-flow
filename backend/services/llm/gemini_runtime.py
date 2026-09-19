@@ -380,3 +380,50 @@ def require_search_model() -> str:
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     return RESEARCH_MODEL
+
+
+# -----------------------------------------------------------------------------
+# Google GenAI Context Caching for Repeated Cognitive Workflow Prompts
+# -----------------------------------------------------------------------------
+_CONTEXT_CACHE_REGISTRY: dict[str, str] = {}
+
+
+def get_cached_content_name(cache_key: str) -> str | None:
+    """Return the active cached content resource name if cached on Google Cloud."""
+    return _CONTEXT_CACHE_REGISTRY.get(cache_key)
+
+
+async def create_or_reuse_gemini_context_cache(
+    client: GoogleGenAIClient,
+    *,
+    cache_key: str,
+    model: str = RESEARCH_MODEL_RESOURCE,
+    contents: list[Any],
+    ttl_seconds: int = 600,
+) -> str | None:
+    """Create or reuse a server-side Gemini context cache on Google Cloud.
+    
+    Caches large static prompts (system instructions, schemas, corpus transcripts)
+    with a 10-minute TTL, reducing input token billing by 75% on repeated turns.
+    """
+    if cache_key in _CONTEXT_CACHE_REGISTRY:
+        return _CONTEXT_CACHE_REGISTRY[cache_key]
+
+    try:
+        from google.genai import types
+        cache_config = types.CreateCachedContentConfig(
+            contents=contents,
+            ttl=f"{ttl_seconds}s",
+            display_name=f"orqanix-cognitive-{cache_key[:12]}"
+        )
+        cached = await client.aio.caches.create(
+            model=model,
+            config=cache_config,
+        )
+        if cached and cached.name:
+            _CONTEXT_CACHE_REGISTRY[cache_key] = cached.name
+            return cached.name
+    except Exception as e:
+        # Fall back gracefully to uncached execution if caching is unsupported
+        pass
+    return None

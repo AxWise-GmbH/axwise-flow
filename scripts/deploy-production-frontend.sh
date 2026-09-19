@@ -31,6 +31,7 @@ SUBSTITUTIONS="${SUBSTITUTIONS},_NEXT_PUBLIC_STAKEHOLDER_CONFIDENCE_THRESHOLD=0.
 echo "Building ${IMAGE}"
 gcloud builds submit \
   --config cloudbuild.frontend.yaml \
+  --ignore-file .gcloudignore.frontend \
   --region "${REGION}" \
   --substitutions "${SUBSTITUTIONS}" \
   --project "${PROJECT_ID}" \

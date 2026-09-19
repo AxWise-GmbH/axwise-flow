@@ -1,0 +1,1274 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orqanix Process & System Map (2026)</title>
+<style>:root {
+  --bg: #f6f5f1; --surface: #ffffff; --surface-2: #f0efe9; --line: #dcd9cf; --line-2: #c7c3b6;
+  --fg: #1c1b18; --fg-2: #4a4843; --fg-3: #85817a;
+  --accent: #2563eb; --out: #2563eb; --in: #c2410c;
+  --live: #15803d; --partial: #b45309; --not_wired: #8a8781; --manual: #6d28d9; --test_only: #8a8781;
+  --c-USER_ACTION: #2563eb; --c-API: #4f46e5; --c-EVENT: #9333ea; --c-QUEUE: #0d9488; --c-WORKER: #0f766e;
+  --c-CRON: #d97706; --c-SCHEDULER: #b45309; --c-WEBHOOK: #be185d; --c-DB: #64748b; --c-EXTERNAL: #0284c7;
+  --c-AUTOMATION: #16a34a; --c-MANUAL: #a16207; --c-DECISION: #ca8a04; --c-RETRY: #db2777; --c-LOOP: #ea580c;
+  --c-ERROR: #dc2626; --c-END: #334155;
+  --k-triggers: #5b5850; --k-emits: #9333ea; --k-reads: #3b82f6; --k-writes: #0d9488; --k-feedback: #ea580c;
+  --k-error: #dc2626; --k-retry: #db2777; --k-depends: #a8a49a; --k-intended: #a8a49a;
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211; --surface: #1c1c1a; --surface-2: #252522; --line: #34332f; --line-2: #4a4843;
+    --fg: #eceae4; --fg-2: #bdbab2; --fg-3: #8a877f; --accent: #60a5fa; --out: #60a5fa; --in: #fb923c;
+    --live: #4ade80; --partial: #fbbf24; --not_wired: #8a877f; --manual: #c4b5fd; --test_only: #8a877f;
+    --c-USER_ACTION: #60a5fa; --c-API: #818cf8; --c-EVENT: #c084fc; --c-QUEUE: #2dd4bf; --c-WORKER: #5eead4;
+    --c-CRON: #fbbf24; --c-SCHEDULER: #f59e0b; --c-WEBHOOK: #f472b6; --c-DB: #94a3b8; --c-EXTERNAL: #38bdf8;
+    --c-AUTOMATION: #4ade80; --c-MANUAL: #facc15; --c-DECISION: #eab308; --c-RETRY: #f472b6; --c-LOOP: #fb923c;
+    --c-ERROR: #f87171; --c-END: #cbd5e1;
+    --k-triggers: #b5b2aa; --k-emits: #c084fc; --k-reads: #60a5fa; --k-writes: #2dd4bf; --k-feedback: #fb923c;
+    --k-error: #f87171; --k-retry: #f472b6; --k-depends: #6b6861; --k-intended: #6b6861;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; display: flex; flex-direction: column; overflow: hidden; }
+button { font: inherit; color: inherit; }
+code, kbd { font-family: var(--mono); font-size: .88em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+[hidden] { display: none !important; }
+
+.top { display: flex; align-items: center; gap: 12px 20px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.brand b { font-size: 16px; letter-spacing: -.01em; }
+.brand span { color: var(--fg-3); }
+.tabs { display: flex; gap: 2px; background: var(--surface-2); padding: 3px; border-radius: 9px; overflow-x: auto; max-width: 100%; }
+.tabs button { border: 0; background: none; padding: 5px 12px; border-radius: 7px; cursor: pointer; color: var(--fg-2); white-space: nowrap; }
+.tabs button.on { background: var(--surface); color: var(--fg); box-shadow: var(--shadow); }
+.tools { display: flex; align-items: center; gap: 8px 14px; margin-left: auto; flex-wrap: wrap; }
+.search { position: relative; }
+.search input { width: 300px; max-width: 100%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); font: inherit; }
+.qres { position: absolute; top: calc(100% + 4px); left: 0; width: 420px; max-width: calc(100vw - 32px); max-height: 60vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); z-index: 30; }
+.qres button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.qres button:hover, .qres button.act { background: var(--surface-2); }
+.qres small { color: var(--fg-3); display: block; }
+.tog { display: flex; align-items: center; gap: 5px; color: var(--fg-2); white-space: nowrap; cursor: pointer; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 5px 11px; border-radius: 8px; cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.crumbs { padding: 6px 16px; color: var(--fg-3); font-size: 13px; border-bottom: 1px solid var(--line); min-height: 31px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.crumbs a { color: var(--accent); cursor: pointer; text-decoration: none; }
+.crumbs .sep { color: var(--line-2); }
+
+.main { flex: 1; display: flex; min-height: 0; position: relative; }
+.stage { flex: 1; position: relative; min-width: 0; }
+#svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; user-select: none; }
+#svg.drag { cursor: grabbing; }
+.zoom { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+.zoom button { width: 34px; height: 34px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; cursor: pointer; font-size: 16px; box-shadow: var(--shadow); }
+.hint { position: absolute; left: 12px; bottom: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--fg-2); font-size: 12.5px; box-shadow: var(--shadow); max-width: calc(100% - 80px); }
+.hint:empty { display: none; }
+
+.side { width: 300px; border-right: 1px solid var(--line); background: var(--surface); overflow: auto; padding: 10px; flex-shrink: 0; }
+.chainItem { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; cursor: pointer; }
+.chainItem.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.chainItem b { display: block; }
+.chainItem small { color: var(--fg-2); display: block; margin-top: 3px; }
+
+.panel { width: 420px; border-left: 1px solid var(--line); background: var(--surface); overflow: auto; padding: 16px 18px 40px; position: relative; flex-shrink: 0; }
+.panel .close { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 22px; cursor: pointer; color: var(--fg-3); }
+.panel h2 { margin: 6px 0 4px; font-size: 17px; line-height: 1.3; padding-right: 24px; }
+.panel h3 { margin: 18px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-3); }
+.panel p { margin: 4px 0; }
+.panel ol, .panel ul { margin: 4px 0; padding-left: 20px; }
+.panel li { margin: 2px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); white-space: nowrap; }
+.chip.type { color: #fff; border-color: transparent; }
+.chip.w-live { color: var(--live); border-color: currentColor; background: none; }
+.chip.w-manual { color: var(--manual); border-color: currentColor; background: none; }
+.chip.w-test_only, .chip.w-not_wired { color: var(--fg-3); border-style: dashed; background: none; }
+.chip.w-partial { color: var(--partial); border-color: currentColor; background: none; }
+.chip.crit { color: var(--c-ERROR); border-color: currentColor; background: none; }
+.chip.conf { font-family: var(--mono); }
+.grid { display: grid; grid-template-columns: 118px 1fr; gap: 3px 10px; }
+.grid dt { color: var(--fg-3); }
+.grid dd { margin: 0; }
+.note { background: color-mix(in srgb, var(--c-DECISION) 12%, var(--surface)); border-left: 3px solid var(--c-DECISION); padding: 7px 10px; border-radius: 6px; margin: 8px 0; }
+.links a { color: var(--accent); cursor: pointer; }
+.links li small { color: var(--fg-3); }
+.src { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+.muted { color: var(--fg-3); }
+
+.doc { flex: 1; overflow: auto; padding: 20px 16px 60px; }
+.doc > div { max-width: 1180px; margin: 0 auto; }
+.doc h2 { font-size: 20px; margin: 28px 0 10px; }
+.doc h2:first-child { margin-top: 4px; }
+.doc table { border-collapse: collapse; width: 100%; font-size: 13px; background: var(--surface); }
+.doc th, .doc td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.doc th { background: var(--surface-2); font-weight: 600; }
+.doc .tw { overflow-x: auto; }
+.doc a { color: var(--accent); cursor: pointer; }
+.doc section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 18px 14px; margin-bottom: 16px; }
+
+.legend { position: fixed; top: 60px; right: 16px; width: 380px; max-width: calc(100vw - 32px); max-height: calc(100vh - 80px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; z-index: 40; }
+.legend h4 { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-3); }
+.legend h4:first-child { margin-top: 0; }
+.lgRow { display: flex; align-items: center; gap: 8px; padding: 3px 4px; border-radius: 6px; cursor: pointer; }
+.lgRow:hover { background: var(--surface-2); }
+.lgRow.off { opacity: .35; }
+.lgRow .cnt { margin-left: auto; color: var(--fg-3); font-size: 12px; }
+.lgRow svg { flex-shrink: 0; }
+
+/* SVG */
+.n { cursor: pointer; }
+.n .body { fill: color-mix(in srgb, var(--tc) 11%, var(--surface)); stroke: var(--tc); stroke-width: 1.3; }
+.n .inner { fill: none; stroke: var(--tc); stroke-width: 1; }
+.n .tl { font-size: 10px; font-weight: 600; letter-spacing: .04em; fill: var(--tc); }
+.n .tt { font-size: 12.5px; fill: var(--fg); }
+.n .badge { font: 600 9.5px var(--mono); fill: var(--fg-3); }
+.n .critDot { fill: var(--c-ERROR); }
+.n.w-not_wired .body { stroke-dasharray: 5 4; fill: var(--surface); }
+.n.w-test_only .body { stroke-dasharray: 2 3; fill: var(--surface); }
+.n.w-not_wired .tt, .n.w-test_only .tt { fill: var(--fg-3); }
+.n.portal { opacity: .5; }
+.n.portal .body { stroke-dasharray: 1 3; }
+.n .dom { font-size: 9.5px; fill: var(--fg-3); }
+.n:hover .body { stroke-width: 2.4; }
+.n.sel .body { stroke-width: 3; }
+.e path.l { fill: none; stroke: var(--kc); stroke-width: 1.4; }
+.e.k-reads path.l, .e.k-depends path.l { stroke-width: 1; }
+.e.k-error path.l { stroke-dasharray: 6 3; }
+.e.k-retry path.l { stroke-dasharray: 2 3; }
+.e.k-intended path.l { stroke-dasharray: 7 5; }
+.e.k-feedback path.l { stroke-width: 1.8; }
+.e text { font-size: 10.5px; fill: var(--fg-2); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
+.lblsOff .e text { display: none; }
+.lblsOff .e.hl text { display: block; }
+.e.xl { display: none; }
+.dim .e.xl.hl { display: block; }
+.dim .n:not(.hl) { opacity: .13; }
+.dim .e:not(.hl) { opacity: .06; }
+.e.hl path.l { stroke-width: 2.4; }
+.e.out path.l { stroke: var(--out); }
+.e.in path.l { stroke: var(--in); }
+.lane rect { fill: color-mix(in srgb, var(--fg) 3%, transparent); stroke: var(--line); }
+.lane text { font-size: 15px; font-weight: 600; fill: var(--fg-2); cursor: pointer; }
+.lane text tspan { font-weight: 400; fill: var(--fg-3); font-size: 12px; }
+
+.d { cursor: pointer; }
+.d .card { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.2; }
+.d .bar { fill: var(--lc); }
+.d .dt { font-size: 15px; font-weight: 650; fill: var(--fg); }
+.d .ds { font-size: 12px; fill: var(--fg-2); }
+.d .dm { font-size: 11px; fill: var(--fg-3); }
+.d .lv { font-size: 10.5px; font-weight: 600; fill: var(--lc); letter-spacing: .03em; }
+.d:hover .card { stroke: var(--fg-3); }
+.d.sel .card { stroke: var(--accent); stroke-width: 2.5; }
+.d.nw .card { stroke-dasharray: 6 4; }
+.dl path { fill: none; stroke: var(--k-triggers); stroke-width: var(--w); opacity: .38; }
+.dl.intended path { stroke-dasharray: 7 5; stroke: var(--k-intended); }
+.dl text { font-size: 11px; fill: var(--fg-2); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; display: none; }
+.dimD .d:not(.hl) { opacity: .25; }
+.dimD .dl:not(.hl) { opacity: .08; }
+.dl.quiet { display: none; }
+.dimD .dl.quiet.hl { display: block; }
+.dl.hl path { opacity: 1; }
+.dl.hl text { display: block; }
+.dl.out path { stroke: var(--out); }
+.dl.in path { stroke: var(--in); }
+
+@media (max-width: 760px) {
+  .top { padding: 8px 16px; }
+  .tools { margin-left: 0; width: 100%; }
+  .search { flex: 1 1 100%; }
+  .search input { width: 100%; }
+  .main { flex-direction: column; }
+  .side { width: auto; max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  .panel { position: absolute; left: 0; right: 0; bottom: 0; width: auto; max-height: 58vh; border-left: 0; border-top: 1px solid var(--line); box-shadow: 0 -6px 24px rgba(0,0,0,.18); z-index: 20; border-radius: 14px 14px 0 0; }
+  .grid { grid-template-columns: 96px 1fr; }
+  .hint { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <b>orqanix</b><span>карта процессов</span>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist">
+    <button data-view="overview" class="on">Карта</button>
+    <button data-view="all">Вся карта</button>
+    <button data-view="chain">Цепочки</button>
+    <button data-view="auto">Автоматизация</button>
+    <button data-view="report">Отчёт</button>
+  </nav>
+  <div class="tools">
+    <div class="search">
+      <input id="q" type="search" placeholder="Поиск: процесс, файл, таблица, событие  ( / )" autocomplete="off">
+      <div id="qres" class="qres" hidden></div>
+    </div>
+    <label class="tog"><input type="checkbox" id="fProd"> Только подключённое</label>
+    <label class="tog"><input type="checkbox" id="fTech"> Технические узлы</label>
+    <button id="bLegend" class="btn">Легенда и фильтры</button>
+  </div>
+</header>
+<div class="crumbs" id="crumbs"></div>
+<main class="main">
+  <aside class="side" id="side" hidden></aside>
+  <section class="stage" id="stage">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <defs id="defs"></defs>
+      <g id="vp"></g>
+    </svg>
+    <div class="zoom">
+      <button id="zIn" title="Приблизить">+</button>
+      <button id="zOut" title="Отдалить">−</button>
+      <button id="zFit" title="Вписать">⤢</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </section>
+  <section class="doc" id="doc" hidden></section>
+  <aside class="panel" id="panel" hidden>
+    <button class="close" id="pClose" aria-label="Закрыть">×</button>
+    <div id="pBody"></div>
+  </aside>
+</main>
+<div class="legend" id="legend" hidden></div>
+<script>// Map data model. Every node is a process or artefact found in code; wiring says whether
+// production code actually reaches it.
+var M = window.M = { domains: [], nodes: [], edges: [], chains: [], automation: [], report: [] }
+
+function D(id, title, col, row, liveness, sum, opts = {}) {
+  M.domains.push({ id, title, col, row, liveness, sum, ...opts })
+}
+function N(id, domain, type, title, o = {}) {
+  M.nodes.push({ id, domain, type, title, wiring: 'live', conf: 'VERIFIED', src: [], ...o })
+}
+function E(from, to, kind, label = '', o = {}) {
+  M.edges.push({ from, to, kind, label, ...o })
+}
+function C(id, title, status, nodes, o = {}) {
+  M.chains.push({ id, title, status, nodes, ...o })
+}
+
+var TYPES = window.TYPES = {
+  USER_ACTION: { label: 'Действие пользователя', icon: '👤', shape: 'pill' },
+  API: { label: 'HTTP / API', icon: '⇄', shape: 'rect' },
+  EVENT: { label: 'Событие', icon: '⚡', shape: 'hex' },
+  QUEUE: { label: 'Очередь', icon: '☰', shape: 'queue' },
+  WORKER: { label: 'Фоновый worker', icon: '⚙', shape: 'rect' },
+  CRON: { label: 'Cron', icon: '⏱', shape: 'rect' },
+  SCHEDULER: { label: 'Планировщик', icon: '🗓', shape: 'rect' },
+  WEBHOOK: { label: 'Входящий webhook', icon: '↘', shape: 'rect' },
+  DB: { label: 'База данных', icon: '🗄', shape: 'cyl' },
+  EXTERNAL: { label: 'Внешний сервис', icon: '☁', shape: 'ext' },
+  AUTOMATION: { label: 'Автоматический процесс', icon: '⚙', shape: 'rect' },
+  MANUAL: { label: 'Ручной запуск', icon: '✋', shape: 'rect' },
+  DECISION: { label: 'Условие / ветвление', icon: '◇', shape: 'diamond' },
+  RETRY: { label: 'Повтор', icon: '↻', shape: 'pill' },
+  LOOP: { label: 'Цикл', icon: '⟳', shape: 'pill' },
+  ERROR: { label: 'Обработка ошибки', icon: '✕', shape: 'pill' },
+  END: { label: 'Конечный результат', icon: '⚑', shape: 'end' },
+}
+var WIRING = window.WIRING = {
+  live: 'Подключено: реально исполняется',
+  manual: 'Запускается вручную',
+  test_only: 'Вызывается только тестами',
+  not_wired: 'Не подключено (код есть, вызова нет / кода нет)',
+}
+var CONF = window.CONF = {
+  VERIFIED: 'Проверено по коду',
+  ASSUMPTION: 'Вывод из кода, не исполнялось',
+  UNKNOWN: 'Нельзя определить по коду',
+  EXTERNAL: 'Логика во внешней системе / библиотеке',
+  TODO: 'Нужно проверить отдельно',
+}
+var EDGE_KINDS = window.EDGE_KINDS = {
+  triggers: 'запускает',
+  emits: 'порождает событие',
+  reads: 'данные читаются',
+  writes: 'пишет данные',
+  feedback: 'обратная связь / цикл',
+  error: 'при ошибке',
+  retry: 'повтор',
+  depends: 'зависит от',
+  intended: 'задумано, не подключено',
+}
+
+// Overview grid: column = where the flow sits (entry → API → rules → background → storage).
+
+// ── DOMAINS (Overview grid) ──────────────────────────────────────────
+D('tier1_web', 'Tier 1: Web UI & Portal', 0, 0, 'live', 'React 19 / Vite 7 workspace portal with Clerk PKCE auth, real-time SSE chat, goals, and DAG builder.')
+D('tier3_desktop', 'Tier 3: Desktop Operator', 0, 1, 'live', 'Orqanix Preview.app (Goose core), Clerk PKCE loopback, OS Keychain store, conversation MCP extension.')
+D('tier4_omp', 'Tier 4: Deep Engineering', 0, 2, 'live', 'Oh My Pi (OMP) local runtime via omp-mcp-server, ephemeral RPC child, AST/LSP inspection and approved edit.')
+D('infra_identity', 'Identity & Model Providers', 0, 3, 'live', 'Clerk OAuth PKCE, Google Gemini 3.8 Flash (1M ctx), SearXNG Cloud Run proxy.')
+
+D('tier2_api', 'Tier 2: Orqaly API Gateway', 1, 0, 'live', 'Express 5 API on Cloud Run, Clerk JWT validation, ETag optimistic concurrency, Assistant, Goals, and Solutions.')
+D('tier2_worker', 'Tier 2: Orqaly Worker Engine', 1, 1, 'live', 'PostgreSQL 5-queue round-robin daemon (iteration, solution build, chat, schedule, coding), outbox transitions, GCS export.')
+D('tier2_coding', 'Tier 2: Isolated Coding Sandbox', 1, 2, 'partial', 'Cloud Run / Docker container with Linux namespace isolation and prlimit resource limits.')
+
+D('tier2b_ax_api', 'Tier 2b: AxWise Cognitive API', 2, 0, 'live', 'FastAPI Cloud Run service, Cloud Run IAM service-to-service auth, /v2/operations submission and polling.')
+D('tier2b_ax_worker', 'Tier 2b: AxWise Cognitive Worker', 2, 1, 'live', 'Durable single-slot operation worker, PostgreSQL claim_cognitive_operation (SKIP LOCKED), 30s lease renewal.')
+D('tier2b_research', 'Tier 2b: Pipeline A & B Research', 2, 2, 'live', 'Pipeline A empirical quote extraction with char offsets, Pipeline B OCEAN simulation, closed-loop PRD synthesis (PR #52 4,000-char topic contracts).')
+D('tier2b_orch', 'Tier 2b: Orchestration Phase 1-4', 2, 3, 'not_wired', 'Domain-neutral decision router, multi-agent DAG planning, recovery replanning, and tenant scorer isolation (excluded from preview container).')
+
+D('storage_orqaly', 'Storage: Orqaly Schema (PG16)', 3, 0, 'live', 'Cloud SQL PostgreSQL 16 orqaly schema (migrations 001-025), tenant session RLS, workflow runs, artifacts.')
+D('storage_axwise', 'Storage: AxWise Schema (PG16)', 3, 1, 'live', 'Cloud SQL PostgreSQL 16 axwise schema (migrations 001-009), cognitive_operations, operation_events.')
+
+D('internal_services', 'Internal Agentic Services', 4, 0, 'partial', 'Agentic Control Plane (agent profiles, lifecycle states) and Agentic Tool Gateway (Ed25519 signed execution receipts).')
+D('legacy_gated', 'Legacy & Gated Handlers', 4, 1, 'not_wired', '40+ unmounted historical Vercel serverless handlers (audio/transcribe, communicator, dealflow, direct Supabase).')
+
+// ── NODES ────────────────────────────────────────────────────────────
+// Tier 1: Web
+N('web_auth', 'tier1_web', 'USER_ACTION', 'Clerk Auth Login / Session Gate', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/src/components/Auth/GcpClerkGate.jsx'], desc: 'Clerk PKCE login gate, JWT token verification and protected route guard.' })
+N('web_assistant', 'tier1_web', 'USER_ACTION', 'Assistant Surface & Chat Stream', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/src/pages/WorkflowV2/AssistantSurface.jsx'], desc: 'Conversational chat UI with real-time SSE streaming, retry/resume, and approval cards.' })
+N('web_goals', 'tier1_web', 'USER_ACTION', 'Goals Timeline & Artifact Viewer', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/src/pages/WorkflowV2/WorkflowV2.jsx'], desc: 'Visual 10-stage execution timeline tracking and markdown artifact viewer.' })
+N('web_builder', 'tier1_web', 'USER_ACTION', 'Visual Workflow DAG Builder', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/src/pages/GcpWorkspace/WorkflowBuildPage.jsx'], desc: 'Interactive React Flow (@xyflow/react) blueprint builder with schema validation.' })
+N('web_agents', 'tier1_web', 'USER_ACTION', 'Agent Hub & Lifecycle Controls', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/src/pages/GcpWorkspace/AgentsPage.jsx'], desc: 'First-class agent profiles, run counts, and lifecycle transitions (activate, pause, archive).' })
+
+// Tier 3: Desktop
+N('desk_goose', 'tier3_desktop', 'USER_ACTION', 'Orqanix Desktop Shell (Goose)', { wiring: 'live', conf: 'VERIFIED', src: ['/Applications/Orqanix Preview.app'], desc: 'Desktop conversation host with local file tools, macOS Peekaboo UI automation, and chat memory.' })
+N('desk_oauth', 'tier3_desktop', 'API', 'Clerk PKCE Loopback CLI', { wiring: 'live', conf: 'VERIFIED', src: ['packages/orqaly-goose-connector/src/cli.mjs'], desc: 'Headless loopback listener on 127.0.0.1:{port}/callback with OS Keychain storage.' })
+N('desk_mcp', 'tier3_desktop', 'AUTOMATION', 'Goose Conversation MCP Extension', { wiring: 'live', conf: 'VERIFIED', src: ['packages/orqaly-goose-connector/src/mcp.mjs'], desc: 'Stdio MCP extension providing ask_axwise, axwise_work_status, and read_goal_artifact.' })
+
+// Tier 4: OMP
+N('omp_bridge', 'tier4_omp', 'AUTOMATION', 'OMP MCP Server Bridge', { wiring: 'live', conf: 'VERIFIED', src: ['packages/omp-mcp-server/src/mcp.mjs'], desc: 'Local MCP adapter connecting Goose Desktop to Oh My Pi.' })
+N('omp_daemon', 'tier4_omp', 'WORKER', 'Oh My Pi RPC Subprocess', { wiring: 'live', conf: 'VERIFIED', src: ['packages/omp-mcp-server/src/omp-client.mjs'], desc: 'Ephemeral omp --mode rpc process performing AST inspection, Tree-sitter queries, and safe file edits.' })
+
+// Tier 2: Orqaly API & Worker
+N('api_v2', 'tier2_api', 'API', 'Workflow V2 REST API Router', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/server/workflow-v2/http-app.js'], desc: 'Express 5 API enforcing Clerk JWTs, ETag row versions, rate limits, and /v2/* endpoints.' })
+N('api_desktop_gw', 'tier2_api', 'API', 'Desktop Gateway (/desktop/v1)', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/server/workflow-v2/goose-provider-http.js'], desc: 'OpenAI-compatible /chat/completions proxy to Gemini 3.8 with project context injection.' })
+N('worker_5q', 'tier2_worker', 'WORKER', '5-Queue Round-Robin Daemon', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/server/workflow-v2/worker-main.js'], desc: 'Adaptive event loop consuming iteration, solution build, chat, schedule, and coding queues.' })
+N('worker_outbox', 'tier2_worker', 'QUEUE', 'Transactional Outbox Processor', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/server/workflow-v2/worker-engine.js'], desc: 'Leases outbox events with FOR UPDATE SKIP LOCKED, executes activity transitions, and exports artifacts.' })
+N('coding_worker', 'tier2_coding', 'WORKER', 'Containerized Coding Worker', { wiring: 'partial', conf: 'VERIFIED', src: ['apps/orqaly/server/workflow-v2/coding-worker-main.js'], desc: 'Air-gapped Cloud Run / gVisor sandbox for untrusted code execution.' })
+
+// Tier 2b: AxWise API & Worker
+N('ax_api_v2', 'tier2b_ax_api', 'API', 'AxWise /v2/operations Endpoint', { wiring: 'live', conf: 'VERIFIED', src: ['backend/api/workflow_v2_app.py'], desc: 'Cloud Run IAM authenticated FastAPI service consuming axwise.operation.v2 envelopes.' })
+N('ax_worker', 'tier2b_ax_worker', 'WORKER', 'AxWise Operation Worker', { wiring: 'live', conf: 'VERIFIED', src: ['backend/services/workflow_v2/operation_worker.py'], desc: 'Single-slot durable worker consuming axwise.claim_cognitive_operation with 30s heartbeats.' })
+N('ax_pipeline_a', 'tier2b_research', 'AUTOMATION', 'Pipeline A Empirical Extraction', { wiring: 'live', conf: 'VERIFIED', src: ['backend/services/processing/transcript_structuring_service.py'], desc: 'Bottom-up transcript analysis extracting quotes with character-level offsets.' })
+N('ax_pipeline_b', 'tier2b_research', 'AUTOMATION', 'Pipeline B OCEAN Simulation', { wiring: 'live', conf: 'VERIFIED', src: ['backend/api/research/simulation_bridge/services/ocean_sampler.py'], desc: 'Top-down statistical personality simulation across 20 occupational baseline clusters.' })
+N('ax_hybrid_prd', 'tier2b_research', 'DECISION', 'Closed-Loop Hybrid PRD Synthesis', { wiring: 'live', conf: 'VERIFIED', src: ['backend/api/research/simulation_bridge/services/closed_loop_hybrid.py'], desc: 'Unifies empirical and simulated personas into Golden Schema PRD records (PR #52 4,000-char contracts).' })
+N('ax_orchestration', 'tier2b_orch', 'DECISION', 'Phase 1-4 Cognitive Dispatch API', { wiring: 'not_wired', conf: 'VERIFIED', src: ['backend/api/routes/orchestration.py'], desc: 'Domain-neutral decision router and team DAG planner; excluded from preview Cloud Run container.' })
+
+// Storage & Identity
+N('tbl_workflows', 'storage_orqaly', 'DB', 'orqaly.workflow_runs & stages', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/database/workflow-v2/migrations/001_clean_workflow_v2.sql'], desc: 'Core workflow runs, DAG stages, stage dependencies, and state transitions.' })
+N('tbl_outbox', 'storage_orqaly', 'DB', 'orqaly.outbox_events', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/database/workflow-v2/migrations/001_clean_workflow_v2.sql'], desc: 'Transactional outbox table for worker activity dispatches.' })
+N('tbl_artifacts', 'storage_orqaly', 'DB', 'orqaly.artifacts (SHA-256)', { wiring: 'live', conf: 'VERIFIED', src: ['apps/orqaly/database/workflow-v2/migrations/001_clean_workflow_v2.sql'], desc: 'Immutable deliverable storage with SHA-256 content verification.' })
+N('tbl_ax_ops', 'storage_axwise', 'DB', 'axwise.cognitive_operations', { wiring: 'live', conf: 'VERIFIED', src: ['backend/database/workflow_v2/001_cognitive_operations.sql'], desc: 'Durable operations queue with lease tokens and execution counting.' })
+
+N('clerk_idp', 'infra_identity', 'EXTERNAL', 'Clerk Auth Service', { wiring: 'live', conf: 'VERIFIED', src: ['distinct-rattler-76.clerk.accounts.dev'], desc: 'Public OAuth PKCE authority issuing verified JWT tokens for web and desktop.' })
+N('gemini_model', 'infra_identity', 'EXTERNAL', 'Google Gemini 3.8 Flash (1M ctx)', { wiring: 'live', conf: 'VERIFIED', src: ['models/gemini-3.8-flash'], desc: 'Primary hosted foundation model for chat, extraction, and synthesis.' })
+N('searxng_srv', 'infra_identity', 'EXTERNAL', 'SearXNG Private Search Route', { wiring: 'live', conf: 'VERIFIED', src: ['scripts/deploy-searxng-cloud-run.sh'], desc: 'Private Cloud Run search aggregator proxy for statutory and market grounding.' })
+
+// Internal Services & Legacy
+N('agentic_cp_srv', 'internal_services', 'API', 'Agentic Control Plane Service', { wiring: 'partial', conf: 'VERIFIED', src: ['apps/orqaly/services/agentic-control-plane/src/server.js'], desc: 'Standalone agent entity API, profiles, and lifecycle; execution kernel disabled.' })
+N('agentic_tg_srv', 'internal_services', 'API', 'Agentic Tool Gateway (Ed25519)', { wiring: 'partial', conf: 'VERIFIED', src: ['apps/orqaly/services/agentic-tool-gateway/src/server.js'], desc: 'Transactional tool gateway behind n8n issuing cryptographic Ed25519 effect receipts.' })
+N('legacy_vercel_srv', 'legacy_gated', 'API', '40+ Unmounted Vercel Handlers', { wiring: 'not_wired', conf: 'VERIFIED', src: ['apps/orqaly/api/app.js'], desc: 'Historical Vercel serverless handlers (communicator, audio/transcribe, pitch decks, PIN auth).' })
+
+// ── EDGES ────────────────────────────────────────────────────────────
+E('clerk_idp', 'web_auth', 'triggers', 'PKCE JWT Token')
+E('clerk_idp', 'desk_oauth', 'triggers', 'Loopback S256 Code')
+E('web_auth', 'web_assistant', 'triggers', 'Authenticated Session')
+E('web_assistant', 'api_v2', 'emits', 'POST /v2/assistant/threads')
+E('web_goals', 'api_v2', 'reads', 'GET /v2/workflows/:id')
+E('web_builder', 'api_v2', 'emits', 'POST /v2/solution-build-requests')
+
+E('api_v2', 'tbl_workflows', 'writes', 'Insert / Update Runs')
+E('api_v2', 'tbl_outbox', 'writes', 'Insert Outbox Event')
+E('api_v2', 'ax_api_v2', 'emits', 'Cloud Run IAM ID Token')
+
+E('worker_5q', 'tbl_outbox', 'reads', 'FOR UPDATE SKIP LOCKED')
+E('worker_outbox', 'ax_api_v2', 'emits', 'POST /v2/operations')
+E('ax_api_v2', 'tbl_ax_ops', 'writes', 'Insert Operation Envelope')
+E('ax_worker', 'tbl_ax_ops', 'reads', 'claim_cognitive_operation()')
+E('ax_worker', 'gemini_model', 'reads', 'Generate Structured Content')
+E('ax_worker', 'searxng_srv', 'reads', 'Discovery Web Search')
+E('ax_worker', 'ax_pipeline_a', 'triggers', 'Extract Evidence Quotes')
+E('ax_worker', 'ax_pipeline_b', 'triggers', 'Sample OCEAN Profile')
+E('ax_pipeline_a', 'ax_hybrid_prd', 'writes', 'Empirical Spans')
+E('ax_pipeline_b', 'ax_hybrid_prd', 'writes', 'Simulated Dialogue')
+
+E('desk_goose', 'desk_mcp', 'triggers', 'stdio JSON-RPC')
+E('desk_goose', 'omp_bridge', 'triggers', 'stdio JSON-RPC')
+E('desk_mcp', 'api_desktop_gw', 'emits', 'POST /desktop/v1/work')
+E('api_desktop_gw', 'gemini_model', 'reads', 'Chat Completion Proxy')
+E('omp_bridge', 'omp_daemon', 'triggers', 'omp --mode rpc (NDJSON)')
+E('omp_daemon', 'api_desktop_gw', 'reads', 'Model Query /desktop/v1')
+
+E('api_v2', 'agentic_cp_srv', 'emits', 'HMAC RequestPrincipal')
+E('agentic_cp_srv', 'agentic_tg_srv', 'emits', 'Signed Ed25519 Grant')
+
+// ── CHAINS ───────────────────────────────────────────────────────────
+C('A', 'Цепочка 1: Чат Ассистента (Web SSE)', 'live', ['web_auth', 'web_assistant', 'api_v2', 'tbl_workflows', 'gemini_model'], { desc: 'Пользователь отправляет сообщение в веб-интерфейсе -> Express валидирует Clerk JWT -> сохраняет в PostgreSQL -> запускает стриминг ответа от Gemini через SSE.' })
+C('B', 'Цепочка 2: 10-этапное исполнение Цели (Goals Lifecycle)', 'live', ['web_goals', 'api_v2', 'tbl_outbox', 'worker_outbox', 'ax_api_v2', 'tbl_ax_ops', 'ax_worker', 'gemini_model', 'tbl_artifacts'], { desc: 'Подача задачи -> запись в Outbox -> воркер захватывает lease (SKIP LOCKED) -> AxWise операция -> синтез артефакта -> сохранение SHA-256 слепка.' })
+C('C', 'Цепочка 3: Поиск и исследование с десктопа (Goose Operator)', 'live', ['desk_goose', 'desk_oauth', 'desk_mcp', 'api_desktop_gw', 'ax_api_v2', 'ax_worker', 'searxng_srv'], { desc: 'Goose десктоп запрашивает исследование через ask_axwise -> Cloud Gateway -> фоновая операция AxWise -> опрос статуса через axwise_work_status.' })
+C('D', 'Цепочка 4: Глубокий инжиниринг через Oh My Pi', 'live', ['desk_goose', 'omp_bridge', 'omp_daemon'], { desc: 'Goose вызывает orqanix_engineering_inspect -> bridge спавнит дочерний процесс OMP rpc -> анализ AST и кода -> возвращение проверенного отчёта.' })
+C('E', 'Цепочка 5: Визуальный конструктор и DAG (Workflow Builder)', 'live', ['web_builder', 'api_v2', 'ax_api_v2', 'ax_worker', 'tbl_workflows'], { desc: 'Пользователь задает требования в React Flow -> AxWise PrepareSolutionV2 генерирует схему -> валидация топологии -> отображение графа.' })
+
+// ── AUTOMATION ────────────────────────────────────────────────────────
+M.automation = [
+  { name: 'Worker Outbox Polling (Orqaly)', cron: 'Непрерывный цикл (25ms - 500ms)', code: 'apps/orqaly/server/workflow-v2/worker-main.js', purpose: 'Обработка очередей iteration, solution build, chat turns, cron schedules и coding tasks.' },
+  { name: 'AxWise Operation Worker', cron: 'Непрерывный цикл (asyncio)', code: 'backend/services/workflow_v2/operation_worker.py', purpose: 'Исполнение когнитивных операций с обновлением lease каждые 30 секунд.' },
+  { name: 'Expired Lease Reaper', cron: 'Периодический тик', code: 'apps/orqaly/server/workflow-v2/worker-engine.js', purpose: 'Поиск зависших попыток (list_expired_attempt_leases) и их повторная постановка в очередь.' },
+  { name: 'Artifact GCS Uploader', cron: 'По событию outbox', code: 'apps/orqaly/server/workflow-v2/final-artifact-exporter.js', purpose: 'Потоковая выгрузка готовых markdown артефактов в Google Cloud Storage с экспоненциальным backoff.' }
+]
+
+// ── REPORT ────────────────────────────────────────────────────────────
+M.report = [
+  ['Desktop Operator (Goose + OMP)', 'РАБОТАЕТ', 'packages/omp-mcp-server, packages/orqaly-goose-connector', 'Сессия исполняется внутри OMP; 7/7 OMP тестов пройдены; 23/23 Connector тестов пройдены; Keychain авторизация активна.'],
+  ['Web UI & Workspace (Vite 7)', 'РАБОТАЕТ', 'apps/orqaly/src/', 'Сборка gcp-launch проверена (32 чанка, 1.25 МБ); verify:gcp-web аудит успешен; 56/56 роут-тестов пройдены.'],
+  ['Execution API & Worker Engine', 'РАБОТАЕТ', 'apps/orqaly/server/workflow-v2/', 'Локальный E2E на PG16 пройден (simple + advanced); 5 очередей активны; outbox SKIP LOCKED проверен.'],
+  ['AxWise Cognitive Engine & Research', 'РАБОТАЕТ', 'backend/services/workflow_v2/', 'PR #52 объединен; 4,000-символьные топик контракты работают; 117/117 бекенд тестов пройдены; Gemini 3.8 зафиксирован.'],
+  ['Storage & Identity (Cloud SQL PG16)', 'РАБОТАЕТ', 'database/workflow-v2/', 'Миграции 001-025 (Orqaly) и 001-009 (AxWise) подтверждены SHA-256 суммами; RLS активен.'],
+  ['Agentic Control Plane & Tool Gateway', 'ЧАСТИЧНО', 'apps/orqaly/services/agentic-*', 'Профили агентов и жизненный цикл работают; исполняющий движок выключен (AGENTIC_EXECUTION_ENABLED=false).'],
+  ['Isolated Coding Worker Sandbox', 'ЧАСТИЧНО', 'apps/orqaly/server/workflow-v2/coding-worker-*', 'Реализация завершена; требует указания URL Cloud Run job и секрета для приема задач.'],
+  ['Orchestration Phase 1-4 & Legacy Handlers', 'НЕ ПОДКЛЮЧЕНО', 'backend/api/routes/orchestration.py, apps/orqaly/api/', 'Исключено из Cloud Run Dockerfile; 40+ legacy Vercel хендлеров не смонтированы в сервере.']
+]
+</script>
+
+<script>// ── Indexes and state ─────────────────────────────────────────────────────────
+const NODE = new Map(M.nodes.map((n) => [n.id, n]))
+const DOMAIN = new Map(M.domains.map((d) => [d.id, d]))
+const OUT = new Map(M.nodes.map((n) => [n.id, []]))
+const IN = new Map(M.nodes.map((n) => [n.id, []]))
+M.edges.forEach((e, i) => { e.i = i; OUT.get(e.from).push(e); IN.get(e.to).push(e) })
+const CHAINS_OF = new Map(M.nodes.map((n) => [n.id, []]))
+for (const c of M.chains) for (const id of new Set(c.nodes)) CHAINS_OF.get(id).push(c)
+
+const TECH = new Set(['ERROR', 'RETRY'])
+const ST = {
+  view: 'overview', domain: null, chain: 'A', node: null, focusDomain: null,
+  prod: false, tech: false, types: new Set(Object.keys(TYPES)), confs: new Set(Object.keys(CONF)),
+  collapsed: new Set(),
+}
+
+const $ = (s) => document.querySelector(s)
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+const LIVENESS = { live: 'РАБОТАЕТ', partial: 'ЧАСТИЧНО', not_wired: 'НЕ ПОДКЛЮЧЕНО' }
+const STATUS = { live: 'работает', partial: 'частично', manual: 'вручную', not_wired: 'не подключено' }
+
+/** Whether a node passes the global filters (not the per-view tech rule). */
+function passes(n) {
+  if (ST.prod && (n.wiring === 'not_wired' || n.wiring === 'test_only')) return false
+  return ST.types.has(n.type) && ST.confs.has(n.conf)
+}
+function edgePasses(e) {
+  return !(ST.prod && e.kind === 'intended')
+}
+/** Tech nodes: errors and retries are hidden unless asked; tables only show inside their own domain. */
+function techVisible(n, homeDomain) {
+  if (ST.tech) return true
+  if (TECH.has(n.type)) return false
+  if (n.type === 'DB' && n.domain !== homeDomain) return false
+  return true
+}
+
+// Text measurement for SVG wrapping.
+const MEASURE = document.createElement('canvas').getContext('2d')
+function wrap(text, width, font, maxLines) {
+  MEASURE.font = font
+  const words = String(text).split(/\s+/)
+  const lines = []
+  let cur = ''
+  for (const w of words) {
+    const next = cur ? cur + ' ' + w : w
+    if (MEASURE.measureText(next).width <= width) cur = next
+    else {
+      if (cur) lines.push(cur)
+      cur = w
+      while (MEASURE.measureText(cur).width > width && cur.length > 4) {
+        let cut = cur.length - 1
+        while (cut > 1 && MEASURE.measureText(cur.slice(0, cut)).width > width) cut--
+        lines.push(cur.slice(0, cut))
+        cur = cur.slice(cut)
+      }
+    }
+  }
+  if (cur) lines.push(cur)
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines)
+    let last = kept[maxLines - 1] + '…'
+    while (MEASURE.measureText(last).width > width && last.length > 2) last = last.slice(0, -2) + '…'
+    kept[maxLines - 1] = last
+    return kept
+  }
+  return lines
+}
+
+function saveHash() {
+  const p = new URLSearchParams()
+  p.set('v', ST.view)
+  if (ST.domain) p.set('d', ST.domain)
+  if (ST.view === 'chain') p.set('c', ST.chain)
+  if (ST.node) p.set('n', ST.node)
+  history.replaceState(null, '', '#' + p.toString())
+}
+function loadHash() {
+  const p = new URLSearchParams(location.hash.slice(1))
+  const v = p.get('v')
+  if (v && ['overview', 'domain', 'all', 'chain', 'auto', 'report'].includes(v)) ST.view = v
+  if (p.get('d') && DOMAIN.has(p.get('d'))) ST.domain = p.get('d')
+  if (p.get('c') && M.chains.some((c) => c.id === p.get('c'))) ST.chain = p.get('c')
+  if (p.get('n') && NODE.has(p.get('n'))) ST.node = p.get('n')
+  if (ST.view === 'domain' && !ST.domain) ST.view = 'overview'
+}
+
+// ── Layered layout (left → right) ────────────────────────────────────────────
+const NW = 214, NH = 62, GX = 96, GY = 26
+
+/**
+ * Ranks nodes by longest path over forward edges. Feedback and retry edges, and any edge
+ * that closes a cycle, do not push ranks, so loops read as arrows going back.
+ */
+function layered(ids, edges) {
+  const set = new Set(ids)
+  const es = edges.filter((e) => set.has(e.from) && set.has(e.to) && e.from !== e.to)
+  const adj = new Map(ids.map((id) => [id, []]))
+  for (const e of es) if (e.kind !== 'feedback' && e.kind !== 'retry') adj.get(e.from).push(e)
+  // Drop back edges with an iterative DFS in declaration order.
+  const state = new Map()
+  const back = new Set()
+  for (const root of ids) {
+    if (state.has(root)) continue
+    const stack = [[root, 0]]
+    state.set(root, 1)
+    while (stack.length) {
+      const top = stack[stack.length - 1]
+      const list = adj.get(top[0])
+      if (top[1] < list.length) {
+        const e = list[top[1]++]
+        const s = state.get(e.to)
+        if (s === 1) back.add(e)
+        else if (!s) { state.set(e.to, 1); stack.push([e.to, 0]) }
+      } else { state.set(top[0], 2); stack.pop() }
+    }
+  }
+  const fwd = es.filter((e) => e.kind !== 'feedback' && e.kind !== 'retry' && !back.has(e))
+  const rank = new Map(ids.map((id) => [id, 0]))
+  const indeg = new Map(ids.map((id) => [id, 0]))
+  for (const e of fwd) indeg.set(e.to, indeg.get(e.to) + 1)
+  const queue = ids.filter((id) => indeg.get(id) === 0)
+  while (queue.length) {
+    const id = queue.shift()
+    for (const e of fwd) if (e.from === id) {
+      rank.set(e.to, Math.max(rank.get(e.to), rank.get(id) + 1))
+      indeg.set(e.to, indeg.get(e.to) - 1)
+      if (indeg.get(e.to) === 0) queue.push(e.to)
+    }
+  }
+  // Pull sources right next to their first consumer so entry nodes don't all stack in column 0.
+  for (const id of ids) {
+    const outs = fwd.filter((e) => e.from === id)
+    const ins = fwd.filter((e) => e.to === id)
+    if (!ins.length && outs.length) rank.set(id, Math.max(0, Math.min(...outs.map((e) => rank.get(e.to))) - 1))
+  }
+  const cols = []
+  for (const id of ids) (cols[rank.get(id)] ??= []).push(id)
+  for (let i = 0; i < cols.length; i++) cols[i] ??= []
+  // Barycentre ordering, a few sweeps each way.
+  const pos = new Map()
+  const index = () => cols.forEach((c) => c.forEach((id, i) => pos.set(id, i)))
+  index()
+  const nb = (id, dir) => es.filter((e) => (dir < 0 ? e.to === id : e.from === id)).map((e) => (dir < 0 ? e.from : e.to))
+  for (let s = 0; s < 4; s++) {
+    const dir = s % 2 === 0 ? -1 : 1
+    const order = dir < 0 ? cols.keys() : [...cols.keys()].reverse()
+    for (const ci of order) {
+      const bc = new Map(cols[ci].map((id) => {
+        const ps = nb(id, dir).filter((x) => pos.has(x) && rank.get(x) !== ci).map((x) => pos.get(x))
+        return [id, ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : pos.get(id)]
+      }))
+      cols[ci].sort((a, b) => bc.get(a) - bc.get(b))
+      cols[ci].forEach((id, i) => pos.set(id, i))
+    }
+  }
+  const tallest = Math.max(1, ...cols.map((c) => c.length))
+  const out = new Map()
+  cols.forEach((c, ci) => {
+    const off = ((tallest - c.length) * (NH + GY)) / 2
+    c.forEach((id, i) => out.set(id, { x: ci * (NW + GX), y: off + i * (NH + GY) }))
+  })
+  return { pos: out, w: cols.length * (NW + GX) - GX, h: tallest * (NH + GY) - GY }
+}
+
+/** Chain layout: steps in reading order, wrapped into rows. */
+function chainLayout(ids) {
+  const per = window.innerWidth < 760 ? 3 : 6
+  const pos = new Map()
+  ids.forEach((id, i) => pos.set(id + '#' + i, { x: (i % per) * (NW + GX), y: Math.floor(i / per) * (NH + GY * 3) }))
+  return { pos, w: Math.min(ids.length, per) * (NW + GX) - GX, h: Math.ceil(ids.length / per) * (NH + GY * 3) }
+}
+
+// ── SVG rendering of process graphs ──────────────────────────────────────────
+const svg = $('#svg')
+const vp = $('#vp')
+let G = null // current graph: { items: Map key → item, edges: [] }
+
+function initDefs() {
+  const kinds = [...Object.keys(EDGE_KINDS), 'out', 'in']
+  const color = (k) => (k === 'out' ? 'var(--out)' : k === 'in' ? 'var(--in)' : `var(--k-${k})`)
+  $('#defs').innerHTML = kinds.map((k) =>
+    `<marker id="m-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L10,5 L0,9 z" style="fill:${color(k)}"/></marker>`).join('')
+  const css = kinds.map((k) => (k === 'out' || k === 'in')
+    ? `.e.${k} path.l{marker-end:url(#m-${k})}`
+    : `.e.k-${k} path.l{marker-end:url(#m-${k});--kc:var(--k-${k})}`).join('')
+  const style = document.createElement('style')
+  style.textContent = css + Object.keys(TYPES).map((t) => `.t-${t}{--tc:var(--c-${t})}`).join('')
+  document.head.appendChild(style)
+}
+
+function shape(type, w, h) {
+  const s = TYPES[type].shape
+  switch (s) {
+    case 'pill': return `<rect class="body" width="${w}" height="${h}" rx="${h / 2}"/>`
+    case 'hex': return `<polygon class="body" points="12,0 ${w},0 ${w - 12},${h} 0,${h}"/>`
+    case 'diamond': return `<polygon class="body" points="18,0 ${w - 18},0 ${w},${h / 2} ${w - 18},${h} 18,${h} 0,${h / 2}"/>`
+    case 'queue': return `<rect class="body" width="${w}" height="${h}" rx="6"/><path class="inner" d="M${w - 9} 9V${h - 9}M${w - 15} 9V${h - 9}M${w - 21} 9V${h - 9}"/>`
+    case 'cyl': return `<path class="body" d="M0,7 a${w / 2},7 0 0 1 ${w},0 V${h - 7} a${w / 2},7 0 0 1 ${-w},0 Z"/><path class="inner" d="M0,7 a${w / 2},7 0 0 0 ${w},0"/>`
+    case 'ext': return `<rect class="body" width="${w}" height="${h}" rx="22"/>`
+    case 'end': return `<rect class="body" width="${w}" height="${h}" rx="8" style="stroke-width:2"/><rect class="inner" x="3.5" y="3.5" width="${w - 7}" height="${h - 7}" rx="5"/>`
+    default: return `<rect class="body" width="${w}" height="${h}" rx="8"/>`
+  }
+}
+
+const TITLE_FONT = '12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif'
+function nodeSvg(item) {
+  const n = NODE.get(item.id)
+  const t = TYPES[n.type]
+  const inset = t.shape === 'diamond' ? 20 : t.shape === 'pill' || t.shape === 'ext' ? 18 : 11
+  const lines = wrap(n.title, NW - inset * 2 - 4, TITLE_FONT, 2)
+  const cls = ['n', 't-' + n.type, 'w-' + n.wiring, item.portal ? 'portal' : ''].join(' ')
+  const head = item.portal ? `→ ${DOMAIN.get(n.domain).title}` : `${t.icon} ${n.type.replace('_', ' ')}`
+  const headLine = wrap(head, NW - inset * 2 - 26, '600 10px sans-serif', 1)[0]
+  const ty = lines.length === 1 ? 41 : 35
+  return `<g class="${cls}" data-key="${esc(item.key)}" transform="translate(${item.x},${item.y})">
+    <title>${esc(n.title)} — ${esc(t.label)}; ${esc(WIRING[n.wiring])}; ${esc(CONF[n.conf])}</title>
+    ${shape(n.type, NW, NH)}
+    <text class="${item.portal ? 'dom' : 'tl'}" x="${inset}" y="17">${esc(headLine)}</text>
+    ${n.crit ? `<circle class="critDot" cx="${NW - inset - 17}" cy="13" r="3.2"><title>Критический процесс</title></circle>` : ''}
+    <text class="badge" x="${NW - inset}" y="17" text-anchor="end">${n.conf[0]}</text>
+    ${lines.map((l, i) => `<text class="tt" x="${inset}" y="${ty + i * 15}">${esc(l)}</text>`).join('')}
+  </g>`
+}
+
+function edgeGeom(a, b) {
+  if (a === b) {
+    const x = a.x + NW, y = a.y + 12
+    return { d: `M${x - 40},${a.y} C${x - 40},${a.y - 46} ${x + 40},${a.y - 46} ${x},${y}`, lx: x, ly: a.y - 40 }
+  }
+  const sx = a.x + NW, sy = a.y + NH / 2, tx = b.x, ty = b.y + NH / 2
+  if (tx > sx + 8) {
+    const dx = Math.max(34, (tx - sx) / 2)
+    return { d: `M${sx},${sy} C${sx + dx},${sy} ${tx - dx},${ty} ${tx},${ty}`, lx: (sx + tx) / 2, ly: (sy + ty) / 2 - 4 }
+  }
+  if (Math.abs(a.x - b.x) < 8) {
+    const bx = a.x + NW + 26 + Math.min(60, Math.abs(ty - sy) / 6)
+    return { d: `M${sx},${sy} C${bx + 20},${sy} ${bx + 20},${ty} ${sx},${ty}`, lx: bx + 12, ly: (sy + ty) / 2 }
+  }
+  const ax = a.x + NW / 2, bx2 = b.x + NW / 2, low = Math.max(a.y, b.y) + NH + 34 + Math.min(80, Math.abs(ax - bx2) / 10)
+  return { d: `M${ax},${a.y + NH} C${ax},${low} ${bx2},${low} ${bx2},${b.y + NH}`, lx: (ax + bx2) / 2, ly: low - 10 }
+}
+
+/** graph: { items: [{key, id, x, y, portal}], edges: [{from, to, e}], lanes?: [...] } */
+function drawGraph(graph) {
+  G = { items: new Map(graph.items.map((it) => [it.key, it])), edges: graph.edges }
+  const lanes = (graph.lanes ?? []).map((l) =>
+    `<g class="lane" data-lane="${l.id}"><rect x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" rx="14"/><text x="${l.x + 16}" y="${l.y + 26}">${l.collapsed ? '▸' : '▾'} ${esc(l.title)} <tspan>${esc(l.meta)}</tspan></text></g>`).join('')
+  const edges = graph.edges.map((ge, i) => {
+    const a = G.items.get(ge.from), b = G.items.get(ge.to)
+    const g = edgeGeom(a, b)
+    const label = ge.label ?? ge.e?.label ?? ''
+    const xl = graph.lanes && ge.e && NODE.get(ge.e.from).domain !== NODE.get(ge.e.to).domain
+    return `<g class="e k-${ge.kind}${xl ? ' xl' : ''}" data-i="${i}"><path class="l" d="${g.d}"/>${label ? `<text x="${g.lx}" y="${g.ly}" text-anchor="middle">${esc(label)}</text>` : ''}</g>`
+  }).join('')
+  vp.innerHTML = `<g class="lanes">${lanes}</g><g class="edges">${edges}</g><g class="nodes">${graph.items.map(nodeSvg).join('')}</g>`
+  vp.classList.remove('dim')
+}
+
+/** Highlights everything upstream and downstream of a node; tables and portals stop the walk. */
+function highlight(key) {
+  vp.querySelectorAll('.hl,.out,.in,.sel').forEach((el) => el.classList.remove('hl', 'out', 'in', 'sel'))
+  if (!key || !G?.items.has(key)) { vp.classList.remove('dim'); return }
+  const stop = (k) => { const it = G.items.get(k); return it.portal || NODE.get(it.id).type === 'DB' }
+  const walk = (dir) => {
+    const seen = new Set([key]), q = [key]
+    while (q.length) {
+      const k = q.shift()
+      G.edges.forEach((ge, i) => {
+        const [src, dst] = dir === 'out' ? [ge.from, ge.to] : [ge.to, ge.from]
+        if (src !== k) return
+        const el = vp.querySelector(`.e[data-i="${i}"]`)
+        el.classList.add('hl', dir)
+        if (!seen.has(dst)) {
+          seen.add(dst)
+          if (!stop(dst) && !(ge.kind === 'depends' && k !== key)) q.push(dst)
+        }
+      })
+    }
+    return seen
+  }
+  const all = new Set([...walk('out'), ...walk('in')])
+  for (const k of all) vp.querySelector(`.n[data-key="${CSS.escape(k)}"]`)?.classList.add('hl')
+  vp.querySelector(`.n[data-key="${CSS.escape(key)}"]`)?.classList.add('sel')
+  vp.classList.add('dim')
+}
+
+// ── Views: overview, domain, all, chain ───────────────────────────────────────
+const DW = 256, DH = 132, DGX = 118, DGY = 56
+const narrow = () => svg.getBoundingClientRect().width < 700
+const D_ORDER = [...M.domains].sort((a, b) => a.col - b.col || a.row - b.row).map((d) => d.id)
+const dPos = (d) => narrow()
+  ? { x: 0, y: D_ORDER.indexOf(d.id) * (DH + 22) }
+  : { x: d.col * (DW + DGX), y: d.row * (DH + DGY) + (d.col === 4 ? (DH + DGY) / 2 : 0) }
+
+/** Aggregates node edges into domain → domain links. */
+function domainLinks() {
+  const map = new Map()
+  for (const e of M.edges) {
+    const a = NODE.get(e.from), b = NODE.get(e.to)
+    if (a.domain === b.domain || !edgePasses(e)) continue
+    if (ST.prod && (!passes(a) || !passes(b))) continue
+    // Data flows from a table to its reader; for "who affects whom" the reader depends on the table.
+    const k = a.domain + '>' + b.domain
+    const l = map.get(k) ?? { from: a.domain, to: b.domain, edges: [], labels: new Map() }
+    l.edges.push(e)
+    if (e.label) l.labels.set(e.label, (l.labels.get(e.label) ?? 0) + 1)
+    map.set(k, l)
+  }
+  return [...map.values()].map((l) => ({
+    ...l,
+    intended: l.edges.every((e) => e.kind === 'intended'),
+    label: [...l.labels.entries()].sort((x, y) => y[1] - x[1]).slice(0, 2).map((x) => x[0]).join(' · '),
+  }))
+}
+
+function domainStats(id) {
+  const ns = M.nodes.filter((n) => n.domain === id)
+  return {
+    n: ns.length,
+    cron: ns.some((n) => n.type === 'CRON' || n.type === 'WORKER'),
+    loop: ns.some((n) => n.type === 'LOOP'),
+    crit: ns.filter((n) => n.crit).length,
+    nw: ns.filter((n) => n.wiring === 'not_wired' || n.wiring === 'test_only').length,
+  }
+}
+
+function borderPoint(c, toward) {
+  const cx = c.x + DW / 2, cy = c.y + DH / 2
+  const dx = toward.x - cx, dy = toward.y - cy
+  const s = Math.min(Math.abs((DW / 2 + 6) / (dx || 1e-6)), Math.abs((DH / 2 + 6) / (dy || 1e-6)))
+  return { x: cx + dx * s, y: cy + dy * s }
+}
+
+function drawOverview() {
+  G = null
+  const links = domainLinks()
+  const pairs = new Set(links.map((l) => l.from + '>' + l.to))
+  const linkSvg = links.map((l, i) => {
+    const A = dPos(DOMAIN.get(l.from)), B = dPos(DOMAIN.get(l.to))
+    const ca = { x: A.x + DW / 2, y: A.y + DH / 2 }, cb = { x: B.x + DW / 2, y: B.y + DH / 2 }
+    const bend = pairs.has(l.to + '>' + l.from) ? 26 : 12
+    const mx = (ca.x + cb.x) / 2, my = (ca.y + cb.y) / 2
+    const len = Math.hypot(cb.x - ca.x, cb.y - ca.y) || 1
+    const ctrl = { x: mx - ((cb.y - ca.y) / len) * bend * 3, y: my + ((cb.x - ca.x) / len) * bend * 3 }
+    const p = borderPoint(A, ctrl), q = borderPoint(B, ctrl)
+    const w = Math.min(4, 1 + l.edges.length / 3).toFixed(1)
+    const quiet = narrow() || l.intended || l.from === 'data' || l.to === 'data' || l.edges.every((e) => e.kind === 'depends')
+    return `<g class="dl${l.intended ? ' intended' : ''}${quiet ? ' quiet' : ''}" data-i="${i}" style="--w:${w}"><path d="M${p.x},${p.y} Q${ctrl.x},${ctrl.y} ${q.x},${q.y}" marker-end="url(#m-triggers)"/><text x="${ctrl.x}" y="${ctrl.y}" text-anchor="middle">${esc(l.label || EDGE_KINDS[l.edges[0].kind])}</text></g>`
+  }).join('')
+  const cards = M.domains.map((d) => {
+    const p = dPos(d), s = domainStats(d.id)
+    const sum = wrap(d.sum, DW - 28, '12px sans-serif', 3)
+    const title = wrap(d.title, DW - 28, '650 15px sans-serif', 1)[0]
+    const meta = [`${s.n} узлов`, s.cron ? '⏱ фон' : '', s.loop ? '⟳ цикл' : '', s.crit ? `⚠ ${s.crit} крит.` : '', s.nw ? `┄ ${s.nw} не подкл.` : ''].filter(Boolean).join('   ')
+    return `<g class="d${d.liveness === 'not_wired' ? ' nw' : ''}" data-d="${d.id}" transform="translate(${p.x},${p.y})" style="--lc:var(--${d.liveness})">
+      <rect class="card" width="${DW}" height="${DH}" rx="12"/><rect class="bar" width="5" height="${DH - 24}" x="0" y="12" rx="2"/>
+      <text class="lv" x="14" y="22">${LIVENESS[d.liveness]}</text>
+      <text class="dt" x="14" y="43">${esc(title)}</text>
+      ${sum.map((l, i) => `<text class="ds" x="14" y="${63 + i * 16}">${esc(l)}</text>`).join('')}
+      <text class="dm" x="14" y="${DH - 11}">${esc(meta)}</text></g>`
+  }).join('')
+  vp.innerHTML = `<g class="dls">${linkSvg}</g><g>${cards}</g>`
+  vp.classList.remove('dimD')
+  drawOverview.links = links
+  return narrow() ? { w: DW, h: M.domains.length * (DH + 22) - 22 } : { w: 5 * (DW + DGX) - DGX, h: 4 * (DH + DGY) - DGY }
+}
+
+function focusDomain(id) {
+  vp.querySelectorAll('.d.hl,.d.sel,.dl.hl').forEach((el) => el.classList.remove('hl', 'sel', 'out', 'in'))
+  vp.querySelectorAll('.dl path').forEach((p) => p.setAttribute('marker-end', 'url(#m-triggers)'))
+  if (!id) { vp.classList.remove('dimD'); return }
+  vp.classList.add('dimD')
+  vp.querySelector(`.d[data-d="${id}"]`).classList.add('hl', 'sel')
+  drawOverview.links.forEach((l, i) => {
+    if (l.from !== id && l.to !== id) return
+    const el = vp.querySelector(`.dl[data-i="${i}"]`)
+    el.classList.add('hl', l.from === id ? 'out' : 'in')
+    el.querySelector('path').setAttribute('marker-end', `url(#m-${l.from === id ? 'out' : 'in'})`)
+    vp.querySelector(`.d[data-d="${l.from === id ? l.to : l.from}"]`).classList.add('hl')
+  })
+}
+
+/** Nodes of one domain plus faded portals to neighbours in other domains. */
+function domainGraph(id) {
+  const own = M.nodes.filter((n) => n.domain === id && passes(n) && techVisible(n, id))
+  const ownIds = new Set(own.map((n) => n.id))
+  const portals = new Set()
+  const edges = []
+  for (const e of M.edges) {
+    if (!edgePasses(e)) continue
+    const inA = ownIds.has(e.from), inB = ownIds.has(e.to)
+    if (!inA && !inB) continue
+    const other = inA ? e.to : e.from
+    if (!ownIds.has(other)) {
+      const n = NODE.get(other)
+      if (!passes(n) || !techVisible(n, id)) continue
+      portals.add(other)
+    }
+    edges.push({ from: e.from, to: e.to, kind: e.kind, e })
+  }
+  const ids = [...own.map((n) => n.id), ...portals]
+  const L = layered(ids, edges)
+  return { items: ids.map((i) => ({ key: i, id: i, ...L.pos.get(i), portal: portals.has(i) })), edges, w: L.w, h: L.h }
+}
+
+function allGraph() {
+  const items = [], edges = [], lanes = []
+  const visible = new Set()
+  let y = 0
+  const order = [...M.domains].sort((a, b) => a.col - b.col || a.row - b.row)
+  for (const d of order) {
+    const own = M.nodes.filter((n) => n.domain === d.id && passes(n) && (ST.tech || !TECH.has(n.type)))
+    const collapsed = ST.collapsed.has(d.id)
+    const meta = `  ${own.length} узлов · ${LIVENESS[d.liveness].toLowerCase()}`
+    if (collapsed || !own.length) {
+      lanes.push({ id: d.id, title: d.title, meta, collapsed: true, x: -30, y, w: 0, h: 44 })
+      y += 60
+      continue
+    }
+    const ids = own.map((n) => n.id)
+    const L = layered(ids, M.edges.filter(edgePasses))
+    for (const id of ids) { const p = L.pos.get(id); items.push({ key: id, id, x: p.x, y: y + 48 + p.y }); visible.add(id) }
+    lanes.push({ id: d.id, title: d.title, meta, x: -30, y, w: L.w + 60, h: L.h + 76 })
+    y += L.h + 96
+  }
+  const maxW = Math.max(...lanes.map((l) => l.w))
+  lanes.forEach((l) => { l.w = maxW })
+  for (const e of M.edges) if (edgePasses(e) && visible.has(e.from) && visible.has(e.to)) edges.push({ from: e.from, to: e.to, kind: e.kind, e })
+  return { items, edges, lanes, w: maxW, h: y }
+}
+
+function chainGraph(id) {
+  const c = M.chains.find((x) => x.id === id)
+  const L = chainLayout(c.nodes)
+  const items = c.nodes.map((nid, i) => ({ key: nid + '#' + i, id: nid, ...L.pos.get(nid + '#' + i) }))
+  const edges = []
+  for (let i = 1; i < c.nodes.length; i++) {
+    const a = c.nodes[i - 1], b = c.nodes[i]
+    const e = M.edges.find((x) => x.from === a && x.to === b) ?? M.edges.find((x) => x.from === b && x.to === a)
+    const kind = e ? e.kind : 'triggers'
+    edges.push({ from: items[i - 1].key, to: items[i].key, kind, e, label: e ? (e.label || EDGE_KINDS[e.kind]) : 'далее' })
+  }
+  return { items, edges, w: L.w, h: L.h }
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────────
+const panel = $('#panel'), pBody = $('#pBody')
+const typeChip = (t) => `<span class="chip type" style="background:var(--c-${t})">${TYPES[t].icon} ${t.replace('_', ' ')}</span>`
+const nodeLink = (id) => `<a data-go="${id}">${esc(NODE.get(id).title)}</a>`
+
+function showNode(id) {
+  const n = NODE.get(id)
+  const d = DOMAIN.get(n.domain)
+  const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '')
+  const auto = [['Retry', n.retry], ['Timeout', n.timeout], ['Очередь', n.queue], ['Cron', n.cron], ['Ручной запуск', n.manual], ['Цикличность', n.loop], ['Обратная связь', n.feedback]]
+  const hasAuto = auto.some(([, v]) => v)
+  const group = (edges, dir) => {
+    const by = new Map()
+    for (const e of edges) (by.get(e.kind) ?? by.set(e.kind, []).get(e.kind)).push(e)
+    return [...by.entries()].map(([k, es]) => `<li><b>${esc(EDGE_KINDS[k])}:</b><ul>${es.map((e) => {
+      const other = dir === 'out' ? e.to : e.from
+      const od = NODE.get(other).domain
+      return `<li>${nodeLink(other)}${e.label ? ` <small>— ${esc(e.label)}</small>` : ''}${od !== n.domain ? ` <small>(${esc(DOMAIN.get(od).title)})</small>` : ''}${e.conf ? ` <small>[${e.conf}]</small>` : ''}</li>`
+    }).join('')}</ul></li>`).join('')
+  }
+  const outs = OUT.get(id).filter((e) => e.from !== e.to), ins = IN.get(id).filter((e) => e.from !== e.to)
+  const chains = CHAINS_OF.get(id)
+  pBody.innerHTML = `
+    <div class="chips">${typeChip(n.type)}<span class="chip w-${n.wiring}">${esc(WIRING[n.wiring])}</span>
+      <span class="chip conf" title="${esc(CONF[n.conf])}">${n.conf}</span>${n.crit ? '<span class="chip crit">⚠ критический</span>' : ''}
+      ${n.role === 'end' ? '<span class="chip">⚑ конечный результат</span>' : n.role === 'start' ? '<span class="chip">▶ точка входа</span>' : ''}</div>
+    <h2>${esc(n.title)}</h2>
+    <p class="muted">Домен: <a class="links" data-dom="${d.id}" style="color:var(--accent);cursor:pointer">${esc(d.title)}</a> · <code>${esc(n.id)}</code></p>
+    ${n.sum ? `<p>${esc(n.sum)}</p>` : ''}
+    ${n.note ? `<div class="note">⚠ ${esc(n.note)}</div>` : ''}
+    ${n.purpose || n.trigger || n.first ? `<h3>Запуск</h3><dl class="grid">${row('Зачем', n.purpose)}${row('Триггер', n.trigger)}${row('Первый шаг', n.first)}</dl>` : ''}
+    ${n.steps?.length ? `<h3>Шаги</h3><ol>${n.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
+    ${n.reads || n.writes || n.events || n.ext || n.mods ? `<h3>Данные</h3><dl class="grid">${row('Читает', n.reads)}${row('Пишет', n.writes)}${row('События', n.events)}${row('Внешнее', n.ext)}${row('Модули', n.mods)}</dl>` : ''}
+    ${n.ok || n.err ? `<h3>Результат</h3><dl class="grid">${row('Успех', n.ok)}${row('Ошибка', n.err)}</dl>` : ''}
+    ${hasAuto ? `<h3>Автоматизация</h3><dl class="grid">${auto.map(([k, v]) => row(k, v)).join('')}</dl>` : ''}
+    <h3>Что дальше (исходящие связи)</h3>
+    ${outs.length ? `<ul class="links">${group(outs, 'out')}</ul>` : '<p class="muted">Нет исходящих связей — тупик или конечный результат.</p>'}
+    <h3>От чего зависит (входящие связи)</h3>
+    ${ins.length ? `<ul class="links">${group(ins, 'in')}</ul>` : '<p class="muted">Нет входящих связей — точка входа.</p>'}
+    ${chains.length ? `<h3>Входит в цепочки</h3><ul class="links">${chains.map((c) => `<li><a data-chain="${c.id}">${c.id}. ${esc(c.title)}</a></li>`).join('')}</ul>` : ''}
+    <h3>Источник</h3>
+    ${n.src.length ? `<ul>${n.src.map((s) => `<li class="src">${esc(s)}</li>`).join('')}</ul>` : '<p class="muted">Нет ссылки на код: узел фиксирует отсутствие или внешнее поведение.</p>'}
+    <p class="muted" style="margin-top:10px">Уверенность: <b>${n.conf}</b> — ${esc(CONF[n.conf])}</p>
+    ${ST.view !== 'domain' || ST.domain !== n.domain ? `<p><button class="btn pri" data-open="${id}">Открыть в домене →</button></p>` : ''}`
+  panel.hidden = false
+}
+
+function showDomain(id) {
+  const d = DOMAIN.get(id)
+  const links = drawOverview.links ?? domainLinks()
+  const list = (dir) => links.filter((l) => (dir === 'out' ? l.from : l.to) === id).map((l) => {
+    const o = dir === 'out' ? l.to : l.from
+    return `<li><a data-dom="${o}">${esc(DOMAIN.get(o).title)}</a> <small>— ${esc(l.label || EDGE_KINDS[l.edges[0].kind])}${l.intended ? ' (не подключено)' : ''} · ${l.edges.length}</small></li>`
+  }).join('')
+  const ns = M.nodes.filter((n) => n.domain === id && !TECH.has(n.type) && n.type !== 'DB' || (n.domain === id && id === 'data'))
+  const s = domainStats(id)
+  pBody.innerHTML = `
+    <div class="chips"><span class="chip w-${d.liveness}">${LIVENESS[d.liveness]}</span><span class="chip">${s.n} узлов</span>${s.crit ? `<span class="chip crit">⚠ ${s.crit} критических</span>` : ''}${s.nw ? `<span class="chip w-not_wired">${s.nw} не подключено</span>` : ''}</div>
+    <h2>${esc(d.title)}</h2><p>${esc(d.sum)}</p>
+    <p><button class="btn pri" data-opendom="${id}">Открыть процессы домена →</button></p>
+    <h3 style="color:var(--out)">Влияет на</h3><ul class="links">${list('out') || '<li class="muted">ни на что напрямую</li>'}</ul>
+    <h3 style="color:var(--in)">Зависит от</h3><ul class="links">${list('in') || '<li class="muted">ни от чего напрямую</li>'}</ul>
+    <h3>Процессы</h3><ul class="links">${ns.map((n) => `<li><a data-go="${n.id}">${esc(n.title)}</a> <small>${TYPES[n.type].icon} ${n.wiring !== 'live' ? '· ' + esc(WIRING[n.wiring].toLowerCase()) : ''}</small></li>`).join('')}</ul>`
+  panel.hidden = false
+}
+
+function hidePanel() { panel.hidden = true }
+
+// ── Document views: automation table and report ──────────────────────────────
+const doc = $('#doc')
+const go = (id) => `<a data-go="${id}">${esc(NODE.get(id).title)}</a>`
+
+function automationTable() {
+  const head = ['Процесс', 'Что', 'Периодичность', 'Где настроено', 'Какие данные', 'Что после', 'Параллельный запуск', 'При ошибке', 'Статус']
+  return `<div class="tw"><table><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr>${M.automation.map((r) =>
+    `<tr><td>${go(r[0])}</td>${r.slice(1, 8).map((c) => `<td>${esc(c)}</td>`).join('')}<td><span class="chip w-${r[8]}">${esc(STATUS[r[8]] ?? WIRING[r[8]])}</span></td></tr>`).join('')}</table></div>`
+}
+
+function e2eSection() {
+  return M.chains.map((c) => `<p><b><a data-chain="${c.id}">${c.id}. ${esc(c.title)}</a></b> <span class="chip w-${c.status}">${esc(STATUS[c.status])}</span><br>
+    <span class="muted">${esc(c.sum)}</span><br>${c.nodes.map((id) => esc(NODE.get(id).title)).join(' → ')}</p>`).join('')
+}
+
+function entitiesSection() {
+  const rows = M.nodes.filter((n) => n.domain === 'data').map((t) => {
+    const writers = IN.get(t.id).filter((e) => e.kind === 'writes' || (e.kind === 'intended'))
+    const readers = OUT.get(t.id).filter((e) => e.kind === 'reads' || e.kind === 'intended')
+    const fmt = (es, side) => es.map((e) => `${go(side === 'in' ? e.from : e.to)}${e.kind === 'intended' ? ' <small class="muted">(не подкл.)</small>' : ''}`).join('<br>') || '<span class="muted">—</span>'
+    return `<tr><td>${go(t.id)}</td><td>${fmt(writers, 'in')}</td><td>${fmt(readers, 'out')}</td><td>${esc(t.sum ?? '')}</td></tr>`
+  }).join('')
+  const org = `<tr><td>Org (org/*.yaml, в памяти)</td><td>владелец через PR</td><td>${['api.boot', 'wk.boot', 'da.mandate', 'org.cli', 'reg.orgTree', 'reg.orgRole', 'reg.organization', 'gv.mandate', 'pl.tick'].map(go).join('<br>')}</td><td>Правила; меняются только рестартом процесса</td></tr>`
+  return `<div class="tw"><table><tr><th>Сущность</th><th>Кто пишет</th><th>Кто читает</th><th>Заметка</th></tr>${rows}${org}</table></div>`
+}
+
+function drawReport() {
+  const gen = { e2e: e2eSection, auto: automationTable, entities: entitiesSection }
+  doc.innerHTML = `<div>${M.report.map(([id, title, html]) => `<section id="r-${id}"><h2>${esc(title)}</h2>${html ?? gen[id]()}</section>`).join('')}</div>`
+  doc.scrollTop = 0
+}
+
+function drawAutomation() {
+  doc.innerHTML = `<div><section><h2>Что система делает сама</h2>
+  <p>Всё, что происходит без действия пользователя. Единственный источник расписания — <code>apps/worker/src/crontab.ts</code> (graphile-worker). Отдельного планировщика, входящих webhook и LISTEN/NOTIFY в коде нет.</p>
+  ${automationTable()}</section>
+  <section><h2>Все фоновые, циклические и повторяющиеся узлы</h2><div class="tw"><table><tr><th>Узел</th><th>Тип</th><th>Домен</th><th>Статус</th><th>Кратко</th></tr>
+  ${M.nodes.filter((n) => ['CRON', 'WORKER', 'QUEUE', 'RETRY', 'LOOP', 'AUTOMATION', 'SCHEDULER', 'WEBHOOK'].includes(n.type)).map((n) =>
+    `<tr><td>${go(n.id)}</td><td>${typeChip(n.type)}</td><td>${esc(DOMAIN.get(n.domain).title)}</td><td><span class="chip w-${n.wiring}">${esc(WIRING[n.wiring])}</span></td><td>${esc(n.sum ?? '')}</td></tr>`).join('')}
+  </table></div></section></div>`
+  doc.scrollTop = 0
+}
+
+// ── Controller: views, pan/zoom, search, legend ──────────────────────────────
+const T = { x: 0, y: 0, k: 1 }
+let bounds = { w: 1, h: 1 }
+function applyT() {
+  vp.setAttribute('transform', `translate(${T.x},${T.y}) scale(${T.k})`)
+  svg.classList.toggle('lblsOff', ST.view !== 'chain' && T.k < 0.8)
+}
+function fit(mode) {
+  const r = svg.getBoundingClientRect()
+  const pad = 40
+  if (mode === 'top') {
+    T.k = Math.max(0.3, Math.min(1, (r.width - pad * 2) / bounds.w))
+    T.x = pad + 30 * T.k; T.y = pad
+  } else {
+    const fitK = Math.min(1.05, (r.width - pad * 2) / bounds.w, (r.height - pad * 2) / bounds.h)
+    T.k = mode === 'readable' ? Math.max(0.72, fitK) : Math.max(0.12, fitK)
+    T.x = bounds.w * T.k < r.width - pad * 2 ? (r.width - bounds.w * T.k) / 2 : pad
+    T.y = bounds.h * T.k < r.height - pad * 2 ? (r.height - bounds.h * T.k) / 2 : pad
+    if (bounds.hasLoopTop) T.y += 30
+  }
+  applyT()
+}
+/** Pans (without zooming) so a graph point is visible; keeps clear of the open panel. */
+function reveal(x, y, w, h) {
+  const r = svg.getBoundingClientRect()
+  const sx = T.x + x * T.k, sy = T.y + y * T.k, sw = w * T.k, sh = h * T.k
+  const m = 30
+  if (sx >= m && sy >= m && sx + sw <= r.width - m && sy + sh <= r.height - m) return
+  T.x += r.width / 2 - (sx + sw / 2)
+  T.y += r.height / 2 - (sy + sh / 2)
+  applyT()
+}
+function zoomAt(f, cx, cy) {
+  const k = Math.max(0.08, Math.min(3, T.k * f))
+  T.x = cx - ((cx - T.x) * k) / T.k
+  T.y = cy - ((cy - T.y) * k) / T.k
+  T.k = k
+  applyT()
+}
+
+const HINTS = {
+  overview: 'Клик по домену — на что влияет (синее) и от чего зависит (оранжевое), включая связи с таблицами. Второй клик — процессы домена.',
+  domain: 'Бледные узлы — порталы в другие домены. Пунктир — не подключено. Клик по узлу — детали и вся цепочка связей.',
+  all: 'Все домены полосами. Клик по названию полосы сворачивает её. Приблизьте, чтобы увидеть подписи связей.',
+  chain: 'Сквозной путь по шагам. Подписи — вид связи между соседними шагами.',
+}
+
+function render(keepView) {
+  const v = ST.view
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.view === (v === 'domain' ? 'overview' : v)))
+  const graphView = ['overview', 'domain', 'all', 'chain'].includes(v)
+  $('#stage').hidden = !graphView
+  doc.hidden = graphView
+  $('#side').hidden = v !== 'chain'
+  $('#hint').textContent = HINTS[v] ?? ''
+  if (v === 'overview') {
+    bounds = drawOverview()
+    if (!keepView) fit()
+    focusDomain(ST.focusDomain)
+    if (ST.focusDomain) { showDomain(ST.focusDomain); const p = dPos(DOMAIN.get(ST.focusDomain)); reveal(p.x, p.y, DW, DH) } else hidePanel()
+  } else if (v === 'domain' || v === 'all' || v === 'chain') {
+    if (v === 'chain') drawChainList()
+    const g = v === 'domain' ? domainGraph(ST.domain) : v === 'all' ? allGraph() : chainGraph(ST.chain)
+    drawGraph(g)
+    bounds = { w: g.w, h: g.h, hasLoopTop: g.edges.some((e) => e.from === e.to) }
+    if (!keepView) fit(v === 'all' ? 'top' : 'readable')
+    else applyT()
+    const key = ST.node && [...G.items.values()].find((it) => it.id === ST.node)?.key
+    if (key) { highlight(key); showNode(ST.node); const it = G.items.get(key); reveal(it.x, it.y, NW, NH) } else if (ST.node && NODE.has(ST.node)) showNode(ST.node); else hidePanel()
+  } else {
+    hidePanel()
+    v === 'auto' ? drawAutomation() : drawReport()
+  }
+  drawCrumbs()
+  saveHash()
+}
+
+function drawCrumbs() {
+  const parts = []
+  const v = ST.view
+  if (v === 'overview' || v === 'domain') parts.push(v === 'domain' ? '<a data-view-go="overview">Карта платформы</a>' : 'Карта платформы')
+  if (v === 'domain') parts.push(`<b>${esc(DOMAIN.get(ST.domain).title)}</b>`)
+  if (v === 'all') parts.push('Вся карта')
+  if (v === 'chain') { const c = M.chains.find((x) => x.id === ST.chain); parts.push('Цепочки', `<b>${c.id}. ${esc(c.title)}</b> <span class="chip w-${c.status}">${esc(STATUS[c.status])}</span>`) }
+  if (v === 'auto') parts.push('Автоматизация')
+  if (v === 'report') parts.push('Отчёт')
+  if (ST.node && graphViewNode()) parts.push(esc(NODE.get(ST.node).title))
+  const filters = [ST.prod ? 'только подключённое' : '', ST.tech ? 'технические узлы' : '', ST.types.size < Object.keys(TYPES).length ? 'фильтр типов' : '', ST.confs.size < Object.keys(CONF).length ? 'фильтр уверенности' : ''].filter(Boolean)
+  $('#crumbs').innerHTML = parts.join(' <span class="sep">›</span> ') + (filters.length ? ` <span class="sep">·</span> <span class="muted">фильтры: ${filters.join(', ')}</span>` : '')
+}
+const graphViewNode = () => ['domain', 'all', 'chain'].includes(ST.view)
+
+function drawChainList() {
+  $('#side').innerHTML = M.chains.map((c) => `<button class="chainItem${c.id === ST.chain ? ' on' : ''}" data-chain="${c.id}">
+    <b>${c.id}. ${esc(c.title)}</b><span class="chip w-${c.status}">${esc(STATUS[c.status])}</span><small>${esc(c.sum)}</small></button>`).join('')
+}
+
+// Navigation helpers
+function openDomain(id, node) { ST.view = 'domain'; ST.domain = id; ST.node = node ?? null; render() }
+function goNode(id) {
+  const n = NODE.get(id)
+  if (ST.view === 'all' || (ST.view === 'chain' && ST.chain && M.chains.find((c) => c.id === ST.chain).nodes.includes(id))) {
+    ST.node = id; render(true); return
+  }
+  if (ST.view === 'domain' && G?.items.has(id)) { ST.node = id; render(true); return }
+  openDomain(n.domain, id)
+}
+function openChain(id) { ST.view = 'chain'; ST.chain = id; ST.node = null; render() }
+
+// Pointer: pan and click
+let drag = null
+svg.addEventListener('pointerdown', (ev) => {
+  drag = { x: ev.clientX, y: ev.clientY, tx: T.x, ty: T.y, moved: false, id: ev.pointerId }
+})
+svg.addEventListener('pointermove', (ev) => {
+  if (!drag) return
+  const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return
+  if (!drag.moved) { drag.moved = true; svg.setPointerCapture(drag.id); svg.classList.add('drag') }
+  T.x = drag.tx + dx; T.y = drag.ty + dy
+  applyT()
+})
+svg.addEventListener('pointerup', (ev) => {
+  const wasDrag = drag?.moved
+  drag = null
+  svg.classList.remove('drag')
+  if (wasDrag) return
+  const target = document.elementFromPoint(ev.clientX, ev.clientY)
+  const n = target?.closest('.n'), d = target?.closest('.d'), lane = target?.closest('.lane text')
+  if (n) {
+    const it = G.items.get(n.dataset.key)
+    ST.node = it.id
+    highlight(it.key); showNode(it.id); reveal(it.x, it.y, NW, NH); drawCrumbs(); saveHash()
+  } else if (d) {
+    const id = d.dataset.d
+    if (ST.focusDomain === id) { ST.focusDomain = null; openDomain(id) }
+    else { ST.focusDomain = id; focusDomain(id); showDomain(id); const p = dPos(DOMAIN.get(id)); reveal(p.x, p.y, DW, DH); saveHash() }
+  } else if (lane) {
+    const id = lane.closest('.lane').dataset.lane
+    ST.collapsed.has(id) ? ST.collapsed.delete(id) : ST.collapsed.add(id)
+    render(true)
+  } else clearSelection()
+})
+svg.addEventListener('dblclick', (ev) => {
+  const n = ev.target.closest('.n')
+  if (n) { const it = G.items.get(n.dataset.key); if (it.portal) openDomain(NODE.get(it.id).domain, it.id) }
+})
+svg.addEventListener('wheel', (ev) => {
+  ev.preventDefault()
+  const r = svg.getBoundingClientRect()
+  zoomAt(Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0022)), ev.clientX - r.left, ev.clientY - r.top)
+}, { passive: false })
+const center = () => { const r = svg.getBoundingClientRect(); return [r.width / 2, r.height / 2] }
+$('#zIn').onclick = () => zoomAt(1.25, ...center())
+$('#zOut').onclick = () => zoomAt(0.8, ...center())
+$('#zFit').onclick = () => fit(ST.view === 'all' ? 'top' : undefined)
+window.addEventListener('hashchange', () => { loadHash(); render() })
+
+function clearSelection() {
+  if (ST.view === 'overview') { ST.focusDomain = null; focusDomain(null) }
+  else { ST.node = null; highlight(null) }
+  hidePanel(); drawCrumbs(); saveHash()
+}
+
+// Delegated links anywhere in the page
+document.addEventListener('click', (ev) => {
+  const a = ev.target.closest('[data-go],[data-dom],[data-opendom],[data-open],[data-chain],[data-view-go]')
+  if (!a) return
+  if (a.dataset.go) goNode(a.dataset.go)
+  else if (a.dataset.dom) { ST.view = 'overview'; ST.focusDomain = a.dataset.dom; ST.node = null; render() }
+  else if (a.dataset.opendom) { ST.focusDomain = null; openDomain(a.dataset.opendom) }
+  else if (a.dataset.open) openDomain(NODE.get(a.dataset.open).domain, a.dataset.open)
+  else if (a.dataset.chain) openChain(a.dataset.chain)
+  else if (a.dataset.viewGo) { ST.view = a.dataset.viewGo; ST.node = null; render() }
+  $('#legend').hidden = true
+})
+$('#pClose').onclick = clearSelection
+document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => {
+  ST.view = b.dataset.view; ST.node = null; if (ST.view === 'overview') ST.focusDomain = null; render()
+}))
+$('#fProd').onchange = (ev) => { ST.prod = ev.target.checked; render(true) }
+$('#fTech').onchange = (ev) => { ST.tech = ev.target.checked; render(true) }
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === '/' && document.activeElement !== q) { ev.preventDefault(); q.focus(); q.select() }
+  else if (ev.key === 'Escape') {
+    if (!qres.hidden) { qres.hidden = true; q.blur() }
+    else if (!$('#legend').hidden) $('#legend').hidden = true
+    else clearSelection()
+  }
+})
+window.addEventListener('resize', () => { if (!$('#stage').hidden) applyT() })
+
+// ── Search ────────────────────────────────────────────────────────────────────
+const q = $('#q'), qres = $('#qres')
+const FIELDS = ['title', 'id', 'sum', 'purpose', 'trigger', 'reads', 'writes', 'events', 'ext', 'note', 'cron']
+const INDEX = M.nodes.map((n) => ({
+  n,
+  text: [...FIELDS.map((f) => n[f] ?? ''), ...(n.steps ?? []), ...n.src].join(' \n ').toLowerCase(),
+}))
+let qSel = 0
+function runSearch() {
+  const terms = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (!terms.length) { qres.hidden = true; return }
+  const hits = INDEX.map(({ n, text }) => {
+    if (!terms.every((t) => text.includes(t))) return null
+    const title = n.title.toLowerCase()
+    const score = terms.reduce((s, t) => s + (title.includes(t) ? 10 : 0) + (n.id.toLowerCase().includes(t) ? 5 : 0), 0) + (n.crit ? 1 : 0)
+    const where = n.src.find((s) => terms.some((t) => s.toLowerCase().includes(t)))
+    return { n, score, where }
+  }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 40)
+  qSel = 0
+  qres.innerHTML = hits.length
+    ? hits.map((h, i) => `<button data-hit="${h.n.id}" class="${i === 0 ? 'act' : ''}">${TYPES[h.n.type].icon} ${esc(h.n.title)}
+        <small>${esc(DOMAIN.get(h.n.domain).title)} · ${esc(WIRING[h.n.wiring])}${h.where ? ' · ' + esc(h.where) : ''}</small></button>`).join('')
+    : '<div style="padding:10px 12px" class="muted">Ничего не найдено</div>'
+  qres.hidden = false
+}
+q.addEventListener('input', runSearch)
+q.addEventListener('focus', () => { if (q.value.trim()) runSearch() })
+q.addEventListener('keydown', (ev) => {
+  const items = [...qres.querySelectorAll('[data-hit]')]
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+    ev.preventDefault()
+    qSel = (qSel + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % Math.max(1, items.length)
+    items.forEach((b, i) => b.classList.toggle('act', i === qSel))
+    items[qSel]?.scrollIntoView({ block: 'nearest' })
+  } else if (ev.key === 'Enter' && items[qSel]) {
+    qres.hidden = true; q.blur(); goNode(items[qSel].dataset.hit)
+  }
+})
+qres.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-hit]')
+  if (b) { qres.hidden = true; goNode(b.dataset.hit) }
+})
+document.addEventListener('pointerdown', (ev) => {
+  if (!ev.target.closest('.search')) qres.hidden = true
+  if (!ev.target.closest('#legend') && !ev.target.closest('#bLegend')) $('#legend').hidden = true
+})
+
+// ── Legend and filters ────────────────────────────────────────────────────────
+function miniShape(type) {
+  const w = 38, h = 20
+  return `<svg width="${w + 2}" height="${h + 2}" viewBox="-1 -1 ${w + 2} ${h + 2}"><g class="n t-${type}" style="pointer-events:none">${shape(type, w, h).replace(/rx="(\d+)"/g, (m, r) => `rx="${Math.min(+r, 10)}"`)}</g></svg>`
+}
+function drawLegend() {
+  const count = (f) => M.nodes.filter(f).length
+  const types = Object.entries(TYPES).map(([t, d]) => {
+    const c = count((n) => n.type === t)
+    return `<div class="lgRow${ST.types.has(t) ? '' : ' off'}" data-type="${t}">${miniShape(t)}<span><b>[${t}]</b> ${esc(d.label)}</span><span class="cnt">${c || 'не найдено в коде'}</span></div>`
+  }).join('')
+  const confs = Object.entries(CONF).map(([c, d]) =>
+    `<div class="lgRow${ST.confs.has(c) ? '' : ' off'}" data-conf="${c}"><span class="chip conf">${c}</span><span>${esc(d)}</span><span class="cnt">${count((n) => n.conf === c) || '—'}</span></div>`).join('')
+  const wiring = Object.entries(WIRING).map(([w, d]) =>
+    `<div class="lgRow" style="cursor:default"><span class="chip w-${w}">${w === 'not_wired' ? '┄┄' : w === 'test_only' ? '····' : '——'}</span><span>${esc(d)}</span><span class="cnt">${count((n) => n.wiring === w)}</span></div>`).join('')
+  const kinds = Object.entries(EDGE_KINDS).map(([k, d]) =>
+    `<div class="lgRow" style="cursor:default"><svg width="44" height="12"><g class="e k-${k}"><path class="l" d="M2,6 H40"/></g></svg><span>${esc(d)}</span><span class="cnt">${M.edges.filter((e) => e.kind === k).length}</span></div>`).join('')
+  const live = Object.entries(LIVENESS).map(([k, d]) => `<div class="lgRow" style="cursor:default"><span class="chip w-${k}">${d}</span></div>`).join('')
+  $('#legend').innerHTML = `
+    <h4>Типы узлов — клик скрывает / показывает</h4>${types}
+    <p class="muted" style="margin:6px 4px">Красная точка — критический процесс. Буква в углу — уверенность. Бледный узел — портал в другой домен.</p>
+    <h4>Уверенность — клик фильтрует</h4>${confs}
+    <h4>Подключённость узла</h4>${wiring}
+    <h4>Связи</h4>${kinds}
+    <h4>Домены на карте</h4><div class="chips">${live}</div>
+    <p><button class="btn" id="lgReset">Сбросить фильтры</button></p>`
+}
+$('#bLegend').onclick = () => { drawLegend(); $('#legend').hidden = !$('#legend').hidden }
+$('#legend').addEventListener('click', (ev) => {
+  const t = ev.target.closest('[data-type]'), c = ev.target.closest('[data-conf]')
+  if (t) { ST.types.has(t.dataset.type) ? ST.types.delete(t.dataset.type) : ST.types.add(t.dataset.type) }
+  else if (c) { ST.confs.has(c.dataset.conf) ? ST.confs.delete(c.dataset.conf) : ST.confs.add(c.dataset.conf) }
+  else if (ev.target.id === 'lgReset') { ST.types = new Set(Object.keys(TYPES)); ST.confs = new Set(Object.keys(CONF)); ST.prod = false; ST.tech = false; $('#fProd').checked = false; $('#fTech').checked = false }
+  else return
+  drawLegend()
+  if (ST.view !== 'overview') render(true); else drawCrumbs()
+})
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+initDefs()
+loadHash()
+render()
+</script>
+</body>
+</html>

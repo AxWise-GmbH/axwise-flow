@@ -89,3 +89,6 @@ temp/
 !/.github/workflows/
 /.github/workflows/*
 !/.github/workflows/workflow-v2-preview-gates.yml
+output/
+process-map.html
+.DS_Store

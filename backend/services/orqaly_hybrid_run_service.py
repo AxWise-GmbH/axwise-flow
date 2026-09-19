@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import time
+import unicodedata
 import uuid
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
@@ -84,6 +85,13 @@ from backend.services.research_quality_service import (
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS,
+    MAX_IMMUTABLE_GOAL_ID_CHARS,
+    MAX_IMMUTABLE_INDUSTRY_CHARS,
+    MAX_IMMUTABLE_MISSION_CHARS,
+    MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS,
+    MAX_IMMUTABLE_TARGET_USER_CHARS,
+    MAX_IMMUTABLE_TITLE_CHARS,
     build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
@@ -110,6 +118,32 @@ _PRIVATE_GROUNDING_SOURCE_KEYS = {
 
 def _utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
+def _normalized_accepted_topic_text(value: str) -> str:
+    """Normalize only immutable accepted text, without semantic rewriting."""
+
+    return re.sub(
+        r"\s+",
+        " ",
+        unicodedata.normalize("NFKC", str(value or "")),
+    ).strip()
+
+
+def _bounded_accepted_topic_text(
+    value: str,
+    maximum: int,
+    *,
+    label: str = "topic field",
+) -> str:
+    """Return an exact normalized accepted field or fail before semantic loss."""
+
+    cleaned = _normalized_accepted_topic_text(value)
+    if len(cleaned) > maximum:
+        raise ValueError(
+            f"accepted {label} exceeds its exact {maximum}-character contract"
+        )
+    return cleaned
 
 
 def _strip_private_grounding_artifacts(grounding: Dict[str, Any]) -> Dict[str, Any]:
@@ -811,6 +845,69 @@ class HybridRunService:
         return scope.model_dump(mode="json")
 
     @staticmethod
+    def _immutable_topic_goal_fields(
+        request: SimulationRequest,
+        task_context: Optional[OrqalyTaskContext],
+    ) -> ImmutableGoalTopicFields:
+        """Project schema-bounded fields only from hash-bound accepted inputs."""
+
+        context = request.business_context
+        if context is None:
+            raise ValueError("immutable topic fields require business context")
+        problem_parts: list[str] = []
+        for value in (
+            task_context.description if task_context else "",
+            context.problem,
+        ):
+            normalized = _normalized_accepted_topic_text(value)
+            if normalized and normalized not in problem_parts:
+                problem_parts.append(normalized)
+        immutable = {
+            "title": _bounded_accepted_topic_text(
+                task_context.title if task_context else context.business_idea,
+                MAX_IMMUTABLE_TITLE_CHARS,
+                label="title",
+            ),
+            "problem_scope": _bounded_accepted_topic_text(
+                " ".join(problem_parts),
+                MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS,
+                label="problem scope",
+            ),
+            "desired_outcome": _bounded_accepted_topic_text(
+                (task_context.desired_outcome or "") if task_context else "",
+                MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS,
+                label="desired outcome",
+            ),
+            "mission": _bounded_accepted_topic_text(
+                context.business_idea,
+                MAX_IMMUTABLE_MISSION_CHARS,
+                label="mission",
+            ),
+            "industry": _bounded_accepted_topic_text(
+                context.industry or "",
+                MAX_IMMUTABLE_INDUSTRY_CHARS,
+                label="industry",
+            ),
+            "target_user": _bounded_accepted_topic_text(
+                context.target_customer,
+                MAX_IMMUTABLE_TARGET_USER_CHARS,
+                label="target user",
+            ),
+        }
+        goal_id = (
+            _bounded_accepted_topic_text(
+                task_context.task_id,
+                MAX_IMMUTABLE_GOAL_ID_CHARS,
+                label="goal ID",
+            )
+            if task_context and task_context.task_id
+            else "hybrid-" + hashlib.sha256(
+                json.dumps(immutable, sort_keys=True).encode("utf-8")
+            ).hexdigest()[:32]
+        )
+        return ImmutableGoalTopicFields(goal_id=goal_id, **immutable)
+
+    @staticmethod
     def _topic_seed_contract(
         request: SimulationRequest,
         task_context: Optional[OrqalyTaskContext],
@@ -822,33 +919,12 @@ class HybridRunService:
         )
         if not context or not scope_contract:
             return None
-        immutable = {
-            "title": task_context.title if task_context else context.business_idea,
-            "problem_scope": " ".join(
-                value
-                for value in (
-                    task_context.description if task_context else "",
-                    context.problem,
-                )
-                if value
-            ),
-            "desired_outcome": task_context.desired_outcome or ""
-            if task_context
-            else "",
-            "mission": context.business_idea,
-            "industry": context.industry or "",
-            "target_user": context.target_customer,
-        }
-        goal_id = (
-            task_context.task_id
-            if task_context and task_context.task_id
-            else "hybrid-" + hashlib.sha256(
-                json.dumps(immutable, sort_keys=True).encode("utf-8")
-            ).hexdigest()[:32]
-        )
         try:
             seed = build_topic_seed(
-                ImmutableGoalTopicFields(goal_id=goal_id, **immutable),
+                HybridRunService._immutable_topic_goal_fields(
+                    request,
+                    task_context,
+                ),
                 ConfirmedMarketScope.model_validate(scope_contract),
             )
         except (TypeError, ValueError):
@@ -1667,6 +1743,24 @@ class HybridRunService:
                     "business evidence projection requires grounded_hybrid with "
                     "non-instant required grounding"
                 )
+            if research_mode == HybridResearchMode.GROUNDED_HYBRID:
+                try:
+                    self._immutable_topic_goal_fields(request, task_context)
+                except (TypeError, ValueError) as exc:
+                    failure_diagnostics = {
+                        "contract": "sanitized_grounding_failure_v1",
+                        "critical_status": "blocked",
+                        "blocked_reason_counts": {
+                            "lossless_topic_projection_unavailable": 1,
+                        },
+                    }
+                    raise RuntimeError(
+                        "Grounded research cannot preserve the accepted topic scope "
+                        "losslessly before paid work: "
+                        f"{exc}. Shorten the accepted scope; longer text remains "
+                        "blocked until Gate 1 supplies explicit exact-span topic "
+                        "anchors."
+                    ) from exc
 
             # API routes parse raw questionnaires before calling the legacy
             # orchestrator, but durable jobs bypass those routes in the worker.

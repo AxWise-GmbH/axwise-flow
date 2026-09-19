@@ -1,8 +1,8 @@
 /** Shared CORS for API routes. Production: orqaly.com + orchestratori.vercel.app (no other *.vercel.app). */
 const PROD_ORIGINS = [
-  'https://orqaly.com',
-  'https://www.orqaly.com',
-  'https://orchestratori.orqaly.com',
+  'https://orqanix.com',
+  'https://www.orqanix.com',
+  'https://orchestratori.orqanix.com',
   'https://orchestratori.vercel.app',
 ];
 
@@ -29,7 +29,7 @@ export function cors(res, req) {
   const allowLocalhost = process.env.ALLOW_LOCALHOST_ORIGIN === 'true' || !isProd;
   const isAllowed =
     allowed.includes(origin) || PROD_ORIGINS.includes(origin) || (allowLocalhost && /^http:\/\/localhost:\d+$/i.test(origin));
-  const allow = isAllowed ? origin : allowed[0] || 'https://orqaly.com';
+  const allow = isAllowed ? origin : allowed[0] || 'https://orqanix.com';
   res.setHeader('Access-Control-Allow-Origin', allow);
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
