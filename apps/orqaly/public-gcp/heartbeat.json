@@ -1,6 +1,7 @@
 {
-  "schemaVersion": "orqanix.heartbeat-snapshot.v4",
-  "timestamp": "2026-09-20T19:35:17.804Z",
+  "schemaVersion": "orqanix.heartbeat-snapshot.v5",
+  "interval": "15m",
+  "timestamp": "2026-09-20T19:56:39.937Z",
   "allHealthy": true,
   "endpoints": [
     {
@@ -8,40 +9,40 @@
       "url": "https://orqanix.com/",
       "status": 200,
       "ok": true,
-      "latencyMs": 238,
-      "timestamp": "2026-09-20T19:35:18.043Z"
+      "latencyMs": 193,
+      "timestamp": "2026-09-20T19:56:40.131Z"
     },
     {
       "name": "Instant Preview",
       "url": "https://orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 219,
-      "timestamp": "2026-09-20T19:35:18.042Z"
+      "latencyMs": 175,
+      "timestamp": "2026-09-20T19:56:40.133Z"
     },
     {
       "name": "Benchmark Showcase",
       "url": "https://orqanix.com/benchmark",
       "status": 200,
       "ok": true,
-      "latencyMs": 355,
-      "timestamp": "2026-09-20T19:35:18.180Z"
+      "latencyMs": 274,
+      "timestamp": "2026-09-20T19:56:40.233Z"
     },
     {
       "name": "Preview Domain",
       "url": "https://preview.orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 215,
-      "timestamp": "2026-09-20T19:35:18.040Z"
+      "latencyMs": 327,
+      "timestamp": "2026-09-20T19:56:40.286Z"
     },
     {
       "name": "API Health Probe",
       "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
       "status": 200,
       "ok": true,
-      "latencyMs": 258,
-      "timestamp": "2026-09-20T19:35:18.083Z"
+      "latencyMs": 224,
+      "timestamp": "2026-09-20T19:56:40.183Z"
     }
   ],
   "archetypeBenchmarks": [
@@ -51,39 +52,38 @@
       "scope": "Interactive Dialogue & Strategic Advisory",
       "baseline": "5.8s",
       "impact": "Direct structured response with zero preamble delay",
-      "last15m": "1.1s",
+      "last15m": "1.2s",
       "last3h": "1.1s",
       "last24h": "1.1s",
       "evaluation": {
-        "lastPrompt": "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license.",
+        "lastPrompt": "Compare Germany GmbH versus Singapore Pte Ltd subsidiary structure for a cross-border fintech and digital asset custody startup scaling enterprise ARR from $2M to $10M with transatlantic enterprise clients under GmbHG § 43.",
         "turns": 1,
-        "context": "Fintech statutory licensing & Asia-Pacific financial regulations",
-        "measuredMs": 1119,
-        "measuredFormatted": "1.12s (1119 ms)",
+        "context": "Corporate structuring & venture regulatory compliance",
+        "measuredMs": 1181,
+        "measuredFormatted": "1.18s (1181 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license.",
+            "prompt": "Compare Germany GmbH versus Singapore Pte Ltd subsidiary structure for a cross-border fintech and digital asset custody startup scaling enterprise ARR from $2M to $10M with transatlantic enterprise clients under GmbHG § 43.",
             "turns": 1,
-            "measured": "1.12s (1119 ms)",
+            "measured": "1.18s (1181 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "What are the core qualifying criteria and eligible expense categories for the UK R&D SME tax relief scheme under HMRC guidelines?",
+            "prompt": "Compare Germany GmbH versus Singapore Pte Ltd subsidiary structure for a ultra-premium freeze-dried pet nutrition startup preparing a cross-border equity financing while licensing proprietary IP under GmbHG § 43.",
             "turns": 1,
-            "measured": "1.21s (1213 ms)",
-            "timeAgo": 20
+            "measured": "1.18s (1184 ms)",
+            "timeAgo": 15
           },
           {
-            "prompt": "Compare Delaware C-Corp vs German GmbH subsidiary structure for an AI startup raising US venture capital while retaining European engineering.",
+            "prompt": "Compare Germany GmbH versus Singapore Pte Ltd subsidiary structure for a HIPAA-compliant decentralized telehealth startup securing commercial debt facilities and regulatory market authorization under GmbHG § 43.",
             "turns": 1,
-            "measured": "1.12s (1124 ms)",
-            "timeAgo": 40
+            "measured": "1.10s (1099 ms)",
+            "timeAgo": 30
           }
         ],
-        "distinct24hCount": 4,
-        "catalogTotal": 4,
-        "samples3h": 10,
-        "samples24h": 10
+        "generator": "Combinatorial Slot-Filling (Procedural High-Entropy)",
+        "samples3h": 12,
+        "samples24h": 12
       }
     },
     {
@@ -96,35 +96,28 @@
       "last3h": "25s",
       "last24h": "25s",
       "evaluation": {
-        "lastPrompt": "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation.",
+        "lastPrompt": "Create a responsive typed schema validation and transactional safety in Python (FastAPI & Pydantic v2) using Alembic & PostgreSQL with full unit test coverage.",
         "turns": 1,
-        "context": "Fullstack architectural modernization & schema enforcement",
-        "measuredMs": 25321,
-        "measuredFormatted": "25.32s (25321 ms)",
+        "context": "Fullstack engineering, refactoring & schema validation",
+        "measuredMs": 24903,
+        "measuredFormatted": "24.90s (24903 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation.",
+            "prompt": "Create a responsive typed schema validation and transactional safety in Python (FastAPI & Pydantic v2) using Alembic & PostgreSQL with full unit test coverage.",
             "turns": 1,
-            "measured": "25.32s (25321 ms)",
+            "measured": "24.90s (24903 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "Refactor the Stripe billing webhook handler to guarantee database idempotency using idempotency-keys and atomic balance updates.",
+            "prompt": "In Python with FastAPI & Pydantic v2, refactor JWT authentication middleware with sliding-window refresh token rotation and Redis blacklist using Alembic & PostgreSQL.",
             "turns": 1,
-            "measured": "25.54s (25536 ms)",
-            "timeAgo": 20
-          },
-          {
-            "prompt": "Create a responsive, dark-mode landing hero component with animated vector gradients, accessible CTA buttons, and Tailwind CSS.",
-            "turns": 1,
-            "measured": "25.47s (25467 ms)",
-            "timeAgo": 40
+            "measured": "25.18s (25182 ms)",
+            "timeAgo": 15
           }
         ],
-        "distinct24hCount": 4,
-        "catalogTotal": 4,
-        "samples3h": 10,
-        "samples24h": 10
+        "generator": "Combinatorial Slot-Filling (Procedural High-Entropy)",
+        "samples3h": 12,
+        "samples24h": 12
       }
     },
     {
@@ -137,35 +130,22 @@
       "last3h": "2.3s",
       "last24h": "2.3s",
       "evaluation": {
-        "lastPrompt": "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms.",
+        "lastPrompt": "APAC statutory compliance: Japan METI Energy Conservation Act covering Top Runner energy efficiency labeling and commercial import compliance.",
         "turns": 1,
-        "context": "Fintech sandbox compliance & statutory review",
-        "measuredMs": 2154,
-        "measuredFormatted": "2.15s (2154 ms)",
+        "context": "Global statutory discovery with 50–66% noise eliminated by Gate A",
+        "measuredMs": 2253,
+        "measuredFormatted": "2.25s (2253 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms.",
+            "prompt": "APAC statutory compliance: Japan METI Energy Conservation Act covering Top Runner energy efficiency labeling and commercial import compliance.",
             "turns": 1,
-            "measured": "2.15s (2154 ms)",
+            "measured": "2.25s (2253 ms)",
             "timeAgo": 0
-          },
-          {
-            "prompt": "Comparative statutory analysis of California Consumer Privacy Act (CCPA/CPRA) opt-out mechanisms vs EU GDPR consent rules.",
-            "turns": 1,
-            "measured": "2.35s (2353 ms)",
-            "timeAgo": 20
-          },
-          {
-            "prompt": "FDA 510(k) premarket notification clearance pathway: predicate device equivalence standards and clinical validation thresholds.",
-            "turns": 1,
-            "measured": "2.34s (2341 ms)",
-            "timeAgo": 40
           }
         ],
-        "distinct24hCount": 4,
-        "catalogTotal": 4,
-        "samples3h": 10,
-        "samples24h": 10
+        "generator": "Combinatorial Slot-Filling (Procedural High-Entropy)",
+        "samples3h": 12,
+        "samples24h": 12
       }
     },
     {
@@ -174,39 +154,38 @@
       "scope": "Deep Grounded Intelligence & Strategic Modeling",
       "baseline": "52.0s",
       "impact": "High-density, citation-backed executive summary",
-      "last15m": "20s",
+      "last15m": "19s",
       "last3h": "19s",
       "last24h": "19s",
       "evaluation": {
-        "lastPrompt": "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework).",
+        "lastPrompt": "Synthesize strategic market entry roadmap for deploying a automated logistics and supply chain analytics enterprise solution across Singapore and the EU: statutory compliance with MAS / ACRA, distribution margins, and cloud sovereignty.",
         "turns": 2,
-        "context": "Global healthtech regulatory intelligence & dual-market filing strategy",
-        "measuredMs": 19639,
-        "measuredFormatted": "19.64s (19639 ms)",
+        "context": "Multi-source executive intelligence (767 words) with Gate 1/2 sign-off",
+        "measuredMs": 19420,
+        "measuredFormatted": "19.42s (19420 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework).",
+            "prompt": "Synthesize strategic market entry roadmap for deploying a automated logistics and supply chain analytics enterprise solution across Singapore and the EU: statutory compliance with MAS / ACRA, distribution margins, and cloud sovereignty.",
             "turns": 2,
-            "measured": "19.64s (19639 ms)",
+            "measured": "19.42s (19420 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "Prepare market expansion analysis for a US B2B enterprise SaaS platform entering the DACH region: cloud sovereignty, sales cycles, and pricing norms.",
+            "prompt": "Synthesize strategic market entry roadmap for deploying a cross-border fintech and digital asset custody enterprise solution across Germany and the EU: statutory compliance with BaFin / Handelsregister, distribution margins, and cloud sovereignty.",
             "turns": 2,
-            "measured": "19.57s (19570 ms)",
-            "timeAgo": 20
+            "measured": "19.35s (19352 ms)",
+            "timeAgo": 15
           },
           {
-            "prompt": "Evaluate cross-border e-commerce fulfillment models in Southeast Asia (Singapore, Indonesia, Vietnam): customs thresholds and 3PL benchmarks.",
+            "prompt": "Synthesize strategic market entry roadmap for deploying a automated logistics and supply chain analytics enterprise solution across Japan and the EU: statutory compliance with METI / FSA, distribution margins, and cloud sovereignty.",
             "turns": 2,
-            "measured": "18.85s (18851 ms)",
-            "timeAgo": 40
+            "measured": "19.29s (19285 ms)",
+            "timeAgo": 30
           }
         ],
-        "distinct24hCount": 3,
-        "catalogTotal": 3,
-        "samples3h": 10,
-        "samples24h": 10
+        "generator": "Combinatorial Slot-Filling (Procedural High-Entropy)",
+        "samples3h": 12,
+        "samples24h": 12
       }
     },
     {
@@ -219,29 +198,34 @@
       "last3h": "84s",
       "last24h": "84s",
       "evaluation": {
-        "lastPrompt": "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing.",
+        "lastPrompt": "Author exhaustive 10-stage enterprise launch runbook for a cross-border fintech and digital asset custody venture across Delaware and Germany: corporate setup, IRS / SEC audit filings, SOC2 Type II controls, and automated billing integration.",
         "turns": 10,
-        "context": "10-stage transatlantic enterprise launch runbook & acceptance matrix",
-        "measuredMs": 85473,
-        "measuredFormatted": "85.47s (85473 ms)",
+        "context": "10-stage enterprise PRD (3,951 words) & 100% acceptance criteria matrix",
+        "measuredMs": 84230,
+        "measuredFormatted": "84.23s (84230 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing.",
+            "prompt": "Author exhaustive 10-stage enterprise launch runbook for a cross-border fintech and digital asset custody venture across Delaware and Germany: corporate setup, IRS / SEC audit filings, SOC2 Type II controls, and automated billing integration.",
             "turns": 10,
-            "measured": "85.47s (85473 ms)",
+            "measured": "84.23s (84230 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "Execute end-to-end launch PRD for a HIPAA and GDPR compliant global telehealth consultation application: architecture, audits, and vendor SLAs.",
+            "prompt": "Author exhaustive 10-stage enterprise launch runbook for a HIPAA-compliant decentralized telehealth venture across Switzerland and Japan: corporate setup, FINMA audit filings, SOC2 Type II controls, and automated billing integration.",
             "turns": 10,
-            "measured": "82.33s (82335 ms)",
-            "timeAgo": 20
+            "measured": "85.50s (85496 ms)",
+            "timeAgo": 15
+          },
+          {
+            "prompt": "Author exhaustive 10-stage enterprise launch runbook for a developer platform and observability tooling venture across Singapore and Estonia: corporate setup, MAS / ACRA audit filings, SOC2 Type II controls, and automated billing integration.",
+            "turns": 10,
+            "measured": "83.40s (83402 ms)",
+            "timeAgo": 30
           }
         ],
-        "distinct24hCount": 2,
-        "catalogTotal": 2,
-        "samples3h": 10,
-        "samples24h": 10
+        "generator": "Combinatorial Slot-Filling (Procedural High-Entropy)",
+        "samples3h": 12,
+        "samples24h": 12
       }
     }
   ]
