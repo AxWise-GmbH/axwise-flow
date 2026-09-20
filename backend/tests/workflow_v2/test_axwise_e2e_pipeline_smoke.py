@@ -89,7 +89,7 @@ def test_axwise_stage3_gate_b_deliverable_integrity_and_hedging():
     latency_ms = (time.perf_counter() - t0) * 1000
 
     assert verdict is not None, "Gate B evaluation must return a verdict"
-    assert not verdict.has_unverified_factual_claims_without_pending_prefix, (
+    assert not verdict.has_unverified_commercial_or_financial_estimates_without_pending_prefix, (
         "Properly hedged claims should not trigger unverified claims violation"
     )
     assert latency_ms < 2000, f"Gate B evaluation exceeded 2000ms latency: {latency_ms:.1f}ms"
