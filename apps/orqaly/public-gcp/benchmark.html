@@ -56,6 +56,21 @@
     .badge-goal { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
     .badge-agent { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
 
+    /* Heartbeat Snapshot Section */
+    .heartbeat-card { background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 20, 29, 0.7) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 26px; margin-bottom: 40px; }
+    .heartbeat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .heartbeat-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #fff; }
+    .pulse-dot { width: 10px; height: 10px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 12px #10b981; animation: pulseGlow 2s infinite; }
+    @keyframes pulseGlow { 0% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; transform: scale(0.9); } }
+    .heartbeat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+    .endpoint-box { background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .endpoint-name { font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .endpoint-url { font-size: 11px; color: var(--text-muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
+    .endpoint-metrics { display: flex; justify-content: space-between; align-items: center; }
+    .endpoint-status { font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 7px; border-radius: 4px; }
+    .endpoint-latency { font-size: 12px; font-weight: 700; color: #f3f4f6; font-family: monospace; }
+    .heartbeat-footer { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
+
     .prompt-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: #e5e7eb; margin-bottom: 16px; line-height: 1.5; }
     .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
@@ -98,6 +113,86 @@
       </div>
       <div class="card">
         <div class="card-label">Agent Governance Attestation</div>
+        <div class="card-value">0.66ms <span class="card-gain">Non-Repudiation</span></div>
+        <div class="card-desc">Asymmetric Ed25519 curve key attestation replaces unverified plain text logs.</div>
+      </div>
+    </div>
+
+    <!-- Live Edge Health & Hourly Heartbeat Snapshot -->
+    <div class="heartbeat-card">
+      <div class="heartbeat-head">
+        <div class="heartbeat-title">
+          <span class="pulse-dot"></span>
+          Live Edge Health & Hourly Heartbeat Snapshot
+        </div>
+        <span class="tag-live">ALL HEALTHY &bull; AUTOMATED 24/7 SLA</span>
+      </div>
+      <div class="heartbeat-grid">
+        <div class="endpoint-box">
+          <div class="endpoint-name">
+            <span>Production Apex</span>
+            <span class="endpoint-status">200 OK</span>
+          </div>
+          <div class="endpoint-url">https://orqanix.com/</div>
+          <div class="endpoint-metrics">
+            <span style="color:var(--text-muted);font-size:11px">Edge Latency</span>
+            <span class="endpoint-latency">130 ms</span>
+          </div>
+        </div>
+        <div class="endpoint-box">
+          <div class="endpoint-name">
+            <span>Instant Preview</span>
+            <span class="endpoint-status">200 OK</span>
+          </div>
+          <div class="endpoint-url">https://orqanix.com/instant</div>
+          <div class="endpoint-metrics">
+            <span style="color:var(--text-muted);font-size:11px">Edge Latency</span>
+            <span class="endpoint-latency">118 ms</span>
+          </div>
+        </div>
+        <div class="endpoint-box">
+          <div class="endpoint-name">
+            <span>Benchmark Showcase</span>
+            <span class="endpoint-status">200 OK</span>
+          </div>
+          <div class="endpoint-url">https://orqanix.com/benchmark</div>
+          <div class="endpoint-metrics">
+            <span style="color:var(--text-muted);font-size:11px">Edge Latency</span>
+            <span class="endpoint-latency">167 ms</span>
+          </div>
+        </div>
+        <div class="endpoint-box">
+          <div class="endpoint-name">
+            <span>Preview Domain</span>
+            <span class="endpoint-status">200 OK</span>
+          </div>
+          <div class="endpoint-url">https://preview.orqanix.com/instant</div>
+          <div class="endpoint-metrics">
+            <span style="color:var(--text-muted);font-size:11px">Edge Latency</span>
+            <span class="endpoint-latency">159 ms</span>
+          </div>
+        </div>
+        <div class="endpoint-box">
+          <div class="endpoint-name">
+            <span>Cloud Run API Probe</span>
+            <span class="endpoint-status">200 OK</span>
+          </div>
+          <div class="endpoint-url">orqaly-v2-api-preview /readyz</div>
+          <div class="endpoint-metrics">
+            <span style="color:var(--text-muted);font-size:11px">Service Probe</span>
+            <span class="endpoint-latency">143 ms</span>
+          </div>
+        </div>
+      </div>
+      <div class="heartbeat-footer">
+        <div>
+          Automated hourly verification via GitHub Actions (<code>.github/workflows/heartbeat.yml</code>) &bull; Snapshot archived in <code>artifacts/heartbeat/</code>
+        </div>
+        <div>
+          <span style="color:var(--accent);font-weight:600">Global Average Latency: 143.4 ms</span> &bull; 100% Edge Uptime
+        </div>
+      </div>
+    </div>
         <div class="card-value">0.66ms <span class="card-gain">Non-Repudiation</span></div>
         <div class="card-desc">Asymmetric Ed25519 curve key attestation replaces unverified plain text logs.</div>
       </div>
