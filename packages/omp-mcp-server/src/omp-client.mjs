@@ -1,5 +1,7 @@
 import { execFile as nodeExecFile, spawn as nodeSpawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
+import { createHash, randomUUID } from 'node:crypto';
+import { captureWorkspace, runVerification } from './evidence.mjs';
 
 const MAX_RPC_FRAME_BYTES = 1_048_576;
 const SAFE_TOOLS = Object.freeze({
@@ -391,100 +393,78 @@ export async function inspectOmp({ config, signal, spawnImpl, tokenProvider }) {
       };
 }
 
-export async function evaluateWithJev({ task, text, mode, signal, apiKey }) {
-  const key = apiKey || process.env.TYPESAFE_API_KEY;
-  if (!key || !text || text.length < 10) return null;
-  const started = Date.now();
+const hash = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const notEvaluated = (reason) => ({ status: 'not_evaluated', advisory: true, reason });
+
+export async function evaluateWithJev({ config, request, signal, tokenProvider = getAccessToken, fetchImpl = fetch }) {
+  if (!config.conversationId || !config.apiBaseUrl) return { review: notEvaluated('conversation_not_bound') };
+  const deadline = AbortSignal.timeout(12_000);
+  const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
-    if (signal) signal.addEventListener('abort', () => controller.abort(), { once: true });
-    const response = await fetch('https://api.typesafe.ai/v1/systemone', {
+    const token = await tokenProvider(config, combined);
+    const response = await fetchImpl(`${config.apiBaseUrl}/engineering/review`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'jev-latest',
-        state: `Task:\n${task.slice(0, 1500)}\n\nResult (${mode}):\n${text.slice(0, 2500)}`,
-        questions: {
-          task_completed: {
-            type: 'noul',
-            instructions:
-              'Does this response or code modification completely satisfy the requested task?',
-          },
-          quality_verified: {
-            type: 'noul',
-            instructions:
-              'Is the outcome free from unresolved syntax errors, unhandled exceptions, and regressions?',
-          },
-        },
-      }),
-      signal: controller.signal,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Orqaly-Account-Hash': config.accountHash },
+      body: JSON.stringify(request), signal: combined,
     });
-    clearTimeout(timeout);
-    if (!response.ok) return null;
-    const body = await response.json();
-    const taskCompleted = body?.answers?.task_completed?.noul ?? null;
-    const qualityVerified = body?.answers?.quality_verified?.noul ?? null;
-    if (typeof taskCompleted !== 'number') return null;
-    return {
-      verified: taskCompleted >= 0.6 && (qualityVerified === null || qualityVerified >= 0.5),
-      confidence: taskCompleted,
-      qualityScore: qualityVerified,
-      model: body.model || 'jev-latest',
-      latencyMs: Date.now() - started,
-    };
+    if (!response.ok) return { review: notEvaluated(`gateway_http_${response.status}`) };
+    const receipt = await response.json();
+    if (receipt.taskId !== request.taskId || receipt.inputHash !== request.inputHash ||
+        receipt.evidenceHash !== hash(request.evidence) ||
+        !Array.isArray(receipt.researchReferences) || receipt.researchReferences.length !== request.researchReferences.length ||
+        receipt.researchReferences.some((reference, index) => ['conversationId', 'requestId', 'artifactHash'].some(key => reference[key] !== request.researchReferences[index][key])) ||
+        !['passed', 'failed', 'not_evaluated'].includes(receipt.review?.status)) {
+      return { review: notEvaluated('invalid_review_receipt') };
+    }
+    return receipt;
   } catch {
-    return null;
+    return { review: notEvaluated(signal?.aborted ? 'cancelled' : 'review_unavailable') };
   }
 }
 
 export async function runEngineeringTask({
-  config,
-  task,
-  mode,
-  timeoutMs,
-  signal,
-  spawnImpl,
-  tokenProvider,
-  jevEvaluator,
+  config, task, mode, timeoutMs, signal, spawnImpl, tokenProvider,
+  jevEvaluator = evaluateWithJev, acceptanceCriteria = [], researchReferences = [], testCommand,
 }) {
   const effectiveTimeout = Math.min(timeoutMs || config.timeoutMs, config.timeoutMs);
+  const taskId = randomUUID();
+  const inputHash = hash({ task, acceptanceCriteria, researchReferences });
+  const before = mode === 'edit' ? await captureWorkspace(config.workspace, signal) : { status: 'unavailable', text: '' };
   const exchange = await runRpc({
-    config,
-    mode,
-    signal,
-    spawnImpl,
-    tokenProvider,
-    timeoutMs: effectiveTimeout,
+    config, mode, signal, spawnImpl, tokenProvider, timeoutMs: effectiveTimeout,
     request: {
-      id: 'orqanix-task',
-      type: 'prompt',
-      message: `${BOUNDED_SYSTEM_PROMPT}${contextualSubdirectoryPrompt(task)}\n\nRequested task:\n${task}`,
+      id: taskId, type: 'prompt',
+      message: `${BOUNDED_SYSTEM_PROMPT}${contextualSubdirectoryPrompt(task)}\n\nRequested task:\n${task}\n\nAcceptance criteria:\n${JSON.stringify(acceptanceCriteria)}\nResearch provenance (identifiers only):\n${JSON.stringify(researchReferences)}`,
     },
   });
-  let jevGate = null;
-  if (exchange.kind === 'completed' && exchange.text) {
+  const after = mode === 'edit' ? await captureWorkspace(config.workspace, signal) : before;
+  const testEnv = childEnvironment(config, '');
+  delete testEnv.ORQANIX_OMP_TOKEN;
+  const tests = await runVerification({
+    config, command: mode === 'edit' && exchange.kind === 'completed' ? testCommand : undefined,
+    signal, timeoutMs: effectiveTimeout, env: testEnv,
+  });
+  const evidence = {
+    diff: { status: before.status === 'captured' && after.status === 'captured' ? 'captured' : 'unavailable', before: before.text, after: after.text, changed: before.text !== after.text },
+    tests, toolsUsed: exchange.toolsUsed,
+  };
+  let receipt = { review: notEvaluated(exchange.kind === 'completed' ? 'inspection_only' : 'engineering_incomplete') };
+  if (exchange.kind === 'completed' && mode === 'edit') {
     try {
-      jevGate = await (jevEvaluator || evaluateWithJev)({
-        task,
-        text: exchange.text,
-        mode,
-        signal,
-        apiKey: config.typesafeApiKey,
-      });
-    } catch {}
+      receipt = await jevEvaluator({ config, signal, tokenProvider, request: {
+        taskId, conversationId: config.conversationId, task, inputHash, acceptanceCriteria, researchReferences, evidence,
+      } });
+    } catch { receipt = { review: notEvaluated('review_unavailable') }; }
   }
+  if (!receipt?.review) receipt = { review: notEvaluated('invalid_review_receipt') };
+  if (tests.status === 'failed') receipt.review = { ...receipt.review, status: 'failed', reason: 'tests_failed' };
+  const verified = mode === 'edit' && acceptanceCriteria.length > 0 && evidence.diff.status === 'captured' && evidence.diff.changed && tests.status === 'passed' && !tests.truncated && receipt.review.status === 'passed';
   return {
-    status: exchange.kind,
+    status: exchange.kind === 'completed' && mode === 'edit' && !verified ? 'review_required' : exchange.kind,
     ...(exchange.code ? { code: exchange.code } : {}),
-    mode,
-    assistantText: exchange.text,
-    outputTruncated: exchange.truncated,
-    toolsUsed: exchange.toolsUsed,
-    ...(jevGate ? { jevGate } : {}),
+    taskId, conversationId: config.conversationId ?? null, inputHash, evidenceHash: hash(evidence), researchReferences,
+    mode, assistantText: exchange.text, outputTruncated: exchange.truncated,
+    toolsUsed: exchange.toolsUsed, evidence, review: receipt.review, verified,
     durationMs: exchange.durationMs,
   };
 }
