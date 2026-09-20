@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "orqanix.heartbeat-snapshot.v1",
+  "timestamp": "2026-09-20T15:08:42.015Z",
+  "allHealthy": true,
+  "endpoints": [
+    {
+      "name": "Production Apex",
+      "url": "https://orqanix.com/",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 130,
+      "timestamp": "2026-09-20T15:08:41.958Z"
+    },
+    {
+      "name": "Instant Preview",
+      "url": "https://orqanix.com/instant",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 118,
+      "timestamp": "2026-09-20T15:08:41.966Z"
+    },
+    {
+      "name": "Benchmark Showcase",
+      "url": "https://orqanix.com/benchmark",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 167,
+      "timestamp": "2026-09-20T15:08:42.015Z"
+    },
+    {
+      "name": "Preview Domain",
+      "url": "https://preview.orqanix.com/instant",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 159,
+      "timestamp": "2026-09-20T15:08:42.009Z"
+    },
+    {
+      "name": "API Health Probe",
+      "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 143,
+      "timestamp": "2026-09-20T15:08:41.993Z"
+    }
+  ]
+}
