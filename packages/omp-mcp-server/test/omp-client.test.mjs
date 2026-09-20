@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../src/config.mjs';
-import { inspectOmp, runEngineeringTask } from '../src/omp-client.mjs';
+import { inspectOmp, runEngineeringTask, contextualSubdirectoryPrompt } from '../src/omp-client.mjs';
 
 const fixture = fileURLToPath(new URL('./fixtures/fake-omp.mjs', import.meta.url));
 const ACCOUNT = 'a'.repeat(64);
@@ -190,4 +190,11 @@ test('runEngineeringTask integrates TypeSafe Jev evaluation gate', async (t) => 
   assert.equal(value.jevGate?.confidence, 0.92);
   assert.equal(value.jevGate?.qualityScore, 0.88);
   assert.equal(value.jevGate?.latencyMs, 120);
+});
+
+test('contextualSubdirectoryPrompt appends domain instructions for known subpaths', () => {
+  assert.ok(contextualSubdirectoryPrompt('inspect apps/orqaly hero component').includes('SimpleDesign'));
+  assert.ok(contextualSubdirectoryPrompt('fix bug in backend/services').includes('FastAPI'));
+  assert.ok(contextualSubdirectoryPrompt('update ui/desktop prompt.ts').includes('Electron'));
+  assert.equal(contextualSubdirectoryPrompt('general overview'), '');
 });

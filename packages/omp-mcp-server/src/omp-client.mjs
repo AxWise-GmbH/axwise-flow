@@ -15,6 +15,46 @@ const BOUNDED_SYSTEM_PROMPT = [
   'End with a concise summary of work performed and verification actually observed.',
 ].join(' ');
 
+export const SUBDIRECTORY_PROMPTS = Object.freeze({
+  'apps/orqaly': [
+    'Subdirectory context (apps/orqaly):',
+    'Frontend stack uses Vite, React 18, Material UI, and Tailwind.',
+    'Follow the SimpleDesign system and verify component tests in LandingPageSimple.test.jsx.',
+    'Do not hardcode secrets or remove Clerk authentication guards.',
+  ].join(' '),
+  'packages/omp-mcp-server': [
+    'Subdirectory context (packages/omp-mcp-server):',
+    'Bridge is a zero-runtime-dependency Node.js stdio MCP server.',
+    'Maintain strict JSON-RPC protocol compliance, 1MB buffer bounds, and TypeSafe Jev evaluation gates.',
+  ].join(' '),
+  'vendor/orqanix-omp-mcp-server': [
+    'Subdirectory context (vendor/orqanix-omp-mcp-server):',
+    'Desktop vendored bridge. Must match packages/omp-mcp-server exactly.',
+    'Always update SOURCE_PROVENANCE.json when modifying source files.',
+  ].join(' '),
+  backend: [
+    'Subdirectory context (backend):',
+    'Backend stack uses Python 3.11, FastAPI, and Pydantic AI with TypeSafe Jev acceleration.',
+    'Enforce typed schemas and test against tests/workflow_v2/.',
+  ].join(' '),
+  'ui/desktop': [
+    'Subdirectory context (ui/desktop):',
+    'Electron desktop app powered by Goose ACP and Electron Forge.',
+    'Maintain codesign integrity, atomic state writes in workspace.ts, and IPC sandboxing in preload.ts.',
+  ].join(' '),
+});
+
+export function contextualSubdirectoryPrompt(task) {
+  if (typeof task !== 'string') return '';
+  const matching = [];
+  for (const [subpath, prompt] of Object.entries(SUBDIRECTORY_PROMPTS)) {
+    if (task.includes(subpath)) {
+      matching.push(prompt);
+    }
+  }
+  return matching.length ? `\n\n${matching.join('\n\n')}` : '';
+}
+
 function appendBounded(state, value, maximum) {
   if (!value || state.truncated) return;
   const remaining = maximum - Buffer.byteLength(state.text, 'utf8');
@@ -422,7 +462,7 @@ export async function runEngineeringTask({
     request: {
       id: 'orqanix-task',
       type: 'prompt',
-      message: `${BOUNDED_SYSTEM_PROMPT}\n\nRequested task:\n${task}`,
+      message: `${BOUNDED_SYSTEM_PROMPT}${contextualSubdirectoryPrompt(task)}\n\nRequested task:\n${task}`,
     },
   });
   let jevGate = null;
