@@ -88,20 +88,22 @@ export async function createStore(config, { loadKeyring = () => import('@napi-rs
   };
 }
 
-export async function withStoreLock(store, config, action, { timeoutMs = 30_000 } = {}) {
+export async function withStoreLock(store, config, action, { timeoutMs = 30_000, signal } = {}) {
   const root = await privateDirectory(store.lockRoot);
   const lock = join(root, `${config.identity}.lock`);
   const owner = join(lock, 'owner.json');
   const deadline = Date.now() + timeoutMs;
   while (true) {
+    signal?.throwIfAborted();
     try { await mkdir(lock, { mode: 0o700 }); break; }
     catch (error) {
       if (error.code !== 'EEXIST') throw error;
       if (Date.now() >= deadline) fail('AUTH_LOCK_BUSY', 'Another authorization command holds the refresh lock. Retry after it exits; see README for crash recovery.');
-      await delay(100);
+      await delay(100, undefined, { signal });
     }
   }
   try {
+    signal?.throwIfAborted();
     const file = await open(owner, 'wx', 0o600);
     try { await file.writeFile(JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() })); }
     finally { await file.close(); }
