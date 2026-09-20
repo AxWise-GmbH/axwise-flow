@@ -1,0 +1,10 @@
+{
+  "createdAt": "2026-09-20T14:57:15.235Z",
+  "app": "/Users/admin/axwise-opensource/orqaly-goose/ui/desktop/out/Orqanix-darwin-arm64/Orqanix.app",
+  "output": "/Users/admin/axwise-opensource/orqaly-goose/ui/desktop/out/orqanix-release-v2.1.0/Orqanix-Preview-macOS-arm64.dmg",
+  "stage": "/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/orqanix-dmg-QjFu2B",
+  "bytes": 384559790,
+  "sha256": "7720c575852192fef8d23a2f9a2f900451865acc4b34e177f051d8aec87bf32f",
+  "diskImageVerified": true,
+  "appSignatureVerified": true
+}
