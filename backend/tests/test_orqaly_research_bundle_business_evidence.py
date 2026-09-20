@@ -317,6 +317,7 @@ def _build(
     *,
     task_context: dict,
     grounding: dict,
+    runtime: TrustedRuntimeMetadataV1 | None = None,
 ) -> dict:
     request = _request()
     grounding = deepcopy(grounding)
@@ -402,7 +403,7 @@ def _build(
         "scope_contract_binding": binding.model_dump(mode="json"),
         "research_execution_inputs_hash": execution_hash,
         "scope_research_acceptance": acceptance.model_dump(mode="json"),
-        "scope_runtime_binding": TrustedRuntimeMetadataV1().model_dump(
+        "scope_runtime_binding": (runtime or TrustedRuntimeMetadataV1()).model_dump(
             mode="json"
         ),
     }
@@ -716,8 +717,16 @@ def test_complete_owner_ledger_rejects_missing_or_duplicate_thirteenth_owner(
         _complete_business_evidence_owner_ledger(grounding, emitted)
 
 
-def test_profile_absent_preserves_v1_shape_and_bundle_hash_contract():
+@pytest.mark.parametrize("model, expected_hash", [
+    ("gemini-3.7-flash", "81acdc57269bfea4f7cfed377ecf532ecddc8e45fbb3cd763dd265fa6f87ddc6"),
+    ("gemini-3.8-flash", "ef3767a825421f7ff7e110dfae2594505fa9019b1eef256ca22225aa3a77a70a"),
+])
+def test_profile_absent_preserves_v1_shape_and_bundle_hash_contract(model, expected_hash):
+    # Runtime metadata is part of the signed envelope. Keep the historical 3.7
+    # golden while explicitly checking the current 3.8 binding and its new hash.
+    runtime = TrustedRuntimeMetadataV1(model=model, model_resource=f"models/{model}")
     bundle = _build(
+        runtime=runtime,
         task_context=_task_context(),
         grounding={"market_sources": [], "market_claims": []},
     )
@@ -729,9 +738,9 @@ def test_profile_absent_preserves_v1_shape_and_bundle_hash_contract():
     assert "evidence_contract" not in bundle["quality"]
     hash_input = {key: value for key, value in bundle.items() if key != "bundle_hash"}
     assert bundle["bundle_hash"] == canonical_hash(hash_input)
-    assert bundle["bundle_hash"] == (
-        "81acdc57269bfea4f7cfed377ecf532ecddc8e45fbb3cd763dd265fa6f87ddc6"
-    )
+    assert bundle["scope_runtime_binding"] == runtime.model_dump(mode="json")
+    assert bundle["configuration"]["task_context"]["scope_runtime_binding"] == runtime.model_dump(mode="json")
+    assert bundle["bundle_hash"] == expected_hash
 
 
 def test_v2_rejects_role_slot_and_requested_role_count_mismatch():

@@ -3645,7 +3645,7 @@ def test_task_output_prunes_only_positive_launch_claim_lines() -> None:
 
 def test_product_prd_prompts_preserve_quality_without_validator_prose() -> None:
     task_prompt = cognitive_executor_module.TASK_SYSTEM_PROMPT
-    final_prompt = cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT
+    final_prompt = " ".join(cognitive_executor_module.SYNTHESIS_SYSTEM_PROMPT.split())
 
     for required in (
         "do not silently choose an unspecified",
