@@ -1,0 +1,508 @@
+/*
+ * The picture of the Features page's first block (class prefix ohf-): twelve tiles laid like
+ * brickwork, with one band of light crossing the whole wall. The layout of the block itself
+ * is heroFrame.css; tokens come from instant.css.
+ *
+ * Motion is transform, opacity and stroke-dashoffset only. The band rests while the wall is
+ * off screen (Seen sets data-live) and everything is still under prefers-reduced-motion.
+ */
+
+.ohf-wall {
+  --ohf-loop: 10s;
+  --ohf-wait: 1900ms;
+  --ohf-gap: 10px;
+  /* Four courses and the head stay inside HeroFrame's row, down to a 680px window. */
+  --ohf-row: clamp(88px, 13.2svh, 120px);
+  --ohf-rows: 4;
+  --ohf-beam: 260px;
+  /* How far the band leans from one course to the next: the pitch times tan(18deg). */
+  --ohf-lean: calc((var(--ohf-row) + var(--ohf-gap)) * 0.325);
+  position: relative;
+  display: grid;
+  gap: 14px;
+  isolation: isolate;
+}
+
+.ohf-wall[data-live='false'] *,
+.ohf-wall[data-live='false'] *::before,
+.ohf-wall[data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+/* The line-orb, seen through the wall ------------------------------------------------ */
+
+.ohf-orb {
+  position: absolute;
+  right: -8%;
+  bottom: -8%;
+  z-index: -1;
+  width: 80%;
+  opacity: 0.6;
+  /* Lit from the wall's side and gone before it can meet the block's clipped edge. */
+  mask-image: radial-gradient(circle at 34% 34%, black 22%, transparent 74%);
+  pointer-events: none;
+  animation: ohf-fade 2400ms ease 500ms backwards;
+}
+
+.ohf-orb circle {
+  fill: none;
+  stroke-dasharray: 1 3;
+}
+
+.ohf-orb-outer {
+  stroke: rgba(var(--oi-accent-rgb), 0.5);
+}
+
+.ohf-orb-inner {
+  stroke: rgba(var(--oi-pale-rgb), 0.34);
+}
+
+/* Head: what the tiles do, and how many there are ------------------------------------ */
+
+.ohf-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 20px;
+  animation: ohf-fade 1400ms ease 360ms backwards;
+}
+
+.ohf-head .oi-tag {
+  flex: none;
+  font-size: 0.66rem;
+}
+
+.ohf-head-label {
+  color: var(--oi-ink);
+}
+
+.ohf-head-count {
+  color: var(--oi-dim);
+}
+
+.ohf-head-rule {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: var(--oi-hairline);
+  overflow: hidden;
+}
+
+/* A comet as long as the rule with its light at the leading end, so one transform in
+   percent carries it across whatever width the rule has. */
+.ohf-head-rule i {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent calc(100% - 120px),
+    rgba(var(--oi-accent-rgb), 0.7) calc(100% - 24px),
+    var(--oi-ink)
+  );
+  transform: translate3d(-100%, 0, 0);
+  animation: ohf-comet var(--ohf-loop) linear var(--ohf-wait) infinite;
+}
+
+/* Courses ---------------------------------------------------------------------------- */
+
+.ohf-courses {
+  /* A container, so a tile can measure the wall (cqw) and find its own place on it. */
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(var(--ohf-row), auto);
+  gap: var(--ohf-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ohf-slot {
+  --ohf-span: var(--ohf-wide-span);
+  --ohf-start: var(--ohf-wide-start);
+  --ohf-course: var(--ohf-wide-row);
+  /* The tile's left edge on the wall, pushed along by the lean of the band. */
+  --ohf-x: calc(
+    var(--ohf-start) * (100cqw + var(--ohf-gap)) / 12 + var(--ohf-course) * var(--ohf-lean)
+  );
+  grid-column: span var(--ohf-span);
+  min-width: 0;
+  animation: ohf-rise 1100ms var(--oi-ease) backwards;
+  animation-delay: calc(420ms + var(--i) * 55ms);
+}
+
+/* Tile ------------------------------------------------------------------------------- */
+
+/*
+ * --ohf-picked is 1 on the tile under the mouse or the keyboard and 0 on the rest. Every
+ * part of a tile reads that one switch, so the two ways of picking cannot drift apart.
+ */
+.ohf-tile {
+  --ohf-picked: 0;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  box-sizing: border-box;
+  height: 100%;
+  padding: 14px 14px 13px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(var(--oi-pale-rgb), 0.1), rgba(var(--oi-pale-rgb), 0.02) 62%),
+    color-mix(in srgb, var(--oi-page) 58%, transparent);
+  color: var(--oi-ink);
+  text-decoration: none;
+  translate: 0 calc(var(--ohf-picked) * -4px);
+  transition:
+    translate 700ms var(--oi-ease),
+    opacity 500ms ease;
+}
+
+.ohf-tile:focus-visible {
+  --ohf-picked: 1;
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 3px;
+}
+
+/* A finger leaves :hover stuck on the tile it touched, so only a real pointer gets it. */
+@media (hover: hover) {
+  .ohf-tile:hover {
+    --ohf-picked: 1;
+  }
+
+  .ohf-courses:has(.ohf-tile:hover) .ohf-tile:not(:hover, :focus-visible) {
+    opacity: 0.55;
+  }
+
+  .ohf-tile:hover .ohf-icon path {
+    animation: ohf-draw 900ms var(--oi-ease) both;
+  }
+}
+
+.ohf-courses:has(.ohf-tile:focus-visible) .ohf-tile:not(:hover, :focus-visible) {
+  opacity: 0.55;
+}
+
+.ohf-tile:focus-visible .ohf-icon path {
+  animation: ohf-draw 900ms var(--oi-ease) both;
+}
+
+/* The picked tile's own light and rim, waiting in the corner the icon sits in. */
+.ohf-tile::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-accent-rgb), 0.62);
+  border-radius: inherit;
+  background: radial-gradient(
+    120% 140% at 0 0,
+    rgba(var(--oi-accent-rgb), 0.26),
+    rgba(var(--oi-deep-rgb), 0.18) 46%,
+    transparent 72%
+  );
+  opacity: var(--ohf-picked);
+  transition: opacity 500ms ease;
+  pointer-events: none;
+}
+
+.ohf-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ohf-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: auto;
+  color: color-mix(in srgb, var(--oi-accent) calc(var(--ohf-picked) * 100%), var(--oi-ink));
+  opacity: calc(0.86 + var(--ohf-picked) * 0.14);
+  transition:
+    color 400ms ease,
+    opacity 400ms ease;
+}
+
+.ohf-icon path {
+  stroke-dasharray: 1;
+}
+
+/* Twelve ticks with this tile's own one lit: its place in the index, drawn not written. */
+.ohf-ruler {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--oi-hairline-strong) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+.ohf-ruler::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--i) * 3px);
+  width: 1px;
+  height: 11px;
+  background: color-mix(in srgb, var(--oi-ink) 40%, var(--oi-accent));
+}
+
+.ohf-number {
+  flex: none;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  opacity: calc(1 - var(--ohf-picked));
+  translate: 0 calc(var(--ohf-picked) * 6px);
+  transition:
+    opacity 300ms ease,
+    translate 600ms var(--oi-ease);
+}
+
+/* Takes the number's place on the picked tile. Down, because that is where it leads. */
+.ohf-go {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  overflow: visible;
+  color: var(--oi-accent);
+  opacity: var(--ohf-picked);
+  translate: 0 calc((1 - var(--ohf-picked)) * -6px);
+  transition:
+    opacity 400ms ease,
+    translate 600ms var(--oi-ease);
+}
+
+.ohf-go path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ohf-name {
+  position: relative;
+  align-self: end;
+  font-family: var(--oi-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  opacity: calc(0.8 + var(--ohf-picked) * 0.2);
+  transition: opacity 400ms ease;
+}
+
+/* The band of light ------------------------------------------------------------------ */
+
+/*
+ * One mask, two strengths: the 1px rim lets the band through whole, the face of the tile
+ * lets a seventh through. So the same moving strip runs bright along the borders and soft
+ * across the glass. The mask never changes; only the strip's transform does.
+ */
+.ohf-light {
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  -webkit-mask:
+    linear-gradient(rgb(0 0 0 / 0.86) 0 0) content-box,
+    linear-gradient(black 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(rgb(0 0 0 / 0.86) 0 0) content-box exclude,
+    linear-gradient(black 0 0);
+  pointer-events: none;
+}
+
+/* Every strip starts left of the wall and ends right of it, measured from its own tile,
+   so all twelve move as one band and each tile only shows the part that crosses it. */
+.ohf-light i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--ohf-beam);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--oi-accent-rgb), 0.5) 34%,
+    var(--oi-ink) 50%,
+    rgba(var(--oi-accent-rgb), 0.5) 66%,
+    transparent
+  );
+  transform: translate3d(calc(-1 * var(--ohf-x) - var(--ohf-beam)), 0, 0) skewX(-18deg);
+  animation: ohf-sweep var(--ohf-loop) linear var(--ohf-wait) infinite;
+}
+
+@keyframes ohf-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+}
+
+@keyframes ohf-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ohf-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The crossing takes under half the loop; the rest is dark, so the light reads as an event. */
+@keyframes ohf-sweep {
+  from {
+    transform: translate3d(calc(-1 * var(--ohf-x) - var(--ohf-beam)), 0, 0) skewX(-18deg);
+  }
+  44%,
+  to {
+    transform: translate3d(calc(100cqw + var(--ohf-rows) * var(--ohf-lean) - var(--ohf-x)), 0, 0)
+      skewX(-18deg);
+  }
+}
+
+@keyframes ohf-comet {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  44%,
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+/* Tablet: the wall runs the full width under the words, four tiles to a course. */
+@media (max-width: 1099px) {
+  .ohf-wall {
+    --ohf-row: 104px;
+    --ohf-rows: 3;
+  }
+
+  .ohf-slot {
+    --ohf-span: var(--ohf-mid-span);
+    --ohf-start: var(--ohf-mid-start);
+    --ohf-course: var(--ohf-mid-row);
+  }
+
+  .ohf-orb {
+    right: -3%;
+    bottom: -22%;
+    width: 46%;
+  }
+}
+
+/* On a small tablet the two-twelfths tile of a course has no room left for its ruler. */
+@media (min-width: 740px) and (max-width: 819px) {
+  .ohf-slot[data-mid-span='2'] .ohf-ruler {
+    display: none;
+  }
+}
+
+/* Phone: two to a course, and each tile reads across like a row of a list. */
+@media (max-width: 739px) {
+  .ohf-wall {
+    --ohf-gap: 8px;
+    --ohf-row: 64px;
+    --ohf-rows: 6;
+    --ohf-beam: 160px;
+    gap: 12px;
+  }
+
+  .ohf-slot {
+    --ohf-span: var(--ohf-slim-span);
+    --ohf-start: var(--ohf-slim-start);
+    --ohf-course: var(--ohf-slim-row);
+  }
+
+  .ohf-tile {
+    grid-template-rows: none;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  .ohf-top {
+    position: static;
+  }
+
+  .ohf-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ohf-ruler,
+  .ohf-go {
+    display: none;
+  }
+
+  /* No arrow here to take its place, so the number stays. */
+  .ohf-number {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 0.6rem;
+    opacity: 1;
+    translate: none;
+  }
+
+  .ohf-name {
+    align-self: center;
+    font-size: 0.62rem;
+    line-height: 1.35;
+    letter-spacing: 0.08em;
+  }
+
+  .ohf-orb {
+    right: -30%;
+    bottom: -6%;
+    width: 112%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ohf-orb,
+  .ohf-head,
+  .ohf-slot,
+  .ohf-tile:hover .ohf-icon path,
+  .ohf-tile:focus-visible .ohf-icon path {
+    animation: none;
+  }
+
+  .ohf-light,
+  .ohf-head-rule i {
+    display: none;
+  }
+
+  .ohf-tile {
+    translate: none;
+  }
+
+  .ohf-tile,
+  .ohf-tile::before,
+  .ohf-icon,
+  .ohf-number,
+  .ohf-go,
+  .ohf-name {
+    transition: none;
+  }
+}

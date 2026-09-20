@@ -1,0 +1,1030 @@
+/*
+ * The Features page (class prefix oif-). Tokens and primitives come from instant.css.
+ *
+ * Motion is transform, opacity, stroke-dashoffset and the individual translate/scale
+ * properties only, and nothing blurs on the way in: an animated blur repaints every frame.
+ * Everything that moves is switched off at the bottom of the file under
+ * prefers-reduced-motion, with the content fully visible.
+ */
+
+/* Section shell --------------------------------------------------------------- */
+
+/* The stage light and the hero orb bleed; the page root only clips on fine pointers. */
+.oif-section {
+  overflow-x: clip;
+}
+
+/* Looping decoration rests while nobody can see it (Seen sets data-live). */
+.oif-section[data-live='false'] *,
+.oif-section[data-live='false'] *::before,
+.oif-section[data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+/*
+ * Seen marks a block once it has really been scrolled to. Until then its reveals stay in the
+ * dark, however early the shared reveal timer marks them as shown.
+ */
+.oif-gate[data-seen='false'] [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+/* The shared reveal un-blurs as it arrives; on this long page it only fades and rises. */
+.oif-section [data-reveal] {
+  filter: none;
+  transition-property: opacity, transform;
+}
+
+/* A hairline that draws itself from the middle, with light resting on it. */
+.oif-ruled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(1192px, calc(100% - 2 * var(--oi-s3)));
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--oi-hairline-strong) 22%,
+    rgba(255, 255, 255, 0.5) 50%,
+    var(--oi-hairline-strong) 78%,
+    transparent
+  );
+  transform: translate3d(-50%, 0, 0) scaleX(0);
+  transition: transform 1800ms var(--oi-ease);
+}
+
+.oif-ruled::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: -1;
+  width: min(760px, 86%);
+  height: 240px;
+  background: radial-gradient(
+    ellipse 50% 100% at 50% 0,
+    color-mix(in srgb, var(--oi-accent-dark) 18%, transparent),
+    transparent 70%
+  );
+  opacity: 0;
+  transform: translate3d(-50%, 0, 0);
+  transition: opacity 2200ms ease 500ms;
+  pointer-events: none;
+}
+
+.oif-ruled[data-seen='true']::before {
+  transform: translate3d(-50%, 0, 0) scaleX(1);
+}
+
+.oif-ruled[data-seen='true']::after {
+  opacity: 1;
+}
+
+.oif-head {
+  display: grid;
+  gap: 22px;
+  margin-bottom: var(--oi-s4);
+}
+
+.oif-head-main {
+  display: grid;
+  gap: 22px;
+}
+
+.oif-head-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  column-gap: var(--oi-s4);
+  align-items: end;
+}
+
+.oif-head .oi-line {
+  max-width: 64ch;
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.oif-legend {
+  padding-bottom: 6px;
+}
+
+/* Icons ------------------------------------------------------------------------ */
+
+.oif-icon {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.oif-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Explorer (desktop) ----------------------------------------------------------- */
+
+.oif-explorer {
+  --oif-row: 58px;
+  --oif-rows: 12;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  column-gap: clamp(28px, 5vw, 76px);
+  align-items: start;
+  /* Where a tile of the hero lands: all twelve rows in view, and the section's heading
+     above them when the window is tall enough for both. */
+  scroll-margin-top: clamp(100px, 100svh - 720px, 190px);
+}
+
+/* Both panes stick; whichever is shorter stays in view while the other scrolls past. */
+.oif-index,
+.oif-stage {
+  position: sticky;
+  top: 100px;
+}
+
+/* The rail: a hairline down the list, lit from the top as far as the active row. */
+.oif-index::before,
+.oif-index::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  transform-origin: 50% 0;
+  pointer-events: none;
+}
+
+.oif-index::before {
+  background: var(--oi-hairline);
+  scale: 1 0;
+  transition: scale 1600ms var(--oi-ease);
+}
+
+.oif-index::after {
+  background: linear-gradient(180deg, transparent, var(--oi-accent-dark));
+  opacity: 0.7;
+  scale: 1 var(--p, 0);
+  transition: scale 900ms var(--oi-ease);
+}
+
+.oif-explorer[data-seen='true'] .oif-index::before {
+  scale: 1 1;
+}
+
+/* The light on the rail slides to the active row. */
+.oif-rail {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 3px;
+  height: var(--oif-row);
+  border-radius: 3px;
+  background: linear-gradient(180deg, transparent, #ffffff 35%, var(--oi-accent) 65%, transparent);
+  box-shadow: 0 0 14px 1px var(--oi-glow);
+  translate: 0 calc(var(--active, 0) * var(--oif-row));
+  transition:
+    translate 700ms var(--oi-ease),
+    opacity 900ms ease 600ms;
+  pointer-events: none;
+}
+
+.oif-explorer[data-seen='false'] .oif-rail {
+  opacity: 0;
+}
+
+.oif-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oif-row {
+  opacity: 0;
+  translate: 0 20px;
+  transition:
+    opacity 900ms var(--oi-ease),
+    translate 900ms var(--oi-ease);
+  transition-delay: calc(var(--i, 0) * 55ms);
+}
+
+.oif-explorer[data-seen='true'] .oif-row {
+  opacity: 1;
+  translate: none;
+}
+
+.oif-row-button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 18px;
+  width: 100%;
+  height: var(--oif-row);
+  margin: 0;
+  padding: 0 6px 0 30px;
+  border: 0;
+  border-bottom: 1px solid var(--oi-hairline);
+  background: none;
+  color: var(--oi-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color 500ms ease;
+}
+
+/* The active row's rule lights up from the rail outwards. */
+.oif-row-button::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--oi-accent), rgba(255, 255, 255, 0.55) 35%, transparent);
+  transform-origin: 0 50%;
+  scale: 0 1;
+  opacity: 0;
+  transition:
+    scale 900ms var(--oi-ease),
+    opacity 500ms ease;
+}
+
+.oif-row-button[aria-pressed='true'] {
+  color: var(--oi-ink);
+}
+
+.oif-row-button[aria-pressed='true']::after {
+  scale: 1 1;
+  opacity: 1;
+}
+
+.oif-row-button:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.oif-row-icon {
+  width: 24px;
+  height: 24px;
+  transition:
+    color 500ms ease,
+    filter 500ms ease;
+}
+
+.oif-row-name {
+  font-size: clamp(1.3rem, 2vw, 1.85rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+  transition: translate 700ms var(--oi-ease);
+}
+
+.oif-row-index {
+  font-family: var(--oi-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  transition: color 500ms ease;
+}
+
+.oif-row-button[aria-pressed='true'] .oif-row-icon {
+  color: var(--oi-ink);
+  filter: drop-shadow(0 0 8px var(--oi-glow));
+}
+
+/* The small icon redraws itself, lit, as its row takes over. */
+.oif-row-icon path {
+  stroke-dasharray: 1;
+}
+
+.oif-row-button[aria-pressed='true'] .oif-row-icon path {
+  animation: oif-draw 1000ms var(--oi-ease) both;
+}
+
+.oif-row-button[aria-pressed='true'] .oif-row-name {
+  translate: 10px 0;
+}
+
+.oif-row-button[aria-pressed='true'] .oif-row-index {
+  color: var(--oi-accent);
+}
+
+/* Stage ------------------------------------------------------------------------ */
+
+.oif-stage {
+  min-height: calc(var(--oif-rows) * var(--oif-row));
+  isolation: isolate;
+  opacity: 0;
+  transform: translate3d(0, 40px, 0);
+  transition:
+    opacity 1300ms var(--oi-ease) 150ms,
+    transform 1300ms var(--oi-ease) 150ms;
+}
+
+.oif-explorer[data-seen='true'] .oif-stage {
+  opacity: 1;
+  transform: none;
+}
+
+/* The one light source, behind the glass. FeaturesPage.jsx moves it with --lx / --ly. */
+.oif-light {
+  position: absolute;
+  top: -300px;
+  left: -300px;
+  z-index: -1;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  /* Soft by its own falloff: a blur filter on a light that moves is paid for on every frame. */
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--oi-accent-dark) 56%, transparent),
+    color-mix(in srgb, var(--oi-accent-deep) 30%, transparent) 40%,
+    transparent 70%
+  );
+  translate: var(--lx, 78%) var(--ly, 22%);
+  /* The lag is the point: the light drifts after the pointer instead of snapping to it. */
+  transition: translate 1100ms var(--oi-ease);
+  pointer-events: none;
+}
+
+.oif-glass {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: inherit;
+  padding: 36px 44px 44px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 28px;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012) 42%),
+    color-mix(in srgb, var(--oi-paper-strong) 72%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* A field of dots gathers in the far corner, so a short feature never leaves dead glass. */
+.oif-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 60% at 100% 100%, #000, transparent 70%);
+  pointer-events: none;
+}
+
+/* A streak of light crosses the top edge each time the feature changes. */
+.oif-streak {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 46%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--oi-accent) 40%, #ffffff 70%, transparent);
+  filter: drop-shadow(0 0 6px var(--oi-glow));
+  translate: -100% 0;
+  animation: oif-streak 1300ms var(--oi-ease) both;
+  pointer-events: none;
+}
+
+.oif-stage-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 44px;
+}
+
+.oif-count b {
+  color: var(--oi-ink);
+  font-weight: 500;
+}
+
+.oif-progress {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: var(--oi-hairline);
+}
+
+.oif-progress i {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--oi-accent-deep), var(--oi-accent) 70%, #ffffff);
+  transform-origin: 0 50%;
+  scale: var(--p, 0) 1;
+  transition: scale 900ms var(--oi-ease);
+}
+
+.oif-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--oi-ink);
+}
+
+.oif-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-good);
+  box-shadow: 0 0 10px rgba(143, 227, 180, 0.9);
+  animation: oif-pulse 2600ms ease-in-out infinite alternate;
+}
+
+.oif-panels {
+  position: relative;
+  display: grid;
+  flex: 1;
+}
+
+.oif-panel {
+  position: relative;
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  isolation: isolate;
+}
+
+/* display: flex above would otherwise beat the hidden attribute. */
+.oif-panel[hidden] {
+  display: none;
+}
+
+.oif-panel[hidden][data-leaving='true'] {
+  display: flex;
+  animation: oif-out 380ms ease both;
+  pointer-events: none;
+}
+
+.oif-panel:not([hidden]) > * {
+  animation: oif-in 950ms var(--oi-ease) both;
+}
+
+.oif-panel:not([hidden]) > :nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.oif-panel:not([hidden]) > :nth-child(3) {
+  animation-delay: 140ms;
+}
+
+.oif-panel:not([hidden]) > :nth-child(4) {
+  animation-delay: 210ms;
+}
+
+.oif-panel:not([hidden]) > :nth-child(5) {
+  animation-delay: 280ms;
+}
+
+/* Nothing plays behind the curtain: the first panel starts when the explorer arrives. */
+.oif-explorer[data-seen='false'] .oif-panel > *,
+.oif-explorer[data-seen='false'] .oif-panel path,
+.oif-explorer[data-seen='false'] .oif-streak {
+  animation: none;
+}
+
+.oif-panel-icon {
+  width: 76px;
+  height: 76px;
+  margin: 0 0 30px -4px;
+  color: var(--oi-ink);
+  filter: drop-shadow(0 0 12px var(--oi-glow));
+}
+
+.oif-panel-icon path {
+  stroke-width: 0.5;
+}
+
+.oif-panel-icon path {
+  stroke-dasharray: 1;
+}
+
+.oif-panel:not([hidden]) .oif-panel-icon path {
+  animation: oif-draw 1500ms var(--oi-ease) 120ms both;
+}
+
+/* The feature's number, huge and fading out downwards, gives the glass its depth. */
+.oif-panel:not([hidden]) > .oif-numeral {
+  position: absolute;
+  /* In em, so the digits keep their place under the stage head as the type scales. */
+  top: -0.44em;
+  right: -0.08em;
+  z-index: -1;
+  /* Room round the digits: background-clip cuts them off at the edge of a tighter box. */
+  padding-right: 0.08em;
+  font-size: clamp(7rem, 12vw, 11rem);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.07em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 20%, rgba(255, 255, 255, 0) 84%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  user-select: none;
+  animation: oif-numeral-in 1600ms var(--oi-ease) both;
+}
+
+/* Feature words (shared by the stage and the phone cards) ---------------------- */
+
+.oif-name {
+  margin: 0 0 24px;
+  color: var(--oi-ink);
+  font-size: clamp(2.4rem, 4.3vw, 4rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.oif-today {
+  max-width: 34ch;
+  margin: 0 0 28px;
+  color: var(--oi-ink);
+  font-size: clamp(1.12rem, 1.6vw, 1.42rem);
+  line-height: 1.42;
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
+}
+
+.oif-note {
+  max-width: 52ch;
+  margin: 0 0 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--oi-hairline);
+  color: var(--oi-muted);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.oif-note .oi-badge {
+  margin-right: 12px;
+}
+
+/* A second line under a small mono tag: the same ink as the rest, no frame of its own. */
+.oif-also {
+  display: grid;
+  gap: 10px;
+  max-width: 52ch;
+  margin: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.oif-also-text {
+  color: var(--oi-ink);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+
+/* Cards (phones) ---------------------------------------------------------------- */
+
+.oif-cards {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A tile of the hero lands on its card, clear of the top bar. Focus moves there too, for the
+   screen reader's sake; the card is not a control, so it shows no ring. */
+.oif-card-slot {
+  scroll-margin-top: 84px;
+}
+
+.oif-card-slot:focus {
+  outline: none;
+}
+
+.oif-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 22px 24px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 24px;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012) 42%),
+    color-mix(in srgb, var(--oi-paper-strong) 72%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* No pointer on a phone, so the light rests in the corner the icon sits in. */
+.oif-card::before {
+  content: '';
+  position: absolute;
+  top: -150px;
+  left: -150px;
+  z-index: -1;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--oi-accent-dark) 46%, transparent),
+    transparent 66%
+  );
+  pointer-events: none;
+}
+
+.oif-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 44px;
+}
+
+.oif-card-badge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--oi-ink);
+}
+
+.oif-card-icon {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 0 8px var(--oi-glow));
+}
+
+/* The icon draws itself once its card has arrived. */
+.oif-card-icon path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1400ms var(--oi-ease) 350ms;
+}
+
+[data-shown='true'] .oif-card-icon path {
+  stroke-dashoffset: 0;
+}
+
+.oif-gate[data-seen='false'] .oif-card-icon path {
+  stroke-dashoffset: 1;
+}
+
+.oif-card .oif-name {
+  margin-bottom: 16px;
+  font-size: clamp(2rem, 8.6vw, 2.6rem);
+}
+
+.oif-card .oif-today {
+  max-width: 40ch;
+  margin-bottom: 0;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.oif-card .oif-note {
+  margin: 22px 0 0;
+  padding-top: 18px;
+}
+
+.oif-card .oif-note .oi-badge {
+  display: table;
+  margin: 0 0 10px;
+}
+
+.oif-card .oif-also {
+  margin-top: 22px;
+  padding-top: 18px;
+}
+
+/* And the rest: one compact grid ------------------------------------------------------- */
+
+.oif-rest {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oif-rest-slot {
+  display: flex;
+  transition:
+    opacity 900ms var(--oi-ease) calc(var(--i, 0) * 70ms),
+    translate 900ms var(--oi-ease) calc(var(--i, 0) * 70ms);
+}
+
+.oif-rest[data-seen='false'] .oif-rest-slot {
+  opacity: 0;
+  translate: 0 24px;
+}
+
+.oif-rest-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px 24px 28px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 22px;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01) 42%),
+    var(--oi-paper);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Pointer spotlight; FeaturesPage.jsx sets --mx / --my once per frame. */
+.oif-rest-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    300px circle at var(--mx, 0%) var(--my, 0%),
+    rgba(var(--oi-accent-rgb), 0.22),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.oif-rest-card:hover::before {
+  opacity: 1;
+}
+
+.oif-rest-badge {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 40px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--oi-ink);
+}
+
+.oif-rest-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* The icon draws itself as its card arrives. */
+.oif-rest-icon path {
+  stroke-dasharray: 1;
+  transition: stroke-dashoffset 1400ms var(--oi-ease) calc(var(--i, 0) * 70ms + 350ms);
+}
+
+.oif-rest[data-seen='false'] .oif-rest-icon path {
+  stroke-dashoffset: 1;
+}
+
+.oif-rest-name {
+  margin: 0 0 12px;
+  color: var(--oi-ink);
+  font-size: clamp(1.3rem, 1.7vw, 1.55rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.oif-rest-text {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* Keyframes ------------------------------------------------------------------------- */
+
+@keyframes oif-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+}
+
+@keyframes oif-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -16px, 0);
+  }
+}
+
+@keyframes oif-numeral-in {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0);
+  }
+}
+
+@keyframes oif-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 46% wide, so 218% of its own width carries it off the far edge. */
+@keyframes oif-streak {
+  from {
+    translate: -100% 0;
+    opacity: 1;
+  }
+  to {
+    translate: 218% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes oif-pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive ------------------------------------------------------------------------ */
+
+@media (max-width: 1100px) {
+  .oif-explorer {
+    --oif-row: 56px;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
+  }
+
+  .oif-row-button {
+    grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: 14px;
+    padding-left: 22px;
+  }
+
+  .oif-row-index {
+    display: none;
+  }
+
+  .oif-glass {
+    padding: 30px 30px 32px;
+  }
+
+  .oif-rest {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tablets: still one column of cards, but each card reads across: name left, words right. */
+@media (min-width: 601px) and (max-width: 820px) {
+  .oif-head-split {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 22px;
+  }
+
+  .oif-card {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--oi-s4);
+    padding: 32px;
+  }
+
+  .oif-card-top {
+    grid-area: 1 / 1;
+    justify-content: flex-start;
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+
+  .oif-card .oif-name {
+    grid-area: 2 / 1;
+    margin-bottom: 0;
+    font-size: clamp(2rem, 4.6vw, 2.5rem);
+  }
+
+  .oif-card-text {
+    grid-area: 1 / 2 / 3 / 3;
+    align-self: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .oif-head {
+    margin-bottom: var(--oi-s3);
+  }
+
+  .oif-head-split {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 18px;
+  }
+
+  .oif-ruled::before {
+    width: calc(100% - 2 * var(--oi-s2));
+  }
+
+  /* A compact row each: the icon on the left, the words beside it. */
+  .oif-rest {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .oif-rest-card {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    column-gap: 16px;
+    align-items: start;
+    padding: 18px 18px 20px;
+    border-radius: 20px;
+  }
+
+  .oif-rest-badge {
+    grid-row: 1 / 3;
+    margin-bottom: 0;
+  }
+
+  .oif-rest-name {
+    margin: 2px 0 8px;
+  }
+
+  .oif-rest-text {
+    grid-column: 2;
+  }
+}
+
+/* Reduced motion: nothing moves, everything is there. -------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .oif-section *,
+  .oif-section *::before,
+  .oif-section *::after,
+  .oif-section::before,
+  .oif-section::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .oif-gate[data-seen='false'] [data-reveal],
+  .oif-stage,
+  .oif-row,
+  .oif-rest[data-seen='false'] .oif-rest-slot {
+    opacity: 1;
+    transform: none;
+    translate: none;
+  }
+
+  .oif-ruled::before {
+    transform: translate3d(-50%, 0, 0) scaleX(1);
+  }
+
+  .oif-ruled::after {
+    opacity: 1;
+  }
+
+  .oif-index::before {
+    scale: 1 1;
+  }
+
+  .oif-explorer[data-seen='false'] .oif-rail {
+    opacity: 1;
+  }
+
+  /* The light stops following the pointer and rests where it starts. */
+  .oif-light {
+    translate: 78% 22%;
+  }
+
+  .oif-panel[hidden][data-leaving='true'],
+  .oif-streak {
+    display: none;
+  }
+
+  .oif-card-icon path,
+  .oif-gate[data-seen='false'] .oif-card-icon path,
+  .oif-rest[data-seen='false'] .oif-rest-icon path {
+    stroke-dashoffset: 0;
+  }
+}

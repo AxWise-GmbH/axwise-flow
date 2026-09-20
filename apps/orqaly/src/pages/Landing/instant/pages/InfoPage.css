@@ -1,0 +1,546 @@
+/*
+ * The text pages behind the footer (class prefix oin-). No orb here: these pages are lit by
+ * CSS only, and each has its own layout: About a manifesto, Contact three cards, Privacy a
+ * data map beside an index, Terms fact tiles over a grid of clauses.
+ */
+
+/* Shared opening ------------------------------------------------------------ */
+
+.oin-top {
+  padding-block: 168px var(--oi-s4);
+}
+
+.oin-h1 {
+  max-width: 16ch;
+  margin: 18px 0 0;
+  color: var(--oi-ink);
+  font-size: clamp(3rem, 8vw, 6.4rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.oin-head-center {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.oin-head-center .oin-h1 {
+  max-width: 13ch;
+}
+
+/* Shared parts -------------------------------------------------------------- */
+
+.oin-copy {
+  display: grid;
+  gap: var(--oi-s2);
+  color: var(--oi-muted);
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.oin-copy p {
+  margin: 0;
+}
+
+.oin-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oin-list li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.oin-list li::before {
+  content: '';
+  position: absolute;
+  top: 0.78em;
+  left: 0;
+  width: 10px;
+  height: 1px;
+  background: var(--oi-accent);
+}
+
+.oin-mail {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 10px;
+  min-height: 44px;
+  padding-inline: 18px;
+  color: var(--oi-ink);
+  font-size: 0.98rem;
+  text-decoration: none;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 999px;
+  transition:
+    background-color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease;
+}
+
+.oin-mail:hover {
+  border-color: var(--oi-accent);
+  background: rgba(var(--oi-accent-rgb), 0.14);
+}
+
+.oin-numeral {
+  display: block;
+  color: transparent;
+  font-size: 3.4rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  -webkit-text-stroke: 1px rgba(var(--oi-pale-rgb), 0.5);
+}
+
+/* About: a manifesto --------------------------------------------------------- */
+
+.oin-about-hero {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: min(88svh, 820px);
+  padding-block: 140px 60px;
+  overflow: clip;
+}
+
+.oin-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(1100px, 120vw);
+  aspect-ratio: 1.6;
+  translate: -50% -46%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--oi-glow-rgb), 0.62), transparent);
+  filter: blur(40px);
+  pointer-events: none;
+  animation: oip-breathe 12s ease-in-out infinite alternate;
+}
+
+/* The glow is positioned, so the words must be too, or it paints over them. */
+.oin-about-hero .oi-container {
+  position: relative;
+}
+
+.oin-big {
+  max-width: 22ch;
+  margin: 0 0 var(--oi-s5);
+  color: var(--oi-dim);
+  font-size: clamp(2rem, 5.2vw, 4.4rem);
+  line-height: 1.06;
+  letter-spacing: -0.05em;
+}
+
+.oin-big-lit {
+  color: var(--oi-ink);
+}
+
+.oin-principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--oi-s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oin-principle,
+.oin-clause,
+.oin-lane,
+.oin-channel {
+  border: 1px solid var(--oi-hairline);
+  border-radius: 24px;
+  background: var(--oi-paper);
+}
+
+.oin-principle {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-height: 300px;
+  padding: 32px;
+}
+
+.oin-principle h2,
+.oin-clause h2,
+.oin-channel h2 {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.oin-principle h2 {
+  margin-top: auto;
+  padding-top: 72px;
+}
+
+.oin-principle p {
+  margin: 0;
+  color: var(--oi-muted);
+  line-height: 1.55;
+}
+
+.oin-why {
+  display: grid;
+  gap: var(--oi-s3);
+  justify-items: start;
+  max-width: 900px;
+  padding-block: var(--oi-s5);
+}
+
+.oin-why-text {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+}
+
+/* Contact: three cards, each one a mail link ---------------------------------- */
+
+.oin-channels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--oi-s2);
+  margin: 72px 0 var(--oi-s4);
+  padding: 0;
+  list-style: none;
+}
+
+/* The cards of a row share one height, and the address sits on the bottom edge of each. */
+.oin-channels li {
+  display: grid;
+}
+
+.oin-channel {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 12px;
+  min-height: 340px;
+  padding: 32px;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  transition:
+    border-color var(--oi-rise) ease,
+    transform var(--oi-rise) var(--oi-ease);
+}
+
+/* The light that comes up inside the card under the pointer. */
+.oin-channel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 70% at 0% 0%, rgba(var(--oi-glow-rgb), 0.5), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--oi-rise) ease;
+}
+
+.oin-channel > * {
+  position: relative;
+}
+
+.oin-channel:hover {
+  border-color: rgba(var(--oi-pale-rgb), 0.55);
+  transform: translateY(-4px);
+}
+
+.oin-channel:hover::before {
+  opacity: 1;
+}
+
+.oin-channel-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 64px;
+  fill: none;
+  stroke: var(--oi-accent);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.oin-channel p {
+  margin: 0;
+  color: var(--oi-muted);
+  line-height: 1.55;
+}
+
+.oin-channel-mail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  color: var(--oi-ink);
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.oin-channel-mail i {
+  font-style: normal;
+  transition: transform var(--oi-fade) ease;
+}
+
+.oin-channel:hover .oin-channel-mail i {
+  transform: translateX(4px);
+}
+
+.oin-operator {
+  padding-bottom: var(--oi-s4);
+}
+
+/* Privacy: where your data goes, then the text beside a sticky index ---------- */
+
+.oin-map {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: var(--oi-s2);
+  margin-top: 72px;
+}
+
+.oin-lane {
+  padding: 28px;
+}
+
+.oin-lane-home {
+  border-color: rgba(var(--oi-pale-rgb), 0.5);
+  background:
+    radial-gradient(100% 90% at 0% 0%, rgba(var(--oi-glow-rgb), 0.5), transparent 70%),
+    var(--oi-paper);
+}
+
+.oin-lane-home .oi-tag {
+  color: var(--oi-app-light);
+}
+
+.oin-lane ul {
+  display: grid;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  color: var(--oi-ink);
+  font-size: 1.3rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  list-style: none;
+}
+
+.oin-promise {
+  margin: var(--oi-s3) 0 0;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.oin-doc {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 96px;
+  padding-block: var(--oi-s4) var(--oi-s5);
+}
+
+.oin-index {
+  position: sticky;
+  top: 112px;
+  align-self: start;
+}
+
+.oin-index ol {
+  display: grid;
+  margin: var(--oi-s2) 0 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--oi-hairline);
+}
+
+.oin-index a {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin-left: -1px;
+  padding-left: 18px;
+  color: var(--oi-muted);
+  font-size: 0.92rem;
+  text-decoration: none;
+  border-left: 1px solid transparent;
+  transition:
+    color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease;
+}
+
+.oin-index a:hover {
+  color: var(--oi-ink);
+  border-color: var(--oi-accent);
+}
+
+.oin-part {
+  max-width: 68ch;
+  padding-bottom: 56px;
+  scroll-margin-top: 112px;
+}
+
+.oin-part + .oin-part {
+  padding-top: 56px;
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.oin-part h2 {
+  margin: 0 0 var(--oi-s3);
+  color: var(--oi-ink);
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+/* Terms: four facts, then a card for every clause ----------------------------- */
+
+.oin-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 72px 0 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid var(--oi-hairline);
+}
+
+.oin-facts li {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 36px 24px 36px 0;
+}
+
+.oin-facts li + li {
+  padding-left: 24px;
+  border-left: 1px solid var(--oi-hairline);
+}
+
+.oin-facts strong {
+  color: var(--oi-ink);
+  font-size: clamp(2.4rem, 4.6vw, 4rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.oin-facts span {
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+}
+
+.oin-clauses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--oi-s2);
+  padding-block: var(--oi-s4) var(--oi-s5);
+}
+
+.oin-clause {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  padding: 32px;
+}
+
+.oin-clause:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* Phones and small screens -------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .oin-top {
+    padding-top: 128px;
+  }
+
+  .oin-principles,
+  .oin-channels,
+  .oin-map,
+  .oin-clauses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oin-principle,
+  .oin-channel {
+    min-height: 0;
+  }
+
+  .oin-principle h2 {
+    padding-top: 28px;
+  }
+
+  .oin-channel-icon {
+    margin-bottom: 28px;
+  }
+
+  .oin-channels,
+  .oin-map,
+  .oin-facts {
+    margin-top: 48px;
+  }
+
+  .oin-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oin-facts li,
+  .oin-facts li + li {
+    padding: 24px 12px 24px 0;
+    border-left: 0;
+  }
+
+  .oin-facts li:nth-child(n + 3) {
+    border-top: 1px solid var(--oi-hairline);
+  }
+
+  .oin-doc {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--oi-s4);
+  }
+
+  /* On a phone the index runs in two columns, so the text starts within one screen. */
+  .oin-index {
+    position: static;
+  }
+
+  .oin-index ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--oi-s2);
+    border-left: 0;
+  }
+
+  .oin-index a {
+    min-height: 44px;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+    line-height: 1.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oin-glow {
+    animation: none;
+  }
+
+  .oin-channel,
+  .oin-channel:hover {
+    transform: none;
+  }
+}

@@ -1,0 +1,1441 @@
+/*
+ * Four feature stories on the Features page (class prefix ofd-). Tokens come from instant.css.
+ *
+ * Each story is an .oif-section too, so FeaturesPage.css already clips it, rests its loops while
+ * it is off screen (data-live) and stills everything under prefers-reduced-motion.
+ *
+ * Resting styles are the finished picture. Motion only ever starts from [data-seen] and is
+ * transform, opacity, stroke-dashoffset, translate, scale and rotate. Nothing blurs.
+ */
+
+/* Story shell ------------------------------------------------------------------ */
+
+.ofd-story {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  column-gap: clamp(32px, 6vw, 96px);
+  align-items: center;
+}
+
+.ofd-section[data-side='left'] .ofd-story {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
+.ofd-section[data-side='left'] .ofd-words {
+  order: 2;
+}
+
+.ofd-words {
+  display: grid;
+  gap: 26px;
+  align-content: center;
+  min-width: 0;
+}
+
+.ofd-title {
+  font-size: clamp(2.7rem, 5.6vw, 4.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.ofd-lead {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(1.12rem, 1.6vw, 1.42rem);
+  line-height: 1.42;
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
+}
+
+.ofd-lines {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ofd-line {
+  position: relative;
+  max-width: 46ch;
+  padding: 16px 0 16px 28px;
+  border-top: 1px solid var(--oi-hairline);
+  color: var(--oi-muted);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.ofd-line::before {
+  content: '';
+  position: absolute;
+  top: calc(16px + 0.8em);
+  left: 0;
+  width: 14px;
+  height: 1px;
+  background: var(--oi-accent);
+}
+
+/* Words rise out of the dark, one after another, when the story is reached. */
+.ofd-rise {
+  transition:
+    opacity 1000ms var(--oi-ease) calc(var(--i, 0) * 90ms),
+    transform 1000ms var(--oi-ease) calc(var(--i, 0) * 90ms);
+}
+
+.ofd-section[data-seen='false'] .ofd-rise {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition-delay: 0ms;
+}
+
+/* The mock ----------------------------------------------------------------------- */
+
+.ofd-visual {
+  position: relative;
+  min-width: 0;
+  isolation: isolate;
+  transition:
+    opacity 1300ms var(--oi-ease),
+    transform 1300ms var(--oi-ease);
+}
+
+.ofd-visual[data-seen='false'] {
+  opacity: 0;
+  transform: translate3d(0, 40px, 0);
+}
+
+/* The one light source, resting behind the glass. A gradient, so nothing has to be blurred. */
+.ofd-visual::before {
+  content: '';
+  position: absolute;
+  inset: -22% -14%;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-accent-rgb), 0.2),
+    rgba(var(--oi-deep-rgb), 0.22) 52%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/*
+ * A piece of the app, in the app's own chrome (--oi-app-* in instant.css): the same
+ * graphite, hairlines and near-monochrome type as the mocks on How it works. The page
+ * tokens are re-pointed here so everything inside follows without knowing about it.
+ */
+.ofd-mock {
+  --oi-ink: var(--oi-app-text);
+  --oi-muted: var(--oi-app-muted);
+  --oi-dim: var(--oi-app-dim);
+  --oi-hairline: var(--oi-app-border);
+  --oi-hairline-strong: var(--oi-app-border-strong);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 22px;
+  background: var(--oi-app-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 50px 110px -40px rgba(0, 0, 0, 0.95),
+    0 0 90px -24px rgba(var(--oi-glow-rgb), 0.7);
+  color: var(--oi-app-text);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  -webkit-user-select: none;
+  user-select: none;
+  isolation: isolate;
+}
+
+.ofd-mock *,
+.ofd-mock *::before,
+.ofd-mock *::after {
+  box-sizing: border-box;
+}
+
+/* A brighter streak in the middle of the top edge, where the light catches it. */
+.ofd-mock::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 14%;
+  left: 14%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--oi-app-light) 80%, transparent),
+    transparent
+  );
+}
+
+/* Pointer spotlight; FeatureDeepDives.jsx sets --mx / --my once per frame. */
+.ofd-mock::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(var(--oi-accent-rgb), 0.2),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.ofd-mock:hover::after {
+  opacity: 1;
+}
+
+.ofd-mock[data-mock='tracker'] {
+  max-width: 500px;
+  margin-inline: auto;
+}
+
+.ofd-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--oi-hairline);
+}
+
+.ofd-bar i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ofd-bar span,
+.ofd-label,
+.ofd-filetag {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ofd-bar span {
+  margin-left: 10px;
+}
+
+.ofd-body {
+  display: flex;
+  min-height: 420px;
+}
+
+.ofd-menu {
+  display: grid;
+  flex: none;
+  align-content: start;
+  gap: 2px;
+  width: 132px;
+  margin: 0;
+  padding: 14px 8px;
+  border-right: 1px solid var(--oi-hairline);
+  color: var(--oi-muted);
+  font-size: 12.5px;
+  list-style: none;
+}
+
+.ofd-menu li {
+  padding: 7px 10px;
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+.ofd-menu li[data-on='true'] {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--oi-ink);
+}
+
+.ofd-chat,
+.ofd-panel {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.ofd-chat {
+  gap: 12px;
+}
+
+.ofd-chat + .ofd-panel {
+  flex: 0 0 45%;
+  border-left: 1px solid var(--oi-hairline);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ofd-bubble {
+  display: grid;
+  align-self: flex-end;
+  gap: 8px;
+  width: 64%;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ofd-ghost {
+  display: block;
+  width: var(--w, 60%);
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ofd-composer {
+  overflow: hidden;
+  margin-top: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 14px;
+  color: var(--oi-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ofd-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  font-weight: 500;
+}
+
+.ofd-label {
+  display: block;
+  margin-top: 8px;
+}
+
+.ofd-glyph {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--oi-muted);
+}
+
+/* The parts of a mock arrive one after another once it has been scrolled to. */
+.ofd-in {
+  transition:
+    opacity 900ms var(--oi-ease) calc(var(--i, 0) * 140ms + 300ms),
+    transform 900ms var(--oi-ease) calc(var(--i, 0) * 140ms + 300ms);
+}
+
+.ofd-visual[data-seen='false'] .ofd-in {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition-delay: 0ms;
+}
+
+/* Status pill and progress (workspace) ---------------------------------------------- */
+
+.ofd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ofd-pill i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-app-light);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.9);
+}
+
+.ofd-pill[data-state='waiting'] i {
+  background: var(--oi-ink);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+}
+
+.ofd-pill-check {
+  width: 11px;
+  height: 11px;
+  color: var(--oi-app-soft);
+}
+
+/* Three pills share one cell; the loop shows them in turn. At rest the job is simply done. */
+.ofd-pills {
+  display: grid;
+  justify-items: end;
+}
+
+.ofd-pills .ofd-pill {
+  grid-area: 1 / 1;
+  opacity: 0;
+}
+
+.ofd-pills .ofd-pill[data-state='done'] {
+  opacity: 1;
+}
+
+.ofd-visual[data-seen='true'] .ofd-pills .ofd-pill[data-state='working'] {
+  animation: ofd-pill-working 10s linear infinite;
+}
+
+.ofd-visual[data-seen='true'] .ofd-pills .ofd-pill[data-state='waiting'] {
+  animation: ofd-pill-waiting 10s linear infinite;
+}
+
+.ofd-visual[data-seen='true'] .ofd-pills .ofd-pill[data-state='done'] {
+  animation: ofd-pill-done 10s linear infinite;
+}
+
+/* One fill under a five-segment mask: a single transform draws the whole bar. */
+.ofd-progress {
+  position: relative;
+  overflow: hidden;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0,
+    #000 calc(20% - 4px),
+    transparent calc(20% - 4px),
+    transparent 20%
+  );
+  mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0,
+    #000 calc(20% - 4px),
+    transparent calc(20% - 4px),
+    transparent 20%
+  );
+}
+
+.ofd-progress i {
+  position: absolute;
+  inset: 0;
+  background: var(--oi-app-soft);
+  transform-origin: 0 50%;
+}
+
+.ofd-visual[data-seen='true'] .ofd-progress i {
+  animation: ofd-fill 10s linear infinite;
+}
+
+/* Rows (files, activity) ---------------------------------------------------------- */
+
+.ofd-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ofd-row[data-live] {
+  border-color: var(--oi-app-border-strong);
+  background: var(--oi-app-fill);
+}
+
+.ofd-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ofd-filetag {
+  padding: 2px 7px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 999px;
+  font-size: 9.5px;
+}
+
+.ofd-row-check {
+  width: 12px;
+  height: 12px;
+  color: var(--oi-app-soft);
+}
+
+.ofd-spinner,
+.ofd-timer i {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--oi-app-light);
+  border-radius: 50%;
+}
+
+.ofd-visual[data-seen='true'] .ofd-spinner {
+  animation: ofd-spin 900ms linear infinite;
+}
+
+.ofd-output {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 7px;
+  padding: 10px 0 4px 24px;
+}
+
+.ofd-group {
+  display: grid;
+  gap: 8px;
+}
+
+.ofd-timer {
+  display: inline-flex;
+  align-items: center;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ofd-timer i {
+  margin-right: 8px;
+  border-top-color: var(--oi-app-light);
+}
+
+.ofd-timer b {
+  font-weight: inherit;
+}
+
+.ofd-visual[data-seen='true'] .ofd-timer i {
+  animation: ofd-spin 1400ms linear infinite;
+}
+
+.ofd-visual[data-seen='true'] .ofd-timer b,
+.ofd-visual[data-seen='true'] .ofd-typed-caret::after {
+  animation: ofd-blink 1100ms linear infinite;
+}
+
+/* Roadmap and flow chart (process flow) ------------------------------------------- */
+
+.ofd-road-pane {
+  flex: 0 0 40%;
+  border-right: 1px solid var(--oi-hairline);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ofd-road-wrap {
+  --ofd-step: 48px;
+  position: relative;
+}
+
+/* The connector, and the lit part of it that grows down to the step running now. */
+.ofd-road-wrap::before,
+.ofd-road-wrap::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--ofd-step) / 2);
+  bottom: calc(var(--ofd-step) / 2);
+  left: 8.5px;
+  width: 1px;
+  background: var(--oi-hairline);
+}
+
+.ofd-road-wrap::after {
+  background: linear-gradient(180deg, var(--oi-app-border-strong), var(--oi-app-soft));
+  transform-origin: 50% 0;
+  scale: 1 0.75;
+  transition: scale 1900ms var(--oi-ease) 500ms;
+}
+
+.ofd-visual[data-seen='false'] .ofd-road-wrap::after {
+  scale: 1 0;
+  transition-delay: 0ms;
+}
+
+.ofd-road {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ofd-step {
+  --at: calc(var(--i, 0) * 480ms + 500ms);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--ofd-step);
+}
+
+.ofd-marker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--oi-app-border-strong);
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* A disc grows inside the ring as the step ticks: no colour has to animate. */
+.ofd-marker::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--oi-app-soft);
+  border-radius: 50%;
+  background: var(--oi-app-soft);
+  transition:
+    scale 700ms var(--oi-ease) var(--at),
+    opacity 500ms ease var(--at);
+}
+
+.ofd-step[data-state='now'] .ofd-marker::before {
+  border-color: var(--oi-app-text);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ofd-step[data-state='pending'] .ofd-marker::before {
+  content: none;
+}
+
+.ofd-marker-check,
+.ofd-marker i {
+  position: relative;
+  transition: opacity 500ms ease calc(var(--at) + 200ms);
+}
+
+.ofd-marker-check {
+  width: 10px;
+  height: 10px;
+  color: #22252a;
+}
+
+.ofd-marker i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-ink);
+}
+
+.ofd-visual[data-seen='true'] .ofd-marker i {
+  animation: ofd-pulse 1500ms ease-in-out 3s infinite alternate;
+}
+
+.ofd-step-name {
+  transition: opacity 700ms ease var(--at);
+}
+
+.ofd-step[data-state='pending'] .ofd-step-name,
+.ofd-visual[data-seen='false'] .ofd-step-name {
+  opacity: 0.5;
+}
+
+.ofd-visual[data-seen='false'] .ofd-marker::before {
+  scale: 0;
+  opacity: 0;
+}
+
+.ofd-visual[data-seen='false'] .ofd-marker-check,
+.ofd-visual[data-seen='false'] .ofd-marker i {
+  opacity: 0;
+}
+
+.ofd-visual[data-seen='false'] .ofd-step * {
+  transition-delay: 0ms;
+}
+
+/* Light travels down the connector to the step running now. It only exists in motion. */
+.ofd-road-light {
+  position: absolute;
+  top: calc(var(--ofd-step) / 2 - 14px);
+  left: 6px;
+  z-index: 2;
+  width: 6px;
+  height: 28px;
+  border-radius: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    #ffffff 45%,
+    var(--oi-app-light) 75%,
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ofd-visual[data-seen='true'] .ofd-road-light {
+  animation: ofd-road-light 3600ms var(--oi-ease) 2200ms infinite;
+}
+
+.ofd-chart-pane {
+  justify-content: flex-start;
+}
+
+.ofd-chart {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: auto;
+  overflow: visible;
+}
+
+.ofd-edge {
+  fill: none;
+  stroke: var(--oi-hairline-strong);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  transition: stroke-dashoffset 1100ms var(--oi-ease) calc(var(--i, 0) * 160ms + 1100ms);
+}
+
+.ofd-node rect {
+  fill: var(--oi-app-sunk);
+  stroke: var(--oi-hairline-strong);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  transition: stroke-dashoffset 1300ms var(--oi-ease) calc(var(--i, 0) * 180ms + 400ms);
+}
+
+.ofd-node text {
+  fill: var(--oi-ink);
+  font-family: var(--oi-sans);
+  font-size: 9.5px;
+  transition: opacity 900ms ease calc(var(--i, 0) * 180ms + 800ms);
+}
+
+.ofd-visual[data-seen='false'] .ofd-edge,
+.ofd-visual[data-seen='false'] .ofd-node rect {
+  stroke-dashoffset: 1;
+  transition-delay: 0ms;
+}
+
+.ofd-visual[data-seen='false'] .ofd-node text {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+.ofd-pulse {
+  fill: none;
+  stroke: var(--oi-app-light);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.14 1;
+  stroke-dashoffset: 0.14;
+  opacity: 0;
+}
+
+.ofd-visual[data-seen='true'] .ofd-pulse {
+  animation: ofd-chart-pulse 3200ms linear 2600ms infinite;
+}
+
+/* Search (knowledge base) -------------------------------------------------------- */
+
+.ofd-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/*
+ * CSS typing without touching width: a clipping window slides in from the left in steps while
+ * the text inside it slides the other way, so the words stand still and only the edge moves.
+ * Mono type makes every step exactly one letter.
+ */
+.ofd-typed {
+  position: relative;
+  display: inline-block;
+  font-family: var(--oi-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ofd-typed-window {
+  display: block;
+  overflow: hidden;
+}
+
+.ofd-typed-text {
+  display: block;
+}
+
+.ofd-typed-caret {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ofd-typed-caret::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  right: -4px;
+  bottom: 1px;
+  width: 1.5px;
+  border-radius: 1px;
+  background: var(--oi-app-light);
+}
+
+.ofd-visual[data-seen='true'] .ofd-typed-window,
+.ofd-visual[data-seen='true'] .ofd-typed-caret {
+  animation: ofd-type-window 1500ms steps(13, end) 1000ms both;
+}
+
+.ofd-visual[data-seen='true'] .ofd-typed-text {
+  animation: ofd-type-text 1500ms steps(13, end) 1000ms both;
+}
+
+/* The foot of the pane: where all of this lives. */
+.ofd-foot {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.ofd-foot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-app-light);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.9);
+}
+
+/* Results slide in once the query has been typed. */
+.ofd-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  transition:
+    opacity 900ms var(--oi-ease) calc(var(--i, 0) * 170ms + 2600ms),
+    transform 900ms var(--oi-ease) calc(var(--i, 0) * 170ms + 2600ms);
+}
+
+.ofd-result .ofd-ghost {
+  grid-column: 1 / -1;
+}
+
+.ofd-visual[data-seen='false'] .ofd-result {
+  opacity: 0;
+  transform: translate3d(28px, 0, 0);
+  transition-delay: 0ms;
+}
+
+/* Keyframes ------------------------------------------------------------------------- */
+
+@keyframes ofd-pill-working {
+  0%,
+  38%,
+  56%,
+  82%,
+  100% {
+    opacity: 0;
+  }
+  2%,
+  36%,
+  58%,
+  80% {
+    opacity: 1;
+  }
+}
+
+@keyframes ofd-pill-waiting {
+  0%,
+  38%,
+  58%,
+  100% {
+    opacity: 0;
+  }
+  40%,
+  56% {
+    opacity: 1;
+  }
+}
+
+@keyframes ofd-pill-done {
+  0%,
+  82%,
+  100% {
+    opacity: 0;
+  }
+  84%,
+  98% {
+    opacity: 1;
+  }
+}
+
+@keyframes ofd-fill {
+  0% {
+    transform: scaleX(0);
+  }
+  36%,
+  58% {
+    transform: scaleX(0.6);
+  }
+  80%,
+  98% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes ofd-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes ofd-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes ofd-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* Three steps down: from the first marker to the one running now. */
+@keyframes ofd-road-light {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  12%,
+  78% {
+    opacity: 1;
+  }
+  100% {
+    translate: 0 calc(var(--ofd-step) * 3);
+    opacity: 0;
+  }
+}
+
+@keyframes ofd-chart-pulse {
+  0% {
+    stroke-dashoffset: 0.14;
+    opacity: 0;
+  }
+  10%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+
+@keyframes ofd-type-window {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+@keyframes ofd-type-text {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+/* Responsive ------------------------------------------------------------------------ */
+
+@media (max-width: 1100px) {
+  .ofd-menu {
+    width: 128px;
+  }
+
+  .ofd-chat {
+    display: none;
+  }
+
+  .ofd-chat + .ofd-panel {
+    flex: 1 1 0;
+    border-left: 0;
+  }
+}
+
+/* One column: the words, then the piece of the app they are about. */
+@media (max-width: 900px) {
+  .ofd-story,
+  .ofd-section[data-side='left'] .ofd-story {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 44px;
+  }
+
+  .ofd-section[data-side='left'] .ofd-words {
+    order: 0;
+  }
+
+  .ofd-lead,
+  .ofd-line {
+    max-width: 56ch;
+  }
+
+  .ofd-mock {
+    max-width: 620px;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .ofd-words {
+    gap: 20px;
+  }
+
+  .ofd-story,
+  .ofd-section[data-side='left'] .ofd-story {
+    row-gap: 36px;
+  }
+
+  .ofd-menu {
+    display: none;
+  }
+
+  .ofd-body {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .ofd-chat,
+  .ofd-panel {
+    flex: none;
+    padding: 16px;
+  }
+
+  .ofd-road-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--oi-hairline);
+  }
+
+  .ofd-road-wrap {
+    --ofd-step: 44px;
+  }
+
+  .ofd-chart {
+    max-width: 300px;
+  }
+}
+
+/* Reduced motion: FeaturesPage.css already stops every animation and transition in here. */
+@media (prefers-reduced-motion: reduce) {
+  .ofd-section[data-seen='false'] .ofd-rise,
+  .ofd-visual[data-seen='false'],
+  .ofd-visual[data-seen='false'] .ofd-in,
+  .ofd-visual[data-seen='false'] .ofd-result,
+  .ofd-visual[data-seen='false'] .ofd-node text,
+  .ofd-visual[data-seen='false'] .ofd-marker::before,
+  .ofd-visual[data-seen='false'] .ofd-marker-check,
+  .ofd-visual[data-seen='false'] .ofd-marker i {
+    opacity: 1;
+    transform: none;
+    scale: none;
+  }
+
+  .ofd-visual[data-seen='false'] .ofd-edge,
+  .ofd-visual[data-seen='false'] .ofd-node rect {
+    stroke-dashoffset: 0;
+  }
+
+  .ofd-visual[data-seen='false'] .ofd-road-wrap::after {
+    scale: 1 0.75;
+  }
+}
+
+/* Kanban board (task tracker) --------------------------------------------------------- */
+
+.ofd-board-panel {
+  gap: 14px;
+}
+
+.ofd-board-count {
+  margin-left: auto;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ofd-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+.ofd-lane {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 8px 12px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ofd-lane[data-state='live'] {
+  border-color: var(--oi-app-border-strong);
+  background: var(--oi-app-fill);
+}
+
+.ofd-lane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 2px;
+}
+
+.ofd-lane-head .ofd-label {
+  margin-top: 0;
+}
+
+.ofd-lane-head b {
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.ofd-task {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 10px 11px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.ofd-task-kind {
+  justify-self: start;
+  padding: 1px 7px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 999px;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ofd-task-name {
+  color: var(--oi-ink);
+  font-size: 0.82rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.ofd-lane[data-state='done'] .ofd-task-name {
+  color: var(--oi-muted);
+}
+
+.ofd-task-check {
+  position: absolute;
+  top: 10px;
+  right: 9px;
+  width: 13px;
+  height: 13px;
+  color: var(--oi-app-soft);
+}
+
+/* The work in hand: a bar of light that keeps filling. */
+.ofd-task-bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ofd-task-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--oi-app-soft);
+  transform-origin: 0 50%;
+  animation: ofd-task-fill 5.5s var(--oi-ease) infinite;
+}
+
+.ofd-task:nth-child(3) .ofd-task-bar::after {
+  animation-duration: 7.5s;
+  animation-delay: -2s;
+}
+
+/* One card is being carried: it lifts, tips and settles, again and again. */
+.ofd-visual[data-seen='true'] .ofd-task[data-lift] {
+  border-color: var(--oi-app-border-strong);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  animation: ofd-task-lift 6s var(--oi-ease) 2.4s infinite;
+}
+
+@keyframes ofd-task-fill {
+  from {
+    transform: scaleX(0.08);
+  }
+  70%,
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ofd-task-lift {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  45%,
+  60% {
+    translate: 4px -7px;
+    rotate: 1.6deg;
+  }
+}
+
+@media (max-width: 700px) {
+  .ofd-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ofd-lane {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ofd-lane-head {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ofd-task-bar::after,
+  .ofd-visual[data-seen='true'] .ofd-task[data-lift] {
+    animation: none;
+  }
+
+  .ofd-task-bar::after {
+    transform: scaleX(0.6);
+  }
+}
+
+/* Knowledge storage (knowledge base) --------------------------------------------------- */
+
+.ofd-kb {
+  gap: 8px;
+}
+
+.ofd-drop {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 22px 16px 20px;
+  overflow: hidden;
+  border: 1px dashed var(--oi-hairline-strong);
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 70%),
+    rgba(0, 0, 0, 0.16);
+  text-align: center;
+}
+
+.ofd-drop-glyph {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 4px;
+  fill: none;
+  stroke: var(--oi-app-soft);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ofd-drop-title {
+  color: var(--oi-ink);
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
+}
+
+.ofd-drop-note {
+  color: var(--oi-muted);
+  font-size: 0.72rem;
+}
+
+/* Small sheets of paper that glide into the zone and settle. */
+.ofd-drop-files {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ofd-drop-files i {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 15px;
+  height: 19px;
+  border: 1px solid var(--oi-app-border-strong);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+}
+
+.ofd-visual[data-seen='true'] .ofd-drop-files i {
+  animation: ofd-file-in 5.4s var(--oi-ease) infinite;
+}
+
+.ofd-drop-files i:nth-child(1) {
+  --from-x: -150px;
+  --from-r: -24deg;
+}
+
+.ofd-drop-files i:nth-child(2) {
+  --from-x: 140px;
+  --from-r: 20deg;
+  animation-delay: 1.8s !important;
+}
+
+.ofd-drop-files i:nth-child(3) {
+  --from-x: -40px;
+  --from-r: 10deg;
+  animation-delay: 3.6s !important;
+}
+
+@keyframes ofd-file-in {
+  0% {
+    opacity: 0;
+    translate: var(--from-x) -46px;
+    rotate: var(--from-r);
+    scale: 1.15;
+  }
+  22% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    translate: -50% 0;
+    rotate: 0deg;
+    scale: 1;
+  }
+  62%,
+  100% {
+    opacity: 0;
+    translate: -50% 6px;
+    rotate: 0deg;
+    scale: 0.6;
+  }
+}
+
+.ofd-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 10px 9px 9px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ofd-source-logo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--oi-ink);
+}
+
+.ofd-source-logo svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ofd-source-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ofd-source-line {
+  overflow: hidden;
+  color: var(--oi-muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ofd-connect {
+  padding: 5px 12px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 999px;
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ofd-connect[data-linked] {
+  border-color: var(--oi-app-border-strong);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ofd-visual[data-seen='true'] .ofd-drop-files i {
+    animation: none;
+  }
+}

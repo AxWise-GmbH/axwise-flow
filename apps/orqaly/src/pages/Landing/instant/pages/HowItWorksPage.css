@@ -1,0 +1,1562 @@
+/*
+ * "How it works" (class prefix hiw-).
+ *
+ * Tokens and primitives come from instant.css; the scroll gate, the section rule and the
+ * split head come from sections.css. Everything here moves with transform, opacity, filter,
+ * stroke-dashoffset or the individual translate/scale/rotate properties only, and all of it
+ * is switched off at the bottom of the file under prefers-reduced-motion.
+ */
+
+/*
+ * Every light on this page is mixed from the site's accent tokens, so a change of accent
+ * (it has been renamed once already, hence the fallback) needs nothing here.
+ */
+.hiw-steps-section,
+.hiw-control {
+  --hiw-accent: var(--oi-accent, var(--oi-purple));
+  --hiw-accent-dark: var(--oi-accent-dark, var(--oi-purple-dark));
+  --hiw-accent-deep: var(--oi-accent-deep, var(--oi-purple-deep));
+  --hiw-pale: color-mix(in srgb, var(--hiw-accent) 48%, #ffffff);
+}
+
+/* The story ------------------------------------------------------------------ */
+
+/* The blooms behind the app pieces bleed past the container. */
+.hiw-steps-section {
+  overflow: clip;
+}
+
+.hiw-head {
+  justify-items: center;
+  text-align: center;
+}
+
+.hiw-story {
+  position: relative;
+}
+
+/* The line the story hangs on. It fades in under the heading and out after the last step. */
+.hiw-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  margin-left: -0.5px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--oi-hairline-strong) 90px,
+    var(--oi-hairline-strong) calc(100% - 90px),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* The part already read: Story sets --hiw-p (0..1) and --hiw-y (px) once per frame. */
+.hiw-rail-lit {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--hiw-accent-deep) 12%,
+    var(--hiw-accent) 72%,
+    #ffffff
+  );
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  transform-origin: 50% 0;
+  scale: 1 var(--hiw-p, 0);
+}
+
+.hiw-rail-head {
+  position: absolute;
+  top: -22px;
+  left: -1px;
+  width: 3px;
+  height: 22px;
+  border-radius: 3px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--hiw-accent) 16%, transparent),
+    0 0 18px 4px color-mix(in srgb, var(--hiw-accent) 95%, transparent),
+    0 0 70px 16px color-mix(in srgb, var(--hiw-accent-dark) 55%, transparent);
+  /* Opacity clamps itself to 0..1, so the light fades in over the first stretch of the line. */
+  opacity: calc(var(--hiw-p, 0) * 40);
+  translate: 0 var(--hiw-y, 0px);
+}
+
+/* The comet tail behind the light. */
+.hiw-rail-head::before {
+  content: '';
+  position: absolute;
+  bottom: 60%;
+  left: 50%;
+  width: 3px;
+  height: 180px;
+  margin-left: -1.5px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.95),
+    color-mix(in srgb, var(--hiw-accent) 40%, transparent) 38%,
+    transparent
+  );
+  filter: blur(1px);
+}
+
+.hiw-story[data-still='true'] .hiw-rail-lit {
+  scale: 1 1;
+}
+
+.hiw-story[data-still='true'] .hiw-rail-head {
+  display: none;
+}
+
+.hiw-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Wide screens: the steps alternate either side of the line. */
+.hiw-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 136px minmax(0, 1fr);
+  align-items: center;
+  min-height: 520px;
+  padding-block: 36px;
+  /* A link from the opening picture lands the step mid-window, above the travelling light. */
+  scroll-margin-top: max(84px, calc(50svh - 270px));
+}
+
+/* It takes focus only so the keyboard follows such a link; it is not a control. */
+.hiw-step:focus {
+  outline: none;
+}
+
+.hiw-step-copy {
+  display: grid;
+  grid-area: 1 / 1;
+  justify-items: end;
+  justify-self: end;
+  text-align: right;
+}
+
+.hiw-node {
+  grid-area: 1 / 2;
+  justify-self: center;
+}
+
+.hiw-step-mock {
+  --lean: -7deg;
+  position: relative;
+  grid-area: 1 / 3;
+  justify-self: start;
+  width: min(100%, 440px);
+  isolation: isolate;
+}
+
+.hiw-step:nth-child(even) .hiw-step-copy {
+  grid-area: 1 / 3;
+  justify-items: start;
+  justify-self: start;
+  text-align: left;
+}
+
+.hiw-step:nth-child(even) .hiw-step-mock {
+  --lean: 7deg;
+  grid-area: 1 / 1;
+  justify-self: end;
+}
+
+/* Step words ----------------------------------------------------------------- */
+
+/* An outlined numeral that fills with light when the line reaches it. */
+.hiw-num {
+  position: relative;
+  display: inline-block;
+  color: transparent;
+  font-family: var(--oi-mono);
+  font-size: clamp(5rem, 10.5vw, 9.5rem);
+  font-weight: 400;
+  line-height: 0.86;
+  letter-spacing: -0.09em;
+  font-variant-numeric: tabular-nums;
+  /* The filled copy on top must start where the outline starts, whichever way the step reads. */
+  text-align: left;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+}
+
+.hiw-num::after {
+  content: attr(data-n);
+  content: attr(data-n) / '';
+  position: absolute;
+  /* The tight tracking pulls the box in; the fill is clipped to it, so it reaches further right. */
+  inset: 0 -0.14em 0 0;
+  background: linear-gradient(
+    180deg,
+    #ffffff 18%,
+    color-mix(in srgb, var(--hiw-accent) 55%, #8d919c) 118%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0 transparent;
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--hiw-accent-dark) 55%, transparent));
+  transition: opacity 1400ms var(--oi-ease);
+}
+
+.hiw-step[data-state='past'] .hiw-num::after {
+  opacity: 0.42;
+}
+
+.hiw-step[data-state='next'] .hiw-num::after {
+  opacity: 0;
+}
+
+.hiw-step-title {
+  max-width: 13ch;
+  margin: 26px 0 0;
+  color: var(--oi-ink);
+  font-size: clamp(1.8rem, 3.1vw, 2.7rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.hiw-step-line {
+  max-width: 30ch;
+  margin: 16px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.02rem, 1.4vw, 1.22rem);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.hiw-step-title,
+.hiw-step-line,
+.hiw-step-mock {
+  transition:
+    opacity 1200ms var(--oi-ease) var(--sd, 0ms),
+    transform 1200ms var(--oi-ease) var(--sd, 0ms),
+    filter 1200ms var(--oi-ease) var(--sd, 0ms);
+}
+
+.hiw-step-line {
+  --sd: 90ms;
+}
+
+.hiw-step-mock {
+  --sd: 160ms;
+}
+
+/* Ahead of the light only the outlined numeral shows; the rest waits in the dark. */
+.hiw-step[data-state='next'] .hiw-step-title,
+.hiw-step[data-state='next'] .hiw-step-line {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.hiw-step[data-state='next'] .hiw-step-mock {
+  opacity: 0;
+  transform: translate3d(0, 56px, 0) scale(0.96);
+}
+
+/* The point on the line ------------------------------------------------------ */
+
+.hiw-node {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: #000000;
+}
+
+.hiw-node-dot,
+.hiw-node-ping {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+}
+
+.hiw-node-dot {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--hiw-accent) 14%, transparent),
+    0 0 16px 3px color-mix(in srgb, var(--hiw-accent) 90%, transparent);
+  transition:
+    opacity 700ms var(--oi-ease),
+    scale 700ms var(--oi-ease);
+}
+
+.hiw-step[data-state='next'] .hiw-node-dot {
+  opacity: 0;
+  scale: 0.2;
+}
+
+.hiw-step[data-state='past'] .hiw-node-dot {
+  scale: 0.62;
+}
+
+/* Only the step being read keeps sending out a ring. */
+.hiw-node-ping {
+  border: 1px solid var(--hiw-accent);
+  opacity: 0;
+}
+
+.hiw-step[data-state='now'] .hiw-node-ping {
+  animation: hiw-ping 3.2s var(--oi-ease) infinite;
+}
+
+/* A short hairline from the point to its piece of the app; it draws itself on arrival. */
+.hiw-node-link {
+  position: absolute;
+  top: 6px;
+  left: calc(100% + 10px);
+  width: 44px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12));
+  transform-origin: 0 50%;
+  transition: scale 1100ms var(--oi-ease) 260ms;
+}
+
+.hiw-step:nth-child(even) .hiw-node-link {
+  right: calc(100% + 10px);
+  left: auto;
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12));
+  transform-origin: 100% 50%;
+}
+
+.hiw-step[data-state='next'] .hiw-node-link {
+  scale: 0 1;
+  transition-delay: 0ms;
+}
+
+/* A piece of the app ---------------------------------------------------------- */
+
+/*
+ * The app's own dark chrome, from the shared --oi-app-* tokens in instant.css: graphite,
+ * near-monochrome like the real thing, as in HeroWindow and in the Features mocks.
+ * Type floor 12px; labels 10px uppercase.
+ */
+.hiw-mock {
+  --hm-text: var(--oi-app-text);
+  --hm-soft: var(--oi-app-soft);
+  --hm-muted: var(--oi-app-muted);
+  --hm-border: var(--oi-app-border);
+  --hm-border-strong: var(--oi-app-border-strong);
+  --hm-fill: var(--oi-app-fill);
+  --hm-light: var(--hiw-pale);
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 18px;
+  background: var(--oi-app-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 50px 110px -30px rgba(0, 0, 0, 0.95),
+    0 0 80px -16px color-mix(in srgb, var(--hiw-accent-dark) 45%, transparent);
+  color: var(--hm-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  -webkit-user-select: none;
+  user-select: none;
+  isolation: isolate;
+  /* It leans toward the line, and a little further toward the pointer (--tx/--ty, -1..1). */
+  transform: perspective(1200px) rotateX(calc(var(--ty, 0) * -3deg))
+    rotateY(calc(var(--lean, 0deg) + var(--tx, 0) * 4deg));
+  transition: transform 900ms var(--oi-ease);
+}
+
+.hiw-mock *,
+.hiw-mock *::before,
+.hiw-mock *::after {
+  box-sizing: border-box;
+}
+
+/* A brighter streak in the middle of the top edge, where the light catches it. */
+.hiw-mock::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 14%;
+  left: 14%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--hiw-pale) 80%, transparent),
+    transparent
+  );
+}
+
+/* Pointer spotlight; trackPointer sets --mx/--my. */
+.hiw-mock::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    360px circle at var(--mx, 50%) var(--my, 0%),
+    color-mix(in srgb, var(--hiw-accent) 20%, transparent),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.hiw-mock:hover::after {
+  opacity: 1;
+}
+
+.hiw-mock-bloom {
+  position: absolute;
+  inset: -34% -24%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--hiw-accent-dark) 36%, transparent),
+    transparent
+  );
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+/* The parts of a piece arrive one after another once its step is lit. */
+.hiw-in {
+  transition:
+    opacity 900ms var(--oi-ease) calc(var(--i, 0) * 120ms + 420ms),
+    transform 900ms var(--oi-ease) calc(var(--i, 0) * 120ms + 420ms);
+}
+
+.hiw-step[data-state='next'] .hiw-in {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition-delay: 0ms;
+}
+
+/* Nothing loops inside a piece that is still in the dark. */
+.hiw-step[data-state='next'] .hiw-mock *,
+.hiw-step[data-state='next'] .hiw-mock *::before,
+.hiw-step[data-state='next'] .hiw-mock *::after {
+  animation-play-state: paused;
+}
+
+.hiw-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--hm-muted);
+}
+
+.hiw-label {
+  display: block;
+  color: var(--hm-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+.hiw-quiet {
+  color: var(--hm-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hiw-strong {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hiw-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hiw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hiw-pill i {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hm-light);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hiw-accent) 90%, transparent);
+}
+
+/* The status dot pings, the way a live indicator does. */
+.hiw-pill i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--hm-light);
+  opacity: 0;
+  animation: hiw-dot-ping 2.6s var(--oi-ease) infinite;
+}
+
+.hiw-pill-check {
+  width: 11px;
+  height: 11px;
+  color: var(--hm-soft);
+}
+
+.hiw-caret {
+  width: 1.5px;
+  height: 15px;
+  flex: none;
+  border-radius: 1px;
+  background: var(--hm-light);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hiw-accent) 90%, transparent);
+  animation: hiw-blink 1.15s ease-in-out infinite;
+}
+
+/* A stand-in for a line of text nobody needs to read. */
+.hiw-ghost-line {
+  display: block;
+  width: var(--w, 60%);
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* 01: the message box */
+
+.hiw-newchat {
+  display: grid;
+  place-items: center;
+  height: 104px;
+}
+
+.hiw-newchat-mark {
+  width: 44px;
+  height: 44px;
+  color: var(--hm-light);
+  filter: drop-shadow(0 0 12px var(--oi-glow));
+  animation: hiw-turn 40s linear infinite;
+}
+
+.hiw-composer {
+  display: grid;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--hm-border);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.hiw-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 8px;
+  background: var(--hm-fill);
+  color: var(--hm-soft);
+  font-size: 12px;
+}
+
+.hiw-composer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hiw-placeholder {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hm-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hiw-tool {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hiw-tool .hiw-icon {
+  color: var(--hm-soft);
+}
+
+/* "Or say it": a voice level beside the microphone. */
+.hiw-wave {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 18px;
+  flex: none;
+}
+
+.hiw-wave i {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--hm-light);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--hiw-accent) 80%, transparent);
+  transform: scaleY(0.3);
+  animation: hiw-wave 1.2s ease-in-out infinite alternate;
+  animation-delay: calc(var(--b, 0) * -0.31s);
+}
+
+/* 02: the Workspace roadmap */
+
+.hiw-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -18px -18px 2px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--hm-border);
+  font-weight: 500;
+}
+
+.hiw-status {
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--hm-fill);
+}
+
+.hiw-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.hiw-segment {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.hiw-segment i {
+  position: relative;
+  display: block;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--hm-soft);
+}
+
+.hiw-segment-full i {
+  width: 100%;
+}
+
+.hiw-segment-half i {
+  width: 50%;
+}
+
+/* The step in progress shimmers: light runs along the part that is filled. */
+.hiw-segment-half i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #ffffff 45%, var(--hm-light) 55%, transparent);
+  transform: translate3d(-110%, 0, 0);
+  animation: hiw-shimmer 2.4s ease-in-out infinite;
+}
+
+.hiw-roadmap {
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hiw-road {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+}
+
+/* The timeline between two 16px markers that sit centred in 28px rows. */
+.hiw-road:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: 7.5px;
+  width: 1px;
+  height: 12px;
+  background: var(--hm-border-strong);
+}
+
+.hiw-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 50%;
+}
+
+.hiw-road-done .hiw-marker {
+  border-color: var(--hm-soft);
+  background: var(--hm-soft);
+  color: #22252a;
+}
+
+.hiw-marker-check {
+  width: 10px;
+  height: 10px;
+}
+
+.hiw-road-now {
+  font-weight: 600;
+}
+
+.hiw-road-now .hiw-marker {
+  border: 2px solid var(--hm-text);
+}
+
+.hiw-road-now .hiw-marker i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hm-text);
+}
+
+.hiw-road-now .hiw-marker::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px solid var(--hm-light);
+  border-radius: 50%;
+  opacity: 0;
+  animation: hiw-pulse 2.8s var(--oi-ease) infinite;
+}
+
+.hiw-road-pending {
+  color: var(--hm-muted);
+}
+
+/* 03: the question card */
+
+.hiw-question {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--hm-border);
+  border-radius: 12px;
+  background: var(--hm-fill);
+}
+
+/* The card that waits for the person breathes: a second, violet border whose opacity moves. */
+.hiw-question::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid color-mix(in srgb, var(--hiw-pale) 70%, transparent);
+  border-radius: inherit;
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--hiw-accent-dark) 40%, transparent),
+    inset 0 0 16px color-mix(in srgb, var(--hiw-accent-dark) 14%, transparent);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: hiw-breathe 5s ease-in-out infinite alternate;
+}
+
+.hiw-question-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 8px;
+}
+
+.hiw-question-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.hiw-question-number {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 50%;
+  color: var(--hm-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hiw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 26px;
+}
+
+.hiw-chip {
+  position: relative;
+  padding: 4px 12px;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* "Tap the answers": a touch ring opens over the first answer, again and again. */
+.hiw-chip-tap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 1px solid var(--hm-light);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--hiw-pale) 18%, transparent);
+  opacity: 0;
+  animation: hiw-tap 3.4s var(--oi-ease) infinite;
+}
+
+.hiw-question-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.hiw-send {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--hm-soft);
+  color: #1d1f24;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 04: the actions */
+
+.hiw-stop {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 1px solid var(--hm-border-strong, var(--oi-hairline-strong));
+  border-radius: 50%;
+}
+
+.hiw-stop .hiw-icon {
+  color: var(--hm-text, var(--oi-ink));
+}
+
+.hiw-stop .hiw-icon path {
+  fill: currentColor;
+}
+
+.hiw-action,
+.hiw-filerow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 9px;
+  padding: 10px 12px;
+  overflow: hidden;
+  border: 1px solid var(--hm-border);
+  border-radius: 10px;
+}
+
+.hiw-action-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hiw-action-check {
+  width: 13px;
+  height: 13px;
+  color: var(--hm-soft);
+}
+
+.hiw-action-live {
+  border-color: var(--hm-border-strong);
+  background: var(--hm-fill);
+}
+
+/* Light runs across the action that is happening now. */
+.hiw-action-live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--hiw-pale) 16%, transparent),
+    transparent 70%
+  );
+  transform: translate3d(-100%, 0, 0);
+  animation: hiw-sweep 3.2s ease-in-out infinite;
+}
+
+.hiw-spinner {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--hm-light);
+  border-radius: 50%;
+  animation: hiw-turn 1.1s linear infinite;
+}
+
+.hiw-output {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.hiw-output .hiw-caret {
+  height: 11px;
+}
+
+/* 05: the files and what changed */
+
+.hiw-filerow {
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+}
+
+.hiw-filerow-open {
+  border-color: var(--hm-border-strong);
+  background: var(--hm-fill);
+}
+
+.hiw-filetag {
+  padding: 1px 6px;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: 4px;
+  color: var(--hm-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+
+.hiw-diffcount {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hiw-added {
+  color: #a3d795;
+}
+
+.hiw-removed {
+  color: #ff8d8d;
+}
+
+.hiw-diff {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.hiw-diffline {
+  position: relative;
+  display: block;
+  padding: 7px 12px 7px 30px;
+}
+
+.hiw-diffline-added {
+  background: rgba(163, 215, 149, 0.1);
+}
+
+.hiw-diffline-added .hiw-ghost-line {
+  background: rgba(163, 215, 149, 0.55);
+}
+
+.hiw-diffline-removed {
+  background: rgba(255, 141, 141, 0.09);
+}
+
+.hiw-diffline-removed .hiw-ghost-line {
+  background: rgba(255, 141, 141, 0.5);
+}
+
+/* The plus and minus in the gutter, drawn so they add nothing to the text. */
+.hiw-diffline-added::before,
+.hiw-diffline-removed::before,
+.hiw-diffline-added::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  width: 8px;
+  height: 1.5px;
+  margin-top: -0.75px;
+  border-radius: 1px;
+  background: #a3d795;
+}
+
+.hiw-diffline-removed::before {
+  background: #ff8d8d;
+}
+
+.hiw-diffline-added::after {
+  transform: rotate(90deg);
+}
+
+/* Under the story -------------------------------------------------------------- */
+
+.hiw-story-more {
+  display: grid;
+  justify-items: center;
+  margin-top: var(--oi-s3);
+}
+
+.hiw-story-more .oi-more {
+  display: grid;
+  justify-items: center;
+}
+
+.hiw-story-more .oi-more-region {
+  max-width: 560px;
+}
+
+/* You set the rules ---------------------------------------------------------------- */
+
+.hiw-rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--oi-s2);
+}
+
+/* The slot is the grid item; the card inside stretches to its full height. */
+.hiw-rule-slot {
+  display: grid;
+}
+
+.oi-card.hiw-rule {
+  padding: 28px;
+  outline: none;
+}
+
+.hiw-rule:focus-visible {
+  outline: 2px solid var(--hiw-accent);
+  outline-offset: 4px;
+}
+
+.hiw-rule-tag {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--oi-s2);
+}
+
+.hiw-rule-index {
+  color: var(--oi-dim);
+  transition: opacity 400ms ease;
+}
+
+.hiw-rule-title {
+  margin: 0 0 10px;
+  color: var(--oi-ink);
+  font-size: clamp(1.5rem, 2.3vw, 2rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.hiw-rule-line {
+  max-width: 26ch;
+}
+
+/* The dial. Its viewBox is centred on the knob, so every rotate turns about the middle. */
+.hiw-dial {
+  display: block;
+  width: min(100%, 250px);
+  margin: 30px auto 34px;
+  overflow: visible;
+  fill: none;
+}
+
+.hiw-dial-bezel {
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 7;
+  stroke-dasharray: 0.5 5.5;
+  transition: rotate 1800ms var(--oi-ease);
+}
+
+.hiw-dial-track {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+}
+
+/* How far the dial is turned; --len is the stop's distance along the track, in degrees. */
+.hiw-dial-fill {
+  stroke: var(--hiw-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: var(--len) 300;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  transition: stroke-dashoffset 2000ms var(--oi-ease) calc(var(--d, 0ms) + 500ms);
+}
+
+/* Light travels from the start of the track to the hand, again and again. */
+.hiw-dial-light {
+  stroke: #ffffff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 5 400;
+  stroke-dashoffset: 8;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px #ffffff);
+  animation: hiw-dial-light 3.8s ease-in-out calc(var(--d, 0ms) + 2600ms) infinite;
+}
+
+.hiw-dial-stop {
+  fill: #000000;
+  stroke: var(--oi-hairline-strong);
+  stroke-width: 1;
+}
+
+.hiw-dial-stop-lit {
+  fill: #ffffff;
+  stroke: none;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 95%, transparent));
+}
+
+.hiw-dial-face {
+  fill: #0b0c11;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+.hiw-dial-hand {
+  fill: #ffffff;
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+  rotate: var(--a);
+  transition:
+    rotate 2000ms var(--oi-ease) calc(var(--d, 0ms) + 500ms),
+    filter 600ms ease;
+}
+
+/* Until the cards are reached the dial is parked at the start of its track. */
+.hiw-rule-slot[data-seen='false'] .hiw-dial-hand {
+  rotate: -120deg;
+}
+
+.hiw-rule-slot[data-seen='false'] .hiw-dial-fill {
+  stroke-dashoffset: calc(var(--len) + 2);
+}
+
+/* Pointed at or focused, the bezel turns a few notches and the hand burns brighter. */
+.hiw-rule:hover .hiw-dial-bezel,
+.hiw-rule:focus-visible .hiw-dial-bezel {
+  rotate: 30deg;
+}
+
+.hiw-rule:hover .hiw-dial-hand,
+.hiw-rule:focus-visible .hiw-dial-hand {
+  filter: drop-shadow(0 0 10px #ffffff)
+    drop-shadow(0 0 3px color-mix(in srgb, var(--hiw-accent) 90%, transparent));
+}
+
+.hiw-rule:hover .hiw-rule-index,
+.hiw-rule:focus-visible .hiw-rule-index {
+  opacity: 0.4;
+}
+
+.hiw-stopline {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--oi-s4);
+}
+
+.hiw-stopline-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+}
+
+/* Loops ------------------------------------------------------------------------- */
+
+@keyframes hiw-ping {
+  0% {
+    opacity: 0.9;
+    scale: 1;
+  }
+  70%,
+  100% {
+    opacity: 0;
+    scale: 4.4;
+  }
+}
+
+@keyframes hiw-dot-ping {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(4.2);
+  }
+}
+
+@keyframes hiw-pulse {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@keyframes hiw-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hiw-breathe {
+  from {
+    opacity: 0.18;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hiw-shimmer {
+  0%,
+  20% {
+    transform: translate3d(-110%, 0, 0);
+  }
+  80%,
+  100% {
+    transform: translate3d(110%, 0, 0);
+  }
+}
+
+@keyframes hiw-sweep {
+  0%,
+  15% {
+    transform: translate3d(-100%, 0, 0);
+  }
+  85%,
+  100% {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+@keyframes hiw-wave {
+  from {
+    transform: scaleY(0.25);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes hiw-tap {
+  0%,
+  40% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes hiw-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The white dash is 5 long: it leaves from before the track and stops under the hand. */
+@keyframes hiw-dial-light {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 8;
+  }
+  12% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  72%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: calc(5 - var(--len));
+  }
+}
+
+/* Medium screens: the line moves to the left, words and picture share a row --------- */
+
+@media (max-width: 999px) {
+  .hiw-head {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .hiw-rail {
+    left: 6.5px;
+  }
+
+  .hiw-step {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+    column-gap: var(--oi-s4);
+    min-height: 0;
+    padding: 64px 0 64px 56px;
+  }
+
+  .hiw-step .hiw-step-copy,
+  .hiw-step:nth-child(even) .hiw-step-copy {
+    grid-area: 1 / 1;
+    justify-items: start;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .hiw-step .hiw-step-mock,
+  .hiw-step:nth-child(even) .hiw-step-mock {
+    --lean: -5deg;
+    grid-area: 1 / 2;
+    justify-self: end;
+  }
+
+  /* Out of the grid: a placed item would measure "left" from its own grid area. */
+  .hiw-step .hiw-node {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    grid-area: auto;
+    margin-top: -6.5px;
+  }
+
+  .hiw-step .hiw-node-link,
+  .hiw-step:nth-child(even) .hiw-node-link {
+    right: auto;
+    left: calc(100% + 10px);
+    width: 22px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12));
+    transform-origin: 0 50%;
+  }
+
+  .hiw-story-more,
+  .hiw-story-more .oi-more {
+    justify-items: start;
+  }
+
+  .hiw-story-more {
+    padding-left: 56px;
+  }
+
+  .hiw-rules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* One card per row: the dial sits beside the words instead of above them. */
+  .oi-card.hiw-rule {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: var(--oi-s4);
+    align-items: start;
+  }
+
+  .hiw-rule .hiw-dial {
+    grid-area: 1 / 1 / -1 / 2;
+    align-self: center;
+    width: 100%;
+    margin: 0;
+  }
+
+  .hiw-rule-tag,
+  .hiw-rule-title,
+  .hiw-rule-line {
+    grid-column: 2;
+  }
+
+  .hiw-rule-tag {
+    margin-bottom: var(--oi-s3);
+  }
+
+  .hiw-stopline {
+    justify-content: flex-start;
+  }
+}
+
+/* Phones: one column, the picture under the words ------------------------------------ */
+
+@media (max-width: 759px) {
+  .hiw-step {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 32px;
+    padding: 44px 0 44px 36px;
+    /* Stacked, a step is taller than the window: it lands with its numeral under the bar. */
+    scroll-margin-top: 72px;
+  }
+
+  .hiw-step .hiw-step-mock,
+  .hiw-step:nth-child(even) .hiw-step-mock {
+    --lean: 0deg;
+    grid-area: 2 / 1;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  /* The point sits level with the numeral, which is where a stacked step starts. */
+  .hiw-step .hiw-node {
+    top: 81px;
+  }
+
+  .hiw-step .hiw-node-link {
+    width: 12px;
+    left: calc(100% + 6px);
+  }
+
+  .hiw-num {
+    font-size: 5.4rem;
+  }
+
+  .hiw-step-title {
+    margin-top: 22px;
+    font-size: 2rem;
+  }
+
+  .hiw-step-line {
+    font-size: 1.08rem;
+  }
+
+  .hiw-mock {
+    padding: 16px;
+  }
+
+  .hiw-panel-head {
+    margin: -16px -16px 2px;
+    padding-inline: 16px;
+  }
+
+  .hiw-mock-bloom {
+    inset: -20% -8%;
+  }
+
+  .hiw-story-more {
+    padding-left: 36px;
+  }
+
+  .oi-card.hiw-rule {
+    display: flex;
+    align-items: stretch;
+    padding: var(--oi-s3);
+  }
+
+  .hiw-rule .hiw-dial {
+    align-self: center;
+    width: min(100%, 220px);
+    margin: 26px auto 30px;
+  }
+
+  .hiw-rule-tag {
+    margin-bottom: 0;
+  }
+
+  .hiw-stopline {
+    margin-top: var(--oi-s3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-steps-section *,
+  .hiw-steps-section *::before,
+  .hiw-steps-section *::after,
+  .hiw-control *,
+  .hiw-control *::before,
+  .hiw-control *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Still, but not switched off: rims stay lit, carets stay drawn, the dial light rests. */
+  .hiw-question::after {
+    opacity: 0.6;
+  }
+
+  .hiw-wave i:nth-child(odd) {
+    transform: scaleY(0.8);
+  }
+
+  /* The lean toward the line is a pose, not motion; only the pointer's part goes. */
+  .hiw-mock {
+    transform: perspective(1200px) rotateY(var(--lean, 0deg));
+  }
+
+  .hiw-rule:hover .hiw-dial-bezel,
+  .hiw-rule:focus-visible .hiw-dial-bezel {
+    rotate: none;
+  }
+}
