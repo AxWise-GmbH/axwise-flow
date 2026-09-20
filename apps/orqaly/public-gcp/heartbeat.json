@@ -1,6 +1,6 @@
 {
   "schemaVersion": "orqanix.heartbeat-snapshot.v4",
-  "timestamp": "2026-09-20T19:27:57.901Z",
+  "timestamp": "2026-09-20T19:35:17.804Z",
   "allHealthy": true,
   "endpoints": [
     {
@@ -8,240 +8,240 @@
       "url": "https://orqanix.com/",
       "status": 200,
       "ok": true,
-      "latencyMs": 200,
-      "timestamp": "2026-09-20T19:27:58.102Z"
+      "latencyMs": 238,
+      "timestamp": "2026-09-20T19:35:18.043Z"
     },
     {
       "name": "Instant Preview",
       "url": "https://orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 178,
-      "timestamp": "2026-09-20T19:27:58.099Z"
+      "latencyMs": 219,
+      "timestamp": "2026-09-20T19:35:18.042Z"
     },
     {
       "name": "Benchmark Showcase",
       "url": "https://orqanix.com/benchmark",
       "status": 200,
       "ok": true,
-      "latencyMs": 282,
-      "timestamp": "2026-09-20T19:27:58.203Z"
+      "latencyMs": 355,
+      "timestamp": "2026-09-20T19:35:18.180Z"
     },
     {
       "name": "Preview Domain",
       "url": "https://preview.orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 256,
-      "timestamp": "2026-09-20T19:27:58.178Z"
+      "latencyMs": 215,
+      "timestamp": "2026-09-20T19:35:18.040Z"
     },
     {
       "name": "API Health Probe",
       "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
       "status": 200,
       "ok": true,
-      "latencyMs": 370,
-      "timestamp": "2026-09-20T19:27:58.293Z"
+      "latencyMs": 258,
+      "timestamp": "2026-09-20T19:35:18.083Z"
     }
   ],
   "archetypeBenchmarks": [
     {
       "id": "message",
       "name": "Message",
-      "scope": "Interactive Dialogue & Intent Routing",
+      "scope": "Interactive Dialogue & Strategic Advisory",
       "baseline": "5.8s",
       "impact": "Direct structured response with zero preamble delay",
-      "last15m": "1.2s",
-      "last3h": "1.2s",
-      "last24h": "1.2s",
+      "last15m": "1.1s",
+      "last3h": "1.1s",
+      "last24h": "1.1s",
       "evaluation": {
-        "lastPrompt": "Explain VAT registration thresholds in Estonia for digital cross-border services under EU OSS regulations.",
+        "lastPrompt": "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license.",
         "turns": 1,
-        "context": "Cross-border tax & fiscal compliance",
+        "context": "Fintech statutory licensing & Asia-Pacific financial regulations",
         "measuredMs": 1119,
         "measuredFormatted": "1.12s (1119 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Explain VAT registration thresholds in Estonia for digital cross-border services under EU OSS regulations.",
+            "prompt": "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license.",
             "turns": 1,
             "measured": "1.12s (1119 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "What are the core filing deadlines and statutory document attachments for an Estonian OÜ annual report under the Commercial Code?",
+            "prompt": "What are the core qualifying criteria and eligible expense categories for the UK R&D SME tax relief scheme under HMRC guidelines?",
             "turns": 1,
             "measured": "1.21s (1213 ms)",
             "timeAgo": 20
           },
           {
-            "prompt": "In 3 concise bullet points, explain what the Estonian Agriculture and Food Board (PTA) requires for registering an animal nutrition business under the Feed Act.",
+            "prompt": "Compare Delaware C-Corp vs German GmbH subsidiary structure for an AI startup raising US venture capital while retaining European engineering.",
             "turns": 1,
-            "measured": "1.11s (1112 ms)",
+            "measured": "1.12s (1124 ms)",
             "timeAgo": 40
           }
         ],
         "distinct24hCount": 4,
         "catalogTotal": 4,
-        "samples3h": 11,
-        "samples24h": 11
+        "samples3h": 10,
+        "samples24h": 10
       }
     },
     {
       "id": "coding",
       "name": "Coding",
-      "scope": "Workspace Engineering & Refactoring",
+      "scope": "Workspace Engineering & Feature Authoring",
       "baseline": "68.2s (7 turns)",
       "impact": "Single-turn execution, verified syntax, zero conversation bloat",
       "last15m": "25s",
       "last3h": "25s",
       "last24h": "25s",
       "evaluation": {
-        "lastPrompt": "In packages/omp-mcp-server, add an exported helper formatJevVerdictMarkdown and verify unit tests in jev-lint.test.mjs.",
+        "lastPrompt": "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation.",
         "turns": 1,
-        "context": "Multi-file semantic refactoring & pre-commit test validation",
+        "context": "Fullstack architectural modernization & schema enforcement",
         "measuredMs": 25321,
         "measuredFormatted": "25.32s (25321 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "In packages/omp-mcp-server, add an exported helper formatJevVerdictMarkdown and verify unit tests in jev-lint.test.mjs.",
+            "prompt": "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation.",
             "turns": 1,
             "measured": "25.32s (25321 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "Locate ensureOrqalyExtensions in prompt.ts and verify how child MCP environment variables are isolated from the root process.",
+            "prompt": "Refactor the Stripe billing webhook handler to guarantee database idempotency using idempotency-keys and atomic balance updates.",
             "turns": 1,
             "measured": "25.54s (25536 ms)",
             "timeAgo": 20
           },
           {
-            "prompt": "Inspect ui/desktop/src/orqaly/workspace.ts to identify the maximum allowed workspace state bytes and how atomic file writes are performed.",
+            "prompt": "Create a responsive, dark-mode landing hero component with animated vector gradients, accessible CTA buttons, and Tailwind CSS.",
             "turns": 1,
-            "measured": "25.63s (25631 ms)",
+            "measured": "25.47s (25467 ms)",
             "timeAgo": 40
           }
         ],
         "distinct24hCount": 4,
         "catalogTotal": 4,
-        "samples3h": 11,
-        "samples24h": 11
+        "samples3h": 10,
+        "samples24h": 10
       }
     },
     {
       "id": "search",
       "name": "Search",
-      "scope": "Evidence Retrieval & Information Triage",
+      "scope": "Global Evidence Retrieval & Information Triage",
       "baseline": "9.0s",
       "impact": "Irrelevant noise discarded before generation begins",
-      "last15m": "2.3s",
+      "last15m": "2.2s",
       "last3h": "2.3s",
       "last24h": "2.3s",
       "evaluation": {
-        "lastPrompt": "Selver Estonia retail supplier terms, margin frameworks, slotting fees, and central distribution requirements.",
+        "lastPrompt": "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms.",
         "turns": 1,
-        "context": "Commercial retail supply chain document filtering",
-        "measuredMs": 2309,
-        "measuredFormatted": "2.31s (2309 ms)",
+        "context": "Fintech sandbox compliance & statutory review",
+        "measuredMs": 2154,
+        "measuredFormatted": "2.15s (2154 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Selver Estonia retail supplier terms, margin frameworks, slotting fees, and central distribution requirements.",
+            "prompt": "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms.",
             "turns": 1,
-            "measured": "2.31s (2309 ms)",
+            "measured": "2.15s (2154 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "EU Regulation 142/2011 Annex XIII microbiological standards for raw pet nutrition testing in accredited laboratories.",
+            "prompt": "Comparative statutory analysis of California Consumer Privacy Act (CCPA/CPRA) opt-out mechanisms vs EU GDPR consent rules.",
             "turns": 1,
-            "measured": "2.32s (2322 ms)",
+            "measured": "2.35s (2353 ms)",
             "timeAgo": 20
           },
           {
-            "prompt": "Estonian veterinary feed compliance, mandatory PTA licences, Salmonella standards, and supermarket retail margins.",
+            "prompt": "FDA 510(k) premarket notification clearance pathway: predicate device equivalence standards and clinical validation thresholds.",
             "turns": 1,
-            "measured": "2.31s (2311 ms)",
+            "measured": "2.34s (2341 ms)",
             "timeAgo": 40
           }
         ],
         "distinct24hCount": 4,
         "catalogTotal": 4,
-        "samples3h": 11,
-        "samples24h": 11
+        "samples3h": 10,
+        "samples24h": 10
       }
     },
     {
       "id": "research",
       "name": "Research",
-      "scope": "Deep Grounded Intelligence & Synthesis",
+      "scope": "Deep Grounded Intelligence & Strategic Modeling",
       "baseline": "52.0s",
       "impact": "High-density, citation-backed executive summary",
       "last15m": "20s",
       "last3h": "19s",
       "last24h": "19s",
       "evaluation": {
-        "lastPrompt": "Prepare market entry analysis for Estonian freeze-dried pet food: consumer willingness to pay, veterinary hurdles, and distributor margins.",
+        "lastPrompt": "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework).",
         "turns": 2,
-        "context": "Commercial research brief with cited statutory references",
-        "measuredMs": 19589,
-        "measuredFormatted": "19.59s (19589 ms)",
+        "context": "Global healthtech regulatory intelligence & dual-market filing strategy",
+        "measuredMs": 19639,
+        "measuredFormatted": "19.64s (19639 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Prepare market entry analysis for Estonian freeze-dried pet food: consumer willingness to pay, veterinary hurdles, and distributor margins.",
+            "prompt": "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework).",
             "turns": 2,
-            "measured": "19.59s (19589 ms)",
+            "measured": "19.64s (19639 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "Synthesize an executive briefing on launching an ultra-premium raw pet nutrition brand in Estonia with Selver and Prisma retail distribution.",
+            "prompt": "Prepare market expansion analysis for a US B2B enterprise SaaS platform entering the DACH region: cloud sovereignty, sales cycles, and pricing norms.",
             "turns": 2,
-            "measured": "19.55s (19550 ms)",
+            "measured": "19.57s (19570 ms)",
             "timeAgo": 20
           },
           {
-            "prompt": "Evaluate private-label manufacturing versus contract co-packing for pet food exporters in the Baltic region.",
+            "prompt": "Evaluate cross-border e-commerce fulfillment models in Southeast Asia (Singapore, Indonesia, Vietnam): customs thresholds and 3PL benchmarks.",
             "turns": 2,
-            "measured": "18.80s (18802 ms)",
+            "measured": "18.85s (18851 ms)",
             "timeAgo": 40
           }
         ],
         "distinct24hCount": 3,
         "catalogTotal": 3,
-        "samples3h": 11,
-        "samples24h": 11
+        "samples3h": 10,
+        "samples24h": 10
       }
     },
     {
       "id": "plan",
       "name": "Automated Plan",
-      "scope": "Multi-Stage Project & PRD Generation",
+      "scope": "Multi-Stage Project & Enterprise PRD Generation",
       "baseline": "145s+ (timeouts)",
       "impact": "100% acceptance criteria satisfied, verifiable audit trail",
-      "last15m": "84s",
+      "last15m": "85s",
       "last3h": "84s",
       "last24h": "84s",
       "evaluation": {
-        "lastPrompt": "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards.",
+        "lastPrompt": "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing.",
         "turns": 10,
-        "context": "10-stage enterprise DAG (3,951 words) & 100% acceptance criteria matrix",
-        "measuredMs": 85311,
-        "measuredFormatted": "85.31s (85311 ms)",
+        "context": "10-stage transatlantic enterprise launch runbook & acceptance matrix",
+        "measuredMs": 85473,
+        "measuredFormatted": "85.47s (85473 ms)",
         "recent3hPrompts": [
           {
-            "prompt": "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards.",
+            "prompt": "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing.",
             "turns": 10,
-            "measured": "85.31s (85311 ms)",
+            "measured": "85.47s (85473 ms)",
             "timeAgo": 0
           },
           {
-            "prompt": "Execute complete product launch runbook: PTA licensing, LABRIS testing schedule, Selver EDI integration, and launch marketing timeline.",
+            "prompt": "Execute end-to-end launch PRD for a HIPAA and GDPR compliant global telehealth consultation application: architecture, audits, and vendor SLAs.",
             "turns": 10,
-            "measured": "82.72s (82723 ms)",
+            "measured": "82.33s (82335 ms)",
             "timeAgo": 20
           }
         ],
         "distinct24hCount": 2,
         "catalogTotal": 2,
-        "samples3h": 11,
-        "samples24h": 11
+        "samples3h": 10,
+        "samples24h": 10
       }
     }
   ]
