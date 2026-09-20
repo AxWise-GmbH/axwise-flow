@@ -263,7 +263,7 @@
       </div>
       <div class="heartbeat-footer">
         <div id="heartbeat-timestamp">
-          Automated perpetual verification every 20m via GitHub Actions (<code>.github/workflows/heartbeat.yml</code>) &bull; Snapshot archived in <code>artifacts/heartbeat/</code>
+          Automated perpetual verification every 15m via GitHub Actions (<code>.github/workflows/heartbeat.yml</code>) &bull; Snapshot archived in <code>artifacts/heartbeat/</code>
         </div>
         <div>
           <span style="color:var(--accent);font-weight:600" id="heartbeat-avg">Global Average Latency: 143.4 ms</span> &bull; 100% Edge Uptime
@@ -974,7 +974,7 @@
           const timeEl = document.getElementById('heartbeat-timestamp');
           if (timeEl && data.timestamp) {
             const dateStr = new Date(data.timestamp).toLocaleTimeString();
-            timeEl.innerHTML = `Automated perpetual verification every 20m &bull; Last snapshot verified at <strong>${dateStr}</strong> &bull; Zero secrets exposed`;
+            timeEl.innerHTML = `Automated perpetual verification every 15m &bull; Last snapshot verified at <strong>${dateStr}</strong> &bull; Zero secrets exposed`;
           }
 
           // Update Archetypes Benchmark Table with dynamic evaluated prompt tooltips

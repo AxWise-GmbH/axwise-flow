@@ -2,8 +2,8 @@ name: Orqanix Perpetual Heartbeat & Edge Health Check
 
 on:
   schedule:
-    # Run every 20 minutes perpetually
-    - cron: '*/20 * * * *'
+    # Run every 15 minutes perpetually
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -29,7 +29,6 @@ jobs:
       - name: Execute Heartbeat Verification & Generate Public Snapshot
         run: |
           node scripts/heartbeat-service.mjs
-          # Copy sanitized public snapshot directly to web static public directory
           mkdir -p apps/orqaly/public-gcp/
           cp artifacts/heartbeat/latest.json apps/orqaly/public-gcp/heartbeat.json
           cp artifacts/heartbeat/latest.json apps/orqaly/public/heartbeat.json

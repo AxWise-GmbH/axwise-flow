@@ -47,7 +47,7 @@
       const timeEl = document.getElementById('heartbeat-timestamp');
       if (timeEl && data.timestamp) {
         const dateStr = new Date(data.timestamp).toLocaleTimeString();
-        timeEl.innerHTML = `Automated perpetual verification every 20m &bull; Last snapshot verified at <strong>${dateStr}</strong> &bull; Zero secrets exposed`;
+        timeEl.innerHTML = `Automated perpetual verification every 15m &bull; Last snapshot verified at <strong>${dateStr}</strong> &bull; Zero secrets exposed`;
       }
 
       // Dynamic tooltip rendering for archetype benchmarks with verbatim prompt histories
