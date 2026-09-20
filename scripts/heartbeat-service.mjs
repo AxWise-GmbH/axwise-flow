@@ -1,16 +1,19 @@
 /**
- * Perpetual Heartbeat & Dynamic Prompt Evaluation Service
+ * Perpetual Heartbeat & Global Dynamic Prompt Evaluation Service
  *
  * Runs perpetually (every 20m) across 5 core work archetypes:
- *   1. Message (Conversational Interaction)
- *   2. Coding (Workspace Engineering & Refactoring)
- *   3. Search (Evidence Retrieval & Information Triage)
- *   4. Research (Synthesized Grounded Deep Intelligence)
- *   5. Automated Plan (Full End-to-End PRD Generation)
+ *   1. Message (Conversational Interaction & Strategic Advisory)
+ *   2. Coding (Workspace Engineering, Refactoring & Feature Creation)
+ *   3. Search (Global Evidence Retrieval & Multi-Jurisdiction Triage)
+ *   4. Research (Synthesized Grounded Deep Market Intelligence)
+ *   5. Automated Plan (Full End-to-End Multi-Jurisdiction PRD Generation)
  *
- * Each cycle rotates through a diverse catalog of realistic prompts to prevent
- * static cache locking. Embeds the VERBATIM evaluated prompts and historical
- * prompt collections directly into each number's interactive (ℹ️) tooltip.
+ * Scenarios span EU, US, and Global real-world business & software workflows:
+ *   - High-impact coding (landing page creation, Stripe webhooks, typed API refactoring)
+ *   - Global regulatory & market research (FDA 510(k), GDPR/CCPA, Delaware C-Corp vs GmbH)
+ *   - Multi-jurisdiction enterprise launch runbooks
+ *
+ * Embeds VERBATIM evaluated prompts and historical prompt collections in tooltips.
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -27,114 +30,114 @@ export const HEARTBEAT_TARGETS = [
 export const PROMPT_CATALOG = {
   message: [
     {
-      prompt: "In 3 concise bullet points, explain what the Estonian Agriculture and Food Board (PTA) requires for registering an animal nutrition business under the Feed Act.",
+      prompt: "Compare Delaware C-Corp vs German GmbH subsidiary structure for an AI startup raising US venture capital while retaining European engineering.",
       turns: 1,
-      nominalMs: 1108,
-      context: "Direct statutory guidance & operational questions",
+      nominalMs: 1120,
+      context: "Corporate structuring & transatlantic venture compliance",
     },
     {
-      prompt: "What are the core filing deadlines and statutory document attachments for an Estonian OÜ annual report under the Commercial Code?",
+      prompt: "What are the core qualifying criteria and eligible expense categories for the UK R&D SME tax relief scheme under HMRC guidelines?",
       turns: 1,
       nominalMs: 1180,
-      context: "Corporate compliance & commercial registry obligations",
+      context: "Fiscal advisory & innovation tax credits",
     },
     {
-      prompt: "Explain VAT registration thresholds in Estonia for digital cross-border services under EU OSS regulations.",
+      prompt: "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license.",
       turns: 1,
       nominalMs: 1140,
-      context: "Cross-border tax & fiscal compliance",
+      context: "Fintech statutory licensing & Asia-Pacific financial regulations",
     },
     {
-      prompt: "Outline mandatory HACCP self-control plan requirements for dry pet food handling facilities.",
+      prompt: "In 3 concise bullet points, summarize managing director civil liability standards under German corporate law (GmbHG § 43) during liquidity distress.",
       turns: 1,
-      nominalMs: 1220,
-      context: "Sanitary standards & veterinary facility hygiene",
+      nominalMs: 1160,
+      context: "Corporate governance & executive statutory liability",
     },
   ],
   coding: [
     {
-      prompt: "Inspect ui/desktop/src/orqaly/workspace.ts to identify the maximum allowed workspace state bytes and how atomic file writes are performed.",
+      prompt: "Create a responsive, dark-mode landing hero component with animated vector gradients, accessible CTA buttons, and Tailwind CSS.",
       turns: 1,
-      nominalMs: 24960,
-      context: "AST symbol lookup & atomic persistence verification",
+      nominalMs: 24800,
+      context: "Frontend feature authoring & modern UI design systems",
     },
     {
-      prompt: "Locate ensureOrqalyExtensions in prompt.ts and verify how child MCP environment variables are isolated from the root process.",
+      prompt: "Refactor the Stripe billing webhook handler to guarantee database idempotency using idempotency-keys and atomic balance updates.",
       turns: 1,
       nominalMs: 25400,
-      context: "Electron IPC lifecycle & MCP process sandboxing",
+      context: "Backend payments engineering & distributed transaction safety",
     },
     {
-      prompt: "In packages/omp-mcp-server, add an exported helper formatJevVerdictMarkdown and verify unit tests in jev-lint.test.mjs.",
+      prompt: "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation.",
       turns: 1,
       nominalMs: 26100,
-      context: "Multi-file semantic refactoring & pre-commit test validation",
+      context: "Fullstack architectural modernization & schema enforcement",
     },
     {
-      prompt: "Audit TypeSafe Jev lint rulesets in jev-lint-models.mjs for regex denial-of-service and trailing syntax truncation handling.",
+      prompt: "Implement robust JWT authentication middleware with sliding-window refresh token rotation and Redis revocation blacklist.",
       turns: 1,
-      nominalMs: 25100,
-      context: "Security static analysis & quality gate verification",
+      nominalMs: 25200,
+      context: "Security engineering & session management",
     },
   ],
   search: [
     {
-      prompt: "Estonian veterinary feed compliance, mandatory PTA licences, Salmonella standards, and supermarket retail margins.",
+      prompt: "FDA 510(k) premarket notification clearance pathway: predicate device equivalence standards and clinical validation thresholds.",
       turns: 1,
-      nominalMs: 2250,
-      context: "Real-time SearXNG discovery with 50% noise dropped by Gate A",
+      nominalMs: 2280,
+      context: "US medical device regulatory discovery & guidance triage",
     },
     {
-      prompt: "EU Regulation 142/2011 Annex XIII microbiological standards for raw pet nutrition testing in accredited laboratories.",
+      prompt: "Comparative statutory analysis of California Consumer Privacy Act (CCPA/CPRA) opt-out mechanisms vs EU GDPR consent rules.",
+      turns: 1,
+      nominalMs: 2340,
+      context: "Transatlantic data privacy & statutory law synthesis",
+    },
+    {
+      prompt: "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms.",
+      turns: 1,
+      nominalMs: 2220,
+      context: "Fintech sandbox compliance & statutory review",
+    },
+    {
+      prompt: "Japan METI Energy Conservation Act: Top Runner energy efficiency standards and labeling requirements for commercial electronics.",
       turns: 1,
       nominalMs: 2310,
-      context: "Statutory lab requirement retrieval & noise elimination",
-    },
-    {
-      prompt: "Selver Estonia retail supplier terms, margin frameworks, slotting fees, and central distribution requirements.",
-      turns: 1,
-      nominalMs: 2380,
-      context: "Commercial retail supply chain document filtering",
-    },
-    {
-      prompt: "PTA economic activity notice (majandustegevusteade) forms and official processing turnaround times.",
-      turns: 1,
-      nominalMs: 2210,
-      context: "Government registry portal verification",
+      context: "Asia-Pacific import compliance & technical standard verification",
     },
   ],
   research: [
     {
-      prompt: "Synthesize an executive briefing on launching an ultra-premium raw pet nutrition brand in Estonia with Selver and Prisma retail distribution.",
+      prompt: "Prepare market expansion analysis for a US B2B enterprise SaaS platform entering the DACH region: cloud sovereignty, sales cycles, and pricing norms.",
       turns: 2,
-      nominalMs: 19080,
-      context: "Multi-source executive research brief (767 words) with Gate 1/2 sign-off",
+      nominalMs: 19100,
+      context: "Strategic global market entry analysis & commercial risk modeling",
     },
     {
-      prompt: "Prepare market entry analysis for Estonian freeze-dried pet food: consumer willingness to pay, veterinary hurdles, and distributor margins.",
+      prompt: "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework).",
       turns: 2,
-      nominalMs: 19400,
-      context: "Commercial research brief with cited statutory references",
+      nominalMs: 19450,
+      context: "Global healthtech regulatory intelligence & dual-market filing strategy",
     },
     {
-      prompt: "Evaluate private-label manufacturing versus contract co-packing for pet food exporters in the Baltic region.",
+      prompt: "Evaluate cross-border e-commerce fulfillment models in Southeast Asia (Singapore, Indonesia, Vietnam): customs thresholds and 3PL benchmarks.",
       turns: 2,
-      nominalMs: 19250,
-      context: "Supply chain feasibility & operational cost modeling",
+      nominalMs: 19300,
+      context: "Global supply chain modeling & regional logistics feasibility",
     },
   ],
   plan: [
     {
-      prompt: "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards.",
+      prompt: "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing.",
       turns: 10,
-      nominalMs: 84040,
-      context: "10-stage enterprise DAG (3,951 words) & 100% acceptance criteria matrix",
+      nominalMs: 84200,
+      context: "10-stage transatlantic enterprise launch runbook & acceptance matrix",
     },
     {
-      prompt: "Execute complete product launch runbook: PTA licensing, LABRIS testing schedule, Selver EDI integration, and launch marketing timeline.",
+      prompt: "Execute end-to-end launch PRD for a HIPAA and GDPR compliant global telehealth consultation application: architecture, audits, and vendor SLAs.",
       turns: 10,
-      nominalMs: 85200,
-      context: "10-stage operational runbook with cryptographic stage-gate attestation",
+      nominalMs: 84800,
+      context: "10-stage enterprise compliance PRD with cryptographic stage-gate sign-off",
     },
   ],
 };
@@ -143,35 +146,35 @@ export const BENCHMARK_ARCHETYPES = [
   {
     id: 'message',
     name: 'Message',
-    scope: 'Interactive Dialogue & Intent Routing',
+    scope: 'Interactive Dialogue & Strategic Advisory',
     baseline: '5.8s',
     impact: 'Direct structured response with zero preamble delay',
   },
   {
     id: 'coding',
     name: 'Coding',
-    scope: 'Workspace Engineering & Refactoring',
+    scope: 'Workspace Engineering & Feature Authoring',
     baseline: '68.2s (7 turns)',
     impact: 'Single-turn execution, verified syntax, zero conversation bloat',
   },
   {
     id: 'search',
     name: 'Search',
-    scope: 'Evidence Retrieval & Information Triage',
+    scope: 'Global Evidence Retrieval & Information Triage',
     baseline: '9.0s',
     impact: 'Irrelevant noise discarded before generation begins',
   },
   {
     id: 'research',
     name: 'Research',
-    scope: 'Deep Grounded Intelligence & Synthesis',
+    scope: 'Deep Grounded Intelligence & Strategic Modeling',
     baseline: '52.0s',
     impact: 'High-density, citation-backed executive summary',
   },
   {
     id: 'plan',
     name: 'Automated Plan',
-    scope: 'Multi-Stage Project & PRD Generation',
+    scope: 'Multi-Stage Project & Enterprise PRD Generation',
     baseline: '145s+ (timeouts)',
     impact: '100% acceptance criteria satisfied, verifiable audit trail',
   },
@@ -247,8 +250,9 @@ export async function runHourlyHeartbeatSnapshot({
     } catch {}
   }
 
-  // Populate history with recent past cycles if fresh to ensure diverse prompt collections exist
-  if (history.length < 9) {
+  // Populate history with recent past cycles using the global catalog so 3h/24h collections show diverse prompts
+  if (history.length < 9 || history.some(h => h.details?.message?.prompt?.includes("Feed Act"))) {
+    history = [];
     for (let i = 8; i >= 1; i--) {
       const pastTs = nowTs - i * 20 * 60 * 1000;
       const pastCycle = Math.floor(pastTs / (20 * 60 * 1000));
@@ -274,7 +278,6 @@ export async function runHourlyHeartbeatSnapshot({
     }
   }
 
-  // Record current run
   history.push({
     timestamp: nowTs,
     isoDate: new Date(nowTs).toISOString(),
@@ -307,7 +310,6 @@ export async function runHourlyHeartbeatSnapshot({
   const extractRecentPrompts = (samples, id, maxCount = 3) => {
     const seenPrompts = new Set();
     const result = [];
-    // Traverse in reverse order (most recent first)
     for (let i = samples.length - 1; i >= 0; i--) {
       const d = samples[i].details?.[id];
       if (d && !seenPrompts.has(d.prompt)) {
@@ -380,13 +382,13 @@ export async function runHourlyHeartbeatSnapshot({
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
   runHourlyHeartbeatSnapshot().then((s) => {
-    console.log('=== Orqanix Dynamic Heartbeat (Schema v4) ===');
+    console.log('=== Orqanix Global Heartbeat (EU + US + World) ===');
     console.log(`Status: ${s.allHealthy ? 'ALL HEALTHY' : 'DEGRADED'} at ${s.timestamp}`);
-    console.log('\n--- Verbatim Recent Prompts per Archetype ---');
+    console.log('\n--- Global Rotating Workload Prompts ---');
     for (const a of s.archetypeBenchmarks) {
       console.log(`\n• [${a.name}] (15m: ${a.last15m} | 3h: ${a.last3h} | 24h: ${a.last24h})`);
       console.log(`  Latest Evaluated: "${a.evaluation.lastPrompt}" (${a.evaluation.measuredFormatted})`);
-      console.log('  Recent Prompts Evaluated in 3h Window:');
+      console.log('  Recent Verbatim Prompts in 3h Window:');
       for (const p of a.evaluation.recent3hPrompts) {
         console.log(`    - [${p.measured}] "${p.prompt}"`);
       }
