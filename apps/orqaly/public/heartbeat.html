@@ -210,33 +210,42 @@
         <tbody id="archetypes-tbody">
           <tr>
             <td><strong>1. Message</strong></td>
-            <td>Interactive Dialogue &amp; Intent Routing</td>
+            <td>Interactive Dialogue &amp; Strategic Advisory</td>
             <td>
-              <strong style="color:#34d399">1.2s</strong>
+              <strong style="color:#34d399">1.1s</strong>
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Message: 15-Minute Sample</span>
-                  <strong>Task:</strong> Direct statutory guidance &amp; operational questions.<br>
-                  <strong>Execution:</strong> 1 single conversational turn.<br>
-                  <strong>Prompt profile:</strong> Varied across corporate law, tax filing &amp; compliance queries to prevent cache lock.
+                <span class="tip-box" style="width:320px;">
+                  <span class="tip-title">Message: Latest Evaluated Prompt</span>
+                  <strong>Verbatim Prompt:</strong> "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license."<br>
+                  <strong>Turns:</strong> 1 | <strong>Latency:</strong> <span style="color:#34d399">1.12s (1119 ms)</span><br>
+                  <strong>Context:</strong> Fintech statutory licensing &amp; Asia-Pacific financial regulations
                 </span>
               </span>
             </td>
             <td>
-              1.2s
+              1.1s
               <span class="info-tip">i
-                <span class="tip-box">
+                <span class="tip-box" style="width:340px;">
                   <span class="tip-title">Message: 3-Hour Rolling Window</span>
-                  Rolling mean of ~9 autonomous runs. Evaluates cold first-token dispatch and zero conversational fluff.
+                  Rolling mean of 9 runs rotating across 4 distinct prompt scenarios.
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
+                    <ul style="padding-left:14px;margin:4px 0 0 0;">
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[1.12s (1119 ms)]</span> "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[1.21s (1213 ms)]</span> "What are the core qualifying criteria and eligible expense categories for the UK R&amp;D SME tax relief scheme under HMRC guidelines?"</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[1.12s (1124 ms)]</span> "Compare Delaware C-Corp vs German GmbH subsidiary structure for an AI startup raising US venture capital while retaining European engineering."</li>
+                    </ul>
+                  </div>
                 </span>
               </span>
             </td>
             <td>
-              1.2s
+              1.1s
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Message: 24-Hour Average</span>
-                  Daily aggregate across 72 cycles under diverse diurnal network conditions.
+                <span class="tip-box" style="width:300px;">
+                  <span class="tip-title">Message: 24-Hour Daily Aggregate</span>
+                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
+                  <strong>Total Scenarios in Catalog:</strong> 4 rotating prompts.
                 </span>
               </span>
             </td>
@@ -246,33 +255,42 @@
 
           <tr>
             <td><strong>2. Coding</strong></td>
-            <td>Workspace Engineering &amp; Refactoring</td>
+            <td>Workspace Engineering &amp; Feature Authoring</td>
             <td>
               <strong style="color:#34d399">25s</strong>
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Coding: 15-Minute Sample</span>
-                  <strong>Task:</strong> AST codebase search &amp; multi-file refactoring.<br>
-                  <strong>Execution:</strong> 1 single turn (isolated background subagent).<br>
-                  <strong>Quality gate:</strong> Pre-commit syntax, boundary, and secret audit.
+                <span class="tip-box" style="width:320px;">
+                  <span class="tip-title">Coding: Latest Evaluated Prompt</span>
+                  <strong>Verbatim Prompt:</strong> "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation."<br>
+                  <strong>Turns:</strong> 1 | <strong>Latency:</strong> <span style="color:#34d399">25.32s (25321 ms)</span><br>
+                  <strong>Context:</strong> Fullstack architectural modernization &amp; schema enforcement
                 </span>
               </span>
             </td>
             <td>
               25s
               <span class="info-tip">i
-                <span class="tip-box">
+                <span class="tip-box" style="width:340px;">
                   <span class="tip-title">Coding: 3-Hour Rolling Window</span>
-                  Rotated tasks across TypeScript, Python, and Rust source trees to test language server stability.
+                  Rolling mean of 9 runs rotating across 4 distinct prompt scenarios.
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
+                    <ul style="padding-left:14px;margin:4px 0 0 0;">
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[25.32s (25321 ms)]</span> "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[25.54s (25536 ms)]</span> "Refactor the Stripe billing webhook handler to guarantee database idempotency using idempotency-keys and atomic balance updates."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[25.47s (25467 ms)]</span> "Create a responsive, dark-mode landing hero component with animated vector gradients, accessible CTA buttons, and Tailwind CSS."</li>
+                    </ul>
+                  </div>
                 </span>
               </span>
             </td>
             <td>
               25s
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Coding: 24-Hour Average</span>
-                  Zero context window pollution: saves ~15,000 tokens per investigation compared to vanilla shell loops.
+                <span class="tip-box" style="width:300px;">
+                  <span class="tip-title">Coding: 24-Hour Daily Aggregate</span>
+                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
+                  <strong>Total Scenarios in Catalog:</strong> 4 rotating prompts.
                 </span>
               </span>
             </td>
@@ -282,33 +300,42 @@
 
           <tr>
             <td><strong>3. Search</strong></td>
-            <td>Evidence Retrieval &amp; Information Triage</td>
+            <td>Global Evidence Retrieval &amp; Information Triage</td>
             <td>
-              <strong style="color:#34d399">2.4s</strong>
+              <strong style="color:#34d399">2.2s</strong>
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Search: 15-Minute Sample</span>
-                  <strong>Task:</strong> Real-time discovery &amp; web document screening.<br>
-                  <strong>Execution:</strong> 6 candidate pages filtered down to 2 authoritative sources.<br>
-                  <strong>Triage:</strong> 50–66% noise dropped before synthesis.
+                <span class="tip-box" style="width:320px;">
+                  <span class="tip-title">Search: Latest Evaluated Prompt</span>
+                  <strong>Verbatim Prompt:</strong> "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms."<br>
+                  <strong>Turns:</strong> 1 | <strong>Latency:</strong> <span style="color:#34d399">2.15s (2154 ms)</span><br>
+                  <strong>Context:</strong> Fintech sandbox compliance &amp; statutory review
                 </span>
               </span>
             </td>
             <td>
-              2.4s
+              2.3s
               <span class="info-tip">i
-                <span class="tip-box">
+                <span class="tip-box" style="width:340px;">
                   <span class="tip-title">Search: 3-Hour Rolling Window</span>
-                  Screens varied queries across technical documentation, legal registries, and retail supplier terms.
+                  Rolling mean of 9 runs rotating across 4 distinct prompt scenarios.
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
+                    <ul style="padding-left:14px;margin:4px 0 0 0;">
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[2.15s (2154 ms)]</span> "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[2.35s (2353 ms)]</span> "Comparative statutory analysis of California Consumer Privacy Act (CCPA/CPRA) opt-out mechanisms vs EU GDPR consent rules."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[2.34s (2341 ms)]</span> "FDA 510(k) premarket notification clearance pathway: predicate device equivalence standards and clinical validation thresholds."</li>
+                    </ul>
+                  </div>
                 </span>
               </span>
             </td>
             <td>
-              2.4s
+              2.3s
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Search: 24-Hour Average</span>
-                  Zero unverified hallucination: model reads only verified, citation-backed evidence spans.
+                <span class="tip-box" style="width:300px;">
+                  <span class="tip-title">Search: 24-Hour Daily Aggregate</span>
+                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
+                  <strong>Total Scenarios in Catalog:</strong> 4 rotating prompts.
                 </span>
               </span>
             </td>
@@ -318,33 +345,42 @@
 
           <tr>
             <td><strong>4. Research</strong></td>
-            <td>Deep Grounded Intelligence &amp; Synthesis</td>
+            <td>Deep Grounded Intelligence &amp; Strategic Modeling</td>
             <td>
-              <strong style="color:#34d399">19s</strong>
+              <strong style="color:#34d399">20s</strong>
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Research: 15-Minute Sample</span>
-                  <strong>Task:</strong> Multi-source executive brief synthesis.<br>
-                  <strong>Output:</strong> 767 words with verified citations.<br>
-                  <strong>Execution:</strong> End-to-end research flow with automated Gate 1/2 sign-off.
+                <span class="tip-box" style="width:320px;">
+                  <span class="tip-title">Research: Latest Evaluated Prompt</span>
+                  <strong>Verbatim Prompt:</strong> "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework)."<br>
+                  <strong>Turns:</strong> 2 | <strong>Latency:</strong> <span style="color:#34d399">19.64s (19639 ms)</span><br>
+                  <strong>Context:</strong> Global healthtech regulatory intelligence &amp; dual-market filing strategy
                 </span>
               </span>
             </td>
             <td>
               19s
               <span class="info-tip">i
-                <span class="tip-box">
+                <span class="tip-box" style="width:340px;">
                   <span class="tip-title">Research: 3-Hour Rolling Window</span>
-                  Evaluates cross-industry prompts (e.g. food safety, medical devices, retail supply chain).
+                  Rolling mean of 9 runs rotating across 3 distinct prompt scenarios.
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
+                    <ul style="padding-left:14px;margin:4px 0 0 0;">
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[19.64s (19639 ms)]</span> "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework)."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[19.57s (19570 ms)]</span> "Prepare market expansion analysis for a US B2B enterprise SaaS platform entering the DACH region: cloud sovereignty, sales cycles, and pricing norms."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[18.85s (18851 ms)]</span> "Evaluate cross-border e-commerce fulfillment models in Southeast Asia (Singapore, Indonesia, Vietnam): customs thresholds and 3PL benchmarks."</li>
+                    </ul>
+                  </div>
                 </span>
               </span>
             </td>
             <td>
               19s
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Research: 24-Hour Average</span>
-                  Consistent 3.2x speedup over unconstrained generative models authoring unstructured text.
+                <span class="tip-box" style="width:300px;">
+                  <span class="tip-title">Research: 24-Hour Daily Aggregate</span>
+                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
+                  <strong>Total Scenarios in Catalog:</strong> 3 rotating prompts.
                 </span>
               </span>
             </td>
@@ -354,33 +390,41 @@
 
           <tr>
             <td><strong>5. Automated Plan</strong></td>
-            <td>Multi-Stage Project &amp; PRD Generation</td>
+            <td>Multi-Stage Project &amp; Enterprise PRD Generation</td>
             <td>
-              <strong style="color:#34d399">84s</strong>
+              <strong style="color:#34d399">85s</strong>
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Automated Plan: 15-Minute Sample</span>
-                  <strong>Task:</strong> Full 10-stage enterprise project runbook.<br>
-                  <strong>Output:</strong> 3,951 words (~8 pages), 100% acceptance criteria matrix.<br>
-                  <strong>Quality gate:</strong> Post-synthesis integrity audit with hedging verification.
+                <span class="tip-box" style="width:320px;">
+                  <span class="tip-title">Automated Plan: Latest Evaluated Prompt</span>
+                  <strong>Verbatim Prompt:</strong> "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing."<br>
+                  <strong>Turns:</strong> 10 | <strong>Latency:</strong> <span style="color:#34d399">85.47s (85473 ms)</span><br>
+                  <strong>Context:</strong> 10-stage transatlantic enterprise launch runbook &amp; acceptance matrix
                 </span>
               </span>
             </td>
             <td>
               84s
               <span class="info-tip">i
-                <span class="tip-box">
+                <span class="tip-box" style="width:340px;">
                   <span class="tip-title">Automated Plan: 3-Hour Rolling Window</span>
-                  Stress-tests multi-agent handoffs across complex cross-domain business goals.
+                  Rolling mean of 9 runs rotating across 2 distinct prompt scenarios.
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
+                    <ul style="padding-left:14px;margin:4px 0 0 0;">
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[85.47s (85473 ms)]</span> "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing."</li>
+                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[82.33s (82335 ms)]</span> "Execute end-to-end launch PRD for a HIPAA and GDPR compliant global telehealth consultation application: architecture, audits, and vendor SLAs."</li>
+                    </ul>
+                  </div>
                 </span>
               </span>
             </td>
             <td>
               84s
               <span class="info-tip">i
-                <span class="tip-box">
-                  <span class="tip-title">Automated Plan: 24-Hour Average</span>
-                  Zero scraper timeouts and zero unhedged assertions: sealed, audit-ready deliverables in GCS.
+                <span class="tip-box" style="width:300px;">
+                  <span class="tip-title">Automated Plan: 24-Hour Daily Aggregate</span>
+                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
+                  <strong>Total Scenarios in Catalog:</strong> 2 rotating prompts.
                 </span>
               </span>
             </td>
@@ -517,10 +561,8 @@
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
-
-      refreshHeartbeat();
-      setInterval(refreshHeartbeat, 30000);
     })();
   </script>
+  <script src="/heartbeat-telemetry.js"></script>
 </body>
 </html>
