@@ -1,0 +1,1104 @@
+/*
+ * The use-case carousel (class prefix ouc-). Tokens and primitives come from instant.css.
+ *
+ * One light sits under the middle of the row; the cards slide through it. UseCases.jsx hands
+ * every slide its focus as --f (1 in the middle, 0 a card-width away) once a frame, so the
+ * brightness and the lift follow the scroll itself instead of switching on and off.
+ *
+ * Speed: --f only drives the transform and the opacity of one layer per card, so a scroll
+ * frame repaints nothing. No blur is ever animated, nothing keeps will-change, and looping
+ * decoration rests while the section is off screen.
+ *
+ * Motion is transform, opacity, stroke-dashoffset and the individual translate/scale
+ * properties only. Everything that moves is switched off at the bottom of the file under
+ * prefers-reduced-motion, with the content fully visible.
+ */
+
+/* Section shell --------------------------------------------------------------- */
+
+.ouc {
+  overflow-x: clip;
+}
+
+/* Looping decoration rests while nobody can see it (Seen sets data-live). */
+.ouc[data-live='false'] *,
+.ouc[data-live='false'] *::before,
+.ouc[data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+/* Reveals wait for a real scroll, however early the shared reveal timer fires. */
+.ouc-gate[data-seen='false'] [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+/* A hairline that draws itself from the middle, with light resting on it. */
+.ouc::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(1192px, calc(100% - 2 * var(--oi-s3)));
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--oi-hairline-strong) 22%,
+    rgba(255, 255, 255, 0.5) 50%,
+    var(--oi-hairline-strong) 78%,
+    transparent
+  );
+  transform: translate3d(-50%, 0, 0) scaleX(0);
+  transition: transform 1800ms var(--oi-ease);
+}
+
+.ouc[data-seen='true']::before {
+  transform: translate3d(-50%, 0, 0) scaleX(1);
+}
+
+/* Head -------------------------------------------------------------------------- */
+
+.ouc-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--oi-s4);
+  align-items: end;
+  margin-bottom: var(--oi-s3);
+}
+
+.ouc-head-main {
+  display: grid;
+  gap: 22px;
+}
+
+.ouc-head .oi-line {
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.ouc-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.ouc-count {
+  margin: 0 14px 0 0;
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ouc-count b {
+  display: inline-block;
+  color: var(--oi-ink);
+  font-weight: 500;
+  animation: ouc-tick 600ms var(--oi-ease) both;
+}
+
+.ouc-nav {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: var(--oi-paper);
+  color: var(--oi-ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 400ms ease,
+    opacity 400ms ease,
+    scale 400ms var(--oi-ease);
+}
+
+.ouc-nav svg {
+  width: 18px;
+  height: 18px;
+  transition: translate 500ms var(--oi-ease);
+}
+
+.ouc-nav path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ouc-nav:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 3px;
+}
+
+.ouc-nav[aria-disabled='true'] {
+  opacity: 0.32;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .ouc-nav:not([aria-disabled='true']):hover {
+    border-color: rgba(var(--oi-pale-rgb), 0.75);
+  }
+
+  .ouc-nav-prev:not([aria-disabled='true']):hover svg {
+    translate: -3px 0;
+  }
+
+  .ouc-nav-next:not([aria-disabled='true']):hover svg {
+    translate: 3px 0;
+  }
+}
+
+.ouc-nav:not([aria-disabled='true']):active {
+  scale: 0.93;
+}
+
+/* Stage: the light, the floor line and the track --------------------------------- */
+
+.ouc-stage {
+  --ouc-card: 340px;
+  --ouc-gap: 24px;
+  --ouc-top: 40px;
+  --ouc-bottom: 72px;
+  /* How long a request waits before it types; longer the first time, while the row arrives. */
+  --ouc-wait: 480ms;
+  position: relative;
+  max-width: 1760px;
+  margin-inline: auto;
+}
+
+.ouc-stage[data-fresh='true'] {
+  --ouc-wait: 1500ms;
+}
+
+.ouc-row {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The one light source, under the middle card. */
+.ouc-glow {
+  position: absolute;
+  bottom: calc(var(--ouc-bottom) - 200px);
+  left: 50%;
+  z-index: -1;
+  width: 920px;
+  height: 400px;
+  margin-left: -460px;
+  /* The gradient is its own softness: a blur filter here would cost a full-width layer. */
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(var(--oi-accent-rgb), 0.4),
+    rgba(var(--oi-glow-rgb), 0.3) 22%,
+    rgba(var(--oi-glow-rgb), 0.16) 40%,
+    rgba(var(--oi-deep-rgb), 0.07) 56%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 2200ms ease 400ms;
+  animation: ouc-breathe 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.ouc-stage[data-seen='true'] .ouc-glow {
+  opacity: 1;
+}
+
+/* The line the middle card stands on. It draws itself, then light runs along it. */
+.ouc-floor {
+  position: absolute;
+  bottom: calc(var(--ouc-bottom) - 26px);
+  left: 50%;
+  z-index: -1;
+  width: min(560px, 92%);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--oi-accent-rgb), 0.7) 22%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(var(--oi-accent-rgb), 0.7) 78%,
+    transparent
+  );
+  transform: translate3d(-50%, 0, 0) scaleX(0);
+  transition: transform 1800ms var(--oi-ease) 500ms;
+  pointer-events: none;
+}
+
+.ouc-stage[data-seen='true'] .ouc-floor {
+  transform: translate3d(-50%, 0, 0) scaleX(1);
+}
+
+.ouc-floor::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 16%;
+  height: 9px;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    #ffffff,
+    rgba(var(--oi-accent-rgb), 0.6) 40%,
+    transparent 72%
+  );
+  opacity: 0;
+  animation: ouc-run 7s var(--oi-ease) 2.4s infinite;
+}
+
+/* A flare along the floor each time another card takes the middle. */
+.ouc-pulse {
+  position: absolute;
+  top: -12px;
+  left: 0;
+  width: 100%;
+  height: 25px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(var(--oi-pale-rgb), 0.85),
+    rgba(var(--oi-accent-rgb), 0.35) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  animation: ouc-pulse 1100ms var(--oi-ease) both;
+}
+
+/* Both edges of the row dissolve into the page. */
+.ouc-viewport {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 13%, #000 87%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 13%, #000 87%, transparent);
+}
+
+.ouc-track {
+  position: relative;
+  display: flex;
+  gap: var(--ouc-gap);
+  margin: 0;
+  padding: var(--ouc-top) 0 var(--ouc-bottom);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  overflow-anchor: none;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  outline: none;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ouc-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Spacers, so the first and the last card can reach the middle in every browser. */
+.ouc-track::before,
+.ouc-track::after {
+  content: '';
+  flex: none;
+  width: var(--ouc-edge, calc(50% - var(--ouc-card) / 2 - var(--ouc-gap)));
+}
+
+/* A mouse drag: snapping waits until the glide has landed (see endDrag). */
+.ouc-track[data-drag] {
+  scroll-snap-type: none;
+}
+
+.ouc-track[data-drag='true'] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Slide: the snap target. It only arrives; the layers inside do the rest. */
+.ouc-slide {
+  --f: 0;
+  flex: none;
+  width: var(--ouc-card);
+  scroll-snap-align: center;
+  opacity: 0;
+  translate: 0 48px;
+  transition:
+    opacity 1300ms var(--oi-ease) var(--enter, 0ms),
+    translate 1300ms var(--oi-ease) var(--enter, 0ms);
+}
+
+.ouc-slide[data-current='true'] {
+  --f: 1;
+}
+
+.ouc-stage[data-seen='true'] .ouc-slide {
+  opacity: 1;
+  translate: none;
+}
+
+/* Focus layer: dim and low at the sides, bright and lifted in the middle. */
+.ouc-lift {
+  height: 100%;
+  opacity: calc(0.55 + 0.45 * var(--f));
+  transform: translate3d(0, calc(var(--f) * -18px), 0) scale(calc(0.94 + 0.06 * var(--f)));
+  transform-origin: 50% 100%;
+  transition: opacity 260ms ease;
+}
+
+/* Card ---------------------------------------------------------------------------- */
+
+.ouc-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 476px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    linear-gradient(158deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.014) 44%),
+    linear-gradient(0deg, rgba(var(--oi-deep-rgb), 0.22), transparent 55%), rgba(0, 0, 0, 0.42);
+  box-shadow:
+    inset 0 0 0 1px var(--oi-hairline),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* The lean toward the pointer needs a mouse; a phone keeps one layer per card, not two. */
+@media (hover: hover) and (pointer: fine) {
+  .ouc-card {
+    transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 700ms var(--oi-ease);
+  }
+}
+
+/* The surface answers the pointer. */
+.ouc-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(var(--oi-pale-rgb), 0.16),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+/* The rim catches the light from below once the card takes the middle. */
+.ouc-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    0deg,
+    rgba(var(--oi-pale-rgb), 0.95),
+    rgba(var(--oi-accent-rgb), 0.5) 26%,
+    rgba(255, 255, 255, 0.16) 62%,
+    rgba(255, 255, 255, 0.3)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0;
+  transition: opacity 700ms ease;
+  pointer-events: none;
+}
+
+.ouc-slide[data-current='true'] .ouc-card::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .ouc-slide:hover .ouc-lift {
+    opacity: calc(0.82 + 0.18 * var(--f));
+  }
+
+  .ouc-card:hover::before {
+    opacity: 1;
+  }
+}
+
+.ouc-track:focus-visible .ouc-slide[data-current='true'] .ouc-card {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 5px;
+}
+
+/* A streak of light crosses the top edge as a card takes the middle. */
+.ouc-streak {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 46%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--oi-accent) 40%, #ffffff 70%, transparent);
+  translate: -100% 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ouc-stage[data-seen='true'] .ouc-slide[data-current='true'] .ouc-streak {
+  animation: ouc-streak 1500ms var(--oi-ease) 250ms both;
+}
+
+/* Glyphs: a crisp one in the tile, the same one large and faint behind the title. */
+.ouc-icon path,
+.ouc-ghost path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+}
+
+.ouc-icon {
+  width: 26px;
+  height: 26px;
+  overflow: visible;
+}
+
+.ouc-icon path {
+  stroke-width: 1.4;
+}
+
+.ouc-ghost {
+  position: absolute;
+  top: -58px;
+  right: -64px;
+  z-index: -1;
+  width: 260px;
+  height: 260px;
+  color: var(--oi-ink);
+  opacity: 0.06;
+  overflow: visible;
+  transition: opacity 700ms ease;
+  -webkit-mask-image: linear-gradient(205deg, #000 34%, transparent 72%);
+  mask-image: linear-gradient(205deg, #000 34%, transparent 72%);
+  pointer-events: none;
+}
+
+.ouc-slide[data-current='true'] .ouc-ghost {
+  opacity: 0.16;
+}
+
+.ouc-ghost path {
+  stroke-width: 0.14;
+}
+
+.ouc-stage[data-seen='true'] .ouc-slide[data-current='true'] .ouc-icon path {
+  animation: ouc-draw 1100ms var(--oi-ease) calc(200ms + var(--n) * 130ms) both;
+}
+
+.ouc-stage[data-seen='true'] .ouc-slide[data-current='true'] .ouc-ghost path {
+  animation: ouc-draw 1600ms var(--oi-ease) calc(var(--n) * 140ms) both;
+}
+
+.ouc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oi-s2);
+}
+
+.ouc-tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 17px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    inset 0 0 0 1px var(--oi-hairline),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: var(--oi-muted);
+  position: relative;
+  transition: color 600ms ease;
+}
+
+.ouc-tile::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), 0.3), transparent 68%);
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.ouc-slide[data-current='true'] .ouc-tile {
+  color: var(--oi-accent);
+}
+
+.ouc-slide[data-current='true'] .ouc-tile::after {
+  opacity: 1;
+}
+
+.ouc-pill {
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: var(--oi-radius-pill);
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    color 600ms ease,
+    border-color 600ms ease;
+}
+
+.ouc-slide[data-current='true'] .ouc-pill {
+  border-color: rgba(var(--oi-pale-rgb), 0.55);
+  color: var(--oi-ink);
+}
+
+.ouc-title {
+  margin: 76px 0 14px;
+  color: var(--oi-ink);
+  font-size: 1.78rem;
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.ouc-line {
+  margin: 0 0 var(--oi-s3);
+  color: var(--oi-muted);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* The request, as a bubble from the app's chat. */
+.ouc-ask {
+  margin-top: auto;
+  padding: 14px 16px 16px;
+  border-radius: 18px 18px 18px 6px;
+  background: rgba(0, 0, 0, 0.46);
+  box-shadow: inset 0 0 0 1px var(--oi-hairline);
+}
+
+/* The way out of a card: a quiet mono link under the request, live only on the front card. */
+.ouc-more {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 14px;
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 500ms var(--oi-ease),
+    color 200ms ease;
+}
+
+.ouc-slide[data-current='true'] .ouc-more {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ouc-more svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--oi-accent);
+  transition: translate 300ms var(--oi-ease);
+}
+
+.ouc-more:hover,
+.ouc-more:focus-visible {
+  color: var(--oi-accent);
+}
+
+.ouc-more:hover svg,
+.ouc-more:focus-visible svg {
+  translate: 4px 0;
+}
+
+.ouc-more:focus-visible {
+  outline: 1.5px solid var(--oi-accent);
+  outline-offset: 4px;
+}
+
+.ouc-ask-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: var(--oi-accent);
+  font-family: var(--oi-mono);
+  font-size: 0.64rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ouc-ask-mark {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.ouc-ask-text {
+  min-height: 2.9em;
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: 0.98rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Typing: until its card takes the middle a request rests like a placeholder; then each
+ * letter switches on at its own delay and a caret hops along with it.
+ */
+.ouc-ch::after,
+.ouc-caret {
+  width: 2px;
+  height: 1.08em;
+  border-radius: 1px;
+  background: var(--oi-accent);
+}
+
+.ouc-typed[data-state='rest'] {
+  opacity: 0.4;
+}
+
+.ouc-ch {
+  position: relative;
+  opacity: 0.4;
+}
+
+.ouc-ch::after {
+  content: '';
+  position: absolute;
+  bottom: 0.08em;
+  left: calc(100% + 1px);
+  opacity: 0;
+}
+
+.ouc-caret {
+  display: inline-block;
+  margin-left: 2px;
+  vertical-align: -0.16em;
+  opacity: 0;
+}
+
+.ouc-stage[data-seen='true'] .ouc-ch {
+  animation: ouc-on 1ms linear calc(var(--ouc-wait) + var(--i) * 26ms) both;
+}
+
+.ouc-stage[data-seen='true'] .ouc-ch::after {
+  animation: ouc-hop 26ms linear calc(var(--ouc-wait) + var(--i) * 26ms) both;
+}
+
+.ouc-stage[data-seen='true'] .ouc-caret {
+  animation: ouc-blink 1100ms steps(1) calc(var(--ouc-wait) + var(--i) * 26ms) infinite;
+}
+
+/* Foot: pagination on a rail, with a light that slides to the current card ---------- */
+
+.ouc-foot {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-top: -14px;
+}
+
+.ouc-dots {
+  position: relative;
+  display: flex;
+  width: min(100%, 352px);
+  isolation: isolate;
+}
+
+.ouc-dots::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 6.25%;
+  left: 6.25%;
+  z-index: -2;
+  height: 1px;
+  background: var(--oi-hairline);
+  scale: 0 1;
+  transition: scale 1600ms var(--oi-ease) 600ms;
+}
+
+.ouc-stage[data-seen='true'] .ouc-dots::before {
+  scale: 1 1;
+}
+
+.ouc-dot {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ouc-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--oi-muted);
+  opacity: 0.55;
+  transition:
+    opacity 500ms ease,
+    scale 500ms var(--oi-ease),
+    background-color 500ms ease;
+}
+
+.ouc-dot[aria-current='true']::before {
+  background: var(--oi-ink);
+  opacity: 1;
+  scale: 1.25;
+}
+
+@media (hover: hover) {
+  .ouc-dot:hover::before {
+    opacity: 1;
+    scale: 1.5;
+  }
+}
+
+.ouc-dot:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: -8px;
+  border-radius: 50%;
+}
+
+/* UseCases.jsx sets --pos to the scroll position measured in cards, fractions included. */
+.ouc-bead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 12.5%;
+  height: 100%;
+  transform: translate3d(calc(var(--pos, 0) * 100%), 0, 0);
+  pointer-events: none;
+}
+
+.ouc-bead::before,
+.ouc-bead::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.ouc-bead::before {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), 0.6), transparent 66%);
+}
+
+.ouc-bead::after {
+  width: 34px;
+  height: 1px;
+  margin-left: -17px;
+  background: linear-gradient(90deg, transparent, #ffffff 50%, transparent);
+}
+
+.ouc-note {
+  color: var(--oi-muted);
+  text-align: center;
+}
+
+/* Keyframes ----------------------------------------------------------------------- */
+
+@keyframes ouc-breathe {
+  from {
+    transform: scale(0.94);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes ouc-run {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  26% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    opacity: 0;
+    translate: 525% 0;
+  }
+}
+
+@keyframes ouc-pulse {
+  from {
+    opacity: 0.9;
+    transform: scaleX(0.25);
+  }
+  to {
+    opacity: 0;
+    transform: scaleX(1.1);
+  }
+}
+
+@keyframes ouc-streak {
+  0% {
+    opacity: 0;
+    translate: -100% 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 220% 0;
+  }
+}
+
+@keyframes ouc-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ouc-tick {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ouc-on {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ouc-hop {
+  0% {
+    opacity: 0;
+  }
+  1%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ouc-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Responsive ---------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .ouc-head {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--oi-s3);
+  }
+
+  .ouc-controls {
+    padding-bottom: 0;
+  }
+
+  .ouc-count {
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .ouc-head {
+    margin-bottom: var(--oi-s1);
+  }
+
+  .ouc-stage {
+    --ouc-card: min(82%, 340px);
+    --ouc-gap: 14px;
+    --ouc-top: 32px;
+    --ouc-bottom: 64px;
+  }
+
+  .ouc-viewport {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3.5%, #000 96.5%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 3.5%, #000 96.5%, transparent);
+  }
+
+  .ouc-glow {
+    width: 640px;
+    height: 340px;
+    margin-left: -320px;
+    bottom: calc(var(--ouc-bottom) - 170px);
+  }
+
+  .ouc-card {
+    min-height: 452px;
+    padding: 24px;
+  }
+
+  .ouc-title {
+    margin-top: 64px;
+    font-size: 1.66rem;
+  }
+
+  .ouc-ghost {
+    top: -64px;
+    right: -72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ouc::before,
+  .ouc-floor,
+  .ouc-glow,
+  .ouc-dots::before,
+  .ouc-slide,
+  .ouc-lift,
+  .ouc-card,
+  .ouc-card::before,
+  .ouc-card::after,
+  .ouc-ghost,
+  .ouc-tile::after,
+  .ouc-nav,
+  .ouc-nav svg,
+  .ouc-tile,
+  .ouc-pill,
+  .ouc-dot::before {
+    transition: none;
+  }
+
+  .ouc::before,
+  .ouc-floor {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  .ouc-glow {
+    opacity: 1;
+    animation: none;
+  }
+
+  .ouc-floor::after,
+  .ouc-pulse,
+  .ouc-streak,
+  .ouc-count b {
+    animation: none;
+  }
+
+  .ouc-dots::before {
+    scale: 1 1;
+  }
+
+  .ouc-gate[data-seen='false'] [data-reveal],
+  .ouc-slide {
+    opacity: 1;
+    translate: none;
+    transform: none;
+  }
+
+  /* No lift, no lean: the current card is simply the bright one. */
+  .ouc-lift {
+    transform: none;
+  }
+
+  .ouc-card {
+    transform: none;
+  }
+
+  .ouc-nav svg {
+    translate: none;
+  }
+
+  .ouc-nav:not([aria-disabled='true']):active {
+    scale: none;
+  }
+
+  /* Every request is written out, and every glyph is drawn. */
+  .ouc .ouc-typed,
+  .ouc .ouc-ch {
+    opacity: 1;
+    animation: none;
+  }
+
+  .ouc .ouc-ch::after,
+  .ouc .ouc-caret {
+    display: none;
+    animation: none;
+  }
+
+  .ouc .ouc-icon path,
+  .ouc .ouc-ghost path {
+    animation: none;
+  }
+}

@@ -1,0 +1,1057 @@
+/*
+ * Orqanix "Instant" Speed page (class prefix osp-).
+ *
+ * Tokens and primitives come from instant.css. The scroll gate (.ois-gate, data-seen,
+ * data-live), the section head (.ois-head) and the self-drawing rule (.ois-ruled) come from
+ * sections.css, which the page loads through Seen.
+ *
+ * Motion is transform, opacity, filter and stroke-dashoffset only. Every resting state is the
+ * finished drawing, so with motion switched off (bottom of the file) the tracks stand complete.
+ */
+
+/*
+ * One light, mixed from the theme's accent, so the page follows the theme if its colour
+ * changes. The -wash/-half/-full steps are the same light at rising strength.
+ */
+.osp-race,
+.osp-made,
+.osp-method {
+  --osp-light: var(--oi-accent);
+  --osp-light-wash: color-mix(in srgb, var(--oi-accent) 16%, transparent);
+  --osp-light-half: color-mix(in srgb, var(--oi-accent) 55%, transparent);
+  --osp-light-full: color-mix(in srgb, var(--oi-accent) 95%, transparent);
+  --osp-light-pale: color-mix(in srgb, var(--oi-accent) 45%, #ffffff);
+  --osp-shade-half: color-mix(in srgb, var(--oi-accent-dark) 55%, transparent);
+  --osp-bloom: color-mix(in srgb, var(--oi-accent-deep) 55%, transparent);
+}
+
+/* The race ------------------------------------------------------------------------------ */
+
+.osp-stage {
+  /* The lights wait a beat at the gate before they go. */
+  --osp-start: 350ms;
+  --osp-run-ease: cubic-bezier(0.3, 0.7, 0.25, 1);
+  position: relative;
+  padding: 10px clamp(20px, 3.6vw, 48px) 0;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01) 64%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Pointer spotlight: Race sets --mx/--my once per frame. */
+.osp-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    520px circle at var(--mx, 30%) var(--my, 0%),
+    var(--osp-light-wash),
+    transparent 62%
+  );
+  opacity: 0.4;
+  transition: opacity 600ms ease;
+}
+
+.osp-stage:hover::before {
+  opacity: 1;
+}
+
+/* A dot grid that fades out toward the edges of the glass. */
+.osp-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 40% 50%, #000, transparent 80%);
+  mask-image: radial-gradient(ellipse 70% 70% at 40% 50%, #000, transparent 80%);
+}
+
+/* The start line is where all three lights leave from, so the glass is lit from there. */
+.osp-bloom {
+  position: absolute;
+  top: 50%;
+  left: -14%;
+  z-index: -1;
+  width: 52%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--osp-bloom), transparent 66%);
+  filter: blur(40px);
+  transform: translate3d(0, -50%, 0);
+  opacity: 0;
+  transition: opacity 2400ms ease;
+  pointer-events: none;
+}
+
+.osp-stage[data-seen='true'] .osp-bloom {
+  opacity: 1;
+}
+
+.osp-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The three tracks and the axis under them share one set of columns. */
+.osp-track {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) clamp(190px, 24vw, 300px);
+  column-gap: clamp(18px, 2.6vw, 36px);
+}
+
+.osp-row {
+  position: relative;
+  transition: opacity 500ms ease;
+}
+
+.osp-row .osp-track {
+  min-height: clamp(136px, 12vw, 166px);
+}
+
+/* The rule under each track draws itself from the start line. */
+.osp-row::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--oi-hairline);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 1600ms var(--oi-ease) var(--sd, 0ms);
+}
+
+.osp-stage[data-seen='true'] .osp-row::after {
+  transform: scaleX(1);
+}
+
+.osp-idx {
+  align-self: center;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  transition: color 400ms ease;
+}
+
+.osp-lane {
+  position: relative;
+}
+
+/* Each tick spans its whole row, so the three rows share one set of time lines. */
+.osp-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--x) * 100%);
+  width: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.osp-rail {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.26) 0 2px,
+    transparent 2px 9px
+  );
+}
+
+.osp-gate {
+  position: absolute;
+  top: calc(50% - 15px);
+  left: -1px;
+  width: 3px;
+  height: 30px;
+  border-radius: 2px;
+  background: var(--oi-ink);
+  box-shadow: 0 0 14px 1px var(--oi-glow);
+}
+
+/* Both boxes end at the track's mark, so their children only ever need a transform. */
+.osp-lit,
+.osp-runner {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: calc(var(--p) * 100%);
+  height: 0;
+}
+
+.osp-glow,
+.osp-trail,
+.osp-sweep {
+  position: absolute;
+  right: 0;
+  left: 0;
+  transform-origin: 0 50%;
+}
+
+.osp-trail {
+  top: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--osp-light-half), var(--osp-light-full) 60%, #ffffff);
+  box-shadow: 0 0 9px var(--osp-light-half);
+}
+
+/* The glow grows with the run, so a blur here would be re-run on every frame of it: a taller
+   strip faded out above and below gives the same soft band for one cheap mask. */
+.osp-glow {
+  top: -29px;
+  height: 58px;
+  background: linear-gradient(90deg, var(--osp-shade-half), var(--osp-light-half));
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 0, 0, 0.3) 30%,
+    #000 50%,
+    rgba(0, 0, 0, 0.3) 70%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 0, 0, 0.3) 30%,
+    #000 50%,
+    rgba(0, 0, 0, 0.3) 70%,
+    transparent
+  );
+  transition: opacity 500ms ease;
+  opacity: 0.85;
+}
+
+/* The bright streak that comes back along the trail now and again. */
+.osp-sweep {
+  top: -5px;
+  height: 10px;
+  background: radial-gradient(
+    ellipse 110px 4.5px at 100% 50%,
+    #ffffff,
+    var(--osp-light-half) 35%,
+    transparent 72%
+  );
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.osp-head {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow:
+    0 0 12px 3px var(--osp-light-pale),
+    0 0 44px 14px var(--oi-glow);
+}
+
+.osp-head::before,
+.osp-head::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+
+.osp-head::before {
+  inset: -22px;
+  background: radial-gradient(circle, var(--osp-light-half), transparent 68%);
+}
+
+/* The ring thrown off where a light comes to rest. */
+.osp-head::after {
+  inset: -9px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  opacity: 0;
+}
+
+.osp-flag {
+  position: absolute;
+  bottom: 20px;
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.osp-runner[data-flag='after'] .osp-flag {
+  left: 100%;
+  margin-left: -4px;
+}
+
+.osp-runner[data-flag='before'] .osp-flag {
+  right: -4px;
+}
+
+.osp-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding-block: 20px;
+  text-align: right;
+}
+
+.oi-stat-value.osp-value {
+  /* Room for the tight tracking at the right-hand edge. */
+  padding-right: 0.04em;
+  font-size: clamp(3.7rem, 7.4vw, 6.6rem);
+  white-space: nowrap;
+}
+
+.osp-label {
+  margin: 0;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The numbers arrive out of the dark as the lights leave the gate. */
+.osp-figure > * {
+  transition:
+    opacity 1300ms var(--oi-ease) var(--sd, 0ms),
+    transform 1300ms var(--oi-ease) var(--sd, 0ms),
+    filter 1300ms var(--oi-ease) var(--sd, 0ms);
+}
+
+.osp-figure > .osp-label {
+  transition-delay: calc(var(--sd, 0ms) + 260ms);
+}
+
+/* data-go: Track sets it when this track's light may leave the gate. */
+.osp-track[data-go='false'] .osp-figure > * {
+  opacity: 0;
+  transform: translate3d(0, 36px, 0);
+}
+
+.osp-track[data-go='false'] .osp-lit,
+.osp-track[data-go='false'] .osp-runner {
+  opacity: 0;
+}
+
+.osp-track[data-go='true'] .osp-trail,
+.osp-track[data-go='true'] .osp-glow {
+  animation: osp-grow var(--run) var(--osp-run-ease) var(--osp-start) backwards;
+}
+
+.osp-track[data-go='true'] .osp-runner {
+  animation: osp-travel var(--run) var(--osp-run-ease) var(--osp-start) backwards;
+}
+
+.osp-track[data-go='true'] .osp-head {
+  animation: osp-head-in 400ms ease backwards;
+}
+
+.osp-track[data-go='true'] .osp-head::before {
+  animation: osp-breathe 3.4s ease-in-out infinite alternate;
+}
+
+.osp-track[data-go='true'] .osp-head::after {
+  animation: osp-ping 1500ms var(--oi-ease) calc(var(--osp-start) + var(--run));
+}
+
+.osp-track[data-go='true'] .osp-flag {
+  animation: osp-flag-in 900ms var(--oi-ease) calc(var(--osp-start) + var(--run) - 120ms) backwards;
+}
+
+.osp-track[data-go='true'] .osp-sweep {
+  animation: osp-sweep 8s calc(var(--osp-start) + var(--run) + 2600ms) infinite;
+}
+
+@keyframes osp-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes osp-travel {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+@keyframes osp-head-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+@keyframes osp-breathe {
+  from {
+    opacity: 0.55;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes osp-ping {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.6);
+  }
+}
+
+@keyframes osp-flag-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+
+@keyframes osp-sweep {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  2% {
+    opacity: 1;
+  }
+  14% {
+    opacity: 1;
+  }
+  18% {
+    transform: scaleX(1);
+  }
+  24%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+.osp-axis {
+  height: 58px;
+}
+
+.osp-axis-lane {
+  position: relative;
+  grid-column: 2;
+}
+
+.osp-axis-label,
+.osp-axis-unit {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+}
+
+.osp-axis-label {
+  position: absolute;
+  top: 20px;
+  left: calc(var(--x) * 100%);
+  transform: translate3d(-50%, 0, 0);
+}
+
+/* A short stem ties each label to its time line above. */
+.osp-axis-label::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  width: 1px;
+  height: 15px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.osp-axis-unit {
+  grid-column: 3;
+  padding-top: 20px;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.osp-under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oi-s2) var(--oi-s3);
+  margin-top: var(--oi-s3);
+}
+
+.osp-note {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.osp-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 24px 0 18px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: var(--oi-radius-pill);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 300ms ease,
+    background-color 300ms ease,
+    transform 500ms var(--oi-ease);
+}
+
+.osp-replay:hover {
+  border-color: var(--osp-light);
+  background: var(--osp-light-wash);
+}
+
+.osp-replay:active {
+  transform: scale(0.97);
+}
+
+.osp-replay:focus-visible {
+  outline: 2px solid var(--osp-light);
+  outline-offset: 4px;
+}
+
+.osp-replay-glyph,
+.osp-arrow {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.osp-replay-glyph {
+  transition: transform 900ms var(--oi-ease);
+}
+
+.osp-replay:hover .osp-replay-glyph {
+  transform: rotate(360deg);
+}
+
+@media (hover: hover) {
+  /* Pointing at one track quietens the other two. */
+  .osp-rows:hover .osp-row:not(:hover) {
+    opacity: 0.45;
+  }
+
+  .osp-row:hover .osp-idx {
+    color: var(--osp-light);
+  }
+
+  .osp-row:hover .osp-glow {
+    opacity: 1;
+  }
+}
+
+/* What each run made ---------------------------------------------------------------------- */
+
+.osp-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--oi-s2);
+}
+
+/* The slot is the grid item; the card inside stretches to its full height. */
+.osp-card-slot {
+  display: grid;
+  /* Where the opening dial's readouts land: side by side, a card arrives with the section's
+     heading still above it. */
+  scroll-margin-top: calc(88px + 10rem);
+}
+
+/* Three links land on one row, so the card that was asked for answers with its light. */
+.osp-card-slot:target .osp-card {
+  border-color: var(--osp-light-half);
+}
+
+.osp-card-slot:target .osp-card::before {
+  opacity: 1;
+}
+
+.oi-card.osp-card {
+  min-height: 408px;
+  padding: 28px;
+}
+
+.osp-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--oi-s2);
+}
+
+/* Seconds are a lower-case "s"; the tag's upper-casing would turn them into another unit. */
+.oi-tag.osp-time {
+  color: var(--osp-light);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: none;
+}
+
+.osp-card-idx {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  transition: color 400ms ease;
+}
+
+.osp-card:hover .osp-card-idx {
+  color: var(--osp-light);
+}
+
+.osp-glyph-stage {
+  position: relative;
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding-block: var(--oi-s3);
+}
+
+/* A dot grid behind the paper, fading out toward the edges of the glass. */
+.osp-glyph-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 -28px;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 58% 60% at 50% 50%, #000, transparent 78%);
+  mask-image: radial-gradient(ellipse 58% 60% at 50% 50%, #000, transparent 78%);
+}
+
+.osp-glyph {
+  display: block;
+  width: min(100%, 380px);
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px var(--oi-glow));
+  transition: transform 900ms var(--oi-ease);
+}
+
+.osp-card:hover .osp-glyph {
+  transform: translate3d(0, -6px, 0) scale(1.03);
+}
+
+/*
+ * Sheets further back sit deeper in the dark. Only the strokes fade, so no sheet turns
+ * see-through.
+ */
+.osp-leaf {
+  stroke-opacity: calc(1 - var(--depth) * 0.1);
+}
+
+/* Filled with the glass colour so a sheet hides the lines of the sheet behind it. */
+.osp-sheet {
+  fill: var(--oi-paper-strong);
+  stroke: var(--oi-ink);
+  stroke-width: 1;
+}
+
+.osp-ink {
+  stroke: var(--osp-light);
+  stroke-width: 1.3;
+}
+
+.osp-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1100ms var(--oi-ease) calc(var(--d, 0ms) + 350ms + var(--i) * 42ms);
+}
+
+.ois-gate[data-seen='false'] .osp-draw {
+  stroke-dashoffset: 1;
+}
+
+/* Two lines are always kept for the title, so the paper lines up from card to card. */
+.osp-card-title {
+  display: flex;
+  align-items: flex-end;
+  min-height: 2.16em;
+  margin: 0 0 10px;
+  color: var(--oi-ink);
+  font-size: clamp(1.5rem, 2.3vw, 2rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.oi-line.osp-card-line {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* How we measured ------------------------------------------------------------------------- */
+
+.osp-method-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  column-gap: var(--oi-s4);
+  align-items: start;
+}
+
+.osp-method-head {
+  position: sticky;
+  top: 120px;
+  display: grid;
+  gap: 22px;
+}
+
+.oi-line.osp-method-line {
+  max-width: 24ch;
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.osp-rules {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--oi-hairline);
+  list-style: none;
+}
+
+.osp-rule {
+  position: relative;
+  border-bottom: 1px solid var(--oi-hairline);
+}
+
+/* Light runs along the rule under the row being read. */
+.osp-rule::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--osp-light), #ffffff 55%, transparent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 900ms var(--oi-ease);
+}
+
+.osp-rule:hover::after {
+  transform: scaleX(1);
+}
+
+.osp-rule-inner {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: baseline;
+  padding-block: 27px;
+}
+
+.osp-rule-idx {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  transition: color 400ms ease;
+}
+
+.osp-rule:hover .osp-rule-idx {
+  color: var(--osp-light);
+}
+
+.osp-rule-text {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(1.12rem, 1.75vw, 1.45rem);
+  line-height: 1.32;
+  letter-spacing: -0.022em;
+  text-wrap: pretty;
+}
+
+.osp-link-row {
+  margin-top: var(--oi-s3);
+}
+
+.osp-link-row p {
+  margin: 0;
+}
+
+/* The underline belongs to the words, not to the arrow or the touch target around them. */
+.oi-link.osp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  background: none;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.osp-link > span {
+  padding-bottom: 4px;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+}
+
+.osp-link:focus-visible {
+  outline: 2px solid var(--osp-light);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.osp-arrow {
+  transition: transform 600ms var(--oi-ease);
+}
+
+.osp-link:hover .osp-arrow {
+  transform: translate3d(6px, 0, 0);
+}
+
+/* Responsive ------------------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .osp-method-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .osp-method-head {
+    position: static;
+    margin-bottom: var(--oi-s4);
+  }
+
+  .oi-line.osp-method-line {
+    max-width: none;
+  }
+
+  /* Too narrow for three columns of paper: each card lies on its side instead. */
+  .osp-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked, the card itself comes to the top, just under the bar. */
+  .osp-card-slot {
+    scroll-margin-top: 88px;
+  }
+
+  .oi-card.osp-card {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    grid-template-rows: auto 1fr auto auto;
+    column-gap: var(--oi-s3);
+    min-height: 0;
+    --d: 0ms !important;
+  }
+
+  .osp-card-top {
+    grid-column: 2;
+  }
+
+  .osp-glyph-stage {
+    grid-area: 1 / 1 / -1 / 2;
+    padding-block: var(--oi-s2);
+  }
+
+  .osp-glyph-stage::before {
+    inset: -28px 0 -28px -28px;
+  }
+
+  .osp-card-title {
+    grid-column: 2;
+    align-self: end;
+    margin-top: var(--oi-s4);
+  }
+
+  .osp-card-line {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .osp-stage {
+    padding: 0 20px;
+    border-radius: 22px;
+  }
+
+  .osp-bloom {
+    top: 40%;
+    left: -40%;
+    width: 110%;
+  }
+
+  /* Stacked for the thumb: the number first, its track underneath at full width. */
+  .osp-track {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Each track goes on its own here, so the wave delay between them goes too. */
+  .osp-row {
+    --sd: 0ms !important;
+  }
+
+  .osp-row .osp-track {
+    min-height: 0;
+    padding-block: 26px 12px;
+  }
+
+  .osp-idx {
+    order: 0;
+  }
+
+  .osp-figure {
+    order: 1;
+    align-items: flex-start;
+    gap: 12px;
+    padding-block: 10px 0;
+    text-align: left;
+  }
+
+  .oi-stat-value.osp-value {
+    font-size: clamp(4.6rem, 23vw, 6.2rem);
+  }
+
+  .osp-lane {
+    order: 2;
+    height: 74px;
+  }
+
+  /* Under the rail here: above it, the flag would crowd the label of the number. */
+  .osp-flag {
+    top: 15px;
+    bottom: auto;
+  }
+
+  .osp-row:last-child::after {
+    display: none;
+  }
+
+  .osp-axis {
+    height: 54px;
+  }
+
+  .osp-axis-lane {
+    grid-column: 1;
+  }
+
+  .osp-axis-label {
+    top: 16px;
+  }
+
+  /* The end labels stay inside the glass instead of centring on its edge. */
+  .osp-axis-label:first-child {
+    transform: none;
+  }
+
+  .osp-axis-label:first-child::before {
+    left: 0;
+  }
+
+  .osp-axis-label:last-child {
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  .osp-axis-label:last-child::before {
+    left: 100%;
+  }
+
+  .osp-axis-unit {
+    display: none;
+  }
+
+  .osp-under {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: var(--oi-s2);
+  }
+
+  .osp-replay {
+    justify-content: center;
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .oi-card.osp-card {
+    display: flex;
+    padding: var(--oi-s3);
+  }
+
+  .osp-glyph-stage {
+    padding-block: var(--oi-s4);
+  }
+
+  .osp-glyph-stage::before {
+    inset: 0 -24px;
+  }
+
+  .osp-card-title {
+    align-self: auto;
+    min-height: 0;
+    margin-top: 0;
+  }
+
+  .osp-method-head {
+    margin-bottom: var(--oi-s3);
+  }
+
+  .osp-rule-inner {
+    grid-template-columns: 40px minmax(0, 1fr);
+    padding-block: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .osp-stage *,
+  .osp-stage *::before,
+  .osp-stage *::after,
+  .osp-card *,
+  .osp-rule::after,
+  .osp-replay,
+  .osp-replay *,
+  .osp-arrow {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .osp-card:hover .osp-glyph,
+  .osp-link:hover .osp-arrow,
+  .osp-replay:hover .osp-replay-glyph {
+    transform: none;
+  }
+
+  /* Nothing is left to play again. */
+  .osp-replay {
+    display: none;
+  }
+}

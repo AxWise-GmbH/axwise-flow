@@ -106,6 +106,9 @@ const publicPreviewLocations = [
 const explicitTopLevelPatterns = [
   '/',
   '/standart',
+  '/instant',
+  '/instant/:page',
+  '/instant/solutions/:slug',
   '/login',
   '/signup',
   '/auth/callback',
@@ -344,6 +347,35 @@ describe('GCP launch route allowlist', () => {
     expect(standartAlias.element.type).toBe(Navigate);
     expect(standartAlias.element.props).toMatchObject({ to: '/', replace: true });
   });
+
+  it('serves the desktop-first landing at a public preview path without replacing root', () => {
+    const routeMatches = matches('/instant');
+    expect(routeMatches).toHaveLength(1);
+    expect(routeMatches[0].route.path).toBe('/instant');
+    expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+    expect(gcpRoutePaths).not.toContain('/instant');
+  });
+
+  it.each(['/instant/how-it-works', '/instant/features', '/instant/speed'])(
+    'serves the preview sub-page %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/:page');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+    }
+  );
+
+  it.each(['/instant/solutions/healthcare', '/instant/solutions/manufacturing'])(
+    'serves the preview solutions page %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/solutions/:slug');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+      expect(gcpRoutePaths).not.toContain('/instant/solutions/:slug');
+    }
+  );
 
   it('keeps /organizations as a protected compatibility redirect to canonical Workspace', async () => {
     render(

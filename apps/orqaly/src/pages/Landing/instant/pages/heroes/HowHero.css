@@ -1,0 +1,738 @@
+/*
+ * The opening picture of "How it works" (class prefix ohw-): one line of light through five
+ * stations, each a small line-orb holding a scene from the app. Every station is a link to
+ * its step of the story below.
+ *
+ * Three layouts share the same five links: `wide` steps down beside the words, `band` rides
+ * a wave under them, `column` runs straight down a phone. Geometry comes from
+ * howHeroTrack.js as custom properties; this file only picks which set to use.
+ *
+ * Everything moves with transform, opacity, stroke-dashoffset or the individual
+ * scale/rotate properties only. It waits until the picture is seen, rests while it is off
+ * screen, and is switched off at the bottom of the file under prefers-reduced-motion.
+ */
+
+.ohw-stage {
+  --ohw-glide: cubic-bezier(0.6, 0, 0.3, 1);
+  position: relative;
+  width: 100%;
+}
+
+.ohw-stage:not([data-seen='true']) *,
+.ohw-stage[data-live='false'] * {
+  animation-play-state: paused !important;
+}
+
+.ohw-field {
+  position: relative;
+  aspect-ratio: 600 / 530;
+}
+
+/* A slice of the line-orb, far behind ------------------------------------------ */
+
+.ohw-ring {
+  position: absolute;
+  top: -58.5%;
+  left: 56.67%;
+  width: 100%;
+  aspect-ratio: 1;
+  fill: none;
+  pointer-events: none;
+  /* It reaches up behind the top bar; it fades out before the section's edge can cut it. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 14%, black 54%);
+  mask-image: linear-gradient(to bottom, transparent 14%, black 54%);
+  animation: ohw-appear 2400ms ease 300ms backwards;
+}
+
+/*
+ * A stroke as wide as the ring, dashed one in four, reads as fine radial lines. The offset
+ * keeps a dash off the four joints of the circle, where a wide one is drawn as a bow tie.
+ */
+.ohw-ring circle,
+.ohw-lines circle {
+  stroke-dasharray: 1 3;
+  stroke-dashoffset: -1.5;
+}
+
+.ohw-ring-inner {
+  stroke: rgba(var(--oi-accent-rgb), 0.24);
+}
+
+.ohw-ring-outer {
+  stroke: rgba(var(--oi-accent-rgb), 0.1);
+}
+
+/* The line ------------------------------------------------------------------- */
+
+.ohw-track {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
+}
+
+.ohw-track-band,
+.ohw-track-column {
+  display: none;
+}
+
+.ohw-rail-from,
+.ohw-rail-to {
+  stop-color: var(--oi-ink);
+}
+
+.ohw-lit-from,
+.ohw-lit-to {
+  stop-color: var(--oi-accent);
+}
+
+.ohw-rail-from,
+.ohw-lit-from {
+  stop-opacity: 0;
+}
+
+.ohw-rail-to {
+  stop-opacity: 0.2;
+}
+
+/* One dash as long as the path: the offset is how much of it is still to come. */
+.ohw-rail,
+.ohw-lit {
+  stroke-dasharray: 100 300;
+}
+
+.ohw-rail {
+  stroke-width: 1.2;
+  animation: ohw-draw 1800ms var(--oi-ease) 200ms backwards;
+}
+
+.ohw-lit {
+  stroke-width: 1.6;
+}
+
+.ohw-lit-glow {
+  stroke-width: 7;
+  stroke-opacity: 0.16;
+}
+
+/* Track sets --from and --to for the leg being travelled; at rest the line sits at --to. */
+.ohw-lit,
+.ohw-pulse path {
+  stroke-dashoffset: var(--to);
+  animation: ohw-travel var(--ohw-travel) var(--ohw-glide) both;
+}
+
+.ohw-run {
+  transition: opacity 300ms ease;
+}
+
+.ohw-stage[data-phase='reset'] .ohw-run {
+  opacity: 0;
+  transition-duration: 700ms;
+}
+
+/* The light shows between stations only: it leaves one orb and sinks into the next. */
+.ohw-pulse {
+  opacity: 0;
+  animation: ohw-flash var(--ohw-travel) linear both;
+}
+
+.ohw-pulse path {
+  stroke-linecap: round;
+}
+
+.ohw-pulse-glow {
+  stroke: rgba(var(--oi-accent-rgb), 0.24);
+  stroke-width: 9;
+}
+
+.ohw-pulse-tail {
+  stroke: rgba(var(--oi-pale-rgb), 0.6);
+  stroke-width: 1.8;
+}
+
+.ohw-pulse-core {
+  stroke: var(--oi-ink);
+  stroke-width: 2.4;
+}
+
+.ohw-clock {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  animation: ohw-beat var(--ohw-beat) linear both;
+}
+
+/* The stations --------------------------------------------------------------- */
+
+.ohw-stations {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* How lit a station is, as numbers its parts read. The light sets them, and so does a hand. */
+.ohw-station {
+  --ohw-aura: 0;
+  --ohw-lines: 0;
+  --ohw-scene: 0.42;
+  --ohw-name: 0.64;
+  position: absolute;
+  top: var(--wide-y);
+  left: var(--wide-x);
+  width: var(--wide-size);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  animation: ohw-arrive 1000ms var(--oi-ease) backwards;
+  animation-delay: calc(240ms + var(--i) * 110ms);
+}
+
+.ohw-station[data-state='done'] {
+  --ohw-aura: 0.32;
+  --ohw-lines: 0.55;
+  --ohw-scene: 0.84;
+  --ohw-name: 0.92;
+}
+
+/* Held at the end, the journey keeps its last station burning: the finished work. */
+.ohw-station[data-state='now'],
+.ohw-stage[data-phase='hold'] .ohw-station:last-child,
+.ohw-link:focus-visible {
+  --ohw-aura: 1;
+  --ohw-lines: 1;
+  --ohw-scene: 1;
+  --ohw-name: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ohw-link:hover {
+    --ohw-aura: 1;
+    --ohw-lines: 1;
+    --ohw-scene: 1;
+    --ohw-name: 1;
+  }
+}
+
+.ohw-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
+  color: var(--oi-ink);
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ohw-link:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 5px;
+}
+
+.ohw-orb {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.ohw-aura,
+.ohw-disc,
+.ohw-disc::before,
+.ohw-disc::after {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.ohw-aura {
+  inset: -36%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-accent-rgb), 0.3),
+    rgba(var(--oi-glow-rgb), 0.18) 40%,
+    transparent 68%
+  );
+  opacity: var(--ohw-aura);
+  transition: opacity 900ms var(--oi-ease);
+}
+
+/* The hollow of the orb. The line runs behind it, so the light seems to enter the station. */
+.ohw-disc {
+  inset: 13.7%;
+  border: 1px solid var(--oi-hairline-strong);
+  background: var(--oi-page);
+}
+
+.ohw-disc::before,
+.ohw-disc::after {
+  content: '';
+  opacity: var(--ohw-aura);
+  transition: opacity 900ms var(--oi-ease);
+}
+
+.ohw-disc::before {
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-accent-rgb), 0.9);
+}
+
+.ohw-disc::after {
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 108%,
+    rgba(var(--oi-accent-rgb), 0.36),
+    rgba(var(--oi-deep-rgb), 0.2) 52%,
+    transparent 76%
+  );
+}
+
+.ohw-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+}
+
+.ohw-lines {
+  stroke: rgba(var(--oi-pale-rgb), 0.3);
+}
+
+.ohw-lines .ohw-lines-long {
+  stroke-dasharray: 1 7;
+}
+
+/* Always turning, but paused: a station that falls quiet keeps the angle it reached. */
+.ohw-lines-lit {
+  stroke: var(--oi-accent);
+  opacity: var(--ohw-lines);
+  transition: opacity 900ms var(--oi-ease);
+  animation: ohw-turn 36s linear infinite paused;
+}
+
+.ohw-station[data-state='now'] .ohw-lines-lit {
+  animation-play-state: running;
+}
+
+/* The scenes ----------------------------------------------------------------- */
+
+.ohw-scene {
+  stroke: var(--oi-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: var(--ohw-scene);
+  transition: opacity 800ms var(--oi-ease);
+}
+
+.ohw-soft {
+  stroke-opacity: 0.42;
+}
+
+.ohw-dot {
+  fill: var(--oi-ink);
+  stroke: none;
+}
+
+.ohw-bar,
+.ohw-write,
+.ohw-fill,
+.ohw-seal,
+.ohw-tap {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* A scene rests on its last frame. When the light arrives it is wiped and played once more. */
+.ohw-bar {
+  scale: 1 0.78;
+}
+
+.ohw-write {
+  transform-origin: 0 50%;
+}
+
+.ohw-fill {
+  fill: var(--oi-accent);
+  stroke: none;
+}
+
+.ohw-marker,
+.ohw-seal {
+  fill: var(--oi-page);
+}
+
+.ohw-caret,
+.ohw-tap,
+.ohw-seal,
+.ohw-tick {
+  stroke: var(--oi-accent);
+}
+
+.ohw-caret,
+.ohw-tap {
+  opacity: 0;
+}
+
+.ohw-pick {
+  fill: var(--oi-accent);
+  stroke: none;
+  opacity: 0.85;
+}
+
+.ohw-tick {
+  stroke-width: 1.9;
+  stroke-dasharray: 1;
+}
+
+.ohw-station[data-state='now'] .ohw-bar {
+  animation: ohw-voice 1500ms ease-in-out calc(var(--k) * 70ms) backwards;
+}
+
+.ohw-station[data-state='now'] .ohw-write {
+  animation: ohw-write 700ms var(--oi-ease) calc(260ms + var(--k, 0) * 280ms) backwards;
+}
+
+.ohw-station[data-state='now'] .ohw-fill {
+  animation: ohw-pop 600ms var(--oi-ease) calc(200ms + var(--k, 0) * 320ms) backwards;
+}
+
+.ohw-station[data-state='now'] .ohw-seal {
+  animation: ohw-pop 600ms var(--oi-ease) 350ms backwards;
+}
+
+.ohw-station[data-state='now'] .ohw-pick {
+  animation: ohw-appear 450ms ease 900ms backwards;
+}
+
+.ohw-station[data-state='now'] .ohw-tick {
+  animation: ohw-check 600ms var(--oi-ease) 750ms backwards;
+}
+
+.ohw-station[data-state='now'] .ohw-caret {
+  animation: ohw-blink 1000ms steps(1, end) infinite;
+}
+
+.ohw-station[data-state='now'] .ohw-tap {
+  animation: ohw-tap 900ms var(--oi-ease) 800ms both;
+}
+
+/* The words ------------------------------------------------------------------ */
+
+.ohw-label {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 14px);
+  display: grid;
+  gap: 5px;
+  translate: 0 -62%;
+  white-space: nowrap;
+}
+
+.ohw-num {
+  position: relative;
+  justify-self: start;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.16em;
+}
+
+/* Out of the flow, so a numeral centres the same with and without its tick. */
+.ohw-done {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 2px);
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  color: var(--oi-accent);
+  opacity: 0;
+  scale: 0.4;
+  transition:
+    opacity 500ms ease,
+    scale 500ms var(--oi-ease);
+}
+
+.ohw-station[data-state='done'] .ohw-done {
+  opacity: 1;
+  scale: 1;
+}
+
+.ohw-name {
+  font-size: 1.14rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  opacity: var(--ohw-name);
+  transition: opacity 800ms var(--oi-ease);
+}
+
+@keyframes ohw-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ohw-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0) scale(0.94);
+  }
+}
+
+@keyframes ohw-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+}
+
+@keyframes ohw-travel {
+  from {
+    stroke-dashoffset: var(--from);
+  }
+}
+
+@keyframes ohw-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  16%,
+  82% {
+    opacity: 1;
+  }
+}
+
+@keyframes ohw-beat {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ohw-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes ohw-voice {
+  0% {
+    scale: 1 0.3;
+  }
+  18% {
+    scale: 1 1;
+  }
+  36% {
+    scale: 1 0.5;
+  }
+  54% {
+    scale: 1 1.06;
+  }
+  72% {
+    scale: 1 0.6;
+  }
+}
+
+@keyframes ohw-write {
+  from {
+    scale: 0 1;
+  }
+}
+
+@keyframes ohw-pop {
+  from {
+    scale: 0;
+  }
+}
+
+@keyframes ohw-check {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes ohw-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes ohw-tap {
+  from {
+    opacity: 0.9;
+    scale: 0.3;
+  }
+  to {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+
+/* Beside the words: never taller than HeroFrame's row --------------------------- */
+
+/*
+ * On a short window the drawing shrinks with the row instead of stretching it, so the last
+ * station stays above the fold and the title sits where it does on the sibling pages. It
+ * keeps to the container's edge, and the names scale with it so none runs into the next orb.
+ */
+@media (min-width: 1100px) {
+  .ohw-stage {
+    width: max(420px, min(100%, min(62svh, 580px) * 600 / 530));
+    margin-left: auto;
+    container-type: inline-size;
+  }
+
+  .ohw-name {
+    font-size: clamp(0.94rem, 3cqw, 1.14rem);
+  }
+}
+
+/* Under the words: the line rides a wave across the full width ----------------- */
+
+@media (max-width: 1099px) {
+  /* The words under the lower stations hang below the drawing. */
+  .ohw-stage {
+    padding-bottom: 58px;
+  }
+
+  .ohw-field {
+    aspect-ratio: 1000 / 196;
+  }
+
+  .ohw-ring,
+  .ohw-track-wide {
+    display: none;
+  }
+
+  .ohw-track-band {
+    display: block;
+  }
+
+  .ohw-station {
+    top: var(--band-y);
+    left: var(--band-x);
+    width: var(--band-size);
+  }
+
+  .ohw-label {
+    top: calc(100% + 12px);
+    left: 50%;
+    justify-items: center;
+    translate: -50% 0;
+  }
+
+  /* The tracking leaves a space after the last figure; centred, it has to be taken back. */
+  .ohw-num {
+    justify-self: center;
+    margin-right: -0.16em;
+  }
+}
+
+/* Phones: the line runs straight down and every station is a full-width row -------- */
+
+@media (max-width: 639px) {
+  .ohw-stage {
+    padding-bottom: 0;
+  }
+
+  .ohw-field {
+    aspect-ratio: auto;
+  }
+
+  .ohw-track-band {
+    display: none;
+  }
+
+  .ohw-track-column {
+    display: block;
+    inset: 0 auto auto 0;
+    width: 68px;
+    height: 420px;
+  }
+
+  /* The old light off the right edge, now drawn: it fills the side the rows leave empty. */
+  .ohw-ring {
+    top: 50%;
+    left: 56%;
+    display: block;
+    width: 108%;
+    translate: 0 -50%;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .ohw-stations {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-auto-rows: 84px;
+  }
+
+  .ohw-station {
+    position: static;
+    width: auto;
+    aspect-ratio: auto;
+    translate: none;
+  }
+
+  .ohw-link {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 20px;
+    height: 84px;
+    border-radius: 42px 16px 16px 42px;
+  }
+
+  .ohw-link:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .ohw-orb {
+    position: relative;
+    inset: auto;
+    width: 68px;
+    height: 68px;
+  }
+
+  .ohw-label {
+    position: static;
+    justify-items: start;
+    gap: 8px;
+    translate: none;
+  }
+
+  .ohw-num {
+    justify-self: start;
+    margin-right: 0;
+  }
+
+  .ohw-name {
+    font-size: 1.4rem;
+    letter-spacing: -0.035em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ohw-stage *,
+  .ohw-stage *::before,
+  .ohw-stage *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

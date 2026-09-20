@@ -1,0 +1,538 @@
+/* Page chrome for the "Instant" landing: top bar, phone menu and the opening curtain. */
+
+/* Top bar ------------------------------------------------------------------ */
+
+.oi-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 400ms ease,
+    border-color 400ms ease;
+}
+
+.oi-bar[data-scrolled='true'],
+.oi-bar[data-open='true'] {
+  border-bottom-color: var(--oi-hairline);
+  background: rgba(3, 11, 7, 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.oi-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oi-s2);
+  min-height: 68px;
+}
+
+.oi-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  color: var(--oi-ink);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  text-decoration: none;
+}
+
+.oi-brand-mark {
+  width: 26px;
+  height: 26px;
+  color: var(--oi-accent);
+}
+
+.oi-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oi-nav-link,
+.oi-nav-cta,
+.oi-sheet-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.oi-nav-link {
+  position: relative;
+  padding: 0 14px;
+  color: var(--oi-muted);
+  transition: color 300ms ease;
+}
+
+/* A hairline of light grows under the link you point at. */
+.oi-nav-link::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  bottom: 9px;
+  left: 14px;
+  height: 1px;
+  background: var(--oi-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 500ms var(--oi-ease);
+}
+
+.oi-nav-link:hover,
+.oi-nav-link:focus-visible,
+.oi-nav-link[aria-current='page'],
+.oi-nav-link[data-active='true'],
+.oi-nav-link[aria-expanded='true'] {
+  color: var(--oi-ink);
+}
+
+.oi-nav-link:hover::after,
+.oi-nav-link:focus-visible::after,
+.oi-nav-link[aria-current='page']::after,
+.oi-nav-link[data-active='true']::after {
+  transform: scaleX(1);
+}
+
+.oi-nav-cta,
+.oi-sheet-cta {
+  justify-content: center;
+  margin-left: 12px;
+  padding: 0 22px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: #060a08;
+  transition:
+    background-color 300ms ease,
+    box-shadow 400ms ease;
+}
+
+.oi-nav-cta:hover,
+.oi-sheet-cta:hover {
+  background: #ffffff;
+  box-shadow: 0 0 32px rgba(var(--oi-accent-rgb), 0.5);
+}
+
+.oi-bar a:focus-visible,
+.oi-bar button:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* Solutions panel ---------------------------------------------------------- */
+
+.oi-bar-row {
+  position: relative;
+}
+
+.oi-sol-button {
+  gap: 7px;
+  margin: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.oi-sol-button::after {
+  right: 33px;
+}
+
+.oi-sol-chevron,
+.oi-sheet-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 420ms var(--oi-ease);
+}
+
+[aria-expanded='true'] > .oi-sol-chevron,
+[aria-expanded='true'] > .oi-sheet-chevron {
+  transform: rotate(180deg);
+}
+
+/* Hung from the bar row, not from the button, so it lines up with the page's right edge and
+   stays inside the window at any desktop width. */
+.oi-sol-panel {
+  position: absolute;
+  top: calc(100% - 6px);
+  right: var(--oi-s3);
+  width: min(720px, calc(100vw - 2 * var(--oi-s3)));
+  padding: 10px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse 70% 60% at 100% 0, rgba(var(--oi-glow-rgb), 0.42), transparent 70%),
+    var(--oi-stage-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 40px 90px -20px rgba(0, 0, 0, 0.9);
+  animation: oi-sol-in 420ms var(--oi-ease) backwards;
+}
+
+.oi-sol-panel[hidden] {
+  display: none;
+}
+
+/* Bridges the gap under the button, so the pointer never leaves on its way down. */
+.oi-sol-panel::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 18px;
+}
+
+@keyframes oi-sol-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+.oi-sol-grid {
+  display: grid;
+  grid-template-rows: repeat(5, auto);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: 2px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oi-sol-grid li {
+  animation: oi-sheet-in 520ms var(--oi-ease) backwards;
+  animation-delay: calc(60ms + var(--i, 0) * 28ms);
+}
+
+.oi-sol-link,
+.oi-sheet-sublink {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: var(--oi-ink);
+  text-decoration: none;
+  transition: background-color 300ms ease;
+}
+
+.oi-sol-link:hover,
+.oi-sol-link:focus-visible,
+.oi-sol-link[aria-current='page'],
+.oi-sheet-sublink[aria-current='page'] {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* The page you are on keeps a point of light, so it never reads as just another hover. */
+.oi-sol-link[aria-current='page']::after,
+.oi-sheet-sublink[aria-current='page']::after {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 6px 0 auto;
+  border-radius: 50%;
+  background: var(--oi-accent);
+}
+
+.oi-sol-icon,
+.oi-sheet-subicon {
+  flex: none;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 11px;
+  color: var(--oi-muted);
+  transition:
+    color 300ms ease,
+    border-color 300ms ease;
+}
+
+.oi-sol-link:hover .oi-sol-icon,
+.oi-sol-link:focus-visible .oi-sol-icon,
+[aria-current='page'] > .oi-sol-icon,
+[aria-current='page'] > .oi-sheet-subicon {
+  border-color: rgba(var(--oi-accent-rgb), 0.6);
+  color: var(--oi-accent);
+}
+
+.oi-sol-link span,
+.oi-sheet-sublink span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.oi-sol-link b,
+.oi-sheet-sublink b {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.oi-sol-link small,
+.oi-sheet-sublink small {
+  color: var(--oi-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.oi-sol-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--oi-s2);
+  margin: 10px 0 0;
+  padding: 14px 12px 6px;
+  border-top: 1px solid var(--oi-hairline);
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Phone menu --------------------------------------------------------------- */
+
+.oi-menu-toggle {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: none;
+  color: var(--oi-ink);
+  cursor: pointer;
+}
+
+.oi-menu-icon {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 10px;
+}
+
+.oi-menu-icon i {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 420ms var(--oi-ease);
+}
+
+.oi-menu-icon i:first-child {
+  top: 0;
+}
+
+.oi-menu-icon i:last-child {
+  bottom: 0;
+}
+
+.oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:first-child {
+  transform: translateY(4.25px) rotate(45deg);
+}
+
+.oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:last-child {
+  transform: translateY(-4.25px) rotate(-45deg);
+}
+
+.oi-sheet-menu {
+  display: grid;
+  gap: 2px;
+  /* Taller than the screen once Solutions is open, so the sheet scrolls, not the page. */
+  max-height: calc(100dvh - 61px);
+  padding: var(--oi-s1) var(--oi-s2) var(--oi-s3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.oi-sheet-menu[hidden] {
+  display: none;
+}
+
+.oi-sheet-link {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-height: 60px;
+  padding-top: 16px;
+  border-bottom: 1px solid var(--oi-hairline);
+  color: var(--oi-ink);
+  font-size: 1.7rem;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  text-decoration: none;
+  animation: oi-sheet-in 520ms var(--oi-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.oi-sheet-link span {
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+}
+
+.oi-sheet-group {
+  animation: oi-sheet-in 520ms var(--oi-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.oi-sheet-button {
+  width: 100%;
+  margin: 0;
+  padding-inline: 0;
+  border-width: 0 0 1px;
+  border-style: solid;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: none;
+}
+
+.oi-sheet-button[data-active='true'] {
+  color: var(--oi-accent);
+}
+
+.oi-sheet-chevron {
+  align-self: center;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--oi-muted);
+}
+
+.oi-sheet-sub {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2px 10px;
+  margin: 0;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--oi-hairline);
+  list-style: none;
+}
+
+.oi-sheet-sub[hidden] {
+  display: none;
+}
+
+.oi-sheet-sub li {
+  animation: oi-sheet-in 420ms var(--oi-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.oi-sheet-sublink {
+  min-height: 56px;
+  padding-inline: 6px;
+}
+
+.oi-sheet-cta {
+  min-height: 52px;
+  margin: var(--oi-s3) 0 0;
+  animation: oi-sheet-in 520ms var(--oi-ease) 240ms backwards;
+}
+
+@keyframes oi-sheet-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+/* Phones and tablets share one bar: the logo in the middle, the menu button on the right. */
+@media (max-width: 1199px) {
+  .oi-nav {
+    display: none;
+  }
+
+  .oi-menu-toggle {
+    display: grid;
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .oi-bar-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    min-height: 60px;
+  }
+
+  .oi-brand {
+    grid-column: 2;
+    justify-self: center;
+  }
+}
+
+@media (min-width: 1200px) {
+  .oi-sheet-menu {
+    display: none;
+  }
+}
+
+/* Opening curtain ---------------------------------------------------------- */
+
+.oi-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  background: var(--oi-page);
+  color: var(--oi-orb);
+  transition: opacity 700ms ease;
+}
+
+.oi-loader > * {
+  transition:
+    transform 900ms var(--oi-ease),
+    filter 700ms ease;
+}
+
+/* The orb swells toward the viewer and dissolves into the page behind it. */
+.oi-loader[data-phase='leave'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.oi-loader[data-phase='leave'] > * {
+  transform: scale(2.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oi-loader,
+  .oi-loader > *,
+  .oi-sheet-link,
+  .oi-sheet-cta,
+  .oi-sheet-group,
+  .oi-sheet-sub li,
+  .oi-sol-panel,
+  .oi-sol-grid li,
+  .oi-sol-chevron,
+  .oi-sheet-chevron {
+    transition: none;
+    animation: none;
+  }
+
+  .oi-loader[data-phase='leave'] > * {
+    transform: none;
+    filter: none;
+  }
+}
