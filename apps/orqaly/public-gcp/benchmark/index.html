@@ -23,7 +23,11 @@
     .container { max-width: 1180px; margin: 0 auto; }
     
     /* Header */
-    header { text-align: center; margin-bottom: 50px; }
+    header { text-align: center; margin-bottom: 35px; }
+    .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; }
+    .nav-tab { padding: 8px 18px; border-radius: 9999px; text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid var(--border); color: var(--text-muted); transition: all 0.2s ease; }
+    .nav-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+    .nav-tab.active { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: var(--primary-light); }
     .badge { display: inline-block; padding: 6px 14px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--primary-light); border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 16px; }
     h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; background: linear-gradient(135deg, #fff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     p.subtitle { font-size: 18px; color: var(--text-muted); max-width: 780px; margin: 0 auto; }
@@ -71,6 +75,74 @@
     .endpoint-latency { font-size: 12px; font-weight: 700; color: #f3f4f6; font-family: monospace; }
     .heartbeat-footer { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
 
+    /* Interactive Info Tooltip (i) */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      margin-left: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      font-style: normal;
+      cursor: help;
+      transition: all 0.2s ease;
+      vertical-align: middle;
+    }
+    .info-tip:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .info-tip .tip-box {
+      visibility: hidden;
+      opacity: 0;
+      width: 270px;
+      background: #181b26;
+      color: #e5e7eb;
+      text-align: left;
+      border-radius: 8px;
+      padding: 10px 12px;
+      position: absolute;
+      z-index: 100;
+      bottom: 140%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11.5px;
+      line-height: 1.45;
+      font-weight: 400;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .info-tip .tip-box::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #181b26 transparent transparent transparent;
+    }
+    .info-tip:hover .tip-box {
+      visibility: visible;
+      opacity: 1;
+    }
+    .tip-title {
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+      display: block;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 3px;
+    }
+
     .prompt-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: #e5e7eb; margin-bottom: 16px; line-height: 1.5; }
     .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
@@ -89,6 +161,11 @@
 <body>
   <div class="container">
     <header>
+      <div class="nav-tabs">
+        <a href="/benchmark" class="nav-tab active">Full Architecture &amp; Showcase</a>
+        <a href="/heartbeat" class="nav-tab">Live Heartbeat &amp; Telemetry</a>
+        <a href="/instant" class="nav-tab">Instant Preview</a>
+      </div>
       <div class="badge">LIVE PRODUCTION VALIDATION &middot; SEPT 2026</div>
       <h1>Orqanix Acceleration & Architecture Benchmark</h1>
       <p class="subtitle">A mathematical and operational comparison of Orqanix with TypeSafe AI (Jev) integration, automated stage-gates, and asymmetric Ed25519 cryptographic governance.</p>
@@ -197,7 +274,7 @@
     <!-- Perpetual Rolling Work Archetype Benchmarks Table -->
     <h2 class="section-title">Perpetual Work Archetype Benchmarks (Rolling 15m &bull; 3h &bull; 24h)</h2>
     <p style="color:var(--text-muted);margin-bottom:18px;font-size:14px">
-      Continuous empirical performance tracking across core work archetypes. Rolling averages update automatically with each verification cycle.
+      Continuous empirical performance tracking across core work archetypes. Hover over <span class="info-tip" style="cursor:default;width:14px;height:14px;margin:0 2px;">i</span> icons for task scope, turn counts, and prompt profiles. Or view the standalone <a href="/heartbeat" style="color:var(--accent);font-weight:600;text-decoration:none">Heartbeat page &rarr;</a>
     </p>
     <div class="table-card">
       <table>
@@ -216,45 +293,179 @@
           <tr>
             <td><strong>1. Message</strong></td>
             <td>Interactive Dialogue &amp; Intent Routing</td>
-            <td><strong style="color:#34d399">1.2s</strong></td>
-            <td>1.2s</td>
-            <td>1.2s</td>
+            <td>
+              <strong style="color:#34d399">1.2s</strong>
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Message: 15-Minute Sample</span>
+                  <strong>Task:</strong> Direct statutory guidance &amp; operational questions.<br>
+                  <strong>Execution:</strong> 1 single conversational turn.<br>
+                  <strong>Prompt profile:</strong> Varied across corporate law, tax filing &amp; compliance queries to prevent cache lock.
+                </span>
+              </span>
+            </td>
+            <td>
+              1.2s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Message: 3-Hour Rolling Window</span>
+                  Rolling mean of ~9 autonomous runs. Evaluates cold first-token dispatch and zero conversational fluff.
+                </span>
+              </span>
+            </td>
+            <td>
+              1.2s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Message: 24-Hour Average</span>
+                  Daily aggregate across 72 cycles under diverse diurnal network conditions.
+                </span>
+              </span>
+            </td>
             <td><span style="color:#f87171">5.8s</span></td>
             <td>Direct structured response with zero preamble delay</td>
           </tr>
+
           <tr>
             <td><strong>2. Coding</strong></td>
             <td>Workspace Engineering &amp; Refactoring</td>
-            <td><strong style="color:#34d399">25s</strong></td>
-            <td>25s</td>
-            <td>25s</td>
+            <td>
+              <strong style="color:#34d399">25s</strong>
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Coding: 15-Minute Sample</span>
+                  <strong>Task:</strong> AST codebase search &amp; multi-file refactoring.<br>
+                  <strong>Execution:</strong> 1 single turn (isolated background subagent).<br>
+                  <strong>Quality gate:</strong> Pre-commit syntax, boundary, and secret audit.
+                </span>
+              </span>
+            </td>
+            <td>
+              25s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Coding: 3-Hour Rolling Window</span>
+                  Rotated tasks across TypeScript, Python, and Rust source trees to test language server stability.
+                </span>
+              </span>
+            </td>
+            <td>
+              25s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Coding: 24-Hour Average</span>
+                  Zero context window pollution: saves ~15,000 tokens per investigation compared to vanilla shell loops.
+                </span>
+              </span>
+            </td>
             <td><span style="color:#f87171">68.2s (7 turns)</span></td>
             <td>Single-turn execution, verified syntax, zero conversation bloat</td>
           </tr>
+
           <tr>
             <td><strong>3. Search</strong></td>
             <td>Evidence Retrieval &amp; Information Triage</td>
-            <td><strong style="color:#34d399">2.4s</strong></td>
-            <td>2.4s</td>
-            <td>2.4s</td>
+            <td>
+              <strong style="color:#34d399">2.4s</strong>
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Search: 15-Minute Sample</span>
+                  <strong>Task:</strong> Real-time discovery &amp; web document screening.<br>
+                  <strong>Execution:</strong> 6 candidate pages filtered down to 2 authoritative sources.<br>
+                  <strong>Triage:</strong> 50–66% noise dropped before synthesis.
+                </span>
+              </span>
+            </td>
+            <td>
+              2.4s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Search: 3-Hour Rolling Window</span>
+                  Screens varied queries across technical documentation, legal registries, and retail supplier terms.
+                </span>
+              </span>
+            </td>
+            <td>
+              2.4s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Search: 24-Hour Average</span>
+                  Zero unverified hallucination: model reads only verified, citation-backed evidence spans.
+                </span>
+              </span>
+            </td>
             <td><span style="color:#f87171">9.0s</span></td>
             <td>Irrelevant noise discarded before generation begins</td>
           </tr>
+
           <tr>
             <td><strong>4. Research</strong></td>
             <td>Deep Grounded Intelligence &amp; Synthesis</td>
-            <td><strong style="color:#34d399">19s</strong></td>
-            <td>19s</td>
-            <td>19s</td>
+            <td>
+              <strong style="color:#34d399">19s</strong>
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Research: 15-Minute Sample</span>
+                  <strong>Task:</strong> Multi-source executive brief synthesis.<br>
+                  <strong>Output:</strong> 767 words with verified citations.<br>
+                  <strong>Execution:</strong> End-to-end research flow with automated Gate 1/2 sign-off.
+                </span>
+              </span>
+            </td>
+            <td>
+              19s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Research: 3-Hour Rolling Window</span>
+                  Evaluates cross-industry prompts (e.g. food safety, medical devices, retail supply chain).
+                </span>
+              </span>
+            </td>
+            <td>
+              19s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Research: 24-Hour Average</span>
+                  Consistent 3.2x speedup over unconstrained generative models authoring unstructured text.
+                </span>
+              </span>
+            </td>
             <td><span style="color:#f87171">52.0s</span></td>
             <td>High-density, citation-backed executive summary</td>
           </tr>
+
           <tr>
             <td><strong>5. Automated Plan</strong></td>
             <td>Multi-Stage Project &amp; PRD Generation</td>
-            <td><strong style="color:#34d399">84s</strong></td>
-            <td>84s</td>
-            <td>84s</td>
+            <td>
+              <strong style="color:#34d399">84s</strong>
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Automated Plan: 15-Minute Sample</span>
+                  <strong>Task:</strong> Full 10-stage enterprise project runbook.<br>
+                  <strong>Output:</strong> 3,951 words (~8 pages), 100% acceptance criteria matrix.<br>
+                  <strong>Quality gate:</strong> Post-synthesis integrity audit with hedging verification.
+                </span>
+              </span>
+            </td>
+            <td>
+              84s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Automated Plan: 3-Hour Rolling Window</span>
+                  Stress-tests multi-agent handoffs across complex cross-domain business goals.
+                </span>
+              </span>
+            </td>
+            <td>
+              84s
+              <span class="info-tip">i
+                <span class="tip-box">
+                  <span class="tip-title">Automated Plan: 24-Hour Average</span>
+                  Zero scraper timeouts and zero unhedged assertions: sealed, audit-ready deliverables in GCS.
+                </span>
+              </span>
+            </td>
             <td><span style="color:#f87171">145s+ (timeouts)</span></td>
             <td>100% acceptance criteria satisfied, verifiable audit trail</td>
           </tr>
