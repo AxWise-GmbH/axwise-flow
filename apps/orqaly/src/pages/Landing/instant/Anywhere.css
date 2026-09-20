@@ -1,0 +1,1626 @@
+/*
+ * "Chat from anywhere" (class prefix oia-). Tokens and primitives come from instant.css.
+ *
+ * Orqanix is a dark-glass chat card in the middle of the scene; five device mocks sit
+ * around it at different depths, and messages travel the curved lines between them.
+ *
+ * Motion is transform, opacity, stroke-dashoffset and the individual
+ * translate/scale/rotate properties only: no canvas, no blur, no backdrop-filter.
+ * Everything that moves is switched off at the bottom of the file under
+ * prefers-reduced-motion, with the content fully visible.
+ */
+
+/* Section shell --------------------------------------------------------------- */
+
+.oi-section.oia {
+  overflow: clip;
+  isolation: isolate;
+}
+
+/* Looping light rests while nobody can see it. */
+.oia[data-live='false'] *,
+.oia[data-live='false'] *::before,
+.oia[data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+/* Until the block has really been scrolled to, its reveals stay in the dark. */
+.oia[data-seen='false'] [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.oia-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.76fr) minmax(0, 1fr);
+  grid-template-areas:
+    'head scene'
+    'list scene';
+  column-gap: clamp(32px, 5vw, 76px);
+  align-content: center;
+}
+
+/* Copy ------------------------------------------------------------------------ */
+
+.oia-head {
+  grid-area: head;
+  align-self: end;
+  display: grid;
+  gap: 24px;
+  margin-bottom: 44px;
+}
+
+.oi-h2.oia-title {
+  font-size: clamp(2.9rem, 5.7vw, 5rem);
+  line-height: 0.98;
+  letter-spacing: -0.052em;
+}
+
+.oia-title-line {
+  display: block;
+}
+
+/* The last word catches the scene's light. */
+.oia-title-glow {
+  width: fit-content;
+  margin-bottom: -0.16em;
+  padding: 0 0.06em 0.16em 0;
+  background: linear-gradient(96deg, var(--oi-ink) 18%, rgb(var(--oi-pale-rgb)) 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.oi-line.oia-lede {
+  max-width: 30ch;
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+}
+
+/* Channel rows ------------------------------------------------------------------ */
+
+.oia-list {
+  grid-area: list;
+  align-self: start;
+}
+
+.oia-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oia-item {
+  opacity: 0;
+  translate: 0 20px;
+  transition:
+    opacity 900ms var(--oi-ease),
+    translate 900ms var(--oi-ease);
+  transition-delay: calc(320ms + var(--i, 0) * 70ms);
+}
+
+.oia[data-seen='true'] .oia-item {
+  opacity: 1;
+  translate: none;
+}
+
+.oia-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 18px;
+  width: 100%;
+  min-height: 78px;
+  margin: 0;
+  padding: 14px 4px 14px 0;
+  border: 0;
+  background: none;
+  color: var(--oi-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oia-row:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+  border-radius: 14px;
+}
+
+.oia-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012));
+}
+
+/* The lit state is its own layer, so switching it on is an opacity change. */
+.oia-tile::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.9);
+  border-radius: inherit;
+  background: radial-gradient(
+    120% 120% at 50% 0,
+    rgba(var(--oi-accent-rgb), 0.3),
+    rgba(var(--oi-glow-rgb), 0.12) 60%,
+    transparent
+  );
+  box-shadow:
+    0 0 0 3px rgba(var(--oi-accent-rgb), 0.1),
+    0 0 26px rgba(var(--oi-glow-rgb), 0.95),
+    inset 0 0 14px rgba(var(--oi-accent-rgb), 0.25);
+  opacity: 0;
+  transition: opacity 500ms ease;
+  pointer-events: none;
+}
+
+.oia-row[data-active='true'] .oia-tile::after {
+  opacity: 1;
+}
+
+.oia-glyph {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 24px;
+  height: 24px;
+  overflow: visible;
+  opacity: 0.72;
+  transition: opacity 500ms ease;
+}
+
+.oia-glyph path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+[data-active='true'] .oia-glyph {
+  opacity: 1;
+}
+
+.oia-row-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.oia-row-name {
+  font-size: 1.16rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  opacity: 0.8;
+  transition: opacity 500ms ease;
+}
+
+.oia-row[data-active='true'] .oia-row-name {
+  opacity: 1;
+}
+
+.oia-row-line {
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* The row's rule: when the row is active it lights from the tile outwards, and a spark
+   keeps leaving along it toward the scene. */
+.oia-row-rule {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  overflow: hidden;
+  background: var(--oi-hairline);
+}
+
+.oia-row-rule::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--oi-accent),
+    rgba(255, 255, 255, 0.72) 30%,
+    rgba(255, 255, 255, 0.26) 72%,
+    rgba(255, 255, 255, 0.08)
+  );
+  transform-origin: 0 50%;
+  scale: 0 1;
+  opacity: 0;
+  transition:
+    scale 900ms var(--oi-ease),
+    opacity 500ms ease;
+}
+
+.oia-row[data-active='true'] .oia-row-rule::before {
+  scale: 1 1;
+  opacity: 1;
+}
+
+.oia-row-rule i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #ffffff);
+  opacity: 0;
+  translate: -100% 0;
+}
+
+.oia-row[data-active='true'] .oia-row-rule i {
+  opacity: 1;
+  animation: oia-row-spark 2400ms cubic-bezier(0.5, 0, 0.6, 1) infinite;
+}
+
+/* Scene -------------------------------------------------------------------------- */
+
+/*
+ * Everything in the scene is sized from --u, one hundredth of the scene's width, so the
+ * whole drawing scales with its column. Mocks set `font-size` to a unit and measure in em.
+ * Only the card has a floor, so its one line of real text stays readable.
+ */
+.oia-scene {
+  --u: 7px;
+  /* One em of a device mock, and one em of the card. */
+  --d: calc(var(--u) * 1.22);
+  --c: max(calc(var(--u) * 1.15), 6px);
+  --sw: 1.5px;
+  grid-area: scene;
+  position: relative;
+  align-self: center;
+  width: calc(100% + 64px);
+  margin-left: -24px;
+  aspect-ratio: 1;
+  container: oia-scene / inline-size;
+}
+
+.oia-scene[data-layout='tall'] {
+  --u: 5.7px;
+  --d: calc(var(--u) * 0.9);
+  --c: max(var(--u), 5.2px);
+  --sw: 3.2px;
+}
+
+@supports (width: 1cqw) {
+  .oia-scene {
+    --u: 1cqw;
+  }
+
+  .oia-scene[data-layout='tall'] {
+    --u: 1.6cqw;
+  }
+}
+
+/* The whole scene tips toward the pointer, like a plate on a gimbal. */
+.oia-stage {
+  position: absolute;
+  inset: 0;
+  transform: perspective(1400px) rotateX(calc(var(--py, 0) * -4deg))
+    rotateY(calc(var(--px, 0) * 5deg));
+  transition: transform 1600ms var(--oi-ease);
+}
+
+/* Deep green light from behind the card: wide washes that die out inside their own box,
+   never a disc. */
+.oia-glow {
+  position: absolute;
+  inset: -22%;
+  background:
+    radial-gradient(30% 30% at 67% 29%, rgba(var(--oi-deep-rgb), 0.7), transparent),
+    radial-gradient(30% 28% at 31% 71%, rgba(var(--oi-deep-rgb), 0.62), transparent),
+    radial-gradient(47% 33% at 50% 51%, rgba(var(--oi-glow-rgb), 0.62), transparent);
+  opacity: 0;
+  translate: calc(var(--px, 0) * -14px) calc(var(--py, 0) * -10px);
+  transition:
+    opacity 2400ms ease,
+    translate 1600ms var(--oi-ease);
+  pointer-events: none;
+}
+
+.oia[data-seen='true'] .oia-glow {
+  opacity: 1;
+}
+
+.oia-glow::before,
+.oia-glow::after {
+  content: '';
+  position: absolute;
+}
+
+/* The bright core right behind the card; it breathes by opacity alone. */
+.oia-glow::before {
+  inset: 27% 20%;
+  background:
+    radial-gradient(44% 40% at 50% 52%, rgba(var(--oi-accent-rgb), 0.55), transparent),
+    radial-gradient(50% 50% at 50% 50%, rgba(var(--oi-glow-rgb), 0.75), transparent);
+  animation: oia-breathe 7s ease-in-out infinite alternate;
+}
+
+/* A slanted sheen across the scene. */
+.oia-glow::after {
+  inset: 36% 8%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(var(--oi-pale-rgb), 0.16), transparent);
+  rotate: -28deg;
+}
+
+/* A field of fine points, lit near the card and lost toward the edges. */
+.oia-dots {
+  position: absolute;
+  inset: -6%;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.26) 1px, transparent 1.7px);
+  background-size: calc(var(--u) * 4.6) calc(var(--u) * 4.6);
+  -webkit-mask-image: radial-gradient(62% 56% at 50% 50%, black 16%, transparent 80%);
+  mask-image: radial-gradient(62% 56% at 50% 50%, black 16%, transparent 80%);
+  opacity: 0;
+  translate: calc(var(--px, 0) * 4px) calc(var(--py, 0) * 3px);
+  transition:
+    opacity 2400ms ease 500ms,
+    translate 1600ms var(--oi-ease);
+  pointer-events: none;
+}
+
+.oia[data-seen='true'] .oia-dots {
+  opacity: 0.55;
+}
+
+/* Lines ------------------------------------------------------------------------------ */
+
+/* Each path starts under the card and ends under its device. It rides the card's layer. */
+.oia-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  translate: calc(var(--px, 0) * 10px) calc(var(--py, 0) * 7px);
+  transition: translate 1400ms var(--oi-ease);
+  pointer-events: none;
+}
+
+.oia-lines path {
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* The line draws itself outwards, from the card to the device. */
+.oia-link-base {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: var(--sw);
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 1500ms var(--oi-ease) calc(700ms + var(--n, 0) * 120ms);
+}
+
+.oia[data-seen='true'] .oia-link-base {
+  stroke-dashoffset: 0;
+}
+
+.oia-link-halo,
+.oia-link-lit {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.oia-link-halo {
+  stroke: rgba(var(--oi-accent-rgb), 0.24);
+  stroke-width: calc(var(--sw) * 6);
+}
+
+.oia-link-lit {
+  stroke: rgb(var(--oi-pale-rgb));
+  stroke-width: calc(var(--sw) * 1.5);
+}
+
+.oia[data-seen='true'] .oia-link[data-active='true'] .oia-link-halo,
+.oia[data-seen='true'] .oia-link[data-active='true'] .oia-link-lit {
+  opacity: 1;
+}
+
+/*
+ * Message packets: one short dash on a long gap (together 126 of the path's 100), moved
+ * by its offset. 26 parks the dash past the device, 132 parks it inside the card.
+ */
+.oia-packet {
+  stroke: rgb(var(--oi-pale-rgb));
+  stroke-width: calc(var(--sw) * 2.4);
+  stroke-dasharray: 5 121;
+  stroke-dashoffset: 26;
+  opacity: 0;
+  transition: opacity 900ms ease 2600ms;
+}
+
+.oia[data-seen='true'] .oia-packet {
+  opacity: 0.85;
+}
+
+/* Into the card, all the time, each line at its own pace. */
+.oia-packet-in {
+  animation: oia-packet-in calc(5200ms + var(--n, 0) * 700ms) cubic-bezier(0.5, 0, 0.4, 1) infinite;
+  animation-delay: calc(var(--n, 0) * -2300ms);
+}
+
+/* And now and then an answer leaves it. */
+.oia-packet-out {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-dashoffset: 132;
+  animation: oia-packet-out calc(11000ms + var(--n, 0) * 1700ms) cubic-bezier(0.5, 0, 0.4, 1)
+    infinite;
+  animation-delay: calc(var(--n, 0) * -3100ms);
+}
+
+.oia-link[data-active='true'] .oia-packet {
+  stroke: rgb(255, 255, 255);
+  stroke-width: calc(var(--sw) * 3.4);
+  stroke-dasharray: 7 119;
+}
+
+.oia[data-seen='true'] .oia-link[data-active='true'] .oia-packet {
+  opacity: 1;
+}
+
+.oia-link[data-active='true'] .oia-packet-in {
+  animation: oia-packet-in-live 2800ms cubic-bezier(0.5, 0, 0.4, 1) infinite;
+}
+
+.oia-link[data-active='true'] .oia-packet-out {
+  animation: oia-packet-out-live 2800ms cubic-bezier(0.5, 0, 0.4, 1) infinite;
+}
+
+/* Shared mock parts ----------------------------------------------------------------- */
+
+/* Dark glass without any backdrop-filter: solid underneath, so lines can hide behind it. */
+.oia-glass {
+  position: relative;
+  border: 1px solid var(--oi-hairline-strong);
+  background:
+    linear-gradient(158deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.025) 56%),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.52), rgba(var(--oi-deep-rgb), 0.24)), rgb(0, 0, 0);
+  box-shadow:
+    0 1.8em 3.6em rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* The green rim light is its own layer, so switching it on is an opacity change. */
+.oia-rim::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.9);
+  border-radius: inherit;
+  box-shadow:
+    0 0 0 0.3em rgba(var(--oi-accent-rgb), 0.1),
+    0 0 3.2em rgba(var(--oi-glow-rgb), 0.95),
+    inset 0 0 1.6em rgba(var(--oi-accent-rgb), 0.2);
+  opacity: 0;
+  transition: opacity 500ms ease;
+  pointer-events: none;
+}
+
+.oia-dev[data-active='true'] .oia-rim::after {
+  opacity: 1;
+}
+
+/* What a mock shows rests dimmed and comes up when its channel is active. */
+.oia-ink {
+  opacity: 0.62;
+  transition: opacity 500ms ease;
+}
+
+.oia-dev[data-active='true'] .oia-ink {
+  opacity: 1;
+}
+
+.oia-g {
+  display: block;
+  width: var(--w, 100%);
+  height: 0.7em;
+  border-radius: 99em;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.oia-g[data-tone='ink'] {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.oia-g[data-tone='accent'] {
+  background: linear-gradient(90deg, rgb(var(--oi-pale-rgb)), var(--oi-accent));
+}
+
+.oia-g[data-tone='pill'] {
+  height: 1.7em;
+  border-radius: 0.55em;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.oia-lights {
+  display: flex;
+  gap: 0.42em;
+}
+
+.oia-lights i {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.oia-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+}
+
+.oia-mark {
+  flex: none;
+  display: block;
+  width: 1.7em;
+  height: 1.7em;
+  color: var(--oi-accent);
+}
+
+/* Something the user said: a green-tinted bubble on the right. */
+.oia-said {
+  align-self: flex-end;
+  justify-self: end;
+  display: grid;
+  gap: 0.55em;
+  width: 60%;
+  padding: 0.85em 1em;
+  border: 1px solid rgba(var(--oi-accent-rgb), 0.4);
+  border-radius: 1.1em 1.1em 0.35em 1.1em;
+  background: rgba(var(--oi-accent-rgb), 0.16);
+}
+
+/* Devices ---------------------------------------------------------------------------- */
+
+.oia-dev {
+  --depth: 12;
+  --size: 1;
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  z-index: 2;
+  font-size: calc(var(--d) * var(--size));
+  translate: calc(-50% + var(--px, 0) * var(--depth) * 1px)
+    calc(-50% + var(--py, 0) * var(--depth) * 0.7px);
+  transition:
+    translate 1400ms var(--oi-ease),
+    scale 900ms var(--oi-ease);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oia-dev[data-active='true'] {
+  z-index: 3;
+  scale: 1.07;
+}
+
+/* Depth: nearer devices are drawn larger and travel further with the pointer. */
+.oia-dev[data-channel='desktop'] {
+  --depth: 19;
+}
+
+.oia-dev[data-channel='messenger'] {
+  --depth: 13;
+  --size: 0.94;
+}
+
+.oia-dev[data-channel='email'] {
+  --depth: 8;
+  --size: 0.92;
+}
+
+.oia-dev[data-channel='voice'] {
+  --depth: 5;
+  --size: 0.9;
+}
+
+.oia-dev[data-channel='mobile'] {
+  --depth: 24;
+  --size: 1.04;
+}
+
+/* Arrival: after the card and the lines, the devices pop in one by one. */
+.oia-dev-pop {
+  opacity: 0;
+  scale: 0.8;
+  translate: 0 1.8em;
+  transition:
+    opacity 900ms ease,
+    scale 1100ms var(--oi-ease),
+    translate 1100ms var(--oi-ease);
+  transition-delay: calc(1500ms + var(--n, 0) * 150ms);
+}
+
+.oia[data-seen='true'] .oia-dev-pop {
+  opacity: 1;
+  scale: 1;
+  translate: none;
+}
+
+.oia-dev-bob {
+  animation: oia-bob 6s ease-in-out infinite alternate;
+}
+
+.oia-dev[data-channel='messenger'] .oia-dev-bob {
+  animation-duration: 7.4s;
+  animation-delay: -2.1s;
+}
+
+.oia-dev[data-channel='email'] .oia-dev-bob {
+  animation-duration: 5.2s;
+  animation-delay: -3.4s;
+}
+
+.oia-dev[data-channel='voice'] .oia-dev-bob {
+  animation-duration: 8.2s;
+  animation-delay: -1.2s;
+}
+
+.oia-dev[data-channel='mobile'] .oia-dev-bob {
+  animation-duration: 6.6s;
+  animation-delay: -4.6s;
+}
+
+/* Desktop App: a laptop with the workspace open. */
+.oia-laptop {
+  width: 30em;
+}
+
+.oia-laptop-screen {
+  padding: 0.55em;
+  border-radius: 1.3em 1.3em 0.5em 0.5em;
+}
+
+.oia-laptop-ui {
+  display: grid;
+  grid-template-columns: 8.2em minmax(0, 1fr);
+  height: 17em;
+  overflow: hidden;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 0.85em 0.85em 0.25em 0.25em;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.oia-laptop-side {
+  display: grid;
+  align-content: start;
+  gap: 0.8em;
+  padding: 1em 0.85em;
+  border-right: 1px solid var(--oi-hairline);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.oia-laptop-side .oia-brand {
+  margin-bottom: 0.3em;
+}
+
+.oia-laptop-side .oia-mark {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.oia-laptop-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  padding: 1.1em 1.2em 1em;
+}
+
+.oia-laptop-main .oia-said {
+  width: 58%;
+  padding: 0.7em 0.9em;
+}
+
+.oia-laptop-panel {
+  display: grid;
+  gap: 0.7em;
+  margin-top: 0.2em;
+  padding: 0.85em 0.95em;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.55);
+  border-radius: 0.8em;
+  background: rgba(var(--oi-accent-rgb), 0.07);
+}
+
+.oia-laptop-opts {
+  display: flex;
+  gap: 0.5em;
+}
+
+.oia-laptop-opts i {
+  width: 3.6em;
+  height: 1.5em;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 99em;
+}
+
+.oia-laptop-ask,
+.oia-phone-ask {
+  display: flex;
+  align-items: center;
+  height: 2.3em;
+  margin-top: auto;
+  padding: 0 0.8em;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 99em;
+}
+
+.oia-laptop-ask i,
+.oia-phone-ask i {
+  width: 0.18em;
+  height: 1.1em;
+  background: var(--oi-accent);
+}
+
+.oia-laptop-base {
+  position: relative;
+  width: 114%;
+  height: 1.1em;
+  margin-left: -7%;
+  border-radius: 0.2em 0.2em 1.1em 1.1em;
+  background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.07)), rgb(0, 0, 0);
+  box-shadow: 0 1.6em 2.6em rgba(0, 0, 0, 0.6);
+}
+
+.oia-laptop-base::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 5em;
+  height: 0.38em;
+  margin-left: -2.5em;
+  border-radius: 0 0 0.4em 0.4em;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* Messenger by Choice: a short exchange, with the answer being typed. */
+.oia-msgr {
+  display: grid;
+  gap: 0.9em;
+  width: 26em;
+}
+
+.oia-msgr-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.7em;
+}
+
+.oia-msgr-row[data-side='out'] {
+  justify-content: flex-end;
+}
+
+.oia-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 50%;
+}
+
+.oia-avatar .oia-mark {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.oia-bubble {
+  width: 15em;
+  padding: 1.1em 1.3em;
+  border-radius: 1.5em 1.5em 1.5em 0.45em;
+}
+
+.oia-bubble .oia-ink {
+  display: grid;
+  gap: 0.65em;
+}
+
+.oia-bubble-out {
+  position: relative;
+  width: 13.5em;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.5);
+  border-radius: 1.5em 1.5em 0.45em 1.5em;
+  background:
+    linear-gradient(158deg, rgba(var(--oi-pale-rgb), 0.34), rgba(var(--oi-accent-rgb), 0.16)),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.7), rgba(var(--oi-deep-rgb), 0.7)), rgb(0, 0, 0);
+  box-shadow: 0 1.8em 3.6em rgba(0, 0, 0, 0.55);
+}
+
+.oia-bubble-typing {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: auto;
+  padding: 1.15em 1.4em;
+}
+
+.oia-bubble-typing i {
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 50%;
+  background: var(--oi-ink);
+  opacity: 0.75;
+  animation: oia-typing 1300ms ease-in-out infinite;
+}
+
+.oia-bubble-typing i:nth-child(2) {
+  animation-delay: 180ms;
+}
+
+.oia-bubble-typing i:nth-child(3) {
+  animation-delay: 360ms;
+}
+
+/* Email: a letter that keeps peeking out of its envelope. */
+.oia-mail {
+  position: relative;
+  width: 22em;
+  height: 17.5em;
+}
+
+.oia-mail-back {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 13em;
+  border-radius: 1.3em;
+}
+
+.oia-mail-letter {
+  position: absolute;
+  top: 1.6em;
+  right: 1.8em;
+  left: 1.8em;
+  height: 13.2em;
+  padding: 1.4em 1.5em;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 0.9em;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.1)),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.5), rgba(var(--oi-deep-rgb), 0.5)), rgb(0, 0, 0);
+  animation: oia-peek 5.6s ease-in-out infinite alternate;
+}
+
+.oia-mail-letter .oia-ink {
+  display: grid;
+  gap: 0.75em;
+}
+
+.oia-mail-letter .oia-g[data-tone='ink'] {
+  height: 0.9em;
+  margin-bottom: 0.25em;
+}
+
+/* The pocket: solid, with a V cut so the letter shows inside the fold. */
+.oia-mail-front {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 11em;
+  border-radius: 0 0 1.3em 1.3em;
+  background:
+    linear-gradient(170deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 60%),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.5), rgba(var(--oi-deep-rgb), 0.26)), rgb(0, 0, 0);
+  clip-path: polygon(0 0, 50% 52%, 100% 0, 100% 100%, 0 100%);
+}
+
+.oia-mail-front::before,
+.oia-mail-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--oi-hairline-strong);
+  border-top: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.oia-mail-front::after {
+  border-color: rgba(var(--oi-pale-rgb), 0.9);
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.oia-dev[data-active='true'] .oia-mail-front::after {
+  opacity: 1;
+}
+
+.oia-mail-front svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.oia-mail-front path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.oia-mail-front .oia-mail-fold {
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+/* Voice Commands: a microphone pill with a live waveform. */
+.oia-voice {
+  display: flex;
+  align-items: center;
+  gap: 1.3em;
+  width: 27em;
+  height: 7.6em;
+  padding: 0 2em 0 1em;
+  border-radius: 99em;
+}
+
+.oia-voice-mic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 5.6em;
+  height: 5.6em;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.6);
+  border-radius: 50%;
+  background: rgba(var(--oi-accent-rgb), 0.22);
+  color: var(--oi-ink);
+}
+
+.oia-voice-mic .oia-glyph {
+  width: 3em;
+  height: 3em;
+  opacity: 1;
+}
+
+.oia-voice-bars {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4.6em;
+}
+
+.oia-voice-bars i {
+  width: 0.5em;
+  height: 100%;
+  border-radius: 99em;
+  background: linear-gradient(rgb(var(--oi-pale-rgb)), var(--oi-accent));
+  scale: 1 var(--h, 0.5);
+  animation: oia-bar var(--t, 900ms) ease-in-out var(--dl, 0ms) infinite alternate;
+}
+
+/* Mobile Application: a phone with a chat open and a notification dropping in. */
+.oia-phone {
+  width: 13.5em;
+  height: 27em;
+  padding: 0.6em;
+  border-radius: 2.7em;
+}
+
+.oia-phone-screen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 2.15em;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.oia-phone-island {
+  position: absolute;
+  top: 0.85em;
+  left: 50%;
+  width: 4em;
+  height: 1.15em;
+  margin-left: -2em;
+  border-radius: 99em;
+  background: rgb(0, 0, 0);
+  box-shadow: 0 0 0 1px var(--oi-hairline);
+}
+
+.oia-phone-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  height: 100%;
+  padding: 3.4em 0.9em 0.9em;
+}
+
+.oia-phone-in,
+.oia-phone-out {
+  display: grid;
+  gap: 0.55em;
+  padding: 0.8em 0.85em;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 1em 1em 1em 0.3em;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.oia-phone-in {
+  width: 78%;
+}
+
+.oia-phone-out {
+  align-self: flex-end;
+  width: 58%;
+  border-color: rgba(var(--oi-accent-rgb), 0.45);
+  border-radius: 1em 1em 0.3em 1em;
+  background: rgba(var(--oi-accent-rgb), 0.2);
+}
+
+.oia-phone-chip {
+  position: absolute;
+  top: 2.5em;
+  right: 0.55em;
+  left: 0.55em;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.6em;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 1.1em;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)),
+    linear-gradient(rgba(var(--oi-deep-rgb), 0.6), rgba(var(--oi-deep-rgb), 0.6)), rgb(0, 0, 0);
+  box-shadow: 0 0.8em 1.6em rgba(0, 0, 0, 0.5);
+  animation: oia-chip 11s var(--oi-ease) infinite;
+}
+
+.oia-phone-chip-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.3em;
+  height: 2.3em;
+  border-radius: 0.65em;
+  background: rgba(var(--oi-accent-rgb), 0.28);
+}
+
+.oia-phone-chip-mark .oia-mark {
+  width: 1.5em;
+  height: 1.5em;
+  color: var(--oi-ink);
+}
+
+.oia-phone-chip-text {
+  flex: 1;
+  display: grid;
+  gap: 0.45em;
+}
+
+.oia-phone-chip-text .oia-g {
+  height: 0.55em;
+}
+
+/* The card: Orqanix itself ---------------------------------------------------------- */
+
+.oia-card {
+  position: absolute;
+  top: var(--cy);
+  left: var(--cx);
+  z-index: 4;
+  width: 38em;
+  font-size: var(--c);
+  translate: calc(-50% + var(--px, 0) * 10px) calc(-50% + var(--py, 0) * 7px);
+  transition: translate 1400ms var(--oi-ease);
+  pointer-events: none;
+}
+
+/* Arrival: the card rises first. */
+.oia-card-rise {
+  opacity: 0;
+  scale: 0.95;
+  translate: 0 3.4em;
+  transition:
+    opacity 1300ms ease 100ms,
+    scale 1600ms var(--oi-ease) 100ms,
+    translate 1600ms var(--oi-ease) 100ms;
+}
+
+.oia[data-seen='true'] .oia-card-rise {
+  opacity: 1;
+  scale: 1;
+  translate: none;
+}
+
+.oia-card-glass {
+  border-color: rgba(var(--oi-pale-rgb), 0.4);
+  border-radius: 1.9em;
+  box-shadow:
+    0 3em 7em rgba(0, 0, 0, 0.62),
+    0 0 7em rgba(var(--oi-glow-rgb), 0.55),
+    0 0 0 0.45em rgba(var(--oi-accent-rgb), 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: oia-bob 9s ease-in-out -3s infinite alternate;
+}
+
+.oia-card-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.1em;
+  height: 4em;
+  padding: 0 1.4em;
+  border-bottom: 1px solid var(--oi-hairline);
+}
+
+.oia-card-bar .oia-lights i {
+  width: 0.78em;
+  height: 0.78em;
+}
+
+.oia-card-bar .oia-mark {
+  width: 2em;
+  height: 2em;
+}
+
+.oia-card-name {
+  color: var(--oi-ink);
+  font-size: max(10px, 1.6em);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.oia-card-feed {
+  display: grid;
+  gap: 0.85em;
+  padding: 1.5em 1.6em 0.4em;
+}
+
+.oia-card-feed .oia-g {
+  height: 0.8em;
+}
+
+.oia-card-feed .oia-said {
+  width: 56%;
+  margin-bottom: 0.3em;
+}
+
+/* The answer to the active channel: re-keyed in the markup, so it slides in afresh. */
+.oia-card-reply {
+  display: flex;
+  align-items: center;
+  gap: 0.95em;
+  margin-top: 0.35em;
+  padding: 0.75em 0.85em;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.42);
+  border-radius: 1.1em;
+  background: rgba(var(--oi-accent-rgb), 0.1);
+  animation: oia-reply 900ms var(--oi-ease) 650ms both;
+}
+
+.oia-card-via {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.9em;
+  height: 2.9em;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.6);
+  border-radius: 0.85em;
+  background: rgba(var(--oi-accent-rgb), 0.24);
+  color: var(--oi-ink);
+}
+
+.oia-card-via .oia-glyph {
+  width: 1.75em;
+  height: 1.75em;
+  opacity: 1;
+}
+
+.oia-card-reply-text {
+  flex: 1;
+  display: grid;
+  gap: 0.6em;
+}
+
+.oia-card-reply-text .oia-g {
+  transform-origin: 0 50%;
+  animation: oia-grow 1100ms var(--oi-ease) 950ms both;
+}
+
+.oia-card-reply-text .oia-g + .oia-g {
+  animation-delay: 1100ms;
+}
+
+.oia-card-ask {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  height: 4.3em;
+  margin: 1.1em 1.2em 1.2em;
+  padding: 0 0.7em 0 1.2em;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 1.3em;
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.oia-caret {
+  flex: none;
+  width: max(1.5px, 0.2em);
+  height: 1.9em;
+  background: var(--oi-accent);
+  animation: oia-blink 1100ms steps(1, end) infinite;
+}
+
+.oia-card-placeholder {
+  color: var(--oi-muted);
+  font-size: max(10px, 1.72em);
+  line-height: 1;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.oia-card-mic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.9em;
+  height: 2.9em;
+  margin-left: auto;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 50%;
+  color: var(--oi-ink);
+}
+
+.oia-card-mic .oia-glyph {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+/* A slow sheen crosses the glass now and then. */
+.oia-card-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.oia-card-sheen::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--oi-pale-rgb), 0.12) 45%,
+    rgba(255, 255, 255, 0.1) 55%,
+    transparent
+  );
+  opacity: 0;
+  rotate: 14deg;
+  translate: -140% 0;
+  animation: oia-sheen 9s var(--oi-ease) 3s infinite;
+}
+
+/* The card takes each message: a rim of light as the packet lands. */
+.oia-card-flash {
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.95);
+  border-radius: inherit;
+  box-shadow:
+    0 0 4em rgba(var(--oi-accent-rgb), 0.5),
+    inset 0 0 2.4em rgba(var(--oi-accent-rgb), 0.22);
+  opacity: 0;
+  animation: oia-flash 1900ms ease 600ms both;
+  pointer-events: none;
+}
+
+/* Keyframes ------------------------------------------------------------------------ */
+
+@keyframes oia-breathe {
+  from {
+    opacity: 0.68;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes oia-bob {
+  from {
+    translate: 0 0.5em;
+  }
+  to {
+    translate: 0 -0.6em;
+  }
+}
+
+@keyframes oia-packet-in {
+  0% {
+    stroke-dashoffset: 26;
+  }
+  44%,
+  100% {
+    stroke-dashoffset: 132;
+  }
+}
+
+@keyframes oia-packet-out {
+  0%,
+  80% {
+    stroke-dashoffset: 132;
+  }
+  100% {
+    stroke-dashoffset: 26;
+  }
+}
+
+/* The active line: a message goes in, the answer comes straight back out. */
+@keyframes oia-packet-in-live {
+  0% {
+    stroke-dashoffset: 26;
+  }
+  46%,
+  100% {
+    stroke-dashoffset: 132;
+  }
+}
+
+@keyframes oia-packet-out-live {
+  0%,
+  52% {
+    stroke-dashoffset: 132;
+  }
+  100% {
+    stroke-dashoffset: 26;
+  }
+}
+
+@keyframes oia-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    translate: 0 0;
+  }
+  30% {
+    opacity: 1;
+    translate: 0 -0.28em;
+  }
+}
+
+@keyframes oia-peek {
+  from {
+    translate: 0 1.2em;
+  }
+  to {
+    translate: 0 -1.2em;
+  }
+}
+
+@keyframes oia-bar {
+  from {
+    scale: 1 0.14;
+  }
+  to {
+    scale: 1 var(--h, 0.6);
+  }
+}
+
+@keyframes oia-chip {
+  0%,
+  10% {
+    opacity: 0;
+    translate: 0 -220%;
+  }
+  18%,
+  62% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  72%,
+  100% {
+    opacity: 0;
+    translate: 0 -220%;
+  }
+}
+
+@keyframes oia-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes oia-reply {
+  from {
+    opacity: 0;
+    translate: 0 1.6em;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes oia-grow {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes oia-flash {
+  0% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes oia-sheen {
+  0% {
+    opacity: 1;
+    translate: -140% 0;
+  }
+  34%,
+  100% {
+    opacity: 1;
+    translate: 420% 0;
+  }
+}
+
+@keyframes oia-row-spark {
+  0% {
+    translate: -100% 0;
+  }
+  70%,
+  100% {
+    translate: 400% 0;
+  }
+}
+
+/* Responsive ---------------------------------------------------------------------- */
+
+/* A narrower column: the row's name and line stack tight beside the tile. */
+@media (max-width: 1200px) {
+  .oia-row {
+    grid-template-areas:
+      'tile name'
+      'tile line';
+    row-gap: 3px;
+    align-content: center;
+  }
+
+  .oia-tile {
+    grid-area: tile;
+    align-self: center;
+  }
+
+  .oia-row-text {
+    display: contents;
+  }
+
+  .oia-row-name {
+    grid-area: name;
+    align-self: end;
+  }
+
+  .oia-row-line {
+    grid-area: line;
+    align-self: start;
+  }
+}
+
+/* Narrow desktops: the scene stays inside the page gutter so nothing meets the edge. */
+@media (max-width: 1100px) {
+  .oia-scene {
+    width: calc(100% + 16px);
+    margin-left: -8px;
+  }
+}
+
+/* One column: the headline, then the scene, then the five rows. */
+@media (max-width: 900px) {
+  .oia-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'scene'
+      'list';
+  }
+
+  .oia-head {
+    margin-bottom: 0;
+  }
+
+  .oi-line.oia-lede {
+    max-width: none;
+  }
+
+  .oia-scene {
+    width: min(100%, 560px);
+    margin: 36px auto 40px;
+  }
+}
+
+/* A phone: the scene turns portrait (the markup switches layout on the same query). */
+@media (max-width: 600px) {
+  .oia-head {
+    gap: 18px;
+  }
+
+  .oi-h2.oia-title {
+    font-size: clamp(2.9rem, 14.4vw, 3.6rem);
+  }
+
+  .oia-scene {
+    width: 100%;
+    margin: 28px auto 32px;
+  }
+
+  .oia-row {
+    column-gap: 14px;
+    min-height: 76px;
+  }
+
+  .oia-row-name {
+    font-size: 1.1rem;
+  }
+
+  .oia-row-line {
+    font-size: 0.92rem;
+  }
+}
+
+.oia-scene[data-layout='tall'] {
+  aspect-ratio: 1000 / 1400;
+}
+
+/* Reduced motion: nothing moves, everything is there ------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .oia *,
+  .oia *::before,
+  .oia *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .oia-packet,
+  .oia-card-flash,
+  .oia-card-sheen,
+  .oia-row-rule i {
+    display: none;
+  }
+
+  .oia-stage {
+    transform: none;
+  }
+}

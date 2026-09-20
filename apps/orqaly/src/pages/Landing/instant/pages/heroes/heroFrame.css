@@ -1,0 +1,152 @@
+/*
+ * The first block of every "Instant" sub-page (class prefix oph-). Layout and type only:
+ * each page's picture lives in its own file beside this one.
+ */
+
+.oph {
+  position: relative;
+  padding-block: clamp(112px, 15vh, 156px) clamp(48px, 7vh, 84px);
+  overflow: clip;
+}
+
+/* One still pool of light behind the picture. Still, so it costs one paint. */
+.oph-glow {
+  position: absolute;
+  top: 50%;
+  right: -8%;
+  width: min(62vw, 900px);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-glow-rgb), 0.34),
+    rgba(var(--oi-deep-rgb), 0.12) 46%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.oph-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(32px, 5vw, 88px);
+  align-items: center;
+  min-height: min(62svh, 580px);
+}
+
+.oph-text {
+  min-width: 0;
+}
+
+.oph-title {
+  max-width: 11ch;
+  margin: 18px 0 0;
+  color: var(--oi-ink);
+  font-size: clamp(2.7rem, 5.3vw, 5.2rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.oph-lede {
+  max-width: 40ch;
+  margin: 24px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.02rem, 1.35vw, 1.2rem);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+
+.oph-extra {
+  margin-top: 32px;
+}
+
+/*
+ * Beside the picture the title sits at one height on every sibling page, so moving between
+ * them never makes it jump: the lede always keeps two lines, and the optional extra row hangs
+ * under the words instead of pushing them up. The row's spare height has room for one line
+ * of links or buttons there, not for a paragraph.
+ */
+@media (min-width: 1100px) {
+  .oph-text {
+    position: relative;
+  }
+
+  .oph-lede {
+    min-height: 3em;
+  }
+
+  .oph-extra {
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+}
+
+.oph-visual {
+  position: relative;
+  min-width: 0;
+}
+
+.oph-foot {
+  position: relative;
+  margin-top: clamp(36px, 6vh, 64px);
+}
+
+.oph-rise {
+  animation: oph-rise 1100ms var(--oi-ease) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 120ms);
+}
+
+@keyframes oph-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+}
+
+/* Tablet and phone: the words first, the picture under them at full width. */
+@media (max-width: 1099px) {
+  .oph {
+    padding-block: 96px 48px;
+  }
+
+  .oph-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    min-height: 0;
+  }
+
+  .oph-title {
+    max-width: 14ch;
+    font-size: clamp(2.5rem, 8.4vw, 4.4rem);
+  }
+
+  .oph-glow {
+    top: auto;
+    right: -30%;
+    bottom: -10%;
+    width: 120vw;
+    translate: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .oph {
+    padding-block: 84px 40px;
+  }
+
+  .oph-grid {
+    gap: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oph-rise {
+    animation: none;
+  }
+}

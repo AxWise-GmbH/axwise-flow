@@ -1,0 +1,858 @@
+/*
+ * Orqanix "Instant" landing: design tokens and shared primitives.
+ *
+ * The look: a black stage lit by the Orqanix line-orb. Large light type, small
+ * monospace labels, hairline borders, slow ambient motion, content that arrives
+ * out of the dark. Less-text rules still apply:
+ *   - one block = a short title + at most one line; detail goes under <More>
+ *   - cards show at most three short lines before <More>
+ *   - one primary button per screen
+ * Every animation here is transform/opacity/filter only and is switched off under
+ * prefers-reduced-motion.
+ */
+
+[data-landing-variant='instant'] {
+  --oi-page: #030b07;
+  --oi-paper: rgba(255, 255, 255, 0.028);
+  --oi-paper-strong: #0c100e;
+  --oi-ink: #f4f6f5;
+  --oi-muted: #8d919c;
+  --oi-dim: #5d616b;
+  --oi-accent: #4a9f7a;
+  --oi-accent-dark: #1d5f42;
+  --oi-accent-deep: #004225;
+  --oi-glow: rgba(var(--oi-glow-rgb), 0.55);
+  /* Colour channels, for rgba(var(--x-rgb), alpha). Change the palette here only. */
+  --oi-accent-rgb: 74, 159, 122;
+  --oi-glow-rgb: 22, 98, 64;
+  --oi-deep-rgb: 0, 66, 37;
+  --oi-pale-rgb: 120, 190, 155;
+  --oi-ambient-rgb: 0, 44, 26;
+  --oi-accent-soft: #3f7d62;
+  --oi-orb: #2b8a5e;
+
+  --oi-hairline: rgba(255, 255, 255, 0.1);
+  --oi-hairline-strong: rgba(255, 255, 255, 0.22);
+  --oi-good: #4a9f7a;
+
+  /*
+   * A piece of the app, wherever a mock shows one. The app's own chrome: graphite,
+   * near-monochrome, with one pale highlight for whatever is live. Every page draws its
+   * mocks from these, so the same piece of the app looks the same on all of them.
+   */
+  --oi-app-surface: linear-gradient(180deg, rgba(40, 43, 50, 0.94), rgba(25, 27, 32, 0.94));
+  --oi-app-edge: rgba(255, 255, 255, 0.14);
+  --oi-app-text: #f4f5f7;
+  --oi-app-soft: #cbd1d6;
+  --oi-app-muted: #9a9fa8;
+  --oi-app-dim: #7f858f;
+  --oi-app-border: #3f434b;
+  --oi-app-border-strong: #525b68;
+  --oi-app-fill: rgba(255, 255, 255, 0.055);
+  --oi-app-light: color-mix(in srgb, var(--oi-accent) 48%, #ffffff);
+  --oi-app-sunk: rgba(0, 0, 0, 0.32);
+
+  /* The demo stage shares the page's black; these stay for its own panels. */
+  --oi-stage: #030b07;
+  --oi-stage-panel: #07140e;
+  --oi-stage-hairline: rgba(255, 255, 255, 0.1);
+  --oi-stage-text: #f4f6f5;
+  --oi-stage-muted: #8d919c;
+  --oi-stage-focus: #4a9f7a;
+
+  /* A light sheet for the reused light-themed blocks (diagram). */
+  --oi-sheet: #f9fdfb;
+  --oi-sheet-ink: #1a3227;
+
+  --oi-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --oi-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  --oi-s1: 8px;
+  --oi-s2: 16px;
+  --oi-s3: 24px;
+  --oi-s4: 48px;
+  --oi-s5: 128px;
+
+  --oi-radius-card: 18px;
+  --oi-radius-button: 999px;
+  --oi-radius-pill: 999px;
+
+  --oi-fade: 180ms;
+  --oi-rise: 450ms;
+  --oi-reveal: 1000ms;
+  --oi-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  font-family: var(--oi-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-landing-variant='instant'] ::selection {
+  background: var(--oi-accent);
+  color: #060a08;
+}
+
+/* Ambient light, grain, scroll progress ------------------------------------- */
+
+.oi-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.oi-ambient i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.oi-ambient i:nth-child(1) {
+  top: -22vh;
+  right: -12vw;
+  width: 62vw;
+  height: 62vw;
+  background: radial-gradient(circle, rgba(var(--oi-deep-rgb), 0.5), transparent 62%);
+  animation: oi-drift-a 38s ease-in-out infinite alternate;
+}
+
+.oi-ambient i:nth-child(2) {
+  bottom: -30vh;
+  left: -18vw;
+  width: 54vw;
+  height: 54vw;
+  background: radial-gradient(circle, rgba(var(--oi-ambient-rgb), 0.28), transparent 60%);
+  animation: oi-drift-b 46s ease-in-out infinite alternate;
+}
+
+.oi-ambient i:nth-child(3) {
+  top: 38vh;
+  left: 34vw;
+  width: 34vw;
+  height: 34vw;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 60%);
+  animation: oi-drift-a 52s ease-in-out infinite alternate-reverse;
+}
+
+.oi-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 0.045;
+  pointer-events: none;
+}
+
+.oi-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--oi-accent-deep), var(--oi-accent), #ffffff);
+  transform: scaleX(var(--oi-progress, 0));
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.oi-above {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes oi-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-9vw, 7vh, 0) scale(1.18);
+  }
+}
+
+@keyframes oi-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(11vw, -9vh, 0) scale(0.92);
+  }
+}
+
+/* Layout ------------------------------------------------------------------ */
+
+.oi-section {
+  position: relative;
+  padding-block: var(--oi-s5);
+  scroll-margin-top: 88px;
+}
+
+.oi-section-tight {
+  padding-block: var(--oi-s4);
+}
+
+.oi-section-ruled {
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.oi-container {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: var(--oi-s3);
+  box-sizing: border-box;
+}
+
+.oi-container-narrow {
+  max-width: 860px;
+}
+
+.oi-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--oi-s1) var(--oi-s3);
+  margin-bottom: var(--oi-s4);
+}
+
+/* Type -------------------------------------------------------------------- */
+
+.oi-h2 {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(2.1rem, 4.8vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.oi-line {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.oi-small {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.oi-tag {
+  margin: 0;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* x.ai-style bracketed label. Brackets are decoration, so they stay out of the text. */
+.oi-tag-bracket::before {
+  content: '[ ';
+  color: var(--oi-dim);
+}
+
+.oi-tag-bracket::after {
+  content: ' ]';
+  color: var(--oi-dim);
+}
+
+.oi-link {
+  color: var(--oi-ink);
+  font-weight: 500;
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  transition: color var(--oi-fade) ease;
+}
+
+.oi-link:hover {
+  color: var(--oi-accent);
+}
+
+.oi-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reveal: content arrives out of the dark ------------------------------------ */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition:
+    opacity var(--oi-reveal) var(--oi-ease) var(--d, 0ms),
+    transform var(--oi-reveal) var(--oi-ease) var(--d, 0ms),
+    filter var(--oi-reveal) var(--oi-ease) var(--d, 0ms);
+}
+
+[data-reveal][data-shown='true'] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* More (disclosure) ------------------------------------------------------- */
+
+.oi-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--oi-fade) ease;
+}
+
+.oi-more-toggle > span {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  padding-bottom: 3px;
+}
+
+.oi-more-toggle:hover {
+  color: var(--oi-accent);
+}
+
+.oi-more-toggle:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.oi-more-chevron {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  transition: transform 320ms var(--oi-ease);
+}
+
+.oi-more-toggle[aria-expanded='true'] .oi-more-chevron {
+  transform: rotate(180deg);
+}
+
+.oi-more-region {
+  color: var(--oi-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  animation: oi-more-in 520ms var(--oi-ease) both;
+}
+
+.oi-more-region > :first-child {
+  margin-top: var(--oi-s2);
+}
+
+.oi-more-region > :last-child {
+  margin-bottom: 0;
+}
+
+.oi-more-region p,
+.oi-more-region ul,
+.oi-more-region ol {
+  margin: 0 0 var(--oi-s1);
+}
+
+.oi-more-region ul,
+.oi-more-region ol {
+  padding-left: 1.2em;
+}
+
+.oi-more-region li::marker {
+  color: var(--oi-dim);
+}
+
+/* A More row that reads as a question: full width, ruled, large light type. */
+.oi-more-row {
+  border-bottom: 1px solid var(--oi-hairline);
+  transition: border-color var(--oi-fade) ease;
+}
+
+.oi-more-row:hover {
+  border-bottom-color: var(--oi-hairline-strong);
+}
+
+.oi-more-row .oi-more-toggle {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 76px;
+  color: var(--oi-ink);
+  font-family: var(--oi-sans);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.oi-more-row .oi-more-toggle > span {
+  background: none;
+  padding-bottom: 0;
+}
+
+.oi-more-row .oi-more-region {
+  max-width: 62ch;
+  padding-bottom: var(--oi-s3);
+}
+
+@keyframes oi-more-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Card, badge, check ------------------------------------------------------- */
+
+.oi-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--oi-s2);
+}
+
+.oi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--oi-s3);
+  border: 1px solid var(--oi-hairline);
+  border-radius: var(--oi-radius-card);
+  background: var(--oi-paper);
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    border-color 400ms ease,
+    transform 600ms var(--oi-ease);
+}
+
+/* Pointer spotlight: Card sets --mx/--my; without a pointer it rests top-centre. */
+.oi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, -20%),
+    rgba(var(--oi-accent-rgb), 0.16),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.oi-card:hover,
+.oi-card:focus-within {
+  border-color: var(--oi-hairline-strong);
+  transform: translate3d(0, -4px, 0);
+}
+
+.oi-card:hover::before,
+.oi-card:focus-within::before {
+  opacity: 1;
+}
+
+.oi-card-title {
+  margin: 0 0 var(--oi-s3);
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.oi-card-lines {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 var(--oi-s2);
+  padding: 0;
+  list-style: none;
+}
+
+.oi-card-line {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: var(--oi-ink);
+  font-size: 1.12rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.oi-check {
+  width: 16px;
+  height: 16px;
+  margin-top: 4px;
+  color: var(--oi-accent);
+}
+
+/* The tick draws itself once its card has arrived. */
+[data-reveal] .oi-check path {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  transition: stroke-dashoffset 700ms var(--oi-ease) calc(var(--d, 0ms) + 500ms);
+}
+
+[data-reveal][data-shown='true'] .oi-check path {
+  stroke-dashoffset: 0;
+}
+
+.oi-card .oi-more {
+  margin-top: auto;
+}
+
+.oi-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: var(--oi-radius-pill);
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: 2px;
+}
+
+/* Stat --------------------------------------------------------------------- */
+
+.oi-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--oi-s3);
+  margin: 0;
+}
+
+.oi-stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  padding-top: var(--oi-s3);
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.oi-stat-value {
+  margin: 0;
+  font-size: clamp(3.6rem, 10vw, 8rem);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--oi-ink);
+  background: linear-gradient(180deg, #ffffff 20%, var(--oi-accent-soft) 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.oi-stat-label {
+  margin: 0;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Light sheet: reused light-themed blocks sit on it so their ink stays readable. */
+.oi-sheet {
+  margin-top: var(--oi-s3);
+  padding: var(--oi-s3);
+  border-radius: 24px;
+  background: var(--oi-sheet);
+  color: var(--oi-sheet-ink);
+}
+
+/* Holds the demo's place while its code loads, so the page below does not jump. */
+.oi-watch-placeholder {
+  min-height: 880px;
+}
+
+/* Footer ------------------------------------------------------------------- */
+
+.oi-footer {
+  position: relative;
+  padding-block: var(--oi-s4) var(--oi-s3);
+  overflow: clip;
+}
+
+/* A framed panel with a green light in its corner: brand on the left, link columns on the right. */
+.oi-footer-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  gap: var(--oi-s4);
+  padding: 56px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 28px;
+  background:
+    radial-gradient(60% 120% at 0% 0%, rgba(var(--oi-glow-rgb), 0.34), transparent 62%),
+    var(--oi-paper);
+  overflow: hidden;
+}
+
+/* A thin line of light along the panel's top edge. */
+.oi-footer-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 12% auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--oi-pale-rgb), 0.7), transparent);
+}
+
+.oi-footer-brand {
+  display: grid;
+  gap: var(--oi-s2);
+  align-content: start;
+  justify-items: start;
+}
+
+/* On phones the top bar centres .oi-brand in its second column; the footer's stays put. */
+.oi-footer-brand .oi-brand {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.oi-footer-line {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.oi-footer-mail {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding-inline: 18px;
+  color: var(--oi-ink);
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 999px;
+  transition:
+    background-color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease;
+}
+
+.oi-footer-mail span {
+  transition: transform var(--oi-fade) ease;
+}
+
+.oi-footer-mail:hover {
+  border-color: var(--oi-accent);
+  background: rgba(var(--oi-accent-rgb), 0.14);
+}
+
+.oi-footer-mail:hover span {
+  transform: translateX(3px);
+}
+
+.oi-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--oi-s3);
+}
+
+.oi-footer-topic {
+  margin: 0 0 var(--oi-s1);
+  color: var(--oi-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.oi-footer-col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The solutions under "More" open above the toggle, so the list grows and "Less" ends it. */
+.oi-footer-col .oi-more {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+}
+
+.oi-footer-col .oi-more-region > ul {
+  margin: 0;
+}
+
+.oi-footer-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition:
+    color var(--oi-fade) ease,
+    transform var(--oi-fade) ease;
+}
+
+/* A short green dash slides in ahead of the link under the pointer. */
+.oi-footer-link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -14px;
+  width: 8px;
+  height: 1px;
+  background: var(--oi-accent);
+  opacity: 0;
+  transition: opacity var(--oi-fade) ease;
+}
+
+.oi-footer-link:hover {
+  color: var(--oi-ink);
+  transform: translateX(14px);
+}
+
+.oi-footer-link:hover::before {
+  opacity: 1;
+}
+
+.oi-footer-base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--oi-s1) var(--oi-s3);
+  padding: var(--oi-s3) var(--oi-s1) 0;
+}
+
+@media (pointer: coarse) {
+  .oi-footer-link {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .oi-footer-panel {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 40px;
+  }
+}
+
+@media (max-width: 600px) {
+  .oi-footer-panel {
+    padding: 28px 22px;
+    border-radius: 22px;
+  }
+
+  /* Only the last row stretches, so the left groups stay together when "More" is open. */
+  .oi-footer-cols {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  /* Product, Company and Legal stack on the left; the long Solutions list stands beside them. */
+  .oi-footer-col-long {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+}
+
+/* The oversized wordmark that closes the page; decoration, so it is aria-hidden. */
+.oi-wordmark {
+  display: block;
+  margin: var(--oi-s4) 0 -0.16em;
+  font-size: clamp(5rem, 23vw, 22rem);
+  font-weight: 600;
+  line-height: 0.8;
+  letter-spacing: -0.07em;
+  text-align: center;
+  white-space: nowrap;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 82%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  user-select: none;
+}
+
+/* Responsive --------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .oi-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  [data-landing-variant='instant'] {
+    --oi-s5: 80px;
+  }
+
+  .oi-container {
+    padding-inline: var(--oi-s2);
+  }
+
+  .oi-head {
+    margin-bottom: var(--oi-s3);
+  }
+
+  .oi-card-grid,
+  .oi-stat-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oi-ambient i,
+  .oi-more-region {
+    animation: none;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+
+  [data-reveal] .oi-check path {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+
+  .oi-card,
+  .oi-more-chevron {
+    transition: none;
+  }
+
+  .oi-card:hover,
+  .oi-card:focus-within {
+    transform: none;
+  }
+}

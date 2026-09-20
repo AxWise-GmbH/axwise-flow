@@ -1,0 +1,706 @@
+/*
+ * The Speed page's first block (class prefix ohs-): a 90-second stopwatch face drawn in the
+ * line-orb's language of fine radial lines. HeroFrame lays out the words; this file draws the
+ * instrument and re-composes it three times:
+ *   wide    the three readouts sit inside the dial, the plate and Replay in its lower corners
+ *   tablet  dial on the left, readouts beside it, the plate engraved in the dial's centre
+ *   phone   dial, then the readouts as one table under it
+ *
+ * Motion is transform, opacity and stroke-dashoffset only. The resting state is the finished
+ * reading, so with motion switched off (bottom of the file) the dial simply stands complete.
+ */
+
+/* On the whole block: the quiet link under the words uses the same light as the dial. */
+.ohs-hero {
+  --ohs-light: rgb(var(--oi-accent-rgb));
+  --ohs-pale: rgb(var(--oi-pale-rgb));
+}
+
+.ohs {
+  position: relative;
+}
+
+/* The dial ---------------------------------------------------------------------------------- */
+
+.ohs-dial {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.ohs-face,
+.ohs-sweep,
+.ohs-marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ohs-face,
+.ohs-sweep {
+  fill: none;
+}
+
+.ohs-face {
+  animation: ohs-face-in 1700ms var(--oi-ease) backwards;
+}
+
+/* Its own layer: the arcs repaint every frame of the sweep, the 600 ticks under them never. */
+.ohs-sweep {
+  will-change: transform;
+  animation: ohs-fade-in 900ms ease 300ms backwards;
+}
+
+/* Tick widths are degrees of the ring (pathLength 360); each offset centres a tick on its mark. */
+.ohs-corona {
+  stroke-width: 26;
+  stroke-dasharray: 0.2 0.8;
+  stroke-dashoffset: 0.1;
+}
+
+.ohs-tick-half {
+  stroke: rgba(var(--oi-pale-rgb), 0.28);
+  stroke-width: 8;
+  stroke-dasharray: 0.2 1.8;
+  stroke-dashoffset: 0.1;
+}
+
+.ohs-tick-second {
+  stroke: rgba(var(--oi-pale-rgb), 0.6);
+  stroke-width: 18;
+  stroke-dasharray: 0.22 3.78;
+  stroke-dashoffset: 0.11;
+}
+
+.ohs-tick-major {
+  stroke: var(--oi-ink);
+  stroke-width: 30;
+  stroke-dasharray: 0.34 19.66;
+  stroke-dashoffset: 0.17;
+}
+
+.ohs-guide,
+.ohs-leader {
+  stroke: var(--oi-hairline);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.ohs-hub {
+  stroke: rgba(var(--oi-pale-rgb), 0.16);
+}
+
+.ohs-stop-clear {
+  stop-color: var(--ohs-light);
+  stop-opacity: 0;
+}
+
+.ohs-stop-pale {
+  stop-color: var(--ohs-pale);
+  stop-opacity: 0.55;
+}
+
+.ohs-stop-light {
+  stop-color: var(--ohs-light);
+  stop-opacity: 0.38;
+}
+
+.ohs-stop-ink {
+  stop-color: var(--oi-ink);
+  stop-opacity: 0.95;
+}
+
+/* Lanes: butt ends, so an arc stops exactly on its measured second. */
+.ohs-lane {
+  transition: opacity 400ms ease;
+}
+
+.ohs-lane[data-quiet='true'] {
+  opacity: 0.28;
+}
+
+.ohs-arc {
+  stroke: var(--ohs-light);
+  stroke-width: 2.5;
+}
+
+.ohs-comet {
+  stroke-width: 2.5;
+}
+
+.ohs-marker {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.ohs-lane[data-locked='true'] .ohs-marker {
+  opacity: 1;
+}
+
+.ohs-leader {
+  stroke: rgba(var(--oi-pale-rgb), 0.4);
+}
+
+.ohs-marker-ring {
+  stroke: rgba(var(--oi-pale-rgb), 0.7);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.ohs-marker-dot {
+  fill: var(--oi-ink);
+}
+
+.ohs-ping {
+  stroke: var(--ohs-pale);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ohs-lane[data-locked='true'] .ohs-ping {
+  animation: ohs-ping 1200ms var(--oi-ease);
+}
+
+/* The hand rests, dimmed, on the last reading; its trail only shows while it moves. */
+.ohs-hand {
+  opacity: 0.55;
+  transition: opacity 700ms ease;
+}
+
+.ohs-sweep[data-moving='true'] .ohs-hand {
+  opacity: 1;
+}
+
+.ohs-hand-line {
+  stroke: var(--oi-ink);
+  stroke-width: 1.5;
+}
+
+.ohs-hand-glow {
+  stroke: rgba(var(--oi-accent-rgb), 0.4);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.ohs-hand-trail {
+  stroke-width: 34;
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+
+.ohs-sweep[data-moving='true'] .ohs-hand-trail {
+  opacity: 1;
+}
+
+/* Marks set in HTML over the drawing, so their type keeps its size when the dial shrinks. */
+.ohs-numeral,
+.ohs-index,
+.ohs-halo {
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  translate: -50% -50%;
+}
+
+.ohs-numeral,
+.ohs-index {
+  font-family: var(--oi-mono);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  /* Tracking trails the last glyph; this puts the glyphs, not the box, on the mark. */
+  text-indent: 0.08em;
+}
+
+.ohs-numeral {
+  color: var(--oi-muted);
+  font-size: 0.7rem;
+  animation: ohs-fade-in 900ms ease 700ms backwards;
+}
+
+.ohs-index {
+  color: var(--oi-muted);
+  font-size: 0.6rem;
+  opacity: 0;
+  transition:
+    opacity 400ms ease 150ms,
+    color 300ms ease;
+}
+
+.ohs-index[data-locked='true'] {
+  opacity: 1;
+}
+
+.ohs-index[data-lit='true'] {
+  color: var(--oi-ink);
+}
+
+/* The marker's light. The wrapper arrives with the marker; the light inside it breathes. */
+.ohs-halo {
+  width: 12%;
+  aspect-ratio: 1;
+  opacity: 0;
+  transition:
+    opacity 700ms ease,
+    scale 600ms var(--oi-ease);
+}
+
+.ohs-halo[data-locked='true'] {
+  opacity: 1;
+}
+
+.ohs-halo[data-lit='true'] {
+  scale: 1.5;
+}
+
+.ohs-halo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-pale-rgb), 0.5),
+    rgba(var(--oi-accent-rgb), 0.2) 34%,
+    transparent 68%
+  );
+  animation: ohs-breathe 5200ms ease-in-out infinite alternate;
+  animation-delay: calc(var(--i, 0) * -1700ms);
+}
+
+/* The measurement plate ------------------------------------------------------------------- */
+
+.ohs-plate {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.75;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: ohs-fade-in 900ms ease 1000ms backwards;
+}
+
+/* Readouts ---------------------------------------------------------------------------------- */
+
+.ohs-readouts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ohs-readouts > li {
+  animation: ohs-rise 1000ms var(--oi-ease) backwards;
+  animation-delay: calc(420ms + var(--i, 0) * 110ms);
+}
+
+.ohs-readouts > li + li {
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.ohs-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'idx value go'
+    '. label go';
+  align-items: baseline;
+  gap: 5px 12px;
+  padding-block: 12px;
+  color: var(--oi-ink);
+  text-decoration: none;
+}
+
+.ohs-row:focus-visible,
+.ohs-method:focus-visible,
+.ohs-replay:focus-visible {
+  outline: 2px solid var(--ohs-light);
+  outline-offset: 4px;
+}
+
+.ohs-row:focus-visible,
+.ohs-method:focus-visible {
+  border-radius: 8px;
+}
+
+.ohs-idx {
+  grid-area: idx;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  transition: color 300ms ease;
+}
+
+/* A running figure is the light's colour; it turns to ink as it locks. */
+.ohs-value {
+  grid-area: value;
+  color: var(--ohs-pale);
+  font-family: var(--oi-mono);
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+  transition: color 500ms ease;
+}
+
+.ohs-row[data-locked='true'] .ohs-value {
+  color: var(--oi-ink);
+}
+
+.ohs-row[data-locked='true'] .ohs-idx {
+  color: var(--ohs-light);
+}
+
+.ohs-unit {
+  color: var(--oi-muted);
+  font-size: 0.5em;
+  letter-spacing: 0;
+}
+
+.ohs-label {
+  grid-area: label;
+  color: var(--oi-muted);
+  font-size: 0.82rem;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  transition: color 300ms ease;
+}
+
+.ohs-arrow {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    translate 500ms var(--oi-ease),
+    color 300ms ease;
+}
+
+.ohs-row .ohs-arrow {
+  grid-area: go;
+  align-self: center;
+  color: var(--oi-dim);
+}
+
+.ohs-row:hover .ohs-arrow,
+.ohs-row:focus-visible .ohs-arrow {
+  color: var(--ohs-light);
+  translate: 0 3px;
+}
+
+.ohs-row:hover .ohs-label,
+.ohs-row:focus-visible .ohs-label {
+  color: var(--oi-ink);
+}
+
+/* Replay and the quiet way down ----------------------------------------------------------- */
+
+.ohs-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  animation: ohs-fade-in 900ms ease 1100ms backwards;
+}
+
+.ohs-note {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ohs-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 16px 0 12px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: var(--oi-radius-pill);
+  background: rgba(var(--oi-deep-rgb), 0.22);
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 300ms ease,
+    background-color 300ms ease,
+    scale 500ms var(--oi-ease);
+}
+
+.ohs-replay:hover {
+  border-color: var(--ohs-light);
+  background: rgba(var(--oi-accent-rgb), 0.16);
+}
+
+.ohs-replay:active {
+  scale: 0.97;
+}
+
+.ohs-replay-glyph {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: rotate 900ms var(--oi-ease);
+}
+
+.ohs-replay:hover .ohs-replay-glyph {
+  rotate: 360deg;
+}
+
+.ohs-method {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--oi-fade) ease;
+}
+
+/* The underline belongs to the words, not to the arrow or the touch target around them. */
+.ohs-method > span {
+  padding-bottom: 4px;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+}
+
+.ohs-method:hover {
+  color: var(--ohs-light);
+}
+
+.ohs-method:hover .ohs-arrow {
+  translate: 0 3px;
+}
+
+@media (pointer: coarse) {
+  .ohs-replay {
+    min-height: 44px;
+  }
+}
+
+/* Wide: the readouts live inside the dial ------------------------------------------------ */
+
+@media (min-width: 1100px) {
+  /* As tall as HeroFrame's row, so the next section's head still shows under the block.
+     The container makes 1cqw one hundredth of the dial: the table scales with it. */
+  .ohs {
+    width: max(420px, min(100%, 62svh, 600px));
+    margin-inline: auto;
+    container-type: inline-size;
+  }
+
+  .ohs-side {
+    display: contents;
+  }
+
+  .ohs-readouts {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 42cqw;
+    translate: -50% -50%;
+  }
+
+  .ohs-row {
+    gap: 0.8cqw 2.2cqw;
+    padding-block: 2cqw;
+  }
+
+  .ohs-value {
+    font-size: 6.2cqw;
+  }
+
+  .ohs-label {
+    font-size: max(0.72rem, 2.3cqw);
+  }
+
+  .ohs-plate {
+    bottom: 0;
+    left: 0;
+  }
+
+  .ohs-controls {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+/* Tablet: dial and readouts side by side ------------------------------------------------- */
+
+@media (max-width: 1099px) {
+  .ohs {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    gap: clamp(28px, 5.5vw, 64px);
+    align-items: center;
+  }
+
+  .ohs-side {
+    display: grid;
+    gap: 20px;
+  }
+
+  .ohs-plate {
+    top: 50%;
+    left: 50%;
+    text-align: center;
+    translate: -50% -50%;
+  }
+
+  .ohs-value {
+    font-size: clamp(2rem, 4.4vw, 2.7rem);
+  }
+
+  .ohs-label {
+    font-size: 0.92rem;
+  }
+
+  .ohs-row {
+    padding-block: 16px;
+  }
+
+  .ohs-controls {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+  }
+}
+
+/* Phone: the dial, then one tidy table ---------------------------------------------------- */
+
+@media (max-width: 699px) {
+  .ohs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  /* A little under the full column, so the first readout still shows on the first screen. */
+  .ohs-dial {
+    width: min(100%, 330px);
+    margin-inline: auto;
+  }
+
+  /* One line per run; a fixed figure column keeps the three labels on one edge. */
+  .ohs-row {
+    grid-template-columns: auto 6.7rem minmax(0, 1fr) auto;
+    grid-template-areas: 'idx value label go';
+    min-height: 56px;
+    padding-block: 8px;
+    box-sizing: border-box;
+  }
+
+  .ohs-value {
+    font-size: 1.75rem;
+  }
+
+  .ohs-label {
+    font-size: 0.88rem;
+  }
+
+  .ohs-controls {
+    justify-content: space-between;
+  }
+}
+
+/* Motion ------------------------------------------------------------------------------------ */
+
+@keyframes ohs-face-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) rotate(-14deg);
+  }
+}
+
+@keyframes ohs-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ohs-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+@keyframes ohs-ping {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+}
+
+@keyframes ohs-breathe {
+  from {
+    opacity: 0.55;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ohs-face,
+  .ohs-sweep,
+  .ohs-numeral,
+  .ohs-plate,
+  .ohs-controls,
+  .ohs-readouts > li,
+  .ohs-halo::before,
+  .ohs-lane[data-locked='true'] .ohs-ping {
+    animation: none;
+  }
+
+  .ohs-lane,
+  .ohs-marker,
+  .ohs-hand,
+  .ohs-index,
+  .ohs-halo,
+  .ohs-value,
+  .ohs-arrow,
+  .ohs-replay,
+  .ohs-replay-glyph {
+    transition: none;
+  }
+}

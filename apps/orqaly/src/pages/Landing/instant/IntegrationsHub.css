@@ -1,0 +1,851 @@
+/*
+ * The integrations hub (class prefix oih-). Tokens and primitives come from instant.css.
+ *
+ * One light source: the line-orb in the middle. Cards plug into it over wires that draw
+ * themselves, then carry light toward it. Motion is transform, opacity, filter,
+ * stroke-dashoffset and the individual scale/rotate properties only; everything that moves
+ * is switched off at the bottom of the file under prefers-reduced-motion.
+ */
+
+/* Section shell --------------------------------------------------------------- */
+
+.oih-section {
+  overflow: clip;
+}
+
+/* Looping decoration rests while nobody can see it (Seen sets data-live). */
+.oih-section[data-live='false'] *,
+.oih-section[data-live='false'] *::before,
+.oih-section[data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+/* Arrivals fade and rise. No blur is ever animated in this block: it is the costliest paint. */
+.oih-section [data-reveal] {
+  filter: none;
+  transition:
+    opacity var(--oi-reveal) var(--oi-ease) var(--d, 0ms),
+    transform var(--oi-reveal) var(--oi-ease) var(--d, 0ms);
+}
+
+/* Until a block has really been scrolled to, its reveals stay in the dark. */
+.oih-gate[data-seen='false'] [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+/* A hairline that draws itself from the middle, with light resting on it. */
+.oih-ruled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(1192px, calc(100% - 2 * var(--oi-s3)));
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--oi-hairline-strong) 22%,
+    rgba(255, 255, 255, 0.5) 50%,
+    var(--oi-hairline-strong) 78%,
+    transparent
+  );
+  transform: translate3d(-50%, 0, 0) scaleX(0);
+  transition: transform 1800ms var(--oi-ease);
+}
+
+.oih-ruled[data-seen='true']::before {
+  transform: translate3d(-50%, 0, 0) scaleX(1);
+}
+
+/* Head -------------------------------------------------------------------------- */
+
+.oih-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--oi-s4);
+  row-gap: 22px;
+  align-items: end;
+  margin-bottom: var(--oi-s4);
+}
+
+.oih-head-main {
+  display: grid;
+  gap: 22px;
+}
+
+.oih-head .oih-lead {
+  padding-bottom: 8px;
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+}
+
+/* Hub ---------------------------------------------------------------------------- */
+
+.oih-hub {
+  --oih-orb: clamp(170px, calc(15.46vw + 30.8px), 230px);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, calc(46vw - 130px), 540px) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'models-label . tools-label'
+    'models core tools';
+  align-items: center;
+  isolation: isolate;
+}
+
+/* A field of dots that only shows where the orb's light falls. */
+.oih-hub::before {
+  content: '';
+  position: absolute;
+  inset: -80px -40px;
+  z-index: -2;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.17) 1px, transparent 1.5px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 36% 58% at 50% 54%, #000, transparent 100%);
+  mask-image: radial-gradient(ellipse 36% 58% at 50% 54%, #000, transparent 100%);
+  opacity: 0;
+  transition: opacity 2400ms ease 400ms;
+  pointer-events: none;
+}
+
+.oih-hub-gate[data-seen='true'] .oih-hub::before {
+  opacity: 1;
+}
+
+.oih-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+/* A rule runs from the label to the edge of its column. */
+.oih-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--oi-hairline-strong), transparent);
+}
+
+.oih-label-models {
+  grid-area: models-label;
+}
+
+.oih-label-tools {
+  grid-area: tools-label;
+}
+
+.oih-list {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oih-list-models {
+  grid-area: models;
+}
+
+.oih-list-tools {
+  grid-area: tools;
+}
+
+/* Wires -------------------------------------------------------------------------- */
+
+.oih-wires {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
+}
+
+.oih-ring {
+  stroke: var(--oi-hairline);
+  stroke-width: 1;
+  opacity: 0;
+  transition: opacity 2000ms ease 900ms;
+}
+
+.oih-hub-gate[data-seen='true'] .oih-ring {
+  opacity: 1;
+}
+
+/* A second, pencilled ring. */
+.oih-ring-far {
+  stroke-dasharray: 1 7;
+  stroke-linecap: round;
+  stroke: var(--oi-hairline-strong);
+}
+
+/* Light that keeps circling the ring the wires plug into. */
+.oih-ring-light {
+  stroke: rgba(var(--oi-pale-rgb), 0.9);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 9 91;
+  animation: oih-circle 16s linear infinite;
+}
+
+@keyframes oih-circle {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.oih-rail {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition:
+    stroke-dashoffset 1800ms var(--oi-ease) calc(300ms + var(--i) * 90ms),
+    opacity 500ms ease;
+}
+
+.oih-hub-gate[data-seen='false'] .oih-rail {
+  stroke-dashoffset: 1;
+}
+
+/* The same wire, lit: shown while its card is pointed at, focused or tapped. */
+.oih-lit {
+  stroke: var(--oi-accent);
+  stroke-width: 1.5;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.oih-wire[data-active='true'] .oih-lit {
+  opacity: 1;
+}
+
+/* Light travelling to the orb: a short bright dash inside a soft one. */
+.oih-tail-soft,
+.oih-tail,
+.oih-pulse {
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.oih-tail-soft {
+  stroke: rgba(var(--oi-accent-rgb), 0.22);
+  stroke-width: 6;
+  stroke-dashoffset: var(--t0);
+}
+
+.oih-tail {
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-width: 1.6;
+  stroke-dashoffset: var(--t0);
+}
+
+.oih-hub-gate[data-seen='true'] .oih-tail-soft,
+.oih-hub-gate[data-seen='true'] .oih-tail {
+  animation: oih-tail var(--travel) linear calc(2000ms + var(--i) * 520ms) infinite;
+}
+
+@keyframes oih-tail {
+  0% {
+    stroke-dashoffset: var(--t0);
+    opacity: 0;
+  }
+  8%,
+  56% {
+    opacity: 1;
+  }
+  64%,
+  100% {
+    stroke-dashoffset: var(--t1);
+    opacity: 0;
+  }
+}
+
+/* The answer to a pointer or to focus: one quick bright run into the orb, again and again. */
+.oih-pulse {
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-dashoffset: var(--p0);
+}
+
+.oih-wire[data-active='true'] .oih-pulse {
+  animation: oih-pulse 1500ms cubic-bezier(0.5, 0, 0.75, 0.4) infinite;
+}
+
+@keyframes oih-pulse {
+  0% {
+    stroke-dashoffset: var(--p0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  62% {
+    opacity: 0.95;
+  }
+  72%,
+  100% {
+    stroke-dashoffset: var(--p1);
+    opacity: 0;
+  }
+}
+
+/* Where a live wire meets the ring. */
+.oih-dock {
+  fill: var(--oi-ink);
+  stroke: none;
+  opacity: 0;
+  transition: opacity 900ms ease calc(1700ms + var(--i) * 90ms);
+}
+
+.oih-dock-halo {
+  fill: rgba(var(--oi-accent-rgb), 0.3);
+  stroke: none;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  /* It waits for its wire to be drawn, like the dock it surrounds. */
+  transition:
+    opacity 900ms ease calc(1700ms + var(--i) * 90ms),
+    scale 600ms var(--oi-ease);
+}
+
+.oih-hub-gate[data-seen='true'] .oih-dock {
+  opacity: 1;
+}
+
+.oih-hub-gate[data-seen='true'] .oih-dock-halo {
+  opacity: 0.5;
+  animation: oih-land var(--travel) linear calc(2000ms + var(--i) * 520ms) infinite;
+}
+
+/* The light lands at 56% of its loop (see oih-tail). */
+@keyframes oih-land {
+  0%,
+  50% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  58% {
+    transform: scale(2.1);
+    opacity: 1;
+  }
+  80%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+}
+
+.oih-wire[data-active='true'] .oih-dock-halo {
+  opacity: 1;
+  scale: 1.7;
+}
+
+/* Core: the orb and its bloom ------------------------------------------------------ */
+
+.oih-core {
+  grid-area: core;
+  position: relative;
+  justify-self: center;
+  width: var(--oih-orb);
+  height: var(--oih-orb);
+  pointer-events: none;
+}
+
+.oih-bloom-wrap {
+  position: absolute;
+  inset: -95%;
+  z-index: -1;
+  opacity: 0;
+  scale: 0.7;
+  transition:
+    opacity 2400ms ease,
+    scale 1100ms var(--oi-ease);
+}
+
+.oih-hub-gate[data-seen='true'] .oih-bloom-wrap {
+  opacity: 0.8;
+  scale: 1;
+}
+
+.oih-hub-gate[data-seen='true'] .oih-hub[data-swell='true'] .oih-bloom-wrap {
+  opacity: 1;
+  scale: 1.16;
+}
+
+.oih-bloom {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-pale-rgb), 0.3),
+    rgba(var(--oi-accent-rgb), 0.26) 20%,
+    rgba(var(--oi-glow-rgb), 0.4) 36%,
+    rgba(var(--oi-glow-rgb), 0.16) 52%,
+    rgba(var(--oi-glow-rgb), 0.04) 64%,
+    transparent 72%
+  );
+  animation: oih-breathe 7s ease-in-out infinite alternate;
+}
+
+@keyframes oih-breathe {
+  from {
+    opacity: 0.62;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* The orb swells out of the dark once the hub is reached. */
+.oih-orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  opacity: 0;
+  scale: 0.8;
+  transition:
+    opacity 2200ms ease 200ms,
+    scale 2600ms var(--oi-ease) 200ms;
+}
+
+.oih-hub-gate[data-seen='true'] .oih-orb {
+  opacity: 1;
+  scale: 1;
+}
+
+/* Cards ---------------------------------------------------------------------------- */
+
+/*
+ * A state never fades a colour here. The brighter edge, the lit tile and the live ring are
+ * layers of their own, and only their opacity and scale change.
+ */
+
+.oih-slot {
+  display: block;
+  transition:
+    opacity var(--oi-reveal) var(--oi-ease) var(--d, 0ms),
+    transform var(--oi-reveal) var(--oi-ease) var(--d, 0ms);
+}
+
+/* Cards arrive with their list (and, side by side, with the hub). */
+.oih-gate[data-seen='false'] .oih-slot {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.oih-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 28px;
+  column-gap: 16px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 84px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: var(--oi-radius-card);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.014) 70%);
+  color: var(--oi-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oih-card:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+}
+
+/* Pointer spotlight: the hub sets --mx/--my; without a pointer it rests above the card. */
+.oih-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    340px circle at var(--mx, 50%) var(--my, -30%),
+    rgba(var(--oi-accent-rgb), 0.2),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+/* The brighter edge, laid over the resting one. */
+.oih-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.oih-card:hover::before,
+.oih-card:focus-visible::before,
+.oih-card:hover::after,
+.oih-card:focus-visible::after {
+  opacity: 1;
+}
+
+.oih-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--oi-ink);
+}
+
+/* The tile lit from below by the one accent. */
+.oih-tile::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-accent-rgb), 0.7);
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% 115%,
+    rgba(var(--oi-accent-rgb), 0.45),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.oih-card:hover .oih-tile::after,
+.oih-card:focus-visible .oih-tile::after {
+  opacity: 1;
+}
+
+/* The product's own mark, in the page's ink. */
+.oih-mark {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.oih-text {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.oih-name {
+  color: var(--oi-ink);
+  font-size: 1.18rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.oih-type {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* A small light at the end of every card: it is on. */
+.oih-live {
+  position: relative;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 50%;
+}
+
+.oih-live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-accent);
+  transition: scale 600ms var(--oi-ease);
+}
+
+/* Pointed at: an accent ring opens round the light. */
+.oih-live::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-accent-rgb), 0.8);
+  border-radius: 50%;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity 400ms ease,
+    scale 700ms var(--oi-ease);
+}
+
+.oih-card:hover .oih-live::before,
+.oih-card:focus-visible .oih-live::before {
+  scale: 1.35;
+}
+
+.oih-card:hover .oih-live::after,
+.oih-card:focus-visible .oih-live::after {
+  opacity: 1;
+  scale: 1;
+}
+
+/* Marquee --------------------------------------------------------------------------- */
+
+.oih-after {
+  display: grid;
+  gap: var(--oi-s3);
+  margin-top: var(--oi-s5);
+}
+
+.oih-marquee {
+  position: relative;
+  overflow: hidden;
+  padding-block: 4px;
+  border-radius: 8px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+
+.oih-marquee:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+}
+
+.oih-track {
+  display: flex;
+  width: max-content;
+  animation: oih-marquee 70s linear infinite;
+}
+
+.oih-marquee:hover .oih-track,
+.oih-marquee:focus .oih-track,
+.oih-marquee:focus-within .oih-track {
+  animation-play-state: paused;
+}
+
+.oih-pills {
+  display: flex;
+  flex: none;
+  gap: 10px;
+  margin: 0;
+  padding: 0 10px 0 0;
+  list-style: none;
+}
+
+.oih-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 18px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: var(--oi-radius-pill);
+  color: var(--oi-muted);
+  font-size: 0.92rem;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.oih-pill::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--oi-accent-dark);
+  transition: scale 500ms var(--oi-ease);
+}
+
+/* The brighter edge, laid over the resting one. */
+.oih-pill::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.oih-pill:hover {
+  color: var(--oi-ink);
+}
+
+.oih-pill:hover::before {
+  background: var(--oi-accent);
+  scale: 1.5;
+}
+
+.oih-pill:hover::after {
+  opacity: 1;
+}
+
+@keyframes oih-marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Phone and tablet: the orb on top, one spine of light down the left edge ------------ */
+
+@media (max-width: 899px) {
+  .oih-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oih-head .oih-lead {
+    padding-bottom: 0;
+  }
+
+  .oih-hub {
+    --oih-orb: 170px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'core'
+      'models-label'
+      'models'
+      'tools-label'
+      'tools';
+    padding-left: 30px;
+  }
+
+  .oih-hub::before {
+    inset: -40px -16px auto;
+    height: 360px;
+    -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 42%, #000, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 42%, #000, transparent 100%);
+  }
+
+  /* The orb stays in the middle of the screen, not of the indented column. */
+  .oih-core {
+    margin: 26px 0 60px -30px;
+  }
+
+  .oih-label {
+    margin-bottom: 14px;
+  }
+
+  .oih-label-tools {
+    margin-top: 34px;
+  }
+
+  .oih-list {
+    gap: 14px;
+  }
+
+  .oih-card {
+    min-height: 76px;
+    padding-block: 14px;
+  }
+
+  /* The spine grows down from the orb. */
+  .oih-hub-gate[data-seen='false'] .oih-rail {
+    stroke-dashoffset: -1;
+  }
+
+  /* One line carries every wire: the six rails lie on top of each other, so each is faint. */
+  .oih-rail {
+    stroke: rgba(var(--oi-pale-rgb), 0.16);
+  }
+
+  .oih-bloom-wrap {
+    inset: -120%;
+  }
+
+  .oih-after {
+    margin-top: var(--oi-s4);
+  }
+}
+
+@media (max-width: 600px) {
+  .oih-head {
+    margin-bottom: var(--oi-s3);
+  }
+
+  .oih-ruled::before {
+    width: calc(100% - 2 * var(--oi-s2));
+  }
+
+  .oih-marquee {
+    margin-inline: calc(var(--oi-s2) * -1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oih-section *,
+  .oih-section *::before,
+  .oih-section *::after,
+  .oih-section::before {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Still light: every wire keeps one dash parked part of the way to the orb. */
+  .oih-tail-soft,
+  .oih-tail {
+    stroke-dashoffset: var(--tm);
+    opacity: 1;
+  }
+
+  /* The circling light rests at the foot of the ring, clear of the wires. */
+  .oih-ring-light {
+    stroke-dashoffset: 70;
+  }
+
+  /* Nothing scrolls by, so every name is laid out in full and the copy is dropped. */
+  .oih-marquee {
+    margin-inline: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .oih-track {
+    width: auto;
+  }
+
+  .oih-pills {
+    flex: 1;
+    flex-wrap: wrap;
+    padding-right: 0;
+  }
+
+  .oih-pills[aria-hidden='true'] {
+    display: none;
+  }
+}

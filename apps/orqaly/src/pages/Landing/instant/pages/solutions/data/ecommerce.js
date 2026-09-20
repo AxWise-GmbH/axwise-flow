@@ -1,0 +1,163 @@
+export default {
+  slug: 'ecommerce',
+  eyebrow: 'Store operations',
+  title: 'Your store keeps moving while you sleep.',
+  subtitle:
+    'Order updates, supplier threads, customer questions and the returns queue: Orqanix works through them in the tools you already use and leaves the exceptions for you.',
+  pillars: [
+    {
+      id: 'orders',
+      icon: 'truck',
+      title: 'Order status',
+      body: 'Watches your orders and tells customers about delays before they write in.',
+      stat: 'Fewer status tickets',
+    },
+    {
+      id: 'suppliers',
+      icon: 'mail',
+      title: 'Supplier threads',
+      body: 'Handles stock checks and order confirmations by email, and flags late deliveries to you.',
+      stat: 'One supplier thread',
+    },
+    {
+      id: 'support',
+      icon: 'message',
+      title: 'Support concierge',
+      body: 'Answers tracking, sizing and policy questions. Only the odd cases reach you.',
+      stat: 'Quieter inbox',
+    },
+    {
+      id: 'returns',
+      icon: 'box',
+      title: 'Returns queue',
+      body: 'Checks each return against your policy and lines up the decisions for your approval.',
+      stat: 'Decisions lined up',
+    },
+  ],
+  spotlights: [
+    {
+      id: 'orders',
+      eyebrow: 'Orders',
+      title: 'Customers hear before they ask.',
+      body: 'Orqanix follows each order in your store. When something slips, ships or lands, it writes the customer a clear note and logs it, so fewer tickets get written.',
+      bullets: [
+        'Updates on delay and dispatch',
+        'Notes logged to your CRM',
+        'Repeat contacts flagged',
+        'Daily exceptions list',
+      ],
+      scene: {
+        kind: 'map',
+        pins: [
+          { x: 12, y: 66, label: 'Warehouse', state: 'done' },
+          { x: 30, y: 28, label: 'Sorting hub', state: 'done' },
+          { x: 64, y: 64, label: 'Delayed 1 day', state: 'now' },
+          { x: 88, y: 30, label: 'Customer', state: 'next' },
+        ],
+        note: 'Order 1042: customer told about the delay',
+      },
+    },
+    {
+      id: 'suppliers',
+      eyebrow: 'Suppliers',
+      title: 'Supplier chat stops living in five places.',
+      body: 'Stock checks, order confirmations and lead-time changes stay in one thread per supplier. A late delivery reaches you with context and a reorder draft attached.',
+      bullets: [
+        'One thread per supplier',
+        'Purchase orders kept together',
+        'Late deliveries flagged',
+        'Reorder drafts ready',
+      ],
+      scene: {
+        kind: 'inbox',
+        threads: [
+          {
+            from: 'Nordic Textiles',
+            subject: 'Delivery moves to Friday',
+            tag: 'Late',
+            state: 'draft',
+          },
+          {
+            from: 'Packline',
+            subject: 'Stock check: 600 mailers on hand',
+            tag: 'Stock',
+            state: 'replied',
+          },
+          {
+            from: 'Bright Labels',
+            subject: 'Order 88 confirmed',
+            tag: 'Confirmed',
+            state: 'replied',
+          },
+        ],
+        draft: {
+          to: 'Reorder draft · Nordic Textiles',
+          lines: [
+            'Please add 40 rolls of the grey cotton.',
+            'Can both orders ship together on Friday?',
+          ],
+        },
+      },
+    },
+    {
+      id: 'support',
+      eyebrow: 'Support',
+      title: '"Where is my order" without the ticket pile.',
+      body: 'It looks up the order, reads your policy and answers in your voice on the channels you connect. Anything unusual arrives on your side with the full history.',
+      bullets: [
+        'Looks up the live order',
+        'Answers follow your policy',
+        'Checks refund eligibility',
+        'Unusual cases go to you',
+      ],
+      scene: {
+        kind: 'phone',
+        title: 'Your store · support',
+        messages: [
+          { from: 'them', text: 'Where is my order?' },
+          { from: 'app', text: 'Order 1042 left the hub today. It is due on Thursday.' },
+          { from: 'them', text: 'Great, thank you!' },
+        ],
+        actions: ['Track parcel', 'Change address'],
+      },
+    },
+    {
+      id: 'returns',
+      eyebrow: 'Returns',
+      title: 'The refund queue, ready for your approval.',
+      body: 'Overnight, Orqanix reads each return request against your policy, prepares the decision and the customer email, and sets aside the costly or unclear ones for you.',
+      bullets: [
+        'Your policy, applied evenly',
+        'Decisions wait for approval',
+        'Customer email drafted',
+        'Morning exceptions list',
+      ],
+      scene: {
+        kind: 'tiles',
+        title: 'Returns · read overnight',
+        cells: [
+          { label: 'R-201', meta: 'Refund', state: 'ok' },
+          { label: 'R-202', meta: 'Exchange', state: 'ok' },
+          { label: 'R-203', meta: 'Costly item', state: 'alert' },
+          { label: 'R-204', meta: 'Refund', state: 'ok' },
+          { label: 'R-205', meta: 'Reading policy', state: 'now' },
+          { label: 'R-206', meta: 'Store credit', state: 'ok' },
+          { label: 'R-207', meta: 'Unclear photos', state: 'alert' },
+          { label: 'R-208', meta: 'Refund', state: 'ok' },
+        ],
+        legend: ['Decision ready', 'Being read', 'Set aside for you'],
+      },
+    },
+  ],
+  agentsTitle: 'Agents online stores hire first',
+  agents: [
+    { name: 'Order status agent', line: 'Tells customers about delays first' },
+    { name: 'Supplier agent', line: 'Keeps supplier threads and orders together' },
+    { name: 'Support concierge', line: 'Answers tracking, sizing and policy questions' },
+    { name: 'Returns agent', line: 'Prepares refund decisions for your approval' },
+    { name: 'Stock watcher', line: 'Warns you before a bestseller runs out' },
+    { name: 'Listing writer', line: 'Drafts product pages from your notes' },
+  ],
+  closing: 'Try Orqanix for your store.',
+  related: ['marketing', 'manufacturing', 'creators'],
+};

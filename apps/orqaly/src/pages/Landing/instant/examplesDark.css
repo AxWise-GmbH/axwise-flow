@@ -1,0 +1,954 @@
+/*
+ * Orqanix "Instant" landing: the Examples block, in the dark.
+ *
+ * The block reuses SimpleExamples and DesktopProductDemo from "/" unchanged. Every rule here
+ * sits under one of two classes that only exist on the Instant page, so "/" cannot be reached:
+ *   .oix       the wrapper InstantExamples puts round the section (page chrome: head, pills,
+ *              slide title, previous/next, captions)
+ *   .opd-dark  the class the demo adds for variant="instant" (the app window and its controls)
+ *
+ * The window is the desktop app's dark theme: a neutral graphite canvas, hairline cards, near
+ * monochrome. It matches HeroWindow.css. The page's racing green is kept for small accents
+ * only: the status dot, focus rings, the selected pill's glow and the play control's hover.
+ *
+ * DesktopProductDemo.css is not edited. Its selectors are mirrored here one class heavier, so
+ * the load order of the two files does not matter. Where that file changes layout in a media
+ * query (the grid columns, the phone overlay), the same query is mirrored at the bottom.
+ */
+
+/* Page chrome ---------------------------------------------------------------- */
+
+.oix {
+  --oix-ink: var(--oi-ink, #f4f6f5);
+  --oix-muted: var(--oi-muted, #8d919c);
+  --oix-dim: var(--oi-dim, #5d616b);
+  --oix-hairline: var(--oi-hairline, rgba(255, 255, 255, 0.1));
+  --oix-hairline-strong: var(--oi-hairline-strong, rgba(255, 255, 255, 0.22));
+  --oix-accent: var(--oi-accent, #4a9f7a);
+  --oix-accent-rgb: var(--oi-accent-rgb, 74, 159, 122);
+  --oix-mono: var(--oi-mono, ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace);
+  --oix-ease: var(--oi-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  position: relative;
+}
+
+/* Same rhythm as the sections round it; the block below brings its own top padding. */
+.oix #use-cases {
+  padding-block: var(--oi-s5, 128px) 72px;
+  scroll-margin-top: 88px;
+}
+
+.oix .MuiContainer-root {
+  max-width: 1240px;
+  padding-inline: var(--oi-s3, 24px);
+}
+
+/* Head: bracketed tag, large light title, one quiet line. Left-aligned like its neighbours. */
+.oix .MuiContainer-root > :first-child {
+  display: grid;
+  justify-items: start;
+  gap: 22px;
+  margin-bottom: var(--oi-s4, 48px);
+}
+
+.oix .MuiContainer-root > :first-child > p:first-child {
+  margin: 0;
+  color: var(--oix-muted);
+  font-family: var(--oix-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.16em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+/* Brackets are decoration; the second declaration keeps them out of the spoken text. */
+.oix .MuiContainer-root > :first-child > p:first-child::before {
+  content: '[ ';
+  content: '[ ' / '';
+  color: var(--oix-dim);
+}
+
+.oix .MuiContainer-root > :first-child > p:first-child::after {
+  content: ' ]';
+  content: ' ]' / '';
+  color: var(--oix-dim);
+}
+
+.oix #use-cases-heading {
+  margin: 0;
+  color: var(--oix-ink);
+  font-size: clamp(2.1rem, 4.8vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  text-align: left;
+  text-wrap: balance;
+}
+
+.oix #use-cases-heading + p {
+  margin: 0;
+  max-width: 900px;
+  color: var(--oix-muted);
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  text-wrap: balance;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  text-align: left;
+}
+
+/* Use-case pills: hairline, monospace; the chosen one is a white pill with dark text. */
+.oix [aria-label='Choose a use case'] {
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: var(--oi-s4, 48px);
+}
+
+.oix [aria-label='Choose a use case'] > button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--oix-hairline);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--oix-muted);
+  font-family: var(--oix-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 400ms ease;
+}
+
+.oix [aria-label='Choose a use case'] > button:hover {
+  border-color: var(--oix-hairline-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--oix-ink);
+}
+
+.oix [aria-label='Choose a use case'] > button[aria-pressed='true'],
+.oix [aria-label='Choose a use case'] > button[aria-pressed='true']:hover {
+  border-color: var(--oix-ink);
+  background: var(--oix-ink);
+  color: #060a08;
+  box-shadow: 0 0 34px -8px rgba(var(--oix-accent-rgb), 0.75);
+}
+
+.oix [aria-label='Choose a use case'] > button:focus-visible,
+.oix [aria-label='Choose a use case'] > button.Mui-focusVisible {
+  outline: 2px solid var(--oix-accent);
+  outline-offset: 3px;
+}
+
+/* The focus ring above says it all; MUI's grey focus ripple inside the pill only muddies it. */
+.oix [aria-label='Choose a use case'] .MuiTouchRipple-root,
+.oix #use-case-panel + div .MuiTouchRipple-root {
+  display: none;
+}
+
+/* Slide title: what this use case is, in the page's light type. */
+.oix #use-case-panel > :first-child {
+  max-width: 760px;
+  margin-bottom: var(--oi-s3, 24px);
+  padding-inline: 0;
+}
+
+.oix #use-case-panel > :first-child > p:first-child {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 3px 10px;
+  border: 1px solid var(--oix-hairline-strong);
+  border-radius: 999px;
+  color: var(--oix-muted);
+  font-family: var(--oix-mono);
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.oix #use-case-panel > :first-child > h3 {
+  margin: 0 0 10px;
+  color: var(--oix-ink);
+  font-size: clamp(1.35rem, 2.3vw, 1.9rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.oix #use-case-panel > :first-child > h3 + p {
+  margin: 0;
+  color: var(--oix-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Under the window: a quiet caption, then previous / counter / next. */
+.oix #use-case-panel + div {
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--oix-hairline);
+}
+
+.oix #use-case-panel + div > p {
+  margin: 0;
+  color: var(--oix-muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.oix #use-case-panel + div button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--oix-hairline);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--oix-ink);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.oix #use-case-panel + div button:hover {
+  border-color: var(--oix-hairline-strong);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.oix #use-case-panel + div button:focus-visible,
+.oix #use-case-panel + div button.Mui-focusVisible {
+  outline: 2px solid var(--oix-accent);
+  outline-offset: 3px;
+}
+
+.oix #use-case-panel + div [aria-live] {
+  min-width: 44px;
+  color: var(--oix-muted);
+  font-family: var(--oix-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+/* The window: tokens ----------------------------------------------------------- */
+
+.opd.opd-dark {
+  --opd-text: #e9eaec;
+  --opd-muted: #8e9198;
+  --opd-border: #34373d;
+  --opd-soft: #cbd1d6;
+  --opd-row: #b3b8c1;
+  --opd-canvas: #1f2125;
+  --opd-inset: #1b1d21;
+  --opd-panel: #24262b;
+  --opd-well: #181a1d;
+  --opd-pill: #3a3d45;
+  --opd-hover: rgba(255, 255, 255, 0.06);
+  --opd-marker: #525b68;
+  --opd-accent: var(--oi-accent, #4a9f7a);
+  --opd-accent-rgb: var(--oi-accent-rgb, 74, 159, 122);
+  --opd-glow-rgb: var(--oi-glow-rgb, 22, 98, 64);
+  color-scheme: dark;
+}
+
+.opd.opd-dark button:focus-visible,
+.opd.opd-dark summary:focus-visible {
+  outline-color: var(--opd-accent);
+}
+
+/* Lit from behind, like the hero's window: a lifted top edge, a deep shadow, green on the rim. */
+.opd-dark .opd-window {
+  grid-template-columns: 196px minmax(0, 1fr);
+  /* Taller than on "/": the dark theme sets its type a size up, and nothing should scroll. */
+  height: 700px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: var(--opd-canvas);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 50px 110px -34px rgba(0, 0, 0, 0.95),
+    0 0 120px -20px rgba(var(--opd-glow-rgb), 0.6);
+}
+
+.opd-dark .opd-window.opd-has-workspace {
+  grid-template-columns: 196px minmax(0, 1fr) 294px;
+}
+
+/* Sidebar: a rounded card on the canvas ----------------------------------------- */
+
+.opd-dark .opd-sidebar {
+  margin: 8px 0 8px 8px;
+  padding: 0 8px;
+  border: 1px solid var(--opd-border);
+  border-radius: 14px;
+  background: var(--opd-inset);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.opd-dark .opd-traffic {
+  height: 42px;
+  padding-left: 6px;
+}
+
+/* Grey at rest, like an unfocused Mac window; the colours wake when it is pointed at. */
+.opd-dark .opd-traffic i,
+.opd-dark .opd-traffic i:nth-child(2),
+.opd-dark .opd-traffic i:nth-child(3) {
+  background: #4a4e57;
+  box-shadow: none;
+  transition: background-color 500ms ease;
+}
+
+.opd-dark .opd-window:hover .opd-traffic i:nth-child(1) {
+  background: #ff6159;
+}
+
+.opd-dark .opd-window:hover .opd-traffic i:nth-child(2) {
+  background: #ffbd2e;
+}
+
+.opd-dark .opd-window:hover .opd-traffic i:nth-child(3) {
+  background: #28c840;
+}
+
+.opd-dark .opd-traffic svg {
+  margin-right: 4px;
+  color: var(--opd-muted);
+}
+
+.opd-dark .opd-sidebar-brand {
+  gap: 9px;
+  padding: 4px 6px 14px;
+  font-size: 13px;
+}
+
+/* The small square logo tile. */
+.opd-dark .opd-sidebar-brand .opd-mark {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 1px solid var(--opd-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--opd-accent);
+}
+
+.opd-dark .opd-nav {
+  gap: 1px;
+}
+
+.opd-dark .opd-nav-item,
+.opd-dark .opd-nav-foot .opd-nav-item:first-child {
+  height: 32px;
+  margin-bottom: 0;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--opd-row);
+}
+
+.opd-dark .opd-nav:not(.opd-nav-foot) .opd-nav-item:first-child {
+  color: var(--opd-text);
+}
+
+.opd-dark .opd-nav-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+.opd-dark .opd-chat-list {
+  flex-shrink: 0;
+  margin-top: 14px;
+}
+
+/* A collapsible section label: the caret says the list under it can fold. */
+.opd-dark .opd-section-label {
+  display: flex;
+  align-items: center;
+  padding: 0 8px 5px;
+  color: var(--opd-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.opd-dark .opd-section-label::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin: -3px 2px 0 auto;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.opd-dark .opd-chat-list .opd-section-label:not(:first-child) {
+  margin-top: 16px;
+}
+
+.opd-dark .opd-chat-list > div {
+  height: 30px;
+  margin-top: 2px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--opd-muted);
+  font-size: 12px;
+}
+
+.opd-dark .opd-chat-list > div > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opd-dark .opd-chat-list .opd-chat-selected {
+  background: var(--opd-pill);
+  color: var(--opd-text);
+}
+
+.opd-dark .opd-chat-selected i,
+.opd-dark .opd-ready-dot {
+  background: var(--opd-accent);
+  box-shadow: 0 0 8px rgba(var(--opd-accent-rgb), 0.8);
+}
+
+/* The four sections sit at the foot of the sidebar, under the chat lists, as in the app. */
+.opd-dark .opd-nav-foot {
+  margin-top: auto;
+  padding: 8px 0;
+  border-top: 1px solid var(--opd-border);
+}
+
+.opd-dark .opd-sidebar-bottom {
+  margin-top: 0;
+  padding: 13px 8px 14px;
+  color: var(--opd-muted);
+}
+
+/* Title bar ------------------------------------------------------------------ */
+
+.opd-dark .opd-title {
+  color: var(--opd-muted);
+  font-size: 12px;
+}
+
+.opd-dark .opd-brand {
+  color: var(--opd-soft);
+}
+
+.opd-dark .opd-titlebar button,
+.opd-dark .opd-workspace-header button {
+  color: var(--opd-row);
+}
+
+.opd-dark .opd-titlebar button:hover,
+.opd-dark .opd-workspace-header button:hover {
+  background: var(--opd-hover);
+  color: var(--opd-text);
+}
+
+/* Chat: replies straight on the canvas, cards one step lighter ------------------- */
+
+.opd-dark .opd-messages,
+.opd-dark .opd-workspace-body {
+  scrollbar-color: #474e57 transparent;
+}
+
+.opd-dark .opd-messages {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.opd-dark .opd-user-message {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #2f3238;
+  color: var(--opd-text);
+  font-size: 13px;
+}
+
+.opd-dark .opd-tool {
+  border-radius: 10px;
+  background: var(--opd-panel);
+}
+
+.opd-dark .opd-tool summary {
+  font-size: 11.5px;
+}
+
+.opd-dark .opd-tool summary:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.opd-dark .opd-tool summary > svg {
+  color: var(--opd-muted);
+}
+
+.opd-dark .opd-tool summary > .opd-tool-check {
+  color: var(--opd-soft);
+}
+
+.opd-dark .opd-tool pre {
+  border-top-color: var(--opd-border);
+  background: var(--opd-well);
+  color: #c4c9d0;
+  font-size: 11px;
+}
+
+.opd-dark .opd-inline-artifact {
+  border-radius: 10px;
+  background: var(--opd-panel);
+  font-size: 11.5px !important;
+  transition: background-color 180ms ease;
+}
+
+.opd-dark .opd-inline-artifact:hover {
+  background: #2c2f35;
+}
+
+.opd-dark .opd-inline-artifact svg {
+  color: var(--opd-muted);
+}
+
+.opd-dark .opd-next-step {
+  font-size: 11.5px;
+}
+
+/* The big rounded composer card. */
+.opd-dark .opd-composer {
+  border-radius: 18px;
+  background: var(--opd-panel);
+  box-shadow: none;
+}
+
+.opd-dark .opd-input-copy {
+  padding: 14px 16px 4px;
+  color: var(--opd-muted);
+  font-size: 13px;
+}
+
+.opd-dark .opd-composer-controls {
+  gap: 12px;
+  padding: 7px 10px 10px 14px;
+  color: var(--opd-muted);
+  font-size: 10.5px;
+}
+
+.opd-dark .opd-composer-controls > .opd-line-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--opd-row);
+}
+
+.opd-dark .opd-composer-controls .opd-send {
+  width: 28px;
+  height: 28px;
+  background: var(--opd-pill);
+  color: var(--opd-soft);
+}
+
+.opd-dark .opd-composer-controls .opd-send svg {
+  width: 14px;
+  height: 14px;
+}
+
+.opd-dark .opd-type-caret {
+  width: 1.5px;
+  background: var(--opd-soft);
+}
+
+.opd-dark .opd-start .opd-mark {
+  color: var(--opd-soft);
+}
+
+/* Workspace: a rounded hairline card ------------------------------------------- */
+
+.opd-dark .opd-workspace {
+  border-radius: 14px;
+  background: var(--opd-inset);
+  box-shadow: none;
+}
+
+.opd-dark .opd-workspace-header h3 {
+  font-size: 13px;
+}
+
+.opd-dark .opd-workspace-header .opd-back {
+  color: var(--opd-text);
+  font-size: 11.5px;
+}
+
+.opd-dark .opd-workspace-body {
+  font-size: 12px;
+}
+
+.opd-dark .opd-workspace-body section + section {
+  margin-top: 18px;
+}
+
+.opd-dark .opd-workspace-body section h4 {
+  color: var(--opd-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.opd-dark .opd-workspace-body section h4 span {
+  color: var(--opd-muted);
+  font-size: 10px;
+}
+
+.opd-dark .opd-workspace-body section small {
+  font-size: 10.5px;
+}
+
+/* "Now" is the status card: a pill with the live dot, and a segmented progress bar. */
+.opd-dark .opd-workspace-body > section:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.opd-dark .opd-workspace-body > section:first-child > h4 {
+  order: 1;
+  margin: 0;
+}
+
+.opd-dark .opd-workspace-body > section:first-child > p {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 3px 10px 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.opd-dark .opd-workspace-body > section:first-child .opd-ready-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  margin: 0 7px 0 0;
+}
+
+/* Five segments, each a flat layer: all done at rest, three of five during a walkthrough. */
+.opd-dark .opd-workspace-body > section:first-child::after {
+  --seg-on: linear-gradient(var(--opd-soft), var(--opd-soft));
+  --seg-off: linear-gradient(rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.13));
+  --seg-late: var(--seg-on);
+  content: '';
+  order: 2;
+  flex: 0 0 100%;
+  height: 4px;
+  border-radius: 999px;
+  background-image: var(--seg-on), var(--seg-on), var(--seg-on), var(--seg-late), var(--seg-late);
+  background-position:
+    0 0,
+    25% 0,
+    50% 0,
+    75% 0,
+    100% 0;
+  background-repeat: no-repeat;
+  background-size: calc((100% - 16px) / 5) 100%;
+}
+
+.opd-dark[data-playback='playing'] .opd-workspace-body > section:first-child::after,
+.opd-dark[data-playback='paused'] .opd-workspace-body > section:first-child::after {
+  --seg-late: var(--seg-off);
+}
+
+/* "Project context" is the context card. */
+.opd-dark .opd-workspace-body > section:nth-child(2) {
+  padding: 11px 12px;
+  border: 1px solid var(--opd-border);
+  border-radius: 10px;
+  background: var(--opd-panel);
+}
+
+.opd-dark .opd-workspace-body > section:nth-child(2) > p:last-of-type {
+  color: var(--opd-row);
+}
+
+.opd-dark .opd-folder svg {
+  color: var(--opd-muted);
+}
+
+/* A finished step, marked the way the roadmap marks one: a filled circle with a tick. */
+.opd-dark .opd-result {
+  align-items: center;
+}
+
+.opd-dark .opd-result svg {
+  width: 15px;
+  height: 15px;
+  margin-top: 0;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--opd-soft);
+  color: var(--opd-inset);
+}
+
+.opd-dark .opd-artifact-list button {
+  font-size: 12px;
+  transition: background-color 180ms ease;
+}
+
+.opd-dark .opd-artifact-list button:hover {
+  background: var(--opd-hover);
+}
+
+.opd-dark .opd-artifact-list button > svg {
+  color: var(--opd-muted);
+}
+
+/* Documents opened in the Workspace -------------------------------------------- */
+
+.opd-dark .opd-document {
+  color: #d3d7dc;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.opd-dark .opd-document .opd-document-kicker {
+  font-size: 10.5px;
+}
+
+.opd-dark .opd-document h3 {
+  color: var(--opd-text);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.opd-dark .opd-document h4 {
+  color: var(--opd-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.opd-dark .opd-document strong {
+  color: var(--opd-text);
+  font-weight: 600;
+}
+
+.opd-dark .opd-document li::marker {
+  color: var(--opd-muted);
+}
+
+.opd-dark .opd-code {
+  border-color: var(--opd-border);
+  background: var(--opd-well);
+  color: #c4c9d0;
+  font-size: 10.5px;
+}
+
+.opd-dark .opd-table {
+  font-size: 11px;
+}
+
+.opd-dark .opd-table td {
+  color: #d3d7dc;
+}
+
+.opd-dark .opd-workflow {
+  border-color: var(--opd-border);
+  background-color: var(--opd-well);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.11) 0.75px, transparent 0.75px);
+}
+
+.opd-dark .opd-node,
+.opd-dark .opd-branches div {
+  border-color: #3f434b;
+  background: var(--opd-panel);
+  box-shadow: none;
+}
+
+.opd-dark .opd-node > span {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--opd-soft);
+}
+
+.opd-dark .opd-node strong {
+  color: var(--opd-text);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.opd-dark .opd-node small,
+.opd-dark .opd-branches small {
+  color: var(--opd-muted);
+  font-size: 9.5px;
+}
+
+.opd-dark .opd-branches strong {
+  color: var(--opd-text);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.opd-dark .opd-node-line {
+  background: var(--opd-marker);
+}
+
+.opd-dark .opd-node-line::after {
+  border-color: var(--opd-marker);
+}
+
+/* Under the window: the demo's own caption and the play control ------------------ */
+
+.opd-dark .opd-demo-controls {
+  gap: 18px;
+  padding: 18px 2px 0;
+  color: var(--oi-muted, #8d919c);
+  font-family: var(--oi-sans, inherit);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.opd-dark .opd-demo-controls button {
+  min-height: 44px;
+  gap: 8px;
+  padding: 0 20px 0 16px;
+  border: 1px solid var(--oi-hairline-strong, rgba(255, 255, 255, 0.22));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--oi-ink, #f4f6f5);
+  font-family: var(--oi-mono, ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 400ms ease;
+}
+
+.opd-dark .opd-demo-controls button:hover {
+  border-color: var(--opd-accent);
+  background: rgba(var(--opd-accent-rgb), 0.12);
+  box-shadow: 0 0 30px -8px rgba(var(--opd-accent-rgb), 0.7);
+}
+
+.opd.opd-dark .opd-demo-controls button:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Responsive: the same breakpoints as DesktopProductDemo.css ---------------------- */
+
+@media (max-width: 1100px) {
+  .opd-dark .opd-window {
+    grid-template-columns: 172px minmax(0, 1fr);
+  }
+
+  .opd-dark .opd-window.opd-has-workspace {
+    grid-template-columns: 172px minmax(0, 1fr) 262px;
+  }
+
+  .opd-dark .opd-nav-item {
+    font-size: 12px;
+  }
+
+  .opd-dark .opd-composer-controls > span:nth-child(3) {
+    max-width: 96px;
+    overflow: hidden;
+  }
+}
+
+/* A narrower Workspace: the status label sits above its pill instead of beside it. */
+@media (min-width: 601px) and (max-width: 1100px) {
+  .opd-dark .opd-workspace-body > section:first-child > h4 {
+    order: -1;
+    flex: 0 0 100%;
+  }
+}
+
+/* Three narrow columns: the chat wraps more, so the window grows with it. */
+@media (max-width: 1000px) {
+  .opd-dark .opd-window {
+    height: 750px;
+  }
+}
+
+/* No sidebar: the chat and the Workspace share the window. */
+@media (max-width: 850px) {
+  .opd-dark .opd-window,
+  .opd-dark .opd-window.opd-has-workspace {
+    grid-template-columns: minmax(0, 1fr) 255px;
+    height: 750px;
+  }
+
+  .opd-dark .opd-window:not(.opd-has-workspace) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phones: the Workspace opens over the chat, so it needs its own shadow to lift off it. */
+@media (max-width: 600px) {
+  .oix #use-cases {
+    padding-block: var(--oi-s5, 80px) 56px;
+  }
+
+  .oix .MuiContainer-root {
+    padding-inline: var(--oi-s2, 16px);
+  }
+
+  .oix .MuiContainer-root > :first-child {
+    gap: 18px;
+    margin-bottom: var(--oi-s3, 24px);
+  }
+
+  .oix [aria-label='Choose a use case'] {
+    margin-bottom: 32px;
+  }
+
+  .oix [aria-label='Choose a use case'] > button {
+    padding: 0 14px;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+  }
+
+  .opd-dark .opd-window,
+  .opd-dark .opd-window.opd-has-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .opd-dark .opd-workspace {
+    /* Edge to edge, so no sliver of the chat shows beside the open panel. */
+    max-width: none;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.5),
+      0 24px 60px rgba(0, 0, 0, 0.7);
+  }
+
+  .opd-dark .opd-demo-controls p {
+    font-size: 0.74rem;
+  }
+
+  .opd-dark .opd-demo-controls button {
+    padding: 0 18px 0 14px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oix [aria-label='Choose a use case'] > button,
+  .oix #use-case-panel + div button,
+  .opd-dark .opd-traffic i,
+  .opd-dark .opd-inline-artifact,
+  .opd-dark .opd-artifact-list button,
+  .opd-dark .opd-demo-controls button {
+    transition: none;
+  }
+}

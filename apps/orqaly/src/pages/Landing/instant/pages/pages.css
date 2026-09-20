@@ -1,0 +1,118 @@
+/* Shared by the "Instant" sub-pages (class prefix oip-). Page bodies add their own files. */
+
+.oip-loading {
+  min-height: 100svh;
+}
+
+/* Page hero ---------------------------------------------------------------- */
+
+.oip-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: min(72svh, 680px);
+  padding-block: 120px 72px;
+  overflow: clip;
+}
+
+.oip-hero-orb {
+  position: absolute;
+  top: 50%;
+  right: -220px;
+  width: 720px;
+  height: 720px;
+  translate: 0 -50%;
+  pointer-events: none;
+  animation: oip-orb-in 1800ms var(--oi-ease) backwards;
+}
+
+.oip-hero-orb canvas {
+  display: block;
+  color: var(--oi-orb);
+  /* The title must stay readable where it crosses the light. */
+  mask-image: linear-gradient(to right, transparent 0, #000 42%);
+}
+
+.oip-hero-bloom {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--oi-deep-rgb), 0.4), transparent 66%);
+  filter: blur(60px);
+  animation: oip-breathe 12s ease-in-out infinite alternate;
+}
+
+.oip-hero-text {
+  position: relative;
+}
+
+.oip-title {
+  max-width: 14ch;
+  margin: 18px 0 0;
+  color: var(--oi-ink);
+  font-size: clamp(3rem, 9vw, 7.4rem);
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: -0.06em;
+}
+
+.oip-lede {
+  max-width: 46ch;
+  margin: 28px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.oip-rise {
+  animation: oip-rise 1200ms var(--oi-ease) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 130ms);
+}
+
+@keyframes oip-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 32px, 0);
+  }
+}
+
+@keyframes oip-orb-in {
+  from {
+    opacity: 0;
+    scale: 0.86;
+  }
+}
+
+@keyframes oip-breathe {
+  from {
+    opacity: 0.7;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    scale: 1.06;
+  }
+}
+
+@media (max-width: 820px) {
+  .oip-hero {
+    min-height: 0;
+    padding-block: 72px 48px;
+  }
+
+  .oip-hero-orb {
+    top: 0;
+    right: -260px;
+    translate: 0 -30%;
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oip-rise,
+  .oip-hero-orb,
+  .oip-hero-bloom {
+    animation: none;
+  }
+}
