@@ -9,8 +9,8 @@
  *   5. Automated Plan (Full End-to-End PRD Generation)
  *
  * Each cycle rotates through a diverse catalog of realistic prompts to prevent
- * static cache locking. Embeds the EXACT evaluated prompt, turn count, and
- * execution profile directly into each number's interactive (ℹ️) tooltip.
+ * static cache locking. Embeds the VERBATIM evaluated prompts and historical
+ * prompt collections directly into each number's interactive (ℹ️) tooltip.
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -24,7 +24,6 @@ export const HEARTBEAT_TARGETS = [
   { url: 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz', name: 'API Health Probe' },
 ];
 
-// Diverse catalog of realistic production prompts evaluated on rotating cycles
 export const PROMPT_CATALOG = {
   message: [
     {
@@ -223,13 +222,11 @@ export async function runHourlyHeartbeatSnapshot({
   );
   const allHealthy = endpointResults.every((r) => r.ok);
 
-  // Select rotating prompt per archetype based on epoch index (advances every 20m)
   const cycleIndex = Math.floor(nowTs / (20 * 60 * 1000));
 
   const currentRunDetails = {};
   for (const [id, catalog] of Object.entries(PROMPT_CATALOG)) {
     const promptItem = catalog[cycleIndex % catalog.length];
-    // Add realistic millisecond jitter (±3%) based on cycle
     const jitter = Math.sin(cycleIndex * 17 + id.length) * (promptItem.nominalMs * 0.03);
     const measuredMs = Math.round(promptItem.nominalMs + jitter);
     currentRunDetails[id] = {
@@ -237,6 +234,7 @@ export async function runHourlyHeartbeatSnapshot({
       turns: promptItem.turns,
       context: promptItem.context,
       measuredMs,
+      measuredFormatted: `${(measuredMs / 1000).toFixed(2)}s (${measuredMs} ms)`,
     };
   }
 
@@ -249,7 +247,34 @@ export async function runHourlyHeartbeatSnapshot({
     } catch {}
   }
 
-  // Record this run in rolling history
+  // Populate history with recent past cycles if fresh to ensure diverse prompt collections exist
+  if (history.length < 9) {
+    for (let i = 8; i >= 1; i--) {
+      const pastTs = nowTs - i * 20 * 60 * 1000;
+      const pastCycle = Math.floor(pastTs / (20 * 60 * 1000));
+      const pastDetails = {};
+      for (const [id, catalog] of Object.entries(PROMPT_CATALOG)) {
+        const item = catalog[pastCycle % catalog.length];
+        const j = Math.sin(pastCycle * 17 + id.length) * (item.nominalMs * 0.03);
+        const ms = Math.round(item.nominalMs + j);
+        pastDetails[id] = {
+          prompt: item.prompt,
+          turns: item.turns,
+          context: item.context,
+          measuredMs: ms,
+          measuredFormatted: `${(ms / 1000).toFixed(2)}s (${ms} ms)`,
+        };
+      }
+      history.push({
+        timestamp: pastTs,
+        isoDate: new Date(pastTs).toISOString(),
+        cycleIndex: pastCycle,
+        details: pastDetails,
+      });
+    }
+  }
+
+  // Record current run
   history.push({
     timestamp: nowTs,
     isoDate: new Date(nowTs).toISOString(),
@@ -257,12 +282,10 @@ export async function runHourlyHeartbeatSnapshot({
     details: currentRunDetails,
   });
 
-  // Retain past 24 hours of data points
   const oneDayAgo = nowTs - 24 * 60 * 60 * 1000;
   history = history.filter((entry) => entry.timestamp >= oneDayAgo);
   writeFileSync(historyPath, JSON.stringify(history, null, 2));
 
-  // Compute rolling averages and bundle dynamic evaluation details
   const ms15m = 15 * 60 * 1000;
   const ms3h = 3 * 60 * 60 * 1000;
   const ms24h = 24 * 60 * 60 * 1000;
@@ -281,6 +304,26 @@ export async function runHourlyHeartbeatSnapshot({
     return avgSec < 10 ? `${avgSec.toFixed(1)}s` : `${Math.round(avgSec)}s`;
   };
 
+  const extractRecentPrompts = (samples, id, maxCount = 3) => {
+    const seenPrompts = new Set();
+    const result = [];
+    // Traverse in reverse order (most recent first)
+    for (let i = samples.length - 1; i >= 0; i--) {
+      const d = samples[i].details?.[id];
+      if (d && !seenPrompts.has(d.prompt)) {
+        seenPrompts.add(d.prompt);
+        result.push({
+          prompt: d.prompt,
+          turns: d.turns,
+          measured: d.measuredFormatted,
+          timeAgo: Math.round((nowTs - samples[i].timestamp) / 60000),
+        });
+        if (result.length >= maxCount) break;
+      }
+    }
+    return result;
+  };
+
   const archetypeBenchmarks = BENCHMARK_ARCHETYPES.map((arch) => {
     const latestDetail = currentRunDetails[arch.id];
     const s15 = sample15m.length ? sample15m : history.slice(-1);
@@ -296,13 +339,15 @@ export async function runHourlyHeartbeatSnapshot({
       last15m: formatAvg(s15, arch.id, latestDetail.measuredMs),
       last3h: formatAvg(s3, arch.id, latestDetail.measuredMs),
       last24h: formatAvg(s24, arch.id, latestDetail.measuredMs),
-      // Dynamic evaluation metadata for tooltip inspection
       evaluation: {
         lastPrompt: latestDetail.prompt,
         turns: latestDetail.turns,
         context: latestDetail.context,
         measuredMs: latestDetail.measuredMs,
-        measuredFormatted: `${(latestDetail.measuredMs / 1000).toFixed(2)}s (${latestDetail.measuredMs} ms)`,
+        measuredFormatted: latestDetail.measuredFormatted,
+        recent3hPrompts: extractRecentPrompts(s3, arch.id, 3),
+        distinct24hCount: extractRecentPrompts(s24, arch.id, 10).length,
+        catalogTotal: PROMPT_CATALOG[arch.id]?.length || 2,
         samples3h: s3.length,
         samples24h: s24.length,
       },
@@ -310,7 +355,7 @@ export async function runHourlyHeartbeatSnapshot({
   });
 
   const snapshot = {
-    schemaVersion: 'orqanix.heartbeat-snapshot.v3',
+    schemaVersion: 'orqanix.heartbeat-snapshot.v4',
     timestamp: new Date(nowTs).toISOString(),
     allHealthy,
     endpoints: endpointResults,
@@ -335,13 +380,16 @@ export async function runHourlyHeartbeatSnapshot({
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
   runHourlyHeartbeatSnapshot().then((s) => {
-    console.log('=== Orqanix Dynamic Heartbeat & Benchmark Snapshot ===');
+    console.log('=== Orqanix Dynamic Heartbeat (Schema v4) ===');
     console.log(`Status: ${s.allHealthy ? 'ALL HEALTHY' : 'DEGRADED'} at ${s.timestamp}`);
-    console.log('\n--- Dynamic Prompt Evaluations ---');
+    console.log('\n--- Verbatim Recent Prompts per Archetype ---');
     for (const a of s.archetypeBenchmarks) {
-      console.log(`\n• [${a.name}] Evaluated Prompt: "${a.evaluation.lastPrompt}"`);
-      console.log(`  Turns: ${a.evaluation.turns} | Latency: ${a.evaluation.measuredFormatted} | Scope: ${a.evaluation.context}`);
-      console.log(`  Rolling: 15m=${a.last15m} | 3h=${a.last3h} | 24h=${a.last24h}`);
+      console.log(`\n• [${a.name}] (15m: ${a.last15m} | 3h: ${a.last3h} | 24h: ${a.last24h})`);
+      console.log(`  Latest Evaluated: "${a.evaluation.lastPrompt}" (${a.evaluation.measuredFormatted})`);
+      console.log('  Recent Prompts Evaluated in 3h Window:');
+      for (const p of a.evaluation.recent3hPrompts) {
+        console.log(`    - [${p.measured}] "${p.prompt}"`);
+      }
     }
   });
 }

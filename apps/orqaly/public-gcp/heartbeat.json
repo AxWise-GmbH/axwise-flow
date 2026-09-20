@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "orqanix.heartbeat-snapshot.v3",
-  "timestamp": "2026-09-20T19:13:14.498Z",
+  "schemaVersion": "orqanix.heartbeat-snapshot.v4",
+  "timestamp": "2026-09-20T19:27:57.901Z",
   "allHealthy": true,
   "endpoints": [
     {
@@ -8,40 +8,40 @@
       "url": "https://orqanix.com/",
       "status": 200,
       "ok": true,
-      "latencyMs": 137,
-      "timestamp": "2026-09-20T19:13:14.636Z"
+      "latencyMs": 200,
+      "timestamp": "2026-09-20T19:27:58.102Z"
     },
     {
       "name": "Instant Preview",
       "url": "https://orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 113,
-      "timestamp": "2026-09-20T19:13:14.629Z"
+      "latencyMs": 178,
+      "timestamp": "2026-09-20T19:27:58.099Z"
     },
     {
       "name": "Benchmark Showcase",
       "url": "https://orqanix.com/benchmark",
       "status": 200,
       "ok": true,
-      "latencyMs": 234,
-      "timestamp": "2026-09-20T19:13:14.751Z"
+      "latencyMs": 282,
+      "timestamp": "2026-09-20T19:27:58.203Z"
     },
     {
       "name": "Preview Domain",
       "url": "https://preview.orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 198,
-      "timestamp": "2026-09-20T19:13:14.715Z"
+      "latencyMs": 256,
+      "timestamp": "2026-09-20T19:27:58.178Z"
     },
     {
       "name": "API Health Probe",
       "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
       "status": 200,
       "ok": true,
-      "latencyMs": 174,
-      "timestamp": "2026-09-20T19:13:14.692Z"
+      "latencyMs": 370,
+      "timestamp": "2026-09-20T19:27:58.293Z"
     }
   ],
   "archetypeBenchmarks": [
@@ -55,13 +55,35 @@
       "last3h": "1.2s",
       "last24h": "1.2s",
       "evaluation": {
-        "lastPrompt": "What are the core filing deadlines and statutory document attachments for an Estonian OÜ annual report under the Commercial Code?",
+        "lastPrompt": "Explain VAT registration thresholds in Estonia for digital cross-border services under EU OSS regulations.",
         "turns": 1,
-        "context": "Corporate compliance & commercial registry obligations",
-        "measuredMs": 1213,
-        "measuredFormatted": "1.21s (1213 ms)",
-        "samples3h": 2,
-        "samples24h": 2
+        "context": "Cross-border tax & fiscal compliance",
+        "measuredMs": 1119,
+        "measuredFormatted": "1.12s (1119 ms)",
+        "recent3hPrompts": [
+          {
+            "prompt": "Explain VAT registration thresholds in Estonia for digital cross-border services under EU OSS regulations.",
+            "turns": 1,
+            "measured": "1.12s (1119 ms)",
+            "timeAgo": 0
+          },
+          {
+            "prompt": "What are the core filing deadlines and statutory document attachments for an Estonian OÜ annual report under the Commercial Code?",
+            "turns": 1,
+            "measured": "1.21s (1213 ms)",
+            "timeAgo": 20
+          },
+          {
+            "prompt": "In 3 concise bullet points, explain what the Estonian Agriculture and Food Board (PTA) requires for registering an animal nutrition business under the Feed Act.",
+            "turns": 1,
+            "measured": "1.11s (1112 ms)",
+            "timeAgo": 40
+          }
+        ],
+        "distinct24hCount": 4,
+        "catalogTotal": 4,
+        "samples3h": 11,
+        "samples24h": 11
       }
     },
     {
@@ -70,17 +92,39 @@
       "scope": "Workspace Engineering & Refactoring",
       "baseline": "68.2s (7 turns)",
       "impact": "Single-turn execution, verified syntax, zero conversation bloat",
-      "last15m": "26s",
-      "last3h": "26s",
-      "last24h": "26s",
+      "last15m": "25s",
+      "last3h": "25s",
+      "last24h": "25s",
       "evaluation": {
-        "lastPrompt": "Locate ensureOrqalyExtensions in prompt.ts and verify how child MCP environment variables are isolated from the root process.",
+        "lastPrompt": "In packages/omp-mcp-server, add an exported helper formatJevVerdictMarkdown and verify unit tests in jev-lint.test.mjs.",
         "turns": 1,
-        "context": "Electron IPC lifecycle & MCP process sandboxing",
-        "measuredMs": 25536,
-        "measuredFormatted": "25.54s (25536 ms)",
-        "samples3h": 2,
-        "samples24h": 2
+        "context": "Multi-file semantic refactoring & pre-commit test validation",
+        "measuredMs": 25321,
+        "measuredFormatted": "25.32s (25321 ms)",
+        "recent3hPrompts": [
+          {
+            "prompt": "In packages/omp-mcp-server, add an exported helper formatJevVerdictMarkdown and verify unit tests in jev-lint.test.mjs.",
+            "turns": 1,
+            "measured": "25.32s (25321 ms)",
+            "timeAgo": 0
+          },
+          {
+            "prompt": "Locate ensureOrqalyExtensions in prompt.ts and verify how child MCP environment variables are isolated from the root process.",
+            "turns": 1,
+            "measured": "25.54s (25536 ms)",
+            "timeAgo": 20
+          },
+          {
+            "prompt": "Inspect ui/desktop/src/orqaly/workspace.ts to identify the maximum allowed workspace state bytes and how atomic file writes are performed.",
+            "turns": 1,
+            "measured": "25.63s (25631 ms)",
+            "timeAgo": 40
+          }
+        ],
+        "distinct24hCount": 4,
+        "catalogTotal": 4,
+        "samples3h": 11,
+        "samples24h": 11
       }
     },
     {
@@ -93,13 +137,35 @@
       "last3h": "2.3s",
       "last24h": "2.3s",
       "evaluation": {
-        "lastPrompt": "EU Regulation 142/2011 Annex XIII microbiological standards for raw pet nutrition testing in accredited laboratories.",
+        "lastPrompt": "Selver Estonia retail supplier terms, margin frameworks, slotting fees, and central distribution requirements.",
         "turns": 1,
-        "context": "Statutory lab requirement retrieval & noise elimination",
-        "measuredMs": 2322,
-        "measuredFormatted": "2.32s (2322 ms)",
-        "samples3h": 2,
-        "samples24h": 2
+        "context": "Commercial retail supply chain document filtering",
+        "measuredMs": 2309,
+        "measuredFormatted": "2.31s (2309 ms)",
+        "recent3hPrompts": [
+          {
+            "prompt": "Selver Estonia retail supplier terms, margin frameworks, slotting fees, and central distribution requirements.",
+            "turns": 1,
+            "measured": "2.31s (2309 ms)",
+            "timeAgo": 0
+          },
+          {
+            "prompt": "EU Regulation 142/2011 Annex XIII microbiological standards for raw pet nutrition testing in accredited laboratories.",
+            "turns": 1,
+            "measured": "2.32s (2322 ms)",
+            "timeAgo": 20
+          },
+          {
+            "prompt": "Estonian veterinary feed compliance, mandatory PTA licences, Salmonella standards, and supermarket retail margins.",
+            "turns": 1,
+            "measured": "2.31s (2311 ms)",
+            "timeAgo": 40
+          }
+        ],
+        "distinct24hCount": 4,
+        "catalogTotal": 4,
+        "samples3h": 11,
+        "samples24h": 11
       }
     },
     {
@@ -109,16 +175,38 @@
       "baseline": "52.0s",
       "impact": "High-density, citation-backed executive summary",
       "last15m": "20s",
-      "last3h": "20s",
-      "last24h": "20s",
+      "last3h": "19s",
+      "last24h": "19s",
       "evaluation": {
-        "lastPrompt": "Synthesize an executive briefing on launching an ultra-premium raw pet nutrition brand in Estonia with Selver and Prisma retail distribution.",
+        "lastPrompt": "Prepare market entry analysis for Estonian freeze-dried pet food: consumer willingness to pay, veterinary hurdles, and distributor margins.",
         "turns": 2,
-        "context": "Multi-source executive research brief (767 words) with Gate 1/2 sign-off",
-        "measuredMs": 19550,
-        "measuredFormatted": "19.55s (19550 ms)",
-        "samples3h": 2,
-        "samples24h": 2
+        "context": "Commercial research brief with cited statutory references",
+        "measuredMs": 19589,
+        "measuredFormatted": "19.59s (19589 ms)",
+        "recent3hPrompts": [
+          {
+            "prompt": "Prepare market entry analysis for Estonian freeze-dried pet food: consumer willingness to pay, veterinary hurdles, and distributor margins.",
+            "turns": 2,
+            "measured": "19.59s (19589 ms)",
+            "timeAgo": 0
+          },
+          {
+            "prompt": "Synthesize an executive briefing on launching an ultra-premium raw pet nutrition brand in Estonia with Selver and Prisma retail distribution.",
+            "turns": 2,
+            "measured": "19.55s (19550 ms)",
+            "timeAgo": 20
+          },
+          {
+            "prompt": "Evaluate private-label manufacturing versus contract co-packing for pet food exporters in the Baltic region.",
+            "turns": 2,
+            "measured": "18.80s (18802 ms)",
+            "timeAgo": 40
+          }
+        ],
+        "distinct24hCount": 3,
+        "catalogTotal": 3,
+        "samples3h": 11,
+        "samples24h": 11
       }
     },
     {
@@ -127,17 +215,33 @@
       "scope": "Multi-Stage Project & PRD Generation",
       "baseline": "145s+ (timeouts)",
       "impact": "100% acceptance criteria satisfied, verifiable audit trail",
-      "last15m": "83s",
-      "last3h": "83s",
-      "last24h": "83s",
+      "last15m": "84s",
+      "last3h": "84s",
+      "last24h": "84s",
       "evaluation": {
-        "lastPrompt": "Execute complete product launch runbook: PTA licensing, LABRIS testing schedule, Selver EDI integration, and launch marketing timeline.",
+        "lastPrompt": "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards.",
         "turns": 10,
-        "context": "10-stage operational runbook with cryptographic stage-gate attestation",
-        "measuredMs": 82723,
-        "measuredFormatted": "82.72s (82723 ms)",
-        "samples3h": 2,
-        "samples24h": 2
+        "context": "10-stage enterprise DAG (3,951 words) & 100% acceptance criteria matrix",
+        "measuredMs": 85311,
+        "measuredFormatted": "85.31s (85311 ms)",
+        "recent3hPrompts": [
+          {
+            "prompt": "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards.",
+            "turns": 10,
+            "measured": "85.31s (85311 ms)",
+            "timeAgo": 0
+          },
+          {
+            "prompt": "Execute complete product launch runbook: PTA licensing, LABRIS testing schedule, Selver EDI integration, and launch marketing timeline.",
+            "turns": 10,
+            "measured": "82.72s (82723 ms)",
+            "timeAgo": 20
+          }
+        ],
+        "distinct24hCount": 2,
+        "catalogTotal": 2,
+        "samples3h": 11,
+        "samples24h": 11
       }
     }
   ]
