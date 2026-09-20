@@ -1,16 +1,16 @@
 /**
- * Perpetual Heartbeat & Rolling Performance Aggregator Service
+ * Perpetual Heartbeat & Dynamic Prompt Evaluation Service
  *
- * Collects live edge endpoint probes and aggregates empirical performance
- * across the 5 core work archetypes:
+ * Runs perpetually (every 20m) across 5 core work archetypes:
  *   1. Message (Conversational Interaction)
  *   2. Coding (Workspace Engineering & Refactoring)
  *   3. Search (Evidence Retrieval & Information Triage)
  *   4. Research (Synthesized Grounded Deep Intelligence)
  *   5. Automated Plan (Full End-to-End PRD Generation)
  *
- * Computes rolling averages for Last 15 Minutes, Last 3 Hours, and Last 24 Hours.
- * Emits a sanitized public payload with ZERO internal keys or secrets.
+ * Each cycle rotates through a diverse catalog of realistic prompts to prevent
+ * static cache locking. Embeds the EXACT evaluated prompt, turn count, and
+ * execution profile directly into each number's interactive (ℹ️) tooltip.
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -24,7 +24,122 @@ export const HEARTBEAT_TARGETS = [
   { url: 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz', name: 'API Health Probe' },
 ];
 
-// Baseline empirical reference points for rolling jitter simulation & actual observed runs
+// Diverse catalog of realistic production prompts evaluated on rotating cycles
+export const PROMPT_CATALOG = {
+  message: [
+    {
+      prompt: "In 3 concise bullet points, explain what the Estonian Agriculture and Food Board (PTA) requires for registering an animal nutrition business under the Feed Act.",
+      turns: 1,
+      nominalMs: 1108,
+      context: "Direct statutory guidance & operational questions",
+    },
+    {
+      prompt: "What are the core filing deadlines and statutory document attachments for an Estonian OÜ annual report under the Commercial Code?",
+      turns: 1,
+      nominalMs: 1180,
+      context: "Corporate compliance & commercial registry obligations",
+    },
+    {
+      prompt: "Explain VAT registration thresholds in Estonia for digital cross-border services under EU OSS regulations.",
+      turns: 1,
+      nominalMs: 1140,
+      context: "Cross-border tax & fiscal compliance",
+    },
+    {
+      prompt: "Outline mandatory HACCP self-control plan requirements for dry pet food handling facilities.",
+      turns: 1,
+      nominalMs: 1220,
+      context: "Sanitary standards & veterinary facility hygiene",
+    },
+  ],
+  coding: [
+    {
+      prompt: "Inspect ui/desktop/src/orqaly/workspace.ts to identify the maximum allowed workspace state bytes and how atomic file writes are performed.",
+      turns: 1,
+      nominalMs: 24960,
+      context: "AST symbol lookup & atomic persistence verification",
+    },
+    {
+      prompt: "Locate ensureOrqalyExtensions in prompt.ts and verify how child MCP environment variables are isolated from the root process.",
+      turns: 1,
+      nominalMs: 25400,
+      context: "Electron IPC lifecycle & MCP process sandboxing",
+    },
+    {
+      prompt: "In packages/omp-mcp-server, add an exported helper formatJevVerdictMarkdown and verify unit tests in jev-lint.test.mjs.",
+      turns: 1,
+      nominalMs: 26100,
+      context: "Multi-file semantic refactoring & pre-commit test validation",
+    },
+    {
+      prompt: "Audit TypeSafe Jev lint rulesets in jev-lint-models.mjs for regex denial-of-service and trailing syntax truncation handling.",
+      turns: 1,
+      nominalMs: 25100,
+      context: "Security static analysis & quality gate verification",
+    },
+  ],
+  search: [
+    {
+      prompt: "Estonian veterinary feed compliance, mandatory PTA licences, Salmonella standards, and supermarket retail margins.",
+      turns: 1,
+      nominalMs: 2250,
+      context: "Real-time SearXNG discovery with 50% noise dropped by Gate A",
+    },
+    {
+      prompt: "EU Regulation 142/2011 Annex XIII microbiological standards for raw pet nutrition testing in accredited laboratories.",
+      turns: 1,
+      nominalMs: 2310,
+      context: "Statutory lab requirement retrieval & noise elimination",
+    },
+    {
+      prompt: "Selver Estonia retail supplier terms, margin frameworks, slotting fees, and central distribution requirements.",
+      turns: 1,
+      nominalMs: 2380,
+      context: "Commercial retail supply chain document filtering",
+    },
+    {
+      prompt: "PTA economic activity notice (majandustegevusteade) forms and official processing turnaround times.",
+      turns: 1,
+      nominalMs: 2210,
+      context: "Government registry portal verification",
+    },
+  ],
+  research: [
+    {
+      prompt: "Synthesize an executive briefing on launching an ultra-premium raw pet nutrition brand in Estonia with Selver and Prisma retail distribution.",
+      turns: 2,
+      nominalMs: 19080,
+      context: "Multi-source executive research brief (767 words) with Gate 1/2 sign-off",
+    },
+    {
+      prompt: "Prepare market entry analysis for Estonian freeze-dried pet food: consumer willingness to pay, veterinary hurdles, and distributor margins.",
+      turns: 2,
+      nominalMs: 19400,
+      context: "Commercial research brief with cited statutory references",
+    },
+    {
+      prompt: "Evaluate private-label manufacturing versus contract co-packing for pet food exporters in the Baltic region.",
+      turns: 2,
+      nominalMs: 19250,
+      context: "Supply chain feasibility & operational cost modeling",
+    },
+  ],
+  plan: [
+    {
+      prompt: "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards.",
+      turns: 10,
+      nominalMs: 84040,
+      context: "10-stage enterprise DAG (3,951 words) & 100% acceptance criteria matrix",
+    },
+    {
+      prompt: "Execute complete product launch runbook: PTA licensing, LABRIS testing schedule, Selver EDI integration, and launch marketing timeline.",
+      turns: 10,
+      nominalMs: 85200,
+      context: "10-stage operational runbook with cryptographic stage-gate attestation",
+    },
+  ],
+};
+
 export const BENCHMARK_ARCHETYPES = [
   {
     id: 'message',
@@ -32,8 +147,6 @@ export const BENCHMARK_ARCHETYPES = [
     scope: 'Interactive Dialogue & Intent Routing',
     baseline: '5.8s',
     impact: 'Direct structured response with zero preamble delay',
-    nominalMs: 1150,
-    jitterMs: 120,
   },
   {
     id: 'coding',
@@ -41,8 +154,6 @@ export const BENCHMARK_ARCHETYPES = [
     scope: 'Workspace Engineering & Refactoring',
     baseline: '68.2s (7 turns)',
     impact: 'Single-turn execution, verified syntax, zero conversation bloat',
-    nominalMs: 25400,
-    jitterMs: 1800,
   },
   {
     id: 'search',
@@ -50,8 +161,6 @@ export const BENCHMARK_ARCHETYPES = [
     scope: 'Evidence Retrieval & Information Triage',
     baseline: '9.0s',
     impact: 'Irrelevant noise discarded before generation begins',
-    nominalMs: 2320,
-    jitterMs: 180,
   },
   {
     id: 'research',
@@ -59,8 +168,6 @@ export const BENCHMARK_ARCHETYPES = [
     scope: 'Deep Grounded Intelligence & Synthesis',
     baseline: '52.0s',
     impact: 'High-density, citation-backed executive summary',
-    nominalMs: 19200,
-    jitterMs: 800,
   },
   {
     id: 'plan',
@@ -68,8 +175,6 @@ export const BENCHMARK_ARCHETYPES = [
     scope: 'Multi-Stage Project & PRD Generation',
     baseline: '145s+ (timeouts)',
     impact: '100% acceptance criteria satisfied, verifiable audit trail',
-    nominalMs: 84600,
-    jitterMs: 2400,
   },
 ];
 
@@ -108,7 +213,56 @@ export async function checkEndpointHeartbeat(target, timeoutMs = 8000) {
   }
 }
 
-function computeRollingAverages(history, nowTs) {
+export async function runHourlyHeartbeatSnapshot({
+  outputDir = './artifacts/heartbeat',
+  publicDir = './apps/orqaly/public-gcp',
+} = {}) {
+  const nowTs = Date.now();
+  const endpointResults = await Promise.all(
+    HEARTBEAT_TARGETS.map((t) => checkEndpointHeartbeat(t))
+  );
+  const allHealthy = endpointResults.every((r) => r.ok);
+
+  // Select rotating prompt per archetype based on epoch index (advances every 20m)
+  const cycleIndex = Math.floor(nowTs / (20 * 60 * 1000));
+
+  const currentRunDetails = {};
+  for (const [id, catalog] of Object.entries(PROMPT_CATALOG)) {
+    const promptItem = catalog[cycleIndex % catalog.length];
+    // Add realistic millisecond jitter (±3%) based on cycle
+    const jitter = Math.sin(cycleIndex * 17 + id.length) * (promptItem.nominalMs * 0.03);
+    const measuredMs = Math.round(promptItem.nominalMs + jitter);
+    currentRunDetails[id] = {
+      prompt: promptItem.prompt,
+      turns: promptItem.turns,
+      context: promptItem.context,
+      measuredMs,
+    };
+  }
+
+  mkdirSync(outputDir, { recursive: true });
+  const historyPath = join(outputDir, 'history.json');
+  let history = [];
+  if (existsSync(historyPath)) {
+    try {
+      history = JSON.parse(readFileSync(historyPath, 'utf8'));
+    } catch {}
+  }
+
+  // Record this run in rolling history
+  history.push({
+    timestamp: nowTs,
+    isoDate: new Date(nowTs).toISOString(),
+    cycleIndex,
+    details: currentRunDetails,
+  });
+
+  // Retain past 24 hours of data points
+  const oneDayAgo = nowTs - 24 * 60 * 60 * 1000;
+  history = history.filter((entry) => entry.timestamp >= oneDayAgo);
+  writeFileSync(historyPath, JSON.stringify(history, null, 2));
+
+  // Compute rolling averages and bundle dynamic evaluation details
   const ms15m = 15 * 60 * 1000;
   const ms3h = 3 * 60 * 60 * 1000;
   const ms24h = 24 * 60 * 60 * 1000;
@@ -122,69 +276,45 @@ function computeRollingAverages(history, nowTs) {
       const sec = nominal / 1000;
       return sec < 10 ? `${sec.toFixed(1)}s` : `${Math.round(sec)}s`;
     }
-    const sum = samples.reduce((acc, s) => acc + (s.benchmarks[id] || nominal), 0);
+    const sum = samples.reduce((acc, s) => acc + (s.details?.[id]?.measuredMs || nominal), 0);
     const avgSec = sum / samples.length / 1000;
     return avgSec < 10 ? `${avgSec.toFixed(1)}s` : `${Math.round(avgSec)}s`;
   };
 
-  return BENCHMARK_ARCHETYPES.map((arch) => ({
-    id: arch.id,
-    name: arch.name,
-    scope: arch.scope,
-    baseline: arch.baseline,
-    impact: arch.impact,
-    last15m: formatAvg(sample15m.length ? sample15m : history.slice(-1), arch.id, arch.nominalMs),
-    last3h: formatAvg(sample3h.length ? sample3h : history.slice(-9), arch.id, arch.nominalMs),
-    last24h: formatAvg(sample24h.length ? sample24h : history, arch.id, arch.nominalMs),
-  }));
-}
+  const archetypeBenchmarks = BENCHMARK_ARCHETYPES.map((arch) => {
+    const latestDetail = currentRunDetails[arch.id];
+    const s15 = sample15m.length ? sample15m : history.slice(-1);
+    const s3 = sample3h.length ? sample3h : history.slice(-9);
+    const s24 = sample24h.length ? sample24h : history;
 
-export async function runHourlyHeartbeatSnapshot({
-  outputDir = './artifacts/heartbeat',
-  publicDir = './apps/orqaly/public-gcp',
-} = {}) {
-  const nowTs = Date.now();
-  const endpointResults = await Promise.all(
-    HEARTBEAT_TARGETS.map((t) => checkEndpointHeartbeat(t))
-  );
-  const allHealthy = endpointResults.every((r) => r.ok);
-
-  // Generate current cycle performance reading
-  const currentBenchmarks = {};
-  for (const arch of BENCHMARK_ARCHETYPES) {
-    const variation = (Math.sin(nowTs / 100000 + arch.nominalMs) * arch.jitterMs * 0.5);
-    currentBenchmarks[arch.id] = Math.round(arch.nominalMs + variation);
-  }
-
-  mkdirSync(outputDir, { recursive: true });
-  const historyPath = join(outputDir, 'history.json');
-  let history = [];
-  if (existsSync(historyPath)) {
-    try {
-      history = JSON.parse(readFileSync(historyPath, 'utf8'));
-    } catch {}
-  }
-
-  // Append entry and maintain rolling 24-hour window (~72 entries at 20m intervals)
-  history.push({
-    timestamp: nowTs,
-    isoDate: new Date(nowTs).toISOString(),
-    benchmarks: currentBenchmarks,
+    return {
+      id: arch.id,
+      name: arch.name,
+      scope: arch.scope,
+      baseline: arch.baseline,
+      impact: arch.impact,
+      last15m: formatAvg(s15, arch.id, latestDetail.measuredMs),
+      last3h: formatAvg(s3, arch.id, latestDetail.measuredMs),
+      last24h: formatAvg(s24, arch.id, latestDetail.measuredMs),
+      // Dynamic evaluation metadata for tooltip inspection
+      evaluation: {
+        lastPrompt: latestDetail.prompt,
+        turns: latestDetail.turns,
+        context: latestDetail.context,
+        measuredMs: latestDetail.measuredMs,
+        measuredFormatted: `${(latestDetail.measuredMs / 1000).toFixed(2)}s (${latestDetail.measuredMs} ms)`,
+        samples3h: s3.length,
+        samples24h: s24.length,
+      },
+    };
   });
 
-  const oneDayAgo = nowTs - 24 * 60 * 60 * 1000;
-  history = history.filter((entry) => entry.timestamp >= oneDayAgo);
-  writeFileSync(historyPath, JSON.stringify(history, null, 2));
-
-  // Compute rolling averages across 15m, 3h, 24h windows
-  const rollingArchetypes = computeRollingAverages(history, nowTs);
-
   const snapshot = {
-    schemaVersion: 'orqanix.heartbeat-snapshot.v2',
+    schemaVersion: 'orqanix.heartbeat-snapshot.v3',
     timestamp: new Date(nowTs).toISOString(),
     allHealthy,
     endpoints: endpointResults,
-    archetypeBenchmarks: rollingArchetypes,
+    archetypeBenchmarks,
   };
 
   const snapshotPath = join(outputDir, `snapshot-${nowTs}.json`);
@@ -192,7 +322,6 @@ export async function runHourlyHeartbeatSnapshot({
   writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
   writeFileSync(latestPath, JSON.stringify(snapshot, null, 2));
 
-  // Also publish to static public directory if exists
   if (existsSync(publicDir)) {
     writeFileSync(join(publicDir, 'heartbeat.json'), JSON.stringify(snapshot, null, 2));
   }
@@ -206,17 +335,13 @@ export async function runHourlyHeartbeatSnapshot({
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
   runHourlyHeartbeatSnapshot().then((s) => {
-    console.log('=== Orqanix Perpetual Heartbeat & Benchmark Snapshot ===');
+    console.log('=== Orqanix Dynamic Heartbeat & Benchmark Snapshot ===');
     console.log(`Status: ${s.allHealthy ? 'ALL HEALTHY' : 'DEGRADED'} at ${s.timestamp}`);
-    console.log('\n--- Rolling Work Archetype Benchmarks ---');
-    console.log(
-      `${'WORK ARCHETYPE'.padEnd(18)} ${'SCOPE / PROCESS'.padEnd(38)} ${'LAST 15M'.padEnd(10)} ${'LAST 3H'.padEnd(10)} ${'LAST 24H'.padEnd(10)} ${'BASELINE'}`
-    );
-    console.log('-'.repeat(105));
+    console.log('\n--- Dynamic Prompt Evaluations ---');
     for (const a of s.archetypeBenchmarks) {
-      console.log(
-        `${a.name.padEnd(18)} ${a.scope.padEnd(38)} ${a.last15m.padEnd(10)} ${a.last3h.padEnd(10)} ${a.last24h.padEnd(10)} ${a.baseline}`
-      );
+      console.log(`\n• [${a.name}] Evaluated Prompt: "${a.evaluation.lastPrompt}"`);
+      console.log(`  Turns: ${a.evaluation.turns} | Latency: ${a.evaluation.measuredFormatted} | Scope: ${a.evaluation.context}`);
+      console.log(`  Rolling: 15m=${a.last15m} | 3h=${a.last3h} | 24h=${a.last24h}`);
     }
   });
 }

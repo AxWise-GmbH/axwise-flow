@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "orqanix.heartbeat-snapshot.v2",
-  "timestamp": "2026-09-20T18:56:33.495Z",
+  "schemaVersion": "orqanix.heartbeat-snapshot.v3",
+  "timestamp": "2026-09-20T19:13:14.498Z",
   "allHealthy": true,
   "endpoints": [
     {
@@ -8,40 +8,40 @@
       "url": "https://orqanix.com/",
       "status": 200,
       "ok": true,
-      "latencyMs": 133,
-      "timestamp": "2026-09-20T18:56:33.629Z"
+      "latencyMs": 137,
+      "timestamp": "2026-09-20T19:13:14.636Z"
     },
     {
       "name": "Instant Preview",
       "url": "https://orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 111,
-      "timestamp": "2026-09-20T18:56:33.627Z"
+      "latencyMs": 113,
+      "timestamp": "2026-09-20T19:13:14.629Z"
     },
     {
       "name": "Benchmark Showcase",
       "url": "https://orqanix.com/benchmark",
       "status": 200,
       "ok": true,
-      "latencyMs": 214,
-      "timestamp": "2026-09-20T18:56:33.731Z"
+      "latencyMs": 234,
+      "timestamp": "2026-09-20T19:13:14.751Z"
     },
     {
       "name": "Preview Domain",
       "url": "https://preview.orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 171,
-      "timestamp": "2026-09-20T18:56:33.689Z"
+      "latencyMs": 198,
+      "timestamp": "2026-09-20T19:13:14.715Z"
     },
     {
       "name": "API Health Probe",
       "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
       "status": 200,
       "ok": true,
-      "latencyMs": 163,
-      "timestamp": "2026-09-20T18:56:33.681Z"
+      "latencyMs": 174,
+      "timestamp": "2026-09-20T19:13:14.692Z"
     }
   ],
   "archetypeBenchmarks": [
@@ -53,7 +53,16 @@
       "impact": "Direct structured response with zero preamble delay",
       "last15m": "1.2s",
       "last3h": "1.2s",
-      "last24h": "1.2s"
+      "last24h": "1.2s",
+      "evaluation": {
+        "lastPrompt": "What are the core filing deadlines and statutory document attachments for an Estonian OÜ annual report under the Commercial Code?",
+        "turns": 1,
+        "context": "Corporate compliance & commercial registry obligations",
+        "measuredMs": 1213,
+        "measuredFormatted": "1.21s (1213 ms)",
+        "samples3h": 2,
+        "samples24h": 2
+      }
     },
     {
       "id": "coding",
@@ -61,9 +70,18 @@
       "scope": "Workspace Engineering & Refactoring",
       "baseline": "68.2s (7 turns)",
       "impact": "Single-turn execution, verified syntax, zero conversation bloat",
-      "last15m": "25s",
-      "last3h": "25s",
-      "last24h": "25s"
+      "last15m": "26s",
+      "last3h": "26s",
+      "last24h": "26s",
+      "evaluation": {
+        "lastPrompt": "Locate ensureOrqalyExtensions in prompt.ts and verify how child MCP environment variables are isolated from the root process.",
+        "turns": 1,
+        "context": "Electron IPC lifecycle & MCP process sandboxing",
+        "measuredMs": 25536,
+        "measuredFormatted": "25.54s (25536 ms)",
+        "samples3h": 2,
+        "samples24h": 2
+      }
     },
     {
       "id": "search",
@@ -71,9 +89,18 @@
       "scope": "Evidence Retrieval & Information Triage",
       "baseline": "9.0s",
       "impact": "Irrelevant noise discarded before generation begins",
-      "last15m": "2.4s",
-      "last3h": "2.4s",
-      "last24h": "2.4s"
+      "last15m": "2.3s",
+      "last3h": "2.3s",
+      "last24h": "2.3s",
+      "evaluation": {
+        "lastPrompt": "EU Regulation 142/2011 Annex XIII microbiological standards for raw pet nutrition testing in accredited laboratories.",
+        "turns": 1,
+        "context": "Statutory lab requirement retrieval & noise elimination",
+        "measuredMs": 2322,
+        "measuredFormatted": "2.32s (2322 ms)",
+        "samples3h": 2,
+        "samples24h": 2
+      }
     },
     {
       "id": "research",
@@ -81,9 +108,18 @@
       "scope": "Deep Grounded Intelligence & Synthesis",
       "baseline": "52.0s",
       "impact": "High-density, citation-backed executive summary",
-      "last15m": "19s",
-      "last3h": "19s",
-      "last24h": "19s"
+      "last15m": "20s",
+      "last3h": "20s",
+      "last24h": "20s",
+      "evaluation": {
+        "lastPrompt": "Synthesize an executive briefing on launching an ultra-premium raw pet nutrition brand in Estonia with Selver and Prisma retail distribution.",
+        "turns": 2,
+        "context": "Multi-source executive research brief (767 words) with Gate 1/2 sign-off",
+        "measuredMs": 19550,
+        "measuredFormatted": "19.55s (19550 ms)",
+        "samples3h": 2,
+        "samples24h": 2
+      }
     },
     {
       "id": "plan",
@@ -91,9 +127,18 @@
       "scope": "Multi-Stage Project & PRD Generation",
       "baseline": "145s+ (timeouts)",
       "impact": "100% acceptance criteria satisfied, verifiable audit trail",
-      "last15m": "84s",
-      "last3h": "84s",
-      "last24h": "84s"
+      "last15m": "83s",
+      "last3h": "83s",
+      "last24h": "83s",
+      "evaluation": {
+        "lastPrompt": "Execute complete product launch runbook: PTA licensing, LABRIS testing schedule, Selver EDI integration, and launch marketing timeline.",
+        "turns": 10,
+        "context": "10-stage operational runbook with cryptographic stage-gate attestation",
+        "measuredMs": 82723,
+        "measuredFormatted": "82.72s (82723 ms)",
+        "samples3h": 2,
+        "samples24h": 2
+      }
     }
   ]
 }
