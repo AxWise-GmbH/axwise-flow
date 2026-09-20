@@ -84,6 +84,43 @@ const NAVIGATION = [
   [HistoryRoundedIcon, 'Session History'],
 ];
 
+// variant="instant" only: the dark app's menu, with thin line icons drawn on a 16px grid.
+const INSTANT_NAVIGATION = [
+  ['spark', 'Intelligence'],
+  ['plug', 'Plugins'],
+  ['tools', 'Instruments'],
+  ['history', 'History'],
+];
+
+const LINE_ICONS = {
+  newChat:
+    'M3.2 2.8h9.6a1.2 1.2 0 0 1 1.2 1.2v6a1.2 1.2 0 0 1-1.2 1.2H8.4l-3 2.4v-2.4H3.2A1.2 1.2 0 0 1 2 10V4a1.2 1.2 0 0 1 1.2-1.2zM8 5v4M6 7h4',
+  spark: 'M8 2.5l1.3 3.6 3.7 1.4-3.7 1.4L8 12.5 6.7 8.9 3 7.5l3.7-1.4zM12.2 11.2v2.3M11 12.4h2.4',
+  plug: 'M6 2.5v3M10 2.5v3M4.5 5.5h7v2.2a3.5 3.5 0 0 1-7 0zM8 11.2v2.3',
+  tools:
+    'M3 13l5.2-5.2M9.2 3.6a2.8 2.8 0 0 0 3.2 3.9l-1.7-1.7.6-1.6 1.6-.6L11.2 1.9a2.8 2.8 0 0 0-2 1.7zM3.4 3.4l2.2 2.2',
+  history: 'M2.8 8a5.2 5.2 0 1 0 1.6-3.8M2.6 2.8v2.4H5M8 5.2v3l2 1.2',
+  clip: 'M12.6 7.4l-4.9 4.9a2.7 2.7 0 0 1-3.8-3.8l5.3-5.3a1.8 1.8 0 0 1 2.5 2.5L6.5 10.9a.9.9 0 0 1-1.2-1.2l4.5-4.5',
+  sliders:
+    'M3 5h5.5M11.5 5H13M3 11h1.5M7.5 11H13M8.5 5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0zM4.5 11a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0z',
+  mic: 'M8 2.5a1.8 1.8 0 0 0-1.8 1.8v3.4a1.8 1.8 0 0 0 3.6 0V4.3A1.8 1.8 0 0 0 8 2.5zM4.2 7.5a3.8 3.8 0 0 0 7.6 0M8 11.3v2.2',
+};
+
+function LineIcon({ name }) {
+  return (
+    <svg viewBox="0 0 16 16" className="opd-line-icon" aria-hidden="true" focusable="false">
+      <path
+        d={LINE_ICONS[name]}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // A compact vector version of the existing line-orb mark, not a screenshot.
 function OrqanixMark() {
   return (
@@ -276,7 +313,57 @@ function ArtifactDocument({ example, index, scene }) {
   );
 }
 
-export default function DesktopProductDemo({ example }) {
+// variant="instant" only: New Chat, the chat lists, then the four sections at the foot.
+function InstantSidebar({ chat }) {
+  return (
+    <aside className="opd-sidebar" aria-label="Desktop navigation preview">
+      <div className="opd-traffic" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+        <ViewSidebarOutlinedIcon />
+      </div>
+      <div className="opd-sidebar-brand">
+        <OrqanixMark />
+        <span>Orqanix</span>
+      </div>
+      <div className="opd-nav">
+        <div className="opd-nav-item">
+          <LineIcon name="newChat" />
+          <span>New Chat</span>
+        </div>
+      </div>
+      <div className="opd-chat-list">
+        <span className="opd-section-label">RECENT</span>
+        <div className="opd-chat-selected">
+          <span>{chat}</span>
+          <i />
+        </div>
+        <div>
+          <span>Getting started</span>
+        </div>
+        <span className="opd-section-label">PINNED</span>
+        <div>
+          <span>Brand guide</span>
+        </div>
+      </div>
+      <div className="opd-nav opd-nav-foot">
+        {INSTANT_NAVIGATION.map(([icon, label]) => (
+          <div className="opd-nav-item" key={label}>
+            <LineIcon name={icon} />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="opd-sidebar-bottom">
+        <SettingsOutlinedIcon /> Settings
+      </div>
+    </aside>
+  );
+}
+
+export default function DesktopProductDemo({ example, variant = 'classic' }) {
+  const instant = variant === 'instant';
   const scene = SCENES[example.id] ?? SCENES.local;
   const workspaceId = useId();
   const isMobile = useMediaQuery('(max-width: 600px)');
@@ -367,47 +454,51 @@ export default function DesktopProductDemo({ example }) {
           : 'Play walkthrough';
 
   return (
-    <div className="opd" data-playback={playback}>
+    <div className={instant ? 'opd opd-dark' : 'opd'} data-playback={playback}>
       <div
         className={`opd-window ${workspaceOpen ? 'opd-has-workspace' : ''}`}
         aria-label="Interactive Orqanix desktop example"
       >
-        <aside className="opd-sidebar" aria-label="Desktop navigation preview">
-          <div className="opd-traffic" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <ViewSidebarOutlinedIcon />
-          </div>
-          <div className="opd-sidebar-brand">
-            <OrqanixMark />
-            <span>
-              Orqanix<small>Built on Goose</small>
-            </span>
-          </div>
-          <div className="opd-nav">
-            {NAVIGATION.map((item) => {
-              const [Icon, label] = item;
-              return (
-                <div className="opd-nav-item" key={label}>
-                  <Icon />
-                  <span>{label}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="opd-chat-list">
-            <span className="opd-section-label">Chats</span>
-            <div className="opd-chat-selected">
-              {scene.chat}
+        {instant ? (
+          <InstantSidebar chat={scene.chat} />
+        ) : (
+          <aside className="opd-sidebar" aria-label="Desktop navigation preview">
+            <div className="opd-traffic" aria-hidden="true">
               <i />
+              <i />
+              <i />
+              <ViewSidebarOutlinedIcon />
             </div>
-            <div>Getting started</div>
-          </div>
-          <div className="opd-sidebar-bottom">
-            <SettingsOutlinedIcon /> Settings
-          </div>
-        </aside>
+            <div className="opd-sidebar-brand">
+              <OrqanixMark />
+              <span>
+                Orqanix<small>Built on Goose</small>
+              </span>
+            </div>
+            <div className="opd-nav">
+              {NAVIGATION.map((item) => {
+                const [Icon, label] = item;
+                return (
+                  <div className="opd-nav-item" key={label}>
+                    <Icon />
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="opd-chat-list">
+              <span className="opd-section-label">Chats</span>
+              <div className="opd-chat-selected">
+                {scene.chat}
+                <i />
+              </div>
+              <div>Getting started</div>
+            </div>
+            <div className="opd-sidebar-bottom">
+              <SettingsOutlinedIcon /> Settings
+            </div>
+          </aside>
+        )}
 
         <header className="opd-titlebar">
           <span className="opd-title">
@@ -495,21 +586,36 @@ export default function DesktopProductDemo({ example }) {
                   )}
                   <span className="opd-type-caret" />
                 </>
+              ) : instant ? (
+                "Ask whatever's on your mind."
               ) : (
                 'What would you like to do next?'
               )}
             </div>
             <div className="opd-composer-controls">
-              <span>
-                <OrqanixMark /> Gemini
-              </span>
+              {instant ? (
+                <>
+                  <LineIcon name="clip" />
+                  <LineIcon name="sliders" />
+                </>
+              ) : (
+                <span>
+                  <OrqanixMark /> Gemini
+                </span>
+              )}
               <span>
                 <FolderOpenOutlinedIcon />
                 {scene.folder}
               </span>
               <span className="opd-composer-spacer" />
-              <TuneRoundedIcon />
-              <AddRoundedIcon />
+              {instant ? (
+                <LineIcon name="mic" />
+              ) : (
+                <>
+                  <TuneRoundedIcon />
+                  <AddRoundedIcon />
+                </>
+              )}
               <span className="opd-send" aria-hidden="true">
                 <ArrowUpwardRoundedIcon />
               </span>
