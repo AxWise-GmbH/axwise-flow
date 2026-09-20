@@ -14,7 +14,7 @@ export const JEV_LINT_RULESETS = Object.freeze({
       has_syntax_errors: {
         type: 'noul',
         instructions:
-          'Does this code snippet or diff contain obvious syntax errors, unclosed brackets, or invalid grammar?',
+          'Does this code contain syntax errors, unclosed brackets, or invalid language grammar (ignoring trailing truncation at the end of the snippet)?',
       },
       has_broken_imports: {
         type: 'noul',
