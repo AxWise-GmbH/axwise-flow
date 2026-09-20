@@ -1,5 +1,7 @@
 // The "Instant" site map. The top bar, the phone menu and the router switch all read this.
-export const INSTANT_HOME = '/instant';
+// The landing is the site's front page. The sub-pages keep their /instant/ prefix so
+// they do not collide with the existing public routes (/features, /how-it-works, ...).
+export const INSTANT_HOME = '/';
 
 export const INSTANT_PAGES = [
   {

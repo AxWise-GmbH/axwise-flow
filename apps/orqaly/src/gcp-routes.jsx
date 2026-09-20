@@ -257,16 +257,19 @@ export const gcpRoutePaths = [
 ];
 
 export const gcpRouter = createBrowserRouter([
-  { path: '/', element: <LandingPageSimple /> },
-  { path: '/standart', element: <Navigate to="/" replace /> },
   {
-    path: '/instant',
+    path: '/',
     element: (
       <LazyPage>
         <LandingPageInstant />
       </LazyPage>
     ),
   },
+  // The page this one replaced, kept reachable rather than deleted.
+  { path: '/classic', element: <LandingPageSimple /> },
+  { path: '/standart', element: <Navigate to="/classic" replace /> },
+  // The preview path the landing was built and shared on, now one canonical URL.
+  { path: '/instant', element: <Navigate to="/" replace /> },
   {
     path: '/instant/:page',
     element: (
