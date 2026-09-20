@@ -218,6 +218,104 @@
       </table>
     </div>
 
+    <!-- Section 2B: Isolated Scope Decomposition (AxWise & Desktop Stack) -->
+    <h2 class="section-title">Isolated Scope Decomposition: Vanilla vs. Jev vs. Full Orqanix E2E</h2>
+    <p style="color:var(--text-muted);margin-bottom:18px;font-size:14px">
+      Evaluating each acceleration layer independently: isolating the impact of TypeSafe Jev (typed discriminator), Gemini context caching, and Oh My Pi (local AST subagent) against unaccelerated vanilla baselines.
+    </p>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Architecture &amp; Execution Tier</th>
+            <th>Phase 1 / Intent</th>
+            <th>Gate A / Evidence Triage</th>
+            <th>Gate B / Quality Gate</th>
+            <th>Total E2E Latency</th>
+            <th>System Benefit &amp; Quality Profile</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:rgba(255,255,255,0.01)">
+            <td colspan="6" style="font-weight:700;color:var(--primary-light);font-size:13px;letter-spacing:0.05em;text-transform:uppercase;border-bottom:1px solid rgba(99,102,241,0.2)">
+              A. Cloud Intelligence Pipeline (AxWise on Cloud Run)
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>1. Vanilla AxWise (Gemini 3.8 Flash alone)</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">No Jev, no prompt cache &bull; Raw generative JSON</span>
+            </td>
+            <td>2,120 ms</td>
+            <td>9,000 ms<br><span style="font-size:11px;color:var(--text-muted)">Unfiltered 6 docs</span></td>
+            <td>2,400 ms</td>
+            <td><span style="color:#f87171;font-weight:700">13.52 seconds</span></td>
+            <td>Baseline reference &bull; Subject to scraper HTML noise and occasional schema parsing drift</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>2. AxWise + TypeSafe Jev (Isolated Gate A/B)</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Jev-latest typed discriminator &bull; Zero prompt caching</span>
+            </td>
+            <td>987 ms</td>
+            <td>2,419 ms<br><span style="font-size:11px;color:#34d399">Kept 2 of 6 docs (66% noise dropped)</span></td>
+            <td>753 ms</td>
+            <td><span style="color:#34d399;font-weight:700">4.16 seconds</span><br><span class="tag-live">3.25x FASTER</span></td>
+            <td><strong>Mathematical schema guarantee</strong> &bull; Sub-second boolean evaluation &bull; Zero syntax errors</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>3. AxWise + Jev + Gemini Context Caching</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Production fleet config on GCP Cloud Run</span>
+            </td>
+            <td>742 ms</td>
+            <td>1,850 ms<br><span style="font-size:11px;color:#34d399">Pre-cached statutory schemas</span></td>
+            <td>580 ms</td>
+            <td><span style="color:#34d399;font-weight:700">3.17 seconds</span><br><span class="tag-live">4.26x FASTER</span></td>
+            <td><strong>Production Tier:</strong> Sub-second intent + sub-2s evidence triage &bull; 100% Gate B pass rate</td>
+          </tr>
+          <tr style="background:rgba(255,255,255,0.01)">
+            <td colspan="6" style="font-weight:700;color:var(--primary-light);font-size:13px;letter-spacing:0.05em;text-transform:uppercase;border-bottom:1px solid rgba(99,102,241,0.2)">
+              B. Desktop Client Pipeline (Local Code &amp; Repository Tasks)
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>1. Vanilla Upstream Goose (block/goose)</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Standard developer extension &bull; Sequential shell loops</span>
+            </td>
+            <td>6 &ndash; 8 turns</td>
+            <td>~18,500 tokens<br><span style="font-size:11px;color:#f87171">Raw file dumps in chat</span></td>
+            <td>None (Dumb regex)</td>
+            <td><span style="color:#f87171;font-weight:700">68.2 seconds</span></td>
+            <td>Context window bloat &bull; Model hits token limits rapidly on multi-file investigation</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>2. Baseline Orqaly-Goose (Cloud Auth + Shell)</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Gateway PKCE &bull; Standard developer: shell grep</span>
+            </td>
+            <td>5 turns</td>
+            <td>~12,400 tokens<br><span style="font-size:11px;color:var(--text-muted)">Fragmented snippets</span></td>
+            <td>None (Shell grep)</td>
+            <td><span style="color:var(--text-muted);font-weight:700">49.5 seconds</span></td>
+            <td>Finds file lines, but leaves user to manually assemble cross-system architecture</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>3. Orqanix E2E (Orqaly + Goose + OMP + Jev)</strong><br>
+              <span style="color:var(--text-muted);font-size:12px">Oh My Pi AST subprocess &bull; TypeSafe Jev pre-commit gate</span>
+            </td>
+            <td><strong>1 single turn</strong></td>
+            <td><strong>~1,100 tokens</strong><br><span style="font-size:11px;color:#34d399">Zero chat context bloat</span></td>
+            <td><strong>TypeSafe Jev (&lt;850ms)</strong><br><span style="font-size:11px;color:#34d399">AST / LSP verified</span></td>
+            <td><span style="color:#34d399;font-weight:700">24.9 seconds</span><br><span class="tag-live">2.74x FASTER</span></td>
+            <td><strong>Complete Native Solution:</strong> Autonomous subagent runs in background &bull; Preserves context window</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- Section 3: Multi-Mode Benchmark Table -->
     <h2 class="section-title">Multi-Mode Performance & Reliability Scorecard</h2>
     <div class="table-card">
