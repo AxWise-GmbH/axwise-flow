@@ -1,0 +1,144 @@
+/*
+ * Speed. The page has to stay smooth on a phone and on an older laptop, so the
+ * expensive paint effects are trimmed here in one place, after every other stylesheet.
+ */
+
+/*
+ * No blur is animated anywhere: arrivals are a fade and a rise. Blooms are plain radial
+ * gradients, which are already soft, so nothing on the page runs a blur filter per frame.
+ */
+
+/* Looping decoration rests while its block is off screen. Seen (SpeedStrip.jsx) and the
+   block gates set data-live; !important because an `animation` shorthand in a stronger
+   rule silently resets the play state to running. */
+[data-landing-variant='instant'] [data-live='false'],
+[data-landing-variant='instant'] [data-live='false']::before,
+[data-landing-variant='instant'] [data-live='false']::after,
+[data-landing-variant='instant'] [data-live='false'] *,
+[data-landing-variant='instant'] [data-live='false'] *::before,
+[data-landing-variant='instant'] [data-live='false'] *::after {
+  animation-play-state: paused !important;
+}
+
+/* Soft gradients need no blur on top: the filter was re-run for every breathing frame. */
+[data-landing-variant='instant'] .ois-bloom,
+[data-landing-variant='instant'] .oia-bloom::before,
+[data-landing-variant='instant'] .oip-hero-bloom,
+[data-landing-variant='instant'] .osp-bloom,
+[data-landing-variant='instant'] .hiw-mock-bloom {
+  filter: none;
+}
+
+@media (max-width: 900px), (hover: none) {
+  /* Glass under a fixed bar re-blurs the whole page as it scrolls beneath. */
+  [data-landing-variant='instant'] .oi-bar[data-scrolled='true'],
+  [data-landing-variant='instant'] .oi-bar[data-open='true'] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(3, 11, 7, 0.94);
+  }
+
+  /* Still light costs nothing; drifting light keeps a full-screen layer busy. The
+     nth-child matches the rule in instant.css that starts the drift. */
+  [data-landing-variant='instant'] .oi-ambient i:nth-child(n) {
+    animation: none;
+  }
+
+  /* Full-screen turbulence noise is re-filtered whenever the phone repaints. */
+  .oi-grain {
+    display: none;
+  }
+}
+
+/* Sections far below the screen skip layout and paint until the visitor gets near them. */
+[data-landing-variant='instant'] main > section:nth-of-type(n + 4),
+[data-landing-variant='instant'] main > .oix {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+/* Orbs are drawn on a small canvas and zoomed (see ORB_RENDER_SCALE in each block): the
+   canvas costs by the pixel and by the stroke, the zoom is free on the compositor. */
+[data-landing-variant='instant'] .oi-orb-zoom {
+  scale: var(--oi-orb-zoom, 1);
+}
+
+[data-landing-variant='instant'] .oi-orb-zoom-corner {
+  transform-origin: 0 0;
+}
+
+/* An entrance that has finished does not need its own compositor layer for ever. */
+[data-landing-variant='instant'] .oh-rise,
+[data-landing-variant='instant'] .oip-rise {
+  will-change: auto;
+}
+
+/* The hero's title light and button sheen rest once the hero has scrolled away. */
+[data-landing-variant='instant'] .oh-hero[data-offscreen] *,
+[data-landing-variant='instant'] .oh-hero[data-offscreen] *::before,
+[data-landing-variant='instant'] .oh-hero[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+
+/* A block that loads after the first screen holds its place, so nothing below it jumps. */
+.oi-lazy-slot {
+  min-height: var(--oi-slot, 900px);
+}
+
+@media (max-width: 900px) {
+  .oi-lazy-slot {
+    min-height: var(--oi-slot-phone, var(--oi-slot, 900px));
+  }
+}
+
+/*
+ * Phone floor. Labels are set in rem fractions that land under 12px on a phone; nothing a
+ * visitor has to read goes below 12px there, and the narrowest footer link still makes a
+ * 44px target. !important because this sheet loads before the blocks it corrects.
+ */
+@media (max-width: 700px) {
+  [data-landing-variant='instant'] .oi-tag:not(.oh-label-tag),
+  [data-landing-variant='instant'] .oi-badge,
+  [data-landing-variant='instant'] .oi-card-title,
+  [data-landing-variant='instant'] .oi-more:not(.oi-more-row) > .oi-more-toggle > span,
+  [data-landing-variant='instant'] .oh-lines .oi-line,
+  [data-landing-variant='instant'] .oih-type,
+  [data-landing-variant='instant'] .ouc-pill,
+  [data-landing-variant='instant'] .ouc-ask-label,
+  [data-landing-variant='instant'] .ouc-more,
+  [data-landing-variant='instant'] .ohw-num,
+  [data-landing-variant='instant'] .ohf-name,
+  [data-landing-variant='instant'] .ohs-plate li,
+  [data-landing-variant='instant'] .ohs-note,
+  [data-landing-variant='instant'] .ohs-replay span,
+  [data-landing-variant='instant'] .osl-stat,
+  [data-landing-variant='instant'] .oix .MuiButton-root,
+  [data-landing-variant='instant'] .opd-dark .opd-brand,
+  [data-landing-variant='instant'] .opd-dark .opd-tool summary span,
+  [data-landing-variant='instant'] .opd-dark .opd-tool pre,
+  [data-landing-variant='instant'] .opd-dark .opd-inline-artifact span,
+  [data-landing-variant='instant'] .opd-dark .opd-next-step,
+  [data-landing-variant='instant'] .opd-dark .opd-composer-controls span,
+  [data-landing-variant='instant'] .opd-dark .opd-demo-controls p,
+  [data-landing-variant='instant'] .opd-dark .opd-demo-controls span,
+  [data-landing-variant='instant'] .opd-dark .opd-demo-controls button {
+    font-size: 12px !important;
+  }
+
+  [data-landing-variant='instant'] .oi-footer-link {
+    min-width: 44px;
+  }
+
+  /* The Features tiles are narrow: at 12px their names need tighter tracking to fit. */
+  [data-landing-variant='instant'] .ohf-name {
+    letter-spacing: 0.01em;
+  }
+
+  /* Example window: the tool rows and the file chip are real buttons. */
+  [data-landing-variant='instant'] .opd-dark .opd-tool summary,
+  [data-landing-variant='instant'] .opd-dark .opd-inline-artifact,
+  [data-landing-variant='instant'] .opd-dark .opd-title-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

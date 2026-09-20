@@ -1,0 +1,738 @@
+/*
+ * HeroWindow: a replica of the desktop app in its dark theme, DOM + CSS only.
+ * Colours are the app's own dark tokens (graphite #22252a, hairline #3f434b, inverse
+ * #cbd1d6, the navy user bubble), near-monochrome like the real thing. The one liberty
+ * is the muted grey, lifted from #878787 so small text passes AA on the graphite.
+ * Type floor: 13px chat, 12px Workspace rows, 10px uppercase section labels. Every
+ * data-region element has an 8px radius so the hero's highlight can follow its shape.
+ *
+ * The small loops only animate transform and opacity.
+ */
+
+.hw-link {
+  --hw-bg: #22252a;
+  --hw-text: #f4f5f7;
+  --hw-soft: #cbd1d6;
+  --hw-muted: #9a9fa8;
+  --hw-border: #3f434b;
+  --hw-border-strong: #525b68;
+  --hw-fill: rgba(255, 255, 255, 0.055);
+  --hw-light: var(--oi-orb);
+  display: block;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 16px;
+  color: var(--hw-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: left;
+  text-decoration: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hw-link:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 5px;
+}
+
+.hw-link *,
+.hw-link *::before,
+.hw-link *::after {
+  box-sizing: border-box;
+}
+
+.hw-window {
+  position: relative;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 232px;
+  height: 436px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #25282e, #1d1f24);
+  /* Lit from behind: a lifted top edge, a deep shadow, and the orb's green on the rim. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 60px 120px -30px rgba(0, 0, 0, 0.95),
+    0 0 90px -12px rgba(150, 215, 186, 0.42);
+  font-size: 13px;
+  line-height: 1.5;
+  /* The fake controls must not react on their own: every click lands on the one link. */
+  pointer-events: none;
+  transition:
+    border-color 500ms ease,
+    box-shadow 700ms ease;
+}
+
+/* A brighter streak in the middle of the top edge, where the light catches it. */
+.hw-window::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 12%;
+  left: 12%;
+  z-index: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(233, 248, 241, 0.75), transparent);
+}
+
+.hw-link:hover .hw-window,
+.hw-link:focus-visible .hw-window {
+  border-color: rgba(var(--oi-pale-rgb), 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 60px 120px -30px rgba(0, 0, 0, 0.95),
+    0 0 120px -8px rgba(var(--oi-glow-rgb), 0.62);
+}
+
+.hw-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.hw-label {
+  display: block;
+  color: var(--hw-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+/* Window chrome ----------------------------------------------------------- */
+
+.hw-traffic {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  gap: 7px;
+}
+
+/* Grey at rest, like an unfocused Mac window; the colours wake when it is pointed at. */
+.hw-traffic i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a4e57;
+  transition: background-color 500ms ease;
+}
+
+.hw-link:hover .hw-traffic i:nth-child(1),
+.hw-link:focus-visible .hw-traffic i:nth-child(1) {
+  background: #ff6159;
+}
+
+.hw-link:hover .hw-traffic i:nth-child(2),
+.hw-link:focus-visible .hw-traffic i:nth-child(2) {
+  background: #ffbd2e;
+}
+
+.hw-link:hover .hw-traffic i:nth-child(3),
+.hw-link:focus-visible .hw-traffic i:nth-child(3) {
+  background: #28c840;
+}
+
+/* Sidebar ----------------------------------------------------------------- */
+
+.hw-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 40px 6px 0;
+  border-right: 1px solid var(--hw-border);
+  background: rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+}
+
+.hw-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hw-mark {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--hw-light);
+}
+
+.hw-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 6px;
+  color: #b3b8c1;
+  white-space: nowrap;
+}
+
+/* A row that a hero label can light up. The rows keep one even rhythm (the gap below), and
+   that gap is what keeps a lit row's outline off its neighbour's words. */
+.hw-nav-group {
+  border-radius: 8px;
+}
+
+.hw-chats-label {
+  margin-top: 14px;
+  padding: 0 6px 6px;
+}
+
+.hw-chat-row {
+  display: block;
+  height: 28px;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  color: var(--hw-muted);
+  line-height: 28px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hw-chat-row-selected {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--hw-text);
+}
+
+/* Chat -------------------------------------------------------------------- */
+
+.hw-chat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 18px 14px 12px;
+  overflow: hidden;
+}
+
+.hw-bubble {
+  align-self: flex-end;
+  max-width: 90%;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px 14px 4px 14px;
+  background: #1a2e24;
+  color: #d6e2dd;
+}
+
+.hw-reply {
+  margin: 12px 0 0;
+}
+
+.hw-subagent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--hw-border);
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.hw-subagent .hw-icon {
+  color: var(--hw-muted);
+}
+
+.hw-subagent-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hw-subagent-dot,
+.hw-subagent-link {
+  color: var(--hw-muted);
+}
+
+.hw-subagent-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hw-question {
+  position: relative;
+  margin-top: 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--hw-border);
+  border-radius: 10px;
+  background: var(--hw-fill);
+}
+
+/* The card that is waiting for the person breathes: a green rim that swells and
+   fades. It is a second border on top, so only its opacity has to animate. */
+.hw-question::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(205, 240, 224, 0.7);
+  border-radius: inherit;
+  box-shadow:
+    0 0 22px rgba(var(--oi-glow-rgb), 0.4),
+    inset 0 0 16px rgba(var(--oi-glow-rgb), 0.14);
+  opacity: 0.85;
+  animation: hw-breathe 5s ease-in-out infinite alternate;
+}
+
+.hw-question-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 8px;
+}
+
+.hw-question-title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hw-question-count {
+  color: var(--hw-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hw-question-text {
+  margin: 6px 0 0;
+}
+
+.hw-chips {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.hw-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--hw-border-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hw-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--hw-border);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.hw-caret {
+  width: 1.5px;
+  height: 15px;
+  flex: none;
+  margin-right: -4px;
+  border-radius: 1px;
+  background: var(--hw-light);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.9);
+  animation: hw-blink 1.15s ease-in-out infinite;
+}
+
+.hw-placeholder {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hw-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hw-mic {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--hw-soft);
+}
+
+.hw-mic .hw-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Workspace --------------------------------------------------------------- */
+
+.hw-workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 10px 12px 12px 0;
+  overflow: hidden;
+  border: 1px solid var(--hw-border);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+}
+
+.hw-workspace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--hw-border);
+  font-weight: 500;
+}
+
+.hw-workspace-head .hw-icon {
+  color: var(--hw-muted);
+}
+
+.hw-workspace-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+}
+
+.hw-status {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--hw-fill);
+}
+
+.hw-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 9px 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hw-pill i {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hw-light);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.9);
+}
+
+/* The status dot pings, the way a live indicator does. */
+.hw-pill i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--hw-light);
+  opacity: 0;
+  animation: hw-ping 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.hw-status-step {
+  color: var(--hw-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hw-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 9px;
+}
+
+.hw-segment {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.hw-segment i {
+  position: relative;
+  display: block;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--hw-soft);
+}
+
+.hw-segment-full i {
+  width: 100%;
+}
+
+.hw-segment-half i {
+  width: 50%;
+}
+
+/* The step in progress shimmers: light runs along the part that is filled. */
+.hw-segment-half i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #ffffff 45%, var(--hw-light) 55%, transparent);
+  transform: translate3d(-110%, 0, 0);
+  animation: hw-shimmer 2.4s ease-in-out infinite;
+}
+
+.hw-roadmap {
+  border-radius: 8px;
+}
+
+.hw-roadmap .hw-label,
+.hw-files .hw-label {
+  margin-bottom: 6px;
+}
+
+.hw-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hw-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 24px;
+}
+
+/* The timeline line between two 16px markers that sit centred in 24px rows. */
+.hw-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 7.5px;
+  width: 1px;
+  height: 8px;
+  background: var(--hw-border-strong);
+}
+
+.hw-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 1px solid var(--hw-border-strong);
+  border-radius: 50%;
+}
+
+.hw-step-done .hw-marker {
+  border-color: var(--hw-soft);
+  background: var(--hw-soft);
+  color: var(--hw-bg);
+}
+
+.hw-marker-check {
+  width: 10px;
+  height: 10px;
+}
+
+.hw-step-now .hw-marker {
+  border: 2px solid var(--hw-text);
+}
+
+.hw-step-now .hw-marker i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hw-text);
+}
+
+/* The current step sends out a ring, again and again. */
+.hw-step-now .hw-marker::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px solid var(--hw-light);
+  border-radius: 50%;
+  opacity: 0;
+  animation: hw-pulse 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.hw-step-now .hw-step-title {
+  font-weight: 600;
+}
+
+.hw-step-pending {
+  color: var(--hw-muted);
+}
+
+.hw-file {
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 7px;
+  padding: 2px 0;
+  border-radius: 8px;
+}
+
+.hw-file + .hw-file {
+  margin-top: 10px;
+}
+
+.hw-file .hw-icon {
+  color: var(--hw-muted);
+}
+
+.hw-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hw-file-tag {
+  padding: 1px 5px;
+  border: 1px solid var(--hw-border);
+  border-radius: 4px;
+  color: var(--hw-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+
+.hw-file-diff {
+  grid-column: 2 / -1;
+  color: var(--hw-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hw-diff-added {
+  color: #a3d795;
+}
+
+.hw-diff-removed {
+  color: #ff8d8d;
+}
+
+/* Loops -------------------------------------------------------------------- */
+
+@keyframes hw-ping {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(4.2);
+  }
+}
+
+@keyframes hw-pulse {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@keyframes hw-shimmer {
+  0%,
+  20% {
+    transform: translate3d(-110%, 0, 0);
+  }
+  80%,
+  100% {
+    transform: translate3d(110%, 0, 0);
+  }
+}
+
+@keyframes hw-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hw-breathe {
+  from {
+    opacity: 0.18;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Phones: no sidebar, Workspace under the chat ---------------------------- */
+
+@media (max-width: 699px) {
+  .hw-window {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .hw-sidebar {
+    display: none;
+  }
+
+  .hw-chat {
+    padding-top: 40px;
+  }
+
+  .hw-composer {
+    margin-top: 12px;
+  }
+
+  .hw-workspace {
+    margin: 0 12px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-window,
+  .hw-traffic i {
+    transition: none;
+  }
+
+  .hw-link *,
+  .hw-link *::before,
+  .hw-link *::after {
+    animation: none !important;
+  }
+
+  /* Still, but not switched off: the rim stays lit and the caret stays drawn. */
+  .hw-question::after {
+    opacity: 0.6;
+  }
+}
+
+/* The four sections sit at the foot of the sidebar, under the chat lists, as in the app. */
+.hw-nav-sections {
+  display: grid;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--hw-border);
+  padding-bottom: 8px;
+}

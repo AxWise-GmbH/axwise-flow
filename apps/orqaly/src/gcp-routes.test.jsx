@@ -105,7 +105,11 @@ const publicPreviewLocations = [
 
 const explicitTopLevelPatterns = [
   '/',
+  '/classic',
   '/standart',
+  '/instant',
+  '/instant/:page',
+  '/instant/solutions/:slug',
   '/login',
   '/signup',
   '/auth/callback',
@@ -337,13 +341,48 @@ describe('GCP launch route allowlist', () => {
     expect(protectedGroup?.children).not.toContainEqual(expect.objectContaining({ path: '*' }));
   });
 
-  it('uses the simplified product page at root and retains the old landing alias', () => {
-    expect(leaf('/').element.type).toBe(LandingPageSimple);
+  it('serves the desktop-first landing at the root, publicly', () => {
+    const routeMatches = matches('/');
+    expect(routeMatches).toHaveLength(1);
+    expect(routeMatches[0].route.path).toBe('/');
+    expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+  });
+
+  it('keeps the page it replaced at /classic and sends the old aliases there', () => {
+    expect(leaf('/classic').element.type).toBe(LandingPageSimple);
 
     const standartAlias = leaf('/standart');
     expect(standartAlias.element.type).toBe(Navigate);
-    expect(standartAlias.element.props).toMatchObject({ to: '/', replace: true });
+    expect(standartAlias.element.props).toMatchObject({ to: '/classic', replace: true });
   });
+
+  it('folds the /instant preview path into the root so one URL is canonical', () => {
+    const instantAlias = leaf('/instant');
+    expect(instantAlias.element.type).toBe(Navigate);
+    expect(instantAlias.element.props).toMatchObject({ to: '/', replace: true });
+    expect(gcpRoutePaths).not.toContain('/instant');
+  });
+
+  it.each(['/instant/how-it-works', '/instant/features', '/instant/speed'])(
+    'serves the preview sub-page %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/:page');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+    }
+  );
+
+  it.each(['/instant/solutions/healthcare', '/instant/solutions/manufacturing'])(
+    'serves the preview solutions page %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/solutions/:slug');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+      expect(gcpRoutePaths).not.toContain('/instant/solutions/:slug');
+    }
+  );
 
   it('keeps /organizations as a protected compatibility redirect to canonical Workspace', async () => {
     render(

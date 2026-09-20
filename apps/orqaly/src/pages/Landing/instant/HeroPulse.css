@@ -1,0 +1,585 @@
+/*
+ * HeroPulse: the hero's moving picture, DOM + CSS only. One ask, three agents, the
+ * finished files, on a dark glass card lit by the orb behind it. The scene's phase is a
+ * data attribute on .hp-scene; everything that moves answers to it here.
+ */
+
+.hp-link {
+  display: block;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 28px;
+  color: var(--oi-ink);
+  font-family: var(--oi-sans);
+  text-align: left;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hp-link:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 5px;
+}
+
+.hp-link *,
+.hp-link *::before,
+.hp-link *::after {
+  box-sizing: border-box;
+}
+
+.hp-link p,
+.hp-link ol,
+.hp-link ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hp-scene {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 22px;
+  /* Stacked layouts hang icon bubbles on the card's edges; the padding keeps them off the words. */
+  padding: 30px 30px 40px;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.2);
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(var(--oi-glow-rgb), 0.3), transparent 62%),
+    linear-gradient(180deg, rgba(9, 20, 15, 0.95), rgba(3, 9, 6, 0.97));
+  /* Lit from behind: a lifted top edge, a deep shadow, and the orb's green on the rim. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 60px 120px -30px rgba(0, 0, 0, 0.95),
+    0 0 110px -12px rgba(var(--oi-glow-rgb), 0.5);
+  transition:
+    border-color 500ms ease,
+    box-shadow 600ms ease;
+}
+
+.hp-link:hover .hp-scene,
+.hp-link:focus-visible .hp-scene {
+  border-color: rgba(var(--oi-pale-rgb), 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 60px 120px -30px rgba(0, 0, 0, 0.95),
+    0 0 130px -8px rgba(var(--oi-glow-rgb), 0.66);
+}
+
+.hp-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+/* The ask ------------------------------------------------------------------- */
+
+.hp-ask-row {
+  --oh-region-radius: 34px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 10px 11px 10px 24px;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.34);
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 44px -6px rgba(var(--oi-glow-rgb), 0.75);
+}
+
+.hp-ask-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--oi-ink);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  transition: opacity 500ms ease;
+}
+
+.hp-placeholder {
+  color: var(--oi-dim);
+}
+
+.hp-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-inline: 2px 3px;
+  vertical-align: -0.18em;
+  border-radius: 1px;
+  background: var(--oh-accent);
+  box-shadow: 0 0 10px rgba(var(--oi-accent-rgb), 0.9);
+  animation: hp-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes hp-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Once the ask is sent the caret goes, as it would in the app. */
+.hp-scene:not([data-phase='ask']) .hp-caret {
+  opacity: 0;
+  animation: none;
+}
+
+.hp-scene[data-phase='leave'] .hp-ask-text {
+  opacity: 0;
+}
+
+.hp-mic {
+  --oh-region-radius: 50%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(var(--oi-pale-rgb), 0.55),
+    rgba(var(--oi-deep-rgb), 0.55)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--oi-pale-rgb), 0.5),
+    0 0 22px rgba(var(--oi-glow-rgb), 0.7);
+  color: #ffffff;
+}
+
+.hp-mic .hp-icon {
+  width: 19px;
+  height: 19px;
+}
+
+/* While the words arrive the microphone listens: a ring leaves it, again and again. */
+.hp-mic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--oh-accent);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hp-scene[data-phase='ask'] .hp-mic::after {
+  animation: hp-ring 1500ms ease-out infinite;
+}
+
+@keyframes hp-ring {
+  from {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+
+.hp-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 14px;
+}
+
+.hp-tool {
+  --oh-region-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 11px 0 10px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--oi-muted);
+  font-size: 0.78rem;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.hp-tool .hp-icon:first-child {
+  color: var(--oh-accent);
+}
+
+/* A new model name for every ask: the element is re-made, so the entrance replays. */
+.hp-model {
+  color: var(--oi-ink);
+  animation: hp-swap 700ms var(--oi-ease);
+}
+
+@keyframes hp-swap {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+}
+
+/* The agents ---------------------------------------------------------------- */
+
+.hp-agents {
+  --oh-region-radius: 14px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-block: 6px 4px;
+}
+
+/* One rail under the three nodes, and the light that travels along it. */
+.hp-agents::before,
+.hp-agents::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: calc(100% / 6);
+  height: 2px;
+  border-radius: 1px;
+}
+
+.hp-agents::before {
+  right: calc(100% / 6);
+  background: var(--oi-hairline);
+}
+
+.hp-agents::after {
+  width: 0;
+  background: linear-gradient(90deg, rgba(var(--oi-accent-rgb), 0.25), var(--oh-accent));
+  box-shadow: 0 0 12px rgba(var(--oi-accent-rgb), 0.85);
+  transition: width 900ms var(--oi-ease);
+}
+
+.hp-scene[data-phase='2'] .hp-agents::after {
+  width: calc(100% / 3);
+}
+
+.hp-scene[data-phase='3'] .hp-agents::after,
+.hp-scene[data-phase='made'] .hp-agents::after {
+  width: calc(200% / 3);
+}
+
+.hp-agent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.hp-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: #07110c;
+  color: #04150d;
+  transition:
+    background-color 500ms ease,
+    border-color 500ms ease,
+    box-shadow 600ms ease;
+}
+
+.hp-node::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--oh-accent);
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.hp-node-check {
+  position: absolute;
+  inset: 0;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.hp-agent[data-state='now'] .hp-node {
+  border-color: var(--oh-accent);
+  box-shadow:
+    0 0 0 5px rgba(var(--oi-accent-rgb), 0.16),
+    0 0 24px rgba(var(--oi-accent-rgb), 0.85);
+}
+
+.hp-agent[data-state='now'] .hp-node::after {
+  opacity: 1;
+  animation: hp-throb 800ms ease-in-out infinite alternate;
+}
+
+@keyframes hp-throb {
+  to {
+    transform: scale(0.55);
+  }
+}
+
+.hp-agent[data-state='done'] .hp-node {
+  border-color: var(--oh-accent);
+  background: var(--oh-accent);
+  box-shadow: 0 0 16px rgba(var(--oi-accent-rgb), 0.5);
+}
+
+.hp-agent[data-state='done'] .hp-node-check {
+  opacity: 1;
+}
+
+.hp-agent-name {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: color 500ms ease;
+}
+
+.hp-agent:not([data-state='idle']) .hp-agent-name {
+  color: var(--oi-ink);
+}
+
+/* Where each step happens. The side doing the work is the one that is lit. */
+.hp-layers {
+  --oh-region-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Outranks the list reset above. */
+.hp-link .hp-layers {
+  margin-top: 14px;
+}
+
+.hp-layers span {
+  transition:
+    color 600ms ease,
+    text-shadow 600ms ease;
+}
+
+.hp-layers i {
+  flex: 0 1 44px;
+  height: 1px;
+  background: var(--oi-hairline-strong);
+}
+
+.hp-scene[data-phase='1'] .hp-layers span:first-child,
+.hp-scene[data-phase='2'] .hp-layers span:first-child,
+.hp-scene[data-phase='3'] .hp-layers span:last-child,
+.hp-scene[data-phase='made'] .hp-layers span:last-child {
+  color: var(--oh-accent);
+  text-shadow: 0 0 14px rgba(var(--oi-accent-rgb), 0.7);
+}
+
+/* The files ------------------------------------------------------------------ */
+
+.hp-made {
+  --oh-region-radius: 16px;
+  position: relative;
+}
+
+/* One flash of light behind the files at the moment they land. */
+.hp-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 420px;
+  height: 200px;
+  margin: -100px 0 0 -210px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--oi-pale-rgb), 0.5), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hp-scene[data-phase='made'] .hp-burst {
+  animation: hp-burst 1300ms ease-out;
+}
+
+@keyframes hp-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+.hp-files {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+/* Until the work is done each file is an empty slot, so the card never looks half-built. */
+.hp-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 12px 6px 7px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: transparent;
+  transition:
+    border-color 400ms ease,
+    background-color 400ms ease;
+}
+
+.hp-file > * {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  transition:
+    opacity 350ms ease,
+    transform 350ms ease;
+}
+
+.hp-scene[data-phase='made'] .hp-file {
+  border-style: solid;
+  border-color: rgba(var(--oi-pale-rgb), 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  transition-delay: calc(var(--hp-i, 0) * 130ms);
+}
+
+.hp-scene[data-phase='made'] .hp-file > * {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 600ms ease calc(var(--hp-i, 0) * 130ms),
+    transform 800ms var(--oi-ease) calc(var(--hp-i, 0) * 130ms);
+}
+
+.hp-file-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--oi-accent-rgb), 0.16);
+  box-shadow: inset 0 0 0 1px rgba(var(--oi-pale-rgb), 0.24);
+  color: var(--oh-accent);
+}
+
+.hp-file-icon .hp-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.hp-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--oi-ink);
+  font-size: 0.86rem;
+  letter-spacing: -0.005em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hp-file-tag {
+  flex: none;
+  padding: 2px 6px;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.3);
+  border-radius: 6px;
+  color: var(--oh-accent);
+  font-family: var(--oi-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Phones: the caption is set smaller so it clears the icon bubble on the card's left edge. */
+@media (max-width: 559px) {
+  .hp-layers {
+    gap: 8px;
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* Room for two columns of files, and one line for the ask. */
+@media (min-width: 560px) {
+  .hp-scene {
+    padding-inline: 44px;
+  }
+
+  .hp-ask-text {
+    font-size: 1.3rem;
+  }
+
+  .hp-files {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .hp-file {
+    min-height: 50px;
+  }
+}
+
+/* Split layout: the card takes the place the orb keeps clear for it. No icon bubbles
+   hang on its edges here, so the side padding comes back in. */
+@media (min-width: 1200px) {
+  .hp-scene {
+    min-height: 436px;
+    padding: 30px 30px 32px;
+  }
+
+  .hp-ask-text {
+    font-size: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-caret,
+  .hp-mic::after,
+  .hp-model,
+  .hp-burst,
+  .hp-node::after {
+    animation: none !important;
+  }
+
+  .hp-scene,
+  .hp-file,
+  .hp-file > *,
+  .hp-node,
+  .hp-agents::after {
+    transition: none !important;
+  }
+}

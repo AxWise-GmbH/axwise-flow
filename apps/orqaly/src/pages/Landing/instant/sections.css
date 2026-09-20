@@ -1,0 +1,1684 @@
+/*
+ * Orqanix "Instant" landing: the static sections below the demo.
+ *
+ * Tokens and shared primitives live in instant.css. That file loads after this one, so a
+ * tie on the same element goes to instant.css: rules here sit on .ois-* classes, or use a
+ * selector one class heavier than the .oi-* rule they adjust.
+ *
+ * Motion is transform, opacity, filter and stroke-dashoffset only. Everything that moves is
+ * switched off at the bottom of the file under prefers-reduced-motion.
+ */
+
+/* Scroll gate ---------------------------------------------------------------- */
+
+/*
+ * Seen (SpeedStrip.jsx) sets data-seen once a block has really been scrolled to, and
+ * data-live while it is on screen. Until then a gate keeps its reveals in the dark, however
+ * early the shared reveal timer marks them as shown.
+ */
+.ois-gate[data-seen='false'] [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.ois-gate[data-seen='false'] [data-reveal] .oi-check path {
+  stroke-dashoffset: 20;
+}
+
+/* Looping decoration rests while nobody can see it. */
+.ois-section[data-live='false'] *,
+.ois-section[data-live='false'] *::before,
+.ois-section[data-live='false'] *::after,
+.ois-section [data-live='false'] *,
+.ois-section [data-live='false'] *::before,
+.ois-section [data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+/* Section shell --------------------------------------------------------------- */
+
+/* The page root only clips on fine pointers, so each section clips its own sideways spill. */
+.ois-section {
+  overflow-x: clip;
+}
+
+/* A hairline that draws itself from the middle, with light resting on it. */
+.ois-ruled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(1192px, calc(100% - 2 * var(--oi-s3)));
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--oi-hairline-strong) 22%,
+    rgba(255, 255, 255, 0.5) 50%,
+    var(--oi-hairline-strong) 78%,
+    transparent
+  );
+  transform: translate3d(-50%, 0, 0) scaleX(0);
+  transition: transform 1800ms var(--oi-ease);
+}
+
+.ois-ruled::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: -1;
+  width: min(760px, 86%);
+  height: 240px;
+  background: radial-gradient(
+    ellipse 50% 100% at 50% 0,
+    rgba(var(--oi-glow-rgb), 0.16),
+    transparent 70%
+  );
+  opacity: 0;
+  transform: translate3d(-50%, 0, 0);
+  transition: opacity 2200ms ease 500ms;
+  pointer-events: none;
+}
+
+.ois-ruled[data-seen='true']::before {
+  transform: translate3d(-50%, 0, 0) scaleX(1);
+}
+
+.ois-ruled[data-seen='true']::after {
+  opacity: 1;
+}
+
+/* Section head: bracketed tag, large title, optional side note. */
+.ois-head {
+  display: grid;
+  gap: 22px;
+  margin-bottom: var(--oi-s4);
+}
+
+.ois-head-main {
+  display: grid;
+  gap: 22px;
+}
+
+.ois-head-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  column-gap: var(--oi-s4);
+  align-items: end;
+}
+
+.ois-head .oi-line {
+  text-wrap: balance;
+  font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+}
+
+.ois-legend {
+  padding-bottom: 6px;
+}
+
+.ois-measure {
+  max-width: 720px;
+}
+
+/* A text link that stands on its own line still gets a full-size touch target. */
+.ois-link-target {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.ois-link-target:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.oi-more-region .ois-subhead {
+  margin-top: var(--oi-s2);
+}
+
+.ois-steps {
+  margin: 0 0 var(--oi-s1);
+  padding-left: 1.3em;
+}
+
+/* Centred blocks: the toggle sits in the middle, the opened text reads left-aligned. */
+.ois-centered {
+  text-align: center;
+}
+
+.ois-centered .oi-more-region {
+  max-width: 560px;
+  margin-inline: auto;
+  text-align: left;
+}
+
+/* Speed ----------------------------------------------------------------------- */
+
+.ois-stat-row .oi-stat {
+  position: relative;
+  padding-top: 28px;
+  /* The rule above each number is drawn by ::before instead, so it can draw itself. */
+  border-top-color: transparent;
+}
+
+.ois-stat-row .oi-stat:nth-child(2) {
+  --sd: 170ms;
+}
+
+.ois-stat-row .oi-stat:nth-child(3) {
+  --sd: 340ms;
+}
+
+.ois-stat-row .oi-stat-value {
+  font-size: clamp(4rem, 11.5vw, 10rem);
+  line-height: 0.92;
+}
+
+/* The label and the number arrive out of the dark; the rule above them stays sharp. */
+.ois-stat-row .oi-stat > * {
+  opacity: 0;
+  transform: translate3d(0, 40px, 0);
+  transition:
+    opacity 1300ms var(--oi-ease) var(--sd, 0ms),
+    transform 1300ms var(--oi-ease) var(--sd, 0ms),
+    filter 1300ms var(--oi-ease) var(--sd, 0ms);
+}
+
+.ois-stat-row .oi-stat > dt {
+  transition-delay: calc(var(--sd, 0ms) + 260ms);
+}
+
+.ois-stat-row[data-seen='true'] .oi-stat > * {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.ois-stat-row .oi-stat::before,
+.ois-stat-row .oi-stat::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.ois-stat-row .oi-stat::before {
+  top: -1px;
+  height: 1px;
+  background: var(--oi-hairline-strong);
+  transition: transform 1620ms var(--oi-ease) var(--sd, 0ms);
+}
+
+/* The bright head that rides the tip of the line, then comes back round now and again. */
+.ois-stat-row .oi-stat::after {
+  top: -5px;
+  height: 9px;
+  background: radial-gradient(
+    ellipse 120px 4.5px at 100% 50%,
+    #ffffff,
+    rgba(var(--oi-accent-rgb), 0.55) 35%,
+    transparent 72%
+  );
+  opacity: 0;
+}
+
+.ois-stat-row[data-seen='true'] .oi-stat::before {
+  transform: scaleX(1);
+}
+
+.ois-stat-row[data-seen='true'] .oi-stat::after {
+  animation: ois-sweep 9s var(--sd, 0ms) infinite;
+}
+
+@keyframes ois-sweep {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  2% {
+    opacity: 1;
+  }
+  14% {
+    opacity: 1;
+  }
+  18% {
+    transform: scaleX(1);
+  }
+  24%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+.ois-under-stats {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin-top: var(--oi-s4);
+}
+
+.ois-quiet {
+  color: var(--oi-dim);
+}
+
+/* You stay in control ---------------------------------------------------------- */
+
+.ois-cards {
+  counter-reset: ois-card;
+}
+
+/* The slot is the grid item; the card inside stretches to its full height. */
+.ois-card-slot {
+  display: grid;
+}
+
+.ois-cards .oi-card {
+  min-height: 332px;
+  padding: 28px;
+}
+
+/* A quiet index in the corner. The second declaration gives it empty alt text where supported. */
+.ois-cards .oi-card::after {
+  counter-increment: ois-card;
+  content: '0' counter(ois-card);
+  content: '0' counter(ois-card) / '';
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  transition: color 400ms ease;
+}
+
+.ois-cards .oi-card:hover::after,
+.ois-cards .oi-card:focus-within::after {
+  color: var(--oi-accent);
+}
+
+/* More inside: the capability strip ------------------------------------------------------ */
+
+/*
+ * Seven more capabilities on a belt that drifts to the left under the four cards. The class
+ * .oi-planned is only a hook now; instant.css still draws it as a box, so the box is undone.
+ */
+.oi-planned.ois-strip {
+  position: relative;
+  margin-top: var(--oi-s4);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: 1.2;
+}
+
+.ois-strip:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 14px;
+  border-radius: 6px;
+}
+
+/* The label, then a hairline running on from it to the edge of the column. */
+.ois-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.ois-strip-head .oi-tag {
+  flex: none;
+}
+
+/* Taller than the hairline it carries, so the travelling light has room to glow. */
+.ois-strip-rule {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 9px;
+  overflow: hidden;
+}
+
+.ois-strip-rule::before,
+.ois-strip-rule::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* The hairline draws itself from the label outwards once the strip is reached. */
+.ois-strip-rule::before {
+  top: 4px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--oi-hairline-strong),
+    var(--oi-hairline) 58%,
+    transparent
+  );
+  transform-origin: 0 50%;
+  transition: transform 1800ms var(--oi-ease);
+}
+
+.ois-gate[data-seen='false'] .ois-strip-rule::before {
+  transform: scaleX(0);
+}
+
+/* A comet of light on the hairline: bright head to the right, tail behind it. */
+.ois-strip-rule::after {
+  top: 0;
+  height: 100%;
+  background: radial-gradient(
+    ellipse 150px 4.5px at 100% 50%,
+    var(--oi-ink),
+    rgba(var(--oi-accent-rgb), 0.6) 32%,
+    transparent 72%
+  );
+  opacity: 0;
+  transform: translate3d(-100%, 0, 0);
+}
+
+.ois-gate[data-seen='true'] .ois-strip-rule::after {
+  animation: ois-strip-beam 13s linear 1400ms infinite;
+}
+
+@keyframes ois-strip-beam {
+  0% {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+  }
+  5% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+    transform: translate3d(-4%, 0, 0);
+  }
+}
+
+/*
+ * The rail is the window the belt moves behind. It breaks out of the column to the screen
+ * edges, but never grows wider than one copy of the row (7 x 242px), or the loop would show
+ * its end. Its padding leaves room for a card to lift and glow without being cut, and its
+ * mask melts both ends into the page.
+ */
+.ois-strip-rail {
+  --ois-gap: 14px;
+  --ois-half: min(50vw, 840px);
+  --ois-melt: clamp(56px, 11vw, 200px);
+  margin: -8px calc(50% - var(--ois-half)) -40px;
+  padding-block: 28px 40px;
+  overflow: hidden;
+  overflow: clip;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--ois-melt),
+    #000 calc(100% - var(--ois-melt)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--ois-melt),
+    #000 calc(100% - var(--ois-melt)),
+    transparent
+  );
+}
+
+/* Two copies of the row side by side: sliding by one copy's width lands on the same picture. */
+.ois-strip-track {
+  display: flex;
+  width: max-content;
+  animation: ois-strip-drift 80s linear infinite;
+}
+
+/* The belt rests until it is reached, under the pointer, and under keyboard focus. */
+.ois-gate[data-seen='false'] .ois-strip-track,
+.ois-strip-rail:hover .ois-strip-track,
+.ois-strip:focus-visible .ois-strip-track {
+  animation-play-state: paused;
+}
+
+@keyframes ois-strip-drift {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.ois-strip-list {
+  display: flex;
+  gap: var(--ois-gap);
+  margin: 0;
+  padding: 0 var(--ois-gap) 0 0;
+  list-style: none;
+}
+
+/* The slot arrives (a wave along the rail); the card inside it answers the pointer. */
+.ois-strip-slot {
+  display: flex;
+  flex: none;
+  width: 228px;
+  transition:
+    opacity 1200ms var(--oi-ease) calc(200ms + var(--i, 0) * 90ms),
+    transform 1200ms var(--oi-ease) calc(200ms + var(--i, 0) * 90ms);
+}
+
+.ois-gate[data-seen='false'] .ois-strip-slot {
+  opacity: 0;
+  transform: translate3d(44px, 0, 0);
+}
+
+.ois-strip-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 44px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 172px;
+  padding: 20px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: var(--oi-radius-card);
+  background:
+    linear-gradient(180deg, rgba(var(--oi-pale-rgb), 0.075), rgba(var(--oi-pale-rgb), 0.012) 66%),
+    var(--oi-paper);
+  isolation: isolate;
+  transition: transform 700ms var(--oi-ease);
+}
+
+/* Brightened face: a lit edge and light falling in from the top. */
+.ois-strip-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border: 1px solid rgba(var(--oi-pale-rgb), 0.5);
+  border-radius: inherit;
+  background: radial-gradient(120% 90% at 50% 0, rgba(var(--oi-accent-rgb), 0.24), transparent 72%);
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+/* Green light pooling under the lifted card. The gradient is soft on its own: no blur. */
+.ois-strip-card::after {
+  content: '';
+  position: absolute;
+  right: -4%;
+  bottom: -30px;
+  left: -4%;
+  z-index: -2;
+  height: 60px;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(var(--oi-accent-rgb), 0.55),
+    rgba(var(--oi-accent-rgb), 0.16) 46%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.ois-strip-name {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: 1.12rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  opacity: 0.88;
+  transition: opacity 500ms ease;
+}
+
+/* A small lamp in the card's corner. It belongs to the name, so it brightens with it. */
+.ois-strip-name::after {
+  content: '';
+  position: absolute;
+  top: 24px;
+  right: 22px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--oi-accent);
+  box-shadow: 0 0 10px 1px rgba(var(--oi-glow-rgb), 0.9);
+}
+
+/* The icon sits in its own small light, like the labels round the hero window. */
+.ois-strip-tile {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(var(--oi-pale-rgb), 0.3),
+    rgba(var(--oi-deep-rgb), 0.18)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--oi-pale-rgb), 0.3),
+    0 0 24px rgba(var(--oi-glow-rgb), 0.5);
+  color: var(--oi-ink);
+}
+
+.ois-strip-tile::before,
+.ois-strip-tile::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+/* An arc of light that circles the tile while its card is pointed at. */
+.ois-strip-tile::before {
+  inset: -7px;
+  background: conic-gradient(from 0deg, transparent 62%, rgba(var(--oi-pale-rgb), 0.95));
+  -webkit-mask-image: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 1.5px),
+    #000 calc(100% - 1px)
+  );
+  mask-image: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+  animation: ois-strip-orbit 5s linear infinite;
+  animation-play-state: paused;
+}
+
+.ois-strip-tile::after {
+  inset: -14px;
+  z-index: -1;
+  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), 0.5), transparent 66%);
+}
+
+@keyframes ois-strip-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ois-strip-glyph {
+  width: 26px;
+  height: 26px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Every shape has pathLength 1: one dash as long as the shape, slid off it and back on. */
+.ois-strip-glyph > * {
+  stroke-dasharray: 1.01 1.5;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1600ms var(--oi-ease) calc(560ms + var(--i, 0) * 120ms);
+}
+
+.ois-gate[data-seen='false'] .ois-strip-glyph > * {
+  stroke-dashoffset: 1.01;
+}
+
+@media (hover: hover) {
+  .ois-strip-card:hover {
+    transform: translate3d(0, -6px, 0);
+  }
+
+  .ois-strip-card:hover::before,
+  .ois-strip-card:hover::after,
+  .ois-strip-card:hover .ois-strip-tile::before,
+  .ois-strip-card:hover .ois-strip-tile::after,
+  .ois-strip-card:hover .ois-strip-name {
+    opacity: 1;
+  }
+
+  .ois-strip-card:hover .ois-strip-tile::before {
+    animation-play-state: running;
+  }
+}
+
+/*
+ * Touch: no drift. One copy of the row, swiped by hand, each card snapping into line with the
+ * column. The row still runs out to both screen edges.
+ */
+@media (hover: none) {
+  /* Scroll padding cannot be measured against the column in %, so the strip lends it cqw. */
+  .ois-strip {
+    container-type: inline-size;
+  }
+
+  .ois-strip-rail {
+    --ois-gutter: calc(50vw - 50cqw);
+    --ois-melt: 40px;
+    margin-inline: calc(-1 * var(--ois-gutter));
+    padding-inline: var(--ois-gutter);
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: var(--ois-gutter);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--ois-melt)), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - var(--ois-melt)), transparent);
+  }
+
+  .ois-strip-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ois-strip-track {
+    animation: none;
+  }
+
+  .ois-strip-list[aria-hidden='true'] {
+    display: none;
+  }
+
+  .ois-strip-list {
+    padding-right: 0;
+  }
+
+  .ois-strip-slot {
+    scroll-snap-align: start;
+  }
+}
+
+/* Reduced motion with a pointer: nothing drifts, so all seven sit in a grid. */
+@media (prefers-reduced-motion: reduce) and (hover: hover) {
+  .ois-strip-rail {
+    margin: 12px 0 0;
+    padding-block: 0;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .ois-strip-track {
+    display: block;
+    width: auto;
+  }
+
+  .ois-strip-list {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0;
+  }
+
+  .ois-strip-list[aria-hidden='true'] {
+    display: none;
+  }
+
+  .ois-strip-slot {
+    width: auto;
+  }
+
+  .ois-strip-card {
+    padding: 16px;
+  }
+
+  /* The pointed-at card still brightens; it just does not move. */
+  .ois-strip-card:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (max-width: 1180px) {
+  .ois-strip-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (max-width: 640px) {
+  .ois-strip-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* What stays on your Mac --------------------------------------------------------- */
+
+.ois-scene-gate {
+  margin-bottom: var(--oi-s3);
+  pointer-events: none;
+}
+
+.ois-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(96px, 16vw, 230px) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.ois-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  padding: var(--oi-s3);
+  border: 1px solid var(--oi-hairline);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012) 62%);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Pointer spotlight: PrivacyPreface sets --mx/--my from the section's pointer. */
+.ois-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    460px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(var(--oi-accent-rgb), 0.2),
+    transparent 62%
+  );
+  opacity: 0.45;
+  transition: opacity 600ms ease;
+}
+
+.ois-privacy:hover .ois-panel::before {
+  opacity: 1;
+}
+
+/* A dot grid that fades out toward the edges of the glass. */
+.ois-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 62% 62% at 50% 58%, #000, transparent 78%);
+  mask-image: radial-gradient(ellipse 62% 62% at 50% 58%, #000, transparent 78%);
+}
+
+.ois-glyph-stage {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding-block: var(--oi-s2);
+}
+
+.ois-glyph-box {
+  position: relative;
+  width: min(330px, 76%);
+  aspect-ratio: 220 / 150;
+  animation: ois-float 8s ease-in-out infinite alternate;
+}
+
+.ois-panel-cloud .ois-glyph-box {
+  animation-delay: -5s;
+}
+
+.ois-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--oi-ink);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px rgba(var(--oi-glow-rgb), 0.85));
+}
+
+.ois-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 2200ms var(--oi-ease) 300ms;
+}
+
+.ois-draw-quiet {
+  stroke: var(--oi-muted);
+  transition-duration: 1400ms;
+  transition-delay: 1100ms;
+}
+
+.ois-gate[data-seen='false'] .ois-draw {
+  stroke-dashoffset: 1;
+}
+
+/* The brand mark turns inside the cloud: the thinking happens there. */
+.ois-cloud-mark {
+  position: absolute;
+  top: 63%;
+  left: 51%;
+  width: 22%;
+  margin: -11% 0 0 -11%;
+  color: var(--oi-accent);
+  filter: drop-shadow(0 0 8px var(--oi-glow));
+  animation: ois-turn 48s linear infinite;
+}
+
+.ois-wires {
+  position: relative;
+  display: grid;
+  align-items: center;
+}
+
+/* The ports where the lanes plug into the glass. */
+.ois-wires::before,
+.ois-wires::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 34px;
+  margin-top: -17px;
+  border-radius: 2px;
+  background: var(--oi-ink);
+  box-shadow: 0 0 14px 1px var(--oi-glow);
+}
+
+.ois-wires::before {
+  left: -2px;
+}
+
+.ois-wires::after {
+  right: -2px;
+}
+
+.ois-wire {
+  display: block;
+  width: 100%;
+  height: 60px;
+  overflow: visible;
+  fill: none;
+  filter: drop-shadow(0 0 5px rgba(var(--oi-accent-rgb), 0.95));
+}
+
+.ois-wire-v {
+  display: none;
+}
+
+.ois-lane-rail {
+  stroke: rgba(255, 255, 255, 0.24);
+  stroke-width: 1;
+}
+
+.ois-lane-tail {
+  stroke: rgba(var(--oi-accent-rgb), 0.6);
+  stroke-width: 1.5;
+  stroke-dasharray: 16 84;
+  animation: ois-lane-tail 3.2s linear infinite;
+}
+
+.ois-lane-head {
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-dasharray: 3 97;
+  animation: ois-lane-head 3.2s linear infinite;
+}
+
+.ois-lane-1 .ois-lane-tail,
+.ois-lane-1 .ois-lane-head {
+  animation-duration: 4.1s;
+  animation-delay: -1.7s;
+}
+
+/* One dash is 16 long with a 3-long white tip: the tip's offset trails the dash's by 13. */
+@keyframes ois-lane-tail {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ois-lane-head {
+  from {
+    stroke-dashoffset: 87;
+  }
+  to {
+    stroke-dashoffset: -13;
+  }
+}
+
+@keyframes ois-float {
+  from {
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    transform: translate3d(0, 6px, 0);
+  }
+}
+
+@keyframes ois-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ois-privacy .oi-sheet {
+  overflow-x: auto;
+}
+
+/*
+ * The reused "how it works" diagram must look exactly as it does on "/". Inside a More
+ * region it would inherit the region's muted type instead of the app's body type
+ * (0.9375rem / 1.6), sit inside a second set of container gutters, and have every p and
+ * ul re-spaced by instant.css. The rules below hand it its own values back; they mirror
+ * SimpleHowItWorks.jsx and SimpleHowItWorks.css. It sits on the light .oi-sheet.
+ */
+.ois-diagram {
+  color: var(--oi-sheet-ink);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.ois-diagram .MuiContainer-root {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.ois-diagram .MuiContainer-root > p {
+  margin: 0 0 32px;
+}
+
+.ois-diagram .oq-flow ~ p {
+  margin: 24px 0 0;
+}
+
+.ois-diagram .oq-flow p {
+  margin-bottom: 0;
+}
+
+.ois-diagram .oq-flow-desktop p,
+.ois-diagram .oq-flow-service p {
+  margin-top: 8px;
+}
+
+.ois-diagram .oq-flow-gateway p {
+  margin-top: 5px;
+}
+
+.ois-diagram .oq-flow-outputs ul {
+  margin: 0;
+  padding: 0;
+}
+
+/* More for developers ------------------------------------------------------------- */
+
+/* The examples block above already ends with its own bottom padding. */
+section.ois-developers {
+  padding-top: 0;
+}
+
+/* The toggle sits on a hairline that fades out to both sides. */
+.ois-developers .oi-more {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--oi-s3);
+}
+
+.ois-developers .oi-more::before,
+.ois-developers .oi-more::after {
+  content: '';
+  height: 1px;
+  transition: transform 1600ms var(--oi-ease) 200ms;
+}
+
+.ois-developers .oi-more::before {
+  grid-area: 1 / 1;
+  background: linear-gradient(90deg, transparent, var(--oi-hairline-strong));
+  transform-origin: 100% 50%;
+}
+
+.ois-developers .oi-more::after {
+  grid-area: 1 / 3;
+  background: linear-gradient(270deg, transparent, var(--oi-hairline-strong));
+  transform-origin: 0 50%;
+}
+
+.ois-gate[data-seen='false'] .oi-more::before,
+.ois-gate[data-seen='false'] .oi-more::after {
+  transform: scaleX(0);
+}
+
+.ois-developers .oi-more-toggle {
+  grid-area: 1 / 2;
+}
+
+.ois-developers .oi-more-region {
+  grid-area: 2 / 1 / 3 / 4;
+  width: 100%;
+  max-width: 920px;
+}
+
+.ois-dev-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--oi-s4);
+  padding-top: var(--oi-s2);
+}
+
+.ois-dev-column .oi-tag {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--oi-hairline-strong);
+}
+
+.oi-more-region .ois-spec {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ois-spec li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--oi-hairline);
+  color: var(--oi-ink);
+  font-size: 1.02rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+/* Questions ------------------------------------------------------------------------ */
+
+.ois-faq-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  column-gap: var(--oi-s4);
+  align-items: start;
+}
+
+.ois-faq-head {
+  position: sticky;
+  top: 120px;
+}
+
+.ois-faq {
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.ois-faq-row {
+  position: relative;
+}
+
+.ois-faq-index {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: 84px;
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  pointer-events: none;
+  transition: color 400ms ease;
+}
+
+.ois-faq-row:hover .ois-faq-index,
+.ois-faq-row:focus-within .ois-faq-index {
+  color: var(--oi-accent);
+}
+
+.ois-faq .oi-more-row {
+  position: relative;
+}
+
+/* Light runs along the rule under the row being read. */
+.ois-faq .oi-more-row::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--oi-accent), #ffffff 55%, transparent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 900ms var(--oi-ease);
+}
+
+.ois-faq .oi-more-row:hover::after,
+.ois-faq .oi-more-row:focus-within::after {
+  transform: scaleX(1);
+}
+
+.ois-faq .oi-more-row .oi-more-toggle {
+  min-height: 84px;
+  padding-left: 56px;
+  gap: var(--oi-s2);
+}
+
+.ois-faq .oi-more-row .oi-more-region {
+  padding-left: 56px;
+}
+
+.ois-faq .oi-more-chevron {
+  box-sizing: content-box;
+  padding: 11px;
+  border: 1px solid var(--oi-hairline);
+  border-radius: 50%;
+  transition:
+    transform 600ms var(--oi-ease),
+    color 300ms ease,
+    border-color 300ms ease,
+    background-color 300ms ease;
+}
+
+.ois-faq .oi-more-toggle:hover .oi-more-chevron {
+  border-color: var(--oi-hairline-strong);
+  transform: translate3d(0, 3px, 0);
+}
+
+.ois-faq .oi-more-toggle[aria-expanded='true'] .oi-more-chevron {
+  border-color: var(--oi-ink);
+  background-color: var(--oi-ink);
+  color: #060a08;
+  transform: rotate(180deg);
+}
+
+/* Download: the finale ----------------------------------------------------------------- */
+
+.oi-section.ois-download {
+  /* Where the light sits: just above the middle of the heading. */
+  --ois-focus: 262px;
+  padding-block: 190px 170px;
+  overflow: clip;
+}
+
+.ois-download-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ois-download-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.ois-bloom {
+  position: absolute;
+  top: var(--ois-focus);
+  left: 50%;
+  width: min(980px, 170vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(150, 215, 186, 0.42),
+    rgba(114, 197, 160, 0.16) 36%,
+    transparent 66%
+  );
+  filter: blur(36px);
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0) scale(0.7);
+  transition:
+    opacity 2600ms ease,
+    transform 3200ms var(--oi-ease);
+}
+
+.ois-download[data-seen='true'] .ois-bloom {
+  opacity: 1;
+  transform: translate3d(calc(-50% + var(--px, 0) * -14px), calc(-50% + var(--py, 0) * -10px), 0)
+    scale(1);
+}
+
+.ois-download-orb {
+  position: absolute;
+  top: var(--ois-focus);
+  left: 50%;
+  transform: translate3d(calc(-50% + var(--px, 0) * 26px), calc(-50% + var(--py, 0) * 16px), 0);
+  transition: transform 1400ms var(--oi-ease);
+}
+
+/* The orb swells out of the dark once the section is reached, then keeps breathing. */
+.ois-download-orb > * {
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 2400ms ease 200ms,
+    transform 3000ms var(--oi-ease) 200ms,
+    filter 2400ms var(--oi-ease) 200ms;
+}
+
+.ois-download[data-seen='true'] .ois-download-orb > * {
+  opacity: 0.62;
+  transform: none;
+  filter: none;
+}
+
+.ois-orbit {
+  position: absolute;
+  top: var(--ois-focus);
+  left: 50%;
+  width: var(--w);
+  height: calc(var(--w) * 0.3);
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0) rotate(var(--tilt)) scale(0.9);
+  transition:
+    opacity 2400ms ease 600ms,
+    transform 3200ms var(--oi-ease) 600ms;
+}
+
+.ois-download[data-seen='true'] .ois-orbit {
+  opacity: 1;
+  transform: translate3d(-50%, -50%, 0) rotate(var(--tilt)) scale(1);
+}
+
+.ois-orbit-a {
+  --w: min(1180px, 200vw);
+  --tilt: -14deg;
+}
+
+.ois-orbit-b {
+  --w: min(1640px, 280vw);
+  --tilt: 9deg;
+}
+
+.ois-orbit-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1;
+}
+
+/* A full circle squashed flat, so a plain rotation inside it travels the ellipse. */
+.ois-orbit-plane {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  transform: translate3d(0, -50%, 0) scaleY(0.3);
+}
+
+.ois-orbit-streak {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 262deg,
+    rgba(var(--oi-accent-rgb), 0.55) 336deg,
+    #ffffff 359deg,
+    transparent 360deg
+  );
+  -webkit-mask-image: radial-gradient(
+    closest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2.5px)
+  );
+  mask-image: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  animation: ois-turn 24s linear infinite;
+}
+
+.ois-orbit-b .ois-orbit-streak {
+  animation-duration: 38s;
+  animation-direction: reverse;
+  animation-delay: -11s;
+}
+
+.oi-h2.ois-finale {
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  text-shadow: 0 0 36px rgba(0, 0, 0, 0.85);
+}
+
+.ois-finale-line {
+  display: block;
+}
+
+.ois-download-action {
+  position: relative;
+  display: inline-block;
+  margin: var(--oi-s4) 0 var(--oi-s3);
+}
+
+/* Green light pooled under the button; it brightens when the button is approached. */
+.ois-download-action::before {
+  content: '';
+  position: absolute;
+  inset: -28px -64px;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(var(--oi-glow-rgb), 0.7), transparent);
+  filter: blur(16px);
+  opacity: 0.5;
+  transition: opacity 700ms ease;
+  animation: ois-breathe 5s ease-in-out infinite alternate;
+}
+
+.ois-download-action:hover::before,
+.ois-download-action:focus-within::before {
+  opacity: 1;
+  animation-play-state: paused;
+}
+
+.ois-download-action .MuiButton-root {
+  position: relative;
+  min-height: 60px;
+  padding-inline: 38px;
+  overflow: hidden;
+  font-size: 0.84rem;
+  letter-spacing: 0.1em;
+  transition:
+    transform 600ms var(--oi-ease),
+    background-color 300ms ease,
+    box-shadow 600ms ease;
+}
+
+.ois-download-action .MuiButton-root:hover {
+  transform: translate3d(0, -2px, 0) scale(1.03);
+}
+
+/* The sheen is green because the pill is already white. */
+.ois-download-action .MuiButton-root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgba(150, 215, 186, 0.5) 50%,
+    transparent 68%
+  );
+  transform: translate3d(-120%, 0, 0);
+  animation: ois-sheen 6s var(--oi-ease) 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes ois-sheen {
+  0% {
+    transform: translate3d(-120%, 0, 0);
+  }
+  40%,
+  100% {
+    transform: translate3d(120%, 0, 0);
+  }
+}
+
+@keyframes ois-breathe {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 0.75;
+  }
+}
+
+/* Opened over the orb, the details get their own dark glass to stay readable. */
+.ois-download .oi-more-region {
+  margin-top: var(--oi-s1);
+  padding: 4px var(--oi-s3) var(--oi-s3);
+  border: 1px solid var(--oi-hairline);
+  border-radius: var(--oi-radius-card);
+  background: rgba(6, 10, 8, 0.94);
+}
+
+/* Responsive -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .ois-head-split,
+  .ois-faq-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ois-faq-head {
+    position: static;
+    margin-bottom: var(--oi-s4);
+  }
+}
+
+@media (max-width: 760px) {
+  .ois-scene {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ois-panel {
+    min-height: 300px;
+  }
+
+  .ois-wire-h {
+    display: none;
+  }
+
+  .ois-wire-v {
+    display: block;
+    width: 60px;
+    height: 84px;
+    margin-inline: auto;
+  }
+
+  .ois-wires::before,
+  .ois-wires::after {
+    top: auto;
+    left: 50%;
+    width: 34px;
+    height: 3px;
+    margin: 0 0 0 -17px;
+  }
+
+  .ois-wires::before {
+    top: -2px;
+  }
+
+  .ois-wires::after {
+    right: auto;
+    bottom: -2px;
+  }
+
+  .ois-dev-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--oi-s3);
+  }
+}
+
+@media (max-width: 600px) {
+  .ois-head {
+    margin-bottom: var(--oi-s3);
+  }
+
+  .ois-ruled::before {
+    width: calc(100% - 2 * var(--oi-s2));
+  }
+
+  .ois-stat-row .oi-stat-value {
+    font-size: clamp(5rem, 27vw, 7.5rem);
+  }
+
+  .ois-stat-row .oi-stat {
+    padding-top: var(--oi-s3);
+  }
+
+  .ois-under-stats {
+    margin-top: var(--oi-s3);
+  }
+
+  /* Stacked cards arrive one by one as they are reached, so the wave delay goes. */
+  .ois-cards .oi-card {
+    --d: 0ms !important;
+    min-height: 0;
+  }
+
+  .oi-planned.ois-strip {
+    margin-top: var(--oi-s3);
+  }
+
+  .ois-strip-head {
+    gap: 14px;
+  }
+
+  .ois-faq .oi-more-row .oi-more-toggle {
+    padding-left: 40px;
+  }
+
+  .ois-faq .oi-more-row .oi-more-region {
+    padding-left: 0;
+  }
+
+  .ois-developers .oi-more {
+    column-gap: var(--oi-s2);
+  }
+
+  .ois-privacy .oi-sheet {
+    padding: var(--oi-s2);
+  }
+
+  .oi-section.ois-download {
+    --ois-focus: 184px;
+    padding-block: 130px 110px;
+  }
+
+  .ois-download .oi-more-region {
+    padding-inline: var(--oi-s2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ois-section *,
+  .ois-section *::before,
+  .ois-section *::after,
+  .ois-section::before,
+  .ois-section::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* The strip's light rests part-way along its rule. */
+  .ois-strip-rule::after {
+    opacity: 0.85;
+    transform: translate3d(-64%, 0, 0);
+  }
+
+  /* Still light: the sweeps and the shimmer stay out, the pulses park mid-lane. */
+  .ois-lane-tail {
+    stroke-dashoffset: 58;
+  }
+
+  .ois-lane-head {
+    stroke-dashoffset: 45;
+  }
+}
+
+/* The strip as a hand-scrollable rail, on every device --------------------------------- */
+
+.ois-strip {
+  container-type: inline-size;
+}
+
+.ois-strip-rail {
+  --ois-gutter: calc(50vw - 50cqw);
+  /* Edge to edge of the screen: the cards run off both sides with only a short fade. */
+  --ois-melt: 28px;
+  margin-inline: calc(-1 * var(--ois-gutter));
+  padding-inline: var(--ois-gutter);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--ois-gutter);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  cursor: grab;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--ois-melt),
+    #000 calc(100% - var(--ois-melt)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--ois-melt),
+    #000 calc(100% - var(--ois-melt)),
+    transparent
+  );
+}
+
+.ois-strip-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Snapping would fight the slow drift and a drag in progress. */
+.ois-strip-rail[data-drifting],
+.ois-strip-rail[data-dragging] {
+  scroll-snap-type: none;
+}
+
+.ois-strip-rail[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.ois-strip-rail:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+
+.ois-strip-track {
+  animation: none;
+}
+
+/* Each copy ends with one gap, so where the row repeats the spacing is the same as
+   between any two cards. */
+.ois-strip-list {
+  padding-right: var(--ois-gap);
+}
+
+.ois-strip-slot {
+  scroll-snap-align: start;
+}
+
+/* A free-running carousel has no resting grid: snapping made the row lurch whenever a
+   pointer stopped it, so the rail scrolls freely and stays exactly where it is held. */
+.ois-strip-rail,
+.ois-strip-rail[data-drifting],
+.ois-strip-rail[data-dragging] {
+  scroll-snap-type: none;
+}
+
+.ois-strip-slot {
+  scroll-snap-align: none;
+}
+
+/* Strip cards: a name and one quiet line under it. */
+.ois-strip-card {
+  gap: 28px;
+  min-height: 196px;
+}
+
+.ois-strip-text {
+  display: grid;
+  gap: 6px;
+}
+
+.ois-strip-note {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  text-wrap: balance;
+}

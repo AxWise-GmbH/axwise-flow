@@ -17,6 +17,11 @@ import LandingPageSimple from './pages/Landing/LandingPageSimple';
 
 /* eslint-disable react-refresh/only-export-components -- route components and the exported route table must stay together so tests exercise the production manifest. */
 
+const LandingPageInstant = lazy(() => import('./pages/Landing/LandingPageInstant.jsx'));
+const InstantSubPage = lazy(() => import('./pages/Landing/instant/pages/InstantSubPage.jsx'));
+const InstantSolutionPage = lazy(
+  () => import('./pages/Landing/instant/pages/InstantSolutionPage.jsx')
+);
 const WorkflowV2 = lazy(() => import('./pages/WorkflowV2/WorkflowV2.jsx'));
 const GcpClerkSettings = lazy(() => import('./pages/Settings/GcpClerkSettings.jsx'));
 const HomePage = lazy(() => import('./pages/GcpWorkspace/HomePage.jsx'));
@@ -252,8 +257,35 @@ export const gcpRoutePaths = [
 ];
 
 export const gcpRouter = createBrowserRouter([
-  { path: '/', element: <LandingPageSimple /> },
-  { path: '/standart', element: <Navigate to="/" replace /> },
+  {
+    path: '/',
+    element: (
+      <LazyPage>
+        <LandingPageInstant />
+      </LazyPage>
+    ),
+  },
+  // The page this one replaced, kept reachable rather than deleted.
+  { path: '/classic', element: <LandingPageSimple /> },
+  { path: '/standart', element: <Navigate to="/classic" replace /> },
+  // The preview path the landing was built and shared on, now one canonical URL.
+  { path: '/instant', element: <Navigate to="/" replace /> },
+  {
+    path: '/instant/:page',
+    element: (
+      <LazyPage>
+        <InstantSubPage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: '/instant/solutions/:slug',
+    element: (
+      <LazyPage>
+        <InstantSolutionPage />
+      </LazyPage>
+    ),
+  },
   { path: '/login', element: <GcpAuthPage mode="login" /> },
   { path: '/signup', element: <GcpAuthPage mode="signup" /> },
   { path: '/auth/callback', element: <GcpInviteCallback /> },

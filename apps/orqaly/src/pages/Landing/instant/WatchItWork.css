@@ -1,0 +1,1385 @@
+/*
+ * "Watch it work". Two languages live here, on purpose:
+ *   - the PAGE (section head, scenario pills, callouts, caption, play control) speaks the
+ *     site's dark green, from the --oi-stage-* tokens in instant.css;
+ *   - the WINDOW is the desktop app, the same one the Examples block shows: a neutral graphite
+ *     canvas, hairline cards, near monochrome. Its values are copied from examplesDark.css and
+ *     DesktopProductDemo.css into the --wiw-app-* variables on .wiw-app, so the two windows
+ *     match without this file reaching into theirs. Green is kept for small accents only.
+ *
+ * Two rules shape the layout:
+ *   - nothing scrolls inside the stage (no nested scrollport can trap a one-finger page
+ *     scroll), so every frame shows in full;
+ *   - the demo reserves the height of its tallest frame per breakpoint, so a frame swap
+ *     never moves the page under the visitor. Side by side, the app window itself keeps
+ *     that height, like a real window. Stacked, the window hugs its content and the spare
+ *     room falls below the controls, where it reads as the section's bottom padding.
+ *     The heights were measured in a browser with every scene; re-measure after a copy or
+ *     spacing change.
+ */
+
+.wiw {
+  --wiw-soft: rgb(255 255 255 / 0.08);
+  --wiw-line: var(--oi-stage-hairline);
+  --wiw-text: var(--oi-stage-text);
+  --wiw-muted: var(--oi-stage-muted);
+  --wiw-accent: var(--oi-stage-focus);
+  --wiw-window-height: 750px;
+  --wiw-reserve: 0px;
+
+  /* A band of stage colour whose edges melt into the page: it must not cut a hard line
+     through the ambient light the page keeps behind its sections. */
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--oi-stage) var(--oi-s5),
+    var(--oi-stage) calc(100% - var(--oi-s5)),
+    transparent
+  );
+  color: var(--wiw-text);
+  /* Stated here so the measured frame heights do not hang on what the page's body inherits. */
+  line-height: 1.5;
+  touch-action: pan-y;
+}
+
+.wiw *,
+.wiw *::before,
+.wiw *::after {
+  box-sizing: border-box;
+}
+
+.wiw :focus-visible {
+  outline: 2px solid var(--oi-stage-focus);
+  outline-offset: 3px;
+}
+
+/* Head ---------------------------------------------------------------------- */
+
+.wiw-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+  grid-template-areas:
+    'heading heading'
+    'line more';
+  gap: 0 var(--oi-s3);
+  margin-bottom: var(--oi-s2);
+}
+
+.wiw .wiw-heading {
+  grid-area: heading;
+  color: var(--wiw-text);
+}
+
+/* As tall as the More toggle beside it, and pinned to the top so it stays on the toggle's
+   line when the panel opens underneath. */
+.wiw .wiw-line {
+  grid-area: line;
+  display: flex;
+  align-items: center;
+  align-self: start;
+  min-height: 44px;
+  color: var(--wiw-muted);
+}
+
+.wiw-head .oi-more {
+  grid-area: more;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.wiw-head .oi-more-region {
+  align-self: stretch;
+  padding-bottom: var(--oi-s1);
+  color: var(--wiw-muted);
+}
+
+.wiw .oi-more-toggle {
+  color: var(--wiw-text);
+}
+
+.wiw .oi-more-toggle:hover {
+  color: var(--wiw-accent);
+}
+
+.wiw .oi-more-toggle:focus-visible {
+  outline-color: var(--oi-stage-focus);
+}
+
+/* Scenario pills ------------------------------------------------------------- */
+
+.wiw-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oi-s1);
+  margin-bottom: var(--oi-s3);
+}
+
+.wiw-pill {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--wiw-line);
+  border-radius: var(--oi-radius-pill);
+  background: transparent;
+  color: var(--wiw-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease,
+    color var(--oi-fade) ease;
+}
+
+.wiw-pill:hover {
+  border-color: var(--wiw-muted);
+  color: var(--wiw-text);
+}
+
+.wiw-pill[aria-pressed='true'] {
+  border-color: var(--wiw-accent);
+  background: color-mix(in srgb, var(--wiw-accent) 14%, transparent);
+  color: var(--wiw-accent);
+}
+
+/* The app window ------------------------------------------------------------- */
+
+.wiw-body {
+  min-height: var(--wiw-reserve);
+}
+
+/* Lit from behind like the Examples window: a lifted top edge, a deep shadow, green on the
+   rim. The shell (sidebar, top strip) stays put for the whole demo. */
+.wiw-app {
+  --wiw-app-text: #e9eaec;
+  --wiw-app-muted: #8e9198;
+  --wiw-app-border: #34373d;
+  --wiw-app-soft: #cbd1d6;
+  --wiw-app-row: #b3b8c1;
+  --wiw-app-canvas: #1f2125;
+  --wiw-app-inset: #1b1d21;
+  --wiw-app-panel: #24262b;
+  --wiw-app-bubble: #2f3238;
+  --wiw-app-pill: #3a3d45;
+  --wiw-app-hover: rgba(255, 255, 255, 0.06);
+  --wiw-app-marker: #525b68;
+  --wiw-app-off: rgba(255, 255, 255, 0.13);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  grid-template-rows: 46px minmax(0, 1fr);
+  min-height: var(--wiw-window-height);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: var(--wiw-app-canvas);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 50px 110px -34px rgba(0, 0, 0, 0.95),
+    0 0 120px -20px rgba(var(--oi-glow-rgb), 0.6);
+  color: var(--wiw-app-text);
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  text-align: left;
+  touch-action: pan-y;
+}
+
+.wiw-line-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* Grey at rest, like an unfocused Mac window; the colours wake when it is pointed at. */
+.wiw-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.wiw-dots i {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a4e57;
+}
+
+.wiw-dots i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #ff6159;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.wiw-dots i:nth-child(2)::after {
+  background: #ffbd2e;
+}
+
+.wiw-dots i:nth-child(3)::after {
+  background: #28c840;
+}
+
+.wiw-app:hover .wiw-dots i::after {
+  opacity: 1;
+}
+
+/* Sidebar: a rounded card on the canvas. Scenery only. */
+.wiw-sidebar {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 8px 0 8px 8px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 14px;
+  background: var(--wiw-app-inset);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.wiw-side-traffic {
+  flex: none;
+  height: 42px;
+  padding-left: 6px;
+}
+
+.wiw-side-traffic .wiw-line-icon {
+  width: 14px;
+  height: 14px;
+  margin: 0 4px 0 auto;
+  color: var(--wiw-app-muted);
+}
+
+.wiw-side-brand {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The small square logo tile. */
+.wiw-side-mark {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--oi-accent);
+}
+
+.wiw-side-item {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--wiw-app-row);
+}
+
+.wiw-side-new {
+  color: var(--wiw-app-text);
+}
+
+.wiw-side-chats {
+  display: block;
+  flex: none;
+  margin-top: 14px;
+}
+
+/* A collapsible section label: the caret says the list under it can fold. */
+.wiw-side-label {
+  display: flex;
+  align-items: center;
+  padding: 0 8px 5px;
+  color: var(--wiw-app-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.wiw-side-label::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin: -3px 2px 0 auto;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.wiw-side-label:not(:first-child) {
+  margin-top: 16px;
+}
+
+.wiw-side-chat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  margin-top: 2px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--wiw-app-muted);
+}
+
+.wiw-side-chat .wiw-side-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wiw-side-chat[data-selected='true'] {
+  background: var(--wiw-app-pill);
+  color: var(--wiw-app-text);
+}
+
+.wiw-side-chat i {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--oi-accent);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.8);
+}
+
+/* The four sections sit at the foot of the sidebar, under the chat lists, as in the app. */
+.wiw-side-foot {
+  display: grid;
+  flex: none;
+  gap: 1px;
+  margin-top: auto;
+  padding: 8px 0;
+  border-top: 1px solid var(--wiw-app-border);
+}
+
+.wiw-side-settings {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 8px 14px;
+  border-top: 1px solid var(--wiw-app-border);
+  color: var(--wiw-app-muted);
+}
+
+/* Top strip: chat title and caret at left, the mark and the panel toggle at right. */
+.wiw-titlebar {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0 15px 0 24px;
+}
+
+.wiw-titlebar > .wiw-dots {
+  display: none;
+}
+
+.wiw-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--wiw-app-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiw-title svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+.wiw-brand {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--wiw-app-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wiw-brand svg:first-child {
+  width: 18px;
+  height: 18px;
+}
+
+.wiw-brand .wiw-line-icon {
+  width: 14px;
+  height: 14px;
+  margin-left: 15px;
+  color: var(--wiw-app-row);
+}
+
+/* The chat with its Workspace, and the results, share one cell of the window. "Goes black"
+   is the first fading out on the graphite canvas; there is no overlay layer. */
+.wiw-stage {
+  grid-column: 2;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  touch-action: pan-y;
+}
+
+.wiw-window,
+.wiw-results {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.wiw-window {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 294px;
+  transition: opacity 400ms ease;
+}
+
+.wiw-window[data-fading='true'] {
+  opacity: 0;
+}
+
+/* Chat: replies straight on the canvas, cards one step lighter -------------------- */
+
+.wiw-chat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 11px 25px 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.wiw-user {
+  align-self: flex-end;
+  max-width: 91%;
+  margin: 6px 0 23px;
+  padding: 13px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px 14px 4px 14px;
+  background: var(--wiw-app-bubble);
+}
+
+/* Only colours change when the draft is sent, so the bubble keeps its size. */
+.wiw-user[data-typing='true'] {
+  border-color: var(--wiw-app-border);
+  background: transparent;
+}
+
+.wiw-untyped {
+  visibility: hidden;
+}
+
+.wiw-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.1em;
+  margin-left: 1px;
+  background: var(--wiw-app-soft);
+  vertical-align: text-bottom;
+  animation: wiw-blink 1s steps(2, start) infinite;
+}
+
+.wiw-reply {
+  max-width: 90%;
+  margin: 0 0 13px;
+}
+
+/* Cards: the app's hairline panels --------------------------------------------- */
+
+.wiw-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin-bottom: 10px;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 10px;
+  background: var(--wiw-app-panel);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.wiw-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 12px;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.wiw-card-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.wiw-card-title:focus-visible {
+  border-radius: 4px;
+}
+
+.wiw-card-note {
+  color: var(--wiw-app-muted);
+  font-weight: 400;
+}
+
+.wiw-card-count {
+  color: var(--wiw-app-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wiw-card-body {
+  border-top: 1px solid var(--wiw-app-border);
+}
+
+.wiw-card-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px;
+}
+
+.wiw-choices {
+  display: grid;
+  padding: 5px 5px 0;
+}
+
+.wiw-choice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 0 7px;
+  border-radius: 8px;
+  color: var(--wiw-app-row);
+  cursor: pointer;
+}
+
+.wiw-choice:hover,
+.wiw-choice:has(input:checked) {
+  color: var(--wiw-app-text);
+}
+
+.wiw-choice:hover {
+  background: var(--wiw-app-hover);
+}
+
+/* The native radio is the mark, so arrow keys, form submit and focus come for free. */
+.wiw-choice input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--wiw-app-marker);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+.wiw-choice input:checked {
+  border: 2px solid var(--wiw-app-text);
+  background: radial-gradient(circle, var(--wiw-app-text) 0 3px, transparent 3.5px);
+}
+
+/* The app's "Send": a light grey fill with dark text. */
+.wiw-button {
+  position: relative;
+  min-height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--wiw-app-soft);
+  color: var(--wiw-app-inset);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wiw-button:hover:enabled {
+  background: var(--wiw-app-text);
+}
+
+.wiw-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Drawn at the app's size, reachable at a finger's: the hit area is taller than the paint. */
+.wiw-button::after,
+.wiw-option::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.wiw-questions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wiw-questions > li {
+  padding: 11px 12px 12px;
+  border-bottom: 1px solid var(--wiw-app-border);
+}
+
+.wiw-question-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 9px;
+  font-weight: 600;
+}
+
+.wiw-question-number {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--wiw-app-marker);
+  border-radius: 50%;
+  color: var(--wiw-app-muted);
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.wiw-question-number[data-answered='true'] {
+  border-color: var(--wiw-app-soft);
+  background: var(--wiw-app-soft);
+  color: var(--wiw-app-inset);
+}
+
+.wiw-question-number svg {
+  width: 10px;
+  height: 10px;
+}
+
+.wiw-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 6px;
+}
+
+.wiw-option {
+  position: relative;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--wiw-app-marker);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--wiw-app-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wiw-option:hover {
+  border-color: var(--wiw-app-muted);
+  background: var(--wiw-app-hover);
+}
+
+.wiw-option[aria-pressed='true'] {
+  border-color: var(--wiw-app-soft);
+  background: var(--wiw-app-soft);
+  color: var(--wiw-app-inset);
+  font-weight: 500;
+}
+
+/* The big rounded composer card, at the foot of the chat. Scenery only. */
+.wiw-composer {
+  flex: none;
+  align-self: stretch;
+  margin-top: auto;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 18px;
+  background: var(--wiw-app-panel);
+  color: var(--wiw-app-muted);
+  user-select: none;
+}
+
+.wiw-composer-copy {
+  display: block;
+  height: 59px;
+  padding: 14px 16px 4px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.wiw-composer-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px 10px 14px;
+}
+
+.wiw-composer-controls > .wiw-line-icon {
+  color: var(--wiw-app-row);
+}
+
+.wiw-composer-spacer {
+  flex: 1;
+}
+
+.wiw-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--wiw-app-pill);
+  color: var(--wiw-app-soft);
+}
+
+.wiw-send .wiw-line-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Workspace: a rounded hairline card ------------------------------------------- */
+
+.wiw-workspace {
+  position: relative;
+  min-width: 0;
+  margin: 8px 12px 17px 0;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 14px;
+  background: var(--wiw-app-inset);
+}
+
+.wiw-workspace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 14px 0 16px;
+  border-bottom: 1px solid var(--wiw-app-border);
+  color: var(--wiw-app-row);
+}
+
+.wiw-workspace-head .wiw-line-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.wiw-workspace-title {
+  margin: 0;
+  color: var(--wiw-app-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wiw-workspace-body {
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Section labels, as the app sets them: small, tracked capitals. */
+.wiw-label {
+  margin: 0;
+  color: var(--wiw-app-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+/* The status card: a pill with the live dot, the step count, a five-segment bar. */
+.wiw-status-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+/* Parts the intro has not reached yet keep their space, so the panel never reflows. */
+.wiw [data-arrived] {
+  transition: opacity var(--oi-fade) ease;
+}
+
+.wiw [data-arrived='false'] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.wiw-status {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 3px 10px 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.wiw-status-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--oi-accent);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.8);
+}
+
+.wiw-status[data-state='working'] .wiw-status-dot {
+  animation: wiw-pulse 1.2s ease-in-out infinite;
+}
+
+.wiw-stepline {
+  margin: 0;
+  color: var(--wiw-app-muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wiw-progress {
+  display: grid;
+  flex: 0 0 100%;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.wiw-progress span {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--wiw-app-off);
+}
+
+/* A done step fills its segment; the step in progress fills half of it. */
+.wiw-progress span::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--wiw-app-soft);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms var(--oi-ease);
+}
+
+.wiw-progress span[data-state='now']::after {
+  transform: scaleX(0.5);
+}
+
+.wiw-progress span[data-state='done']::after {
+  transform: scaleX(1);
+}
+
+/* The roadmap sits in the app's context card: a hairline panel one step lighter. */
+.wiw-roadmap-block {
+  position: relative;
+  margin-top: 18px;
+  padding: 11px 12px 8px;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 10px;
+  background: var(--wiw-app-panel);
+}
+
+.wiw-roadmap-label {
+  margin-bottom: 6px;
+}
+
+.wiw-roadmap {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wiw-roadmap li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 28px;
+  color: var(--wiw-app-muted);
+  line-height: 1.35;
+}
+
+.wiw-roadmap li:not([data-state='pending']) {
+  color: var(--wiw-app-text);
+}
+
+.wiw-roadmap li[data-state='now'] {
+  font-weight: 600;
+}
+
+/* The timeline between two 16px markers that sit centred in their rows. */
+.wiw-roadmap li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(50% + 10px);
+  bottom: calc(10px - 50%);
+  left: 7.5px;
+  width: 1px;
+  background: var(--wiw-app-marker);
+}
+
+/* The app's three markers: hollow, a ring with a dot, a filled circle with a tick. */
+.wiw-marker {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--wiw-app-marker);
+  border-radius: 50%;
+  color: var(--wiw-app-inset);
+}
+
+.wiw-roadmap li[data-state='now'] .wiw-marker {
+  border: 2px solid var(--wiw-app-text);
+}
+
+.wiw-marker i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wiw-app-text);
+}
+
+.wiw-roadmap li[data-state='done'] .wiw-marker {
+  border-color: var(--wiw-app-soft);
+  background: var(--wiw-app-soft);
+}
+
+.wiw-marker svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Results: the pack, on the window's canvas -------------------------------------- */
+
+/* From the top of the canvas, the way the app opens a document. */
+.wiw-results {
+  position: relative;
+  align-self: start;
+  padding: 24px 25px;
+}
+
+.wiw-pack-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.wiw-pack-title:focus-visible {
+  border-radius: 4px;
+}
+
+.wiw-fitted {
+  margin: 0 0 22px;
+  color: var(--oi-accent);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.wiw-pack {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  align-items: start;
+  gap: 16px;
+}
+
+.wiw-pack-label {
+  margin-bottom: 8px;
+}
+
+.wiw-files {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wiw-file {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 6px 12px;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 10px;
+  background: var(--wiw-app-panel);
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.wiw-file .wiw-line-icon {
+  color: var(--wiw-app-muted);
+}
+
+.wiw-advice {
+  margin: 22px 0 0;
+  color: var(--wiw-app-muted);
+  font-size: 11.5px;
+}
+
+/* Callouts ------------------------------------------------------------------- */
+
+.wiw-callout {
+  position: absolute;
+  z-index: 2;
+  top: -13px;
+  right: var(--oi-s2);
+  padding: 3px 10px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--wiw-accent);
+  color: var(--oi-stage);
+  font-family: var(--oi-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--oi-fade) ease;
+}
+
+.wiw-callout[data-visible='true'] {
+  opacity: 1;
+}
+
+/* The tail that points down into the element the callout sits on. */
+.wiw-callout::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 16px;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+.wiw-callout[data-callout='plan'] {
+  top: -12px;
+  right: 12px;
+}
+
+/* Clear of the Workspace's close glyph. */
+.wiw-callout[data-callout='workspace'] {
+  right: 40px;
+}
+
+.wiw-callout[data-callout='results'] {
+  top: 20px;
+  right: 25px;
+}
+
+.wiw-caption {
+  display: none;
+  min-height: 1.5em;
+  margin: 12px 0 0;
+  color: var(--wiw-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Controls ------------------------------------------------------------------- */
+
+.wiw-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px var(--oi-s2);
+  min-height: 48px;
+  margin-top: var(--oi-s2);
+}
+
+.wiw-control {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--wiw-line);
+  border-radius: var(--oi-radius-button);
+  background: transparent;
+  color: var(--wiw-text);
+  /* Set like the page's other buttons, the Download button it sits beside included. */
+  font-family: var(--oi-mono, inherit);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--oi-fade) ease;
+}
+
+.wiw-control:hover {
+  background: var(--wiw-soft);
+}
+
+/* Motion --------------------------------------------------------------------- */
+
+.wiw-rise {
+  animation: wiw-rise var(--oi-rise) var(--oi-ease) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.wiw[data-playback='paused'] .wiw-rise,
+.wiw[data-playback='paused'] .wiw-caret,
+.wiw[data-playback='paused'] .wiw-status-dot {
+  animation-play-state: paused;
+}
+
+@keyframes wiw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes wiw-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@keyframes wiw-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Responsive ----------------------------------------------------------------- */
+
+/* Narrower columns wrap the answer options onto second rows, so the window grows. */
+@media (max-width: 1100px) {
+  .wiw {
+    --wiw-window-height: 772px;
+  }
+
+  .wiw-app {
+    grid-template-columns: 172px minmax(0, 1fr);
+  }
+
+  .wiw-window {
+    grid-template-columns: minmax(0, 1fr) 262px;
+  }
+}
+
+/* No sidebar: the traffic lights move to the top strip, the chat and the Workspace share
+   the window. */
+@media (max-width: 999px) {
+  .wiw-app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wiw-sidebar {
+    display: none;
+  }
+
+  .wiw-titlebar,
+  .wiw-stage {
+    grid-column: 1;
+  }
+
+  .wiw-titlebar {
+    padding-left: 16px;
+  }
+
+  .wiw-titlebar > .wiw-dots {
+    display: flex;
+    margin-right: 6px;
+  }
+}
+
+@media (max-width: 850px) {
+  .wiw {
+    --wiw-window-height: 0px;
+    --wiw-reserve: 1270px;
+  }
+
+  .wiw-head {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'heading'
+      'line'
+      'more';
+  }
+
+  .wiw .wiw-line {
+    min-height: 0;
+  }
+
+  .wiw-head .oi-more {
+    align-items: flex-start;
+  }
+
+  .wiw-app {
+    grid-template-rows: 46px auto;
+  }
+
+  .wiw-window {
+    align-self: start;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wiw-results {
+    padding: 8px 16px 20px;
+  }
+
+  .wiw-chat {
+    padding: 8px 16px 16px;
+  }
+
+  .wiw-user {
+    max-width: 95%;
+  }
+
+  .wiw-reply {
+    max-width: 100%;
+  }
+
+  .wiw-card {
+    max-width: none;
+  }
+
+  .wiw-composer {
+    margin-top: 6px;
+  }
+
+  /* Fingers: the paint grows to the hit area. */
+  .wiw-choice,
+  .wiw-button,
+  .wiw-option {
+    min-height: 44px;
+  }
+
+  .wiw-button {
+    padding: 0 20px;
+    border-radius: 10px;
+  }
+
+  .wiw-option {
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .wiw-workspace {
+    margin: 0 12px 12px;
+  }
+
+  .wiw-pack {
+    grid-auto-flow: row;
+  }
+
+  .wiw-file {
+    min-height: 44px;
+  }
+
+  .wiw-callout {
+    display: none;
+  }
+
+  .wiw-caption {
+    display: block;
+  }
+}
+
+/* Narrower chat, more wrapped option rows: the reserve steps up with them. Each value is the
+   tallest frame measured in its band (all three scenes, the page's real font) plus one line. */
+@media (max-width: 629px) {
+  .wiw-app {
+    border-radius: 12px;
+  }
+
+  .wiw-titlebar {
+    padding: 0 11px 0 14px;
+  }
+}
+
+@media (max-width: 559px) {
+  .wiw {
+    --wiw-reserve: 1344px;
+  }
+}
+
+@media (max-width: 519px) {
+  .wiw {
+    --wiw-reserve: 1416px;
+  }
+}
+
+@media (max-width: 359px) {
+  .wiw {
+    --wiw-reserve: 1572px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wiw-rise {
+    animation: none;
+    opacity: 1;
+  }
+
+  .wiw-caret,
+  .wiw-status[data-state='working'] .wiw-status-dot {
+    animation: none;
+  }
+
+  .wiw-window,
+  .wiw-callout,
+  .wiw-pill,
+  .wiw-control,
+  .wiw-dots i::after,
+  .wiw-progress span::after,
+  .wiw [data-arrived] {
+    transition: none;
+  }
+}

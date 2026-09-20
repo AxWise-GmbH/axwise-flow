@@ -1,0 +1,978 @@
+/*
+ * Solutions pages (class prefix osl-). Tokens and primitives come from instant.css, the
+ * scroll gate from sections.css, the app panels from scenes.css.
+ *
+ * Motion is transform and opacity only, switched off at the bottom of the file under
+ * prefers-reduced-motion. Loops rest while their block is off screen.
+ */
+
+.osl-head {
+  display: grid;
+  gap: 18px;
+  margin-bottom: clamp(40px, 6vw, 72px);
+}
+
+.osl-index {
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+}
+
+/* First block ---------------------------------------------------------------- */
+
+.osl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+}
+
+.osl-cta,
+.osl-quiet {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.osl-cta {
+  padding: 0 26px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: var(--oi-page);
+  transition:
+    box-shadow 400ms ease,
+    transform 400ms var(--oi-ease);
+}
+
+.osl-cta:hover {
+  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), 0.55);
+  transform: translate3d(0, -1px, 0);
+}
+
+.osl-quiet {
+  gap: 10px;
+  color: var(--oi-muted);
+  transition: color 300ms ease;
+}
+
+.osl-quiet:hover {
+  color: var(--oi-ink);
+}
+
+.osl-quiet-arrow {
+  width: 14px;
+  height: 14px;
+  transition: transform 400ms var(--oi-ease);
+}
+
+.osl-quiet:hover .osl-quiet-arrow {
+  transform: translate3d(4px, 0, 0);
+}
+
+.osl-cta:focus-visible,
+.osl-quiet:focus-visible,
+.osl-related-link:focus-visible,
+.osl-all-link:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+
+.osl-cta:focus-visible {
+  border-radius: var(--oi-radius-pill);
+}
+
+/* The picture: window, four wired-in jobs, and the line sphere behind them. */
+.osl-hv {
+  --lead: 24px;
+  position: relative;
+  display: grid;
+  gap: var(--lead);
+  width: 100%;
+  max-width: 580px;
+  margin-inline: auto;
+}
+
+.osl-hv[data-live='false'] *,
+.osl-hv[data-live='false'] *::before,
+.osl-hv[data-live='false'] *::after {
+  animation-play-state: paused;
+}
+
+.osl-hv-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 128%;
+  max-width: none;
+  translate: -50% -50%;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(var(--oi-pale-rgb), 0.3);
+  stroke-width: 0.7;
+  pointer-events: none;
+  animation: osl-fade 2400ms ease 200ms backwards;
+}
+
+.osl-hv-meridians,
+.osl-hv-ring {
+  transform-origin: 300px 300px;
+}
+
+.osl-hv-meridians {
+  animation: osl-turn 140s linear infinite;
+}
+
+.osl-hv-ring {
+  stroke: rgba(var(--oi-pale-rgb), 0.42);
+  stroke-dasharray: 2 9;
+  animation: osl-turn 90s linear infinite reverse;
+}
+
+.osl-hv-moon {
+  fill: var(--oi-accent);
+  stroke: none;
+}
+
+@keyframes osl-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes osl-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.osl-hv-window {
+  animation: osl-window 1300ms var(--oi-ease) 260ms backwards;
+}
+
+@keyframes osl-window {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 36px, 0) scale(0.97);
+  }
+}
+
+/* The opening scene starts once the window has landed. */
+.osl-hv .osl-hv-window {
+  --osc-start: 1300ms;
+}
+
+.osl-hv-window .osc-body {
+  min-height: 268px;
+}
+
+.osl-hv-pills {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 5% 13%;
+}
+
+.osl-hv-pills[data-row='bottom'] {
+  padding-inline: 15% 4%;
+}
+
+.osl-hv-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 0 14px 0 11px;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-stage-panel);
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: osl-pill 900ms var(--oi-ease) backwards;
+  animation-delay: calc(1000ms + var(--i) * 150ms);
+}
+
+@keyframes osl-pill {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+.osl-hv-pill-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--oi-accent);
+}
+
+/* The wire from a job to the window, with one point of light travelling along it. */
+.osl-hv-lead {
+  position: absolute;
+  top: 100%;
+  left: 24px;
+  width: 1px;
+  height: var(--lead);
+  background: rgba(var(--oi-accent-rgb), 0.55);
+}
+
+[data-row='bottom'] .osl-hv-lead {
+  top: auto;
+  bottom: 100%;
+}
+
+.osl-hv-lead::before,
+.osl-hv-lead::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--oi-accent);
+}
+
+.osl-hv-lead::before {
+  bottom: -3px;
+}
+
+[data-row='bottom'] .osl-hv-lead::before {
+  top: -3px;
+  bottom: auto;
+}
+
+.osl-hv-lead::after {
+  top: -2px;
+  background: var(--oi-ink);
+  animation: osl-signal 2600ms var(--oi-ease) infinite;
+  animation-delay: calc(2200ms + var(--i) * 650ms);
+  opacity: 0;
+}
+
+[data-row='bottom'] .osl-hv-lead::after {
+  animation-name: osl-signal-up;
+  top: auto;
+  bottom: -2px;
+}
+
+@keyframes osl-signal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  60%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, var(--lead), 0);
+  }
+}
+
+@keyframes osl-signal-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  60%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--lead) * -1), 0);
+  }
+}
+
+/* Loading: the first block's footprint, kept quiet. */
+.osl-skel {
+  min-height: 100svh;
+  padding-top: clamp(112px, 15vh, 156px);
+}
+
+.osl-skel i {
+  display: block;
+  width: min(420px, 70%);
+  height: 14px;
+  margin-top: 22px;
+  border-radius: 7px;
+  background: var(--oi-hairline);
+  animation: osl-breathe 1400ms ease-in-out infinite alternate;
+}
+
+.osl-skel i:first-child {
+  width: 160px;
+  height: 10px;
+}
+
+.osl-skel i:nth-child(2) {
+  height: 56px;
+  border-radius: 12px;
+}
+
+@keyframes osl-breathe {
+  to {
+    opacity: 0.4;
+  }
+}
+
+/*
+ * Pillars: one instrument, four readouts. The cells are always there and only their contents
+ * reveal, so the hairline grid is drawn before the words arrive, never a blank slab.
+ */
+
+.osl-band,
+.osl-mosaic,
+.osl-related-grid {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--oi-hairline);
+  border-radius: var(--oi-radius-card);
+  overflow: hidden;
+  background: var(--oi-hairline);
+  list-style: none;
+}
+
+.osl-band {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.osl-band > li,
+.osl-mosaic > li,
+.osl-related-grid > li {
+  position: relative;
+  display: grid;
+  background: var(--oi-page);
+}
+
+/* Light that rests on the cell you point at. */
+.osl-band > li::before,
+.osl-mosaic > li::before,
+.osl-related-grid > li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 90% 70% at 50% 0,
+    rgba(var(--oi-glow-rgb), 0.5),
+    rgba(var(--oi-deep-rgb), 0.16) 55%,
+    transparent 80%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.osl-band > li::after,
+.osl-mosaic > li::after,
+.osl-related-grid > li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--oi-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 700ms var(--oi-ease);
+}
+
+.osl-band > li:hover::before,
+.osl-mosaic > li:hover::before,
+.osl-related-grid > li:hover::before,
+.osl-related-grid > li:focus-within::before {
+  opacity: 1;
+}
+
+.osl-band > li:hover::after,
+.osl-mosaic > li:hover::after,
+.osl-related-grid > li:hover::after,
+.osl-related-grid > li:focus-within::after {
+  transform: scaleX(1);
+}
+
+.osl-pillar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  padding: 28px 26px 26px;
+}
+
+.osl-pillar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 auto;
+  padding-bottom: 48px;
+}
+
+.osl-pillar-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--oi-accent);
+}
+
+.osl-pillar-title {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.osl-pillar-body {
+  margin: 12px 0 0;
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.osl-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--oi-hairline);
+  color: var(--oi-ink);
+  font-family: var(--oi-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.osl-stat::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--oi-accent);
+  box-shadow: 0 0 12px rgba(var(--oi-accent-rgb), 0.9);
+}
+
+/* Spotlights --------------------------------------------------------------------- */
+
+.osl-spots {
+  padding-top: 0;
+}
+
+.osl-spots > .oi-container {
+  display: grid;
+  gap: clamp(88px, 12vw, 184px);
+}
+
+.osl-spot {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  gap: clamp(40px, 7vw, 112px);
+  align-items: center;
+}
+
+/* Every other row mirrors, and the panel keeps the wider column on either side. */
+.osl-spot[data-flip='true'] {
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+}
+
+.osl-spot[data-flip='true'] .osl-spot-text {
+  order: 2;
+}
+
+.osl-spot-text {
+  min-width: 0;
+}
+
+.osl-spot-tag {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--oi-accent);
+}
+
+.osl-spot-tag span {
+  color: var(--oi-dim);
+}
+
+.osl-spot-tag span::after {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  margin-left: 14px;
+  background: var(--oi-hairline-strong);
+  vertical-align: middle;
+}
+
+.osl-spot-title {
+  max-width: 15ch;
+  margin: 20px 0 0;
+  color: var(--oi-ink);
+  font-size: clamp(1.9rem, 3.5vw, 3rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.osl-spot-body {
+  max-width: 46ch;
+  margin-top: 22px;
+  text-wrap: pretty;
+}
+
+.osl-bullets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 36px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--oi-hairline);
+  list-style: none;
+}
+
+.osl-bullets li {
+  position: relative;
+  padding: 14px 12px 14px 20px;
+  border-bottom: 1px solid var(--oi-hairline);
+  color: var(--oi-ink);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.osl-bullets li::before {
+  content: '';
+  position: absolute;
+  top: 23px;
+  left: 0;
+  width: 9px;
+  height: 1px;
+  background: var(--oi-accent);
+}
+
+/* The panel stands in its own light, framed by four drawing-board corner marks. */
+.osl-spot-scene {
+  position: relative;
+  min-width: 0;
+}
+
+.osl-spot-scene::before {
+  content: '';
+  position: absolute;
+  inset: -12% -8%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-glow-rgb), 0.36),
+    rgba(var(--oi-deep-rgb), 0.1) 60%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.osl-spot-scene::after {
+  --mark: var(--oi-hairline-strong);
+  content: '';
+  position: absolute;
+  inset: -18px;
+  background:
+    linear-gradient(var(--mark), var(--mark)) 0 0 / 16px 1px,
+    linear-gradient(var(--mark), var(--mark)) 0 0 / 1px 16px,
+    linear-gradient(var(--mark), var(--mark)) 100% 0 / 16px 1px,
+    linear-gradient(var(--mark), var(--mark)) 100% 0 / 1px 16px,
+    linear-gradient(var(--mark), var(--mark)) 0 100% / 16px 1px,
+    linear-gradient(var(--mark), var(--mark)) 0 100% / 1px 16px,
+    linear-gradient(var(--mark), var(--mark)) 100% 100% / 16px 1px,
+    linear-gradient(var(--mark), var(--mark)) 100% 100% / 1px 16px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.osl-spot-scene .osc {
+  position: relative;
+}
+
+/* Agents ------------------------------------------------------------------------- */
+
+.osl-mosaic {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.osl-mosaic > li {
+  grid-column: span 4;
+}
+
+.osl-mosaic > li:nth-child(1),
+.osl-mosaic > li:nth-child(6) {
+  grid-column: span 5;
+}
+
+.osl-mosaic > li:nth-child(3),
+.osl-mosaic > li:nth-child(4) {
+  grid-column: span 3;
+}
+
+.osl-agent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 210px;
+  padding: 26px;
+}
+
+.osl-agent-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.osl-agent-mark {
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--oi-hairline-strong);
+  stroke-width: 1;
+  transition: transform 900ms var(--oi-ease);
+}
+
+.osl-agent-moon {
+  fill: var(--oi-accent);
+  stroke: none;
+}
+
+.osl-mosaic > li:hover .osl-agent-mark {
+  transform: rotate(180deg);
+}
+
+.osl-agent-name {
+  margin: auto 0 0;
+  padding-top: 40px;
+  color: var(--oi-ink);
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.osl-agent-line {
+  margin: 10px 0 0;
+  color: var(--oi-muted);
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+/* Related ------------------------------------------------------------------------ */
+
+.osl-related-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.osl-related-grid [data-reveal] {
+  display: grid;
+}
+
+.osl-related-link {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  min-height: 230px;
+  padding: 26px;
+  color: var(--oi-ink);
+  text-decoration: none;
+}
+
+.osl-related-icon {
+  grid-column: 1 / -1;
+  align-self: start;
+  width: 30px;
+  height: 30px;
+  margin-bottom: auto;
+  color: var(--oi-accent);
+}
+
+.osl-related-label {
+  grid-column: 1;
+  font-size: 1.55rem;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.osl-related-line {
+  grid-column: 1;
+  color: var(--oi-muted);
+  font-size: 0.93rem;
+}
+
+.osl-related-arrow {
+  grid-row: 2 / 4;
+  grid-column: 2;
+  align-self: end;
+  width: 22px;
+  height: 22px;
+  color: var(--oi-muted);
+  transition:
+    transform 500ms var(--oi-ease),
+    color 300ms ease;
+}
+
+.osl-related-link:hover .osl-related-arrow,
+.osl-related-link:focus-visible .osl-related-arrow {
+  color: var(--oi-accent);
+  transform: translate3d(6px, 0, 0);
+}
+
+.osl-all {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 32px;
+  align-items: baseline;
+  margin-top: 40px;
+}
+
+/* Two even rows of five, so no page name is ever left alone on a line. */
+.osl-all ul {
+  display: grid;
+  grid-template-columns: repeat(5, max-content);
+  gap: 0 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.osl-all-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--oi-muted);
+  font-size: 0.93rem;
+  text-decoration: none;
+  transition: color 300ms ease;
+}
+
+.osl-all-link:hover {
+  color: var(--oi-ink);
+}
+
+.osl-all-link[aria-current='page'] {
+  color: var(--oi-accent);
+}
+
+/* Closing line: a thread of light that leads into the download block. */
+.osl-closing {
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  padding-inline: var(--oi-s3);
+  text-align: center;
+}
+
+.osl-closing::before {
+  content: '';
+  width: 1px;
+  height: 84px;
+  background: linear-gradient(transparent, var(--oi-accent));
+}
+
+/* The download block clips its own light at its top edge. Here a line of text sits right
+   above that edge, so the light fades in below it instead of starting at a hard cut. */
+.osl-closing + .ois-download .ois-download-stage {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 180px);
+  mask-image: linear-gradient(to bottom, transparent, black 180px);
+}
+
+.osl-closing-line {
+  margin: 0;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Widths ------------------------------------------------------------------------- */
+
+@media (max-width: 1099px) {
+  .osl-hv {
+    max-width: 720px;
+  }
+
+  .osl-hv-orbit {
+    width: 110%;
+  }
+
+  .osl-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .osl-pillar {
+    min-height: 260px;
+  }
+
+  .osl-mosaic > li:nth-child(n) {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 899px) {
+  .osl-spot,
+  .osl-spot[data-flip='true'] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+
+  .osl-spot[data-flip='true'] .osl-spot-text {
+    order: 0;
+  }
+
+  .osl-spot-title {
+    max-width: 18ch;
+  }
+
+  .osl-related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .osl-related-link {
+    min-height: 150px;
+  }
+
+  .osl-all {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .osl-all ul {
+    margin-inline: -12px;
+  }
+}
+
+@media (max-width: 699px) {
+  .osl-all ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .osl-hv {
+    --lead: 16px;
+  }
+
+  .osl-hv-pills,
+  .osl-hv-pills[data-row='bottom'] {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding-inline: 0;
+  }
+
+  .osl-hv-pill {
+    min-height: 30px;
+    padding: 0 11px 0 9px;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+  }
+
+  .osl-hv-window .osc-body {
+    min-height: 0;
+  }
+
+  .osl-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .osl-cta,
+  .osl-quiet {
+    justify-content: center;
+  }
+
+  .osl-band {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .osl-pillar {
+    min-height: 0;
+  }
+
+  .osl-pillar-top {
+    padding-bottom: 32px;
+  }
+
+  .osl-mosaic > li:nth-child(n) {
+    grid-column: 1 / -1;
+  }
+
+  .osl-agent {
+    min-height: 0;
+    padding: 22px;
+  }
+
+  .osl-agent-name {
+    padding-top: 20px;
+  }
+
+  .osl-bullets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .osl-spot-scene::after {
+    inset: -10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .osl-hv-orbit,
+  .osl-hv-meridians,
+  .osl-hv-ring,
+  .osl-hv-window,
+  .osl-hv-pill,
+  .osl-skel i {
+    animation: none;
+  }
+
+  .osl-hv-lead::after {
+    display: none;
+  }
+
+  .osl-cta,
+  .osl-quiet-arrow,
+  .osl-related-arrow,
+  .osl-agent-mark,
+  .osl-band > li::before,
+  .osl-band > li::after,
+  .osl-mosaic > li::before,
+  .osl-mosaic > li::after,
+  .osl-related-grid > li::before,
+  .osl-related-grid > li::after {
+    transition: none;
+  }
+
+  .osl-cta:hover {
+    transform: none;
+  }
+}
