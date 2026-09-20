@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orqanix Live Heartbeat & Empirical SLA Telemetry</title>
+  <title>Orqanix Endpoint health snapshot | Public Preview</title>
   <style>
     :root {
       --bg: #090a0f;
@@ -13,6 +13,7 @@
       --primary: #6366f1;
       --primary-light: #818cf8;
       --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.15);
       --text: #f3f4f6;
       --text-muted: #9ca3af;
       --danger: #ef4444;
@@ -20,25 +21,51 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
     .container { max-width: 1180px; margin: 0 auto; }
-    
-    /* Header & Navigation */
+
+    /* Header */
     header { text-align: center; margin-bottom: 35px; }
     .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; }
     .nav-tab { padding: 8px 18px; border-radius: 9999px; text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid var(--border); color: var(--text-muted); transition: all 0.2s ease; }
     .nav-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
-    .nav-tab.active { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: var(--accent); }
-    
-    h1 { font-size: 40px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; background: linear-gradient(135deg, #fff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    p.subtitle { font-size: 16px; color: var(--text-muted); max-width: 820px; margin: 0 auto 30px auto; }
+    .nav-tab.active { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: var(--primary-light); }
+    .badge { display: inline-block; padding: 6px 14px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--primary-light); border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 16px; }
+    h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; background: linear-gradient(135deg, #fff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p.subtitle { font-size: 18px; color: var(--text-muted); max-width: 780px; margin: 0 auto; }
 
-    /* Heartbeat Card */
-    .heartbeat-card { background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 20, 29, 0.7) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 26px; margin-bottom: 35px; }
+    /* Highlights Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(16px); transition: all 0.3s ease; }
+    .card:hover { border-color: var(--border-active); transform: translateY(-2px); }
+    .card-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+    .card-value { font-size: 34px; font-weight: 800; color: #fff; margin-bottom: 6px; display: flex; align-items: baseline; gap: 8px; }
+    .card-gain { font-size: 14px; color: var(--accent); font-weight: 700; }
+    .card-desc { font-size: 13px; color: var(--text-muted); }
+
+    /* Interactive Comparison Section */
+    .section-title { font-size: 26px; font-weight: 700; margin-top: 50px; margin-bottom: 24px; letter-spacing: -0.5px; }
+    .table-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 30px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 18px 20px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02); }
+    td { padding: 18px 20px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag-live { display: inline-block; padding: 3px 8px; background: rgba(16, 185, 129, 0.15); color: var(--accent); border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .tag-crypto { display: inline-block; padding: 3px 8px; background: rgba(99, 102, 241, 0.15); color: var(--primary-light); border-radius: 6px; font-weight: 700; font-size: 12px; }
+
+    /* Prompts & Turns Deep Dive */
+    .turn-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; }
+    .turn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .turn-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+    .badge-assistant { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge-research { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-goal { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-agent { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+    /* Heartbeat Snapshot Section */
+    .heartbeat-card { background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 20, 29, 0.7) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 26px; margin-bottom: 40px; }
     .heartbeat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
     .heartbeat-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #fff; }
     .pulse-dot { width: 10px; height: 10px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 12px #10b981; animation: pulseGlow 2s infinite; }
     @keyframes pulseGlow { 0% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; transform: scale(0.9); } }
-    .tag-live { display: inline-block; padding: 4px 10px; background: rgba(16, 185, 129, 0.15); color: var(--accent); border-radius: 6px; font-weight: 700; font-size: 12px; }
-
     .heartbeat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
     .endpoint-box { background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
     .endpoint-name { font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
@@ -48,25 +75,17 @@
     .endpoint-latency { font-size: 12px; font-weight: 700; color: #f3f4f6; font-family: monospace; }
     .heartbeat-footer { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
 
-    /* Tables & Tooltips */
-    .section-title { font-size: 24px; font-weight: 700; margin-top: 20px; margin-bottom: 16px; letter-spacing: -0.5px; }
-    .table-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: visible; margin-bottom: 30px; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { padding: 16px 18px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02); }
-    td { padding: 16px 18px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    tr:last-child td { border-bottom: none; }
-
     /* Interactive Info Tooltip (i) */
     .info-tip {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
-      margin-left: 6px;
+      width: 15px;
+      height: 15px;
+      margin-left: 5px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       color: var(--text-muted);
       font-size: 10px;
       font-weight: 700;
@@ -82,21 +101,21 @@
     .info-tip .tip-box {
       visibility: hidden;
       opacity: 0;
-      width: 280px;
+      width: 270px;
       background: #181b26;
       color: #e5e7eb;
       text-align: left;
       border-radius: 8px;
       padding: 10px 12px;
       position: absolute;
-      z-index: 50;
-      bottom: 135%;
+      z-index: 100;
+      bottom: 140%;
       left: 50%;
       transform: translateX(-50%);
       font-size: 11.5px;
       line-height: 1.45;
       font-weight: 400;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.12);
       pointer-events: none;
       transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -124,445 +143,61 @@
       padding-bottom: 3px;
     }
 
-    footer { text-align: center; margin-top: 50px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 24px; }
+    .prompt-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: #e5e7eb; margin-bottom: 16px; line-height: 1.5; }
+    .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
+    .diff-pane { padding: 14px; border-radius: 8px; font-size: 13px; }
+    .pane-before { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .pane-after { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .pane-title { font-weight: 700; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pane-before .pane-title { color: #f87171; }
+    .pane-after .pane-title { color: #34d399; }
+
+    /* Footer */
+    footer { text-align: center; margin-top: 60px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 30px; }
     footer a { color: var(--primary-light); text-decoration: none; }
+
+    .tag-live, .endpoint-status { color: #d1d5db; background: rgba(156,163,175,.15); }
+    [data-state="healthy"] { color: #34d399; background: rgba(16,185,129,.15); }
+    [data-state="stale"] { color: #fbbf24; background: rgba(251,191,36,.12); }
+    [data-state="degraded"] { color: #f87171; background: rgba(239,68,68,.15); }
+    .heartbeat-card { background: var(--card-bg); border-color: var(--border); }
+    .endpoint-name { gap: 10px; flex-wrap: wrap; }
+    .endpoint-metrics { color: var(--text-muted); font-size: 11px; }
+    .status-copy { color: var(--text-muted); margin: 14px 0; }
+    .table-card { overflow-x: auto; }
+    .nav-tabs { flex-wrap: wrap; }
+    @media (max-width: 600px) { h1 { font-size: 32px; } .heartbeat-card { padding: 18px; } }
   </style>
 </head>
 <body>
-  <div class="container">
+  <main class="container">
     <header>
-      <div class="nav-tabs">
-        <a href="/benchmark" class="nav-tab">Full Architecture &amp; Showcase</a>
-        <a href="/heartbeat" class="nav-tab active">Live Heartbeat &amp; Telemetry</a>
-        <a href="/instant" class="nav-tab">Instant Preview</a>
-      </div>
-      <h1>Orqanix Perpetual Heartbeat &amp; Live SLA</h1>
-      <p class="subtitle">
-        Continuous, empirical latency and reliability tracking across diverse workload archetypes. Rolling time-window averages refresh perpetually every 20 minutes with zero synthetic caching.
-      </p>
+      <nav class="nav-tabs" aria-label="Showcase navigation"><a href="/benchmark" class="nav-tab">Architecture &amp; validation</a><a href="/heartbeat" class="nav-tab active">Endpoint health</a><a href="/instant" class="nav-tab">Instant Preview</a></nav>
+      <div class="badge">PUBLIC PREVIEW</div>
+      <h1>Endpoint health snapshot</h1>
+      <p class="subtitle">Dated observations of the public preview endpoints, with visible stale and unavailable states.</p>
+      <p class="status-copy">Orqanix is a public preview. The public and preview domains currently share the same preview deployment.</p>
     </header>
 
-    <!-- Edge Health Grid -->
-    <div class="heartbeat-card">
+    <section class="heartbeat-card" aria-label="Endpoint health snapshot">
       <div class="heartbeat-head">
-        <div class="heartbeat-title">
-          <span class="pulse-dot"></span>
-          Live Edge Health &amp; Global Availability
-        </div>
-        <span class="tag-live" id="heartbeat-badge">ALL HEALTHY &bull; AUTOMATED 24/7 SLA</span>
+        <h2 class="heartbeat-title">Endpoint health snapshot</h2>
+        <span class="tag-live" id="heartbeat-badge" data-state="unavailable" role="status">SNAPSHOT UNAVAILABLE</span>
       </div>
-      <div class="heartbeat-grid" id="heartbeat-grid">
-        <div class="endpoint-box">
-          <div class="endpoint-name"><span>Production Apex</span><span class="endpoint-status">200 OK</span></div>
-          <div class="endpoint-url">https://orqanix.com/</div>
-          <div class="endpoint-metrics"><span style="color:var(--text-muted);font-size:11px">Edge Latency</span><span class="endpoint-latency">130 ms</span></div>
-        </div>
-        <div class="endpoint-box">
-          <div class="endpoint-name"><span>Instant Preview</span><span class="endpoint-status">200 OK</span></div>
-          <div class="endpoint-url">https://orqanix.com/instant</div>
-          <div class="endpoint-metrics"><span style="color:var(--text-muted);font-size:11px">Edge Latency</span><span class="endpoint-latency">118 ms</span></div>
-        </div>
-        <div class="endpoint-box">
-          <div class="endpoint-name"><span>Benchmark Showcase</span><span class="endpoint-status">200 OK</span></div>
-          <div class="endpoint-url">https://orqanix.com/benchmark</div>
-          <div class="endpoint-metrics"><span style="color:var(--text-muted);font-size:11px">Edge Latency</span><span class="endpoint-latency">167 ms</span></div>
-        </div>
-        <div class="endpoint-box">
-          <div class="endpoint-name"><span>Preview Domain</span><span class="endpoint-status">200 OK</span></div>
-          <div class="endpoint-url">https://preview.orqanix.com/instant</div>
-          <div class="endpoint-metrics"><span style="color:var(--text-muted);font-size:11px">Edge Latency</span><span class="endpoint-latency">159 ms</span></div>
-        </div>
-        <div class="endpoint-box">
-          <div class="endpoint-name"><span>API Health Probe</span><span class="endpoint-status">200 OK</span></div>
-          <div class="endpoint-url">orqaly-v2-api-preview /readyz</div>
-          <div class="endpoint-metrics"><span style="color:var(--text-muted);font-size:11px">Service Probe</span><span class="endpoint-latency">143 ms</span></div>
-        </div>
-      </div>
+      <p class="status-copy">HTTP response observations from one runner. These checks cover web routes and API readiness; they do not measure desktop workflows or model performance.</p>
+      <div class="heartbeat-grid" id="heartbeat-grid">No endpoint observations loaded. Current service health is unknown.</div>
       <div class="heartbeat-footer">
-        <div id="heartbeat-timestamp">
-          Automated perpetual verification every 15m via GitHub Actions &bull; Snapshot archived in <code>artifacts/heartbeat/</code>
-        </div>
-        <div>
-          <span style="color:var(--accent);font-weight:600" id="heartbeat-avg">Global Average Latency: 143.4 ms</span> &bull; 100% Edge Uptime
-        </div>
+        <div id="heartbeat-timestamp">Observation time unavailable.</div>
+        <div id="heartbeat-avg"></div>
       </div>
-    </div>
+      <p class="status-copy">Scheduled checks are archived every 15 minutes when the scheduler runs. This page shows a dated snapshot included with a website deployment; scheduled checks do not automatically publish here. Observations older than 30 minutes are marked stale.</p>
+      <noscript><p class="status-copy">JavaScript is required to load the snapshot. Current service health is unknown.</p></noscript>
+    </section>
 
-    <!-- Perpetual Rolling Work Archetype Benchmarks Table -->
-    <h2 class="section-title">Perpetual Work Archetype Benchmarks (Rolling 15m &bull; 3h &bull; 24h)</h2>
-    <p style="color:var(--text-muted);margin-bottom:18px;font-size:14px">
-      Hover over the <span class="info-tip" style="cursor:default;width:14px;height:14px;margin:0 2px;">i</span> icons to inspect the exact prompt archetype, turn count, and execution profile behind each measurement.
-    </p>
 
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>Work Archetype</th>
-            <th>Operational Scope</th>
-            <th>Last 15 Min</th>
-            <th>Last 3 Hours</th>
-            <th>Last 24 Hours</th>
-            <th>Baseline Comparison<br><span style="color:var(--text-muted);font-size:11px;font-weight:normal">(Direct model call without e2e orqanix harness)</span></th>
-            <th>User Impact &amp; Quality Guarantee</th>
-          </tr>
-        </thead>
-        <tbody id="archetypes-tbody">
-          <tr>
-            <td><strong>1. Message</strong></td>
-            <td>Interactive Dialogue &amp; Strategic Advisory</td>
-            <td>
-              <strong style="color:#34d399">1.1s</strong>
-              <span class="info-tip">i
-                <span class="tip-box" style="width:320px;">
-                  <span class="tip-title">Message: Latest Evaluated Prompt</span>
-                  <strong>Verbatim Prompt:</strong> "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license."<br>
-                  <strong>Turns:</strong> 1 | <strong>Latency:</strong> <span style="color:#34d399">1.12s (1119 ms)</span><br>
-                  <strong>Context:</strong> Fintech statutory licensing &amp; Asia-Pacific financial regulations
-                </span>
-              </span>
-            </td>
-            <td>
-              1.1s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:340px;">
-                  <span class="tip-title">Message: 3-Hour Rolling Window</span>
-                  Rolling mean of 9 runs rotating across 4 distinct prompt scenarios.
-                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
-                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
-                    <ul style="padding-left:14px;margin:4px 0 0 0;">
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[1.12s (1119 ms)]</span> "Explain statutory compliance steps for a foreign digital asset custodian applying for a Singapore MAS Major Payment Institution license."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[1.21s (1213 ms)]</span> "What are the core qualifying criteria and eligible expense categories for the UK R&amp;D SME tax relief scheme under HMRC guidelines?"</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[1.12s (1124 ms)]</span> "Compare Delaware C-Corp vs German GmbH subsidiary structure for an AI startup raising US venture capital while retaining European engineering."</li>
-                    </ul>
-                  </div>
-                </span>
-              </span>
-            </td>
-            <td>
-              1.1s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:300px;">
-                  <span class="tip-title">Message: 24-Hour Daily Aggregate</span>
-                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
-                  <strong>Total Scenarios in Catalog:</strong> 4 rotating prompts.
-                </span>
-              </span>
-            </td>
-            <td><span style="color:#f87171">5.8s</span></td>
-            <td>Direct structured response with zero preamble delay</td>
-          </tr>
-
-          <tr>
-            <td><strong>2. Coding</strong></td>
-            <td>Workspace Engineering &amp; Feature Authoring</td>
-            <td>
-              <strong style="color:#34d399">25s</strong>
-              <span class="info-tip">i
-                <span class="tip-box" style="width:320px;">
-                  <span class="tip-title">Coding: Latest Evaluated Prompt</span>
-                  <strong>Verbatim Prompt:</strong> "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation."<br>
-                  <strong>Turns:</strong> 1 | <strong>Latency:</strong> <span style="color:#34d399">25.32s (25321 ms)</span><br>
-                  <strong>Context:</strong> Fullstack architectural modernization &amp; schema enforcement
-                </span>
-              </span>
-            </td>
-            <td>
-              25s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:340px;">
-                  <span class="tip-title">Coding: 3-Hour Rolling Window</span>
-                  Rolling mean of 9 runs rotating across 4 distinct prompt scenarios.
-                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
-                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
-                    <ul style="padding-left:14px;margin:4px 0 0 0;">
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[25.32s (25321 ms)]</span> "Migrate legacy untyped REST API endpoints to TypeScript with Zod request validation and OpenAPI auto-generation."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[25.54s (25536 ms)]</span> "Refactor the Stripe billing webhook handler to guarantee database idempotency using idempotency-keys and atomic balance updates."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[25.47s (25467 ms)]</span> "Create a responsive, dark-mode landing hero component with animated vector gradients, accessible CTA buttons, and Tailwind CSS."</li>
-                    </ul>
-                  </div>
-                </span>
-              </span>
-            </td>
-            <td>
-              25s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:300px;">
-                  <span class="tip-title">Coding: 24-Hour Daily Aggregate</span>
-                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
-                  <strong>Total Scenarios in Catalog:</strong> 4 rotating prompts.
-                </span>
-              </span>
-            </td>
-            <td><span style="color:#f87171">68.2s (7 turns)</span></td>
-            <td>Single-turn execution, verified syntax, zero conversation bloat</td>
-          </tr>
-
-          <tr>
-            <td><strong>3. Search</strong></td>
-            <td>Global Evidence Retrieval &amp; Information Triage</td>
-            <td>
-              <strong style="color:#34d399">2.2s</strong>
-              <span class="info-tip">i
-                <span class="tip-box" style="width:320px;">
-                  <span class="tip-title">Search: Latest Evaluated Prompt</span>
-                  <strong>Verbatim Prompt:</strong> "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms."<br>
-                  <strong>Turns:</strong> 1 | <strong>Latency:</strong> <span style="color:#34d399">2.15s (2154 ms)</span><br>
-                  <strong>Context:</strong> Fintech sandbox compliance &amp; statutory review
-                </span>
-              </span>
-            </td>
-            <td>
-              2.3s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:340px;">
-                  <span class="tip-title">Search: 3-Hour Rolling Window</span>
-                  Rolling mean of 9 runs rotating across 4 distinct prompt scenarios.
-                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
-                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
-                    <ul style="padding-left:14px;margin:4px 0 0 0;">
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[2.15s (2154 ms)]</span> "UK Financial Conduct Authority (FCA) regulatory sandbox eligibility criteria for AI automated wealth management platforms."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[2.35s (2353 ms)]</span> "Comparative statutory analysis of California Consumer Privacy Act (CCPA/CPRA) opt-out mechanisms vs EU GDPR consent rules."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[2.34s (2341 ms)]</span> "FDA 510(k) premarket notification clearance pathway: predicate device equivalence standards and clinical validation thresholds."</li>
-                    </ul>
-                  </div>
-                </span>
-              </span>
-            </td>
-            <td>
-              2.3s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:300px;">
-                  <span class="tip-title">Search: 24-Hour Daily Aggregate</span>
-                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
-                  <strong>Total Scenarios in Catalog:</strong> 4 rotating prompts.
-                </span>
-              </span>
-            </td>
-            <td><span style="color:#f87171">9.0s</span></td>
-            <td>Irrelevant noise discarded before generation begins</td>
-          </tr>
-
-          <tr>
-            <td><strong>4. Research</strong></td>
-            <td>Deep Grounded Intelligence &amp; Strategic Modeling</td>
-            <td>
-              <strong style="color:#34d399">20s</strong>
-              <span class="info-tip">i
-                <span class="tip-box" style="width:320px;">
-                  <span class="tip-title">Research: Latest Evaluated Prompt</span>
-                  <strong>Verbatim Prompt:</strong> "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework)."<br>
-                  <strong>Turns:</strong> 2 | <strong>Latency:</strong> <span style="color:#34d399">19.64s (19639 ms)</span><br>
-                  <strong>Context:</strong> Global healthtech regulatory intelligence &amp; dual-market filing strategy
-                </span>
-              </span>
-            </td>
-            <td>
-              19s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:340px;">
-                  <span class="tip-title">Research: 3-Hour Rolling Window</span>
-                  Rolling mean of 9 runs rotating across 3 distinct prompt scenarios.
-                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
-                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
-                    <ul style="padding-left:14px;margin:4px 0 0 0;">
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[19.64s (19639 ms)]</span> "Synthesize global regulatory roadmap for deploying generative AI diagnostic tools across EU (AI Act) and US (FDA SaMD framework)."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[19.57s (19570 ms)]</span> "Prepare market expansion analysis for a US B2B enterprise SaaS platform entering the DACH region: cloud sovereignty, sales cycles, and pricing norms."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[18.85s (18851 ms)]</span> "Evaluate cross-border e-commerce fulfillment models in Southeast Asia (Singapore, Indonesia, Vietnam): customs thresholds and 3PL benchmarks."</li>
-                    </ul>
-                  </div>
-                </span>
-              </span>
-            </td>
-            <td>
-              19s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:300px;">
-                  <span class="tip-title">Research: 24-Hour Daily Aggregate</span>
-                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
-                  <strong>Total Scenarios in Catalog:</strong> 3 rotating prompts.
-                </span>
-              </span>
-            </td>
-            <td><span style="color:#f87171">52.0s</span></td>
-            <td>High-density, citation-backed executive summary</td>
-          </tr>
-
-          <tr>
-            <td><strong>5. Automated Plan</strong></td>
-            <td>Multi-Stage Project &amp; Enterprise PRD Generation</td>
-            <td>
-              <strong style="color:#34d399">85s</strong>
-              <span class="info-tip">i
-                <span class="tip-box" style="width:320px;">
-                  <span class="tip-title">Automated Plan: Latest Evaluated Prompt</span>
-                  <strong>Verbatim Prompt:</strong> "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing."<br>
-                  <strong>Turns:</strong> 10 | <strong>Latency:</strong> <span style="color:#34d399">85.47s (85473 ms)</span><br>
-                  <strong>Context:</strong> 10-stage transatlantic enterprise launch runbook &amp; acceptance matrix
-                </span>
-              </span>
-            </td>
-            <td>
-              84s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:340px;">
-                  <span class="tip-title">Automated Plan: 3-Hour Rolling Window</span>
-                  Rolling mean of 9 runs rotating across 2 distinct prompt scenarios.
-                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
-                    <strong style="color:#fff;font-size:11px">Recent evaluated prompts in 3h:</strong>
-                    <ul style="padding-left:14px;margin:4px 0 0 0;">
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[85.47s (85473 ms)]</span> "Author comprehensive multi-jurisdiction launch plan for a B2B SaaS platform across US and EU: corporate entity setup, GDPR/SOC2 readiness, and Stripe billing."</li>
-                      <li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[82.33s (82335 ms)]</span> "Execute end-to-end launch PRD for a HIPAA and GDPR compliant global telehealth consultation application: architecture, audits, and vendor SLAs."</li>
-                    </ul>
-                  </div>
-                </span>
-              </span>
-            </td>
-            <td>
-              84s
-              <span class="info-tip">i
-                <span class="tip-box" style="width:300px;">
-                  <span class="tip-title">Automated Plan: 24-Hour Daily Aggregate</span>
-                  Tested across 72 autonomous cycles under varied diurnal network conditions.<br>
-                  <strong>Total Scenarios in Catalog:</strong> 2 rotating prompts.
-                </span>
-              </span>
-            </td>
-            <td><span style="color:#f87171">145s+ (timeouts)</span></td>
-            <td>100% acceptance criteria satisfied, verifiable audit trail</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <footer>
-      <p>&copy; 2026 Orqanix &middot; Cloud reasoning. Local action. &middot; Live at <a href="https://orqanix.com">orqanix.com</a></p>
-    </footer>
-  </div>
-
-  <script>
-    (function() {
-      async function refreshHeartbeat() {
-        try {
-          const resp = await fetch('/heartbeat.json?t=' + Date.now(), { cache: 'no-store' });
-          if (!resp.ok) return;
-          const data = await resp.json();
-          if (!data || !Array.isArray(data.endpoints)) return;
-
-          const grid = document.getElementById('heartbeat-grid');
-          if (grid) {
-            let totalLatency = 0;
-            let validCount = 0;
-            let html = '';
-            for (const ep of data.endpoints) {
-              totalLatency += ep.latencyMs || 0;
-              validCount++;
-              const isOk = ep.status >= 200 && ep.status < 400;
-              const statusClass = isOk ? 'endpoint-status' : 'endpoint-status style="color:#f87171;background:rgba(239,68,68,0.15)"';
-              html += `
-                <div class="endpoint-box">
-                  <div class="endpoint-name">
-                    <span>${escapeHtml(ep.name)}</span>
-                    <span class="${statusClass}">${ep.status ? ep.status + ' OK' : 'OFFLINE'}</span>
-                  </div>
-                  <div class="endpoint-url">${escapeHtml(ep.url)}</div>
-                  <div class="endpoint-metrics">
-                    <span style="color:var(--text-muted);font-size:11px">Edge Latency</span>
-                    <span class="endpoint-latency">${ep.latencyMs} ms</span>
-                  </div>
-                </div>
-              `;
-            }
-            grid.innerHTML = html;
-
-            if (validCount > 0) {
-              const avg = (totalLatency / validCount).toFixed(1);
-              const avgEl = document.getElementById('heartbeat-avg');
-              if (avgEl) avgEl.textContent = 'Global Average Latency: ' + avg + ' ms';
-            }
-          }
-
-          const badge = document.getElementById('heartbeat-badge');
-          if (badge) {
-            badge.textContent = data.allHealthy ? 'ALL HEALTHY • AUTOMATED 24/7 SLA' : 'DEGRADED';
-          }
-
-          const timeEl = document.getElementById('heartbeat-timestamp');
-          if (timeEl && data.timestamp) {
-            const dateStr = new Date(data.timestamp).toLocaleTimeString();
-            timeEl.innerHTML = `Automated perpetual verification every 15m &bull; Last snapshot verified at <strong>${dateStr}</strong> &bull; Zero secrets exposed`;
-          }
-
-          // Dynamic tooltip rendering for archetype benchmarks with verbatim prompt histories
-          if (Array.isArray(data.archetypeBenchmarks) && data.archetypeBenchmarks.length > 0) {
-            const tbody = document.getElementById('archetypes-tbody');
-            if (tbody) {
-              let rowsHtml = '';
-              for (const a of data.archetypeBenchmarks) {
-                const ev = a.evaluation || {};
-
-                // Build verbatim 3h prompt list
-                let recentPromptsHtml = '';
-                if (Array.isArray(ev.recent3hPrompts) && ev.recent3hPrompts.length > 0) {
-                  recentPromptsHtml = '<div style="margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.08);"><strong style="color:#fff;font-size:11px">Recent evaluated prompts:</strong><ul style="padding-left:14px;margin:3px 0 0 0;">';
-                  for (const p of ev.recent3hPrompts) {
-                    recentPromptsHtml += `<li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[${escapeHtml(p.measured)}]</span> "${escapeHtml(p.prompt)}"</li>`;
-                  }
-                  recentPromptsHtml += '</ul></div>';
-                }
-
-                rowsHtml += `
-                  <tr>
-                    <td><strong>${escapeHtml(a.name)}</strong></td>
-                    <td>${escapeHtml(a.scope)}</td>
-                    <td>
-                      <strong style="color:#34d399">${escapeHtml(a.last15m)}</strong>
-                      <span class="info-tip">i
-                        <span class="tip-box" style="width:320px;">
-                          <span class="tip-title">${escapeHtml(a.name)}: Latest Evaluated Prompt</span>
-                          <strong>Verbatim Prompt:</strong> "${escapeHtml(ev.lastPrompt || a.scope)}"<br>
-                          <strong>Turns:</strong> ${ev.turns || 1} | <strong>Latency:</strong> <span style="color:#34d399">${escapeHtml(ev.measuredFormatted || a.last15m)}</span><br>
-                          <strong>Context:</strong> ${escapeHtml(ev.context || a.impact)}
-                        </span>
-                      </span>
-                    </td>
-                    <td>
-                      ${escapeHtml(a.last3h)}
-                      <span class="info-tip">i
-                        <span class="tip-box" style="width:340px;">
-                          <span class="tip-title">${escapeHtml(a.name)}: 3-Hour Rolling Window</span>
-                          Rolling mean of ${ev.samples3h || 9} runs rotating across ${ev.catalogTotal || 4} distinct prompt scenarios.
-                          ${recentPromptsHtml}
-                        </span>
-                      </span>
-                    </td>
-                    <td>
-                      ${escapeHtml(a.last24h)}
-                      <span class="info-tip">i
-                        <span class="tip-box" style="width:300px;">
-                          <span class="tip-title">${escapeHtml(a.name)}: 24-Hour Daily Aggregate</span>
-                          Tested across ${ev.samples24h || 72} autonomous cycles under varied diurnal network conditions.<br>
-                          <strong>Total Scenarios in Catalog:</strong> ${ev.catalogTotal || 4} rotating prompts.
-                        </span>
-                      </span>
-                    </td>
-                    <td><span style="color:#f87171">${escapeHtml(a.baseline)}</span></td>
-                    <td>${escapeHtml(a.impact)}</td>
-                  </tr>
-                `;
-              }
-              tbody.innerHTML = rowsHtml;
-            }
-          }
-        } catch (e) {}
-      }
-
-      function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      }
-    })();
-  </script>
-  <script src="/heartbeat-telemetry.js"></script>
+    <footer><p>&copy; 2026 Orqanix &middot; Cloud reasoning. Local action. &middot; <a href="https://orqanix.com">Public preview</a></p></footer>
+  </main>
+  <script src="/heartbeat-telemetry.js" defer></script>
 </body>
 </html>
