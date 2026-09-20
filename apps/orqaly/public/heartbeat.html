@@ -449,13 +449,24 @@
             timeEl.innerHTML = `Automated perpetual verification every 20m &bull; Last snapshot verified at <strong>${dateStr}</strong> &bull; Zero secrets exposed`;
           }
 
-          // Dynamic tooltip rendering for archetype benchmarks
+          // Dynamic tooltip rendering for archetype benchmarks with verbatim prompt histories
           if (Array.isArray(data.archetypeBenchmarks) && data.archetypeBenchmarks.length > 0) {
             const tbody = document.getElementById('archetypes-tbody');
             if (tbody) {
               let rowsHtml = '';
               for (const a of data.archetypeBenchmarks) {
                 const ev = a.evaluation || {};
+
+                // Build verbatim 3h prompt list
+                let recentPromptsHtml = '';
+                if (Array.isArray(ev.recent3hPrompts) && ev.recent3hPrompts.length > 0) {
+                  recentPromptsHtml = '<div style="margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.08);"><strong style="color:#fff;font-size:11px">Recent evaluated prompts:</strong><ul style="padding-left:14px;margin:3px 0 0 0;">';
+                  for (const p of ev.recent3hPrompts) {
+                    recentPromptsHtml += `<li style="margin-bottom:4px;"><span style="color:#34d399;font-weight:600">[${escapeHtml(p.measured)}]</span> "${escapeHtml(p.prompt)}"</li>`;
+                  }
+                  recentPromptsHtml += '</ul></div>';
+                }
+
                 rowsHtml += `
                   <tr>
                     <td><strong>${escapeHtml(a.name)}</strong></td>
@@ -463,29 +474,31 @@
                     <td>
                       <strong style="color:#34d399">${escapeHtml(a.last15m)}</strong>
                       <span class="info-tip">i
-                        <span class="tip-box">
-                          <span class="tip-title">${escapeHtml(a.name)}: Evaluated Run</span>
-                          <strong>Prompt:</strong> "${escapeHtml(ev.lastPrompt || a.scope)}"<br>
-                          <strong>Turns:</strong> ${ev.turns || 1} | <strong>Measured:</strong> ${escapeHtml(ev.measuredFormatted || a.last15m)}<br>
-                          <strong>Scope:</strong> ${escapeHtml(ev.context || a.impact)}
+                        <span class="tip-box" style="width:320px;">
+                          <span class="tip-title">${escapeHtml(a.name)}: Latest Evaluated Prompt</span>
+                          <strong>Verbatim Prompt:</strong> "${escapeHtml(ev.lastPrompt || a.scope)}"<br>
+                          <strong>Turns:</strong> ${ev.turns || 1} | <strong>Latency:</strong> <span style="color:#34d399">${escapeHtml(ev.measuredFormatted || a.last15m)}</span><br>
+                          <strong>Context:</strong> ${escapeHtml(ev.context || a.impact)}
                         </span>
                       </span>
                     </td>
                     <td>
                       ${escapeHtml(a.last3h)}
                       <span class="info-tip">i
-                        <span class="tip-box">
-                          <span class="tip-title">${escapeHtml(a.name)}: 3-Hour Rolling Mean</span>
-                          Rolling average of ${ev.samples3h || 9} autonomous runs with rotating task prompts to prevent cache lock.
+                        <span class="tip-box" style="width:340px;">
+                          <span class="tip-title">${escapeHtml(a.name)}: 3-Hour Rolling Window</span>
+                          Rolling mean of ${ev.samples3h || 9} runs rotating across ${ev.catalogTotal || 4} distinct prompt scenarios.
+                          ${recentPromptsHtml}
                         </span>
                       </span>
                     </td>
                     <td>
                       ${escapeHtml(a.last24h)}
                       <span class="info-tip">i
-                        <span class="tip-box">
-                          <span class="tip-title">${escapeHtml(a.name)}: 24-Hour Daily Avg</span>
-                          Aggregate across ${ev.samples24h || 72} verification cycles under diurnal conditions.
+                        <span class="tip-box" style="width:300px;">
+                          <span class="tip-title">${escapeHtml(a.name)}: 24-Hour Daily Aggregate</span>
+                          Tested across ${ev.samples24h || 72} autonomous cycles under varied diurnal network conditions.<br>
+                          <strong>Total Scenarios in Catalog:</strong> ${ev.catalogTotal || 4} rotating prompts.
                         </span>
                       </span>
                     </td>
