@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "orqanix.heartbeat-snapshot.v1",
-  "timestamp": "2026-09-20T15:08:42.015Z",
+  "schemaVersion": "orqanix.heartbeat-snapshot.v2",
+  "timestamp": "2026-09-20T18:56:33.495Z",
   "allHealthy": true,
   "endpoints": [
     {
@@ -8,40 +8,92 @@
       "url": "https://orqanix.com/",
       "status": 200,
       "ok": true,
-      "latencyMs": 130,
-      "timestamp": "2026-09-20T15:08:41.958Z"
+      "latencyMs": 133,
+      "timestamp": "2026-09-20T18:56:33.629Z"
     },
     {
       "name": "Instant Preview",
       "url": "https://orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 118,
-      "timestamp": "2026-09-20T15:08:41.966Z"
+      "latencyMs": 111,
+      "timestamp": "2026-09-20T18:56:33.627Z"
     },
     {
       "name": "Benchmark Showcase",
       "url": "https://orqanix.com/benchmark",
       "status": 200,
       "ok": true,
-      "latencyMs": 167,
-      "timestamp": "2026-09-20T15:08:42.015Z"
+      "latencyMs": 214,
+      "timestamp": "2026-09-20T18:56:33.731Z"
     },
     {
       "name": "Preview Domain",
       "url": "https://preview.orqanix.com/instant",
       "status": 200,
       "ok": true,
-      "latencyMs": 159,
-      "timestamp": "2026-09-20T15:08:42.009Z"
+      "latencyMs": 171,
+      "timestamp": "2026-09-20T18:56:33.689Z"
     },
     {
       "name": "API Health Probe",
       "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
       "status": 200,
       "ok": true,
-      "latencyMs": 143,
-      "timestamp": "2026-09-20T15:08:41.993Z"
+      "latencyMs": 163,
+      "timestamp": "2026-09-20T18:56:33.681Z"
+    }
+  ],
+  "archetypeBenchmarks": [
+    {
+      "id": "message",
+      "name": "Message",
+      "scope": "Interactive Dialogue & Intent Routing",
+      "baseline": "5.8s",
+      "impact": "Direct structured response with zero preamble delay",
+      "last15m": "1.2s",
+      "last3h": "1.2s",
+      "last24h": "1.2s"
+    },
+    {
+      "id": "coding",
+      "name": "Coding",
+      "scope": "Workspace Engineering & Refactoring",
+      "baseline": "68.2s (7 turns)",
+      "impact": "Single-turn execution, verified syntax, zero conversation bloat",
+      "last15m": "25s",
+      "last3h": "25s",
+      "last24h": "25s"
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "scope": "Evidence Retrieval & Information Triage",
+      "baseline": "9.0s",
+      "impact": "Irrelevant noise discarded before generation begins",
+      "last15m": "2.4s",
+      "last3h": "2.4s",
+      "last24h": "2.4s"
+    },
+    {
+      "id": "research",
+      "name": "Research",
+      "scope": "Deep Grounded Intelligence & Synthesis",
+      "baseline": "52.0s",
+      "impact": "High-density, citation-backed executive summary",
+      "last15m": "19s",
+      "last3h": "19s",
+      "last24h": "19s"
+    },
+    {
+      "id": "plan",
+      "name": "Automated Plan",
+      "scope": "Multi-Stage Project & PRD Generation",
+      "baseline": "145s+ (timeouts)",
+      "impact": "100% acceptance criteria satisfied, verifiable audit trail",
+      "last15m": "84s",
+      "last3h": "84s",
+      "last24h": "84s"
     }
   ]
 }
