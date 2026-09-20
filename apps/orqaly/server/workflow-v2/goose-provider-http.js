@@ -2,6 +2,7 @@ import express from 'express';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
+import { ENGINEERING_REVIEW_MAX_BYTES } from './engineering-review-service.js';
 
 export const GOOSE_PROVIDER_MODEL = 'orqaly-gemini';
 const GOOGLE_CHAT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
@@ -98,6 +99,7 @@ export function createGooseProviderRouter({
   productGuidance = '',
   desktopContextService = null,
   desktopWorkService = null,
+  engineeringReviewService = null,
   rateLimiter = (_req, _res, next) => next(),
   timeoutMs = MAX_DEADLINE_MS,
 }) {
@@ -166,6 +168,21 @@ export function createGooseProviderRouter({
     router.get('/work/:conversationId/:requestId', desktopRead((req) => desktopWorkService.read(req.authContext, req.params)));
     router.post('/work/:conversationId/:requestId/cancel', desktopRead((req) => desktopWorkService.cancel(req.authContext, req.params)));
     router.get('/work/:conversationId/:requestId/events', desktopRead((req) => desktopWorkService.events(req.authContext, req.params, Number(req.query.after || 0), Number(req.query.limit || 100))));
+  }
+  if (engineeringReviewService) {
+    router.post('/engineering/review', express.json({ limit: ENGINEERING_REVIEW_MAX_BYTES, strict: true }), async (req, res) => {
+      const controller = new AbortController();
+      const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+      req.once('aborted', disconnected);
+      res.once('close', disconnected);
+      try {
+        await desktopRead((request) => engineeringReviewService.review(request.authContext, request.body,
+          { signal: controller.signal }))(req, res);
+      } finally {
+        req.off('aborted', disconnected);
+        res.off('close', disconnected);
+      }
+    });
   }
   router.post('/chat/completions', express.json({ limit: MAX_REQUEST_BYTES, strict: true }), async (req, res) => {
     if (!validateGooseChatRequest(req.body)) return sendError(res, 400, 'INVALID_CHAT_REQUEST');
@@ -254,7 +271,9 @@ export function createGooseProviderRouter({
       res.off('close', disconnected);
     }
   });
-  router.use((error, _req, res, _next) => {
+  router.use((error, req, res, _next) => {
+    if (req.path === '/engineering/review') return sendError(res, error?.type === 'entity.too.large' ? 413 : 400,
+      error?.type === 'entity.too.large' ? 'ENGINEERING_REVIEW_TOO_LARGE' : 'INVALID_ENGINEERING_REVIEW_REQUEST');
     sendError(res, error?.type === 'entity.too.large' ? 413 : 400,
       error?.type === 'entity.too.large' ? 'CHAT_REQUEST_TOO_LARGE' : 'INVALID_CHAT_REQUEST');
   });
