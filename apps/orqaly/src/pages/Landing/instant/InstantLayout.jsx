@@ -18,18 +18,13 @@ export default function InstantLayout({ title, loader = false, children }) {
   useEffect(() => {
     const previousTitle = document.title;
     document.title = title;
-    // A preview path must not compete with "/" in search results.
-    const robots = document.createElement('meta');
-    robots.name = 'robots';
-    robots.content = 'noindex';
     // Only these pages use Geist, so only they pay for it.
     const fonts = document.createElement('link');
     fonts.rel = 'stylesheet';
     fonts.href = FONTS_HREF;
-    document.head.append(robots, fonts);
+    document.head.append(fonts);
     return () => {
       document.title = previousTitle;
-      robots.remove();
       fonts.remove();
     };
   }, [title]);

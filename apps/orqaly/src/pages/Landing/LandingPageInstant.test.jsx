@@ -43,17 +43,14 @@ describe('LandingPageInstant', () => {
     expect(screen.getByRole('link', { name: 'Orqanix - home' })).toBeInTheDocument();
   });
 
-  it('sets its own title and keeps the preview path out of search results while mounted', async () => {
+  it('sets its own title while mounted and lets search engines index it', async () => {
     const before = document.title;
     const page = await renderPage();
     expect(document.title).toBe('Orqanix — Instant Intelligence on your Mac');
-    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
-      'content',
-      'noindex'
-    );
+    // This is the site's front page now, so nothing may hold it back from search.
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
     page.unmount();
     expect(document.title).toBe(before);
-    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
   });
 
   it('keeps the hero to a headline, More, two short lines and one download button', async () => {
@@ -89,10 +86,7 @@ describe('LandingPageInstant', () => {
       'href',
       '/instant/solutions/healthcare'
     );
-    expect(screen.getByRole('link', { name: 'Orqanix - home' })).toHaveAttribute(
-      'href',
-      '/instant'
-    );
+    expect(screen.getByRole('link', { name: 'Orqanix - home' })).toHaveAttribute('href', '/');
     expect(container.querySelector('#download')).not.toBeNull();
     expect(container.querySelector('#watch')).not.toBeNull();
   });

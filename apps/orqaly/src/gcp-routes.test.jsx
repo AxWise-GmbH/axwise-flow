@@ -105,6 +105,7 @@ const publicPreviewLocations = [
 
 const explicitTopLevelPatterns = [
   '/',
+  '/classic',
   '/standart',
   '/instant',
   '/instant/:page',
@@ -340,19 +341,25 @@ describe('GCP launch route allowlist', () => {
     expect(protectedGroup?.children).not.toContainEqual(expect.objectContaining({ path: '*' }));
   });
 
-  it('uses the simplified product page at root and retains the old landing alias', () => {
-    expect(leaf('/').element.type).toBe(LandingPageSimple);
+  it('serves the desktop-first landing at the root, publicly', () => {
+    const routeMatches = matches('/');
+    expect(routeMatches).toHaveLength(1);
+    expect(routeMatches[0].route.path).toBe('/');
+    expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+  });
+
+  it('keeps the page it replaced at /classic and sends the old aliases there', () => {
+    expect(leaf('/classic').element.type).toBe(LandingPageSimple);
 
     const standartAlias = leaf('/standart');
     expect(standartAlias.element.type).toBe(Navigate);
-    expect(standartAlias.element.props).toMatchObject({ to: '/', replace: true });
+    expect(standartAlias.element.props).toMatchObject({ to: '/classic', replace: true });
   });
 
-  it('serves the desktop-first landing at a public preview path without replacing root', () => {
-    const routeMatches = matches('/instant');
-    expect(routeMatches).toHaveLength(1);
-    expect(routeMatches[0].route.path).toBe('/instant');
-    expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+  it('folds the /instant preview path into the root so one URL is canonical', () => {
+    const instantAlias = leaf('/instant');
+    expect(instantAlias.element.type).toBe(Navigate);
+    expect(instantAlias.element.props).toMatchObject({ to: '/', replace: true });
     expect(gcpRoutePaths).not.toContain('/instant');
   });
 
