@@ -110,7 +110,8 @@ const EXAMPLES = [
   },
 ];
 
-export default function SimpleExamples() {
+// `variant` is handed to the desktop demo as is; left out, the demo draws its classic look.
+export default function SimpleExamples({ variant }) {
   const [selected, setSelected] = useState(2);
   const selectors = useRef([]);
   const theme = useTheme();
@@ -255,7 +256,7 @@ export default function SimpleExamples() {
               </Typography>
             </Box>
 
-            <DesktopProductDemo key={example.id} example={example} />
+            <DesktopProductDemo key={example.id} example={example} variant={variant} />
           </Box>
 
           <Stack
