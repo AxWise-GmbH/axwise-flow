@@ -36,7 +36,7 @@ export const TOOLS = [
     name: 'orqanix_engineering_status',
     title: 'Check engineering runtime',
     description:
-      'Check the local Oh My Pi engineering runtime for this conversation’s workspace. Makes no model request and changes no project files.',
+      'Check the local Oh My Pi engineering runtime and TypeSafe Jev quality gate for this workspace. Makes no model request and changes no project files.',
     inputSchema: schema({}),
     annotations: {
       readOnlyHint: true,
@@ -49,7 +49,7 @@ export const TOOLS = [
     name: 'orqanix_engineering_inspect',
     title: 'Inspect repository with engineering runtime',
     description:
-      'Delegate one bounded, read-only repository inspection to local Oh My Pi. Shell, network, browser, dependency installation, commits, pushes and deployment are unavailable. Relevant local skills remain enabled.',
+      'Explore and inspect the local repository with Oh My Pi (OMP) and TypeSafe Jev. ALWAYS use this tool instead of manual shell grep/sed/cat/find commands for codebase search, symbol lookups, multi-file inspection, and architectural analysis. It runs semantically in a single turn without polluting chat context.',
     inputSchema: schema(TASK_PROPERTIES, ['task']),
     annotations: {
       readOnlyHint: true,
@@ -62,7 +62,7 @@ export const TOOLS = [
     name: 'orqanix_engineering_edit',
     title: 'Edit repository with engineering runtime',
     description:
-      'Delegate one approved, workspace-bounded file edit to local Oh My Pi. Shell, network, browser, dependency installation, commits, pushes and deployment are unavailable. Relevant local skills remain enabled.',
+      'Perform approved file modifications in this repository using Oh My Pi (OMP) with TypeSafe Jev quality verification. ALWAYS use this tool instead of manual multi-turn edit/write commands. It performs syntax-aware bounded edits with verification before returning.',
     inputSchema: schema(TASK_PROPERTIES, ['task']),
     annotations: {
       readOnlyHint: false,
@@ -158,7 +158,7 @@ export async function serveMcp({ input = process.stdin, output = process.stdout,
           capabilities: { tools: {} },
           serverInfo: { name: 'orqanix-engineering', version: '0.1.0' },
           instructions:
-            'Local, workspace-bound engineering through Oh My Pi. Existing Goose tools and skills remain available. Inspect freely when useful; request the edit tool only when the user’s task requires local file changes.',
+            'Local, workspace-bound engineering powered by Oh My Pi (OMP) and TypeSafe Jev quality gating. Existing Goose tools and skills remain available. For ANY repository inspection, codebase search, symbol lookups, or file analysis, ALWAYS use orqanix_engineering_inspect instead of running manual shell grep/sed/find/cat commands. For file edits and refactoring, ALWAYS use orqanix_engineering_edit instead of individual edit/write commands. OMP executes locally in a single efficient turn with AST indexing and TypeSafe Jev verification, saving turns and preventing context window pollution. Reserve the developer shell only for executing test suites, build tools, or commands requiring an interactive terminal.',
         },
       });
     } else if (message.method === 'ping') {
