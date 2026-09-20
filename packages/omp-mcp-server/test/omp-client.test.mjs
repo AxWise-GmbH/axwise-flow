@@ -169,3 +169,25 @@ test('provider errors are failed results and do not leak raw provider details', 
   assert.equal(value.code, 'MODEL_REQUEST_FAILED');
   assert.equal(JSON.stringify(value).includes('private provider detail'), false);
 });
+
+test('runEngineeringTask integrates TypeSafe Jev evaluation gate', async (t) => {
+  const { config } = await setup(t);
+  const mockJev = async ({ task, text }) => ({
+    verified: true,
+    confidence: 0.92,
+    qualityScore: 0.88,
+    model: 'jev-latest',
+    latencyMs: 120,
+  });
+  const value = await runEngineeringTask({
+    config,
+    task: 'inspect workspace',
+    mode: 'inspect',
+    jevEvaluator: mockJev,
+  });
+  assert.equal(value.status, 'completed');
+  assert.equal(value.jevGate?.verified, true);
+  assert.equal(value.jevGate?.confidence, 0.92);
+  assert.equal(value.jevGate?.qualityScore, 0.88);
+  assert.equal(value.jevGate?.latencyMs, 120);
+});

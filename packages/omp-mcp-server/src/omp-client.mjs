@@ -351,6 +351,56 @@ export async function inspectOmp({ config, signal, spawnImpl, tokenProvider }) {
       };
 }
 
+export async function evaluateWithJev({ task, text, mode, signal, apiKey }) {
+  const key = apiKey || process.env.TYPESAFE_API_KEY;
+  if (!key || !text || text.length < 10) return null;
+  const started = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    if (signal) signal.addEventListener('abort', () => controller.abort(), { once: true });
+    const response = await fetch('https://api.typesafe.ai/v1/systemone', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'jev-latest',
+        state: `Task:\n${task.slice(0, 1500)}\n\nResult (${mode}):\n${text.slice(0, 2500)}`,
+        questions: {
+          task_completed: {
+            type: 'noul',
+            instructions:
+              'Does this response or code modification completely satisfy the requested task?',
+          },
+          quality_verified: {
+            type: 'noul',
+            instructions:
+              'Is the outcome free from unresolved syntax errors, unhandled exceptions, and regressions?',
+          },
+        },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!response.ok) return null;
+    const body = await response.json();
+    const taskCompleted = body?.answers?.task_completed?.noul ?? null;
+    const qualityVerified = body?.answers?.quality_verified?.noul ?? null;
+    if (typeof taskCompleted !== 'number') return null;
+    return {
+      verified: taskCompleted >= 0.6 && (qualityVerified === null || qualityVerified >= 0.5),
+      confidence: taskCompleted,
+      qualityScore: qualityVerified,
+      model: body.model || 'jev-latest',
+      latencyMs: Date.now() - started,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function runEngineeringTask({
   config,
   task,
@@ -359,6 +409,7 @@ export async function runEngineeringTask({
   signal,
   spawnImpl,
   tokenProvider,
+  jevEvaluator,
 }) {
   const effectiveTimeout = Math.min(timeoutMs || config.timeoutMs, config.timeoutMs);
   const exchange = await runRpc({
@@ -374,6 +425,18 @@ export async function runEngineeringTask({
       message: `${BOUNDED_SYSTEM_PROMPT}\n\nRequested task:\n${task}`,
     },
   });
+  let jevGate = null;
+  if (exchange.kind === 'completed' && exchange.text) {
+    try {
+      jevGate = await (jevEvaluator || evaluateWithJev)({
+        task,
+        text: exchange.text,
+        mode,
+        signal,
+        apiKey: config.typesafeApiKey,
+      });
+    } catch {}
+  }
   return {
     status: exchange.kind,
     ...(exchange.code ? { code: exchange.code } : {}),
@@ -381,6 +444,7 @@ export async function runEngineeringTask({
     assistantText: exchange.text,
     outputTruncated: exchange.truncated,
     toolsUsed: exchange.toolsUsed,
+    ...(jevGate ? { jevGate } : {}),
     durationMs: exchange.durationMs,
   };
 }
