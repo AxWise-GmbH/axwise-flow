@@ -1,39 +1,36 @@
-name: Orqanix Perpetual Heartbeat & Edge Health Check
+name: Orqanix Endpoint Health Snapshot
 
 on:
   schedule:
-    # Run every 15 minutes perpetually
+    # Scheduled checks are archived; this workflow does not deploy the website.
     - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   heartbeat:
-    name: Verify Edge Health & SLA
+    name: Check public preview endpoints
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Execute Heartbeat Verification & Generate Public Snapshot
-        run: |
-          node scripts/heartbeat-service.mjs
-          mkdir -p apps/orqaly/public-gcp/
-          cp artifacts/heartbeat/latest.json apps/orqaly/public-gcp/heartbeat.json
-          cp artifacts/heartbeat/latest.json apps/orqaly/public/heartbeat.json
+      - name: Test snapshot generation and display states
+        run: node --test scripts/heartbeat-service.test.mjs
 
-      - name: Upload Heartbeat Artifact
+      - name: Measure endpoint health and archive snapshot
+        run: node scripts/heartbeat-service.mjs
+
+      - name: Upload heartbeat artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
