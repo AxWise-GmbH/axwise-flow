@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { JEV_LINT_RULESETS, evaluateLintWithJev } from '../src/jev-lint-models.mjs';
+import { JEV_LINT_RULESETS, evaluateLintWithJev, formatJevVerdictMarkdown } from '../src/jev-lint-models.mjs';
 
 test('Jev lint rulesets define typed noul questions with explicit instructions', () => {
   assert.ok(JEV_LINT_RULESETS.SYNTAX_INTEGRITY);
@@ -83,3 +83,86 @@ test('evaluateLintWithJev catches hardcoded secrets and syntax errors', async ()
   assert.equal(result.passed, false);
   assert.ok(result.violations.some((v) => v.rule === 'contains_hardcoded_secrets' && v.severity === 'error'));
 });
+
+test('formatJevVerdictMarkdown formats passing verdict with latency and no violations', () => {
+  const verdict = {
+    evaluated: true,
+    passed: true,
+    violations: [],
+    model: 'jev-1.13.0',
+    latencyMs: 142,
+  };
+  const markdown = formatJevVerdictMarkdown(verdict);
+  assert.ok(markdown.includes('### Jev Lint Verdict'));
+  assert.ok(markdown.includes('- **Status:** Passed'));
+  assert.ok(markdown.includes('- **Latency:** 142ms'));
+  assert.ok(markdown.includes('- **Model:** jev-1.13.0'));
+  assert.ok(markdown.includes('#### Violations'));
+  assert.ok(markdown.includes('None'));
+});
+
+test('formatJevVerdictMarkdown formats failing verdict with violations and confidence', () => {
+  const verdict = {
+    evaluated: true,
+    passed: false,
+    violations: [
+      { rule: 'contains_hardcoded_secrets', confidence: 0.92, severity: 'error' },
+      { rule: 'missing_is_production_ready', confidence: 0.85, severity: 'warning' },
+    ],
+    model: 'jev-latest',
+    latencyMs: 380,
+  };
+  const markdown = formatJevVerdictMarkdown(verdict);
+  assert.ok(markdown.includes('- **Status:** Failed'));
+  assert.ok(markdown.includes('- **Latency:** 380ms'));
+  assert.ok(markdown.includes('**[error]** `contains_hardcoded_secrets` (confidence: 92%)'));
+  assert.ok(markdown.includes('**[warning]** `missing_is_production_ready` (confidence: 85%)'));
+});
+
+test('formatJevVerdictMarkdown formats skipped verdict with reason and missing latency gracefully', () => {
+  const verdict = {
+    evaluated: false,
+    reason: 'MISSING_API_KEY',
+    passed: true,
+  };
+  const markdown = formatJevVerdictMarkdown(verdict);
+  assert.ok(markdown.includes('- **Status:** Skipped (MISSING_API_KEY)'));
+  assert.ok(markdown.includes('- **Latency:** N/A'));
+  assert.ok(markdown.includes('None'));
+});
+
+test('formatJevVerdictMarkdown handles empty or non-object verdict gracefully', () => {
+  const nullMarkdown = formatJevVerdictMarkdown(null);
+  assert.ok(nullMarkdown.includes('- **Status:** Unknown'));
+  assert.ok(nullMarkdown.includes('- **Latency:** N/A'));
+
+  const undefinedMarkdown = formatJevVerdictMarkdown(undefined);
+  assert.ok(undefinedMarkdown.includes('- **Status:** Unknown'));
+
+  const emptyMarkdown = formatJevVerdictMarkdown({});
+  assert.ok(emptyMarkdown.includes('- **Status:** Failed'));
+});
+
+test('formatJevVerdictMarkdown integrates with evaluateLintWithJev output', async () => {
+  const mockFetch = async () => ({
+    ok: true,
+    json: async () => ({
+      model: 'jev-1.13.0',
+      answers: {
+        contains_hardcoded_secrets: { type: 'noul', noul: 0.95 },
+      },
+    }),
+  });
+  const result = await evaluateLintWithJev({
+    codeSnippet: 'const key = "sk-live-12345";',
+    rulesetKey: 'SECRET_SAFETY',
+    apiKey: 'mock-key',
+    fetchImpl: mockFetch,
+  });
+  const markdown = formatJevVerdictMarkdown(result);
+  assert.ok(markdown.includes('- **Status:** Failed'));
+  assert.ok(markdown.includes('`contains_hardcoded_secrets`'));
+  assert.ok(markdown.includes('[error]'));
+  assert.ok(/Latency:\*\* \d+ms/.test(markdown));
+});
+
