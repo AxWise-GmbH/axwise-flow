@@ -156,7 +156,7 @@ export function createAgentEvaluationService({
           Authorization: `Bearer ${geminiApiKey.trim()}`, 'Content-Type': 'application/json',
         },
         body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: command.prompt }],
-          reasoning_effort: 'high', max_completion_tokens: 2048 }),
+          reasoning_effort: 'high', max_completion_tokens: 8192 }),
       }));
     } catch (error) {
       if (error instanceof AgentEvaluationError) throw error;
