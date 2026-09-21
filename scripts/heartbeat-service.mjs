@@ -50,6 +50,7 @@ export async function runHeartbeatSnapshot({
   targets = HEARTBEAT_TARGETS,
   timeoutMs = 8000,
   fetchImpl = fetch,
+  publication = 'Local diagnostic snapshot; this run does not publish to the website.',
 } = {}) {
   const endpoints = await Promise.all(
     targets.map((target) => checkEndpointHeartbeat(target, timeoutMs, fetchImpl)),
@@ -59,7 +60,7 @@ export async function runHeartbeatSnapshot({
     kind: 'endpoint-health-snapshot',
     environment: 'public-preview',
     scope: 'HTTP response headers measured from a single runner; public and preview domains share the preview deployment.',
-    publication: 'Scheduled runs are archived in GitHub Actions. This website snapshot changes only when its assets are deployed.',
+    publication,
     timestamp: new Date().toISOString(),
     staleAfterSeconds: 1800,
     expectedEndpointCount: targets.length,

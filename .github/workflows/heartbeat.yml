@@ -1,9 +1,8 @@
 name: Orqanix Endpoint Health Snapshot
 
 on:
-  schedule:
-    # Scheduled checks are archived; this workflow does not deploy the website.
-    - cron: '*/15 * * * *'
+  # Cloud Scheduler owns the public 15-minute heartbeat. This workflow remains
+  # available only for an operator-requested diagnostic artifact.
   workflow_dispatch:
 
 permissions:
@@ -25,7 +24,7 @@ jobs:
           node-version: '22'
 
       - name: Test snapshot generation and display states
-        run: node --test scripts/heartbeat-service.test.mjs
+        run: node --test scripts/heartbeat-service.test.mjs scripts/heartbeat-publish.test.mjs
 
       - name: Measure endpoint health and archive snapshot
         run: node scripts/heartbeat-service.mjs
