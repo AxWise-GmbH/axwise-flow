@@ -2467,10 +2467,11 @@ class ResilientResearchRunner:
         if fetched_documents and self.extractor is not None:
             # Gate A: TypeSafe Jev accelerated evidence triage
             from backend.services.workflow_v2.cognitive.typesafe_triage import filter_documents_with_jev
-            filtered_docs = filter_documents_with_jev(
+            filtered_docs = await filter_documents_with_jev(
                 str(context.requirement.get("description") or ""),
                 [item[2] for item in fetched_documents],
                 min_kept=1,
+                timeout_seconds=max(0.001, min(8.0, fallback_deadline - asyncio.get_running_loop().time())),
             )
             extraction_request = ExactSpanExtractionRequest(
                 requirement_query=ExactSpanRequirementQuery(

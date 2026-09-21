@@ -231,6 +231,7 @@ async function setupRolesAndBaseline() {
       `CREATE ROLE ${role} ${kind === 'owner' ? ownerLogin : 'LOGIN'} NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT`
     );
   }
+  const repositoryRoot = execFileSync('/usr/bin/git', ['rev-parse', '--show-toplevel'], { cwd: ROOT, encoding: 'utf8' }).trim();
   const migrationRoot = path.join(ROOT, 'database/workflow-v2/migrations');
   const files = (await readdir(migrationRoot))
     .filter((name) => /^0(?:0[1-9]|1[0-9]|2[0-4])_.*\.sql$/.test(name))
@@ -239,7 +240,8 @@ async function setupRolesAndBaseline() {
   for (const filename of files) {
     const relative = `database/workflow-v2/migrations/${filename}`;
     const bytes = await readFile(path.join(ROOT, relative));
-    const frozen = execFileSync('/usr/bin/git', ['show', `${receipt.sourceCommit}:${relative}`], {
+    const repositoryRelative = path.relative(repositoryRoot, path.join(ROOT, relative)).split(path.sep).join('/');
+    const frozen = execFileSync('/usr/bin/git', ['show', `${receipt.sourceCommit}:${repositoryRelative}`], {
       cwd: ROOT,
     });
     assert.equal(sha(bytes), sha(frozen), 'historical migration file changed');

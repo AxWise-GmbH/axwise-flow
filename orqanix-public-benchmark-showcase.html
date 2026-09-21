@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orqanix Benchmark & Technical Breakthrough | Public Showcase</title>
+  <title>Orqanix Architecture &amp; validation | Public Preview</title>
   <style>
     :root {
       --bg: #090a0f;
@@ -21,9 +21,13 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
     .container { max-width: 1180px; margin: 0 auto; }
-    
+
     /* Header */
-    header { text-align: center; margin-bottom: 50px; }
+    header { text-align: center; margin-bottom: 35px; }
+    .nav-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; }
+    .nav-tab { padding: 8px 18px; border-radius: 9999px; text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid var(--border); color: var(--text-muted); transition: all 0.2s ease; }
+    .nav-tab:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+    .nav-tab.active { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: var(--primary-light); }
     .badge { display: inline-block; padding: 6px 14px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--primary-light); border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 16px; }
     h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; background: linear-gradient(135deg, #fff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     p.subtitle { font-size: 18px; color: var(--text-muted); max-width: 780px; margin: 0 auto; }
@@ -56,6 +60,89 @@
     .badge-goal { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
     .badge-agent { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
 
+    /* Heartbeat Snapshot Section */
+    .heartbeat-card { background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 20, 29, 0.7) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 26px; margin-bottom: 40px; }
+    .heartbeat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .heartbeat-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #fff; }
+    .pulse-dot { width: 10px; height: 10px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 12px #10b981; animation: pulseGlow 2s infinite; }
+    @keyframes pulseGlow { 0% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; transform: scale(0.9); } }
+    .heartbeat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+    .endpoint-box { background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .endpoint-name { font-size: 13px; font-weight: 600; color: #f3f4f6; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .endpoint-url { font-size: 11px; color: var(--text-muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
+    .endpoint-metrics { display: flex; justify-content: space-between; align-items: center; }
+    .endpoint-status { font-size: 11px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 7px; border-radius: 4px; }
+    .endpoint-latency { font-size: 12px; font-weight: 700; color: #f3f4f6; font-family: monospace; }
+    .heartbeat-footer { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
+
+    /* Interactive Info Tooltip (i) */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      margin-left: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      font-style: normal;
+      cursor: help;
+      transition: all 0.2s ease;
+      vertical-align: middle;
+    }
+    .info-tip:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .info-tip .tip-box {
+      visibility: hidden;
+      opacity: 0;
+      width: 270px;
+      background: #181b26;
+      color: #e5e7eb;
+      text-align: left;
+      border-radius: 8px;
+      padding: 10px 12px;
+      position: absolute;
+      z-index: 100;
+      bottom: 140%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11.5px;
+      line-height: 1.45;
+      font-weight: 400;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .info-tip .tip-box::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #181b26 transparent transparent transparent;
+    }
+    .info-tip:hover .tip-box {
+      visibility: visible;
+      opacity: 1;
+    }
+    .tip-title {
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+      display: block;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 3px;
+    }
+
     .prompt-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: #e5e7eb; margin-bottom: 16px; line-height: 1.5; }
     .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
@@ -69,344 +156,67 @@
     /* Footer */
     footer { text-align: center; margin-top: 60px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 30px; }
     footer a { color: var(--primary-light); text-decoration: none; }
+
+    .tag-live, .endpoint-status { color: #d1d5db; background: rgba(156,163,175,.15); }
+    [data-state="healthy"] { color: #34d399; background: rgba(16,185,129,.15); }
+    [data-state="stale"] { color: #fbbf24; background: rgba(251,191,36,.12); }
+    [data-state="degraded"] { color: #f87171; background: rgba(239,68,68,.15); }
+    .heartbeat-card { background: var(--card-bg); border-color: var(--border); }
+    .endpoint-name { gap: 10px; flex-wrap: wrap; }
+    .endpoint-metrics { color: var(--text-muted); font-size: 11px; }
+    .status-copy { color: var(--text-muted); margin: 14px 0; }
+    .table-card { overflow-x: auto; }
+    .nav-tabs { flex-wrap: wrap; }
+    @media (max-width: 600px) { h1 { font-size: 32px; } .heartbeat-card { padding: 18px; } }
   </style>
 </head>
 <body>
-  <div class="container">
+  <main class="container">
     <header>
-      <div class="badge">LIVE PRODUCTION VALIDATION &middot; SEPT 2026</div>
-      <h1>Orqanix Acceleration & Architecture Benchmark</h1>
-      <p class="subtitle">A mathematical and operational comparison of Orqanix with TypeSafe AI (Jev) integration, automated stage-gates, and asymmetric Ed25519 cryptographic governance.</p>
+      <nav class="nav-tabs" aria-label="Showcase navigation"><a href="/benchmark" class="nav-tab active">Architecture &amp; validation</a><a href="/heartbeat" class="nav-tab">Endpoint health</a><a href="/instant" class="nav-tab">Instant Preview</a></nav>
+      <div class="badge">PUBLIC PREVIEW</div>
+      <h1>Architecture &amp; validation</h1>
+      <p class="subtitle">Cloud research, local engineering and explicit review outcomes in one desktop workspace.</p>
+      <p class="status-copy">Orqanix is a public preview. The public and preview domains currently share the same preview deployment.</p>
     </header>
 
-    <!-- Top KPI Grid -->
+    <section class="heartbeat-card" aria-label="Endpoint health snapshot">
+      <div class="heartbeat-head">
+        <h2 class="heartbeat-title">Endpoint health snapshot</h2>
+        <span class="tag-live" id="heartbeat-badge" data-state="unavailable" role="status">SNAPSHOT UNAVAILABLE</span>
+      </div>
+      <p class="status-copy">HTTP response observations from one runner. These checks cover web routes and API readiness; they do not measure desktop workflows or model performance.</p>
+      <div class="heartbeat-grid" id="heartbeat-grid">No endpoint observations loaded. Current service health is unknown.</div>
+      <div class="heartbeat-footer">
+        <div id="heartbeat-timestamp">Observation time unavailable.</div>
+        <div id="heartbeat-avg"></div>
+      </div>
+      <p class="status-copy">Scheduled checks are archived every 15 minutes when the scheduler runs. This page shows a dated snapshot included with a website deployment; scheduled checks do not automatically publish here. Observations older than 30 minutes are marked stale.</p>
+      <noscript><p class="status-copy">JavaScript is required to load the snapshot. Current service health is unknown.</p></noscript>
+    </section>
+
+
+    <h2 class="section-title">Desktop integration status</h2>
     <div class="grid">
-      <div class="card">
-        <div class="card-label">Phase 1 Intent Classification</div>
-        <div class="card-value">0.66s <span class="card-gain">3.21x Faster</span></div>
-        <div class="card-desc">TypeSafe Jev sub-second typed categorical intent extraction vs 2.12s LLM baseline.</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Gate A Evidence Triage</div>
-        <div class="card-value">50% <span class="card-gain">Noise Dropped</span></div>
-        <div class="card-desc">Jev pre-filters candidate web pages before extraction, reducing pipeline latency by 34.6%.</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Deep Comprehensive PRD</div>
-        <div class="card-value">84.04s <span class="card-gain">3,951 Words</span></div>
-        <div class="card-desc">Full 10-stage enterprise DAG with parallel specialist workers and 0.71s Gate B audit.</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Agent Governance Attestation</div>
-        <div class="card-value">0.66ms <span class="card-gain">Non-Repudiation</span></div>
-        <div class="card-desc">Asymmetric Ed25519 curve key attestation replaces unverified plain text logs.</div>
-      </div>
+      <div class="card"><div class="card-label">AxWise</div><div class="card-value" style="font-size:26px">Research</div><div class="card-desc">Durable research requests, source citations and artifact references connect cloud research to the desktop workspace.</div></div>
+      <div class="card"><div class="card-label">OMP</div><div class="card-value" style="font-size:26px">Engineering</div><div class="card-desc">Workspace engineering tools connect through Goose and the authenticated model gateway. Acceptance must be verified in the released installer.</div></div>
+      <div class="card"><div class="card-label">TypeSafe Jev</div><div class="card-value" style="font-size:26px">Evaluation</div><div class="card-desc">Review integration is being hardened. A provider response alone does not establish that an entire desktop workflow has passed validation.</div></div>
     </div>
-
-    <!-- Section 1: Raw LLM vs Orqanix Cognitive Pipeline -->
-    <h2 class="section-title">Raw Unconstrained LLM vs. Orqanix Cognitive Pipeline</h2>
+    <h2 class="section-title">What the evidence establishes</h2>
     <div class="table-card">
       <table>
-        <thead>
-          <tr>
-            <th>Dimension</th>
-            <th>Raw Unconstrained LLM Call</th>
-            <th>Orqanix Cognitive Pipeline</th>
-            <th>Enterprise Guarantee</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Area</th><th>Current evidence and next check</th></tr></thead>
         <tbody>
-          <tr>
-            <td><strong>Evidence Grounding</strong></td>
-            <td>0 primary citations (guesses from memory)</td>
-            <td><strong>10 verified statutory citations</strong> (EU 142/2011, PTA)</td>
-            <td><span class="tag-live">ZERO HALLUCINATION</span></td>
-          </tr>
-          <tr>
-            <td><strong>Prompt Token Cost</strong></td>
-            <td>Re-sends full 25k context every turn</td>
-            <td><strong>99.3% Token Reduction</strong> (Gemini Context Caching)</td>
-            <td><span class="tag-live">75% COST CUT</span></td>
-          </tr>
-          <tr>
-            <td><strong>Evidence Triage</strong></td>
-            <td>Dumps raw HTML into prompt (9.0s)</td>
-            <td><strong>Gate A: 50% noise dropped in 2.29s</strong> (TypeSafe Jev)</td>
-            <td><span class="tag-live">1.53x FASTER</span></td>
-          </tr>
-          <tr>
-            <td><strong>Pre-Adoption Audit</strong></td>
-            <td>Vulnerable to unhedged assertion rejections</td>
-            <td><strong>Gate B: 1.00s Compliance Audit</strong> (TypeSafe Jev)</td>
-            <td><span class="tag-live">3.53x FASTER</span></td>
-          </tr>
-          <tr>
-            <td><strong>Execution Governance</strong></td>
-            <td>Unverified plain text logs (easily tampered)</td>
-            <td><strong>0.66ms Asymmetric Ed25519 Signatures</strong></td>
-            <td><span class="tag-crypto">SOC2 READY</span></td>
-          </tr>
-          <tr>
-            <td><strong>Criteria Traceability</strong></td>
-            <td>Frequently skips secondary requirements</td>
-            <td><strong>100% Acceptance Criteria Matrix</strong> (All Satisfied)</td>
-            <td><span class="tag-live">100% AUDITABLE</span></td>
-          </tr>
+          <tr><td>Endpoint availability</td><td>The dated HTTP snapshot above records responses at its observation time. It does not establish an uptime commitment.</td></tr>
+          <tr><td>Combined desktop journey</td><td>Release acceptance should retain the research reference, resulting code changes, executed tests and explicit review outcome, including recovery after restart.</td></tr>
+          <tr><td>Workload performance</td><td>No reproducible workload comparison is published here. New results need real requests, a dated run record and a stated comparison method.</td></tr>
+          <tr><td>Evidence and review</td><td>Citations and validation checks support review. Each result still needs its own evidence and acceptance criteria.</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Section 2: Two-Tier PRD Architecture (Before vs Now) -->
-    <h2 class="section-title">Two-Tier PRD Architecture: Before vs. After Optimization</h2>
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>PRD Architecture Tier</th>
-            <th>Before Optimization (Baseline)</th>
-            <th>Now Live (With TypeSafe Jev & Caching)</th>
-            <th>Speedup & Value Delivered</th>
-            <th>Word Count & Use Case</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <strong>Tier 1: Fast Executive Hybrid</strong><br>
-              <span style="color:var(--text-muted);font-size:12px">Single-pass executive brief</span>
-            </td>
-            <td>
-              <span style="color:#f87171;font-weight:700">45.0 &ndash; 60.0 seconds</span><br>
-              <span style="color:var(--text-muted);font-size:12px">Unfiltered web discovery &bull; 2.12s LLM intent generation &bull; No context caching</span>
-            </td>
-            <td>
-              <span style="color:#34d399;font-weight:700">19.08 seconds</span><br>
-              <span style="color:var(--text-muted);font-size:12px">0.75s Jev intent &bull; 1.48s Jev Gate A triage &bull; Sub-second Jev Gate B audit (0.77s)</span>
-            </td>
-            <td>
-              <span class="tag-live">2.5x &ndash; 3.1x Faster</span><br>
-              <span style="color:var(--text-muted);font-size:12px">65% latency cut &bull; Instant executive turnaround</span>
-            </td>
-            <td>
-              <strong>767 words</strong> (~2,500 tokens)<br>
-              <span style="color:var(--text-muted);font-size:12px">Assistant chat mode &amp; rapid executive prototyping</span>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <strong>Tier 2: Deep Comprehensive PRD</strong><br>
-              <span style="color:var(--text-muted);font-size:12px">Full 10-stage enterprise runbook</span>
-            </td>
-            <td>
-              <span style="color:#f87171;font-weight:700">125.4 &ndash; 180.0 seconds</span><br>
-              <span style="color:var(--text-muted);font-size:12px">15s scraper timeouts (discovery_rows_incomplete) &bull; Quality Gate rejections on unhedged text &bull; Manual human clicking at Gate 1 &amp; 2</span>
-            </td>
-            <td>
-              <span style="color:#34d399;font-weight:700">84.04 seconds (~1.4 min)</span><br>
-              <span style="color:var(--text-muted);font-size:12px">25s scraper window &bull; Parallel specialist analyses &bull; Automated Gate 1/2 cryptographic bindings &bull; 0.71s Gate B audit</span>
-            </td>
-            <td>
-              <span class="tag-live">1.67x &ndash; 2.1x Faster</span><br>
-              <span style="color:var(--text-muted);font-size:12px">Zero timeouts &bull; 100% acceptance criteria satisfied &bull; Sealed in GCS</span>
-            </td>
-            <td>
-              <strong>3,951 words</strong> (~28,000 tokens)<br>
-              <span style="color:var(--text-muted);font-size:12px">Goals mode, formal statutory filings &amp; SOC2 audit runbooks</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Section 3: Multi-Mode Benchmark Table -->
-    <h2 class="section-title">Multi-Mode Performance & Reliability Scorecard</h2>
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>Operating Mode</th>
-            <th>Baseline (Without TypeSafe)</th>
-            <th>Accelerated (Orqanix + Jev)</th>
-            <th>Verification & Reliability Gain</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>1. Assistant Mode</strong></td>
-            <td>5.81s &middot; 774 tokens</td>
-            <td><strong>1.86s &middot; 137 tokens</strong></td>
-            <td>Sub-2s streaming, direct statutory answers without conversational filler</td>
-            <td><span class="tag-live">LIVE</span></td>
-          </tr>
-          <tr>
-            <td><strong>2. Gate B Deliverable Audit</strong></td>
-            <td>3.54s (Gemini Flash audit)</td>
-            <td><strong>1.00s (TypeSafe Jev)</strong></td>
-            <td>3.53x faster pre-adoption compliance audit; flags unhedged claims in 1s</td>
-            <td><span class="tag-live">LIVE</span></td>
-          </tr>
-          <tr>
-            <td><strong>3. Research Mode (Gate A)</strong></td>
-            <td>9.00s (Unfiltered 6 docs)</td>
-            <td><strong>5.89s (Jev Triaged)</strong></td>
-            <td>Filters out 50% noise (tourist blogs, weather) before Gemini span extraction</td>
-            <td><span class="tag-live">LIVE</span></td>
-          </tr>
-          <tr>
-            <td><strong>4. Goal Intent (Phase 1)</strong></td>
-            <td>2.12s (Gemini Flash call)</td>
-            <td><strong>0.66s (TypeSafe Jev)</strong></td>
-            <td>3.21x faster intent resolution; 100% decision parity on commercial launch</td>
-            <td><span class="tag-live">LIVE</span></td>
-          </tr>
-          <tr>
-            <td><strong>4b. Goal (Full 10-Stage DAG)</strong></td>
-            <td>125.4s (Scraper timeouts / stalled)</td>
-            <td><strong>84.04s (Auto Gate 1 & 2)</strong></td>
-            <td>25s scraper window + automated Gate 1/2 sign-offs + prompt gap hedging</td>
-            <td><span class="tag-live">LIVE</span></td>
-          </tr>
-          <tr>
-            <td><strong>5. Agent Governance Mode</strong></td>
-            <td>Unverified plain text logs</td>
-            <td><strong>0.66 ms (Ed25519 Curve)</strong></td>
-            <td>RFC 8785 canonical JSON digest + 64-byte asymmetric signature (SOC2 ready)</td>
-            <td><span class="tag-crypto">CRYPTOGRAPHIC</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Section 4: Prompt Scaling & Token Efficiency -->
-    <h2 class="section-title">Prompt Scaling & Token Cost Reduction (Small vs. Middle vs. Long)</h2>
-    <div class="table-card">
-      <table>
-        <thead>
-          <tr>
-            <th>Prompt Complexity</th>
-            <th>Search Space</th>
-            <th>Baseline Pipeline</th>
-            <th>With TypeSafe Jev & Caching</th>
-            <th>Net Token & Latency Savings</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Small Prompt (73 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"What are PTA licence requirements for pet food?"</span></td>
-            <td>3 candidate web pages</td>
-            <td>7.00s &middot; 4,200 tokens</td>
-            <td><strong>5.69s &middot; 2,920 tokens</strong></td>
-            <td><span class="tag-live">1.23x faster &middot; 30.5% tokens saved</span></td>
-          </tr>
-          <tr>
-            <td><strong>Middle Prompt (239 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"Feedingstuffs Act § 19, EU 142/2011 Salmonella, Selver margins..."</span></td>
-            <td>5 candidate web pages</td>
-            <td>10.00s &middot; 7,000 tokens</td>
-            <td><strong>7.16s &middot; 4,320 tokens</strong></td>
-            <td><span class="tag-live">1.40x faster &middot; 38.3% tokens saved</span></td>
-          </tr>
-          <tr>
-            <td><strong>Long Prompt (512 chars)</strong><br><span style="color:var(--text-muted);font-size:12px">"Comprehensive multi-part Baltic retail launch, LABRIS pathogen standards, EDI..."</span></td>
-            <td>6 candidate web pages</td>
-            <td>11.50s &middot; 8,400 tokens</td>
-            <td><strong>7.95s &middot; 4,320 tokens</strong></td>
-            <td><span class="tag-live">1.45x faster &middot; 48.6% tokens saved</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Section 5: Prompts & Turns Deep Dive -->
-    <h2 class="section-title">Exact Prompts & What Was Improved Turn-by-Turn</h2>
-
-    <!-- Turn 1: Assistant -->
-    <div class="turn-card">
-      <div class="turn-header">
-        <h3 style="font-size: 18px; font-weight: 700;">1. Assistant Conversational Turn (Regulatory Compliance)</h3>
-        <span class="turn-badge badge-assistant">ASSISTANT MODE</span>
-      </div>
-      <div class="prompt-box">
-        <strong>Prompt:</strong> "In 3 concise bullet points, explain what the Estonian Agriculture and Food Board (PTA) requires for registering an animal nutrition business under the Feed Act."
-      </div>
-      <div class="diff-grid">
-        <div class="diff-pane pane-before">
-          <div class="pane-title">Before Optimization</div>
-          <p>The model spent 5.8 seconds authoring long conversational preambles and repeating unrequested background details. Prompt context was stuffed with full scraped web pages (~1,800 tokens), causing high token usage and response latency.</p>
-        </div>
-        <div class="diff-pane pane-after">
-          <div class="pane-title">After Optimization (Now Live)</div>
-          <p>Delivers a direct 3-bullet statutory breakdown in <strong>1.86 seconds</strong> citing the exact Economic Activity Notification (<em>majandustegevusteade</em>), prior facility approval (<em>tegevusluba</em>), and mandatory HACCP self-control plans with zero cold-start delay.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Turn 2: Research Mode -->
-    <div class="turn-card">
-      <div class="turn-header">
-        <h3 style="font-size: 18px; font-weight: 700;">2. Cognitive Research & Evidence Triage (Gate A)</h3>
-        <span class="turn-badge badge-research">RESEARCH MODE</span>
-      </div>
-      <div class="prompt-box">
-        <strong>Query:</strong> "Estonian veterinary feed compliance, mandatory PTA licences, Salmonella standards, and supermarket retail margins."
-      </div>
-      <div class="diff-grid">
-        <div class="diff-pane pane-before">
-          <div class="pane-title">Before Optimization</div>
-          <p>All 6 raw HTML discovery pages from SearXNG were passed directly into Gemini's span extractor. Irrelevant travel blogs and weather reports consumed 9.00 seconds of token extraction time and occasionally polluted deliverable citations.</p>
-        </div>
-        <div class="diff-pane pane-after">
-          <div class="pane-title">After Optimization with TypeSafe Jev (Now Live)</div>
-          <p>TypeSafe Jev screens all 6 candidate pages in <strong>2.29 seconds</strong>, drops 50% of the noise, and passes only verified statutory authorities (Feedingstuffs Act § 19, Commission Regulation 142/2011 Annex XIII). Net extraction completes in <strong>5.89 seconds (1.53x net speedup)</strong>.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Turn 3: Goal Pipeline -->
-    <div class="turn-card">
-      <div class="turn-header">
-        <h3 style="font-size: 18px; font-weight: 700;">3. 10-Stage Goal Pipeline with Automated Gate 1 & 2</h3>
-        <span class="turn-badge badge-goal">GOAL MODE</span>
-      </div>
-      <div class="prompt-box">
-        <strong>Goal:</strong> "Launch an ultra-premium freeze-dried raw pet nutrition brand in Estonia with Selver and Prisma retail distribution, compliant with the Feed Act and PTA veterinary pathogen standards."
-      </div>
-      <div class="diff-grid">
-        <div class="diff-pane pane-before">
-          <div class="pane-title">Before Optimization</div>
-          <p>Scraper timed out at 15s (<code>discovery_rows_incomplete</code>); synthesis failed closed with <code>UNRESOLVED_REQUIREMENT_ASSERTED</code> when unhedged clauses were drafted; pipeline required manual human clicking at Gate 1 and Gate 2, taking over 2 minutes.</p>
-        </div>
-        <div class="diff-pane pane-after">
-          <div class="pane-title">After Optimization (Now Live)</div>
-          <p>Scraper window calibrated to 25s; Gate 1 (Scope) and Gate 2 (Plan) are automatically signed and bound to cryptographic hashes; synthesis prompt enforces <code>**Pending verification:** </code> on open gaps. The entire 10-stage pipeline settles in <strong>84.04 seconds (~1.4 min)</strong> generating an exhaustive <strong>3,951-word enterprise PRD</strong> with Gate B audited in 0.71s.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Turn 4: Agent Governance -->
-    <div class="turn-card">
-      <div class="turn-header">
-        <h3 style="font-size: 18px; font-weight: 700;">4. Agent Governance & Cryptographic Attestation</h3>
-        <span class="turn-badge badge-agent">AGENT GOVERNANCE</span>
-      </div>
-      <div class="prompt-box">
-        <strong>Autonomous Action:</strong> Dispatched €14,500 Telema EDI purchase order to Selver central distribution center.
-      </div>
-      <div class="diff-grid">
-        <div class="diff-pane pane-before">
-          <div class="pane-title">Traditional Agent Frameworks</div>
-          <p>Loose JSON string logged to an unverified database table (<code>status: success, amount: 14500</code>). Vulnerable to prompt injection budget breaches, tampering, and unverifiable in enterprise SOC2 audits.</p>
-        </div>
-        <div class="diff-pane pane-after">
-          <div class="pane-title">Orqanix Agentic Tool Gateway (Now Live)</div>
-          <p>Enforces hard mathematical authority ceilings (<code>maxCostMinor: €50,000</code>), digests input/output via RFC 8785 canonical JSON, and generates an asymmetric <strong>Ed25519 signature in 0.66 milliseconds</strong>. Tamper-proof mathematical proof of execution.</p>
-        </div>
-      </div>
-    </div>
-
-    <footer>
-      <p>&copy; 2026 Orqanix &middot; Cloud reasoning. Local action. &middot; Live at <a href="https://orqanix.com">orqanix.com</a></p>
-    </footer>
-  </div>
+    <footer><p>&copy; 2026 Orqanix &middot; Cloud reasoning. Local action. &middot; <a href="https://orqanix.com">Public preview</a></p></footer>
+  </main>
+  <script src="/heartbeat-telemetry.js" defer></script>
 </body>
 </html>

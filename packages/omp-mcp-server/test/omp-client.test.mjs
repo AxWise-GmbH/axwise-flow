@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../src/config.mjs';
-import { inspectOmp, runEngineeringTask, contextualSubdirectoryPrompt } from '../src/omp-client.mjs';
+import { inspectOmp, runEngineeringTask, evaluateWithJev, contextualSubdirectoryPrompt } from '../src/omp-client.mjs';
 
 const fixture = fileURLToPath(new URL('./fixtures/fake-omp.mjs', import.meta.url));
 const ACCOUNT = 'a'.repeat(64);
@@ -122,7 +122,9 @@ test('bounded edit preserves skills, limits tools, and returns structured output
     task: 'Inspect the fixture',
     mode: 'edit',
   });
-  assert.equal(value.status, 'completed');
+  assert.equal(value.status, 'review_required');
+  assert.equal(value.review.status, 'not_evaluated');
+  assert.equal(value.verified, false);
   assert.equal(value.assistantText, 'Completed fixture task.');
   assert.deepEqual(value.toolsUsed, ['read']);
   assert.equal(value.outputTruncated, false);
@@ -170,26 +172,40 @@ test('provider errors are failed results and do not leak raw provider details', 
   assert.equal(JSON.stringify(value).includes('private provider detail'), false);
 });
 
-test('runEngineeringTask integrates TypeSafe Jev evaluation gate', async (t) => {
+test('inspection does not claim semantic review of uncaptured evidence', async (t) => {
   const { config } = await setup(t);
-  const mockJev = async ({ task, text }) => ({
-    verified: true,
-    confidence: 0.92,
-    qualityScore: 0.88,
-    model: 'jev-latest',
-    latencyMs: 120,
-  });
-  const value = await runEngineeringTask({
-    config,
-    task: 'inspect workspace',
-    mode: 'inspect',
-    jevEvaluator: mockJev,
-  });
+  const value = await runEngineeringTask({ config, task: 'inspect workspace', mode: 'inspect' });
   assert.equal(value.status, 'completed');
-  assert.equal(value.jevGate?.verified, true);
-  assert.equal(value.jevGate?.confidence, 0.92);
-  assert.equal(value.jevGate?.qualityScore, 0.88);
-  assert.equal(value.jevGate?.latencyMs, 120);
+  assert.equal(value.review.status, 'not_evaluated');
+  assert.equal(value.verified, false);
+});
+
+test('actual failing tests override even a positive injected review', async (t) => {
+  const { config } = await setup(t);
+  const value = await runEngineeringTask({ config, task: 'Inspect the fixture', mode: 'edit',
+    testCommand: ['node', '-e', 'process.exit(1)'],
+    jevEvaluator: async () => ({ review: { status: 'passed' } }),
+  });
+  assert.equal(value.status, 'review_required');
+  assert.equal(value.evidence.tests.exitCode, 1);
+  assert.equal(value.review.reason, 'tests_failed');
+  assert.equal(value.verified, false);
+});
+
+test('Jev gateway uses OAuth and rejects mismatched evidence receipts', async () => {
+  const config = { conversationId: 'fixed-conversation', apiBaseUrl: 'https://preview.example.test/desktop/v1', accountHash: ACCOUNT };
+  const request = { taskId: 'task', inputHash: 'b'.repeat(64), evidence: {}, researchReferences: [] };
+  const value = await evaluateWithJev({ config, request, tokenProvider: async () => 'ephemeral-oauth-token',
+    fetchImpl: async (url, options) => {
+      assert.equal(url, 'https://preview.example.test/desktop/v1/engineering/review');
+      assert.equal(options.headers.Authorization, 'Bearer ephemeral-oauth-token');
+      assert.equal(options.headers['X-Orqaly-Account-Hash'], ACCOUNT);
+      return { ok: true, json: async () => ({ ...request, evidenceHash: 'wrong', review: { status: 'passed' } }) };
+    },
+  });
+  assert.equal(value.review.status, 'not_evaluated');
+  assert.equal(value.review.reason, 'invalid_review_receipt');
+  assert.equal(JSON.stringify(value).includes('ephemeral-oauth-token'), false);
 });
 
 test('contextualSubdirectoryPrompt appends domain instructions for known subpaths', () => {
