@@ -32,36 +32,49 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     }
     return;
   }
-  if (command === 'token') {
-    const accessToken = await withStoreLock(store, config, async () => {
-      let tokens = await store.get();
-      if (!tokens) fail('LOGIN_REQUIRED', 'Sign in before requesting an access token.');
-      if (forceRefresh || tokens.expiresAt - Date.now() <= 60_000) {
-        try {
-          tokens = await refresh(config, await discover(config), tokens);
-          await store.set(tokens);
-        } catch (error) {
-          if (error instanceof AuthError && error.code === 'LOGIN_REQUIRED') await store.delete();
-          throw error;
+  // A refresh may rotate its grant remotely. Finish persisting that grant before
+  // releasing the lock, even when the desktop no longer wants the access token.
+  const cancellation = new AbortController();
+  const interrupt = () => cancellation.abort(new AuthError('AUTH_CANCELLED', 'Authorization command was cancelled.'));
+  process.on('SIGINT', interrupt);
+  process.on('SIGTERM', interrupt);
+  try {
+    if (command === 'token') {
+      const accessToken = await withStoreLock(store, config, async () => {
+        let tokens = await store.get();
+        if (!tokens) fail('LOGIN_REQUIRED', 'Sign in before requesting an access token.');
+        if (forceRefresh || tokens.expiresAt - Date.now() <= 60_000) {
+          try {
+            tokens = await refresh(config, await discover(config), tokens);
+            await store.set(tokens);
+          } catch (error) {
+            if (error instanceof AuthError && error.code === 'LOGIN_REQUIRED') await store.delete();
+            throw error;
+          }
         }
-      }
-      return tokens.accessToken;
-    });
-    // This is the executable-token contract: no status text on stdout.
-    stdout.write(`${accessToken}\n`);
-    return;
+        return tokens.accessToken;
+      }, { signal: cancellation.signal });
+      // This is the executable-token contract: no status text on stdout.
+      cancellation.signal.throwIfAborted();
+      stdout.write(`${accessToken}\n`);
+      return;
+    }
+    await withStoreLock(store, config, async () => {
+      const tokens = await store.get();
+      if (!tokens) { stderr.write('Already signed out locally.\n'); return; }
+      let revoked = false, remoteError;
+      try { revoked = await revoke(config, await discover(config), tokens); }
+      catch (error) { remoteError = error; }
+      finally { await store.delete(); }
+      if (remoteError) fail('LOGOUT_REMOTE_UNCONFIRMED', 'Local authorization was cleared; remote revocation could not be confirmed.');
+      stderr.write(revoked ? 'Signed out; refresh grant revoked and local authorization cleared.\n' :
+        'Signed out locally. Issuer advertises no revocation endpoint; the remote grant was not revoked.\n');
+    }, { signal: cancellation.signal });
+    cancellation.signal.throwIfAborted();
+  } finally {
+    process.removeListener('SIGINT', interrupt);
+    process.removeListener('SIGTERM', interrupt);
   }
-  await withStoreLock(store, config, async () => {
-    const tokens = await store.get();
-    if (!tokens) { stderr.write('Already signed out locally.\n'); return; }
-    let revoked = false, remoteError;
-    try { revoked = await revoke(config, await discover(config), tokens); }
-    catch (error) { remoteError = error; }
-    finally { await store.delete(); }
-    if (remoteError) fail('LOGOUT_REMOTE_UNCONFIRMED', 'Local authorization was cleared; remote revocation could not be confirmed.');
-    stderr.write(revoked ? 'Signed out; refresh grant revoked and local authorization cleared.\n' :
-      'Signed out locally. Issuer advertises no revocation endpoint; the remote grant was not revoked.\n');
-  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

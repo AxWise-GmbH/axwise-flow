@@ -1,160 +1,274 @@
-"""TypeSafe AI (Jev) accelerated triage and classification service.
+"""Bounded advisory Jev decisions using the documented TypeSafe System One API.
 
-Provides high-speed (sub-second) typed boolean and categorical classification
-for evidence filtering (Gate A) and Phase 1 goal intent classification, with
-deterministic fallback when TYPESAFE_API_KEY is unconfigured.
+The pinned Pydantic AI distribution has no TypeSafe provider. Use existing httpx,
+with no SDK or synchronous event-loop adapter. Provider failures never mean pass.
+API contract: https://docs.typesafe.ai/introduction/quickstart
 """
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import json
 import logging
+import math
 import os
-from typing import Any, Sequence
+from typing import Any, Literal, Sequence, TypeVar
+
+import httpx
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
-
 _TYPESAFE_KEY_ENV = "TYPESAFE_API_KEY"
+_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
+_TIMEOUT_SECONDS = 8.0
+_MAX_STATE_CHARACTERS = 48_000
+Decision = TypeVar("Decision", bound=BaseModel)
 
 
 def is_typesafe_available() -> bool:
-    """Return True if TypeSafe Jev API key is present in environment."""
-    key = os.getenv(_TYPESAFE_KEY_ENV)
-    return bool(key and key.strip())
+    return bool(os.getenv(_TYPESAFE_KEY_ENV, "").strip())
 
 
 class PassageRelevanceDecision(BaseModel):
-    """Jev typed decision model for Gate A evidence triage."""
     is_directly_relevant: bool = Field(
-        description="Does this document or passage contain specific facts, data, rules, or answers relevant to the requirement query?"
+        description="Does document contain specific facts relevant to requirement_query?"
     )
     is_official_or_authoritative: bool = Field(
-        description="Does this passage represent statutory law, official government guidance, regulatory agency, standards body, or industry authority?"
+        description="Does document come from an official or authoritative source relevant to requirement_query?"
     )
     is_useful_background_context: bool = Field(
-        description="Does this passage provide credible commercial, technical, legal, or market context helpful for answering the requirement?"
+        description="Does document provide credible background useful for requirement_query?"
     )
 
 
 class GoalIntentDecision(BaseModel):
-    """Jev typed decision model for Phase 1 goal classification."""
     is_commercial_market_launch: bool = Field(
-        description="Is this goal focused on commercial market launch, retail distribution, FMCG, or physical product entry?"
+        description="Does goals primarily request physical product market launch or retail distribution?"
     )
     is_software_product: bool = Field(
-        description="Is this goal focused on software development, APIs, web apps, databases, or digital cloud systems?"
+        description="Does goals primarily request software development, APIs, web applications or digital systems?"
     )
     is_operational_process: bool = Field(
-        description="Is this goal focused on business operations, standard operating procedures (SOP), workflow execution, or team logistics?"
+        description="Does goals primarily request a business operating procedure, workflow or team logistics?"
     )
 
 
-def filter_documents_with_jev(
+class DeliverableIntegrityDecision(BaseModel):
+    has_unverified_commercial_or_financial_estimates_without_pending_prefix: bool = (
+        Field(
+            description="Does deliverable assert commercial or financial estimates as established facts without supplied evidence or explicit provisional language? Proposed targets are not established facts. Source titles and authority labels alone are not proof."
+        )
+    )
+    is_acceptance_criteria_traceability_intact: bool = Field(
+        description="Does deliverable address every supplied acceptance criterion, without contradicting supplied evidence or asserting that unresolved evidence is verified? Judge only acceptance_criteria and evidence in state."
+    )
+
+
+class JevReview(BaseModel):
+    status: Literal["passed", "failed", "not_evaluated"]
+    reason: Literal[
+        "advisory_review",
+        "not_configured",
+        "missing_evidence_or_criteria",
+        "input_too_large",
+        "provider_unavailable",
+        "uncertain",
+    ]
+    advisory: Literal[True] = True
+    reviewed_sha256: str
+    decision: DeliverableIntegrityDecision | None = None
+
+
+class _UncertainDecision(ValueError):
+    pass
+
+
+async def _evaluate(
+    state: dict[str, Any],
+    decision_type: type[Decision],
+    *,
+    timeout_seconds: float = _TIMEOUT_SECONDS,
+) -> Decision:
+    encoded = json.dumps(state, ensure_ascii=False, separators=(",", ":"))
+    if len(encoded) > _MAX_STATE_CHARACTERS:
+        raise ValueError("input_too_large")
+    questions = {
+        name: {"type": "noul", "instructions": field.description}
+        for name, field in decision_type.model_fields.items()
+    }
+    # One wall-clock deadline covers connect, read and response validation. No retry
+    # can multiply the operation budget. Never log headers or provider error text.
+    async with asyncio.timeout(timeout_seconds):
+        async with httpx.AsyncClient(
+            timeout=timeout_seconds, follow_redirects=False
+        ) as client:
+            response = await client.post(
+                _ENDPOINT,
+                headers={
+                    "Authorization": "Bearer " + os.environ[_TYPESAFE_KEY_ENV].strip()
+                },
+                json={"model": "jev-latest", "state": state, "questions": questions},
+            )
+            response.raise_for_status()
+            answers = response.json()["answers"]
+    values = {}
+    for name in questions:
+        answer = answers[name]
+        value = answer.get("noul")
+        if (
+            answer.get("type") != "noul"
+            or type(value) not in (int, float)
+            or not math.isfinite(value)
+            or not 0 <= value <= 1
+        ):
+            raise ValueError("invalid_provider_answer")
+        # Ambiguous judgments do not filter evidence or imply successful review.
+        if 0.2 < value < 0.8:
+            raise _UncertainDecision()
+        values[name] = value >= 0.8
+    return decision_type.model_validate(values)
+
+
+async def filter_documents_with_jev(
     requirement_query: str,
     documents: Sequence[Any],
     *,
     min_kept: int = 1,
+    timeout_seconds: float = _TIMEOUT_SECONDS,
 ) -> Sequence[Any]:
-    """Gate A: Filter fetched documents using TypeSafe Jev sub-second triage.
-
-    If Jev is unavailable or fails, returns the original sequence safely.
-    Guarantees at least min_kept documents are retained so extraction never stalls.
-    """
+    """Conservative relevance hint; retain all evidence on timeout/error/ambiguity."""
     if not documents or not is_typesafe_available():
         return documents
 
+    async def relevant(doc: Any) -> bool:
+        decision = await _evaluate(
+            {
+                "requirement_query": requirement_query,
+                "document": getattr(doc, "text", str(doc)),
+            },
+            PassageRelevanceDecision,
+            timeout_seconds=timeout_seconds,
+        )
+        return any(decision.model_dump().values())
+
     try:
-        from pydantic_ai import Agent
-        from pydantic_ai.models.typesafe import TypeSafeModel
-
-        model = TypeSafeModel("jev-latest")
-        agent = Agent(model, output_type=PassageRelevanceDecision)
-
-        retained = []
-        for doc in documents:
-            text_snippet = getattr(doc, "text", str(doc))[:2500]
-            prompt = f"Requirement: {requirement_query}\n\nDocument Excerpt:\n{text_snippet}"
-            try:
-                result = agent.run_sync(prompt)
-                if (
-                    result.output.is_directly_relevant
-                    or result.output.is_official_or_authoritative
-                    or result.output.is_useful_background_context
-                ):
-                    retained.append(doc)
-            except Exception as e:
-                logger.debug("TypeSafe Jev document evaluation deferred: %s", e)
-                retained.append(doc)
-
-        if len(retained) >= min_kept:
-            logger.info("TypeSafe Jev Gate A: retained %d of %d documents", len(retained), len(documents))
-            return retained
-        return documents
-
-    except Exception as e:
-        logger.debug("TypeSafe Jev triage unavailable, falling back: %s", e)
+        # Bounded fanout and total deadline; never send silently truncated evidence.
+        if len(documents) > 12:
+            return documents
+        async with asyncio.timeout(timeout_seconds):
+            decisions = await asyncio.gather(
+                *(relevant(doc) for doc in documents), return_exceptions=True
+            )
+        if any(isinstance(decision, BaseException) for decision in decisions):
+            return documents
+        retained = [doc for doc, keep in zip(documents, decisions) if keep]
+        return retained if len(retained) >= min_kept else documents
+    except Exception:
+        logger.info("jev_triage status=not_evaluated")
         return documents
 
 
-def classify_intent_with_jev(texts: Sequence[str]) -> str | None:
-    """Phase 1: Classify goal document intent using TypeSafe Jev."""
+async def classify_intent_with_jev(texts: Sequence[str]) -> str | None:
     if not texts or not is_typesafe_available():
         return None
-
     try:
-        from pydantic_ai import Agent
-        from pydantic_ai.models.typesafe import TypeSafeModel
-
-        combined_text = " ".join(texts)[:3000]
-        model = TypeSafeModel("jev-latest")
-        agent = Agent(model, output_type=GoalIntentDecision)
-
-        result = agent.run_sync(combined_text)
-        if result.output.is_commercial_market_launch:
-            return "commercial_market_launch"
-        if result.output.is_software_product:
-            return "software_product"
-        if result.output.is_operational_process:
-            return "operational_process"
-        return None
-
-    except Exception as e:
-        logger.debug("TypeSafe Jev intent classification deferred: %s", e)
-        return None
+        result = await _evaluate({"goals": list(texts)}, GoalIntentDecision)
+        for label in (
+            "commercial_market_launch",
+            "software_product",
+            "operational_process",
+        ):
+            if getattr(result, "is_" + label):
+                return label
+    except Exception:
+        logger.info("jev_intent status=not_evaluated")
+    return None
 
 
-class DeliverableIntegrityDecision(BaseModel):
-    """Jev typed decision model for Gate B pre-adoption deliverable validation."""
-    has_unverified_commercial_or_financial_estimates_without_pending_prefix: bool = Field(
-        description="Does this draft text assert speculative commercial estimates, unverified retail slotting fees, margins, or projected unit costs without prefixing them with '**Pending verification:** ' or equivalent provisional language? (Note: Established statutory laws, official regulations, and accredited laboratory standards cited from authoritative sources are verified facts and do NOT require a pending prefix)."
-    )
-    is_acceptance_criteria_traceability_intact: bool = Field(
-        description="Does this document satisfy the core acceptance criteria matrix without skipping requirements?"
-    )
+async def validate_deliverable_with_jev(
+    markdown_text: str,
+    *,
+    acceptance_criteria: Sequence[Any] = (),
+    evidence: dict[str, Any] | None = None,
+    timeout_seconds: float = _TIMEOUT_SECONDS,
+) -> JevReview:
+    """Evaluate complete inputs, reporting advisory outcomes without authorizing adoption."""
+    digest = hashlib.sha256(markdown_text.encode("utf-8")).hexdigest()
 
+    def missing(reason: str) -> JevReview:
+        return JevReview(status="not_evaluated", reason=reason, reviewed_sha256=digest)
 
-def validate_deliverable_with_jev(markdown_text: str) -> DeliverableIntegrityDecision | None:
-    """Gate B: Validate deliverable integrity using TypeSafe Jev."""
-    if not markdown_text or not is_typesafe_available():
-        return None
-
+    if not is_typesafe_available():
+        return missing("not_configured")
+    if not markdown_text or not acceptance_criteria or not evidence:
+        return missing("missing_evidence_or_criteria")
+    state = {
+        "deliverable": markdown_text,
+        "acceptance_criteria": list(acceptance_criteria),
+        "evidence": evidence,
+    }
+    if (
+        len(json.dumps(state, ensure_ascii=False, separators=(",", ":")))
+        > _MAX_STATE_CHARACTERS
+    ):
+        return missing("input_too_large")
     try:
-        from pydantic_ai import Agent
-        from pydantic_ai.models.typesafe import TypeSafeModel
-
-        # Extract executive summary and financial/projections section for focused Jev evaluation
-        snippet = markdown_text[:3500]
-        prompt = (
-            "Review this deliverable excerpt for compliance with the Gate B integrity rules:\n"
-            "1. Authoritative statutory regulations, laws, and official lab standards are verified evidence and should NOT be penalized.\n"
-            "2. Speculative business forecasts, retail pricing/margin assumptions, and unconfirmed commercial slotting costs MUST carry a '**Pending verification:** ' prefix.\n\n"
-            f"Deliverable:\n{snippet}"
+        verdict = await _evaluate(
+            state, DeliverableIntegrityDecision, timeout_seconds=timeout_seconds
         )
-        model = TypeSafeModel("jev-latest")
-        agent = Agent(model, output_type=DeliverableIntegrityDecision)
+    except _UncertainDecision:
+        return missing("uncertain")
+    except Exception:
+        return missing("provider_unavailable")
+    passed = (
+        not verdict.has_unverified_commercial_or_financial_estimates_without_pending_prefix
+        and verdict.is_acceptance_criteria_traceability_intact
+    )
+    return JevReview(
+        status="passed" if passed else "failed",
+        reason="advisory_review",
+        reviewed_sha256=digest,
+        decision=verdict,
+    )
 
-        result = agent.run_sync(prompt)
-        return result.output
-    except Exception as e:
-        logger.debug("TypeSafe Jev Gate B validation deferred: %s", e)
-        return None
+
+async def append_jev_advisory(markdown: str, context: Any) -> str:
+    """Orchestration-only integration; immutable validator modules remain pure."""
+    review = await validate_deliverable_with_jev(
+        markdown,
+        acceptance_criteria=[
+            item.model_dump(mode="json", by_alias=True)
+            for item in context.accepted_acceptance_criteria
+        ],
+        evidence=(
+            {
+                "claims": context.allowed_claim_texts,
+                "open_gaps": context.required_gap_labels,
+                "unresolved_requirements": context.unresolved_evidence_requirements,
+            }
+            if context.allowed_claim_texts
+            else None
+        ),
+    )
+    logger.info(
+        "jev_deliverable_review %s",
+        json.dumps(review.model_dump(exclude={"decision"}), sort_keys=True),
+    )
+    # Unconfigured existing deployments retain their output contract. A configured
+    # review is always visible, including failure or unavailable provider results.
+    if review.reason == "not_configured":
+        return markdown
+    labels = {
+        "passed": "passed its limited advisory checks",
+        "failed": "found issues requiring review",
+        "not_evaluated": "was not evaluated",
+    }
+    disclosure = (
+        "\n\nJev review: "
+        + labels[review.status]
+        + ". This advisory result does not certify correctness or authorize adoption."
+    )
+    body, separator, sources = markdown.partition("\n\n## Sources\n")
+    # The server-owned source appendix must remain the exact final suffix.
+    return body.rstrip() + disclosure + (separator + sources if separator else "\n")

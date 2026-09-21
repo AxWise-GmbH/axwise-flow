@@ -29,6 +29,8 @@ const TASK_PROPERTIES = {
     maximum: 1800,
     description: 'Optional task deadline, capped by local policy.',
   },
+  acceptance_criteria: { type: 'array', maxItems: 12, items: { type: 'string', minLength: 1, maxLength: 1000 }, description: 'Concrete conditions the edit and its tests must satisfy.' },
+  research_references: { type: 'array', maxItems: 8, items: schema({ conversationId: { type: 'string' }, requestId: { type: 'string' }, artifactHash: { type: 'string', pattern: '^[a-f0-9]{64}$' } }, ['conversationId', 'requestId', 'artifactHash']), description: 'Exact AxWise artifact identifiers from completed research in this conversation.' },
 };
 
 export const TOOLS = [
@@ -36,7 +38,7 @@ export const TOOLS = [
     name: 'orqanix_engineering_status',
     title: 'Check engineering runtime',
     description:
-      'Check the local Oh My Pi engineering runtime and TypeSafe Jev quality gate for this workspace. Makes no model request and changes no project files.',
+      'Check the local Oh My Pi engineering runtime. This does not test Jev. Makes no model request and changes no project files.',
     inputSchema: schema({}),
     annotations: {
       readOnlyHint: true,
@@ -62,8 +64,8 @@ export const TOOLS = [
     name: 'orqanix_engineering_edit',
     title: 'Edit repository with engineering runtime',
     description:
-      'Perform approved file modifications in this repository using Oh My Pi (OMP) with TypeSafe Jev quality verification. ALWAYS use this tool instead of manual multi-turn edit/write commands. It performs syntax-aware bounded edits with verification before returning.',
-    inputSchema: schema(TASK_PROPERTIES, ['task']),
+      'Perform approved file modifications with Oh My Pi (OMP). Provide acceptance_criteria, exact research_references when using AxWise research, and an approved test_command argv to execute locally after editing. Captures real workspace changes and test results for authenticated server-side Jev review. Completion requires passing tests and review; review_required means further verification is needed.',
+    inputSchema: schema({ ...TASK_PROPERTIES, test_command: { type: 'array', minItems: 1, maxItems: 32, items: { type: 'string', maxLength: 2000 }, description: 'Approved executable and arguments for local tests, without a shell; e.g. ["node","--test","feature.test.mjs"].' } }, ['task']),
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
@@ -86,6 +88,9 @@ function validTask(args) {
     typeof args.task === 'string' &&
     Boolean(args.task.trim()) &&
     args.task.length <= 12_000 &&
+    (args.acceptance_criteria === undefined || (Array.isArray(args.acceptance_criteria) && args.acceptance_criteria.length <= 12 && args.acceptance_criteria.every(value => typeof value === 'string' && value.trim().length > 0 && value.length <= 1000))) &&
+    (args.research_references === undefined || (Array.isArray(args.research_references) && args.research_references.length <= 8 && args.research_references.every(value => object(value) && Object.keys(value).length === 3 && /^[A-Za-z0-9_-]{1,128}$/.test(value.conversationId) && /^[a-f0-9-]{36}$/i.test(value.requestId) && /^[a-f0-9]{64}$/.test(value.artifactHash)))) &&
+    (args.test_command === undefined || (Array.isArray(args.test_command) && args.test_command.length > 0 && args.test_command.length <= 32 && args.test_command.every(value => typeof value === 'string' && value.length <= 2000 && !value.includes('\0')) && Boolean(args.test_command[0]))) &&
     (args.timeout_seconds === undefined ||
       (Number.isInteger(args.timeout_seconds) &&
         args.timeout_seconds >= 10 &&
@@ -112,6 +117,9 @@ export function createMcpTools({ config, inspect = inspectOmp, run = runEngineer
         config,
         task: args.task.trim(),
         mode,
+        acceptanceCriteria: args.acceptance_criteria,
+        researchReferences: args.research_references,
+        testCommand: args.test_command,
         timeoutMs: args.timeout_seconds ? args.timeout_seconds * 1000 : undefined,
         signal,
       });
@@ -158,7 +166,7 @@ export async function serveMcp({ input = process.stdin, output = process.stdout,
           capabilities: { tools: {} },
           serverInfo: { name: 'orqanix-engineering', version: '0.1.0' },
           instructions:
-            'Local, workspace-bound engineering powered by Oh My Pi (OMP) and TypeSafe Jev quality gating. Existing Goose tools and skills remain available. For ANY repository inspection, codebase search, symbol lookups, or file analysis, ALWAYS use orqanix_engineering_inspect instead of running manual shell grep/sed/find/cat commands. For file edits and refactoring, ALWAYS use orqanix_engineering_edit instead of individual edit/write commands. OMP executes locally in a single efficient turn with AST indexing and TypeSafe Jev verification, saving turns and preventing context window pollution. Reserve the developer shell only for executing test suites, build tools, or commands requiring an interactive terminal.',
+            'Local, workspace-bound engineering powered by Oh My Pi (OMP). Existing Goose tools and skills remain available. Use engineering_inspect for repository exploration and engineering_edit for approved edits. Forward exact completed AxWise research references and acceptance criteria. Supply an approved test_command to capture real tests for Jev review. Never describe review_required, failed or not_evaluated as verified. Jev is an advisory review of captured evidence, not proof of production readiness. Developer shell remains available for builds and interactive commands.',
         },
       });
     } else if (message.method === 'ping') {
