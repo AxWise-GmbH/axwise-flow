@@ -15,12 +15,12 @@ test('catalog emits one deterministic case per required category', () => {
 
   assert.deepEqual(first, second);
   assert.equal(first.slot, '2026-09-21T12:00:00.000Z');
-  assert.equal(buildEvaluationCatalog({ slot: first.slot }).templateVersion, 2);
+  assert.equal(buildEvaluationCatalog({ slot: first.slot }).templateVersion, 3);
   assert.deepEqual(first.cases.map(({ category }) => category), EVALUATION_CATEGORIES.map(({ id }) => id));
   assert.equal(first.cases.length, 5);
   for (const evaluationCase of first.cases) {
     assert.ok(evaluationCase.prompt.length > 20);
-    assert.ok(evaluationCase.criteria.length >= 3);
+    assert.ok(evaluationCase.criteria.length >= 2);
     assert.match(evaluationCase.inputHash, /^[a-f0-9]{64}$/);
     assert.equal(caseInputHash(evaluationCase), evaluationCase.inputHash);
     assert.doesNotThrow(() => JSON.parse(canonicalCaseInput(evaluationCase)));
@@ -49,7 +49,7 @@ test('template version contributes to the deterministic seed and case hash', () 
   }
 });
 
-test('every plan prompt and criterion states the supported 700-word bound', () => {
+test('planning cases measure actionable outcomes without arbitrary structure or length rules', () => {
   const start = Date.parse('2026-09-21T00:00:00.000Z');
   const plans = new Map();
   for (let index = 0; index < 96; index += 1) {
@@ -59,8 +59,28 @@ test('every plan prompt and criterion states the supported 700-word bound', () =
   }
   assert.ok(plans.size >= 3);
   for (const plan of plans.values()) {
-    assert.match(plan.prompt, /at or below 700 words/);
-    assert.ok(plan.criteria.some((criterion) => criterion === 'The entire response is at most 700 words.'));
+    assert.doesNotMatch(plan.prompt, /\b(?:steps?|non-goals?|words?)\b/i);
+    assert.ok(plan.criteria.some((criterion) => /actionable/i.test(criterion)));
+    assert.ok(plan.criteria.some((criterion) => /tests?|verify|verification/i.test(criterion)));
+    assert.ok(plan.criteria.every((criterion) => !/\b(?:steps?|non-goals?|words?)\b/i.test(criterion)));
+  }
+});
+
+test('generic search, research, and incident cases omit arbitrary presentation limits', () => {
+  const start = Date.parse('2026-09-21T00:00:00.000Z');
+  const cases = new Map();
+  for (let index = 0; index < 96; index += 1) {
+    for (const evaluationCase of buildEvaluationCatalog({ slot: new Date(start + index * 900_000) }).cases) {
+      if (evaluationCase.category === 'search' || evaluationCase.category === 'research'
+        || evaluationCase.templateId === 'message-constraint-summary') {
+        cases.set(evaluationCase.templateId, evaluationCase);
+      }
+    }
+  }
+  assert.equal(cases.size, 7);
+  for (const evaluationCase of cases.values()) {
+    assert.doesNotMatch(evaluationCase.prompt, /\b(?:words?|sentences?|bullets?|exactly two tradeoffs)\b/i);
+    assert.ok(evaluationCase.criteria.every((criterion) => !/\b(?:words?|sentences?|bullets?|exactly two tradeoffs)\b/i.test(criterion)));
   }
 });
 

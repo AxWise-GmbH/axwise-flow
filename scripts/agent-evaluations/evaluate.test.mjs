@@ -379,7 +379,7 @@ test('a valid root citation supersedes an invalid fragment for the same official
   assert.equal(fetchCalls, 1);
 });
 
-test('an invalid official fragment without a valid document root still fails grounding', async () => {
+test('an unresolved official fragment remains not evaluated when the section mapping may be stale', async () => {
   const caseData = catalogCase('search-node-abort-timeout');
   const page = '<h4>AbortSignal.timeout(delay)<a id=static-method-abortsignaltimeoutdelay></a></h4><p>Returns a new AbortSignal.</p>';
   const result = await evaluateOutput({
@@ -390,8 +390,53 @@ test('an invalid official fragment without a valid document root still fails gro
     judge: async (input) => jevReceipt(input),
   });
 
-  assert.equal(result.evaluation.verdict, 'failed');
-  assert.equal(result.evaluation.criteriaResults.at(-1).reason, 'source_relevant_section_not_found');
+  assert.equal(result.evaluation.verdict, 'not_evaluated');
+  assert.equal(result.evaluation.reason, 'Official source evidence could not be retrieved.');
+});
+
+test('transient source failures and stale excerpt mappings are not scored as task failures', async () => {
+  const caseData = catalogCase('search-node-abort-timeout');
+  const output = 'AbortSignal.timeout returns a timed signal. https://nodejs.org/api/globals.html';
+  for (const status of [403, 408, 429, 500, 503]) {
+    let judgeCalls = 0;
+    const result = await evaluateOutput({
+      caseData,
+      output,
+      runId: RUN_ID,
+      fetchImpl: async () => new Response('temporarily unavailable', { status }),
+      judge: async (input) => { judgeCalls += 1; return jevReceipt(input); },
+    });
+    assert.equal(result.evaluation.verdict, 'not_evaluated', `HTTP ${status}`);
+    assert.equal(judgeCalls, 0, `HTTP ${status}`);
+  }
+
+  const staleMapping = await evaluateOutput({
+    caseData,
+    output,
+    runId: RUN_ID,
+    fetchImpl: async () => new Response('<main><h1>Node globals documentation changed</h1></main>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    }),
+    judge: async (input) => jevReceipt(input),
+  });
+  assert.equal(staleMapping.evaluation.verdict, 'not_evaluated');
+});
+
+test('definitively missing official source URLs remain task failures', async () => {
+  const caseData = catalogCase('search-node-abort-timeout');
+  const output = 'AbortSignal.timeout returns a timed signal. https://nodejs.org/api/globals.html';
+  for (const status of [404, 410]) {
+    const result = await evaluateOutput({
+      caseData,
+      output,
+      runId: RUN_ID,
+      fetchImpl: async () => new Response('missing', { status }),
+      judge: async (input) => jevReceipt(input),
+    });
+    assert.equal(result.evaluation.verdict, 'failed', `HTTP ${status}`);
+    assert.equal(result.evaluation.criteriaResults.at(-1).reason, `source_http_${status}`);
+  }
 });
 
 test('a disallowed structured citation is never fetched', async () => {
@@ -449,7 +494,7 @@ test('plan keywords cannot produce a pass when Jev finds semantic criteria unmet
   assert.ok(result.evidence.deterministicChecks.every(({ passed }) => passed));
 });
 
-test('plan accepts Markdown Step headings and numbered non-goals within the explicit word bound', async () => {
+test('plan presentation shape does not decide semantic success', async () => {
   const caseData = catalogCase('plan-cache-migration');
   const output = [
     '## Step 1 — Key design',
@@ -563,81 +608,51 @@ test('Jev verdict must agree with bounded overall probability and criterion resu
   assert.equal(threshold.evaluation.verdict, 'passed');
 });
 
-test('plan counts eight Step headings separately from numbered non-goals and rollout substeps', async () => {
-  const caseData = catalogCase('plan-webhook-retries');
-  // Shape of live run d9793c32-fe7d-4f23-a50c-9cb43fab0fcd: eight Step headings,
-  // two numbered non-goals first, then three numbered rollout details under Step 8.
-  const output = [
-    '### Non-Goals',
-    '1. **Strict FIFO In-Order Delivery:** Concurrent deliveries need not be ordered.',
-    '2. **Custom Transports and Auth Schemes:** Delivery uses HTTPS POST and HMAC.',
-    '---',
-    '### Implementation Plan',
-    '#### Step 1: Persistence & Transactional Outbox',
-    'Persist events and delivery records in a transactional outbox.',
-    '#### Step 2: Payload Envelope & Cryptographic Signing',
-    'Sign timestamp and payload with HMAC-SHA256.',
-    '#### Step 3: Dispatch Worker Pipeline & HTTP Hardening',
-    'Deploy workers with HTTPS-only destinations and bounded timeouts.',
-    '#### Step 4: Retry Policy & Dynamic Backoff',
-    'Retry transient network failures and 5xx with jitter for at most seven attempts.',
-    '#### Step 5: Terminal Failure Handling & Dead-Letter Queue',
-    'Mark non-retryable 4xx and exhausted retries terminal, retaining failed events.',
-    '#### Step 6: Observability, Metrics, and Alerting',
-    'Log attempts and measure delivery latency and terminal failure rates.',
-    '#### Step 7: Automated Testing Strategy',
-    'Test signing, retry bounds, terminal responses, and recovery after crashes.',
-    '#### Step 8: Phased Rollout & Migration',
-    '1. **Canary Verification:** Deploy to internal mock endpoints.',
-    '2. **Pilot Cohort:** Enable a small cohort and inspect metrics.',
-    '3. **General Availability:** Expand gradually with rollback readiness.',
-  ].join('\n');
-  let judgeCalls = 0;
-  const result = await evaluateOutput({
-    caseData, output, runId: RUN_ID,
-    judge: async (input) => { judgeCalls += 1; return jevReceipt(input); },
-  });
-
-  assert.equal(result.evaluation.verdict, 'passed');
-  assert.equal(judgeCalls, 1);
-  assert.ok(result.evidence.deterministicChecks.every(({ passed }) => passed));
-});
-
-test('numbered implementation plans exclude numbered non-goals and indented substeps', async () => {
+test('plans with two, eight, or ten sections all reach semantic evaluation', async () => {
   const caseData = catalogCase('plan-cache-migration');
-  const output = [
-    ...Array.from({ length: 8 }, (_, index) => `${index + 1}. Address key design, invalidation, fallback, rollout, rollback, observability metrics, and tests.`),
-    '   1. Verify the rollout cohort.',
-    '   2. Inspect the metrics.',
-    '## Non-goals',
-    '1. Replace the database.',
-    '2. Redesign unrelated APIs.',
-  ].join('\n');
-  const result = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async (input) => jevReceipt(input) });
-
-  assert.equal(result.evaluation.verdict, 'passed');
-  assert.ok(result.evidence.deterministicChecks.every(({ passed }) => passed));
-});
-
-test('plan enforces one through eight ordered steps without an unstated four-step minimum', async () => {
-  const caseData = catalogCase('plan-cache-migration');
-  for (const count of [0, 1, 3, 8, 9]) {
-    const output = [
-      ...Array.from({ length: count }, (_, index) => `#### Step ${index + 1}: Implementation`),
-      'Address key design, invalidation, fallback, rollout, rollback, observability metrics, and tests.',
-      'Non-goal 1: Replace the database.',
-      'Non-goal 2: Redesign unrelated APIs.',
-    ].join('\n');
+  for (const count of [2, 8, 10]) {
+    const output = Array.from({ length: count }, (_, index) => [
+      `### Area ${index + 1}`,
+      'Address Redis key design, invalidation, degraded fallback, rollout, rollback, observability metrics, and tests.',
+    ].join('\n')).join('\n');
     let judgeCalls = 0;
     const result = await evaluateOutput({
-      caseData, output, runId: RUN_ID,
+      caseData,
+      output,
+      runId: RUN_ID,
       judge: async (input) => { judgeCalls += 1; return jevReceipt(input); },
     });
-    const bounded = count >= 1 && count <= 8;
-    assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'bounded_ordered_steps').passed, bounded, `step count ${count}`);
-    assert.equal(judgeCalls, bounded ? 1 : 0, `step count ${count}`);
-    assert.equal(result.evaluation.verdict, bounded ? 'passed' : 'failed', `step count ${count}`);
+    assert.equal(judgeCalls, 1, `section count ${count}`);
+    assert.equal(result.evaluation.verdict, 'passed', `section count ${count}`);
+    assert.deepEqual(result.evidence.deterministicChecks.map(({ id }) => id), ['bounded_output', 'known_plan_template']);
   }
+});
+
+test('empty plans fail mechanically and irrelevant plans are decided semantically', async () => {
+  const caseData = catalogCase('plan-webhook-retries');
+  let emptyJudgeCalls = 0;
+  const empty = await evaluateOutput({
+    caseData,
+    output: '',
+    runId: RUN_ID,
+    judge: async (input) => { emptyJudgeCalls += 1; return jevReceipt(input); },
+  });
+  assert.equal(empty.evaluation.verdict, 'failed');
+  assert.equal(emptyJudgeCalls, 0);
+
+  let wrongJudgeCalls = 0;
+  const wrong = await evaluateOutput({
+    caseData,
+    output: 'Buy snacks for the office kitchen.',
+    runId: RUN_ID,
+    judge: async (input) => {
+      wrongJudgeCalls += 1;
+      return jevReceipt(input, 'failed');
+    },
+  });
+  assert.equal(wrongJudgeCalls, 1);
+  assert.equal(wrong.evaluation.verdict, 'failed');
+  assert.equal(wrong.evaluation.reason, 'advisory_review');
 });
 
 test('message judge receives the original incident facts as well as the output and criteria', async () => {
@@ -655,60 +670,23 @@ test('message judge receives the original incident facts as well as the output a
   assert.match(judgeInput.prompt, /At 09:18 UTC, the cache was resized/);
 });
 
-test('PostgreSQL response word limit counts prose rather than Markdown and numeric citations', async () => {
-  const caseData = catalogCase('research-postgres-indexes');
-  const brin = '[1](<https://www.postgresql.org/docs/current/brin.html>)';
-  const indexes = '[2](<https://www.postgresql.org/docs/current/indexes-types.html>)';
-  // Exact displayed response from the third live run, with citation strings shared.
-  const output = [
-    '### Recommendation',
-    '',
-    `For a large append-only events table where rows are physically inserted in timestamp order, a **BRIN (Block Range Index)** is the recommended choice ${brin} ${indexes}. Because event timestamps naturally correlate with their physical page layout, BRIN provides efficient range scanning while keeping index overhead negligible ${brin} ${indexes}.`,
-    '',
-    '---',
-    '',
-    '### Tradeoffs',
-    '',
-    `1. **Storage Footprint and Lossiness vs. Point Lookup Precision** ${brin} ${indexes}`,
-    `   * **BRIN:** Summarizes column values (such as minimum and maximum bounds for linear sort orders) across multi-page block ranges rather than indexing individual rows ${brin} ${indexes}. This yields an extremely small index with minimal maintenance overhead, but it is lossy ${brin}. Queries execute via bitmap index scans, requiring the executor to fetch and recheck all heap tuples within matching ranges ${brin}.`,
-    `   * **B-tree:** Indexes every individual tuple, enabling exact, non-lossy equality and range lookups ${indexes}. However, it consumes substantial disk space and incurs higher maintenance cost on massive tables ${brin}.`,
-    '',
-    `2. **Index-Driven Ordering vs. Maintenance on Append** ${indexes}`,
-    `   * **B-tree:** Can return matching rows directly in sorted order, which can bypass an explicit query sort step ${indexes}.`,
-    `   * **BRIN:** Cannot return data in sorted order. Additionally, when new heap pages are appended past the previously summarized block range, they remain unsummarized until a summarization routine or vacuum run processes them ${brin}.`,
-    '',
-    '---',
-    '',
-    `**Sources:** PostgreSQL Documentation chapters *Index Types* and *BRIN Indexes* ${brin} ${indexes}.`,
-  ].join('\n');
-  const result = await evaluateOutput({
-    caseData, output, runId: RUN_ID,
-    fetchImpl: async () => { throw new Error('Word-count regression does not fetch sources.'); },
-  });
-
-  assert.equal(output.trim().split(/\s+/u).length, 226);
-  assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'word_limit').passed, true);
-});
-
-test('word limit retains descriptive labels, ordinary numbers, and non-ASCII prose', async () => {
+test('long research responses reach semantic evaluation without a word-count quality gate', async () => {
   const caseData = catalogCase('research-postgres-indexes');
   const url = 'https://www.postgresql.org/docs/current/brin.html';
-  const words = (count, word = 'word') => Array(count).fill(word).join(' ');
-  const cases = [
-    { name: 'plain prose over the limit', output: words(221), passed: false },
-    { name: 'descriptive link labels', output: `${words(218)} [three descriptive words](${url})`, passed: false },
-    { name: 'ordinary numeric prose', output: `${words(219)} 42 2026`, passed: false },
-    { name: 'non-ASCII prose over the limit', output: words(221, 'Überprüfung'), passed: false },
-    { name: 'non-ASCII prose at the limit', output: words(220, 'résumé'), passed: true },
-    { name: 'visible heading words', output: `${words(219)}\n### Two Words`, passed: false },
-    { name: 'numeric citations and bare URL', output: `${words(220)} [1](<${url}>) [2](${url}) [3] ${url}`, passed: true },
-    { name: 'list markers and horizontal rules', output: `##\n---\n1. ${words(110)}\n* ${words(110)}\n***`, passed: true },
-  ];
-  for (const item of cases) {
-    const result = await evaluateOutput({
-      caseData, output: item.output, runId: RUN_ID, sources: [{ url }],
-      fetchImpl: async () => { throw new Error('Word-count regression does not fetch sources.'); },
-    });
-    assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'word_limit').passed, item.passed, item.name);
-  }
+  const output = `${Array(300).fill('analysis').join(' ')} BRIN B-tree recommendation and tradeoffs. ${url}`;
+  let judgeCalls = 0;
+  const result = await evaluateOutput({
+    caseData,
+    output,
+    runId: RUN_ID,
+    fetchImpl: async () => new Response('BRIN summarizes block ranges while B-tree supports precise range lookups.', {
+      status: 200,
+      headers: { 'content-type': 'text/plain' },
+    }),
+    judge: async (input) => { judgeCalls += 1; return jevReceipt(input); },
+  });
+  assert.equal(judgeCalls, 1);
+  assert.equal(result.evaluation.verdict, 'passed');
+  assert.ok(result.evidence.deterministicChecks.every(({ id }) => id !== 'word_limit'));
+  assert.deepEqual(result.evidence.verifiedChecks, []);
 });

@@ -32,7 +32,7 @@ const PLAN = [
   'Non-goal 2: Redesign unrelated endpoints.',
 ].join('\n');
 
-test('pure plan word count is enforced once and sent as a verified measurement', async () => {
+test('plan sends every outcome criterion to Jev without presentation mechanics', async () => {
   const caseData = catalogCase('plan-idempotency-key');
   const originalCriteria = [...caseData.criteria];
   const originalHash = caseInputHash(caseData);
@@ -43,17 +43,17 @@ test('pure plan word count is enforced once and sent as a verified measurement',
   });
 
   assert.equal(result.evaluation.verdict, 'passed');
-  assert.deepEqual(input.criteria, originalCriteria.slice(0, 3));
+  assert.deepEqual(input.criteria, originalCriteria);
   assert.equal(input.prompt, caseData.prompt);
-  assert.match(input.verifiedChecks[0], /^Displayed word count is \d+; maximum is 700; passed\./);
+  assert.deepEqual(input.verifiedChecks, []);
   assert.deepEqual(result.evidence.verifiedChecks, input.verifiedChecks);
   assert.deepEqual(result.evidence.semanticCriteria, input.criteria);
-  assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'plan_word_limit').passed, true);
+  assert.deepEqual(result.evidence.deterministicChecks.map(({ id }) => id), ['bounded_output', 'known_plan_template']);
   assert.deepEqual(caseData.criteria, originalCriteria);
   assert.equal(caseInputHash(caseData), originalHash);
 });
 
-test('compound research criterion retains source support while removing only measured length', async () => {
+test('research sends substantive comparison and source criteria without a length mechanic', async () => {
   const caseData = catalogCase('research-postgres-indexes');
   const originalCriteria = [...caseData.criteria];
   const output = 'BRIN summarizes block ranges and stays small; B-tree supports precise lookups. Prefer BRIN for ordered append-only data, trading lossy rechecks for lower index size. https://www.postgresql.org/docs/current/brin.html';
@@ -65,17 +65,14 @@ test('compound research criterion retains source support while removing only mea
   });
 
   assert.equal(result.evaluation.verdict, 'passed');
-  assert.deepEqual(input.criteria, [
-    ...originalCriteria.slice(0, 2),
-    'Claims are supported by exact official PostgreSQL documentation URLs.',
-  ]);
-  assert.match(input.verifiedChecks[0], /maximum is 220; passed\./);
+  assert.deepEqual(input.criteria, originalCriteria);
+  assert.deepEqual(input.verifiedChecks, []);
   assert.equal(input.sources.length, 1);
   assert.match(input.sources[0].contentHash, /^[a-f0-9]{64}$/);
   assert.deepEqual(caseData.criteria, originalCriteria);
 });
 
-test('search retains factual and source criteria after removing the pure length criterion', async () => {
+test('search sends factual and source criteria without a length mechanic', async () => {
   const caseData = catalogCase('search-python-json-ascii');
   let input;
   const result = await evaluateOutput({
@@ -86,8 +83,8 @@ test('search retains factual and source criteria after removing the pure length 
   });
 
   assert.equal(result.evaluation.verdict, 'passed');
-  assert.deepEqual(input.criteria, caseData.criteria.slice(0, 2));
-  assert.match(input.verifiedChecks[0], /maximum is 120; passed\./);
+  assert.deepEqual(input.criteria, caseData.criteria);
+  assert.deepEqual(input.verifiedChecks, []);
 });
 
 test('verified mechanics never turn a low overall or semantic Jev score into a pass', async () => {
@@ -105,15 +102,15 @@ test('verified mechanics never turn a low overall or semantic Jev score into a p
   }
 });
 
-test('over-limit prose fails deterministically without calling Jev', async () => {
+test('long plan prose below the technical cap reaches semantic evaluation', async () => {
   const caseData = catalogCase('plan-idempotency-key');
   let calls = 0;
   const result = await evaluateOutput({
     caseData, output: `${PLAN}\n${Array(701).fill('word').join(' ')}`, runId: RUN_ID,
     judge: async (input) => { calls += 1; return receipt(input); },
   });
-  assert.equal(result.evaluation.verdict, 'failed');
-  assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'plan_word_limit').passed, false);
-  assert.equal(calls, 0);
-  assert.equal(result.evidence.judge, null);
+  assert.equal(result.evaluation.verdict, 'passed');
+  assert.equal(calls, 1);
+  assert.ok(result.evidence.deterministicChecks.every(({ id }) => id !== 'plan_word_limit'));
+  assert.ok(result.evidence.judge);
 });
