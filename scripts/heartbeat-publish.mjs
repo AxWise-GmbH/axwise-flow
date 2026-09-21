@@ -12,13 +12,19 @@ export async function publishHeartbeatSnapshot(snapshot, { bucket, fetchImpl = f
     throw new Error('HEARTBEAT_BUCKET must name the dedicated status bucket.');
   }
   if (!Number.isFinite(Date.parse(snapshot.timestamp))) throw new Error('Invalid snapshot timestamp.');
-  const request = (url, options = {}) => fetchImpl(url, {
-    ...options, redirect: 'error', signal: AbortSignal.timeout(requestTimeoutMs),
-  });
+  const request = async (url, options = {}) => {
+    try {
+      return await fetchImpl(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(requestTimeoutMs) });
+    } catch {
+      throw Object.assign(new Error('Heartbeat request failed.'), {
+        phase: url === TOKEN_URL ? 'identity' : options.method === 'POST' ? 'upload' : 'object-metadata',
+      });
+    }
+  };
   const tokenResponse = await request(TOKEN_URL, { headers: { 'Metadata-Flavor': 'Google' } });
   if (!tokenResponse.ok) {
     await tokenResponse.body?.cancel();
-    throw new Error(`Heartbeat identity unavailable (HTTP ${tokenResponse.status}).`);
+    throw Object.assign(new Error(`Heartbeat identity unavailable (HTTP ${tokenResponse.status}).`), { phase: 'identity', httpStatus: tokenResponse.status });
   }
   const token = (await tokenResponse.json()).access_token;
   if (typeof token !== 'string' || !token) throw new Error('Heartbeat identity returned no token.');
@@ -41,7 +47,7 @@ export async function publishHeartbeatSnapshot(snapshot, { bucket, fetchImpl = f
       }
     } else if (existing.status !== 404) {
       await existing.body?.cancel();
-      throw new Error(`Could not read current snapshot (HTTP ${existing.status}).`);
+      throw Object.assign(new Error(`Could not read current snapshot (HTTP ${existing.status}).`), { phase: 'object-metadata', httpStatus: existing.status });
     } else {
       await existing.body?.cancel();
     }
@@ -53,14 +59,14 @@ export async function publishHeartbeatSnapshot(snapshot, { bucket, fetchImpl = f
       metadata: { observedAt: snapshot.timestamp },
     };
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`
-      + `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(snapshot)}\r\n--${boundary}--\r\n`;
+      + `--${boundary}\r\nContent-Type: ${metadata.contentType}\r\n\r\n${JSON.stringify(snapshot)}\r\n--${boundary}--\r\n`;
     const response = await request(
       `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=multipart&ifGenerationMatch=${generation}`,
       { method: 'POST', headers: { ...headers, 'Content-Type': `multipart/related; boundary=${boundary}` }, body },
     );
     await response.body?.cancel();
     if (response.ok) return { published: true };
-    if (response.status !== 412) throw new Error(`Could not publish snapshot (HTTP ${response.status}).`);
+    if (response.status !== 412) throw Object.assign(new Error(`Could not publish snapshot (HTTP ${response.status}).`), { phase: 'upload', httpStatus: response.status });
   }
   throw new Error('Snapshot publication conflicted with concurrent executions.');
 }
@@ -76,9 +82,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     console.log(JSON.stringify({ event: 'heartbeat-publication', timestamp: snapshot.timestamp,
       allHealthy: snapshot.allHealthy, ...publication, endpoints: snapshot.endpoints }));
     process.exitCode = exitCode;
-  }).catch(() => {
+  }).catch((error) => {
     // Neither metadata identity responses nor storage response bodies belong in logs.
-    console.error('Heartbeat publication failed; the public page will expire the last observation after 30 minutes.');
+    console.error(JSON.stringify({ event: 'heartbeat-publication-failed', phase: error.phase || 'snapshot',
+      httpStatus: error.httpStatus, message: 'Publication failed; the last observation expires after 30 minutes.' }));
     process.exitCode = 1;
   });
 }

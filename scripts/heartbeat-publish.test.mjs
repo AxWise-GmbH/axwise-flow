@@ -13,7 +13,12 @@ const identity = () => json({ access_token: 'fixture-token' });
 
 function multipart(options) {
   const boundary = options.headers['Content-Type'].split('boundary=')[1];
-  return options.body.split(`--${boundary}`).slice(1, 3).map((part) => JSON.parse(part.split('\r\n\r\n')[1].trim()));
+  const parts = options.body.split(`--${boundary}`).slice(1, 3);
+  const parsed = parts.map((part) => JSON.parse(part.split('\r\n\r\n')[1].trim()));
+  // GCS rejects uploads unless the media part's MIME type exactly matches metadata.
+  const mediaType = parts[1].split('\r\n\r\n')[0].trim().replace(/^Content-Type: /, '');
+  assert.equal(mediaType, parsed[0].contentType);
+  return parsed;
 }
 
 test('a degraded run atomically publishes its real failed observation before returning failure', async (t) => {
@@ -90,6 +95,8 @@ test('storage/identity failures cannot be reported as a successful publication',
       return json({ error: 'private provider response' }, 503);
     } }), (error) => {
       assert.match(error.message, /HTTP (403|503)/);
+      assert.equal(error.phase, { identity: 'identity', read: 'object-metadata', write: 'upload' }[phase]);
+      assert.equal(error.httpStatus, phase === 'write' ? 503 : 403);
       assert.doesNotMatch(error.message, /fixture-token|private provider/);
       return true;
     });
