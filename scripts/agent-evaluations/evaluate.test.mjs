@@ -54,6 +54,7 @@ test('passes exact JSON only after a valid Jev advisory receipt', async () => {
   assert.equal(result.evaluation.verdict, 'passed');
   assert.equal(result.evidence.judge.provider, 'typesafe');
   assert.equal(judgeInput.output, output);
+  assert.equal(judgeInput.prompt, caseData.prompt);
   assert.deepEqual(judgeInput.criteria, caseData.criteria);
   assert.ok(result.evidence.deterministicChecks.every((check) => !Object.hasOwn(check, 'reason')));
 });
@@ -129,7 +130,7 @@ test('search fetches bounded official evidence and passes it to Jev', async () =
     fetchImpl: async (url, options) => {
       assert.equal(url, 'https://docs.python.org/3/library/json.html');
       assert.equal(options.redirect, 'manual');
-      return new Response('<html><body><h1>json.dumps</h1><p>If ensure_ascii is true, output is escaped.</p></body></html>', {
+      return new Response('<html><body><h1 id="json.dumps">json.dumps</h1><p>If ensure_ascii is true, output is escaped.</p></body></html>', {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' },
       });
@@ -160,7 +161,7 @@ test('structured product citations use the same allowlist, fetch, and hash path'
     sources: [{ title: 'Globals', url: 'https://nodejs.org/api/globals.html#static-method-abortsignaltimeoutdelay' }],
     fetchImpl: async (url) => {
       fetched = url;
-      return new Response('<p>AbortSignal.timeout(delay) returns a new AbortSignal.</p>', {
+      return new Response('<h4>AbortSignal.timeout(delay)<a id=static-method-abortsignaltimeoutdelay></a></h4><p>AbortSignal.timeout(delay) returns a new AbortSignal.</p>', {
         status: 200,
         headers: { 'content-type': 'text/html' },
       });
@@ -214,6 +215,132 @@ test('large official pages select the cited Node and SQLite sections instead of 
           assert.match(input.sources[0].excerpt, new RegExp(scenario.relevant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
           assert.doesNotMatch(input.sources[0].excerpt, /menu navigation/);
           assert.ok(input.sources[0].excerpt.length <= 2_400);
+          return jevReceipt(caseData);
+        },
+      });
+      assert.equal(result.evaluation.verdict, 'passed');
+    });
+  }
+});
+
+test('fragmentless Node and SQLite roots select all supporting claim sections', async (t) => {
+  await t.test('Node root combines pipeline and pipe evidence', async () => {
+    const caseData = catalogCase('research-node-streams');
+    const navigation = `<nav>stream.pipeline readable.pipe ${'navigation '.repeat(30_000)}</nav>`;
+    const pipeline = [
+      '<section><h4><code>stream.pipeline(source, destination, callback)</code>',
+      '<span><a class=mark id=streampipelinesource-transforms-destination-callback></a></span></h4>',
+      '<p>A module method forwarding errors and properly cleaning up.</p>',
+      `<p>${'pipeline detail '.repeat(180)}</p>`,
+      '<p>stream.pipeline() will call stream.destroy(err) on active streams.</p></section>',
+    ].join('');
+    const pipe = [
+      '<section><h6><code>readable.pipe(destination[, options])</code>',
+      '<span><a class=mark id=readablepipedestination-options></a></span></h6>',
+      `<p>${'pipe detail '.repeat(180)}</p>`,
+      '<p>If the Readable emits an error, the Writable destination is not closed automatically; manually close streams to prevent memory leaks.</p></section>',
+    ].join('');
+    const result = await evaluateOutput({
+      caseData,
+      output: 'Use stream.pipeline for error forwarding and cleanup; readable.pipe needs manual cleanup. Tradeoffs are lifecycle control and listener handling. https://nodejs.org/api/stream.html',
+      runId: RUN_ID,
+      fetchImpl: async () => new Response(`<html><body>${navigation}${pipeline}${pipe}</body></html>`, {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+      judge: async (input) => {
+        const excerpt = input.sources[0].excerpt;
+        assert.match(excerpt, /forwarding errors/i);
+        assert.match(excerpt, /destroy\(err\)/i);
+        assert.match(excerpt, /not closed automatically/i);
+        assert.match(excerpt, /prevent memory leaks/i);
+        assert.doesNotMatch(excerpt, /navigation navigation/);
+        assert.ok(excerpt.length <= 2_400);
+        return jevReceipt(caseData);
+      },
+    });
+    assert.equal(result.evaluation.verdict, 'passed');
+  });
+
+  await t.test('SQLite root combines values with the later WAL persistence statement', async () => {
+    const caseData = catalogCase('search-sqlite-journal-mode');
+    const navigation = `<nav>journal_mode ${'navigation '.repeat(30_000)}</nav>`;
+    const journalMode = [
+      '<a name="pragma_journal_mode"></a><h _id=pragma_journal_mode>PRAGMA journal_mode</h>',
+      '<p>PRAGMA journal_mode = DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF</p>',
+      `<p>${'mode detail '.repeat(300)}</p>`,
+      '<p>The WAL journaling mode is persistent; after being set it stays in effect after closing and reopening the database.</p>',
+    ].join('');
+    const result = await evaluateOutput({
+      caseData,
+      output: 'Values are DELETE, TRUNCATE, PERSIST, MEMORY, WAL, and OFF. WAL persists after reopening. https://www.sqlite.org/pragma.html',
+      runId: RUN_ID,
+      fetchImpl: async () => new Response(`<html><body>${navigation}${journalMode}</body></html>`, {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+      judge: async (input) => {
+        const excerpt = input.sources[0].excerpt;
+        assert.match(excerpt, /DELETE \| TRUNCATE \| PERSIST \| MEMORY \| WAL \| OFF/i);
+        assert.match(excerpt, /WAL journaling mode is persistent/i);
+        assert.doesNotMatch(excerpt, /navigation navigation/);
+        assert.ok(excerpt.length <= 2_400);
+        return jevReceipt(caseData);
+      },
+    });
+    assert.equal(result.evaluation.verdict, 'passed');
+  });
+});
+
+test('other fragmentless catalog roots use their pinned official content sections', async (t) => {
+  const scenarios = [
+    {
+      templateId: 'search-node-abort-timeout',
+      output: 'AbortSignal.timeout(delay) returns a signal that aborts after the delay. https://nodejs.org/api/globals.html',
+      pages: new Map([['https://nodejs.org/api/globals.html', '<nav>AbortSignal timeout navigation</nav><h4>AbortSignal.timeout(delay)<a id=static-method-abortsignaltimeoutdelay></a></h4><p>The number of milliseconds to wait. Returns a new AbortSignal.</p>']]),
+      expected: [/number of milliseconds/i, /new AbortSignal/i],
+    },
+    {
+      templateId: 'search-python-json-ascii',
+      output: 'ensure_ascii defaults to true and escapes non-ASCII characters. https://docs.python.org/3/library/json.html',
+      pages: new Map([['https://docs.python.org/3/library/json.html', '<nav>ensure_ascii navigation</nav><h3 id="json.dump">json.dump ensure_ascii=True</h3><p>If ensure_ascii is true (the default), non-ASCII characters are escaped.</p><h3 id="json.dumps">json.dumps ensure_ascii=True</h3><p>The arguments have the same meaning as dump().</p>']]),
+      expected: [/true \(the default\)/i, /characters are escaped/i, /same meaning as dump/i],
+    },
+    {
+      templateId: 'research-postgres-indexes',
+      output: 'Prefer BRIN for correlated append-only data and B-tree for selective ranges. Tradeoffs include index size and precision. https://www.postgresql.org/docs/current/indexes-types.html https://www.postgresql.org/docs/current/brin.html',
+      pages: new Map([
+        ['https://www.postgresql.org/docs/current/indexes-types.html', '<nav>B-tree navigation</nav><div id="INDEXES-TYPES-BTREE"><h3>B-Tree</h3><p>B-trees handle equality and range queries and can retrieve sorted order.</p></div>'],
+        ['https://www.postgresql.org/docs/current/brin.html', '<nav>BRIN navigation</nav><div id="BRIN-INTRO"><h3>Introduction</h3><p>BRIN summarizes block ranges for columns correlated with physical order.</p></div>'],
+      ]),
+      expected: [/equality and range queries/i, /block ranges/i, /physical order/i],
+    },
+    {
+      templateId: 'research-browser-storage',
+      output: 'Use IndexedDB for a structured offline queue. It is asynchronous; localStorage is simpler but string-based. Tradeoffs include scale and complexity. https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage',
+      pages: new Map([
+        ['https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API', '<nav>IndexedDB navigation</nav><h2 id="key_concepts_and_usage">Key concepts</h2><p>IndexedDB stores structured data and operates asynchronously.</p>'],
+        ['https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage', '<nav>localStorage navigation</nav><main id="content"><h1>localStorage</h1><p>Stored data is saved across browser sessions.</p><p>Keys and values use UTF-16 strings.</p></main>'],
+      ]),
+      expected: [/structured data/i, /asynchronously/i, /saved across browser sessions/i, /UTF-16/i],
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await t.test(scenario.templateId, async () => {
+      const caseData = catalogCase(scenario.templateId);
+      const result = await evaluateOutput({
+        caseData,
+        output: scenario.output,
+        runId: RUN_ID,
+        fetchImpl: async (url) => new Response(scenario.pages.get(url), {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+        judge: async (input) => {
+          const excerpts = input.sources.map(({ excerpt }) => excerpt).join(' ');
+          for (const expected of scenario.expected) assert.match(excerpts, expected);
+          assert.doesNotMatch(excerpts, /navigation navigation/);
           return jevReceipt(caseData);
         },
       });
@@ -389,4 +516,96 @@ test('Jev verdict must agree with bounded overall probability and criterion resu
     judge: async () => ({ ...jevReceipt(caseData), overallProbability: 0.6 }),
   });
   assert.equal(threshold.evaluation.verdict, 'passed');
+});
+
+test('plan counts eight Step headings separately from numbered non-goals and rollout substeps', async () => {
+  const caseData = catalogCase('plan-webhook-retries');
+  // Shape of live run d9793c32-fe7d-4f23-a50c-9cb43fab0fcd: eight Step headings,
+  // two numbered non-goals first, then three numbered rollout details under Step 8.
+  const output = [
+    '### Non-Goals',
+    '1. **Strict FIFO In-Order Delivery:** Concurrent deliveries need not be ordered.',
+    '2. **Custom Transports and Auth Schemes:** Delivery uses HTTPS POST and HMAC.',
+    '---',
+    '### Implementation Plan',
+    '#### Step 1: Persistence & Transactional Outbox',
+    'Persist events and delivery records in a transactional outbox.',
+    '#### Step 2: Payload Envelope & Cryptographic Signing',
+    'Sign timestamp and payload with HMAC-SHA256.',
+    '#### Step 3: Dispatch Worker Pipeline & HTTP Hardening',
+    'Deploy workers with HTTPS-only destinations and bounded timeouts.',
+    '#### Step 4: Retry Policy & Dynamic Backoff',
+    'Retry transient network failures and 5xx with jitter for at most seven attempts.',
+    '#### Step 5: Terminal Failure Handling & Dead-Letter Queue',
+    'Mark non-retryable 4xx and exhausted retries terminal, retaining failed events.',
+    '#### Step 6: Observability, Metrics, and Alerting',
+    'Log attempts and measure delivery latency and terminal failure rates.',
+    '#### Step 7: Automated Testing Strategy',
+    'Test signing, retry bounds, terminal responses, and recovery after crashes.',
+    '#### Step 8: Phased Rollout & Migration',
+    '1. **Canary Verification:** Deploy to internal mock endpoints.',
+    '2. **Pilot Cohort:** Enable a small cohort and inspect metrics.',
+    '3. **General Availability:** Expand gradually with rollback readiness.',
+  ].join('\n');
+  let judgeCalls = 0;
+  const result = await evaluateOutput({
+    caseData, output, runId: RUN_ID,
+    judge: async () => { judgeCalls += 1; return jevReceipt(caseData); },
+  });
+
+  assert.equal(result.evaluation.verdict, 'passed');
+  assert.equal(judgeCalls, 1);
+  assert.ok(result.evidence.deterministicChecks.every(({ passed }) => passed));
+});
+
+test('numbered implementation plans exclude numbered non-goals and indented substeps', async () => {
+  const caseData = catalogCase('plan-cache-migration');
+  const output = [
+    ...Array.from({ length: 8 }, (_, index) => `${index + 1}. Address key design, invalidation, fallback, rollout, rollback, observability metrics, and tests.`),
+    '   1. Verify the rollout cohort.',
+    '   2. Inspect the metrics.',
+    '## Non-goals',
+    '1. Replace the database.',
+    '2. Redesign unrelated APIs.',
+  ].join('\n');
+  const result = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async () => jevReceipt(caseData) });
+
+  assert.equal(result.evaluation.verdict, 'passed');
+  assert.ok(result.evidence.deterministicChecks.every(({ passed }) => passed));
+});
+
+test('plan enforces one through eight ordered steps without an unstated four-step minimum', async () => {
+  const caseData = catalogCase('plan-cache-migration');
+  for (const count of [0, 1, 3, 8, 9]) {
+    const output = [
+      ...Array.from({ length: count }, (_, index) => `#### Step ${index + 1}: Implementation`),
+      'Address key design, invalidation, fallback, rollout, rollback, observability metrics, and tests.',
+      'Non-goal 1: Replace the database.',
+      'Non-goal 2: Redesign unrelated APIs.',
+    ].join('\n');
+    let judgeCalls = 0;
+    const result = await evaluateOutput({
+      caseData, output, runId: RUN_ID,
+      judge: async () => { judgeCalls += 1; return jevReceipt(caseData); },
+    });
+    const bounded = count >= 1 && count <= 8;
+    assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'bounded_ordered_steps').passed, bounded, `step count ${count}`);
+    assert.equal(judgeCalls, bounded ? 1 : 0, `step count ${count}`);
+    assert.equal(result.evaluation.verdict, bounded ? 'passed' : 'failed', `step count ${count}`);
+  }
+});
+
+test('message judge receives the original incident facts as well as the output and criteria', async () => {
+  const caseData = catalogCase('message-constraint-summary');
+  const output = 'At 09:10 UTC, cache saturation caused elevated API latency. The cache was resized at 09:18 UTC, allowing latency to return to normal by 09:24 UTC.';
+  let judgeInput;
+  const result = await evaluateOutput({
+    caseData, output, runId: RUN_ID,
+    judge: async (input) => { judgeInput = input; return jevReceipt(caseData); },
+  });
+
+  assert.equal(result.evaluation.verdict, 'passed');
+  assert.equal(judgeInput.prompt, caseData.prompt);
+  assert.match(judgeInput.prompt, /At 09:10 UTC, cache saturation raised API latency/);
+  assert.match(judgeInput.prompt, /At 09:18 UTC, the cache was resized/);
 });
