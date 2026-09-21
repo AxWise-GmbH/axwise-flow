@@ -84,7 +84,12 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).toContain('absolute_redirect off;');
     expect(nginx).toMatch(/location = \/api \{[\s\S]*?return 404 'not found';[\s\S]*?\}/);
     expect(nginx).toMatch(/location \^~ \/api\/ \{[\s\S]*?return 404 'not found';[\s\S]*?\}/);
-    expect(nginx).not.toContain('proxy_pass');
+    const exactApiLocation = nginx.match(/location = \/api \{([^{}]*)\}/)?.[1];
+    const apiPrefixLocation = nginx.match(/location \^~ \/api\/ \{([^{}]*)\}/)?.[1];
+    expect(exactApiLocation).toBeTruthy();
+    expect(apiPrefixLocation).toBeTruthy();
+    expect(exactApiLocation).not.toContain('proxy_pass');
+    expect(apiPrefixLocation).not.toContain('proxy_pass');
     expect(nginx).not.toContain('ORQALY_API_ORIGIN');
     expect(dockerfile).not.toContain('ORQALY_API_ORIGIN');
     expect(nginx).toMatch(/location = \/sw\.js \{[\s\S]*?return 410;[\s\S]*?\}/);
@@ -92,5 +97,55 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).toContain('try_files $uri $uri/ /index.html;');
     expect(nginx).not.toContain('return 308 /workflows-v2');
     expect(nginx.match(/default_type text\/plain;/g)).toHaveLength(4);
+  });
+
+  it('proxies only the heartbeat snapshot to a fixed, TLS-verified public object', () => {
+    const dockerfile = readFileSync('deploy/workflow-v2/Dockerfile.web', 'utf8');
+    const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
+    const heartbeatLocation = nginx.match(
+      /location = \/heartbeat\.json \{([\s\S]*?)\n  \}/
+    )?.[1];
+
+    expect(heartbeatLocation).toBeTruthy();
+    expect(heartbeatLocation).toContain('limit_except GET HEAD');
+    expect(heartbeatLocation).toContain(
+      'proxy_pass https://storage.googleapis.com/orqanix-heartbeat-preview-161074549006/latest.json?;'
+    );
+    expect(heartbeatLocation).toContain('proxy_ssl_server_name on;');
+    expect(heartbeatLocation).toContain('proxy_ssl_name storage.googleapis.com;');
+    expect(heartbeatLocation).toContain('proxy_ssl_verify on;');
+    expect(heartbeatLocation).toContain(
+      'proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;'
+    );
+    expect(heartbeatLocation).toContain('proxy_pass_request_headers off;');
+    expect(heartbeatLocation).toContain('proxy_pass_request_body off;');
+    expect(heartbeatLocation).toContain('proxy_intercept_errors off;');
+    expect(heartbeatLocation).toContain('proxy_set_header Authorization "";');
+    expect(heartbeatLocation).toContain('proxy_set_header Cookie "";');
+    expect(heartbeatLocation).toContain(
+      'add_header Cache-Control "no-cache, no-store, must-revalidate" always;'
+    );
+    expect(heartbeatLocation).not.toContain('try_files');
+    expect(nginx.match(/\bproxy_pass\b/g)).toHaveLength(1);
+    expect(dockerfile).not.toContain('apk add');
+  });
+
+  it('describes the server-published heartbeat consistently in both web builds', () => {
+    const publicationCopy =
+      'Cloud Scheduler starts the Cloud Run collector every 15 minutes and publishes this dated snapshot. Observations older than 30 minutes are marked stale.';
+    const pagePairs = [
+      ['public/heartbeat.html', 'public-gcp/heartbeat.html'],
+      ['public/heartbeat/index.html', 'public-gcp/heartbeat/index.html'],
+      ['public/benchmark.html', 'public-gcp/benchmark.html'],
+      ['public/benchmark/index.html', 'public-gcp/benchmark/index.html'],
+    ];
+
+    for (const [fullPagePath, gcpPagePath] of pagePairs) {
+      const fullPage = readFileSync(fullPagePath, 'utf8');
+      const gcpPage = readFileSync(gcpPagePath, 'utf8');
+      expect(fullPage).toBe(gcpPage);
+      expect(gcpPage).toContain(publicationCopy);
+      expect(gcpPage).not.toContain('scheduled checks do not automatically publish here');
+    }
   });
 });
