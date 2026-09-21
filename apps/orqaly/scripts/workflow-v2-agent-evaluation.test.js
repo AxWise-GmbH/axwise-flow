@@ -73,8 +73,12 @@ describe('real evaluation service contracts', () => {
     expect(result.evaluation.verdict).toBe('passed');
     const upstream = JSON.parse(fetchImpl.mock.calls[0][1].body);
     expect(upstream.state.prompt).toBe(caseData.prompt);
+    expect(upstream.state.verifiedChecks).toEqual(expect.any(Array));
     expect(upstream.questions.criterion_1.instructions).toContain(
       'Facts explicitly provided in the task are usable evidence'
+    );
+    expect(upstream.questions.criterion_1.instructions).toContain(
+      'must not be recounted, re-estimated, or overridden'
     );
     expect(upstream.questions.overall_quality.instructions).toContain(
       'Do not impose unstated requirements.'
@@ -130,7 +134,13 @@ describe('real evaluation service contracts', () => {
       provider: 'typesafe', criteriaResults: [{ passed: true }] });
     const firstState = JSON.parse(fetchImpl.mock.calls[0][1].body).state;
     expect(firstState.prompt).toBe(command.prompt);
+    expect(firstState.verifiedChecks).toEqual([]);
     expect(firstState.sources[0]).toEqual(command.sources[0]);
+    const verified = await service.judge({ ...command,
+      verifiedChecks: ['The measured output length is within the requested bound.'] });
+    expect(verified.evidenceHash).not.toBe(first.evidenceHash);
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body).state.verifiedChecks)
+      .toEqual(['The measured output length is within the requested bound.']);
     const changedPrompt = await service.judge({ ...command, prompt: `${command.prompt} Be concise.` });
     expect(changedPrompt.evidenceHash).not.toBe(first.evidenceHash);
     await expect(service.judge({ ...command, sources: [{ ...command.sources[0], excerpt: `${excerpt} Changed.` }] }))
@@ -139,7 +149,11 @@ describe('real evaluation service contracts', () => {
       .rejects.toMatchObject({ name: 'ZodError' });
     await expect(service.judge({ ...command, prompt: 'x'.repeat(24_001) }))
       .rejects.toMatchObject({ name: 'ZodError' });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    await expect(service.judge({ ...command, verifiedChecks: ['x'.repeat(2001)] }))
+      .rejects.toMatchObject({ name: 'ZodError' });
+    await expect(service.judge({ ...command, verifiedChecks: Array(17).fill('Measured.') }))
+      .rejects.toMatchObject({ name: 'ZodError' });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 });
 

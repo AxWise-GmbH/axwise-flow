@@ -205,7 +205,17 @@ function sourceChecks(caseData, output, sources) {
   const cited = [...new Set([...extractUrls(output), ...structuredSourceUrls(sources)])];
   const parsed = cited.map((url) => parseOfficialSource(url, allowedHosts));
   const approved = parsed.filter(Boolean);
-  const official = [...new Map(approved.map((target) => [target.citationUrl, target])).values()];
+  const uniqueOfficial = [...new Map(approved.map((target) => [target.citationUrl, target])).values()];
+  const byDocument = new Map();
+  for (const target of uniqueOfficial) {
+    const group = byDocument.get(target.requestUrl) ?? [];
+    group.push(target);
+    byDocument.set(target.requestUrl, group);
+  }
+  const official = [...byDocument.values()].flatMap((targets) => {
+    const root = targets.find(({ fragment }) => fragment === '');
+    return root === undefined ? targets : [root];
+  });
   const maximumWords = caseData.category === 'search'
     ? (caseData.templateId === 'search-sqlite-journal-mode' ? 140 : 120)
     : 220;
@@ -515,6 +525,31 @@ function sanitizeJudgeReceipt(receipt, expectedCriteria, expectedIdentity) {
   };
 }
 
+function semanticJudgeRequirements(caseData, output, checks) {
+  const measuredWordLimit = checks.some(({ id, passed }) => id === 'plan_word_limit' && passed)
+    ? 700
+    : checks.some(({ id, passed }) => id === 'word_limit' && passed)
+      ? caseData.category === 'research' ? 220 : caseData.templateId === 'search-sqlite-journal-mode' ? 140 : 120
+      : null;
+  if (measuredWordLimit === null) return { criteria: [...caseData.criteria], verifiedChecks: [] };
+
+  // Remove only the catalog's measured length requirements, retaining every
+  // semantic claim and the original case criteria in the published record.
+  const pureLengthCriteria = new Set([
+    `The entire response is at most ${measuredWordLimit} words.`,
+    `The response is no more than ${measuredWordLimit} words.`,
+  ]);
+  const lengthSuffix = ` and the response is no more than ${measuredWordLimit} words.`;
+  return {
+    criteria: caseData.criteria.filter((criterion) => !pureLengthCriteria.has(criterion))
+      .map((criterion) => criterion.endsWith(lengthSuffix)
+        ? `${criterion.slice(0, -lengthSuffix.length)}.` : criterion),
+    verifiedChecks: [
+      `Displayed word count is ${wordCount(output)}; maximum is ${measuredWordLimit}; passed. The deterministic counter excludes Markdown-only markers, URLs, and numeric citation labels, while retaining descriptive labels, ordinary numbers, and Unicode prose.`,
+    ],
+  };
+}
+
 export async function evaluateOutput({ caseData, output, sources = [], runId, judge, fetchImpl = globalThis.fetch, signal } = {}) {
   if (!caseData || typeof caseData !== 'object') throw new TypeError('caseData must be an evaluation case object');
   if (typeof caseData.category !== 'string' || typeof caseData.templateId !== 'string') {
@@ -599,11 +634,13 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
     };
   }
 
+  const requirements = semanticJudgeRequirements(caseData, output.trim(), checks);
   const judgeInput = {
     runId,
     category: caseData.category,
     prompt: caseData.prompt,
-    criteria: [...caseData.criteria],
+    criteria: requirements.criteria,
+    verifiedChecks: requirements.verifiedChecks,
     output: output.trim(),
     sources: sourceEvidence.map(({ finalUrl, excerpt, excerptHash }) => ({
       url: finalUrl,
@@ -628,7 +665,7 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
     };
   }
 
-  const sanitized = sanitizeJudgeReceipt(receipt, caseData.criteria, { runId, category: caseData.category });
+  const sanitized = sanitizeJudgeReceipt(receipt, judgeInput.criteria, { runId, category: caseData.category });
   if (sanitized === null) {
     return {
       evaluation: notEvaluated('Jev advisory receipt was malformed or unsupported.', checks),
@@ -640,6 +677,8 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
     evaluation: sanitized.evaluation,
     evidence: {
       deterministicChecks: checks,
+      verifiedChecks: judgeInput.verifiedChecks,
+      semanticCriteria: judgeInput.criteria,
       sources: sourceEvidence,
       declaredSourceCount: sources.length,
       judge: sanitized.evidence,
