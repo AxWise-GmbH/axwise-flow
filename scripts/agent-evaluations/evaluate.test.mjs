@@ -609,3 +609,61 @@ test('message judge receives the original incident facts as well as the output a
   assert.match(judgeInput.prompt, /At 09:10 UTC, cache saturation raised API latency/);
   assert.match(judgeInput.prompt, /At 09:18 UTC, the cache was resized/);
 });
+
+test('PostgreSQL response word limit counts prose rather than Markdown and numeric citations', async () => {
+  const caseData = catalogCase('research-postgres-indexes');
+  const brin = '[1](<https://www.postgresql.org/docs/current/brin.html>)';
+  const indexes = '[2](<https://www.postgresql.org/docs/current/indexes-types.html>)';
+  // Exact displayed response from the third live run, with citation strings shared.
+  const output = [
+    '### Recommendation',
+    '',
+    `For a large append-only events table where rows are physically inserted in timestamp order, a **BRIN (Block Range Index)** is the recommended choice ${brin} ${indexes}. Because event timestamps naturally correlate with their physical page layout, BRIN provides efficient range scanning while keeping index overhead negligible ${brin} ${indexes}.`,
+    '',
+    '---',
+    '',
+    '### Tradeoffs',
+    '',
+    `1. **Storage Footprint and Lossiness vs. Point Lookup Precision** ${brin} ${indexes}`,
+    `   * **BRIN:** Summarizes column values (such as minimum and maximum bounds for linear sort orders) across multi-page block ranges rather than indexing individual rows ${brin} ${indexes}. This yields an extremely small index with minimal maintenance overhead, but it is lossy ${brin}. Queries execute via bitmap index scans, requiring the executor to fetch and recheck all heap tuples within matching ranges ${brin}.`,
+    `   * **B-tree:** Indexes every individual tuple, enabling exact, non-lossy equality and range lookups ${indexes}. However, it consumes substantial disk space and incurs higher maintenance cost on massive tables ${brin}.`,
+    '',
+    `2. **Index-Driven Ordering vs. Maintenance on Append** ${indexes}`,
+    `   * **B-tree:** Can return matching rows directly in sorted order, which can bypass an explicit query sort step ${indexes}.`,
+    `   * **BRIN:** Cannot return data in sorted order. Additionally, when new heap pages are appended past the previously summarized block range, they remain unsummarized until a summarization routine or vacuum run processes them ${brin}.`,
+    '',
+    '---',
+    '',
+    `**Sources:** PostgreSQL Documentation chapters *Index Types* and *BRIN Indexes* ${brin} ${indexes}.`,
+  ].join('\n');
+  const result = await evaluateOutput({
+    caseData, output, runId: RUN_ID,
+    fetchImpl: async () => { throw new Error('Word-count regression does not fetch sources.'); },
+  });
+
+  assert.equal(output.trim().split(/\s+/u).length, 226);
+  assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'word_limit').passed, true);
+});
+
+test('word limit retains descriptive labels, ordinary numbers, and non-ASCII prose', async () => {
+  const caseData = catalogCase('research-postgres-indexes');
+  const url = 'https://www.postgresql.org/docs/current/brin.html';
+  const words = (count, word = 'word') => Array(count).fill(word).join(' ');
+  const cases = [
+    { name: 'plain prose over the limit', output: words(221), passed: false },
+    { name: 'descriptive link labels', output: `${words(218)} [three descriptive words](${url})`, passed: false },
+    { name: 'ordinary numeric prose', output: `${words(219)} 42 2026`, passed: false },
+    { name: 'non-ASCII prose over the limit', output: words(221, 'Überprüfung'), passed: false },
+    { name: 'non-ASCII prose at the limit', output: words(220, 'résumé'), passed: true },
+    { name: 'visible heading words', output: `${words(219)}\n### Two Words`, passed: false },
+    { name: 'numeric citations and bare URL', output: `${words(220)} [1](<${url}>) [2](${url}) [3] ${url}`, passed: true },
+    { name: 'list markers and horizontal rules', output: `##\n---\n1. ${words(110)}\n* ${words(110)}\n***`, passed: true },
+  ];
+  for (const item of cases) {
+    const result = await evaluateOutput({
+      caseData, output: item.output, runId: RUN_ID, sources: [{ url }],
+      fetchImpl: async () => { throw new Error('Word-count regression does not fetch sources.'); },
+    });
+    assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'word_limit').passed, item.passed, item.name);
+  }
+});

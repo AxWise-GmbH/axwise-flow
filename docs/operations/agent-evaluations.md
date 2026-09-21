@@ -19,6 +19,8 @@ source-backed Search and Research claims also receive bounded, hashed excerpts
 from the cited official pages. A completed request can still fail quality
 checks, and a judge or evidence-fetch failure must not be presented as a pass.
 The runner commit and template version identify the method used for each run.
+Word limits count visible prose, including headings and descriptive link labels;
+Markdown-only markers, URLs and numeric citation labels do not count as words.
 
 Orqanix token usage currently remains unreported because the Assistant message
 contract does not preserve AxWise usage metrics. The dashboard does not infer
