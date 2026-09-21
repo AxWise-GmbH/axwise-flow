@@ -93,4 +93,47 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).not.toContain('return 308 /workflows-v2');
     expect(nginx.match(/default_type text\/plain;/g)).toHaveLength(4);
   });
+
+  it('serves only the fixed heartbeat snapshot from the private read-only mount', () => {
+    const dockerfile = readFileSync('deploy/workflow-v2/Dockerfile.web', 'utf8');
+    const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
+    const heartbeatLocation = nginx.match(
+      /location = \/heartbeat\.json \{([\s\S]*?)\n {2}\}/
+    )?.[1];
+
+    expect(heartbeatLocation).toBeTruthy();
+    expect(heartbeatLocation).toContain('limit_except GET HEAD');
+    expect(heartbeatLocation).toContain(
+      'alias /var/run/orqanix-heartbeat/latest.json;'
+    );
+    expect(heartbeatLocation).toContain('etag off;');
+    expect(heartbeatLocation).toContain('if_modified_since off;');
+    expect(heartbeatLocation).toContain('open_file_cache off;');
+    expect(heartbeatLocation).toContain(
+      'add_header Cache-Control "no-cache, no-store, must-revalidate" always;'
+    );
+    expect(heartbeatLocation).not.toContain('try_files');
+    expect(nginx).not.toContain('proxy_pass');
+    expect(dockerfile).toContain('/var/run/orqanix-heartbeat');
+    expect(dockerfile).not.toContain('latest.json /usr/share/nginx/html');
+  });
+
+  it('describes the server-published heartbeat consistently in both web builds', () => {
+    const publicationCopy =
+      'Cloud Scheduler starts the Cloud Run collector every 15 minutes and publishes this dated snapshot. Observations older than 30 minutes are marked stale.';
+    const pagePairs = [
+      ['public/heartbeat.html', 'public-gcp/heartbeat.html'],
+      ['public/heartbeat/index.html', 'public-gcp/heartbeat/index.html'],
+      ['public/benchmark.html', 'public-gcp/benchmark.html'],
+      ['public/benchmark/index.html', 'public-gcp/benchmark/index.html'],
+    ];
+
+    for (const [fullPagePath, gcpPagePath] of pagePairs) {
+      const fullPage = readFileSync(fullPagePath, 'utf8');
+      const gcpPage = readFileSync(gcpPagePath, 'utf8');
+      expect(fullPage).toBe(gcpPage);
+      expect(gcpPage).toContain(publicationCopy);
+      expect(gcpPage).not.toContain('scheduled checks do not automatically publish here');
+    }
+  });
 });
