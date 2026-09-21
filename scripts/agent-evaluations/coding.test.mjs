@@ -107,6 +107,19 @@ test('risky generated source fails before it can access ambient capabilities', a
   assert.equal(arm.evidence.tests.output.includes('forbidden capability'), true);
 });
 
+test('a provider-truncated coding response remains incomplete instead of a quality failure', async () => {
+  let reviews = 0;
+  const arm = await runVanillaCodingArm({ caseData: codingCase(), apiBaseUrl: BASE, accountHash: ACCOUNT,
+    conversationId: 'evaluation-truncated', tokenProvider: TOKEN,
+    vanillaCall: async () => ({ status: 'failed', model: 'gemini-3.8-flash', output: 'partial output', error: { code: 'OUTPUT_TRUNCATED' } }),
+    jevEvaluator: async () => { reviews++; return {}; } });
+  assert.equal(arm.status, 'failed');
+  assert.equal(arm.evaluation.verdict, 'not_evaluated');
+  assert.equal(arm.error, 'OUTPUT_TRUNCATED');
+  assert.equal(arm.output, 'partial output');
+  assert.equal(reviews, 0);
+});
+
 test('a mismatched injected Jev receipt cannot produce a pass', async () => {
   const caseData = codingCase();
   const arm = await runVanillaCodingArm({
