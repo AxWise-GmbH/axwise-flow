@@ -11,6 +11,7 @@ const PROVIDER_WAIT_MS = 180_000;
 const JUDGE_WAIT_MS = 8_000;
 const slug = z.string().regex(/^[a-z0-9][a-z0-9._-]{0,127}$/);
 const criterion = z.string().trim().min(1).max(2000);
+const evaluationPrompt = z.string().trim().min(1).max(24_000);
 
 export const AgentEvaluationExecuteSchema = z.object({
   runId: z.uuid(),
@@ -18,7 +19,7 @@ export const AgentEvaluationExecuteSchema = z.object({
   category: z.enum(['message', 'search', 'research', 'plan', 'coding']),
   templateId: slug,
   templateVersion: z.number().int().min(1).max(1_000_000),
-  prompt: z.string().trim().min(1).max(24_000),
+  prompt: evaluationPrompt,
   criteria: z.array(criterion).min(1).max(16),
   arm: z.enum(['orqanix', 'vanilla']),
 }).strict().superRefine((command, context) => {
@@ -29,6 +30,7 @@ export const AgentEvaluationExecuteSchema = z.object({
 export const AgentEvaluationJudgeSchema = z.object({
   runId: z.uuid(),
   category: z.enum(['message', 'search', 'research', 'plan', 'coding']),
+  prompt: evaluationPrompt,
   criteria: z.array(criterion).min(1).max(16),
   output: z.string().min(1).max(120_000),
   sources: z.array(z.object({
@@ -197,10 +199,11 @@ export function createAgentEvaluationService({
     if (typeof typesafeApiKey !== 'string' || !typesafeApiKey.trim() || /[\r\n]/.test(typesafeApiKey))
       throw new AgentEvaluationError('JUDGE_NOT_CONFIGURED', 503);
     const questions = Object.fromEntries(command.criteria.map((item, index) => [`criterion_${index + 1}`, {
-      type: 'noul', instructions: `Does the supplied output satisfy this criterion using only the supplied output and supplied source evidence? Criterion: ${item}`,
+      type: 'noul', instructions: `Grade the supplied output against this criterion relative to the supplied task. Facts explicitly provided in the task are usable evidence for transformations and summaries. When the task requests sourcing, external factual claims must be supported by the supplied fetched source evidence. Do not impose unstated requirements. Criterion: ${item}`,
     }]));
-    questions.overall_quality = { type: 'noul', instructions: 'Using only the supplied output, criteria, and supplied source evidence, is this a high-quality answer that satisfies the criteria? Missing evidence or unsupported claims count against it.' };
-    const state = { category: command.category, criteria: command.criteria, output: command.output,
+    questions.overall_quality = { type: 'noul', instructions: 'Grade overall quality relative to the supplied task and requested criteria. Facts explicitly provided in the task are usable evidence for transformations and summaries. When the task requests sourcing, external factual claims must be supported by the supplied fetched source evidence. Do not impose unstated requirements.' };
+    const state = { category: command.category, prompt: command.prompt,
+      criteria: command.criteria, output: command.output,
       sources: command.sources, evidenceOrigin: 'Machine evaluation output plus evaluator-fetched source excerpts when excerpt and contentHash are present. URL-only entries are unverified metadata.' };
     const controller = new AbortController();
     let timedOut = false;

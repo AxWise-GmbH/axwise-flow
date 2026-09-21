@@ -71,6 +71,15 @@ describe('real evaluation service contracts', () => {
       judge: body => service.judge(body) });
     expect(fetchImpl).toHaveBeenCalledOnce();
     expect(result.evaluation.verdict).toBe('passed');
+    const upstream = JSON.parse(fetchImpl.mock.calls[0][1].body);
+    expect(upstream.state.prompt).toBe(caseData.prompt);
+    expect(upstream.questions.criterion_1.instructions).toContain(
+      'Facts explicitly provided in the task are usable evidence'
+    );
+    expect(upstream.questions.overall_quality.instructions).toContain(
+      'Do not impose unstated requirements.'
+    );
+    expect(result.evidence.judge.evidenceHash).toBe(sha256Hex(JSON.stringify(upstream.state)));
   });
 
   it('sends vanilla Gemini the exact user prompt with no Orqanix guidance or system message', async () => {
@@ -112,15 +121,25 @@ describe('real evaluation service contracts', () => {
     } }));
     const service = createAgentEvaluationService({ assistantService: { send: vi.fn(), resume: vi.fn() },
       userId: config.userId, geminiApiKey: 'server-gemini-key', typesafeApiKey: 'typesafe-key', fetchImpl });
-    const command = { runId, category: 'research', criteria: ['Cites the retry requirement.'],
+    const command = { runId, category: 'research', prompt: 'Using the supplied official source, explain retries.',
+      criteria: ['Cites the retry requirement.'],
       output: 'Retries use an idempotency key.', sources: [{ url: 'https://example.test/official',
         excerpt, contentHash: sha256Hex(excerpt) }] };
-    await expect(service.judge(command)).resolves.toMatchObject({ verdict: 'passed', advisory: true,
+    const first = await service.judge(command);
+    expect(first).toMatchObject({ verdict: 'passed', advisory: true,
       provider: 'typesafe', criteriaResults: [{ passed: true }] });
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).state.sources[0]).toEqual(command.sources[0]);
+    const firstState = JSON.parse(fetchImpl.mock.calls[0][1].body).state;
+    expect(firstState.prompt).toBe(command.prompt);
+    expect(firstState.sources[0]).toEqual(command.sources[0]);
+    const changedPrompt = await service.judge({ ...command, prompt: `${command.prompt} Be concise.` });
+    expect(changedPrompt.evidenceHash).not.toBe(first.evidenceHash);
     await expect(service.judge({ ...command, sources: [{ ...command.sources[0], excerpt: `${excerpt} Changed.` }] }))
       .rejects.toMatchObject({ name: 'ZodError' });
-    expect(fetchImpl).toHaveBeenCalledOnce();
+    await expect(service.judge({ ...command, unexpected: true }))
+      .rejects.toMatchObject({ name: 'ZodError' });
+    await expect(service.judge({ ...command, prompt: 'x'.repeat(24_001) }))
+      .rejects.toMatchObject({ name: 'ZodError' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
 
