@@ -22,7 +22,6 @@ async function renderPage() {
   // The blocks under the hero are lazy-loaded; wait so every assertion sees the whole page.
   await screen.findByRole('heading', { name: 'Watch it work' }, { timeout: 8000 });
   await screen.findByRole('heading', { name: 'One app. Many jobs.' }, { timeout: 8000 });
-  await screen.findByRole('heading', { name: 'Plug in any LLM & Tool' }, { timeout: 8000 });
   await screen.findByRole('heading', { name: /Chat from anywhere/i }, { timeout: 8000 });
   return view;
 }
@@ -65,13 +64,13 @@ describe('LandingPageInstant', () => {
     expect(hero.textContent).not.toMatch(/web version|web preview|Watch it build/i);
   });
 
-  it('links the two pages and the download block from the top bar', async () => {
+  it('links the two pages and the download block ("Try For Free") from the top bar', async () => {
     const { container } = await renderPage();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     const targets = {
       'How it works': '/instant/how-it-works',
       Features: '/instant/features',
-      Download: '#download',
+      'Try For Free': '#download',
     };
     for (const [name, href] of Object.entries(targets)) {
       expect(within(nav).getByRole('link', { name })).toHaveAttribute('href', href);
@@ -102,6 +101,10 @@ describe('LandingPageInstant', () => {
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
     ).toEqual(['/instant/how-it-works', '/instant/features', '#download']);
+    expect(within(menu).getByRole('link', { name: 'Try For Free' })).toHaveAttribute(
+      'href',
+      '#download'
+    );
     expect(within(menu).getByRole('button', { name: /Solutions/ })).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -137,7 +140,7 @@ describe('LandingPageInstant', () => {
     expect(screen.queryByRole('heading', { name: 'You stay in control' })).not.toBeInTheDocument();
   });
 
-  it('runs the blocks in the agreed order, without the speed numbers or the examples window', async () => {
+  it('runs the blocks in the agreed order, without speed numbers, examples window or integrations', async () => {
     const { container } = await renderPage();
     const headings = [...container.querySelectorAll('main h1, main h2')].map((node) =>
       node.textContent.replace(/\s+/g, ' ').trim()
@@ -147,7 +150,6 @@ describe('LandingPageInstant', () => {
       /^Watch it work$/,
       /^One app\. Many jobs\.$/,
       /^Chat from anywhere/i,
-      /^Plug in any LLM & Tool$/,
       /^Questions/i,
       /^Start with the work in front of you/i,
     ];
@@ -155,14 +157,19 @@ describe('LandingPageInstant', () => {
     expect(found).not.toContain(-1);
     expect(found).toEqual([...found].sort((a, b) => a - b));
 
-    // The capability strip has no heading of its own: it sits between the channels and the hub.
+    // The capability strip has no heading of its own: it sits between the channels and the
+    // questions. The owner took the integrations block ("Plug in any LLM & Tool") off.
     const strip = screen.getByRole('group', { name: 'More capabilities' });
     const before = screen.getByRole('heading', { name: /Chat from anywhere/i });
-    const after = screen.getByRole('heading', { name: 'Plug in any LLM & Tool' });
+    const after = screen.getByRole('heading', { name: /^Questions/i });
     expect(before.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(strip.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     expect(container.querySelector('#speed-heading')).toBeNull();
+    expect(container.querySelector('#integrations')).toBeNull();
+    expect(
+      screen.queryByRole('heading', { name: 'Plug in any LLM & Tool' })
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'One chat. A connected workspace.' })
     ).not.toBeInTheDocument();

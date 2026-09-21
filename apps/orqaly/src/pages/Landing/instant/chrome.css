@@ -15,7 +15,7 @@
 .oi-bar[data-scrolled='true'],
 .oi-bar[data-open='true'] {
   border-bottom-color: var(--oi-hairline);
-  background: rgba(3, 11, 7, 0.72);
+  background: rgba(0, 0, 0, 0.72);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
 }
@@ -58,33 +58,18 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  font-family: var(--oi-mono);
-  font-size: 0.74rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--oi-sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   text-decoration: none;
 }
 
+/* The page you are on reads in full white; there is no line under it. */
 .oi-nav-link {
-  position: relative;
   padding: 0 14px;
   color: var(--oi-muted);
   transition: color 300ms ease;
-}
-
-/* A hairline of light grows under the link you point at. */
-.oi-nav-link::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  bottom: 9px;
-  left: 14px;
-  height: 1px;
-  background: var(--oi-accent);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  transition: transform 500ms var(--oi-ease);
 }
 
 .oi-nav-link:hover,
@@ -95,13 +80,6 @@
   color: var(--oi-ink);
 }
 
-.oi-nav-link:hover::after,
-.oi-nav-link:focus-visible::after,
-.oi-nav-link[aria-current='page']::after,
-.oi-nav-link[data-active='true']::after {
-  transform: scaleX(1);
-}
-
 .oi-nav-cta,
 .oi-sheet-cta {
   justify-content: center;
@@ -110,6 +88,7 @@
   border-radius: var(--oi-radius-pill);
   background: var(--oi-ink);
   color: #060a08;
+  font-weight: 500;
   transition:
     background-color 300ms ease,
     box-shadow 400ms ease;
@@ -142,10 +121,6 @@
   cursor: pointer;
 }
 
-.oi-sol-button::after {
-  right: 33px;
-}
-
 .oi-sol-chevron,
 .oi-sheet-chevron {
   width: 12px;
@@ -166,13 +141,13 @@
   right: var(--oi-s3);
   width: min(720px, calc(100vw - 2 * var(--oi-s3)));
   padding: 10px;
-  border: 1px solid var(--oi-hairline-strong);
+  /* The shared card graphite (--oi-app-* in instant.css), over solid black so the page
+     never shows through a menu. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 20px;
-  background:
-    radial-gradient(ellipse 70% 60% at 100% 0, rgba(var(--oi-glow-rgb), 0.42), transparent 70%),
-    var(--oi-stage-panel);
+  background: var(--oi-app-surface), #000000;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 40px 90px -20px rgba(0, 0, 0, 0.9);
   animation: oi-sol-in 420ms var(--oi-ease) backwards;
 }
@@ -306,6 +281,7 @@
 
 /* Phone menu --------------------------------------------------------------- */
 
+/* A filled grey disc with three equal white lines; open, the outer two cross into an X. */
 .oi-menu-toggle {
   display: none;
   place-items: center;
@@ -313,28 +289,38 @@
   height: 44px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--oi-hairline-strong);
+  border: 0;
   border-radius: 50%;
-  background: none;
-  color: var(--oi-ink);
+  background: var(--oi-control);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-pale-rgb), 0.07);
+  color: #ffffff;
   cursor: pointer;
+  transition: background-color 300ms ease;
+}
+
+.oi-menu-toggle:hover,
+.oi-menu-toggle[aria-expanded='true'] {
+  background: var(--oi-control-hover);
 }
 
 .oi-menu-icon {
   position: relative;
   display: block;
   width: 16px;
-  height: 10px;
+  height: 12px;
 }
 
 .oi-menu-icon i {
   position: absolute;
+  top: 5px;
   left: 0;
   width: 100%;
-  height: 1.5px;
+  height: 2px;
   border-radius: 1px;
   background: currentColor;
-  transition: transform 420ms var(--oi-ease);
+  transition:
+    transform 420ms var(--oi-ease),
+    opacity 240ms ease;
 }
 
 .oi-menu-icon i:first-child {
@@ -342,15 +328,20 @@
 }
 
 .oi-menu-icon i:last-child {
-  bottom: 0;
+  top: 10px;
 }
 
 .oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:first-child {
-  transform: translateY(4.25px) rotate(45deg);
+  transform: translateY(5px) rotate(45deg);
+}
+
+.oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0.2);
 }
 
 .oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:last-child {
-  transform: translateY(-4.25px) rotate(-45deg);
+  transform: translateY(-5px) rotate(-45deg);
 }
 
 .oi-sheet-menu {
@@ -487,38 +478,27 @@
   }
 }
 
-/* Opening curtain ---------------------------------------------------------- */
+/* Opening ------------------------------------------------------------------ */
 
-.oi-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: grid;
-  place-items: center;
-  background: var(--oi-page);
-  color: var(--oi-orb);
-  transition: opacity 700ms ease;
+/* On a page that opens with an entrance (InstantLayout's data-entrance), the bar fades in
+   with the first screen's words. While the fonts are on their way it holds its first
+   frame, like the hero's entrances (OrbitHero.css). */
+[data-entrance] .oi-bar {
+  animation: oi-bar-in 900ms ease 80ms backwards;
 }
 
-.oi-loader > * {
-  transition:
-    transform 900ms var(--oi-ease),
-    filter 700ms ease;
+[data-entrance='wait'] .oi-bar {
+  animation-play-state: paused;
 }
 
-/* The orb swells toward the viewer and dissolves into the page behind it. */
-.oi-loader[data-phase='leave'] {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.oi-loader[data-phase='leave'] > * {
-  transform: scale(2.4);
+@keyframes oi-bar-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .oi-loader,
-  .oi-loader > *,
+  [data-entrance] .oi-bar,
   .oi-sheet-link,
   .oi-sheet-cta,
   .oi-sheet-group,
@@ -529,10 +509,5 @@
   .oi-sheet-chevron {
     transition: none;
     animation: none;
-  }
-
-  .oi-loader[data-phase='leave'] > * {
-    transform: none;
-    filter: none;
   }
 }

@@ -92,7 +92,7 @@ const SECTION_CFG = {
     alpha: 0.6,
     state: 'idle',
     trick: 'tintShift',
-    tint: '#3b82f6',
+    tint: '#7a7a7a',
     lock: false,
   },
   voice: {
@@ -164,7 +164,7 @@ const SECTION_CFG = {
     alpha: 0.55,
     state: 'searching',
     trick: 'tintShift',
-    tint: '#f59e0b',
+    tint: '#a7a7a7',
     lock: false,
   },
   investor: {

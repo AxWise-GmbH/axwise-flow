@@ -102,12 +102,14 @@ afterEach(() => {
 });
 
 describe('UseCases', () => {
-  it('is one labelled section with the tag, the heading and the one line', () => {
+  it('is one labelled section with the heading and the one line, and no tag above them', () => {
     const { container } = renderCases();
     const section = container.querySelector('section#cases');
     const heading = screen.getByRole('heading', { level: 2, name: 'One app. Many jobs.' });
     expect(section).toHaveAttribute('aria-labelledby', heading.id);
-    expect(screen.getByText("How it's used")).toHaveClass('oi-tag-bracket');
+    // The owner took the "How it's used" tag off.
+    expect(screen.queryByText(/How it.s used/i)).not.toBeInTheDocument();
+    expect(section.querySelector('.ouc-head .oi-tag-bracket')).toBeNull();
     expect(
       screen.getByText('Pick yours. Every result is a first draft for you to review.')
     ).toBeInTheDocument();

@@ -1182,7 +1182,7 @@ function MobileDrawer({ open, onClose, onGetStarted }) {
                   '&:hover': { color: 'text.primary' },
                 }}
               >
-                <CircleIcon sx={{ fontSize: 9, color: '#10B981' }} />
+                <CircleIcon sx={{ fontSize: 9, color: '#808080' }} />
                 Status
               </Box>
             </Stack>

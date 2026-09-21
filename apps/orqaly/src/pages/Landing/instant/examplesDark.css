@@ -8,7 +8,7 @@
  *   .opd-dark  the class the demo adds for variant="instant" (the app window and its controls)
  *
  * The window is the desktop app's dark theme: a neutral graphite canvas, hairline cards, near
- * monochrome. It matches HeroWindow.css. The page's racing green is kept for small accents
+ * monochrome. It matches HeroWindow.css. The page's white accent is kept for small touches
  * only: the status dot, focus rings, the selected pill's glow and the play control's hover.
  *
  * DesktopProductDemo.css is not edited. Its selectors are mirrored here one class heavier, so
@@ -20,11 +20,11 @@
 
 .oix {
   --oix-ink: var(--oi-ink, #f4f6f5);
-  --oix-muted: var(--oi-muted, #8d919c);
-  --oix-dim: var(--oi-dim, #5d616b);
+  --oix-muted: var(--oi-muted, #a1a1a1);
+  --oix-dim: var(--oi-dim, #6b6b6b);
   --oix-hairline: var(--oi-hairline, rgba(255, 255, 255, 0.1));
   --oix-hairline-strong: var(--oi-hairline-strong, rgba(255, 255, 255, 0.22));
-  --oix-accent: var(--oi-accent, #4a9f7a);
+  --oix-accent: var(--oi-accent, #e6e6e6);
   --oix-accent-rgb: var(--oi-accent-rgb, 74, 159, 122);
   --oix-mono: var(--oi-mono, ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace);
   --oix-ease: var(--oi-ease, cubic-bezier(0.22, 1, 0.36, 1));
@@ -240,18 +240,18 @@
 
 .opd.opd-dark {
   --opd-text: #e9eaec;
-  --opd-muted: #8e9198;
-  --opd-border: #34373d;
-  --opd-soft: #cbd1d6;
-  --opd-row: #b3b8c1;
+  --opd-muted: #919191;
+  --opd-border: #373737;
+  --opd-soft: #d0d0d0;
+  --opd-row: #b8b8b8;
   --opd-canvas: #1f2125;
   --opd-inset: #1b1d21;
-  --opd-panel: #24262b;
+  --opd-panel: #262626;
   --opd-well: #181a1d;
-  --opd-pill: #3a3d45;
+  --opd-pill: #3d3d3d;
   --opd-hover: rgba(255, 255, 255, 0.06);
-  --opd-marker: #525b68;
-  --opd-accent: var(--oi-accent, #4a9f7a);
+  --opd-marker: #565656;
+  --opd-accent: var(--oi-accent, #e6e6e6);
   --opd-accent-rgb: var(--oi-accent-rgb, 74, 159, 122);
   --opd-glow-rgb: var(--oi-glow-rgb, 22, 98, 64);
   color-scheme: dark;
@@ -262,7 +262,7 @@
   outline-color: var(--opd-accent);
 }
 
-/* Lit from behind, like the hero's window: a lifted top edge, a deep shadow, green on the rim. */
+/* Lit from behind, like the hero's window: a lifted top edge, a deep shadow, light on the rim. */
 .opd-dark .opd-window {
   grid-template-columns: 196px minmax(0, 1fr);
   /* Taller than on "/": the dark theme sets its type a size up, and nothing should scroll. */
@@ -301,21 +301,21 @@
 .opd-dark .opd-traffic i,
 .opd-dark .opd-traffic i:nth-child(2),
 .opd-dark .opd-traffic i:nth-child(3) {
-  background: #4a4e57;
+  background: #4e4e4e;
   box-shadow: none;
   transition: background-color 500ms ease;
 }
 
 .opd-dark .opd-window:hover .opd-traffic i:nth-child(1) {
-  background: #ff6159;
+  background: #5a5a5a;
 }
 
 .opd-dark .opd-window:hover .opd-traffic i:nth-child(2) {
-  background: #ffbd2e;
+  background: #7a7a7a;
 }
 
 .opd-dark .opd-window:hover .opd-traffic i:nth-child(3) {
-  background: #28c840;
+  background: #9a9a9a;
 }
 
 .opd-dark .opd-traffic svg {
@@ -457,7 +457,7 @@
 
 .opd-dark .opd-messages,
 .opd-dark .opd-workspace-body {
-  scrollbar-color: #474e57 transparent;
+  scrollbar-color: #4e4e4e transparent;
 }
 
 .opd-dark .opd-messages {
@@ -467,7 +467,7 @@
 
 .opd-dark .opd-user-message {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: #2f3238;
+  background: #323232;
   color: var(--opd-text);
   font-size: 13px;
 }
@@ -496,7 +496,7 @@
 .opd-dark .opd-tool pre {
   border-top-color: var(--opd-border);
   background: var(--opd-well);
-  color: #c4c9d0;
+  color: #c9c9c9;
   font-size: 11px;
 }
 
@@ -508,7 +508,7 @@
 }
 
 .opd-dark .opd-inline-artifact:hover {
-  background: #2c2f35;
+  background: #2f2f2f;
 }
 
 .opd-dark .opd-inline-artifact svg {
@@ -715,7 +715,7 @@
 /* Documents opened in the Workspace -------------------------------------------- */
 
 .opd-dark .opd-document {
-  color: #d3d7dc;
+  color: #d7d7d7;
   font-size: 12px;
   line-height: 1.7;
 }
@@ -748,7 +748,7 @@
 .opd-dark .opd-code {
   border-color: var(--opd-border);
   background: var(--opd-well);
-  color: #c4c9d0;
+  color: #c9c9c9;
   font-size: 10.5px;
 }
 
@@ -757,7 +757,7 @@
 }
 
 .opd-dark .opd-table td {
-  color: #d3d7dc;
+  color: #d7d7d7;
 }
 
 .opd-dark .opd-workflow {
@@ -768,7 +768,7 @@
 
 .opd-dark .opd-node,
 .opd-dark .opd-branches div {
-  border-color: #3f434b;
+  border-color: #424242;
   background: var(--opd-panel);
   box-shadow: none;
 }
@@ -809,7 +809,7 @@
 .opd-dark .opd-demo-controls {
   gap: 18px;
   padding: 18px 2px 0;
-  color: var(--oi-muted, #8d919c);
+  color: var(--oi-muted, #a1a1a1);
   font-family: var(--oi-sans, inherit);
   font-size: 0.78rem;
   line-height: 1.6;

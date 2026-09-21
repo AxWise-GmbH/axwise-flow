@@ -12,6 +12,7 @@ import {
   TICK_MS,
   activeStep,
   answeredCount,
+  fileStatus,
   initialState,
   introBeat,
   reducer,
@@ -158,6 +159,37 @@ describe('watchItWorkMachine', () => {
     }
     expect(seen).toEqual([0, 1, 2, 3, 4]);
     expect(state.node).toBe('build');
+  });
+
+  it('fills each Workspace file in with the roadmap step that writes it', () => {
+    const statuses = (state) => [0, 1, 2, 3, 4].map((step) => fileStatus(step, state));
+    const waiting = Array(STEP_COUNT).fill('waiting');
+    // Before the build nothing is written, not even step 1's file on the gate.
+    expect(statuses(first)).toEqual(waiting);
+    expect(statuses(run(first, { type: 'PLAY_INTRO' }, tick('intro', INTRO_ASK_MS)))).toEqual(
+      waiting
+    );
+    expect(statuses(awaitingAnswers)).toEqual(waiting);
+
+    const build = reducer(first, start('proceed'));
+    expect(statuses(build)).toEqual(['writing', 'waiting', 'waiting', 'waiting', 'waiting']);
+    expect(statuses(reducer(build, tick('build', BUILD_MS / 2)))).toEqual([
+      'done',
+      'done',
+      'writing',
+      'waiting',
+      'waiting',
+    ]);
+    // A pause keeps the file being written as it was.
+    const paused = run(build, tick('build', BUILD_MS / 2), { type: 'PAUSE' });
+    expect(fileStatus(2, paused)).toBe('writing');
+
+    const results = run(build, tick('build', BUILD_MS));
+    expect(statuses(results)).toEqual(Array(STEP_COUNT).fill('done'));
+    expect(statuses(run(results, tick('results', RESULTS_MS)))).toEqual(
+      Array(STEP_COUNT).fill('done')
+    );
+    expect(statuses(reducer(results, { type: 'REPLAY' }))).toEqual(waiting);
   });
 
   it('ignores a tick left over from the previous node', () => {

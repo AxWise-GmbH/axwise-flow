@@ -91,7 +91,7 @@ describe('LandingPageSimple', () => {
   it('uses a scoped light theme and one public brand, with outputs outside the cloud box', () => {
     const { container } = renderPage();
     const root = container.querySelector('[data-landing-root]');
-    expect(root).toHaveStyle({ backgroundColor: '#f8f9fe' });
+    expect(root).toHaveStyle({ backgroundColor: '#f8f8f8' });
     expect(screen.getByRole('link', { name: 'Orqanix - home' })).toBeInTheDocument();
     expect(root.textContent).not.toMatch(/Orqaly|OrQonics|AxWise/i);
     expect(screen.getByText('Orqanix · pronounced or-KAN-iks')).toBeInTheDocument();

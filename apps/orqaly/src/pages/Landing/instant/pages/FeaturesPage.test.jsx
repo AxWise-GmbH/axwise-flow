@@ -1,31 +1,38 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ThemeProvider } from '@mui/material/styles';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter } from 'react-router-dom';
 import { instantTheme } from '../instantTheme';
 import { DEEP_DIVE_IDS, FEATURES } from './features.data';
 import FeaturesPage from './FeaturesPage';
 
-function renderPage(entries = ['/']) {
+// `links` adds one plain link per feature, the way a shared address or another page would
+// point at #feature-<id>. Nothing on the page itself links there since the wall went.
+function renderPage(entries = ['/'], { links = false } = {}) {
   return render(
     <ThemeProvider theme={instantTheme}>
       <MemoryRouter initialEntries={entries}>
         <FeaturesPage />
+        {links && (
+          <nav aria-label="Links to features">
+            {FEATURES.map((feature) => (
+              <Link key={feature.id} to={{ hash: `#feature-${feature.id}` }}>
+                {feature.name}
+              </Link>
+            ))}
+          </nav>
+        )}
       </MemoryRouter>
     </ThemeProvider>
   );
 }
 
-function hero() {
-  return document.querySelector('section[aria-labelledby="features-heading"]');
+function jumps() {
+  return within(screen.getByRole('navigation', { name: 'Links to features' })).getAllByRole('link');
 }
 
-function tiles() {
-  return within(screen.getByRole('navigation', { name: 'Jump to a feature' })).getAllByRole('link');
-}
-
-function tile(name) {
-  return within(screen.getByRole('navigation', { name: 'Jump to a feature' })).getByRole('link', {
+function jump(name) {
+  return within(screen.getByRole('navigation', { name: 'Links to features' })).getByRole('link', {
     name,
   });
 }
@@ -68,13 +75,24 @@ afterEach(() => {
 });
 
 describe('FeaturesPage', () => {
-  it('opens with the page title and its sections', () => {
-    renderPage();
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Everything it does.' })
-    ).toBeInTheDocument();
-    expect(screen.getByText('Twelve things it does for you, one by one.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'In the app today' })).toBeVisible();
+  it('opens straight on the explorer: no opening wall, no tag, its heading the page title', () => {
+    const { container } = renderPage();
+    // The owner took the opening block ("Everything it does." and its wall of twelve tiles),
+    // the rule under it and the "Feature by feature" tag off.
+    expect(container.querySelector('section.oph')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Jump to a feature' })).not.toBeInTheDocument();
+    expect(container.textContent).not.toMatch(
+      /Everything it does|Twelve things it does|Feature by feature/i
+    );
+
+    const first = container.querySelector('section');
+    expect(first).toHaveAttribute('id', 'features-all');
+    expect(first).not.toHaveClass('oif-ruled');
+    expect(first.querySelector('.oif-head .oi-tag')).toBeNull();
+    const titles = screen.getAllByRole('heading', { level: 1 });
+    expect(titles).toHaveLength(1);
+    expect(titles[0]).toHaveTextContent('In the app today');
+    expect(titles[0]).toHaveAttribute('id', 'features-all-heading');
     expect(screen.getByRole('heading', { level: 2, name: 'And the rest' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'More for developers' })).not.toBeInTheDocument();
   });
@@ -86,7 +104,8 @@ describe('FeaturesPage', () => {
       const section = container.querySelector(`section#${id}`);
       expect(section).toHaveClass('oi-section');
       const heading = container.querySelector(`#${section.getAttribute('aria-labelledby')}`);
-      expect(heading.tagName).toBe('H2');
+      // The explorer opens the page, so its heading is the page's one h1.
+      expect(heading.tagName).toBe(id === 'features-all' ? 'H1' : 'H2');
       expect(heading).toHaveClass('oi-h2');
     }
   });
@@ -295,53 +314,24 @@ describe('FeaturesPage', () => {
   });
 });
 
-describe('FeaturesPage hero: the wall of twelve', () => {
-  it('keeps the title, its id and the line, and names the block by its title', () => {
-    renderPage();
-    const title = screen.getByRole('heading', { level: 1 });
-    expect(title).toHaveTextContent(/^Everything it does\.$/);
-    expect(title).toHaveAttribute('id', 'features-heading');
-    expect(hero()).toContainElement(title);
-    expect(within(hero()).getByText('Features')).toHaveClass('oi-tag-bracket');
-    expect(within(hero()).getByText('Twelve things it does for you, one by one.')).toBeVisible();
-  });
-
-  it('lays exactly one tile per feature, in data order, each a link to that feature', () => {
-    renderPage();
-    expect(tiles()).toHaveLength(12);
-    tiles().forEach((link, index) => {
-      expect(link).toHaveAccessibleName(FEATURES[index].name);
-      expect(link.hash).toBe(`#feature-${FEATURES[index].id}`);
-      expect(hero()).toContainElement(link);
-    });
-  });
-
-  it('numbers the tiles 01 to 12 for the eye only', () => {
-    renderPage();
-    tiles().forEach((link, index) => {
-      const number = link.querySelector('.ohf-number');
-      expect(number).toHaveTextContent(String(index + 1).padStart(2, '0'));
-      expect(number).toHaveAttribute('aria-hidden', 'true');
-    });
-  });
-
-  it('points every tile at one element that is really in the page', () => {
+describe('FeaturesPage deep links to a feature', () => {
+  it('gives every feature one anchor to link to, holding its name', () => {
     const { container } = renderPage();
-    for (const link of tiles()) {
-      const targets = container.querySelectorAll(`[id="${link.hash.slice(1)}"]`);
+    for (const feature of FEATURES) {
+      const targets = container.querySelectorAll(`[id="feature-${feature.id}"]`);
       expect(targets).toHaveLength(1);
       expect(within(targets[0]).getByRole('heading', { level: 3, hidden: true })).toHaveTextContent(
-        link.textContent.replace(/^\d+/, '')
+        feature.name
       );
     }
   });
 
-  it('selects the feature in the explorer when its tile is followed, and moves focus there', () => {
-    renderPage();
+  it('selects the feature in the explorer when a link to it is followed, and moves focus there', () => {
+    renderPage(['/'], { links: true });
     const seventh = FEATURES[6];
     expect(explorer().getByText(seventh.today)).not.toBeVisible();
 
-    fireEvent.click(tile(seventh.name));
+    fireEvent.click(jump(seventh.name));
 
     expect(row(seventh.name)).toHaveAttribute('aria-pressed', 'true');
     expect(row(seventh.name)).toHaveFocus();
@@ -349,13 +339,13 @@ describe('FeaturesPage hero: the wall of twelve', () => {
     expect(explorer().getByText(seventh.today)).toBeVisible();
   });
 
-  it('lands again when the same tile is followed twice', () => {
-    renderPage();
-    fireEvent.click(tile(FEATURES[6].name));
+  it('lands again when the same link is followed twice', () => {
+    renderPage(['/'], { links: true });
+    fireEvent.click(jump(FEATURES[6].name));
     fireEvent.click(row(FEATURES[2].name));
     expect(row(FEATURES[2].name)).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.click(tile(FEATURES[6].name));
+    fireEvent.click(jump(FEATURES[6].name));
     expect(row(FEATURES[6].name)).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -372,62 +362,18 @@ describe('FeaturesPage hero: the wall of twelve', () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
     try {
-      renderPage();
-      fireEvent.click(tile(FEATURES[3].name));
+      renderPage(['/'], { links: true });
+      fireEvent.click(jump(FEATURES[3].name));
       await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
       expect(scrollIntoView.mock.instances[0]).toBe(document.querySelector('#features-explorer'));
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
 
       stubMatchMedia((query) => query === '(prefers-reduced-motion: reduce)');
-      fireEvent.click(tile(FEATURES[4].name));
+      fireEvent.click(jump(FEATURES[4].name));
       await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
       expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'auto', block: 'start' });
     } finally {
       delete Element.prototype.scrollIntoView;
-      vi.unstubAllGlobals();
-    }
-  });
-
-  it('keeps every drawing out of the reading order and uses no image, frame, video or canvas', () => {
-    renderPage();
-    expect(hero().querySelectorAll('img, iframe, video, canvas')).toHaveLength(0);
-    const drawings = hero().querySelectorAll('svg');
-    expect(drawings.length).toBeGreaterThanOrEqual(13);
-    for (const svg of drawings) {
-      expect(svg).toHaveAttribute('aria-hidden', 'true');
-      expect(svg).toHaveAttribute('focusable', 'false');
-    }
-    for (const decoration of hero().querySelectorAll('.ohf-light, .ohf-ruler, .ohf-head-rule')) {
-      expect(decoration).toHaveAttribute('aria-hidden', 'true');
-    }
-  });
-
-  it('adds two words of its own and none of the banned ones', () => {
-    renderPage();
-    const wall = screen.getByRole('navigation', { name: 'Jump to a feature' });
-    const names = FEATURES.map(
-      (feature, index) => `${String(index + 1).padStart(2, '0')}${feature.name}`
-    );
-    expect(wall.textContent).toBe(`Jump to01 \u2013 12${names.join('')}`);
-    expect(hero().textContent).not.toMatch(
-      /planned|beta|\bsoon\b|coming|shield|SOC2|verified|production|guaranteed|Slack|Telegram|Orqaly|AxWise|zero hallucination|(\d|times) faster/i
-    );
-  });
-
-  it('moves by CSS alone: it starts no frame loop and no interval, reduced motion or not', () => {
-    const frames = vi.spyOn(window, 'requestAnimationFrame');
-    const intervals = vi.spyOn(window, 'setInterval');
-    renderPage();
-    expect(tiles()).toHaveLength(12);
-    cleanup();
-
-    stubMatchMedia((query) => query === '(prefers-reduced-motion: reduce)');
-    try {
-      renderPage();
-      for (const link of tiles()) expect(link).toBeVisible();
-      expect(frames).not.toHaveBeenCalled();
-      expect(intervals).not.toHaveBeenCalled();
-    } finally {
       vi.unstubAllGlobals();
     }
   });
@@ -461,17 +407,17 @@ describe('FeaturesPage on a phone', () => {
     });
   });
 
-  it('lands a tile of the hero on that feature own card, and moves focus to it', async () => {
+  it('lands a link to a feature on that feature own card, and moves focus to it', async () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
     try {
-      const { container } = renderPage();
-      for (const link of tiles()) {
+      const { container } = renderPage(['/'], { links: true });
+      for (const link of jumps()) {
         expect(container.querySelectorAll(`[id="${link.hash.slice(1)}"]`)).toHaveLength(1);
       }
 
       const ninth = FEATURES[8];
-      fireEvent.click(tile(ninth.name));
+      fireEvent.click(jump(ninth.name));
 
       const card = container.querySelector(`#feature-${ninth.id}`);
       expect(card.tagName).toBe('LI');

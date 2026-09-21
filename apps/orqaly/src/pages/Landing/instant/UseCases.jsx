@@ -408,17 +408,14 @@ export default function UseCases() {
       <div className="oi-container">
         <Seen className="ouc-gate ouc-head">
           <div className="ouc-head-main">
-            <Reveal as="p" className="oi-tag oi-tag-bracket">
-              How it's used
-            </Reveal>
-            <Reveal as="h2" id="cases-heading" className="oi-h2" delay={90}>
+            <Reveal as="h2" id="cases-heading" className="oi-h2">
               One app. Many jobs.
             </Reveal>
-            <Reveal as="p" className="oi-line" delay={180}>
+            <Reveal as="p" className="oi-line" delay={90}>
               Pick yours. Every result is a first draft for you to review.
             </Reveal>
           </div>
-          <Reveal className="ouc-controls" delay={270}>
+          <Reveal className="ouc-controls" delay={180}>
             <p className="ouc-count" aria-hidden="true">
               <b key={index}>{two(index + 1)}</b> / {two(COUNT)}
             </p>

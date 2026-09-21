@@ -186,7 +186,7 @@ export default function InstantTopBar() {
           )}
           {/* Every page ends with the download block, so the same anchor works everywhere. */}
           <a href="#download" className="oi-nav-cta">
-            Download
+            Try For Free
           </a>
         </nav>
 
@@ -199,6 +199,7 @@ export default function InstantTopBar() {
         >
           <span className="oi-sr-only">{open ? 'Close menu' : 'Open menu'}</span>
           <span className="oi-menu-icon" aria-hidden="true">
+            <i />
             <i />
             <i />
           </span>
@@ -245,7 +246,7 @@ export default function InstantTopBar() {
           )
         )}
         <a href="#download" className="oi-sheet-cta" onClick={() => setOpen(false)}>
-          Download
+          Try For Free
         </a>
       </nav>
     </header>

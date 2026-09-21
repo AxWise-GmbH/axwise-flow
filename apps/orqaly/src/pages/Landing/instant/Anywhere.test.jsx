@@ -56,8 +56,9 @@ describe('Anywhere', () => {
     expect(section).toHaveClass('oi-section');
     expect(container.querySelectorAll('section')).toHaveLength(1);
 
-    const tag = screen.getByText('Connectivity');
-    expect(tag).toHaveClass('oi-tag', 'oi-tag-bracket');
+    // The owner took the "Connectivity" tag off.
+    expect(screen.queryByText(/Connectivity/i)).not.toBeInTheDocument();
+    expect(section.querySelector('.oia-head .oi-tag-bracket')).toBeNull();
     expect(screen.getByText('Reach Orqanix from where you already are.')).toBeInTheDocument();
   });
 
