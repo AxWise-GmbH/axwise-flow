@@ -71,6 +71,10 @@
     if (!(value.resolvedModel === undefined || value.resolvedModel === null || typeof value.resolvedModel === 'string')) return false;
     if (!finiteNonNegative(value.elapsedMs)) return false;
     if (!['passed', 'failed', 'not_evaluated'].includes(value.evaluationVerdict)) return false;
+    if (value.status !== 'completed' && value.evaluationVerdict === 'passed') return false;
+    if (!(value.evaluationKind === undefined || ['checks', 'advisory'].includes(value.evaluationKind))) return false;
+    if (!(value.originalEvaluationVerdict === undefined || ['passed', 'failed', 'not_evaluated'].includes(value.originalEvaluationVerdict))) return false;
+    if (!['error', 'evaluationReason', 'evaluationNotice'].every((key) => value[key] === undefined || typeof value[key] === 'string')) return false;
     if (!(value.evidenceId === null || typeof value.evidenceId === 'string')) return false;
     if (!(value.outputHash === null || (typeof value.outputHash === 'string' && /^[a-f0-9]{64}$/i.test(value.outputHash)))) return false;
     return validArmUsage(value.usage === undefined ? null : value.usage);
@@ -100,7 +104,11 @@
         validCount(window.runCount) && validCount(window.caseCount) && isRecord(window.categories) &&
         CATEGORY_KEYS.every((category) => validCategory(window.categories[category]));
     })) return false;
-    return validLatest(value.latest);
+    if (!validLatest(value.latest)) return false;
+    if (value.history !== undefined && (!Array.isArray(value.history) || value.history.length > 96 ||
+      !value.history.every((run) => run !== null && validLatest(run) && Date.parse(run.finishedAt) <= Date.parse(value.generatedAt)) ||
+      new Set(value.history.map((run) => run.runId)).size !== value.history.length)) return false;
+    return true;
   }
 
   function formatDuration(value) {
@@ -114,9 +122,7 @@
     return validCount(value) ? new Intl.NumberFormat('en-US').format(value) : '—';
   }
 
-  function formatRatio(value) {
-    return finiteNonNegative(value) ? `${value.toFixed(2)}×` : 'Not comparable';
-  }
+  const viewStates = new WeakMap();
 
   function el(document, tag, className, text) {
     const node = document.createElement(tag);
@@ -129,22 +135,58 @@
     if (node) node.replaceChildren(...children);
   }
 
-  function stateBadge(document, label, state) {
-    const badge = el(document, 'span', 'state-badge', label);
-    badge.dataset.state = state;
-    return badge;
-  }
-
-  function outcomeText(counts, quality) {
-    if (!counts) return 'Unavailable';
-    if (quality) return `${counts.passed} passed · ${counts.failed} failed · ${counts.notEvaluated} not evaluated`;
-    return `${counts.completed} completed · ${counts.failed} failed · ${counts.notEvaluated} not evaluated`;
-  }
-
   function usageText(usage) {
-    if (!usage) return 'Not reported';
-    const samples = validCount(usage.sampleCount) ? ` · ${usage.sampleCount} samples` : '';
-    return `${formatInteger(usage.totalTokens)} total (${formatInteger(usage.inputTokens)} in / ${formatInteger(usage.outputTokens)} out)${samples}`;
+    return usage ? `${formatInteger(usage.totalTokens)} tokens (${formatInteger(usage.inputTokens)} in / ${formatInteger(usage.outputTokens)} out)` : 'Not captured';
+  }
+
+  function reviewLabel(arm) {
+    if (arm.originalEvaluationVerdict !== undefined && arm.evaluationNotice) return { text: 'Review outdated — needs reevaluation', state: 'stale' };
+    if (arm.evaluationKind === 'advisory') {
+      return arm.evaluationVerdict === 'passed' ? { text: 'Jev: supported', state: 'healthy' } :
+        arm.evaluationVerdict === 'failed' ? { text: 'Jev: concerns', state: 'stale' } : { text: 'Jev: not reviewed', state: 'unavailable' };
+    }
+    return arm.evaluationVerdict === 'passed' ? { text: 'Checks passed', state: 'healthy' } :
+      arm.evaluationVerdict === 'failed' ? { text: 'Checks failed', state: 'degraded' } : { text: 'Not evaluated', state: 'unavailable' };
+  }
+
+  function outcome(arm) {
+    if (arm.status === 'failed') return { text: `Execution failed after ${formatDuration(arm.elapsedMs)}`, state: 'degraded' };
+    if (arm.status !== 'completed') return { text: 'Did not run', state: 'unavailable' };
+    return { text: `Completed · ${formatDuration(arm.elapsedMs)}`, state: 'completed' };
+  }
+
+  function failureReason(arm) {
+    const reason = arm.error || arm.evaluationReason;
+    if (!reason) return arm.status === 'completed' && arm.evaluationVerdict === 'not_evaluated' ? 'Quality was not evaluated.' : '';
+    if (/EVIDENCE_UNAVAILABLE/i.test(reason)) return 'No usable supporting evidence was obtained.';
+    if (/SOURCE_REFERENCE_REQUIRED/i.test(reason)) return 'A required source reference was missing.';
+    if (/timed?_?out|timeout|deadline/i.test(reason)) return 'The request exceeded its time limit.';
+    if (/truncat|token_limit|max_tokens/i.test(reason)) return 'The response was cut off before completion.';
+    if (/evaluator_unavailable/i.test(reason)) return 'The quality evaluator was unavailable.';
+    return reason.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function interpretation(item) {
+    const a = item.arms.orqanix;
+    const b = item.arms.vanilla;
+    if (a.status === 'failed' && b.status === 'completed') return 'The Orqanix request failed; the direct model returned an answer.';
+    if (b.status === 'failed' && a.status === 'completed') return 'Orqanix returned an answer; the direct request failed.';
+    if (a.status !== 'completed' || b.status !== 'completed') return 'Both requests did not complete successfully. Review the errors below.';
+    if (a.originalEvaluationVerdict !== undefined || b.originalEvaluationVerdict !== undefined) return 'Both requests completed. An earlier review needs reevaluation; it does not establish a quality result.';
+    if (a.evaluationKind === 'advisory' || b.evaluationKind === 'advisory') return 'Both requests completed. Jev supplies an advisory review of the requested outcome, not a probability of success or a quality winner.';
+    if (a.evaluationVerdict === 'passed' && b.evaluationVerdict === 'passed') return 'Both passed the task checks. This case does not establish a quality winner.';
+    return 'Both requests completed. Inspect the task checks below to understand any differences.';
+  }
+
+  function runsForWindow(summary, key) {
+    const history = summary.history || (summary.latest ? [summary.latest] : []);
+    const window = summary.windows[key];
+    return history.filter((run) => Date.parse(run.finishedAt) >= Date.parse(window.since) && Date.parse(run.finishedAt) <= Date.parse(window.until));
+  }
+
+  function chooseRun(summary, key, runId) {
+    const runs = runsForWindow(summary, key);
+    return runs.find((run) => run.runId === runId) || runs[0] || summary.latest;
   }
 
   function deriveFreshness(summary, nowMs) {
@@ -156,125 +198,16 @@
     return { status: ageSeconds > summary.freshness.staleAfterSeconds ? 'stale' : 'fresh', ageSeconds };
   }
 
-  function setFreshness(document, summary, measuredFreshness) {
+  function setFreshness(document, summary, freshness) {
     const target = document.getElementById('evaluation-freshness');
-    if (!target) return;
-    const freshness = measuredFreshness;
-    let label = 'NO COMPLETED RUNS';
-    let state = 'unavailable';
-    if (freshness.status === 'fresh') {
-      label = 'FRESH MEASUREMENTS';
-      state = 'healthy';
-    } else if (freshness.status === 'stale') {
-      label = 'STALE MEASUREMENTS';
-      state = 'stale';
+    if (target) {
+      target.textContent = freshness.status === 'fresh' ? 'Up to date' : freshness.status === 'stale' ? 'Stale — latest results shown' : 'No runs yet';
+      target.dataset.state = freshness.status === 'fresh' ? 'healthy' : freshness.status;
     }
-    target.textContent = label;
-    target.dataset.state = state;
     const observed = document.getElementById('evaluation-observed');
     if (observed) observed.textContent = summary.freshness.latestFinishedAt
-      ? `Latest completed run ${new Date(summary.freshness.latestFinishedAt).toISOString()} · generated ${new Date(summary.generatedAt).toISOString()} · stale after ${Math.round(summary.freshness.staleAfterSeconds / 60)} minutes`
-      : `No completed evaluation run is available · generated ${new Date(summary.generatedAt).toISOString()}`;
-  }
-
-  function selectedWindowKey(document) {
-    const selected = document.querySelector('[data-window][aria-pressed="true"]')?.dataset?.window;
-    return WINDOW_KEYS.includes(selected) ? selected : '3h';
-  }
-
-  function renderWindowCards(document, summary, selectedWindow) {
-    const target = document.getElementById('evaluation-window-cards');
-    if (!target) return;
-    replaceChildren(target, WINDOW_KEYS.map((key) => {
-      const window = summary.windows[key];
-      const card = el(document, 'button', 'window-card');
-      card.type = 'button';
-      card.dataset.window = key;
-      card.setAttribute('aria-pressed', key === selectedWindow ? 'true' : 'false');
-      card.append(el(document, 'span', 'window-label', key === '15m' ? 'Last 15 minutes' : `Last ${key}`));
-      card.append(el(document, 'strong', 'window-value', `${window.runCount} runs · ${window.caseCount} cases`));
-      card.append(el(document, 'span', 'window-range', `${new Date(window.since).toISOString()} → ${new Date(window.until).toISOString()}`));
-      return card;
-    }));
-  }
-
-  function metric(document, label, value, note) {
-    const card = el(document, 'div', 'metric-card');
-    card.append(el(document, 'div', 'metric-label', label));
-    card.append(el(document, 'div', 'metric-value', value));
-    if (note) card.append(el(document, 'div', 'metric-note', note));
-    return card;
-  }
-
-  function renderOverview(document, window) {
-    const target = document.getElementById('evaluation-overview');
-    if (!target) return;
-    let completed = 0;
-    let passed = 0;
-    let failed = 0;
-    let paired = 0;
-    CATEGORY_KEYS.forEach((key) => {
-      const category = window.categories[key];
-      ARM_KEYS.forEach((arm) => {
-        completed += category.execution[arm].completed;
-        passed += category.evaluation[arm].passed;
-        failed += category.execution[arm].failed + category.evaluation[arm].failed;
-      });
-      paired += category.comparison.pairedSuccessfulCount;
-    });
-    replaceChildren(target, [
-      metric(document, 'Recorded runs', String(window.runCount), `${window.caseCount} category cases`),
-      metric(document, 'Completed arm executions', String(completed), 'Both arms are counted separately'),
-      metric(document, 'Quality checks passed', String(passed), 'Criteria verdicts, not self-reported confidence'),
-      metric(document, 'Failures recorded', String(failed), 'Execution and evaluation failures remain visible'),
-      metric(document, 'Paired successes', String(paired), 'Same-prompt pairs completed successfully'),
-    ]);
-  }
-
-  function makeCell(document, text, className) {
-    return el(document, 'td', className || '', text);
-  }
-
-  function renderCategoryTable(document, window) {
-    const body = document.getElementById('evaluation-category-body');
-    if (!body) return;
-    replaceChildren(body, CATEGORY_KEYS.map((key) => {
-      const category = window.categories[key];
-      const row = el(document, 'tr');
-      const heading = el(document, 'td', 'category-cell');
-      heading.append(el(document, 'strong', '', category.label));
-      heading.append(el(document, 'span', 'muted-line', `${category.sampleCount} cases`));
-      row.append(heading);
-      ARM_KEYS.forEach((arm) => {
-        const cell = el(document, 'td', 'arm-cell');
-        cell.append(el(document, 'strong', '', arm === 'orqanix' ? 'Orqanix' : 'Vanilla'));
-        cell.append(el(document, 'span', 'muted-line', outcomeText(category.execution[arm], false)));
-        cell.append(el(document, 'span', 'muted-line', `Quality: ${outcomeText(category.evaluation[arm], true)}`));
-        row.append(cell);
-      });
-      const latency = el(document, 'td');
-      latency.append(el(document, 'span', '', `Orqanix ${formatDuration(category.latencyMs.orqanix.p50)} p50 / ${formatDuration(category.latencyMs.orqanix.p95)} p95`));
-      latency.append(el(document, 'span', 'muted-line', `Vanilla ${formatDuration(category.latencyMs.vanilla.p50)} p50 / ${formatDuration(category.latencyMs.vanilla.p95)} p95`));
-      row.append(latency);
-      const usage = el(document, 'td');
-      usage.append(el(document, 'span', '', `Orqanix: ${usageText(category.usage.orqanix)}`));
-      usage.append(el(document, 'span', 'muted-line', `Vanilla: ${usageText(category.usage.vanilla)}`));
-      row.append(usage);
-      const comparison = el(document, 'td');
-      comparison.append(el(document, 'strong', '', formatRatio(category.comparison.orqanixToVanillaLatencyRatioP50)));
-      comparison.append(el(document, 'span', 'muted-line', `${category.comparison.pairedSuccessfulCount} paired successes`));
-      row.append(comparison);
-      return row;
-    }));
-  }
-
-  function renderWindow(document, summary, key) {
-    const window = summary.windows[key];
-    renderOverview(document, window);
-    renderCategoryTable(document, window);
-    document.querySelectorAll('[data-window]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.window === key)));
-    const title = document.getElementById('evaluation-window-title');
-    if (title) title.textContent = `${key === '15m' ? '15-minute' : key} measured window`;
+      ? `Latest run finished ${new Date(summary.freshness.latestFinishedAt).toLocaleString()} · runs every 15 minutes`
+      : 'No evaluation run has finished yet.';
   }
 
   function safeEvidenceHref(value, category, armName) {
@@ -285,123 +218,168 @@
     return pattern.test(value) ? value : null;
   }
 
-  function armDetails(document, name, arm, category, armName) {
-    const pane = el(document, 'div', 'arm-detail');
-    const title = el(document, 'div', 'arm-heading');
-    title.append(el(document, 'strong', '', name));
-    const state = arm.status === 'completed' && arm.evaluationVerdict === 'passed' ? 'healthy' :
-      arm.status === 'failed' || arm.evaluationVerdict === 'failed' ? 'degraded' : 'stale';
-    title.append(stateBadge(document, `${arm.status.replace('_', ' ')} · ${arm.evaluationVerdict.replace('_', ' ')}`, state));
-    pane.append(title);
-    const model = arm.resolvedModel || arm.model || 'Model not reported';
-    pane.append(el(document, 'div', 'detail-line', `${model} · ${arm.endpoint || 'Endpoint not reported'}`));
-    pane.append(el(document, 'div', 'detail-line', `Elapsed: ${formatDuration(arm.elapsedMs)} · Usage: ${usageText(arm.usage || null)}`));
-    if (arm.evaluationReason) pane.append(el(document, 'div', 'detail-line failure-copy', arm.evaluationReason));
-    const evidence = el(document, 'div', 'evidence-line');
-    evidence.append(document.createTextNode('Evidence ID: '));
-    const evidenceHref = safeEvidenceHref(arm.evidenceId, category, armName);
-    if (evidenceHref) {
-      const link = el(document, 'a', 'evidence-link', arm.evidenceId);
-      link.href = evidenceHref;
-      evidence.append(link);
-    } else {
-      evidence.append(document.createTextNode(arm.evidenceId || 'not published'));
-    }
-    evidence.append(document.createTextNode(` · Output hash: ${arm.outputHash || 'not available'}`));
-    pane.append(evidence);
-    return pane;
+  function receipt(document, arm, category, armName) {
+    const href = safeEvidenceHref(arm.evidenceId, category, armName);
+    if (!href) return el(document, 'span', 'muted-line', 'Receipt not published');
+    const link = el(document, 'a', '', 'Output & checks ↗');
+    link.href = href;
+    return link;
   }
 
-  function renderLatest(document, latest) {
-    const target = document.getElementById('evaluation-latest');
-    if (!target) return;
-    if (!latest) {
-      replaceChildren(target, [el(document, 'div', 'empty-state', 'No completed evaluation run has been recorded yet.')]);
+  function armCell(document, arm) {
+    const cell = el(document, 'td', 'result-cell');
+    const result = outcome(arm);
+    const label = el(document, 'strong', 'result-label', result.text);
+    label.dataset.state = result.state;
+    const review = reviewLabel(arm);
+    const reviewLine = el(document, 'span', 'review-label', review.text);
+    reviewLine.dataset.state = review.state;
+    cell.append(label, reviewLine);
+    return cell;
+  }
+
+  function renderTable(document, run) {
+    const body = document.getElementById('evaluation-category-body');
+    if (!body) return;
+    if (!run) {
+      const row = el(document, 'tr');
+      const cell = el(document, 'td', 'empty-state', 'No evaluation runs are available yet.');
+      cell.colSpan = 5;
+      row.append(cell);
+      replaceChildren(body, [row]);
       return;
     }
-    const header = document.getElementById('latest-run-meta');
-    if (header) header.textContent = `Run ${latest.runId} · slot ${latest.slot} · finished ${new Date(latest.finishedAt).toISOString()}`;
-    replaceChildren(target, latest.cases.map((item) => {
-      const card = el(document, 'article', 'prompt-card');
-      const head = el(document, 'div', 'prompt-head');
-      head.append(el(document, 'h3', '', item.label));
-      head.append(el(document, 'span', 'template-tag', `${item.templateId} · v${item.templateVersion} · seed ${item.seed}`));
-      card.append(head);
-      card.append(el(document, 'div', 'hash-line', `Input hash: ${item.inputHash}`));
-      const promptTitle = el(document, 'h4', '', 'Exact prompt');
-      card.append(promptTitle, el(document, 'pre', 'prompt-text', item.prompt));
-      card.append(el(document, 'h4', '', 'Evaluation criteria'));
+    const expanded = new Set(Array.from(body.querySelectorAll('[aria-expanded="true"]')).map((node) => node.dataset.detailKey));
+    const rows = [];
+    CATEGORY_KEYS.forEach((category) => {
+      const item = run.cases.find((entry) => entry.category === category);
+      const row = el(document, 'tr');
+      row.dataset.category = category;
+      row.append(el(document, 'td', 'task-cell', item.label), armCell(document, item.arms.orqanix), armCell(document, item.arms.vanilla));
+      const usage = el(document, 'td', 'usage-cell');
+      usage.append(el(document, 'span', 'usage-line', `Orqanix: ${usageText(item.arms.orqanix.usage)}`),
+        el(document, 'span', 'usage-line', `Direct: ${usageText(item.arms.vanilla.usage)}`));
+      row.append(usage);
+      const info = el(document, 'td', 'info-cell');
+      const button = el(document, 'button', 'info-button', 'ⓘ');
+      const key = `${run.runId}-${category}`;
+      const detailRow = el(document, 'tr', 'detail-row');
+      detailRow.id = `details-${category}`;
+      detailRow.hidden = !expanded.has(key);
+      button.type = 'button';
+      button.dataset.detailKey = key;
+      button.setAttribute('aria-label', `${item.label}: prompt, checks and evidence`);
+      button.setAttribute('aria-expanded', String(!detailRow.hidden));
+      button.setAttribute('aria-controls', detailRow.id);
+      button.addEventListener('click', () => { detailRow.hidden = !detailRow.hidden; button.setAttribute('aria-expanded', String(!detailRow.hidden)); });
+      info.append(button);
+      row.append(info);
+      const content = el(document, 'td', 'expanded-info');
+      content.colSpan = 5;
+      content.append(el(document, 'p', 'result-explanation', interpretation(item)));
+      content.append(el(document, 'strong', '', 'Exact prompt sent to both paths'), el(document, 'pre', 'prompt-text', item.prompt));
+      const retiredReview = ARM_KEYS.some((name) => item.arms[name].originalEvaluationVerdict !== undefined);
+      content.append(el(document, 'strong', '', retiredReview ? 'Original prompt criteria — earlier review' : 'Requested outcome and checks'));
+      if (retiredReview) content.append(el(document, 'p', 'record-line', 'These earlier criteria are preserved for auditing. Retired constraints do not establish the current task outcome.'));
       const criteria = el(document, 'ul', 'criteria-list');
       item.criteria.forEach((criterion) => criteria.append(el(document, 'li', '', criterion)));
-      card.append(criteria);
-      const arms = el(document, 'div', 'arms-grid');
-      arms.append(
-        armDetails(document, 'Orqanix', item.arms.orqanix, item.category, 'orqanix'),
-        armDetails(document, 'Vanilla', item.arms.vanilla, item.category, 'vanilla'),
-      );
-      card.append(arms);
-      return card;
-    }));
+      content.append(criteria);
+      ARM_KEYS.forEach((name) => {
+        const arm = item.arms[name];
+        const label = name === 'orqanix' ? 'Orqanix' : 'Direct model';
+        const line = el(document, 'p', 'evidence-line');
+        line.append(el(document, 'strong', '', `${label}: `), document.createTextNode(`${outcome(arm).text}. ${reviewLabel(arm).text}. `));
+        if (arm.status !== 'completed' || arm.evaluationVerdict !== 'passed') line.append(document.createTextNode(`${failureReason(arm)} `));
+        line.append(receipt(document, arm, item.category, name));
+        content.append(line);
+        if (arm.evaluationNotice) content.append(el(document, 'p', 'revision-notice', arm.evaluationNotice));
+        if (arm.evaluationKind === 'advisory') content.append(el(document, 'p', 'record-line', 'Jev is an advisory review of whether the answer addresses the requested outcome and evidence. Its confidence is not a probability of task success.'));
+        if (Array.isArray(arm.criteriaResults)) {
+          if (arm.originalEvaluationVerdict !== undefined) content.append(el(document, 'strong', '', 'Original recorded checks — review outdated'));
+          const results = el(document, 'ul', 'criteria-list');
+          arm.criteriaResults.forEach((check) => {
+            if (isRecord(check) && typeof check.criterion === 'string' && typeof check.passed === 'boolean') {
+              results.append(el(document, 'li', '', `${arm.evaluationKind === 'advisory' ? (check.passed ? 'Supported' : 'Concern') : (check.passed ? 'Passed' : 'Failed')}: ${check.criterion}${typeof check.reason === 'string' ? ` — ${check.reason}` : ''}`));
+            }
+          });
+          content.append(results);
+        }
+        content.append(el(document, 'p', 'record-line', `${label}: ${arm.resolvedModel || arm.model}${arm.resolvedModel ? '' : ' (resolved identity not reported)'} · ${arm.endpoint}`));
+        content.append(el(document, 'p', 'hash-line', `${label} output SHA-256: ${arm.outputHash || 'unavailable'}`));
+        if (arm.error || arm.evaluationReason) content.append(el(document, 'p', 'record-line', `Recorded reason: ${arm.error || arm.evaluationReason}`));
+      });
+      content.append(el(document, 'p', 'record-line', `Prompt: ${item.templateId} v${item.templateVersion} · seed ${item.seed}`),
+        el(document, 'p', 'hash-line', `Input SHA-256: ${item.inputHash}`));
+      detailRow.append(content);
+      rows.push(row, detailRow);
+    });
+    replaceChildren(body, rows);
   }
 
-  function renderHeartbeatSummary(document, summary) {
-    const target = document.getElementById('evaluation-heartbeat-grid');
-    if (!target) return;
-    const window = summary.windows['3h'];
-    replaceChildren(target, CATEGORY_KEYS.map((key) => {
-      const category = window.categories[key];
-      const failures = ARM_KEYS.reduce((sum, arm) => sum + category.execution[arm].failed + category.evaluation[arm].failed, 0);
-      const card = el(document, 'div', 'endpoint-box');
-      const head = el(document, 'div', 'endpoint-name');
-      head.append(el(document, 'span', '', category.label));
-      head.append(stateBadge(document, failures > 0 ? `${failures} failures` : category.sampleCount ? 'recorded' : 'no samples', failures > 0 ? 'degraded' : category.sampleCount ? 'healthy' : 'unavailable'));
-      card.append(head);
-      card.append(el(document, 'div', 'endpoint-url', `${category.sampleCount} cases in the 3-hour window`));
-      card.append(el(document, 'div', 'endpoint-metrics', `Orqanix: ${outcomeText(category.evaluation.orqanix, true)}`));
-      card.append(el(document, 'div', 'endpoint-metrics', `Vanilla: ${outcomeText(category.evaluation.vanilla, true)}`));
-      return card;
+  function renderControls(document, summary, state) {
+    const target = document.getElementById('evaluation-window-cards');
+    if (target) replaceChildren(target, WINDOW_KEYS.map((key) => {
+      const button = el(document, 'button', 'window-button', key === '15m' ? '15 minutes' : key === '3h' ? '3 hours' : '24 hours');
+      button.type = 'button';
+      button.dataset.window = key;
+      button.setAttribute('aria-pressed', String(key === state.windowKey));
+      button.addEventListener('click', () => { state.windowKey = key; state.runId = null; renderControls(document, summary, state); });
+      return button;
     }));
+    const runs = runsForWindow(summary, state.windowKey);
+    const chosen = chooseRun(summary, state.windowKey, state.runId);
+    const selector = document.getElementById('evaluation-run-select');
+    if (selector) {
+      const choices = runs.length ? runs : chosen ? [chosen] : [];
+      replaceChildren(selector, choices.map((run, index) => {
+        const option = el(document, 'option', '', `${index === 0 ? 'Latest' : 'Previous'} · ${new Date(run.finishedAt).toLocaleString()}`);
+        option.value = run.runId;
+        option.selected = run.runId === chosen?.runId;
+        return option;
+      }));
+      selector.disabled = choices.length < 2;
+      selector.onchange = () => { state.runId = selector.value; renderControls(document, summary, state); };
+    }
+    const historyNote = document.getElementById('evaluation-history-note');
+    if (historyNote) historyNote.textContent = runs.length
+      ? `${runs.length} ${runs.length === 1 ? 'run' : 'runs'} in this window. Select an earlier run to inspect its prompt.`
+      : chosen ? 'No run finished in this window. Showing the latest available result.' : 'No runs in this window.';
+    const meta = document.getElementById('latest-run-meta');
+    if (meta) meta.textContent = chosen ? `Run ${chosen.runId} · source ${chosen.runnerRevision || 'not recorded'} · finished ${new Date(chosen.finishedAt).toISOString()}` : 'No run available.';
+    const revisionNotice = document.getElementById('evaluation-revision-notice');
+    if (revisionNotice) {
+      const earlier = chosen?.runnerRevision && summary.latest?.runnerRevision && chosen.runnerRevision !== summary.latest.runnerRevision;
+      revisionNotice.hidden = !earlier;
+      revisionNotice.textContent = earlier ? 'Earlier evaluator version: these are the scores recorded then. Later scoring fixes are not applied to this historical run.' : '';
+    }
+    renderTable(document, chosen);
   }
 
   function unavailable(document, reason) {
     const freshness = document.getElementById('evaluation-freshness');
-    if (freshness) {
-      freshness.textContent = 'MEASUREMENTS UNAVAILABLE';
-      freshness.dataset.state = 'unavailable';
-    }
+    if (freshness) { freshness.textContent = 'Results unavailable'; freshness.dataset.state = 'unavailable'; }
     const observed = document.getElementById('evaluation-observed');
-    if (observed) observed.textContent = reason || 'No valid evaluation summary is available. No performance or quality conclusion can be drawn.';
-    ['evaluation-window-cards', 'evaluation-overview', 'evaluation-latest', 'evaluation-heartbeat-grid'].forEach((id) => {
-      const target = document.getElementById(id);
-      if (target) replaceChildren(target, [el(document, 'div', 'empty-state', 'No valid measured data is available.')]);
-    });
-    const body = document.getElementById('evaluation-category-body');
-    if (body) {
-      const row = el(document, 'tr');
-      const cell = makeCell(document, 'No valid measured data is available.', 'empty-cell');
-      cell.colSpan = 6;
-      row.append(cell);
-      replaceChildren(body, [row]);
-    }
+    if (observed) observed.textContent = reason || 'The current results could not be loaded. No performance conclusion can be drawn.';
+    const selector = document.getElementById('evaluation-run-select');
+    if (selector) { selector.disabled = true; replaceChildren(selector, []); }
+    replaceChildren(document.getElementById('evaluation-window-cards'), []);
+    const note = document.getElementById('evaluation-history-note');
+    if (note) note.textContent = '';
+    const meta = document.getElementById('latest-run-meta');
+    if (meta) meta.textContent = 'No valid run available.';
+    const notice = document.getElementById('evaluation-revision-notice');
+    if (notice) { notice.hidden = true; notice.textContent = ''; }
+    renderTable(document, null);
   }
 
   function render(document, summary) {
-    if (!validateSummary(summary)) {
-      unavailable(document, 'The published evaluation summary failed schema validation. No performance or quality conclusion can be drawn.');
-      return false;
-    }
-    const measuredFreshness = deriveFreshness(summary, Date.now());
-    if (measuredFreshness === null) {
-      unavailable(document, 'The evaluation summary contains a future timestamp. No performance or quality conclusion can be drawn.');
-      return false;
-    }
-    const selectedWindow = selectedWindowKey(document);
-    setFreshness(document, summary, measuredFreshness);
-    renderWindowCards(document, summary, selectedWindow);
-    renderWindow(document, summary, selectedWindow);
-    renderLatest(document, summary.latest);
-    renderHeartbeatSummary(document, summary);
-    document.querySelectorAll('[data-window]').forEach((button) => button.addEventListener('click', () => renderWindow(document, summary, button.dataset.window)));
+    if (!validateSummary(summary)) { unavailable(document, 'The published results failed validation. No performance conclusion can be drawn.'); return false; }
+    const freshness = deriveFreshness(summary, Date.now());
+    if (freshness === null) { unavailable(document, 'The published results contain a future timestamp. No performance conclusion can be drawn.'); return false; }
+    let state = viewStates.get(document);
+    if (!state) { state = { windowKey: '15m', runId: null }; viewStates.set(document, state); }
+    setFreshness(document, summary, freshness);
+    renderControls(document, summary, state);
     return true;
   }
 
@@ -426,5 +404,5 @@
     }
   }
 
-  return { CATEGORY_KEYS, SUMMARY_SCHEMA, WINDOW_KEYS, deriveFreshness, formatDuration, formatRatio, load, render, safeEvidenceHref, start, validateSummary };
+  return { CATEGORY_KEYS, SUMMARY_SCHEMA, WINDOW_KEYS, chooseRun, deriveFreshness, failureReason, formatDuration, interpretation, load, outcome, render, reviewLabel, runsForWindow, safeEvidenceHref, start, usageText, validateSummary };
 });

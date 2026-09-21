@@ -179,4 +179,61 @@ test('freshness turns stale only after thirty minutes and latest exposes evidenc
   const unavailable = buildPublicSummary([], { now: '2026-09-21T12:00:00.000Z' });
   assert.equal(unavailable.freshness.status, 'unavailable');
   assert.equal(unavailable.latest, null);
+  assert.deepEqual(unavailable.history, []);
+});
+
+test('publishes real previous prompts, failure reasons and criteria in newest-first history', () => {
+  const previous = record({ runId: 'previous', finishedAt: '2026-09-21T11:40:00.000Z' });
+  const current = record({ runId: 'current', finishedAt: '2026-09-21T11:59:00.000Z',
+    orqanix: { status: 'failed', verdict: 'not_evaluated' } });
+  current.cases[0].arms.vanilla.evaluation.criteriaResults = [{ criterion: 'json_only', passed: true }];
+  const summary = buildPublicSummary([current, previous, current], { now: '2026-09-21T12:00:00.000Z' });
+  assert.deepEqual(summary.history.map(({ runId }) => runId), ['current', 'previous']);
+  assert.deepEqual(summary.history[0], summary.latest);
+  assert.equal(summary.history[1].cases[0].prompt, previous.cases[0].prompt);
+  assert.equal(summary.history[0].cases[0].arms.orqanix.error, 'request failed');
+  assert.deepEqual(summary.history[0].cases[0].arms.vanilla.criteriaResults, [{ criterion: 'json_only', passed: true }]);
+  assert.equal(summary.history[0].cases[0].arms.orqanix.usage, null);
+  assert.equal(summary.history[0].runnerRevision, current.runnerRevision);
+});
+
+test('bounds history without changing measured window counts', () => {
+  const now = new Date('2026-09-21T12:00:00.000Z');
+  const observations = Array.from({ length: 100 }, (_, i) => record({ runId: `run-${i}`,
+    finishedAt: new Date(now.getTime() - i * 60_000).toISOString() }));
+  const summary = buildPublicSummary(observations, { now });
+  assert.equal(summary.history.length, 96);
+  assert.equal(summary.history[0].runId, 'run-0');
+  assert.equal(summary.history[95].runId, 'run-95');
+  assert.equal(summary.windows['3h'].runCount, 100);
+});
+
+test('retired formatting failures need review without rewriting receipts or inventing passes', () => {
+  const input = record();
+  const plan = input.cases.find((item) => item.category === 'plan');
+  plan.arms.orqanix.evaluation = { verdict: 'failed', reason: 'One or more deterministic requirements failed.',
+    criteriaResults: [{ criterion: 'bounded_ordered_steps', passed: false }] };
+  plan.arms.vanilla.evaluation = { verdict: 'failed', reason: 'advisory_review',
+    criteriaResults: [{ criterion: 'The retry policy handles terminal failures.', passed: false }] };
+  const summary = buildPublicSummary([input], { now: '2026-09-21T12:00:00.000Z' });
+  const publicPlan = summary.latest.cases.find((item) => item.category === 'plan');
+  assert.equal(publicPlan.arms.orqanix.evaluationVerdict, 'not_evaluated');
+  assert.equal(publicPlan.arms.orqanix.originalEvaluationVerdict, 'failed');
+  assert.match(publicPlan.arms.orqanix.evaluationNotice, /needs reevaluation/);
+  assert.equal(publicPlan.arms.vanilla.evaluationVerdict, 'failed');
+  assert.equal(publicPlan.arms.vanilla.evaluationKind, 'advisory');
+  assert.equal(summary.windows['3h'].categories.plan.evaluation.orqanix.failed, 0);
+  assert.equal(summary.windows['3h'].categories.plan.evaluation.orqanix.notEvaluated, 1);
+  assert.equal(input.cases.find((item) => item.category === 'plan').arms.orqanix.evaluation.verdict, 'failed');
+  assert.equal(normalizeAgentEvaluationRecord(input).cases.find((item) => item.category === 'plan').arms.orqanix.evaluation.verdict, 'failed');
+});
+
+test('a real check failure cannot be hidden by an accompanying retired rule', () => {
+  const input = record();
+  input.cases[0].arms.orqanix.evaluation = { verdict: 'failed', criteriaResults: [
+    { criterion: 'word_limit', passed: false }, { criterion: 'exact_json_values', passed: false },
+  ] };
+  const summary = buildPublicSummary([input], { now: '2026-09-21T12:00:00.000Z' });
+  assert.equal(summary.latest.cases[0].arms.orqanix.evaluationVerdict, 'failed');
+  assert.equal(summary.latest.cases[0].arms.orqanix.evaluationNotice, undefined);
 });
