@@ -21,6 +21,12 @@ checks, and a judge or evidence-fetch failure must not be presented as a pass.
 The runner commit and template version identify the method used for each run.
 Word limits count visible prose, including headings and descriptive link labels;
 Markdown-only markers, URLs and numeric citation labels do not count as words.
+The runner checks these limits deterministically and supplies the measured count
+to Jev. Jev assesses semantic criteria without recounting words; its original
+advisory probabilities and overall threshold remain part of the receipt.
+When the same official document is cited both by root URL and fragment, the
+explicit root citation uses the catalog's relevant section mapping. An invalid
+fragment alone does not become supporting evidence.
 
 Orqanix token usage currently remains unreported because the Assistant message
 contract does not preserve AxWise usage metrics. The dashboard does not infer

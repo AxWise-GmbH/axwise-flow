@@ -47,7 +47,7 @@ test('passes exact JSON only after a valid Jev advisory receipt', async () => {
     runId: RUN_ID,
     judge: async (input) => {
       judgeInput = input;
-      return jevReceipt(caseData);
+      return jevReceipt(input);
     },
   });
 
@@ -66,9 +66,9 @@ test('strict deterministic failure does not call the advisory judge', async () =
     caseData,
     output: '{"project":"Northstar","owner":"Mina","priorities":["reliability"]}',
     runId: RUN_ID,
-    judge: async () => {
+    judge: async (input) => {
       calls += 1;
-      return jevReceipt(caseData);
+      return jevReceipt(input);
     },
   });
 
@@ -81,7 +81,7 @@ test('judge failure or malformed unknown receipt remains not evaluated', async (
   const caseData = catalogCase('message-json-normalization');
   const output = JSON.stringify({ project: 'Northstar', priorities: ['accessibility', 'observability', 'reliability'], owner: 'Mina' });
 
-  const unavailable = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async () => { throw new Error('provider down'); } });
+  const unavailable = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async (input) => { throw new Error('provider down'); } });
   assert.equal(unavailable.evaluation.verdict, 'not_evaluated');
 
   const unknown = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async () => ({ verdict: 'maybe' }) });
@@ -108,9 +108,9 @@ test('search rejects adversarial URLs without issuing a request', async () => {
       fetchCalls += 1;
       throw new Error('must not fetch');
     },
-    judge: async () => {
+    judge: async (input) => {
       judgeCalls += 1;
-      return jevReceipt(caseData);
+      return jevReceipt(input);
     },
   });
 
@@ -137,7 +137,7 @@ test('search fetches bounded official evidence and passes it to Jev', async () =
     },
     judge: async (input) => {
       judgeInput = input;
-      return jevReceipt(caseData);
+      return jevReceipt(input);
     },
   });
 
@@ -169,7 +169,7 @@ test('structured product citations use the same allowlist, fetch, and hash path'
     judge: async (input) => {
       assert.equal(input.sources[0].url, 'https://nodejs.org/api/globals.html#static-method-abortsignaltimeoutdelay');
       assert.match(input.sources[0].contentHash, /^[a-f0-9]{64}$/);
-      return jevReceipt(caseData);
+      return jevReceipt(input);
     },
   });
 
@@ -215,7 +215,7 @@ test('large official pages select the cited Node and SQLite sections instead of 
           assert.match(input.sources[0].excerpt, new RegExp(scenario.relevant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
           assert.doesNotMatch(input.sources[0].excerpt, /menu navigation/);
           assert.ok(input.sources[0].excerpt.length <= 2_400);
-          return jevReceipt(caseData);
+          return jevReceipt(input);
         },
       });
       assert.equal(result.evaluation.verdict, 'passed');
@@ -256,7 +256,7 @@ test('fragmentless Node and SQLite roots select all supporting claim sections', 
         assert.match(excerpt, /prevent memory leaks/i);
         assert.doesNotMatch(excerpt, /navigation navigation/);
         assert.ok(excerpt.length <= 2_400);
-        return jevReceipt(caseData);
+        return jevReceipt(input);
       },
     });
     assert.equal(result.evaluation.verdict, 'passed');
@@ -285,7 +285,7 @@ test('fragmentless Node and SQLite roots select all supporting claim sections', 
         assert.match(excerpt, /WAL journaling mode is persistent/i);
         assert.doesNotMatch(excerpt, /navigation navigation/);
         assert.ok(excerpt.length <= 2_400);
-        return jevReceipt(caseData);
+        return jevReceipt(input);
       },
     });
     assert.equal(result.evaluation.verdict, 'passed');
@@ -341,12 +341,57 @@ test('other fragmentless catalog roots use their pinned official content section
           const excerpts = input.sources.map(({ excerpt }) => excerpt).join(' ');
           for (const expected of scenario.expected) assert.match(excerpts, expected);
           assert.doesNotMatch(excerpts, /navigation navigation/);
-          return jevReceipt(caseData);
+          return jevReceipt(input);
         },
       });
       assert.equal(result.evaluation.verdict, 'passed');
     });
   }
+});
+
+test('a valid root citation supersedes an invalid fragment for the same official document', async () => {
+  const caseData = catalogCase('search-node-abort-timeout');
+  const output = [
+    'AbortSignal.timeout(delay) returns a signal that aborts after the requested delay.',
+    'https://nodejs.org/api/globals.html#abortsignaltimeoutdelay',
+    '(https://nodejs.org/api/globals.html)',
+  ].join(' ');
+  let fetchCalls = 0;
+  const page = '<nav>AbortSignal.timeout navigation</nav><h4>AbortSignal.timeout(delay)<a id=static-method-abortsignaltimeoutdelay></a></h4><p>The number of milliseconds to wait. Returns a new AbortSignal.</p>';
+  const result = await evaluateOutput({
+    caseData,
+    output,
+    runId: RUN_ID,
+    fetchImpl: async (url) => {
+      fetchCalls += 1;
+      assert.equal(url, 'https://nodejs.org/api/globals.html');
+      return new Response(page, { status: 200, headers: { 'content-type': 'text/html' } });
+    },
+    judge: async (input) => {
+      assert.equal(input.sources.length, 1);
+      assert.equal(input.sources[0].url, 'https://nodejs.org/api/globals.html');
+      assert.match(input.sources[0].excerpt, /Returns a new AbortSignal/i);
+      return jevReceipt(input);
+    },
+  });
+
+  assert.equal(result.evaluation.verdict, 'passed');
+  assert.equal(fetchCalls, 1);
+});
+
+test('an invalid official fragment without a valid document root still fails grounding', async () => {
+  const caseData = catalogCase('search-node-abort-timeout');
+  const page = '<h4>AbortSignal.timeout(delay)<a id=static-method-abortsignaltimeoutdelay></a></h4><p>Returns a new AbortSignal.</p>';
+  const result = await evaluateOutput({
+    caseData,
+    output: 'AbortSignal.timeout returns a timed signal. https://nodejs.org/api/globals.html#abortsignaltimeoutdelay',
+    runId: RUN_ID,
+    fetchImpl: async () => new Response(page, { status: 200, headers: { 'content-type': 'text/html' } }),
+    judge: async (input) => jevReceipt(input),
+  });
+
+  assert.equal(result.evaluation.verdict, 'failed');
+  assert.equal(result.evaluation.criteriaResults.at(-1).reason, 'source_relevant_section_not_found');
 });
 
 test('a disallowed structured citation is never fetched', async () => {
@@ -361,7 +406,7 @@ test('a disallowed structured citation is never fetched', async () => {
       fetchCalls += 1;
       throw new Error('must not fetch');
     },
-    judge: async () => jevReceipt(caseData),
+    judge: async (input) => jevReceipt(input),
   });
 
   assert.equal(result.evaluation.verdict, 'failed');
@@ -379,7 +424,7 @@ test('redirects are revalidated and cannot leave the official host allowlist', a
       calls += 1;
       return new Response(null, { status: 302, headers: { location: 'https://127.0.0.1/private' } });
     },
-    judge: async () => jevReceipt(caseData),
+    judge: async (input) => jevReceipt(input),
   });
 
   assert.equal(result.evaluation.verdict, 'failed');
@@ -397,7 +442,7 @@ test('plan keywords cannot produce a pass when Jev finds semantic criteria unmet
     'Non-goal 1: Redesign payment providers.',
     'Non-goal 2: Change unrelated endpoints.',
   ].join('\n');
-  const result = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async () => jevReceipt(caseData, 'failed') });
+  const result = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async (input) => jevReceipt(input, 'failed') });
 
   assert.equal(result.evaluation.verdict, 'failed');
   assert.equal(result.evaluation.reason, 'advisory_review');
@@ -423,7 +468,7 @@ test('plan accepts Markdown Step headings and numbered non-goals within the expl
     caseData,
     output,
     runId: RUN_ID,
-    judge: async () => jevReceipt(caseData),
+    judge: async (input) => jevReceipt(input),
   });
 
   assert.equal(result.evaluation.verdict, 'passed');
@@ -437,7 +482,7 @@ test('technical output limit yields not evaluated rather than a quality failure'
     caseData,
     output: 'x'.repeat(24_001),
     runId: RUN_ID,
-    judge: async () => jevReceipt(caseData),
+    judge: async (input) => jevReceipt(input),
   });
   assert.equal(result.evaluation.verdict, 'not_evaluated');
   assert.match(result.evaluation.reason, /technical input limit/);
@@ -470,9 +515,9 @@ test('coding remains unevaluated for the isolated coding runner', async () => {
     caseData,
     output: 'export function clamp() {}',
     runId: RUN_ID,
-    judge: async () => {
+    judge: async (input) => {
       judgeCalls += 1;
-      return jevReceipt(caseData);
+      return jevReceipt(input);
     },
   });
 
@@ -550,7 +595,7 @@ test('plan counts eight Step headings separately from numbered non-goals and rol
   let judgeCalls = 0;
   const result = await evaluateOutput({
     caseData, output, runId: RUN_ID,
-    judge: async () => { judgeCalls += 1; return jevReceipt(caseData); },
+    judge: async (input) => { judgeCalls += 1; return jevReceipt(input); },
   });
 
   assert.equal(result.evaluation.verdict, 'passed');
@@ -568,7 +613,7 @@ test('numbered implementation plans exclude numbered non-goals and indented subs
     '1. Replace the database.',
     '2. Redesign unrelated APIs.',
   ].join('\n');
-  const result = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async () => jevReceipt(caseData) });
+  const result = await evaluateOutput({ caseData, output, runId: RUN_ID, judge: async (input) => jevReceipt(input) });
 
   assert.equal(result.evaluation.verdict, 'passed');
   assert.ok(result.evidence.deterministicChecks.every(({ passed }) => passed));
@@ -586,7 +631,7 @@ test('plan enforces one through eight ordered steps without an unstated four-ste
     let judgeCalls = 0;
     const result = await evaluateOutput({
       caseData, output, runId: RUN_ID,
-      judge: async () => { judgeCalls += 1; return jevReceipt(caseData); },
+      judge: async (input) => { judgeCalls += 1; return jevReceipt(input); },
     });
     const bounded = count >= 1 && count <= 8;
     assert.equal(result.evidence.deterministicChecks.find(({ id }) => id === 'bounded_ordered_steps').passed, bounded, `step count ${count}`);
@@ -601,7 +646,7 @@ test('message judge receives the original incident facts as well as the output a
   let judgeInput;
   const result = await evaluateOutput({
     caseData, output, runId: RUN_ID,
-    judge: async (input) => { judgeInput = input; return jevReceipt(caseData); },
+    judge: async (input) => { judgeInput = input; return jevReceipt(input); },
   });
 
   assert.equal(result.evaluation.verdict, 'passed');
