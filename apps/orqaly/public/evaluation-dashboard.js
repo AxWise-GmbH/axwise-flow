@@ -177,7 +177,12 @@
       : `No completed evaluation run is available · generated ${new Date(summary.generatedAt).toISOString()}`;
   }
 
-  function renderWindowCards(document, summary) {
+  function selectedWindowKey(document) {
+    const selected = document.querySelector('[data-window][aria-pressed="true"]')?.dataset?.window;
+    return WINDOW_KEYS.includes(selected) ? selected : '3h';
+  }
+
+  function renderWindowCards(document, summary, selectedWindow) {
     const target = document.getElementById('evaluation-window-cards');
     if (!target) return;
     replaceChildren(target, WINDOW_KEYS.map((key) => {
@@ -185,7 +190,7 @@
       const card = el(document, 'button', 'window-card');
       card.type = 'button';
       card.dataset.window = key;
-      card.setAttribute('aria-pressed', key === '3h' ? 'true' : 'false');
+      card.setAttribute('aria-pressed', key === selectedWindow ? 'true' : 'false');
       card.append(el(document, 'span', 'window-label', key === '15m' ? 'Last 15 minutes' : `Last ${key}`));
       card.append(el(document, 'strong', 'window-value', `${window.runCount} runs · ${window.caseCount} cases`));
       card.append(el(document, 'span', 'window-range', `${new Date(window.since).toISOString()} → ${new Date(window.until).toISOString()}`));
@@ -390,9 +395,10 @@
       unavailable(document, 'The evaluation summary contains a future timestamp. No performance or quality conclusion can be drawn.');
       return false;
     }
+    const selectedWindow = selectedWindowKey(document);
     setFreshness(document, summary, measuredFreshness);
-    renderWindowCards(document, summary);
-    renderWindow(document, summary, '3h');
+    renderWindowCards(document, summary, selectedWindow);
+    renderWindow(document, summary, selectedWindow);
     renderLatest(document, summary.latest);
     renderHeartbeatSummary(document, summary);
     document.querySelectorAll('[data-window]').forEach((button) => button.addEventListener('click', () => renderWindow(document, summary, button.dataset.window)));
