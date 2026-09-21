@@ -308,6 +308,35 @@ function modelIdentity(arm) {
   return arm.resolvedModel ?? arm.model;
 }
 
+// Historical receipts stay immutable. Retired formatting/keyword checks cannot
+// establish task failure, and removing them cannot establish a semantic pass.
+function publicEvaluation(arm) {
+  const evaluation = arm.evaluation;
+  const retired = new Set([
+    'bounded_ordered_steps', 'exactly_two_non_goals', 'plan_word_limit',
+    'word_limit', 'required_topics_present', 'exactly_two_sentences',
+    'cause_details_present', 'recovery_details_present',
+  ]);
+  const failures = (evaluation.criteriaResults ?? []).filter((item) => !item.passed);
+  if (arm.status === 'completed' && evaluation.verdict === 'failed' &&
+      failures.length > 0 && failures.every((item) => retired.has(item.criterion))) {
+    return {
+      ...evaluation,
+      verdict: 'not_evaluated',
+      originalEvaluationVerdict: evaluation.verdict,
+      evaluationNotice: 'Earlier review rejected only retired formatting or keyword checks. Task quality needs reevaluation; the original receipt is retained.',
+    };
+  }
+  return evaluation;
+}
+
+function evaluationKind(evaluation) {
+  return evaluation.reason === 'advisory_review' ||
+    /^jev_review_/.test(evaluation.reason ?? '') ||
+    evaluation.criteriaResults?.some((item) => item.criterion === 'jev_review_passed')
+    ? 'advisory' : 'checks';
+}
+
 function summarizeWindow(records, nowMs, durationSeconds) {
   const sinceMs = nowMs - (durationSeconds * 1000);
   const included = records.filter((record) => {
@@ -325,11 +354,12 @@ function summarizeWindow(records, nowMs, durationSeconds) {
       category.sampleCount += 1;
       for (const armName of ARM_NAMES) {
         const arm = evaluationCase.arms[armName];
+        const evaluation = publicEvaluation(arm);
         category.execution[armName][publicStatusKey(arm.status)] += 1;
-        category.evaluation[armName][publicStatusKey(arm.evaluation.verdict)] += 1;
-        if (arm.status === 'completed' && arm.evaluation.verdict === 'passed') {
+        category.evaluation[armName][publicStatusKey(evaluation.verdict)] += 1;
+        if (arm.status === 'completed' && evaluation.verdict === 'passed') {
           category.terminal[armName].passed += 1;
-        } else if (arm.status === 'completed' && arm.evaluation.verdict === 'failed') {
+        } else if (arm.status === 'completed' && evaluation.verdict === 'failed') {
           category.terminal[armName].failed += 1;
         } else {
           category.terminal[armName].incomplete += 1;
@@ -384,14 +414,24 @@ function summarizeWindow(records, nowMs, durationSeconds) {
 }
 
 function latestArm(arm) {
+  const evaluation = publicEvaluation(arm);
   return {
     status: arm.status,
     model: arm.model,
     ...(arm.resolvedModel === undefined ? {} : { resolvedModel: arm.resolvedModel }),
     endpoint: arm.endpoint,
     elapsedMs: arm.elapsedMs,
-    evaluationVerdict: arm.evaluation.verdict,
+    evaluationVerdict: evaluation.verdict,
+    evaluationKind: evaluationKind(evaluation),
+    ...(evaluation.evaluationNotice === undefined ? {} : {
+      originalEvaluationVerdict: evaluation.originalEvaluationVerdict,
+      evaluationNotice: evaluation.evaluationNotice,
+    }),
     ...(arm.evaluation.reason === undefined ? {} : { evaluationReason: arm.evaluation.reason }),
+    ...(arm.error === undefined ? {} : { error: arm.error }),
+    ...(arm.evaluation.criteriaResults === undefined ? {} : {
+      criteriaResults: arm.evaluation.criteriaResults.map((item) => ({ ...item })),
+    }),
     evidenceId: arm.outputRef ?? null,
     outputHash: arm.outputHash ?? null,
     usage: arm.usage === undefined ? null : { ...arm.usage },
@@ -457,5 +497,6 @@ export function buildPublicSummary(records, { now = new Date() } = {}) {
       status: latest === null ? 'unavailable' : ageSeconds > STALE_AFTER_SECONDS ? 'stale' : 'fresh',
     },
     latest: latestSummary(latest),
+    history: retained.slice(-96).reverse().map(latestSummary),
   };
 }

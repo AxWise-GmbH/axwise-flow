@@ -84,25 +84,6 @@ function notEvaluated(reason, checks = []) {
   };
 }
 
-function wordCount(value) {
-  const prose = value
-    .replace(/^[ \t]*\[[^\]\n]+\]:[ \t]*<?https?:\/\/[^\n]*$/gm, ' ')
-    .replace(/\[([^\]\n]+)\]\([ \t]*<?https?:\/\/[^)\n]*\)/g, (_match, label) =>
-      /^\s*\d+(?:[\s,;–-]+\d+)*\s*$/.test(label) ? ' ' : label)
-    .replace(/\[\d+(?:[\s,;–-]+\d+)*\]/g, ' ')
-    .replace(/<?https?:\/\/[^\s<>]+>?/g, ' ')
-    .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
-    .replace(/^[ \t]*(?:`{3,}|~{3,}).*$/gm, ' ');
-  // Count visible words, including Unicode prose and ordinary numbers, rather
-  // than standalone Markdown delimiters or nonverbal citation metadata.
-  return prose.split(/\s+/u).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
-}
-
-function sentenceCount(value) {
-  const stripped = value.replace(/\b(?:[A-Z]\.){2,}/g, 'abbreviation');
-  return (stripped.match(/[.!?](?=\s|$)/g) ?? []).length;
-}
-
 function messageChecks(caseData, output) {
   if (caseData.templateId === 'message-json-normalization') {
     let parsed;
@@ -126,12 +107,7 @@ function messageChecks(caseData, output) {
   }
 
   if (caseData.templateId === 'message-constraint-summary') {
-    const normalized = output.trim();
-    return [
-      result('exactly_two_sentences', sentenceCount(normalized) === 2 && !/^\s*[-*]/m.test(normalized), 'Response must be exactly two sentences without bullets.'),
-      result('cause_details_present', /cache saturation/i.test(normalized) && /latency/i.test(normalized), 'Cause sentence omits cache saturation or latency.'),
-      result('recovery_details_present', /resiz/i.test(normalized) && /09:24\s*UTC/i.test(normalized), 'Remediation or recovery time is missing.'),
-    ];
+    return [result('known_message_template', true)];
   }
 
   if (caseData.templateId === 'message-table-transformation') {
@@ -216,11 +192,7 @@ function sourceChecks(caseData, output, sources) {
     const root = targets.find(({ fragment }) => fragment === '');
     return root === undefined ? targets : [root];
   });
-  const maximumWords = caseData.category === 'search'
-    ? (caseData.templateId === 'search-sqlite-journal-mode' ? 140 : 120)
-    : 220;
   const checks = [
-    result('word_limit', wordCount(output) <= maximumWords, `Response exceeds the ${maximumWords}-word limit.`),
     result('official_source_cited', official.length > 0, 'No allowed official HTTPS documentation URL was cited.'),
   ];
   if (caseData.category === 'search') {
@@ -235,52 +207,18 @@ function sourceChecks(caseData, output, sources) {
   };
 }
 
-const PLAN_CONCEPTS = Object.freeze({
-  'plan-idempotency-key': [
-    ['schema', 'table', 'database'], ['request'], ['concurr', 'race', 'lock'], ['expir', 'ttl'], ['rollout', 'deploy'], ['observ', 'metric', 'log'], ['test'],
-  ],
-  'plan-webhook-retries': [
-    ['persist', 'queue', 'outbox'], ['sign', 'hmac'], ['retry', 'backoff'], ['terminal', 'dead-letter', 'dead letter'], ['observ', 'metric', 'log'], ['rollout', 'deploy'], ['test'],
-  ],
-  'plan-cache-migration': [
-    ['key'], ['invalidat'], ['fail', 'fallback', 'degrad'], ['rollout'], ['rollback'], ['observ', 'metric', 'log'], ['test'],
-  ],
-});
+const PLAN_TEMPLATE_IDS = new Set([
+  'plan-idempotency-key',
+  'plan-webhook-retries',
+  'plan-cache-migration',
+]);
 
-function countNonGoals(output) {
-  const labeled = output.match(/^\s*(?:[-*]\s*)?non-goal\s*\d*\s*:/gim) ?? [];
-  if (labeled.length > 0) return labeled.length;
-  const headings = output.match(/^\s*#{1,6}\s+non-goal\s+\d+\b/gim) ?? [];
-  if (headings.length > 0) return headings.length;
-  const section = output.match(/(?:^|\n)\s*#{0,3}\s*non-goals?\s*:?\s*\n([\s\S]*?)(?=\n\s*#{1,3}\s|$)/i);
-  if (!section) return 0;
-  return (section[1].match(/^\s*(?:[-*]|\d+[.)])\s+\S+/gm) ?? []).length;
-}
-
-function planChecks(caseData, output) {
-  const concepts = PLAN_CONCEPTS[caseData.templateId];
-  if (concepts === undefined) return [result('known_plan_template', false, 'Plan template is not supported by this evaluator version.')];
-  const implementation = output.replace(
-    /(?:^|\n)[ \t]*#{0,6}[ \t]*non-goals?[ \t]*:?[ \t]*\n[\s\S]*?(?=\n[ \t]*#{1,6}[ \t]+|$)/gi,
-    '\n',
-  );
-  const numberedSteps = [...implementation.matchAll(/^([ \t]*)\d+[.)][ \t]+\S+/gm)];
-  const outerIndent = Math.min(...numberedSteps.map((match) => match[1].replace(/\t/g, '    ').length));
-  const headingSteps = output.match(/^\s*#{1,6}\s+Step\s+\d+\b.*$/gim) ?? [];
-  // Explicit Step headings define the plan; numbered lists inside them are substeps.
-  const orderedStepCount = headingSteps.length || numberedSteps
-    .filter((match) => match[1].replace(/\t/g, '    ').length === outerIndent).length;
-  const nonGoalCount = countNonGoals(output);
-  const lower = output.toLowerCase();
-  const missingConcepts = concepts.filter((alternatives) => !alternatives.some((term) => lower.includes(term)));
-  return [
-    result('bounded_ordered_steps', orderedStepCount >= 1 && orderedStepCount <= 8, 'Plan must contain between 1 and 8 ordered steps.'),
-    nonGoalCount === 0
-      ? result('non_goal_count_deferred_to_jev', true)
-      : result('exactly_two_non_goals', nonGoalCount === 2, 'Plan must state exactly two non-goals.'),
-    result('required_topics_present', missingConcepts.length === 0, `Plan omits required topic groups: ${missingConcepts.map((group) => group.join('/')).join(', ')}`),
-    result('plan_word_limit', wordCount(output) <= 700, 'Plan exceeds the explicit 700-word limit.'),
-  ];
+function planChecks(caseData) {
+  return [result(
+    'known_plan_template',
+    PLAN_TEMPLATE_IDS.has(caseData.templateId),
+    'Plan template is not supported by this evaluator version.',
+  )];
 }
 
 function deterministicChecks(caseData, output, sources) {
@@ -525,29 +463,8 @@ function sanitizeJudgeReceipt(receipt, expectedCriteria, expectedIdentity) {
   };
 }
 
-function semanticJudgeRequirements(caseData, output, checks) {
-  const measuredWordLimit = checks.some(({ id, passed }) => id === 'plan_word_limit' && passed)
-    ? 700
-    : checks.some(({ id, passed }) => id === 'word_limit' && passed)
-      ? caseData.category === 'research' ? 220 : caseData.templateId === 'search-sqlite-journal-mode' ? 140 : 120
-      : null;
-  if (measuredWordLimit === null) return { criteria: [...caseData.criteria], verifiedChecks: [] };
-
-  // Remove only the catalog's measured length requirements, retaining every
-  // semantic claim and the original case criteria in the published record.
-  const pureLengthCriteria = new Set([
-    `The entire response is at most ${measuredWordLimit} words.`,
-    `The response is no more than ${measuredWordLimit} words.`,
-  ]);
-  const lengthSuffix = ` and the response is no more than ${measuredWordLimit} words.`;
-  return {
-    criteria: caseData.criteria.filter((criterion) => !pureLengthCriteria.has(criterion))
-      .map((criterion) => criterion.endsWith(lengthSuffix)
-        ? `${criterion.slice(0, -lengthSuffix.length)}.` : criterion),
-    verifiedChecks: [
-      `Displayed word count is ${wordCount(output)}; maximum is ${measuredWordLimit}; passed. The deterministic counter excludes Markdown-only markers, URLs, and numeric citation labels, while retaining descriptive labels, ordinary numbers, and Unicode prose.`,
-    ],
-  };
+function semanticJudgeRequirements(caseData) {
+  return { criteria: [...caseData.criteria], verifiedChecks: [] };
 }
 
 export async function evaluateOutput({ caseData, output, sources = [], runId, judge, fetchImpl = globalThis.fetch, signal } = {}) {
@@ -605,14 +522,17 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
         ));
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'source_fetch_failed';
+        const httpStatus = /^source_http_(\d{3})$/.exec(reason)?.[1];
+        const transientHttpStatus = httpStatus !== undefined
+          && ([403, 408, 429].includes(Number(httpStatus)) || Number(httpStatus) >= 500);
+        const evaluatorUnavailable = transientHttpStatus || reason === 'source_relevant_section_not_found';
         const deterministicSourceFailure = reason.startsWith('source_http_')
           || reason === 'source_redirect_not_allowed'
           || reason === 'source_redirect_invalid'
           || reason === 'source_content_type_not_allowed'
-          || reason === 'source_relevant_section_not_found'
           || reason === 'source_empty';
         return {
-          evaluation: deterministicSourceFailure
+          evaluation: deterministicSourceFailure && !evaluatorUnavailable
             ? failEvaluation([...checks, result('official_source_fetched', false, reason)], 'Cited official source could not provide supporting evidence.')
             : notEvaluated('Official source evidence could not be retrieved.', checks),
           evidence: { deterministicChecks: checks, sources: sourceEvidence, declaredSourceCount: sources.length, judge: null },

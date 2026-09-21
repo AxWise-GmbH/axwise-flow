@@ -9,6 +9,7 @@ const MAX_RESPONSE_BYTES = 1024 * 1024;
 const MAX_WAIT_MS = 240_000;
 const PROVIDER_WAIT_MS = 180_000;
 const JUDGE_WAIT_MS = 8_000;
+const METRICS_WAIT_MS = 5_000;
 const slug = z.string().regex(/^[a-z0-9][a-z0-9._-]{0,127}$/);
 const criterion = z.string().trim().min(1).max(2000);
 const evaluationPrompt = z.string().trim().min(1).max(24_000);
@@ -127,6 +128,27 @@ export function createAgentEvaluationService({
     throw new Error('evaluation wait is invalid');
   const auth = Object.freeze({ userId });
 
+  async function readReportedUsage(threadId, turnId) {
+    if (typeof assistantService.readTurnMetrics !== 'function') return null;
+    let timer;
+    try {
+      const metrics = await Promise.race([
+        assistantService.readTurnMetrics(auth, threadId, turnId),
+        new Promise((resolve) => {
+          timer = setTimeout(() => resolve(null), METRICS_WAIT_MS);
+          timer.unref?.();
+        }),
+      ]);
+      return metrics && ['inputTokens', 'outputTokens', 'totalTokens'].every((key) =>
+        Number.isSafeInteger(metrics[key]) && metrics[key] >= 0)
+        ? { promptTokens: metrics.inputTokens, completionTokens: metrics.outputTokens,
+            totalTokens: metrics.totalTokens } : null;
+    } catch {
+      // Metrics availability must not change the outcome of a completed turn.
+      return null;
+    } finally { clearTimeout(timer); }
+  }
+
   async function runOrqanix(command, signal) {
     const threadId = deterministicUuid('agent-evaluation', command.runId, command.category, command.templateId);
     const turnId = deterministicUuid(threadId, command.templateVersion, sha256Hex(command.prompt));
@@ -141,7 +163,9 @@ export function createAgentEvaluationService({
       signal?.throwIfAborted();
       result = await assistantService.resume(auth, threadId, turnId);
     }
-    return assistantResult(command, result, { threadId, turnId }, Date.now() - started);
+    const response = assistantResult(command, result, { threadId, turnId }, Date.now() - started);
+    if (response.status === 'completed') response.usage = await readReportedUsage(threadId, turnId);
+    return response;
   }
 
   async function runVanilla(command, signal) {
