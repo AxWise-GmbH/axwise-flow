@@ -119,8 +119,6 @@ describe('workflow v2 web security boundary', () => {
   });
 
   it('describes the server-published heartbeat consistently in both web builds', () => {
-    const publicationCopy =
-      'Cloud Scheduler starts the Cloud Run collector every 15 minutes and publishes this dated snapshot. Observations older than 30 minutes are marked stale.';
     const pagePairs = [
       ['public/heartbeat.html', 'public-gcp/heartbeat.html'],
       ['public/heartbeat/index.html', 'public-gcp/heartbeat/index.html'],
@@ -132,8 +130,23 @@ describe('workflow v2 web security boundary', () => {
       const fullPage = readFileSync(fullPagePath, 'utf8');
       const gcpPage = readFileSync(gcpPagePath, 'utf8');
       expect(fullPage).toBe(gcpPage);
-      expect(gcpPage).toContain(publicationCopy);
+      expect(gcpPage).toContain('/evaluation-dashboard.js');
+      if (gcpPagePath.includes('heartbeat')) expect(gcpPage).toContain('/heartbeat-telemetry.js');
+      expect(gcpPage).toContain('15 minutes');
       expect(gcpPage).not.toContain('scheduled checks do not automatically publish here');
     }
+  });
+
+  it('exposes only fixed evaluation summary and UUID evidence routes from the read-only bucket', () => {
+    const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
+    const summary = nginx.match(/location = \/heartbeat\/evaluations\.json \{([\s\S]*?)\n {2}\}/)?.[1];
+    expect(summary).toContain('alias /var/run/orqanix-agent-evaluations/public/evaluations.json;');
+    expect(summary).toContain('limit_except GET HEAD');
+    expect(summary).toContain('open_file_cache off;');
+    expect(summary).toContain('always;');
+    expect(summary).not.toContain('try_files');
+    expect(nginx).toContain('alias /var/run/orqanix-agent-evaluations/public/evidence/$1.json;');
+    expect(nginx).toMatch(/location \/heartbeat\/evidence\/ \{[\s\S]*?return 404;/);
+    expect(nginx).not.toContain('alias /var/run/orqanix-agent-evaluations/records');
   });
 });
