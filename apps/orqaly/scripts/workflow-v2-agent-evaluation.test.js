@@ -86,7 +86,7 @@ describe('real evaluation service contracts', () => {
     const upstream = JSON.parse(fetchImpl.mock.calls[0][1].body);
     expect(upstream).toEqual({ model: 'gemini-3.8-flash',
       messages: [{ role: 'user', content: 'Return the complete final file.' }], reasoning_effort: 'high',
-      max_completion_tokens: 2048 });
+      max_completion_tokens: 8192 });
     expect(JSON.stringify(upstream)).not.toMatch(/Orqanix|system|product/i);
   });
 

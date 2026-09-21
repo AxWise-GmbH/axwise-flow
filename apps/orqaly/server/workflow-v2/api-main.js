@@ -88,6 +88,7 @@ const agentEvaluationEngineeringReview = agentEvaluationConfig
   ? createEngineeringReviewService({
       desktopWorkService,
       apiKey: process.env.TYPESAFE_API_KEY,
+      timeoutMs: 20_000,
     })
   : null;
 const agentEvaluationService = agentEvaluationConfig
