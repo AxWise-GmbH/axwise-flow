@@ -9,6 +9,8 @@ import {
 import { AgentEvaluationExecuteSchema, createAgentEvaluationService } from '../server/workflow-v2/agent-evaluation-service.js';
 import { createAgentEvaluationRouter } from '../server/workflow-v2/agent-evaluation-http.js';
 import { sha256Hex } from '../lib/workflow-v2/canonical.js';
+import { buildEvaluationCatalog } from '../../../scripts/agent-evaluations/catalog.mjs';
+import { evaluateOutput } from '../../../scripts/agent-evaluations/evaluate.mjs';
 
 const runId = '11111111-1111-4111-8111-111111111111';
 const slot = '2026-09-21T12:00:00.000Z';
@@ -51,6 +53,26 @@ describe('evaluation configuration and identity', () => {
 });
 
 describe('real evaluation service contracts', () => {
+  it('accepts the actual runner judge payload through the strict API contract', async () => {
+    let caseData;
+    for (let offset = 0; offset < 30 && !caseData; offset++) {
+      caseData = buildEvaluationCatalog({ slot: new Date(Date.parse(slot) + offset * 900000) }).cases
+        .find(item => item.templateId === 'message-json-normalization');
+    }
+    expect(caseData).toBeTruthy();
+    const fetchImpl = vi.fn(async () => json({ model: 'jev-1.13.0', answers: {
+      criterion_1: { type: 'noul', noul: 0.9 }, criterion_2: { type: 'noul', noul: 0.9 },
+      criterion_3: { type: 'noul', noul: 0.9 }, overall_quality: { type: 'noul', noul: 0.9 },
+    } }));
+    const service = createAgentEvaluationService({ assistantService: { send: vi.fn(), resume: vi.fn() },
+      userId: config.userId, geminiApiKey: 'server-gemini-key', typesafeApiKey: 'typesafe-key', fetchImpl });
+    const result = await evaluateOutput({ runId, caseData,
+      output: JSON.stringify({ project: 'Northstar', priorities: ['accessibility', 'observability', 'reliability'], owner: 'Mina' }),
+      judge: body => service.judge(body) });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(result.evaluation.verdict).toBe('passed');
+  });
+
   it('sends vanilla Gemini the exact user prompt with no Orqanix guidance or system message', async () => {
     const fetchImpl = vi.fn(async () => json({ id: 'provider-1', model: 'gemini-3.8-flash-202609',
       choices: [{ message: { content: 'A direct baseline answer.' }, finish_reason: 'stop' }],

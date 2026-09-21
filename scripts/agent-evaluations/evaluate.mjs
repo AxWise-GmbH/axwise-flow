@@ -415,7 +415,6 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
   const judgeInput = {
     runId,
     category: caseData.category,
-    templateId: caseData.templateId,
     criteria: [...caseData.criteria],
     output: output.trim(),
     sources: sourceEvidence.map(({ finalUrl, excerpt, excerptHash }) => ({
