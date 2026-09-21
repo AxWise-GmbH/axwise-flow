@@ -16,8 +16,8 @@
  */
 
 .oh-hero {
-  --oh-accent: #8fd9b3;
-  --oh-light: #c9f2dc;
+  --oh-accent: var(--oi-accent);
+  --oh-light: #ffffff;
   position: relative;
   padding-block: var(--oi-s4) var(--oi-s5);
   /* The orb and rings are wider than the page. Clipping sideways here, not on the
@@ -80,6 +80,16 @@
   }
 }
 
+/* The page opens straight on this screen, no curtain. While its fonts are on their way
+   (InstantLayout's data-entrance, at most 1.5 s) every entrance holds its first frame, so
+   the words rise once, already in their own face; then they all play from the start.
+   !important because rules below set whole animation shorthands, which reset the state. */
+[data-entrance='wait'] .oh-hero *,
+[data-entrance='wait'] .oh-hero *::before,
+[data-entrance='wait'] .oh-hero *::after {
+  animation-play-state: paused !important;
+}
+
 /* Text column ------------------------------------------------------------- */
 
 .oh-text {
@@ -125,16 +135,18 @@
   animation-delay: calc(140ms + var(--oh-line, 0) * 120ms);
 }
 
-/* The second sentence is a quiet caption to the first: half its size. */
+/* The second sentence is a quiet caption to the first: well under half its size, in a
+   light weight (owner, 2026-09-21: thinner and a bit smaller). */
 .oh-accent {
   display: block;
-  margin-top: 0.5em;
-  font-size: 0.5em;
+  margin-top: 0.55em;
+  font-size: 0.42em;
+  font-weight: 300;
   line-height: 1.12;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
 }
 
-/* Light moving through the second sentence: a wide green-to-white gradient
+/* Light moving through the second sentence: a wide grey-to-white gradient
    slides behind the letters. */
 .oh-accent .oh-rise {
   background: linear-gradient(
@@ -205,14 +217,14 @@
   animation: oh-arrive 1100ms var(--oi-ease) 820ms backwards;
 }
 
-/* A pool of green light under the button, so it reads as lit rather than flat. */
+/* A pool of light under the button, so it reads as lit rather than flat. */
 .oh-cta::before {
   content: '';
   position: absolute;
   inset: 30% -6% -40%;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(150, 215, 186, 0.55), transparent);
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.55), transparent);
   filter: blur(18px);
   opacity: 0.55;
   pointer-events: none;
@@ -322,9 +334,9 @@
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(175, 232, 206, 0.5),
+    rgba(255, 255, 255, 0.5),
     rgba(var(--oi-deep-rgb), 0.26) 38%,
-    rgba(85, 205, 151, 0.1) 62%,
+    rgba(255, 255, 255, 0.1) 62%,
     transparent 78%
   );
   animation: oh-breathe 12s ease-in-out infinite alternate;
@@ -493,7 +505,7 @@
      word on them still has to pass AA. */
   /* No backdrop blur: the orb behind is redrawn every frame and each pill would re-blur it. */
   background:
-    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), rgba(5, 12, 9, 0.88);
+    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), rgba(6, 6, 6, 0.88);
   color: var(--oi-ink);
   font: inherit;
   text-align: left;
@@ -780,7 +792,7 @@
     box-shadow:
       0 0 6px 1px #ffffff,
       0 0 14px 3px rgba(var(--oi-accent-rgb), 0.95),
-      0 0 34px 8px rgba(150, 215, 186, 0.55);
+      0 0 34px 8px rgba(255, 255, 255, 0.55);
     pointer-events: none;
     transform: scale(1, calc(1 / var(--oh-squash)));
   }

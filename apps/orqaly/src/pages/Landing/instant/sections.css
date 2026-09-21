@@ -495,11 +495,11 @@
   width: 100%;
   min-height: 172px;
   padding: 20px;
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
-  background:
-    linear-gradient(180deg, rgba(var(--oi-pale-rgb), 0.075), rgba(var(--oi-pale-rgb), 0.012) 66%),
-    var(--oi-paper);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   isolation: isolate;
   transition: transform 700ms var(--oi-ease);
 }
@@ -517,7 +517,7 @@
   transition: opacity 500ms ease;
 }
 
-/* Green light pooling under the lifted card. The gradient is soft on its own: no blur. */
+/* Light pooling under the lifted card. The gradient is soft on its own: no blur. */
 .ois-strip-card::after {
   content: '';
   position: absolute;
@@ -772,9 +772,11 @@
   flex-direction: column;
   min-height: 360px;
   padding: var(--oi-s3);
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012) 62%);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   overflow: hidden;
   isolation: isolate;
 }
@@ -1221,8 +1223,8 @@ section.ois-developers {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(150, 215, 186, 0.42),
-    rgba(114, 197, 160, 0.16) 36%,
+    rgba(255, 255, 255, 0.42),
+    rgba(255, 255, 255, 0.16) 36%,
     transparent 66%
   );
   filter: blur(36px);
@@ -1356,7 +1358,7 @@ section.ois-developers {
   margin: var(--oi-s4) 0 var(--oi-s3);
 }
 
-/* Green light pooled under the button; it brightens when the button is approached. */
+/* Light pooled under the button; it brightens when the button is approached. */
 .ois-download-action::before {
   content: '';
   position: absolute;
@@ -1393,7 +1395,7 @@ section.ois-developers {
   transform: translate3d(0, -2px, 0) scale(1.03);
 }
 
-/* The sheen is green because the pill is already white. */
+/* The sheen is grey because the pill is already white. */
 .ois-download-action .MuiButton-root::after {
   content: '';
   position: absolute;
@@ -1401,7 +1403,7 @@ section.ois-developers {
   background: linear-gradient(
     105deg,
     transparent 32%,
-    rgba(150, 215, 186, 0.5) 50%,
+    rgba(255, 255, 255, 0.5) 50%,
     transparent 68%
   );
   transform: translate3d(-120%, 0, 0);
@@ -1428,13 +1430,14 @@ section.ois-developers {
   }
 }
 
-/* Opened over the orb, the details get their own dark glass to stay readable. */
+/* Opened over the orb, the details get the shared card graphite to stay readable. */
 .ois-download .oi-more-region {
   margin-top: var(--oi-s1);
   padding: 4px var(--oi-s3) var(--oi-s3);
-  border: 1px solid var(--oi-hairline);
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
-  background: rgba(6, 10, 8, 0.94);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 /* Responsive -------------------------------------------------------------------------- */

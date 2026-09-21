@@ -69,6 +69,16 @@ export function activeStep(state) {
   return Math.min(STEP_COUNT - 1, Math.floor(state.elapsed / (BUILD_MS / STEP_COUNT)));
 }
 
+/**
+ * Where a Workspace file stands, from the roadmap step that writes it: 'done' once that step
+ * is behind the run, 'writing' while the build is on it, 'waiting' before either.
+ */
+export function fileStatus(step, state) {
+  const current = activeStep(state);
+  if (step < current) return 'done';
+  return step === current && state.node === 'build' ? 'writing' : 'waiting';
+}
+
 export function workspaceStatus(state) {
   if (state.node === 'gate' || state.node === 'answer') return 'waiting';
   return state.node === 'results' || state.node === 'complete' ? 'done' : 'working';

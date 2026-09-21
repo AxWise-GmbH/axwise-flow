@@ -39,7 +39,7 @@ const CASES = [
   },
   {
     prompt: 'I want an iOS app to rent saunas nearby',
-    tint: '#f59e0b',
+    tint: '#a7a7a7',
     steps: [
       { label: 'Choosing tool · Xcode + Figma…', done: 'Tool: Xcode + Figma' },
       { label: 'Uploading brand assets…', done: 'Brand assets loaded' },
@@ -68,7 +68,7 @@ const CASES = [
   },
   {
     prompt: 'I want a 30-second product video',
-    tint: '#d946ef',
+    tint: '#858585',
     steps: [
       { label: 'Choosing tool · Runway…', done: 'Tool: Runway' },
       { label: 'Uploading footage & refs…', done: 'Materials uploaded' },
@@ -93,7 +93,7 @@ const CASES = [
   },
   {
     prompt: 'I want a pitch deck for investors',
-    tint: '#6366f1',
+    tint: '#757575',
     steps: [
       { label: 'Choosing tool · Slides…', done: 'Tool: Slides' },
       { label: 'Uploading research notes…', done: 'Research uploaded' },
@@ -308,9 +308,9 @@ export default function HeroAnimatedDemo({ sx, eyebrow, title, subtitle }) {
             borderBottom: `1px solid ${theme.palette.divider}`,
           }}
         >
-          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ff5f57' }} />
-          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#febc2e' }} />
-          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#28c840' }} />
+          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#8e8e8e' }} />
+          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#c0c0c0' }} />
+          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#898989' }} />
           <Box
             sx={{
               flex: 1,

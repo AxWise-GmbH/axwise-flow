@@ -1,9 +1,16 @@
 /*
- * Scripted content for the "Watch it work" demo. Three scenes, one shape.
+ * Scripted content for the "Watch it work" demo. Four scenes, one shape.
  *
  * Packs list FIRST DRAFTS in file types the desktop app can write today: text, tables,
  * web pages and vector layouts. No image or office files, and no step that hands work to an
  * outside service. watchItWork.scenes.test.js enforces both rules.
+ *
+ * `files` is the Workspace's Files card. For business, product and campaign it is the owner's
+ * own list, named as the owner wrote it (2026-09-21); it may show PDF and image files, so the
+ * pack rules above skip those three lists and the test pins their names word for word
+ * instead. The review scene's files are ours and follow the pack rules like everything else.
+ * `step` is the roadmap step (0-based) that writes the file, which is what fills the card in
+ * while the plan runs.
  */
 
 const PLAN_REPLY = "Here's my plan: 5 steps. I'll do them one at a time and show you each result.";
@@ -82,6 +89,12 @@ export const SCENES = [
         { title: 'ACCOUNTS', items: ['Accounts to open', 'Sign-up checklist'] },
       ],
     },
+    files: [
+      { name: 'Business Plan', type: 'document', folder: 'plan', step: 2 },
+      { name: 'Marketing Strategy for EU', type: 'document', folder: 'market', step: 3 },
+      { name: 'Company Landing Page', type: 'web', folder: 'site', step: 3 },
+      { name: 'List of AI Agents to Support', type: 'spreadsheet', folder: 'team', step: 4 },
+    ],
     callouts: CALLOUTS,
   },
   {
@@ -136,6 +149,11 @@ export const SCENES = [
         { title: 'CHECKLISTS', items: ['Launch-day checklist', 'Supplier checklist'] },
       ],
     },
+    files: [
+      { name: 'Research & Examples', type: 'document', folder: 'research', step: 1 },
+      { name: 'Prototype Image', type: 'image', folder: 'design', step: 3 },
+      { name: 'Roadmap', type: 'pdf', folder: 'plan', step: 4 },
+    ],
     callouts: CALLOUTS,
   },
   {
@@ -190,6 +208,62 @@ export const SCENES = [
         { title: 'CHECKLISTS', items: ['Campaign start checklist', 'Weekly review checklist'] },
       ],
     },
+    files: [
+      { name: 'SMM Roadmap', type: 'pdf', folder: 'plan', step: 2 },
+      { name: 'Social Media Account Access', type: 'document', folder: 'access', step: 3 },
+      { name: 'SMM Post Texts', type: 'document', folder: 'posts', step: 3 },
+    ],
+    callouts: CALLOUTS,
+  },
+  {
+    id: 'review',
+    label: 'Review my company',
+    chatTitle: 'Company review',
+    request:
+      'I run a small design studio. Can you review my company and tell me what to fix first?',
+    planReply: PLAN_REPLY,
+    askLine: ASK_LINE,
+    steps: [
+      'Understand your company',
+      'Review the finances',
+      'Sales and marketing',
+      'Team and tools',
+      'Priorities to fix',
+    ],
+    questions: [
+      {
+        label: 'What should I check most?',
+        options: ['Money', 'Sales', 'Team', 'Everything'],
+      },
+      { label: 'How big is the team?', options: ['Just me', 'Small team', 'Growing team'] },
+      {
+        label: 'What can you share?',
+        options: ['Accounts export', 'Website link', 'Nothing yet'],
+      },
+    ],
+    pack: {
+      title: 'Reviewing your company · first drafts',
+      columns: [
+        {
+          title: 'DOCS',
+          items: [
+            'company-audit-report.md',
+            'finance-health-check.csv',
+            'sales-and-marketing-review.md',
+            'team-and-tools-review.md',
+            'action-plan.md',
+          ],
+        },
+        { title: 'MATERIALS', items: ['Owner briefing draft', 'Summary slides outline'] },
+        { title: 'CHECKLISTS', items: ['Fix-first checklist', 'Monthly review checklist'] },
+      ],
+    },
+    files: [
+      { name: 'Finance Health Check', type: 'spreadsheet', folder: 'finance', step: 1 },
+      { name: 'Sales & Marketing Review', type: 'document', folder: 'review', step: 2 },
+      { name: 'Company Audit Report', type: 'document', folder: 'review', step: 4 },
+      { name: 'Action Plan', type: 'document', folder: 'plan', step: 4 },
+    ],
     callouts: CALLOUTS,
   },
 ].map(withFittedLine);

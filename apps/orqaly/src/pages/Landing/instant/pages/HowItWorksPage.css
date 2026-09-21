@@ -198,7 +198,7 @@
   background: linear-gradient(
     180deg,
     #ffffff 18%,
-    color-mix(in srgb, var(--hiw-accent) 55%, #8d919c) 118%
+    color-mix(in srgb, var(--hiw-accent) 55%, #a1a1a1) 118%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -730,7 +730,7 @@
 .hiw-road-done .hiw-marker {
   border-color: var(--hm-soft);
   background: var(--hm-soft);
-  color: #22252a;
+  color: #222222;
 }
 
 .hiw-marker-check {
@@ -863,7 +863,7 @@
   padding: 5px 14px;
   border-radius: 999px;
   background: var(--hm-soft);
-  color: #1d1f24;
+  color: #1e1e1e;
   font-size: 12px;
   font-weight: 600;
 }
@@ -985,11 +985,11 @@
 }
 
 .hiw-added {
-  color: #a3d795;
+  color: #e6e6e6;
 }
 
 .hiw-removed {
-  color: #ff8d8d;
+  color: #7a7a7a;
 }
 
 .hiw-diff {
@@ -1007,19 +1007,19 @@
 }
 
 .hiw-diffline-added {
-  background: rgba(163, 215, 149, 0.1);
+  background: rgba(230, 230, 230, 0.1);
 }
 
 .hiw-diffline-added .hiw-ghost-line {
-  background: rgba(163, 215, 149, 0.55);
+  background: rgba(230, 230, 230, 0.55);
 }
 
 .hiw-diffline-removed {
-  background: rgba(255, 141, 141, 0.09);
+  background: rgba(122, 122, 122, 0.09);
 }
 
 .hiw-diffline-removed .hiw-ghost-line {
-  background: rgba(255, 141, 141, 0.5);
+  background: rgba(122, 122, 122, 0.5);
 }
 
 /* The plus and minus in the gutter, drawn so they add nothing to the text. */
@@ -1034,11 +1034,11 @@
   height: 1.5px;
   margin-top: -0.75px;
   border-radius: 1px;
-  background: #a3d795;
+  background: #e6e6e6;
 }
 
 .hiw-diffline-removed::before {
-  background: #ff8d8d;
+  background: #7a7a7a;
 }
 
 .hiw-diffline-added::after {
