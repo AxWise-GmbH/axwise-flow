@@ -158,7 +158,7 @@ export async function runEvaluationCycle({ slot = new Date(), runnerRevision, tr
     runId, slot: catalog.slot, startedAt, finishedAt: now().toISOString(), runnerRevision, cases });
   return { record, evidence: { ...record, schemaVersion: 'orqanix.agent-evaluation-evidence.v1',
     methodology: { cadenceSeconds: 900, comparison: 'same prompt; concurrent pairs; two categories at a time',
-      latency: 'noncoding request-to-terminal response, excluding external judge; coding includes fixture tests and Orqanix Jev review',
+      latency: 'noncoding request-to-terminal response, excluding external judge; coding includes fixture tests and Jev review for both arms',
       codingScope: 'headless OMP bridge and disposable fixture; does not exercise packaged desktop UI',
       planScope: 'generated implementation plan; does not approve or execute a Goal',
       quality: 'deterministic checks plus advisory Jev review; no guarantee of factual correctness' },

@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 
-const MAX_OUTPUT_CHARACTERS = 8_000;
-const MAX_SOURCE_BYTES = 200 * 1024;
-const MAX_SOURCE_EXCERPT_CHARACTERS = 1_500;
+const MAX_OUTPUT_CHARACTERS = 24_000;
+const MAX_SOURCE_BYTES = 2 * 1024 * 1024;
+const MAX_SOURCE_EXCERPT_CHARACTERS = 2_400;
 const MAX_SOURCES = 3;
 const MAX_REDIRECTS = 3;
 const SOURCE_TIMEOUT_MS = 8_000;
@@ -17,8 +17,17 @@ const OFFICIAL_HOSTS = Object.freeze({
   'research-browser-storage': new Set(['developer.mozilla.org']),
 });
 
+const SOURCE_RELEVANCE_TERMS = Object.freeze({
+  'search-node-abort-timeout': ['AbortSignal.timeout', 'timeout(delay)'],
+  'search-python-json-ascii': ['ensure_ascii'],
+  'search-sqlite-journal-mode': ['journal_mode', 'journal mode'],
+  'research-node-streams': ['stream.pipeline', 'readable.pipe'],
+  'research-postgres-indexes': ['BRIN', 'B-tree'],
+  'research-browser-storage': ['IndexedDB', 'localStorage'],
+});
+
 function result(id, passed, reason) {
-  return { id, passed, ...(reason === undefined ? {} : { reason }) };
+  return { id, passed, ...(!passed && reason !== undefined ? { reason } : {}) };
 }
 
 function failEvaluation(checks, reason) {
@@ -113,7 +122,7 @@ function extractUrls(output) {
   return [...new Set(matches.map((match) => match.replace(/[),.;:!?]+$/g, '')))];
 }
 
-function normalizeOfficialUrl(value, allowedHosts) {
+function parseOfficialSource(value, allowedHosts) {
   let url;
   try {
     url = new URL(value);
@@ -130,8 +139,12 @@ function normalizeOfficialUrl(value, allowedHosts) {
   ) {
     return null;
   }
+  const citationUrl = url.toString();
+  const encodedFragment = url.hash.slice(1);
+  let fragment = encodedFragment;
+  try { fragment = decodeURIComponent(encodedFragment); } catch {}
   url.hash = '';
-  return url.toString();
+  return { citationUrl, requestUrl: url.toString(), fragment };
 }
 
 function structuredSourceUrls(sources) {
@@ -144,10 +157,17 @@ function structuredSourceUrls(sources) {
 function sourceChecks(caseData, output, sources) {
   const allowedHosts = OFFICIAL_HOSTS[caseData.templateId];
   if (allowedHosts === undefined) {
-    return { checks: [result('known_source_template', false, 'Source template is not supported by this evaluator version.')], urls: [], allowedHosts: new Set() };
+    return {
+      checks: [result('known_source_template', false, 'Source template is not supported by this evaluator version.')],
+      targets: [],
+      allowedHosts: new Set(),
+      relevanceTerms: [],
+    };
   }
   const cited = [...new Set([...extractUrls(output), ...structuredSourceUrls(sources)])];
-  const official = [...new Set(cited.map((url) => normalizeOfficialUrl(url, allowedHosts)).filter(Boolean))];
+  const parsed = cited.map((url) => parseOfficialSource(url, allowedHosts));
+  const approved = parsed.filter(Boolean);
+  const official = [...new Map(approved.map((target) => [target.citationUrl, target])).values()];
   const maximumWords = caseData.category === 'search'
     ? (caseData.templateId === 'search-sqlite-journal-mode' ? 140 : 120)
     : 220;
@@ -156,9 +176,14 @@ function sourceChecks(caseData, output, sources) {
     result('official_source_cited', official.length > 0, 'No allowed official HTTPS documentation URL was cited.'),
   ];
   if (caseData.category === 'search') {
-    checks.push(result('official_sources_only', official.length === cited.length, 'Search answer cites a URL outside the allowed official documentation host.'));
+    checks.push(result('official_sources_only', approved.length === cited.length, 'Search answer cites a URL outside the allowed official documentation host.'));
   }
-  return { checks, urls: official.slice(0, MAX_SOURCES), allowedHosts };
+  return {
+    checks,
+    targets: official.slice(0, MAX_SOURCES),
+    allowedHosts,
+    relevanceTerms: SOURCE_RELEVANCE_TERMS[caseData.templateId] ?? [],
+  };
 }
 
 const PLAN_CONCEPTS = Object.freeze({
@@ -176,26 +201,34 @@ const PLAN_CONCEPTS = Object.freeze({
 function countNonGoals(output) {
   const labeled = output.match(/^\s*(?:[-*]\s*)?non-goal\s*\d*\s*:/gim) ?? [];
   if (labeled.length > 0) return labeled.length;
+  const headings = output.match(/^\s*#{1,6}\s+non-goal\s+\d+\b/gim) ?? [];
+  if (headings.length > 0) return headings.length;
   const section = output.match(/(?:^|\n)\s*#{0,3}\s*non-goals?\s*:?\s*\n([\s\S]*?)(?=\n\s*#{1,3}\s|$)/i);
   if (!section) return 0;
-  return (section[1].match(/^\s*[-*]\s+\S+/gm) ?? []).length;
+  return (section[1].match(/^\s*(?:[-*]|\d+[.)])\s+\S+/gm) ?? []).length;
 }
 
 function planChecks(caseData, output) {
   const concepts = PLAN_CONCEPTS[caseData.templateId];
   if (concepts === undefined) return [result('known_plan_template', false, 'Plan template is not supported by this evaluator version.')];
-  const orderedSteps = output.match(/^\s*\d+[.)]\s+\S+/gm) ?? [];
+  const numberedSteps = output.match(/^\s*\d+[.)]\s+\S+/gm) ?? [];
+  const headingSteps = output.match(/^\s*#{1,6}\s+Step\s+\d+\b.*$/gim) ?? [];
+  const orderedStepCount = numberedSteps.length + headingSteps.length;
+  const nonGoalCount = countNonGoals(output);
   const lower = output.toLowerCase();
   const missingConcepts = concepts.filter((alternatives) => !alternatives.some((term) => lower.includes(term)));
   return [
-    result('bounded_ordered_steps', orderedSteps.length >= 4 && orderedSteps.length <= 8, 'Plan must contain between 4 and 8 ordered steps.'),
-    result('exactly_two_non_goals', countNonGoals(output) === 2, 'Plan must state exactly two non-goals.'),
+    result('bounded_ordered_steps', orderedStepCount >= 4 && orderedStepCount <= 8, 'Plan must contain between 4 and 8 ordered steps.'),
+    nonGoalCount === 0
+      ? result('non_goal_count_deferred_to_jev', true)
+      : result('exactly_two_non_goals', nonGoalCount === 2, 'Plan must state exactly two non-goals.'),
     result('required_topics_present', missingConcepts.length === 0, `Plan omits required topic groups: ${missingConcepts.map((group) => group.join('/')).join(', ')}`),
+    result('plan_word_limit', wordCount(output) <= 700, 'Plan exceeds the explicit 700-word limit.'),
   ];
 }
 
 function deterministicChecks(caseData, output, sources) {
-  const initial = [result('bounded_output', output.length > 0 && output.length <= MAX_OUTPUT_CHARACTERS, `Output must contain 1-${MAX_OUTPUT_CHARACTERS} characters.`)];
+  const initial = [result('bounded_output', output.length > 0, 'Output is empty.')];
   if (!initial[0].passed) return { checks: initial, sourcePlan: null };
   if (caseData.category === 'message') return { checks: [...initial, ...messageChecks(caseData, output)], sourcePlan: null };
   if (caseData.category === 'search' || caseData.category === 'research') {
@@ -219,6 +252,45 @@ function stripHtml(value) {
     .replace(/&#39;/gi, "'")
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function selectSourceExcerpt(value, contentType, fragment, relevanceTerms) {
+  let section = value;
+  let anchored = false;
+  if (contentType === 'text/html' && fragment) {
+    const escaped = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const anchor = new RegExp(
+      `\\b(?:id|name)\\s*=\\s*(?:"${escaped}"|'${escaped}'|${escaped}(?=[\\s>]))`,
+      'i',
+    ).exec(value);
+    if (anchor) {
+      const anchorIndex = anchor.index;
+      const lower = value.toLowerCase();
+      const headingStart = Math.max(...[1, 2, 3, 4, 5, 6].map((level) => lower.lastIndexOf(`<h${level}`, anchorIndex)));
+      const anchorTagStart = Math.max(0, value.lastIndexOf('<', anchorIndex));
+      const anchorIsInsideHeading = headingStart >= 0
+        && !lower.slice(headingStart, anchorIndex).includes('</h');
+      const start = anchorIsInsideHeading ? headingStart : anchorTagStart;
+      section = value.slice(start, Math.min(value.length, anchorIndex + 120_000));
+      anchored = true;
+    }
+  }
+
+  const plain = contentType === 'text/html' ? stripHtml(section) : section.replace(/\s+/g, ' ').trim();
+  if (plain === '') return '';
+  if (anchored) return plain.slice(0, MAX_SOURCE_EXCERPT_CHARACTERS);
+
+  const lower = plain.toLowerCase();
+  const termIndex = relevanceTerms
+    .map((term) => lower.indexOf(term.toLowerCase()))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)[0];
+  if (termIndex !== undefined) {
+    const start = Math.max(0, termIndex - 240);
+    return plain.slice(start, start + MAX_SOURCE_EXCERPT_CHARACTERS);
+  }
+  if (plain.length <= MAX_SOURCE_EXCERPT_CHARACTERS) return plain;
+  throw new Error('source_relevant_section_not_found');
 }
 
 async function readLimitedBody(response) {
@@ -266,14 +338,14 @@ function boundedSignal(parentSignal) {
   };
 }
 
-async function fetchOfficialSource(initialUrl, allowedHosts, fetchImpl, signal) {
-  let currentUrl = initialUrl;
+async function fetchOfficialSource(initialTarget, allowedHosts, relevanceTerms, fetchImpl, signal) {
+  let currentTarget = initialTarget;
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
-    const normalized = normalizeOfficialUrl(currentUrl, allowedHosts);
+    const normalized = parseOfficialSource(currentTarget.citationUrl, allowedHosts);
     if (normalized === null) throw new Error('source_redirect_not_allowed');
     const bounded = boundedSignal(signal);
     try {
-      const response = await fetchImpl(normalized, {
+      const response = await fetchImpl(normalized.requestUrl, {
         method: 'GET',
         redirect: 'manual',
         signal: bounded.signal,
@@ -282,18 +354,20 @@ async function fetchOfficialSource(initialUrl, allowedHosts, fetchImpl, signal) 
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
         if (location === null || redirects === MAX_REDIRECTS) throw new Error('source_redirect_invalid');
-        currentUrl = new URL(location, normalized).toString();
+        const redirected = new URL(location, normalized.requestUrl);
+        if (!redirected.hash && normalized.fragment) redirected.hash = `#${normalized.fragment}`;
+        currentTarget = { citationUrl: redirected.toString() };
         continue;
       }
       if (!response.ok) throw new Error(`source_http_${response.status}`);
       const contentType = (response.headers.get('content-type') ?? '').split(';', 1)[0].trim().toLowerCase();
       if (contentType !== 'text/html' && contentType !== 'text/plain') throw new Error('source_content_type_not_allowed');
       const text = await readLimitedBody(response);
-      const excerpt = stripHtml(text).slice(0, MAX_SOURCE_EXCERPT_CHARACTERS);
+      const excerpt = selectSourceExcerpt(text, contentType, normalized.fragment, relevanceTerms);
       if (excerpt === '') throw new Error('source_empty');
       return {
-        url: initialUrl,
-        finalUrl: normalized,
+        url: initialTarget.citationUrl,
+        finalUrl: normalized.citationUrl,
         status: response.status,
         contentType,
         excerpt,
@@ -322,8 +396,14 @@ function sanitizeJudgeReceipt(receipt, expectedCriteria, expectedIdentity) {
       ...(typeof item.reason === 'string' && item.reason !== '' ? { reason: item.reason } : {}),
     });
   }
-  if (receipt.verdict === 'passed' && criteriaResults.some(({ passed }) => !passed)) return null;
-  if (receipt.verdict === 'failed' && criteriaResults.every(({ passed }) => passed)) return null;
+  const overallProbability = Number.isFinite(receipt.overallProbability)
+    && receipt.overallProbability >= 0 && receipt.overallProbability <= 1
+    ? receipt.overallProbability : null;
+  if (receipt.verdict !== 'not_evaluated') {
+    if (overallProbability === null) return null;
+    const passed = overallProbability >= 0.6 && criteriaResults.every((item) => item.passed);
+    if ((receipt.verdict === 'passed') !== passed) return null;
+  }
   return {
     evaluation: {
       verdict: receipt.verdict,
@@ -335,7 +415,7 @@ function sanitizeJudgeReceipt(receipt, expectedCriteria, expectedIdentity) {
       advisory: true,
       provider: 'typesafe',
       model: typeof receipt.model === 'string' ? receipt.model : null,
-      overallProbability: Number.isFinite(receipt.overallProbability) ? receipt.overallProbability : null,
+      overallProbability,
       perCriterion: Array.isArray(receipt.perCriterion)
         ? receipt.perCriterion.slice(0, expectedCriteria.length).map((item) => ({
           criterion: typeof item?.criterion === 'string' ? item.criterion : null,
@@ -369,6 +449,18 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
     };
   }
 
+  if (output.length > MAX_OUTPUT_CHARACTERS) {
+    const technicalCheck = result(
+      'bounded_output',
+      false,
+      `Output exceeds the evaluator's ${MAX_OUTPUT_CHARACTERS}-character technical input limit.`,
+    );
+    return {
+      evaluation: notEvaluated('Output exceeds the evaluator technical input limit.', [technicalCheck]),
+      evidence: { deterministicChecks: [technicalCheck], sources: [], declaredSourceCount: sources.length, judge: null },
+    };
+  }
+
   const { checks, sourcePlan } = deterministicChecks(caseData, output.trim(), sources);
   if (checks.some(({ passed }) => !passed)) {
     return {
@@ -379,15 +471,22 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
 
   const sourceEvidence = [];
   if (sourcePlan !== null) {
-    for (const url of sourcePlan.urls) {
+    for (const target of sourcePlan.targets) {
       try {
-        sourceEvidence.push(await fetchOfficialSource(url, sourcePlan.allowedHosts, fetchImpl, signal));
+        sourceEvidence.push(await fetchOfficialSource(
+          target,
+          sourcePlan.allowedHosts,
+          sourcePlan.relevanceTerms,
+          fetchImpl,
+          signal,
+        ));
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'source_fetch_failed';
         const deterministicSourceFailure = reason.startsWith('source_http_')
           || reason === 'source_redirect_not_allowed'
           || reason === 'source_redirect_invalid'
           || reason === 'source_content_type_not_allowed'
+          || reason === 'source_relevant_section_not_found'
           || reason === 'source_empty';
         return {
           evaluation: deterministicSourceFailure

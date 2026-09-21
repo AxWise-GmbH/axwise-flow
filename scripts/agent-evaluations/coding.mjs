@@ -626,6 +626,17 @@ export async function runVanillaCodingArm({
     });
     const response = await vanillaCall({ prompt: caseData.prompt, signal, caseData });
     const rawOutput = outputText(response);
+    if (response?.status && response.status !== 'completed') {
+      return {
+        status: 'failed', executionSucceeded: false, model: response.model || 'vanilla',
+        ...(response.resolvedModel ? { resolvedModel: response.resolvedModel } : {}),
+        startedAt, finishedAt: new Date().toISOString(), elapsedMs: Date.now() - started,
+        output: rawOutput, error: response.error?.code || 'execution_incomplete',
+        evaluation: { verdict: 'not_evaluated', reason: response.error?.code || 'execution_incomplete' },
+        evidence: { execution: 'direct_model', providerEvidence: response.evidence || null },
+        ...(response.usage ? { usage: response.usage } : {}),
+      };
+    }
     let source;
     try {
       source = extractVanillaSource(response, fixture.targetFilename);

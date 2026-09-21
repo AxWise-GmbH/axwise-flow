@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 export const SLOT_SECONDS = 15 * 60;
-export const CATALOG_TEMPLATE_VERSION = 1;
+export const CATALOG_TEMPLATE_VERSION = 2;
 
 export const EVALUATION_CATEGORIES = Object.freeze([
   Object.freeze({ id: 'message', label: 'Message' }),
@@ -141,6 +141,7 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Using only official Node.js documentation, find the current documented signature and behavior of AbortSignal.timeout(delay).',
+          'Use only this official documentation reference: https://nodejs.org/api/globals.html',
           'Answer in at most 120 words and include the exact official documentation URL used.',
         ].join('\n'),
         criteria: [
@@ -155,6 +156,7 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Using only official Python documentation, explain what json.dumps ensure_ascii does and state its default value.',
+          'Use only this official documentation reference: https://docs.python.org/3/library/json.html',
           'Answer in at most 120 words and include the exact official documentation URL used.',
         ].join('\n'),
         criteria: [
@@ -169,6 +171,7 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Using only official SQLite documentation, list the documented values accepted by PRAGMA journal_mode and identify which mode persists across database reopenings.',
+          'Use only this official documentation reference: https://www.sqlite.org/pragma.html',
           'Answer in at most 140 words and include the exact official documentation URL used.',
         ].join('\n'),
         criteria: [
@@ -185,7 +188,8 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Compare Node.js stream.pipeline() and readable.pipe() for error handling and cleanup in a small production service.',
-          'Use official Node.js documentation as the primary evidence. Give a recommendation, two concrete tradeoffs, and source URLs in at most 220 words.',
+          'Use only this official documentation reference: https://nodejs.org/api/stream.html',
+          'Give a recommendation, two concrete tradeoffs, and source URLs in at most 220 words.',
         ].join('\n'),
         criteria: [
           'The comparison accurately covers error forwarding or cleanup differences.',
@@ -199,7 +203,8 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Compare PostgreSQL B-tree and BRIN indexes for a large append-only events table ordered by timestamp.',
-          'Use official PostgreSQL documentation as the primary evidence. Give a recommendation, two concrete tradeoffs, and source URLs in at most 220 words.',
+          'Use only these official documentation references: https://www.postgresql.org/docs/current/indexes-types.html and https://www.postgresql.org/docs/current/brin.html',
+          'Give a recommendation, two concrete tradeoffs, and source URLs in at most 220 words.',
         ].join('\n'),
         criteria: [
           'The comparison accurately describes relevant B-tree and BRIN characteristics.',
@@ -213,7 +218,8 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Compare IndexedDB and localStorage for storing an offline-first queue of structured records in a browser application.',
-          'Use MDN documentation as the primary evidence. Give a recommendation, two concrete tradeoffs, and source URLs in at most 220 words.',
+          'Use only these official documentation references: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API and https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage',
+          'Give a recommendation, two concrete tradeoffs, and source URLs in at most 220 words.',
         ].join('\n'),
         criteria: [
           'The comparison accurately covers data model, capacity or performance, and synchronous versus asynchronous access.',
@@ -229,12 +235,13 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Create a bounded implementation plan for adding idempotency-key handling to one POST /payments endpoint backed by PostgreSQL.',
-          'The plan must include schema, request flow, concurrency behavior, expiry, rollout, observability, and tests. Limit it to 8 ordered steps and state two explicit non-goals.',
+          'The plan must include schema, request flow, concurrency behavior, expiry, rollout, observability, and tests. Limit it to 8 ordered steps, state two explicit non-goals, and keep the entire response at or below 700 words.',
         ].join('\n'),
         criteria: [
           'The plan has no more than 8 ordered implementation steps and exactly two explicit non-goals.',
           'Schema, request flow, concurrency, expiry, rollout, observability, and tests are addressed.',
           'The plan identifies a safe response for concurrent requests sharing a key.',
+          'The entire response is at most 700 words.',
         ],
       }),
     },
@@ -243,12 +250,13 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Create a bounded implementation plan for reliable webhook delivery from one service to third-party HTTPS endpoints.',
-          'The plan must include persistence, signing, retry policy, terminal failure handling, observability, rollout, and tests. Limit it to 8 ordered steps and state two explicit non-goals.',
+          'The plan must include persistence, signing, retry policy, terminal failure handling, observability, rollout, and tests. Limit it to 8 ordered steps, state two explicit non-goals, and keep the entire response at or below 700 words.',
         ].join('\n'),
         criteria: [
           'The plan has no more than 8 ordered implementation steps and exactly two explicit non-goals.',
           'Persistence, signing, retries, terminal failures, observability, rollout, and tests are addressed.',
           'Retry behavior is bounded and distinguishes transient from terminal outcomes.',
+          'The entire response is at most 700 words.',
         ],
       }),
     },
@@ -257,12 +265,13 @@ const TEMPLATES = Object.freeze({
       make: () => ({
         prompt: [
           'Create a bounded implementation plan for moving one read-heavy product endpoint from process-local caching to Redis without downtime.',
-          'The plan must include key design, invalidation, failure behavior, rollout, rollback, observability, and tests. Limit it to 8 ordered steps and state two explicit non-goals.',
+          'The plan must include key design, invalidation, failure behavior, rollout, rollback, observability, and tests. Limit it to 8 ordered steps, state two explicit non-goals, and keep the entire response at or below 700 words.',
         ].join('\n'),
         criteria: [
           'The plan has no more than 8 ordered implementation steps and exactly two explicit non-goals.',
           'Key design, invalidation, failure behavior, rollout, rollback, observability, and tests are addressed.',
           'The rollout includes a measurable staged comparison before full cutover.',
+          'The entire response is at most 700 words.',
         ],
       }),
     },
