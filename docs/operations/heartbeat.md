@@ -98,7 +98,8 @@ overwrite it. The Scheduler invocation can succeed once the Run API accepts the
 request even when the resulting execution fails; inspect the execution and the
 published JSON together.
 
-The browser labels a snapshot older than `staleAfterSeconds` (30 minutes) as
+The browser uses a fixed 30-minute limit, matching the collector's
+`staleAfterSeconds` value. It labels older observations as
 `STALE` and removes its healthy styling. This gives one missed 15-minute run
 before the public status turns stale. It must not be interpreted as proof that
 the endpoints are down.
@@ -106,8 +107,10 @@ the endpoints are down.
 ## Cadence and rollback
 
 Change cadence only on the existing Scheduler job, keeping UTC explicit. If the
-cadence is made slower, update `staleAfterSeconds` in the reviewed collector at
-the same time so healthy data does not become stale between expected runs.
+cadence is made slower than the fixed 30-minute stale threshold, coordinate
+changes to the collector's `staleAfterSeconds`, both `heartbeat-telemetry.js`
+copies and their tests, and the visible page text. Changing the JSON field alone
+does not change the browser's threshold.
 
 ```bash
 gcloud scheduler jobs update http orqanix-heartbeat-preview \
