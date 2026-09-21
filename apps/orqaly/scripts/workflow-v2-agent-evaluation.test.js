@@ -53,6 +53,60 @@ describe('evaluation configuration and identity', () => {
 });
 
 describe('real evaluation service contracts', () => {
+  it('captures actual operation usage after a completed persisted turn', async () => {
+    const assistantService = { send: vi.fn(async () => ({ route: 'DIRECT_ANSWER', persisted: false,
+      message: { parts: [{ type: 'operation_status', status: 'running', retryAfterSeconds: 1 }] } })),
+      resume: vi.fn(async () => ({ route: 'DIRECT_ANSWER', persisted: true,
+        message: { parts: [{ type: 'text', markdown: 'A completed answer.' }] } })),
+      readTurnMetrics: vi.fn(async () => ({ latencyMs: 700, inputTokens: 25,
+        outputTokens: 12, totalTokens: 37 })) };
+    const service = createAgentEvaluationService({ assistantService, userId: config.userId,
+      geminiApiKey: 'server-gemini-key', sleep: async () => {} });
+    const result = await service.execute(executeBody);
+    expect(result.usage).toEqual({ promptTokens: 25, completionTokens: 12, totalTokens: 37 });
+    expect(assistantService.readTurnMetrics).toHaveBeenCalledWith(
+      { userId: config.userId }, result.path.threadId, result.path.turnId
+    );
+    expect(assistantService.resume).toHaveBeenCalledOnce();
+  });
+
+  it.each([null, { latencyMs: 700, inputTokens: 25 },
+    { latencyMs: 700, inputTokens: 25, outputTokens: 12, totalTokens: -1 }])(
+    'keeps unknown usage for absent or incomplete reported metrics: %j', async (metrics) => {
+      const assistantService = { send: vi.fn(async () => ({ route: 'DIRECT_ANSWER', persisted: true,
+        message: { parts: [{ type: 'text', markdown: 'A completed answer.' }] } })),
+        resume: vi.fn(), readTurnMetrics: vi.fn(async () => metrics) };
+      const service = createAgentEvaluationService({ assistantService, userId: config.userId,
+        geminiApiKey: 'server-gemini-key' });
+      expect((await service.execute(executeBody)).usage).toBeNull();
+    }
+  );
+
+  it('preserves a completed answer when operation metrics are unavailable', async () => {
+    const assistantService = { send: vi.fn(async () => ({ route: 'DIRECT_ANSWER', persisted: true,
+      message: { parts: [{ type: 'text', markdown: 'A completed answer.' }] } })),
+      resume: vi.fn(), readTurnMetrics: vi.fn(async () => { throw new Error('operation not found'); }) };
+    const service = createAgentEvaluationService({ assistantService, userId: config.userId,
+      geminiApiKey: 'server-gemini-key' });
+    await expect(service.execute(executeBody)).resolves.toMatchObject({ status: 'completed',
+      output: 'A completed answer.', usage: null });
+  });
+
+  it('bounds optional metrics lookup without adding its wait to execution timing', async () => {
+    vi.useFakeTimers();
+    try {
+      const assistantService = { send: vi.fn(async () => ({ route: 'DIRECT_ANSWER', persisted: true,
+        message: { parts: [{ type: 'text', markdown: 'A completed answer.' }] } })),
+        resume: vi.fn(), readTurnMetrics: vi.fn(() => new Promise(() => {})) };
+      const service = createAgentEvaluationService({ assistantService, userId: config.userId,
+        geminiApiKey: 'server-gemini-key' });
+      const pending = service.execute(executeBody);
+      await vi.advanceTimersByTimeAsync(5000);
+      await expect(pending).resolves.toMatchObject({ status: 'completed', usage: null,
+        evidence: { latencyMs: 0 } });
+    } finally { vi.useRealTimers(); }
+  });
+
   it('accepts the actual runner judge payload through the strict API contract', async () => {
     let caseData;
     for (let offset = 0; offset < 30 && !caseData; offset++) {
