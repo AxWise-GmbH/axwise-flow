@@ -84,7 +84,7 @@ ensure_service_account "${TRIGGER_ACCOUNT_ID}" "Orqanix heartbeat scheduler trig
 
 set +e
 bucket_lookup="$(gcloud storage buckets describe "gs://${BUCKET}" \
-  --project="${PROJECT_ID}" --format=json 2>&1)"
+  --project="${PROJECT_ID}" --raw --format=json 2>&1)"
 bucket_lookup_status=$?
 set -e
 if test "${bucket_lookup_status}" -eq 0; then
@@ -111,7 +111,7 @@ fi
 unset bucket_lookup bucket_lookup_status
 
 bucket_document="$(gcloud storage buckets describe "gs://${BUCKET}" \
-  --project="${PROJECT_ID}" --format=json)"
+  --project="${PROJECT_ID}" --raw --format=json)"
 if ! jq -e --arg expected_region "${REGION_UPPER}" \
   --arg expected_project "${PROJECT_NUMBER}" '
   (.location | ascii_upcase) == $expected_region
