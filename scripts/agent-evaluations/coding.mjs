@@ -12,13 +12,11 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import {
-  runEngineeringTask,
-} from '../../packages/omp-mcp-server/src/omp-client.mjs';
+import { runEngineeringTask } from '../../packages/omp-mcp-server/src/omp-client.mjs';
 
 const MAX_SOURCE_BYTES = 16_384;
 const TARGET_FILENAME = /^src\/[a-z][a-z0-9-]*\.js$/;
