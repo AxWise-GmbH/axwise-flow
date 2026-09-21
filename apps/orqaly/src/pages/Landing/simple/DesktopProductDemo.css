@@ -1,7 +1,7 @@
 .opd {
-  --opd-text: #3f434b;
-  --opd-muted: #6f747d;
-  --opd-border: #e3e6ea;
+  --opd-text: #434343;
+  --opd-muted: #747474;
+  --opd-border: #e6e6e6;
   color: var(--opd-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-align: left;
@@ -19,7 +19,7 @@
 }
 .opd button:focus-visible,
 .opd summary:focus-visible {
-  outline: 2px solid #6557b9;
+  outline: 2px solid #666666;
   outline-offset: 3px;
 }
 .opd button svg,
@@ -42,7 +42,7 @@
   grid-template-rows: 46px minmax(0, 1fr);
   height: 664px;
   overflow: hidden;
-  border: 1px solid #d7dbe0;
+  border: 1px solid #dadada;
   border-radius: 16px;
   background: #fff;
   box-shadow:
@@ -71,14 +71,14 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ff6159;
+  background: #d0d0d0;
   box-shadow: inset 0 0 0 1px #0000000d;
 }
 .opd-traffic i:nth-child(2) {
-  background: #ffbd2e;
+  background: #bcbcbc;
 }
 .opd-traffic i:nth-child(3) {
-  background: #28c840;
+  background: #a8a8a8;
 }
 .opd-traffic svg {
   margin-left: auto;
@@ -115,7 +115,7 @@
   gap: 9px;
   height: 35px;
   padding: 0 9px;
-  color: #626770;
+  color: #676767;
   white-space: nowrap;
 }
 .opd-nav-item:first-child {
@@ -148,7 +148,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #747981;
+  color: #787878;
 }
 .opd-chat-list .opd-chat-selected {
   background: #f0f2f4;
@@ -161,7 +161,7 @@
   flex-shrink: 0;
   margin-left: auto;
   border-radius: 50%;
-  background: #6eaf85;
+  background: #979797;
 }
 .opd-sidebar-bottom {
   display: flex;
@@ -185,7 +185,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #636972;
+  color: #686868;
   font-size: 11px;
   min-width: 0;
   white-space: nowrap;
@@ -234,7 +234,7 @@
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #e3e6ea transparent;
+  scrollbar-color: #e6e6e6 transparent;
   padding: 0 2px 18px;
   flex: 1;
   font-size: 12px;
@@ -246,7 +246,7 @@
   margin: 6px 0 23px auto;
   padding: 13px 16px;
   border-radius: 14px 14px 4px 14px;
-  background: #3f434b;
+  background: #434343;
   color: #fff;
   font-size: 12px;
   line-height: 1.6;
@@ -283,10 +283,10 @@
 .opd-tool summary > svg {
   width: 13px;
   height: 13px;
-  color: #7b818b;
+  color: #808080;
 }
 .opd-tool summary > .opd-tool-check {
-  color: #659575;
+  color: #838383;
   width: 12px;
 }
 .opd-tool[open] .opd-tool-chevron {
@@ -333,7 +333,7 @@
 .opd-inline-artifact svg {
   width: 14px;
   height: 14px;
-  color: #7b818b;
+  color: #808080;
 }
 .opd-next-step {
   color: var(--opd-muted);
@@ -353,14 +353,14 @@
   padding: 13px 13px 4px;
   font-size: 11px;
   line-height: 1.65;
-  color: #858b95;
+  color: #8a8a8a;
 }
 .opd-composer-controls {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 7px 10px 10px;
-  color: #858b95;
+  color: #8a8a8a;
   font-size: 8px;
 }
 .opd-composer-controls > span {
@@ -434,7 +434,7 @@
   padding: 16px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #e3e6ea transparent;
+  scrollbar-color: #e6e6e6 transparent;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -450,10 +450,10 @@
   letter-spacing: 0.055em;
   font-size: 9px;
   font-weight: 500;
-  color: #767c85;
+  color: #7b7b7b;
 }
 .opd-workspace-body section h4 span {
-  color: #9a9faa;
+  color: #9f9f9f;
   font-size: 9px;
 }
 .opd-workspace-body section p {
@@ -469,7 +469,7 @@
   height: 5px;
   margin: 0 7px 2px 0;
   border-radius: 50%;
-  background: #70a582;
+  background: #919191;
 }
 .opd-folder,
 .opd-result {
@@ -488,7 +488,7 @@
   color: #878787;
 }
 .opd-result svg {
-  color: #659575;
+  color: #838383;
 }
 .opd-artifact-list {
   margin: 0 -6px;
@@ -512,7 +512,7 @@
   width: 14px;
   height: 14px;
   margin-top: 2px;
-  color: #9096a0;
+  color: #959595;
 }
 .opd-artifact-list button > svg:last-child {
   margin-left: auto;
@@ -594,7 +594,7 @@
 .opd-workflow {
   padding: 18px 8px;
   margin: 0 -4px 20px;
-  background-image: radial-gradient(#d8dce2 0.75px, transparent 0.75px);
+  background-image: radial-gradient(#dbdbdb 0.75px, transparent 0.75px);
   background-size: 12px 12px;
   border: 1px solid #eef0f3;
   border-radius: 10px;
@@ -609,7 +609,7 @@
   align-items: center;
   gap: 9px;
   width: 88%;
-  border: 1px solid #dfe3e8;
+  border: 1px solid #e2e2e2;
   background: #fff;
   padding: 12px 10px;
   border-radius: 8px;
@@ -621,8 +621,8 @@
   width: 23px;
   height: 23px;
   border-radius: 6px;
-  background: #f0edf8;
-  color: #776b9f;
+  background: #efefef;
+  color: #757575;
   font-size: 9px;
 }
 .opd-node strong {
@@ -638,7 +638,7 @@
 .opd-node-line {
   height: 22px;
   width: 1px;
-  background: #bfc6ce;
+  background: #c5c5c5;
   position: relative;
 }
 .opd-node-line::after {
@@ -648,8 +648,8 @@
   left: -2px;
   width: 5px;
   height: 5px;
-  border-right: 1px solid #bfc6ce;
-  border-bottom: 1px solid #bfc6ce;
+  border-right: 1px solid #c5c5c5;
+  border-bottom: 1px solid #c5c5c5;
   transform: rotate(45deg);
 }
 .opd-branches {
@@ -659,7 +659,7 @@
 }
 .opd-branches div {
   padding: 9px 6px;
-  border: 1px solid #dfe3e8;
+  border: 1px solid #e2e2e2;
   border-radius: 7px;
   background: #fff;
   text-align: center;
@@ -667,7 +667,7 @@
 .opd-branches small {
   display: block;
   font-size: 8px;
-  color: #7a818a;
+  color: #808080;
 }
 .opd-branches strong {
   font-size: 9px;
@@ -679,7 +679,7 @@
   gap: 15px;
   padding: 16px 2px 2px;
   font-size: 11px;
-  color: #747985;
+  color: #797979;
 }
 .opd-demo-controls p {
   margin: 0;
@@ -696,10 +696,10 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  border: 1px solid #dfe2e8;
+  border: 1px solid #e2e2e2;
   border-radius: 7px;
   background: #fff;
-  color: #454952;
+  color: #494949;
   padding: 7px 10px;
   min-height: 34px;
   font-size: 11px;
@@ -723,7 +723,7 @@
   width: 48px;
   height: 48px;
   margin-bottom: 18px;
-  color: #565c67;
+  color: #5b5b5b;
 }
 .opd-start h3 {
   font-size: 20px;
@@ -739,7 +739,7 @@
   display: inline-block;
   height: 13px;
   width: 1px;
-  background: #6b647d;
+  background: #696969;
   vertical-align: middle;
 }
 .opd .opd-cursor {

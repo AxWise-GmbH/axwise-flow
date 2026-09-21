@@ -107,6 +107,15 @@ function Loading() {
 function LazyPage({ children }) {
   return <Suspense fallback={<Loading />}>{children}</Suspense>;
 }
+// The landing pages open on their own entrance, so while their code arrives the screen is
+// just their black page: no spinner flashing before the first words rise.
+function LazyLandingPage({ children }) {
+  return (
+    <Suspense fallback={<Box aria-hidden="true" sx={{ minHeight: '100vh', bgcolor: '#000000' }} />}>
+      {children}
+    </Suspense>
+  );
+}
 
 const GCP_DRAFT_MAX_LENGTH = 24_000;
 const GCP_DRAFT_MODES = new Set(['auto', 'assistant', 'research', 'goal']);
@@ -260,9 +269,9 @@ export const gcpRouter = createBrowserRouter([
   {
     path: '/',
     element: (
-      <LazyPage>
+      <LazyLandingPage>
         <LandingPageInstant />
-      </LazyPage>
+      </LazyLandingPage>
     ),
   },
   // The page this one replaced, kept reachable rather than deleted.
@@ -273,17 +282,17 @@ export const gcpRouter = createBrowserRouter([
   {
     path: '/instant/:page',
     element: (
-      <LazyPage>
+      <LazyLandingPage>
         <InstantSubPage />
-      </LazyPage>
+      </LazyLandingPage>
     ),
   },
   {
     path: '/instant/solutions/:slug',
     element: (
-      <LazyPage>
+      <LazyLandingPage>
         <InstantSolutionPage />
-      </LazyPage>
+      </LazyLandingPage>
     ),
   },
   { path: '/login', element: <GcpAuthPage mode="login" /> },

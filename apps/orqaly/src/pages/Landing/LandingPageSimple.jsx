@@ -31,7 +31,7 @@ export default function LandingPageSimple() {
         sx={{
           bgcolor: 'background.default',
           color: 'text.primary',
-          backgroundImage: 'radial-gradient(ellipse at 95% 0%, #ece7ff 0%, transparent 36%)',
+          backgroundImage: 'radial-gradient(ellipse at 95% 0%, #ebebeb 0%, transparent 36%)',
           position: 'relative',
           ...LANDING_PAGE_ROOT_SX,
         }}

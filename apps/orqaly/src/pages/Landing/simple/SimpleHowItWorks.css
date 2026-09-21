@@ -1,7 +1,7 @@
 .oq-flow {
-  --oq-ink: #171d35;
-  --oq-muted: #626882;
-  --oq-purple: #6f50e7;
+  --oq-ink: #1e1e1e;
+  --oq-muted: #696969;
+  --oq-purple: #6a6a6a;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 104px minmax(0, 1.7fr);
   align-items: stretch;
@@ -19,7 +19,7 @@
 }
 .oq-flow .oq-flow-label {
   display: block;
-  color: #737990;
+  color: #7a7a7a;
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.09em;
@@ -34,7 +34,7 @@
   gap: 5px;
   padding: 17px;
   margin-top: 20px;
-  border: 1px solid #e0e3ed;
+  border: 1px solid #e3e3e3;
   border-radius: 13px;
   background: #ffffffc9;
   text-align: center;
@@ -48,7 +48,7 @@
 }
 .oq-flow-down {
   display: block;
-  color: #8d91a9;
+  color: #939393;
   font-size: 29px;
   line-height: 1.35;
   text-align: center;
@@ -57,12 +57,12 @@
   padding: 20px 24px;
   border-radius: 17px;
   color: #fff;
-  background: #1b223a;
+  background: #232323;
 }
 .oq-flow-signin {
   display: inline-block;
   margin-bottom: 12px;
-  color: #e1dafa;
+  color: #e0e0e0;
   font-size: 11px;
   letter-spacing: 0.025em;
 }
@@ -72,13 +72,13 @@
 }
 .oq-flow-desktop p {
   margin-top: 8px;
-  color: #e1e2ee;
+  color: #e3e3e3;
   font-size: 15px;
 }
 .oq-flow-desktop small {
   display: block;
   margin-top: 6px;
-  color: #b7bfd8;
+  color: #bfbfbf;
   font-size: 12px;
 }
 .oq-flow-local {
@@ -87,7 +87,7 @@
   padding: 17px 12px;
   border-radius: 13px;
   text-align: center;
-  background: #e9ecf5;
+  background: #ececec;
 }
 .oq-flow-local strong {
   font-size: 14px;
@@ -115,11 +115,11 @@
   line-height: 0.95;
 }
 .oq-flow-exchange i:nth-of-type(2) {
-  color: #9296ae;
+  color: #989898;
 }
 .oq-flow-cloud {
   padding: 22px 24px 18px;
-  background: #eeeafb;
+  background: #ededed;
   border-radius: 22px;
 }
 .oq-flow-cloud-body {
@@ -148,7 +148,7 @@
 }
 .oq-flow-gateway span {
   display: block;
-  color: #ece6ff;
+  color: #ebebeb;
   font-size: 11px;
   line-height: 1.65;
   margin-top: 17px;
@@ -160,7 +160,7 @@
 .oq-flow-service {
   position: relative;
   background: #fff;
-  border: 1px solid #dfd9f1;
+  border: 1px solid #dedede;
   border-radius: 16px;
   padding: 22px 17px;
 }
@@ -187,7 +187,7 @@
   margin-top: 10px;
   text-align: center;
   font-size: 13px;
-  color: #645a84;
+  color: #626262;
 }
 .oq-flow-outputs {
   grid-column: 1 / -1;
@@ -198,7 +198,7 @@
   margin-top: 30px;
   padding: 24px 28px;
   background: #fff;
-  border: 1px solid #e0e3ed;
+  border: 1px solid #e3e3e3;
   border-radius: 17px;
 }
 .oq-flow-outputs h3 {
@@ -224,8 +224,8 @@
 .oq-flow-outputs li {
   border-radius: 8px;
   padding: 9px 12px;
-  background: #f3f0fd;
-  color: #625080;
+  background: #f2f2f2;
+  color: #5b5b5b;
   font-size: 12px;
   white-space: nowrap;
 }

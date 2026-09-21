@@ -153,3 +153,28 @@ describe('InstantTopBar - phone menu', () => {
     );
   });
 });
+
+describe('InstantTopBar - labels and menu button', () => {
+  it('calls the download button "Try For Free" in the bar and in the phone menu', () => {
+    const { container } = renderBar();
+    expect(mainNav().getByRole('link', { name: 'Try For Free' })).toHaveAttribute(
+      'href',
+      '#download'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    const menu = within(screen.getByRole('navigation', { name: 'Menu' }));
+    expect(menu.getByRole('link', { name: 'Try For Free' })).toHaveAttribute('href', '#download');
+    expect(container.querySelector('header').textContent).not.toMatch(/download/i);
+  });
+
+  it('draws the phone menu button as three equal lines', () => {
+    renderBar();
+    const toggle = screen.getByRole('button', { name: 'Open menu' });
+    expect(toggle.querySelectorAll('.oi-menu-icon i')).toHaveLength(3);
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+});

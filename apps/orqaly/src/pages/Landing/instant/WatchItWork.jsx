@@ -3,6 +3,7 @@ import { DesktopDownloadButton } from '../simple/DesktopDownload';
 import DemoCallout, { DemoCalloutCaption } from './DemoCallouts';
 import More from './ui/More';
 import { CheckGlyph, ChevronGlyph, OrqanixMark } from './ui/Glyphs';
+import WorkspaceFiles from './WorkspaceFiles';
 import { ASSUMPTIONS_LINE, SCENES } from './watchItWork.scenes';
 import {
   NODE_MS,
@@ -297,6 +298,7 @@ function QuestionCard({ questions, answers, open, sent, headingRef, onAnswer, on
 
 function WorkspacePanel({ state, scene }) {
   const titleId = useId();
+  const roadmapId = useId();
   const status = workspaceStatus(state);
   const current = activeStep(state);
   const beat = introBeat(state);
@@ -312,7 +314,8 @@ function WorkspacePanel({ state, scene }) {
       </div>
       <div className="wiw-workspace-body">
         {/* During the typed intro the panel fills in the order the real one does: status once
-            the request is sent, roadmap once the plan arrives. Hidden parts keep their space. */}
+            the request is sent, roadmap and files once the plan arrives. Hidden parts keep
+            their space. */}
         <div
           className="wiw-status-card"
           data-arrived={beat >= 1}
@@ -336,8 +339,10 @@ function WorkspacePanel({ state, scene }) {
           data-arrived={beat >= 2}
           aria-hidden={beat < 2 || undefined}
         >
-          <p className="wiw-label wiw-roadmap-label">Roadmap</p>
-          <ol className="wiw-roadmap">
+          <p className="wiw-label wiw-roadmap-label" id={roadmapId}>
+            Roadmap
+          </p>
+          <ol className="wiw-roadmap" aria-labelledby={roadmapId}>
             {scene.steps.map((step, index) => (
               <li key={step} data-state={stepStateAt(index)}>
                 <span className="wiw-marker" aria-hidden="true">
@@ -355,6 +360,7 @@ function WorkspacePanel({ state, scene }) {
           </ol>
           <DemoCallout name="plan" node={state.node} callouts={scene.callouts} />
         </div>
+        <WorkspaceFiles files={scene.files} state={state} arrived={beat >= 2} />
       </div>
       <DemoCallout name="workspace" node={state.node} callouts={scene.callouts} />
     </aside>
