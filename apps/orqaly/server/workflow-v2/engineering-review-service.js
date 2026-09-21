@@ -7,6 +7,7 @@ const MAX_EVIDENCE_CHARACTERS = 48_000;
 const MAX_PROVIDER_STATE_BYTES = 128 * 1024;
 const MAX_PROVIDER_RESPONSE_BYTES = 16 * 1024;
 const DEADLINE_MS = 8000;
+const MAX_DEADLINE_MS = 20_000;
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 const MODEL = 'jev-latest';
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -91,7 +92,7 @@ function probability(answer) {
 
 /** Authenticated advisory evaluation only. This service executes no desktop commands and stores no new job. */
 export function createEngineeringReviewService({ desktopWorkService = null, apiKey, fetchImpl = fetch, timeoutMs = DEADLINE_MS } = {}) {
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > DEADLINE_MS) throw new Error('ENGINEERING_REVIEW_DEADLINE_INVALID');
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_DEADLINE_MS) throw new Error('ENGINEERING_REVIEW_DEADLINE_INVALID');
   if (typeof fetchImpl !== 'function') throw new Error('ENGINEERING_REVIEW_FETCH_REQUIRED');
 
   async function review(auth, raw, { signal } = {}) {

@@ -170,6 +170,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
 
+      - name: Verify measured evaluation records, fixtures, publication and dashboard contracts
+        run: node --test ../../scripts/agent-evaluations/*.test.mjs
+
       - name: Verify declarative baseline inventory
         run: npm run verify:workflow-v2-schema
 

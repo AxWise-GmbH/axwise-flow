@@ -202,6 +202,7 @@ export function createWorkflowHttpApp({
   codingWorkerService = null,
   nativeN8nGateway = null,
   gooseProviderRouter = null,
+  agentEvaluationRouter = null,
   auth = defaultAuth(),
   rateLimiter = createMemoryRateLimiter(),
   cors = createCorsMiddleware(browserOriginsFromEnvironment()),
@@ -211,6 +212,7 @@ export function createWorkflowHttpApp({
   // Desktop OAuth stays separate from browser sessions and its larger request
   // parser runs only after authentication inside the provider router.
   if (gooseProviderRouter) app.use('/desktop/v1', cors, gooseProviderRouter);
+  if (agentEvaluationRouter) app.use('/internal/evaluations/v1', agentEvaluationRouter);
   // The editor has its own narrowly scoped cookie/session and origin checks.
   // It runs on the API origin, separate from the Orqaly browser application's origin.
   if (nativeN8nGateway) app.use('/native-n8n', nativeN8nGateway.router);

@@ -9,11 +9,13 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
 
 from backend.domain.workflow_v2.contracts import AxWiseOperationEnvelope, canonical_hash
+from backend.services.workflow_v2.assistant.service import AssistantTurnService
 from backend.services.workflow_v2.operation_store import (
     OperationConflict,
     PostgresOperationStore,
     StaleOperationLease,
 )
+from backend.services.workflow_v2.operation_worker import OperationWorker
 
 pytestmark = pytest.mark.contract
 DATABASE_URL = os.getenv("AXWISE_V2_TEST_DATABASE_URL")
@@ -143,11 +145,13 @@ def assistant_envelope(
     operation_id: str = "00000000-0000-4000-8000-000000000111",
     tenant_id: str = "00000000-0000-4000-8000-000000000102",
     attempt_id: str = "00000000-0000-4000-8000-000000000105",
+    response_mode: str = "direct_answer",
+    message: str = "Explain the launch constraints.",
 ):
     input_payload = {
         "type": "AssistantTurnV1",
-        "responseMode": "direct_answer",
-        "message": "Explain the launch constraints.",
+        "responseMode": response_mode,
+        "message": message,
         "conversation": [],
     }
     return AxWiseOperationEnvelope.model_validate(
@@ -582,6 +586,56 @@ def test_retryable_failure_persists_safe_runtime_metadata(stores) -> None:
     assert failed.retry_at == "2026-09-02T10:15:30Z"
     assert failed.retry_after_seconds == 23
     assert failed.failure_diagnostics == diagnostics
+
+
+@pytest.mark.asyncio
+async def test_unresolved_assistant_source_policy_terminalizes_without_provider_call(
+    stores,
+) -> None:
+    _admin, api, worker_store = stores
+    operation = assistant_envelope(
+        response_mode="one_shot",
+        message="Use only official UnknownProduct documentation.",
+    )
+    api.adopt_or_create(operation)
+
+    class RejectProviderCall:
+        def __init__(self) -> None:
+            self.call_count = 0
+
+        async def search(self, _query):
+            self.call_count += 1
+            raise AssertionError(
+                "unresolved source policy must fail before provider use"
+            )
+
+    provider = RejectProviderCall()
+    assistant = AssistantTurnService(
+        grounded_runner=provider,
+        conversational_runner=None,
+        source_type_classifier=lambda _url, _title: (),
+        usage_reader=lambda _raw: (0, 0, 0, 0),
+        metrics_factory=lambda **_values: None,
+    )
+
+    class AssistantExecutor:
+        async def execute(self, envelope):
+            return await assistant.execute(envelope.input)
+
+    worker = OperationWorker(worker_store, AssistantExecutor())
+    assert await worker.run_once() is True
+    assert provider.call_count == 0
+
+    failed = api.get(operation.owner.tenant_id, operation.operation_id)
+    assert failed is not None
+    assert failed.status == "failed"
+    assert failed.retryable is False
+    assert failed.error_class == "AXWISE_ASSISTANT_SOURCE_REFERENCE_REQUIRED"
+    assert failed.failure_diagnostics == {
+        "route": "assistant_source_policy",
+        "status": "source_authority_required",
+        "call_count": 0,
+    }
 
 
 @pytest.mark.parametrize(
