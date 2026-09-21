@@ -98,7 +98,7 @@ describe('workflow v2 web security boundary', () => {
     const dockerfile = readFileSync('deploy/workflow-v2/Dockerfile.web', 'utf8');
     const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
     const heartbeatLocation = nginx.match(
-      /location = \/heartbeat\.json \{([\s\S]*?)\n  \}/
+      /location = \/heartbeat\.json \{([\s\S]*?)\n {2}\}/
     )?.[1];
 
     expect(heartbeatLocation).toBeTruthy();
