@@ -85,8 +85,17 @@ function notEvaluated(reason, checks = []) {
 }
 
 function wordCount(value) {
-  const trimmed = value.trim();
-  return trimmed === '' ? 0 : trimmed.split(/\s+/u).length;
+  const prose = value
+    .replace(/^[ \t]*\[[^\]\n]+\]:[ \t]*<?https?:\/\/[^\n]*$/gm, ' ')
+    .replace(/\[([^\]\n]+)\]\([ \t]*<?https?:\/\/[^)\n]*\)/g, (_match, label) =>
+      /^\s*\d+(?:[\s,;–-]+\d+)*\s*$/.test(label) ? ' ' : label)
+    .replace(/\[\d+(?:[\s,;–-]+\d+)*\]/g, ' ')
+    .replace(/<?https?:\/\/[^\s<>]+>?/g, ' ')
+    .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
+    .replace(/^[ \t]*(?:`{3,}|~{3,}).*$/gm, ' ');
+  // Count visible words, including Unicode prose and ordinary numbers, rather
+  // than standalone Markdown delimiters or nonverbal citation metadata.
+  return prose.split(/\s+/u).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
 }
 
 function sentenceCount(value) {
