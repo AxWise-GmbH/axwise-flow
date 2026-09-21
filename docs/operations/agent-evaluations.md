@@ -13,6 +13,18 @@ generated implementation plan; it does not approve or execute a Goal. Jev is
 advisory review alongside deterministic checks, not a factual-correctness
 guarantee. Inspect execution status and evaluation verdict separately.
 
+The judge receives the exact task prompt as well as the output and criteria.
+Facts supplied in a transformation task are part of that task's evidence;
+source-backed Search and Research claims also receive bounded, hashed excerpts
+from the cited official pages. A completed request can still fail quality
+checks, and a judge or evidence-fetch failure must not be presented as a pass.
+The runner commit and template version identify the method used for each run.
+
+Orqanix token usage currently remains unreported because the Assistant message
+contract does not preserve AxWise usage metrics. The dashboard does not infer
+usage from text length or cloud logs. A coding model alias is likewise not
+enough to claim a matching resolved model or calculate a latency ratio.
+
 ## Resources and access
 
 All resources are fixed to project `axwise-v2-preview-001` (number

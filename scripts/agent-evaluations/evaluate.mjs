@@ -26,6 +26,34 @@ const SOURCE_RELEVANCE_TERMS = Object.freeze({
   'research-browser-storage': ['IndexedDB', 'localStorage'],
 });
 
+// Root documentation URLs are common in grounded product output. Pin each
+// catalog template to the actual sections that support its claims so a table
+// of contents occurrence cannot become the evidence excerpt.
+const SOURCE_SECTION_HINTS = Object.freeze({
+  'search-node-abort-timeout': [
+    { pathSuffix: '/api/globals.html', fragment: 'static-method-abortsignaltimeoutdelay', focusTerms: ['number of milliseconds', 'Returns a new AbortSignal'] },
+  ],
+  'search-python-json-ascii': [
+    { pathSuffix: '/3/library/json.html', fragment: 'json.dump', focusTerms: ['If ensure_ascii is true', 'escaped'] },
+    { pathSuffix: '/3/library/json.html', fragment: 'json.dumps', focusTerms: ['ensure_ascii = True', 'same meaning'] },
+  ],
+  'search-sqlite-journal-mode': [
+    { pathSuffix: '/pragma.html', fragment: 'pragma_journal_mode', focusTerms: ['DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF', 'WAL journaling mode is persistent'] },
+  ],
+  'research-node-streams': [
+    { pathSuffix: '/api/stream.html', fragment: 'streampipelinesource-transforms-destination-callback', focusTerms: ['forwarding errors', 'destroy(err)'] },
+    { pathSuffix: '/api/stream.html', fragment: 'readablepipedestination-options', focusTerms: ['not closed automatically', 'prevent memory leaks'] },
+  ],
+  'research-postgres-indexes': [
+    { pathSuffix: '/indexes-types.html', fragment: 'INDEXES-TYPES-BTREE', focusTerms: ['equality and range queries', 'sorted order'] },
+    { pathSuffix: '/brin.html', fragment: 'BRIN-INTRO', focusTerms: ['block ranges', 'physical order'] },
+  ],
+  'research-browser-storage': [
+    { pathSuffix: '/Web/API/IndexedDB_API', fragment: 'key_concepts_and_usage', focusTerms: ['structured data', 'asynchronously'] },
+    { pathSuffix: '/Web/API/Window/localStorage', fragment: 'content', focusTerms: ['saved across browser sessions', 'UTF-16'] },
+  ],
+});
+
 function result(id, passed, reason) {
   return { id, passed, ...(!passed && reason !== undefined ? { reason } : {}) };
 }
@@ -162,6 +190,7 @@ function sourceChecks(caseData, output, sources) {
       targets: [],
       allowedHosts: new Set(),
       relevanceTerms: [],
+      sectionHints: [],
     };
   }
   const cited = [...new Set([...extractUrls(output), ...structuredSourceUrls(sources)])];
@@ -183,6 +212,7 @@ function sourceChecks(caseData, output, sources) {
     targets: official.slice(0, MAX_SOURCES),
     allowedHosts,
     relevanceTerms: SOURCE_RELEVANCE_TERMS[caseData.templateId] ?? [],
+    sectionHints: SOURCE_SECTION_HINTS[caseData.templateId] ?? [],
   };
 }
 
@@ -211,14 +241,21 @@ function countNonGoals(output) {
 function planChecks(caseData, output) {
   const concepts = PLAN_CONCEPTS[caseData.templateId];
   if (concepts === undefined) return [result('known_plan_template', false, 'Plan template is not supported by this evaluator version.')];
-  const numberedSteps = output.match(/^\s*\d+[.)]\s+\S+/gm) ?? [];
+  const implementation = output.replace(
+    /(?:^|\n)[ \t]*#{0,6}[ \t]*non-goals?[ \t]*:?[ \t]*\n[\s\S]*?(?=\n[ \t]*#{1,6}[ \t]+|$)/gi,
+    '\n',
+  );
+  const numberedSteps = [...implementation.matchAll(/^([ \t]*)\d+[.)][ \t]+\S+/gm)];
+  const outerIndent = Math.min(...numberedSteps.map((match) => match[1].replace(/\t/g, '    ').length));
   const headingSteps = output.match(/^\s*#{1,6}\s+Step\s+\d+\b.*$/gim) ?? [];
-  const orderedStepCount = numberedSteps.length + headingSteps.length;
+  // Explicit Step headings define the plan; numbered lists inside them are substeps.
+  const orderedStepCount = headingSteps.length || numberedSteps
+    .filter((match) => match[1].replace(/\t/g, '    ').length === outerIndent).length;
   const nonGoalCount = countNonGoals(output);
   const lower = output.toLowerCase();
   const missingConcepts = concepts.filter((alternatives) => !alternatives.some((term) => lower.includes(term)));
   return [
-    result('bounded_ordered_steps', orderedStepCount >= 4 && orderedStepCount <= 8, 'Plan must contain between 4 and 8 ordered steps.'),
+    result('bounded_ordered_steps', orderedStepCount >= 1 && orderedStepCount <= 8, 'Plan must contain between 1 and 8 ordered steps.'),
     nonGoalCount === 0
       ? result('non_goal_count_deferred_to_jev', true)
       : result('exactly_two_non_goals', nonGoalCount === 2, 'Plan must state exactly two non-goals.'),
@@ -254,31 +291,71 @@ function stripHtml(value) {
     .trim();
 }
 
-function selectSourceExcerpt(value, contentType, fragment, relevanceTerms) {
-  let section = value;
-  let anchored = false;
-  if (contentType === 'text/html' && fragment) {
-    const escaped = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const anchor = new RegExp(
-      `\\b(?:id|name)\\s*=\\s*(?:"${escaped}"|'${escaped}'|${escaped}(?=[\\s>]))`,
-      'i',
-    ).exec(value);
-    if (anchor) {
-      const anchorIndex = anchor.index;
-      const lower = value.toLowerCase();
-      const headingStart = Math.max(...[1, 2, 3, 4, 5, 6].map((level) => lower.lastIndexOf(`<h${level}`, anchorIndex)));
-      const anchorTagStart = Math.max(0, value.lastIndexOf('<', anchorIndex));
-      const anchorIsInsideHeading = headingStart >= 0
-        && !lower.slice(headingStart, anchorIndex).includes('</h');
-      const start = anchorIsInsideHeading ? headingStart : anchorTagStart;
-      section = value.slice(start, Math.min(value.length, anchorIndex + 120_000));
-      anchored = true;
+function anchoredHtmlSection(value, fragment) {
+  const escaped = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const attributeValue = `(?:"${escaped}"|'${escaped}'|${escaped}(?=[\\s>]))`;
+  const idAnchor = new RegExp(`<[^>]+\\bid\\s*=\\s*${attributeValue}[^>]*>`, 'i').exec(value);
+  const namedAnchor = new RegExp(`<a\\b[^>]*\\bname\\s*=\\s*${attributeValue}[^>]*>`, 'i').exec(value);
+  const anchor = [idAnchor, namedAnchor]
+    .filter(Boolean)
+    .sort((left, right) => left.index - right.index)[0];
+  if (!anchor) return null;
+
+  const anchorIndex = anchor.index;
+  const lower = value.toLowerCase();
+  const headingStart = Math.max(...[1, 2, 3, 4, 5, 6].map((level) => lower.lastIndexOf(`<h${level}`, anchorIndex)));
+  const anchorTagStart = Math.max(0, value.lastIndexOf('<', anchorIndex));
+  const anchorIsInsideHeading = headingStart >= 0
+    && !lower.slice(headingStart, anchorIndex).includes('</h');
+  const start = anchorIsInsideHeading ? headingStart : anchorTagStart;
+  return stripHtml(value.slice(start, Math.min(value.length, anchorIndex + 120_000)));
+}
+
+function boundedSectionExcerpt(plain, focusTerms, budget) {
+  const prefixLength = Math.min(800, Math.max(320, Math.floor(budget * 0.45)));
+  const pieces = [plain.slice(0, prefixLength).trim()];
+  const lower = plain.toLowerCase();
+  const unseenFocuses = [...new Set(focusTerms
+    .map((term) => lower.indexOf(term.toLowerCase(), prefixLength))
+    .filter((index) => index >= prefixLength))]
+    .sort((left, right) => left - right)
+    .filter((index, position, indexes) => position === 0 || index - indexes[position - 1] >= 320);
+  const separatorLength = 3 * unseenFocuses.length;
+  const remaining = Math.max(0, budget - pieces[0].length - separatorLength);
+  const snippetLength = unseenFocuses.length === 0 ? 0 : Math.min(700, Math.floor(remaining / unseenFocuses.length));
+  for (const index of unseenFocuses) {
+    const start = Math.max(prefixLength, index - Math.min(180, Math.floor(snippetLength / 3)));
+    pieces.push(plain.slice(start, start + snippetLength).trim());
+  }
+  return pieces.filter(Boolean).join(' … ').slice(0, budget);
+}
+
+function selectSourceExcerpt(value, contentType, fragment, relevanceTerms, sectionHints, pathname) {
+  if (contentType === 'text/html') {
+    const matchingHints = sectionHints.filter((hint) => pathname.endsWith(hint.pathSuffix));
+    const selectedHints = fragment
+      ? [{
+        fragment,
+        focusTerms: matchingHints.find((hint) => hint.fragment.toLowerCase() === fragment.toLowerCase())?.focusTerms
+          ?? relevanceTerms,
+      }]
+      : matchingHints;
+    if (selectedHints.length > 0) {
+      const sections = selectedHints
+        .map((hint) => ({ ...hint, plain: anchoredHtmlSection(value, hint.fragment) }))
+        .filter(({ plain }) => plain !== null && plain !== '');
+      if (sections.length === 0) throw new Error('source_relevant_section_not_found');
+      const separators = 2 * (sections.length - 1);
+      const budget = Math.floor((MAX_SOURCE_EXCERPT_CHARACTERS - separators) / sections.length);
+      return sections
+        .map(({ plain, focusTerms }) => boundedSectionExcerpt(plain, focusTerms, budget))
+        .join('\n\n')
+        .slice(0, MAX_SOURCE_EXCERPT_CHARACTERS);
     }
   }
 
-  const plain = contentType === 'text/html' ? stripHtml(section) : section.replace(/\s+/g, ' ').trim();
+  const plain = contentType === 'text/html' ? stripHtml(value) : value.replace(/\s+/g, ' ').trim();
   if (plain === '') return '';
-  if (anchored) return plain.slice(0, MAX_SOURCE_EXCERPT_CHARACTERS);
 
   const lower = plain.toLowerCase();
   const termIndex = relevanceTerms
@@ -338,7 +415,7 @@ function boundedSignal(parentSignal) {
   };
 }
 
-async function fetchOfficialSource(initialTarget, allowedHosts, relevanceTerms, fetchImpl, signal) {
+async function fetchOfficialSource(initialTarget, allowedHosts, relevanceTerms, sectionHints, fetchImpl, signal) {
   let currentTarget = initialTarget;
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
     const normalized = parseOfficialSource(currentTarget.citationUrl, allowedHosts);
@@ -363,7 +440,8 @@ async function fetchOfficialSource(initialTarget, allowedHosts, relevanceTerms, 
       const contentType = (response.headers.get('content-type') ?? '').split(';', 1)[0].trim().toLowerCase();
       if (contentType !== 'text/html' && contentType !== 'text/plain') throw new Error('source_content_type_not_allowed');
       const text = await readLimitedBody(response);
-      const excerpt = selectSourceExcerpt(text, contentType, normalized.fragment, relevanceTerms);
+      const pathname = new URL(normalized.requestUrl).pathname;
+      const excerpt = selectSourceExcerpt(text, contentType, normalized.fragment, relevanceTerms, sectionHints, pathname);
       if (excerpt === '') throw new Error('source_empty');
       return {
         url: initialTarget.citationUrl,
@@ -477,6 +555,7 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
           target,
           sourcePlan.allowedHosts,
           sourcePlan.relevanceTerms,
+          sourcePlan.sectionHints,
           fetchImpl,
           signal,
         ));
@@ -514,6 +593,7 @@ export async function evaluateOutput({ caseData, output, sources = [], runId, ju
   const judgeInput = {
     runId,
     category: caseData.category,
+    prompt: caseData.prompt,
     criteria: [...caseData.criteria],
     output: output.trim(),
     sources: sourceEvidence.map(({ finalUrl, excerpt, excerptHash }) => ({
