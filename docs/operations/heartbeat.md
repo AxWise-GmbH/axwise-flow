@@ -2,9 +2,11 @@
 
 The public heartbeat is collected by `orqanix-heartbeat-preview`, a Cloud Run
 Job in `axwise-v2-preview-001`. Cloud Scheduler starts it every 15 minutes. The
-job writes only `latest.json` to the dedicated public bucket
+job writes only `latest.json` to the dedicated private bucket
 `orqanix-heartbeat-preview-161074549006`; both Orqanix domains serve that object
-through their same-origin `/heartbeat.json` endpoint.
+through their same-origin `/heartbeat.json` endpoint. The web service mounts
+the bucket read-only using its service identity. Public bucket access is
+prevented; only the status JSON is served by Nginx.
 
 GitHub Actions retains a manual diagnostic workflow, but does not schedule or
 publish the public status page.
@@ -46,7 +48,26 @@ Keep the build ID with the release evidence. The deploy script rejects tags
 and accepts only the expected Artifact Registry image at an exact sha256
 digest. It creates or reconciles two service accounts, one bucket, one Cloud
 Run Job and one Cloud Scheduler job. It does not create service-account keys or
-grant project-wide runtime roles.
+grant project-wide runtime roles. The existing web service identity receives
+object-viewer access only on this status bucket.
+
+Build the matching web image using the existing web Cloud Build configuration
+and pinned API/publishable-key inputs. Deploy it with this read-only mount
+(replace `WEB_IMAGE` with its reviewed image digest and `REVISION_SUFFIX` with
+a unique release suffix):
+
+```bash
+gcloud run services update orqaly-v2-web-preview \
+  --project=axwise-v2-preview-001 --region=europe-west4 \
+  --image="${WEB_IMAGE}" --revision-suffix="${REVISION_SUFFIX}" \
+  --add-volume='name=heartbeat,type=cloud-storage,bucket=orqanix-heartbeat-preview-161074549006,readonly=true,mount-options=metadata-cache-ttl-secs=0' \
+  --add-volume-mount=volume=heartbeat,mount-path=/var/run/orqanix-heartbeat \
+  --tag="${REVISION_SUFFIX}" --no-traffic
+```
+
+Verify `/heartbeat.json` on the candidate revision after the first collector
+execution, then promote that exact revision with `gcloud run services
+update-traffic --to-revisions=REVISION=100`. Keep the prior revision for rollback.
 
 Remove the temporary build context after recording the digest:
 
@@ -105,6 +126,6 @@ gcloud scheduler jobs pause orqanix-heartbeat-preview \
   --project=axwise-v2-preview-001 --location=europe-west4
 ```
 
-Resume it and run one smoke test after the incident. Never store logs, secrets,
-build artifacts or historical snapshots in the public heartbeat bucket; its
-anonymous read policy intentionally covers the bucket's objects.
+Resume it and run one smoke test after the incident. Keep only the status object
+in this bucket; application data, logs and secrets belong elsewhere. The web
+mount is read-only and Nginx serves only the fixed `latest.json` path.

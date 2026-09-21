@@ -26,8 +26,8 @@ RUN test -n "$VITE_CLERK_PUBLISHABLE_KEY" \
 FROM nginx:1.27-alpine
 
 # The browser calls the explicit public GCP API origin baked into the verified
-# Vite artifact. The only same-origin proxy is the credential-free heartbeat
-# snapshot, with upstream TLS verified against the Alpine CA bundle.
+# Vite artifact. Cloud Run mounts the private heartbeat bucket read-only at
+# /var/run/orqanix-heartbeat; Nginx serves only its fixed latest.json object.
 COPY deploy/workflow-v2/nginx.conf /etc/nginx/conf.d/default.conf
 COPY deploy/workflow-v2/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
