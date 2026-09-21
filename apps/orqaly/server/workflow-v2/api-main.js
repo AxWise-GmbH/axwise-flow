@@ -16,6 +16,13 @@ import {
 import { createGooseProviderFromEnvironment } from './goose-provider-config.js';
 import { createDesktopContextService } from './desktop-context-service.js';
 import { createDesktopWorkService } from './desktop-work-service.js';
+import {
+  agentEvaluationConfigFromEnvironment,
+  createAgentEvaluationOidcVerifier,
+} from './agent-evaluation-config.js';
+import { createAgentEvaluationService } from './agent-evaluation-service.js';
+import { createAgentEvaluationRouter } from './agent-evaluation-http.js';
+import { createEngineeringReviewService } from './engineering-review-service.js';
 import { createPostgresRepositories } from './postgres-repository.js';
 import { createSolutionService } from './solution-service.js';
 import { createSolutionConversationService } from './solution-conversation-service.js';
@@ -72,6 +79,36 @@ const assistantService = createAssistantService({
   axwiseClient,
   agentService,
 });
+const desktopWorkService = createDesktopWorkService({
+  assistantService,
+  contextService: createDesktopContextService({ commandService }),
+});
+const agentEvaluationConfig = agentEvaluationConfigFromEnvironment();
+const agentEvaluationEngineeringReview = agentEvaluationConfig
+  ? createEngineeringReviewService({
+      desktopWorkService,
+      apiKey: process.env.TYPESAFE_API_KEY,
+    })
+  : null;
+const agentEvaluationService = agentEvaluationConfig
+  ? createAgentEvaluationService({
+      assistantService,
+      userId: agentEvaluationConfig.userId,
+      geminiApiKey: process.env.ORQALY_GOOSE_GEMINI_API_KEY,
+      typesafeApiKey: process.env.TYPESAFE_API_KEY,
+    })
+  : null;
+const agentEvaluationRouter = agentEvaluationConfig
+  ? createAgentEvaluationRouter({
+      config: agentEvaluationConfig,
+      service: agentEvaluationService,
+      commandService,
+      oidcVerifier: createAgentEvaluationOidcVerifier(agentEvaluationConfig),
+      geminiApiKey: process.env.ORQALY_GOOSE_GEMINI_API_KEY,
+      engineeringReviewService: agentEvaluationEngineeringReview,
+      rateLimiter: createMemoryRateLimiter({ limit: 60 }),
+    })
+  : null;
 // Missing execution configuration is an explicit disabled mode. Partial,
 // malformed or hash-drifted configuration is a startup failure: a candidate
 // revision must never look healthy while silently dropping execution.
@@ -130,9 +167,9 @@ const app = createWorkflowHttpApp({
   gooseProviderRouter: createGooseProviderFromEnvironment({
     commandService,
     rateLimiter: createMemoryRateLimiter({ limit: 30 }),
-    desktopWorkService: createDesktopWorkService({ assistantService,
-      contextService: createDesktopContextService({ commandService }) }),
+    desktopWorkService,
   }),
+  agentEvaluationRouter,
   goalWorkflowViewService: createGoalWorkflowViewService({ repository }),
   capabilityWorkService: createCapabilityWorkService({ repository, enabled: enableCapabilityWork }),
   assistantService,
