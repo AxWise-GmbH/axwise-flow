@@ -315,7 +315,7 @@
   transition: transform 1600ms var(--oi-ease);
 }
 
-/* Deep green light from behind the card: wide washes that die out inside their own box,
+/* Deep light from behind the card: wide washes that die out inside their own box,
    never a disc. */
 .oia-glow {
   position: absolute;
@@ -484,19 +484,18 @@
 
 /* Shared mock parts ----------------------------------------------------------------- */
 
-/* Dark glass without any backdrop-filter: solid underneath, so lines can hide behind it. */
+/* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works.
+   No backdrop-filter: solid black underneath, so lines can hide behind it. */
 .oia-glass {
   position: relative;
-  border: 1px solid var(--oi-hairline-strong);
-  background:
-    linear-gradient(158deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.025) 56%),
-    linear-gradient(rgba(var(--oi-deep-rgb), 0.52), rgba(var(--oi-deep-rgb), 0.24)), rgb(0, 0, 0);
+  border: 1px solid var(--oi-app-edge);
+  background: var(--oi-app-surface), rgb(0, 0, 0);
   box-shadow:
     0 1.8em 3.6em rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
-/* The green rim light is its own layer, so switching it on is an opacity change. */
+/* The rim light is its own layer, so switching it on is an opacity change. */
 .oia-rim::after {
   content: '';
   position: absolute;
@@ -574,7 +573,7 @@
   color: var(--oi-accent);
 }
 
-/* Something the user said: a green-tinted bubble on the right. */
+/* Something the user said: a lighter bubble on the right. */
 .oia-said {
   align-self: flex-end;
   justify-self: end;

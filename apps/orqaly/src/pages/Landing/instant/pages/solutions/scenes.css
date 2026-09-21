@@ -8,11 +8,11 @@
  */
 
 .osc {
-  --hw-bg: #22252a;
+  --hw-bg: #222222;
   --hw-text: #f4f5f7;
-  --hw-soft: #cbd1d6;
-  --hw-muted: #9a9fa8;
-  --hw-border: #3f434b;
+  --hw-soft: #d0d0d0;
+  --hw-muted: #9e9e9e;
+  --hw-border: #424242;
   --hw-fill: rgba(255, 255, 255, 0.055);
   --osc-start: 350ms;
   --osc-gap: 420ms;
@@ -22,11 +22,13 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works,
+     over the page colour so nothing behind shows through. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 16px;
-  background: var(--hw-bg);
+  background: var(--oi-app-surface), var(--oi-page);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 50px 100px -30px rgba(0, 0, 0, 0.9),
     0 0 80px -18px rgba(var(--oi-pale-rgb), 0.34);
   color: var(--hw-text);

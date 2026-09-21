@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import HowHero from './heroes/HowHero';
 import { stepAnchor } from './heroes/howHeroTrack';
 import PrivacyPreface from '../PrivacyPreface';
 import { Seen } from '../SpeedStrip';
@@ -348,7 +347,11 @@ function Story() {
       raf = 0;
       const box = rail.getBoundingClientRect();
       const at = window.innerWidth < STACKED_BELOW ? HEAD_AT_STACKED : HEAD_AT;
-      const target = Math.min(box.height, Math.max(0, window.innerHeight * at - box.top));
+      // The page opens on the story, so the light never rests above the first step: the
+      // first screen always shows one step lit, not an empty rail.
+      const first = nodeRefs.current[0]?.getBoundingClientRect();
+      const floor = first ? first.top + first.height / 2 - box.top : 0;
+      const target = Math.min(box.height, Math.max(floor, window.innerHeight * at - box.top));
       head += (target - head) * HEAD_EASE;
       if (Math.abs(target - head) < 0.5) head = target;
       const passed = nodeRefs.current.filter((node) => {
@@ -388,7 +391,8 @@ function Story() {
           return (
             <li
               key={step.number}
-              // The opening picture links here, and hands the keyboard over when it does.
+              // Each step keeps its anchor (#how-step-01 and on), so a link can open the page
+              // at a step; it can take focus, so the keyboard follows such a jump.
               id={stepAnchor(step.number)}
               tabIndex={-1}
               className="hiw-step"
@@ -477,31 +481,23 @@ function Dial({ level }) {
   );
 }
 
+// The owner took the opening picture ("You say it. It does it.", HowHero) off, with the rule
+// under it and the "From request to result" tag, so the page starts at the story and its
+// heading is the page's h1. HowHero stays in heroes/, unused, with its own tests.
 export default function HowItWorksPage() {
   return (
     <>
-      <HowHero
-        id="how-heading"
-        tag="How it works"
-        title="You say it. It does it."
-        line="One conversation on your Mac: it plans, asks when it needs you, does the work and shows you every step."
-        steps={STEPS}
-      />
-
       <Seen
         as="section"
         id="how-steps"
-        className="oi-section ois-section ois-ruled hiw-steps-section"
+        className="oi-section ois-section hiw-steps-section"
         aria-labelledby="how-steps-heading"
         // The story is several screens tall, so only a sliver of it is ever in view at once.
         threshold={0.02}
       >
         <div className="oi-container">
           <Seen className="ois-gate ois-head hiw-head">
-            <Reveal as="p" className="oi-tag oi-tag-bracket">
-              From request to result
-            </Reveal>
-            <Reveal as="h2" id="how-steps-heading" className="oi-h2" delay={90}>
+            <Reveal as="h1" id="how-steps-heading" className="oi-h2">
               Five steps, one chat
             </Reveal>
           </Seen>

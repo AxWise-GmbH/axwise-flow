@@ -347,7 +347,7 @@
   gap: 1px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--oi-hairline);
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
   overflow: hidden;
   background: var(--oi-hairline);
@@ -363,7 +363,9 @@
 .osl-related-grid > li {
   position: relative;
   display: grid;
-  background: var(--oi-page);
+  /* The shared card graphite (--oi-app-* in instant.css), over the page colour so the
+     hairline behind shows only in the gaps. */
+  background: var(--oi-app-surface), var(--oi-page);
 }
 
 /* Light that rests on the cell you point at. */

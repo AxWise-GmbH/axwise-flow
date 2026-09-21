@@ -35,7 +35,7 @@
   [data-landing-variant='instant'] .oi-bar[data-open='true'] {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: rgba(3, 11, 7, 0.94);
+    background: rgba(0, 0, 0, 0.94);
   }
 
   /* Still light costs nothing; drifting light keeps a full-screen layer busy. The

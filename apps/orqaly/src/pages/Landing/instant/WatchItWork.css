@@ -1,11 +1,11 @@
 /*
  * "Watch it work". Two languages live here, on purpose:
  *   - the PAGE (section head, scenario pills, callouts, caption, play control) speaks the
- *     site's dark green, from the --oi-stage-* tokens in instant.css;
+ *     site's black, from the --oi-stage-* tokens in instant.css;
  *   - the WINDOW is the desktop app, the same one the Examples block shows: a neutral graphite
  *     canvas, hairline cards, near monochrome. Its values are copied from examplesDark.css and
  *     DesktopProductDemo.css into the --wiw-app-* variables on .wiw-app, so the two windows
- *     match without this file reaching into theirs. Green is kept for small accents only.
+ *     match without this file reaching into theirs. Light is kept for small accents only.
  *
  * Two rules shape the layout:
  *   - nothing scrolls inside the stage (no nested scrollport can trap a one-finger page
@@ -149,21 +149,23 @@
   min-height: var(--wiw-reserve);
 }
 
-/* Lit from behind like the Examples window: a lifted top edge, a deep shadow, green on the
+/* Lit from behind like the Examples window: a lifted top edge, a deep shadow, light on the
    rim. The shell (sidebar, top strip) stays put for the whole demo. */
 .wiw-app {
   --wiw-app-text: #e9eaec;
-  --wiw-app-muted: #8e9198;
-  --wiw-app-border: #34373d;
-  --wiw-app-soft: #cbd1d6;
-  --wiw-app-row: #b3b8c1;
-  --wiw-app-canvas: #1f2125;
+  --wiw-app-muted: #919191;
+  --wiw-app-border: #373737;
+  --wiw-app-soft: #d0d0d0;
+  --wiw-app-row: #b8b8b8;
   --wiw-app-inset: #1b1d21;
-  --wiw-app-panel: #24262b;
-  --wiw-app-bubble: #2f3238;
-  --wiw-app-pill: #3a3d45;
+  /* Sidebar and Workspace: a shade darker than the graphite they sit on, still neutral. */
+  --wiw-app-sunk: rgba(0, 0, 0, 0.2);
+  --wiw-app-panel: #262626;
+  --wiw-app-bubble: #323232;
+  --wiw-app-pill: #3d3d3d;
   --wiw-app-hover: rgba(255, 255, 255, 0.06);
-  --wiw-app-marker: #525b68;
+  --wiw-app-marker: #565656;
+  --wiw-app-ring: #414141;
   --wiw-app-off: rgba(255, 255, 255, 0.13);
 
   position: relative;
@@ -171,11 +173,12 @@
   grid-template-columns: 196px minmax(0, 1fr);
   grid-template-rows: 46px minmax(0, 1fr);
   min-height: var(--wiw-window-height);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 16px;
-  background: var(--wiw-app-canvas);
+  background: var(--oi-app-surface);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 0 0 1px rgba(0, 0, 0, 0.6),
     0 50px 110px -34px rgba(0, 0, 0, 0.95),
     0 0 120px -20px rgba(var(--oi-glow-rgb), 0.6);
@@ -205,7 +208,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #4a4e57;
+  background: #4e4e4e;
 }
 
 .wiw-dots i::after {
@@ -213,17 +216,17 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: #ff6159;
+  background: #5a5a5a;
   opacity: 0;
   transition: opacity 500ms ease;
 }
 
 .wiw-dots i:nth-child(2)::after {
-  background: #ffbd2e;
+  background: #7a7a7a;
 }
 
 .wiw-dots i:nth-child(3)::after {
-  background: #28c840;
+  background: #9a9a9a;
 }
 
 .wiw-app:hover .wiw-dots i::after {
@@ -241,7 +244,7 @@
   overflow: hidden;
   border: 1px solid var(--wiw-app-border);
   border-radius: 14px;
-  background: var(--wiw-app-inset);
+  background: var(--wiw-app-sunk);
   font-size: 12px;
   line-height: 1.5;
   white-space: nowrap;
@@ -775,7 +778,7 @@
   margin: 8px 12px 17px 0;
   border: 1px solid var(--wiw-app-border);
   border-radius: 14px;
-  background: var(--wiw-app-inset);
+  background: var(--wiw-app-sunk);
 }
 
 .wiw-workspace-head {
@@ -990,6 +993,151 @@
   height: 10px;
 }
 
+/* Files: the app's "Latest files" rows, in a card framed like the roadmap's. A row waits on
+   a dashed tile until its step runs, pulses WRITING while it does, then reads NEW. Waiting
+   names stay readable: on the first frame every file is waiting, and they are the story. */
+.wiw-ws-files {
+  margin-top: 12px;
+  padding: 11px 12px 8px;
+  border: 1px solid var(--wiw-app-border);
+  border-radius: 10px;
+  background: var(--wiw-app-panel);
+}
+
+.wiw-ws-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.wiw-ws-all {
+  color: var(--wiw-app-muted);
+  font-size: 10.5px;
+}
+
+.wiw-ws-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wiw-ws-file {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 5px 2px;
+}
+
+/* The app's neutral tile: no colour, the type told by its line icon alone. */
+.wiw-ws-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--wiw-app-text);
+  transition:
+    background-color var(--oi-fade) ease,
+    color var(--oi-fade) ease;
+}
+
+/* Not written yet: an empty dashed slot, as the hero's file slots are before they fill. */
+.wiw-ws-file[data-state='waiting'] .wiw-ws-tile {
+  outline: 1px dashed rgba(255, 255, 255, 0.2);
+  outline-offset: -1px;
+  background: transparent;
+  color: var(--wiw-app-muted);
+}
+
+.wiw-ws-tile svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wiw-ws-tag {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: var(--wiw-app-text);
+  color: var(--wiw-app-inset);
+  font-size: 7.5px;
+  font-weight: 700;
+  line-height: 11px;
+}
+
+.wiw-ws-file[data-state='waiting'] .wiw-ws-tag {
+  background: var(--wiw-app-muted);
+}
+
+.wiw-ws-text {
+  display: grid;
+  min-width: 0;
+}
+
+.wiw-ws-name {
+  color: var(--wiw-app-text);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  transition: color var(--oi-fade) ease;
+}
+
+.wiw-ws-file[data-state='waiting'] .wiw-ws-name {
+  color: var(--wiw-app-row);
+}
+
+/* The app's change badge: small tracked capitals in a hairline ring. */
+.wiw-ws-badge {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--wiw-app-ring);
+  color: var(--wiw-app-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 14px;
+  white-space: nowrap;
+  animation: wiw-badge-in 240ms var(--oi-ease) both;
+}
+
+.wiw-ws-badge[data-state='writing'] {
+  box-shadow: inset 0 0 0 1px var(--wiw-app-marker);
+  color: var(--wiw-app-text);
+  animation:
+    wiw-badge-in 240ms var(--oi-ease) both,
+    wiw-badge-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) 240ms infinite;
+}
+
+.wiw-ws-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 15px;
+  color: var(--wiw-app-muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.wiw-ws-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiw-ws-badge {
+  flex: none;
+}
+
 /* Results: the pack, on the window's canvas -------------------------------------- */
 
 /* From the top of the canvas, the way the app opens a document. */
@@ -1169,7 +1317,8 @@
 
 .wiw[data-playback='paused'] .wiw-rise,
 .wiw[data-playback='paused'] .wiw-caret,
-.wiw[data-playback='paused'] .wiw-status-dot {
+.wiw[data-playback='paused'] .wiw-status-dot,
+.wiw[data-playback='paused'] .wiw-ws-badge {
   animation-play-state: paused;
 }
 
@@ -1196,12 +1345,31 @@
   }
 }
 
+/* The app's badge pulse (Tailwind's animate-pulse), slower and softer than the status dot's. */
+@keyframes wiw-badge-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes wiw-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
 /* Responsive ----------------------------------------------------------------- */
 
 /* Narrower columns wrap the answer options onto second rows, so the window grows. */
 @media (max-width: 1100px) {
   .wiw {
     --wiw-window-height: 772px;
+  }
+
+  /* The narrow side-by-side Workspace has no room for the folder beside a WRITING badge. */
+  .wiw-ws-folder {
+    display: none;
   }
 
   .wiw-app {
@@ -1242,7 +1410,7 @@
 @media (max-width: 850px) {
   .wiw {
     --wiw-window-height: 0px;
-    --wiw-reserve: 1270px;
+    --wiw-reserve: 1492px;
   }
 
   .wiw-head {
@@ -1315,6 +1483,11 @@
     margin: 0 12px 12px;
   }
 
+  /* Stacked, the Workspace is full width again. */
+  .wiw-ws-folder {
+    display: inline;
+  }
+
   .wiw-pack {
     grid-auto-flow: row;
   }
@@ -1333,7 +1506,9 @@
 }
 
 /* Narrower chat, more wrapped option rows: the reserve steps up with them. Each value is the
-   tallest frame measured in its band (all three scenes, the page's real font) plus one line. */
+   tallest frame measured in its band (all four scenes, the page's real font) plus one line.
+   Last measured 2026-09-21 with the Workspace's Files card: the tallest is always the
+   questions card with the Workspace stacked under it. */
 @media (max-width: 629px) {
   .wiw-app {
     border-radius: 12px;
@@ -1346,19 +1521,19 @@
 
 @media (max-width: 559px) {
   .wiw {
-    --wiw-reserve: 1344px;
+    --wiw-reserve: 1524px;
   }
 }
 
 @media (max-width: 519px) {
   .wiw {
-    --wiw-reserve: 1416px;
+    --wiw-reserve: 1690px;
   }
 }
 
 @media (max-width: 359px) {
   .wiw {
-    --wiw-reserve: 1572px;
+    --wiw-reserve: 1752px;
   }
 }
 
@@ -1369,7 +1544,9 @@
   }
 
   .wiw-caret,
-  .wiw-status[data-state='working'] .wiw-status-dot {
+  .wiw-status[data-state='working'] .wiw-status-dot,
+  .wiw-ws-badge,
+  .wiw-ws-badge[data-state='writing'] {
     animation: none;
   }
 
@@ -1379,6 +1556,8 @@
   .wiw-control,
   .wiw-dots i::after,
   .wiw-progress span::after,
+  .wiw-ws-tile,
+  .wiw-ws-name,
   .wiw [data-arrived] {
     transition: none;
   }

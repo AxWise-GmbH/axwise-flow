@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router-dom';
-import FeaturesHero from './heroes/FeaturesHero';
 import Reveal from '../ui/Reveal';
 import { Badge } from '../ui/Card';
 import { Seen } from '../SpeedStrip';
@@ -101,14 +100,6 @@ function ids(feature) {
   };
 }
 
-// The hero's wall: one tile per feature, linking to the anchor that feature carries below.
-const HERO_ITEMS = FEATURES.map((feature) => ({
-  id: feature.id,
-  name: feature.name,
-  hash: `#${ids(feature).panel}`,
-  icon: <FeatureIcon name={feature.icon} className="oif-icon ohf-icon" />,
-}));
-
 /** The words of one feature: the main text, its condition if any, and a second line under "Also". */
 function FeatureText({ feature }) {
   const badge = feature.note ? noteBadge(feature.note) : null;
@@ -157,10 +148,11 @@ function bringIntoView(element) {
 }
 
 /*
- * A tile of the hero links to #feature-<id>. On a desktop that feature's panel is hidden
- * until it is picked, so the browser has nothing to scroll to: each layout lands the link
- * itself. `arrive` shows the feature and returns the element to bring into view. The
- * location key is watched too, so picking the same tile twice lands twice.
+ * A link to #feature-<id> (a shared address, or a link from elsewhere) opens that feature.
+ * On a desktop that feature's panel is hidden until it is picked, so the browser has
+ * nothing to scroll to: each layout lands the link itself. `arrive` shows the feature and
+ * returns the element to bring into view. The location key is watched too, so following
+ * the same link twice lands twice.
  */
 function useFeatureJump(arrive) {
   const { hash, key } = useLocation();
@@ -379,20 +371,17 @@ function FeatureIndex() {
     <Seen
       as="section"
       id="features-all"
-      className="oi-section oif-section oif-ruled"
+      className="oi-section oif-section"
       aria-labelledby="features-all-heading"
     >
       <div className="oi-container">
         <Seen className="oif-gate oif-head oif-head-split">
           <div className="oif-head-main">
-            <Reveal as="p" className="oi-tag oi-tag-bracket">
-              Feature by feature
-            </Reveal>
-            <Reveal as="h2" id="features-all-heading" className="oi-h2" delay={90}>
+            <Reveal as="h1" id="features-all-heading" className="oi-h2">
               In the app today
             </Reveal>
           </div>
-          <Reveal as="p" className="oi-small oif-legend" delay={180}>
+          <Reveal as="p" className="oi-small oif-legend" delay={90}>
             Some parts are off until you switch them on.
           </Reveal>
         </Seen>
@@ -466,16 +455,12 @@ function RestGrid() {
   );
 }
 
+// The owner took the opening wall ("Everything it does.", FeaturesHero) off, with the rule
+// under it and the "Feature by feature" tag, so the page starts at the explorer and its
+// heading is the page's h1. FeaturesHero stays in heroes/, unused, with its own tests.
 export default function FeaturesPage() {
   return (
     <>
-      <FeaturesHero
-        id="features-heading"
-        tag="Features"
-        title="Everything it does."
-        line="Twelve things it does for you, one by one."
-        items={HERO_ITEMS}
-      />
       <FeatureIndex />
       <FeatureDeepDives />
       <RestGrid />

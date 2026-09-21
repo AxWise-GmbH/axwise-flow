@@ -43,20 +43,31 @@
   gap: 22px;
   /* Stacked layouts hang icon bubbles on the card's edges; the padding keeps them off the words. */
   padding: 30px 30px 40px;
-  border: 1px solid rgba(var(--oi-pale-rgb), 0.2);
+  /* The app's own graphite (--oi-app-* in instant.css), as on the How it works mocks. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 28px;
-  background:
-    radial-gradient(120% 80% at 50% 0%, rgba(var(--oi-glow-rgb), 0.3), transparent 62%),
-    linear-gradient(180deg, rgba(9, 20, 15, 0.95), rgba(3, 9, 6, 0.97));
-  /* Lit from behind: a lifted top edge, a deep shadow, and the orb's green on the rim. */
+  background: var(--oi-app-surface);
+  /* Lit from behind: a lifted top edge, a deep shadow, and the orb's light on the rim. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 0 0 1px rgba(0, 0, 0, 0.6),
     0 60px 120px -30px rgba(0, 0, 0, 0.95),
     0 0 110px -12px rgba(var(--oi-glow-rgb), 0.5);
   transition:
     border-color 500ms ease,
     box-shadow 600ms ease;
+}
+
+/* A brighter streak in the middle of the top edge, where the light catches it. */
+.hp-scene::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 14%;
+  left: 14%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--oi-pale-rgb), 0.8), transparent);
+  pointer-events: none;
 }
 
 .hp-link:hover .hp-scene,
@@ -289,8 +300,8 @@
   height: 20px;
   border: 1.5px solid var(--oi-hairline-strong);
   border-radius: 50%;
-  background: #07110c;
-  color: #04150d;
+  background: #222222;
+  color: #000000;
   transition:
     background-color 500ms ease,
     border-color 500ms ease,

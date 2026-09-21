@@ -6,7 +6,7 @@ import { DESKTOP_RELEASE } from '../simple/desktop-release';
 import { SCENES } from './watchItWork.scenes';
 import { BUILD_MS, INTRO_MS, QUESTION_MS, RESULTS_MS, TICK_MS } from './watchItWorkMachine';
 
-const [BUSINESS, PRODUCT] = SCENES;
+const [BUSINESS, PRODUCT, , REVIEW] = SCENES;
 
 afterEach(() => {
   cleanup();
@@ -49,6 +49,9 @@ function expectEveryIntervalCleared(interval, clear) {
 }
 
 const button = (name) => screen.getByRole('button', { name });
+const roadmapSteps = () =>
+  within(screen.getByRole('list', { name: 'Roadmap' })).getAllByRole('listitem');
+const fileRows = () => within(screen.getByRole('list', { name: 'Files' })).getAllByRole('listitem');
 const control = () => document.querySelector('.wiw-control');
 
 function startWith(choice) {
@@ -86,7 +89,7 @@ describe('WatchItWork', () => {
     expect(workspace).toHaveTextContent('Needs you');
     expect(workspace).toHaveTextContent('Step 1 of 5');
     expect(workspace).toHaveTextContent('Roadmap');
-    const steps = within(workspace).getAllByRole('listitem');
+    const steps = roadmapSteps();
     expect(steps.map((step) => step.dataset.state)).toEqual([
       'now',
       'pending',
@@ -221,11 +224,13 @@ describe('WatchItWork', () => {
 
     play(BUILD_MS / 2);
     expect(workspace).toHaveTextContent('Step 3 of 5');
-    expect(
-      within(workspace)
-        .getAllByRole('listitem')
-        .map((step) => step.dataset.state)
-    ).toEqual(['done', 'done', 'now', 'pending', 'pending']);
+    expect(roadmapSteps().map((step) => step.dataset.state)).toEqual([
+      'done',
+      'done',
+      'now',
+      'pending',
+      'pending',
+    ]);
     expect(container.textContent).not.toMatch(/\d:\d\d/);
 
     play(BUILD_MS / 2 + TICK_MS);
@@ -346,7 +351,7 @@ describe('WatchItWork', () => {
   it('resets to the first frame of the chosen scenario and clears a running interval', () => {
     const { demo, interval, clear } = setup();
     const pills = screen.getByRole('group', { name: 'Choose an example' });
-    expect(within(pills).getAllByRole('button')).toHaveLength(3);
+    expect(within(pills).getAllByRole('button')).toHaveLength(4);
     expect(within(pills).getByRole('button', { name: 'Start a business' })).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -377,6 +382,66 @@ describe('WatchItWork', () => {
     expect(interval).toHaveBeenCalledTimes(1);
   });
 
+  it("lists the run's files under the roadmap and fills them in as their steps run", () => {
+    setup();
+    const workspace = screen.getByRole('complementary', { name: 'Workspace' });
+    const files = screen.getByRole('region', { name: 'Files' });
+    expect(workspace).toContainElement(files);
+    // Under the roadmap, in the panel's own order.
+    expect(
+      screen.getByRole('list', { name: 'Roadmap' }).compareDocumentPosition(files) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(files).toHaveTextContent('All 4');
+
+    const names = () => fileRows().map((row) => row.querySelector('.wiw-ws-name').textContent);
+    const states = () => fileRows().map((row) => row.dataset.state);
+    const badges = () =>
+      fileRows().map((row) => row.querySelector('.wiw-ws-badge')?.textContent ?? null);
+    expect(names()).toEqual(BUSINESS.files.map((file) => file.name));
+    expect(states()).toEqual(['waiting', 'waiting', 'waiting', 'waiting']);
+    expect(badges()).toEqual([null, null, null, null]);
+    expect(fileRows()[2]).toHaveTextContent('Web page · site');
+    expect(fileRows()[3]).toHaveTextContent('Spreadsheet · team');
+
+    startWith('Proceed with assumptions');
+    play(BUILD_MS / 2);
+    // Step 3 of 5 writes the business plan.
+    expect(states()).toEqual(['writing', 'waiting', 'waiting', 'waiting']);
+    expect(badges()).toEqual(['WRITING', null, null, null]);
+
+    play((BUILD_MS * 2) / 5);
+    // Step 5 of 5: the plan and both marketing files are done, the agents list is being written.
+    expect(states()).toEqual(['done', 'done', 'done', 'writing']);
+    expect(badges()).toEqual(['NEW', 'NEW', 'NEW', 'WRITING']);
+
+    fireEvent.click(button('Launch a product'));
+    expect(names()).toEqual(PRODUCT.files.map((file) => file.name));
+    expect(states()).toEqual(['waiting', 'waiting', 'waiting']);
+    expect(screen.getByRole('region', { name: 'Files' })).toHaveTextContent('All 3');
+    // The PDF wears the app's corner tag on its tile, and says so in words beside it.
+    const roadmap = fileRows()[2];
+    expect(roadmap.querySelector('.wiw-ws-tag')).toHaveTextContent('PDF');
+    expect(roadmap.querySelector('.wiw-ws-tile')).toHaveAttribute('aria-hidden', 'true');
+    expect(roadmap).toHaveTextContent('PDF · plan');
+    expect(fileRows()[1]).toHaveTextContent('Image · design');
+
+    fireEvent.click(button('Review my company'));
+    expect(names()).toEqual(REVIEW.files.map((file) => file.name));
+    expect(document.querySelector('.wiw').querySelector('img, iframe, video, canvas')).toBeNull();
+  });
+
+  it('keeps the files hidden until the plan arrives in the typed intro', () => {
+    setup();
+    fireEvent.click(control());
+    const files = document.querySelector('.wiw-ws-files');
+    expect(files).toHaveAttribute('data-arrived', 'false');
+    expect(files).toHaveAttribute('aria-hidden', 'true');
+    play(INTRO_MS - 1000);
+    expect(files).toHaveAttribute('data-arrived', 'true');
+    expect(files).not.toHaveAttribute('aria-hidden');
+  });
+
   it('forgets a row picked for the previous scenario', () => {
     setup();
     fireEvent.click(screen.getByRole('radio', { name: 'Sure, ask me' }));
@@ -393,12 +458,12 @@ describe('WatchItWork', () => {
     expect(button('Launch a product')).toHaveFocus();
     expect(button('Launch a product')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyDown(document.activeElement, { key: 'End' });
-    expect(button('Plan a campaign')).toHaveFocus();
+    expect(button('Review my company')).toHaveFocus();
     fireEvent.keyDown(document.activeElement, { key: 'ArrowRight' });
     expect(business).toHaveFocus();
     fireEvent.keyDown(business, { key: 'ArrowLeft' });
-    expect(button('Plan a campaign')).toHaveFocus();
-    expect(demo).toHaveTextContent(SCENES[2].request);
+    expect(button('Review my company')).toHaveFocus();
+    expect(demo).toHaveTextContent(REVIEW.request);
     fireEvent.keyDown(document.activeElement, { key: 'Home' });
     expect(business).toHaveFocus();
     expect(business).toHaveAttribute('aria-pressed', 'true');

@@ -523,14 +523,11 @@ export default function Anywhere() {
     >
       <div className="oi-container oia-grid">
         <header className="oia-head">
-          <Reveal as="p" className="oi-tag oi-tag-bracket">
-            Connectivity
-          </Reveal>
-          <Reveal as="h2" id="anywhere-heading" className="oi-h2 oia-title" delay={90}>
+          <Reveal as="h2" id="anywhere-heading" className="oi-h2 oia-title">
             <span className="oia-title-line">Chat from</span>{' '}
             <span className="oia-title-line oia-title-glow">anywhere.</span>
           </Reveal>
-          <Reveal as="p" className="oi-line oia-lede" delay={180}>
+          <Reveal as="p" className="oi-line oia-lede" delay={90}>
             Reach Orqanix from where you already are.
           </Reveal>
         </header>

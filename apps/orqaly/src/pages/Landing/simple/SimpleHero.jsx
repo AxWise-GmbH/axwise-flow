@@ -62,8 +62,8 @@ export default function SimpleHero({ onPrimaryCta }) {
                 fontSize: '0.8125rem',
                 fontWeight: 650,
                 color: 'primary.main',
-                borderColor: 'rgba(99, 102, 241, 0.4)',
-                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(99, 102, 241, 0.08)' }
+                borderColor: 'rgba(117, 117, 117, 0.4)',
+                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(117, 117, 117, 0.08)' },
               }}
             >
               ⚡ See Live Architecture & Multi-Surface Benchmarks →

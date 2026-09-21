@@ -4,10 +4,10 @@ import { createTheme } from '@mui/material/styles';
 export const landingTheme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: '#6f50e7', dark: '#5637c8', contrastText: '#ffffff' },
-    background: { default: '#f8f9fe', paper: '#ffffff' },
-    text: { primary: '#171d35', secondary: '#5e657c' },
-    divider: '#e0e3ef',
+    primary: { main: '#111111', dark: '#000000', contrastText: '#ffffff' },
+    background: { default: '#f8f8f8', paper: '#ffffff' },
+    text: { primary: '#1e1e1e', secondary: '#666666' },
+    divider: '#e3e3e3',
   },
   typography: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
