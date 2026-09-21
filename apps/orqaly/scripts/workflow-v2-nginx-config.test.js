@@ -84,12 +84,7 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).toContain('absolute_redirect off;');
     expect(nginx).toMatch(/location = \/api \{[\s\S]*?return 404 'not found';[\s\S]*?\}/);
     expect(nginx).toMatch(/location \^~ \/api\/ \{[\s\S]*?return 404 'not found';[\s\S]*?\}/);
-    const exactApiLocation = nginx.match(/location = \/api \{([^{}]*)\}/)?.[1];
-    const apiPrefixLocation = nginx.match(/location \^~ \/api\/ \{([^{}]*)\}/)?.[1];
-    expect(exactApiLocation).toBeTruthy();
-    expect(apiPrefixLocation).toBeTruthy();
-    expect(exactApiLocation).not.toContain('proxy_pass');
-    expect(apiPrefixLocation).not.toContain('proxy_pass');
+    expect(nginx).not.toContain('proxy_pass');
     expect(nginx).not.toContain('ORQALY_API_ORIGIN');
     expect(dockerfile).not.toContain('ORQALY_API_ORIGIN');
     expect(nginx).toMatch(/location = \/sw\.js \{[\s\S]*?return 410;[\s\S]*?\}/);
@@ -99,7 +94,7 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx.match(/default_type text\/plain;/g)).toHaveLength(4);
   });
 
-  it('proxies only the heartbeat snapshot to a fixed, TLS-verified public object', () => {
+  it('serves only the fixed heartbeat snapshot from the private read-only mount', () => {
     const dockerfile = readFileSync('deploy/workflow-v2/Dockerfile.web', 'utf8');
     const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
     const heartbeatLocation = nginx.match(
@@ -109,25 +104,18 @@ describe('workflow v2 web security boundary', () => {
     expect(heartbeatLocation).toBeTruthy();
     expect(heartbeatLocation).toContain('limit_except GET HEAD');
     expect(heartbeatLocation).toContain(
-      'proxy_pass https://storage.googleapis.com/orqanix-heartbeat-preview-161074549006/latest.json?;'
+      'alias /var/run/orqanix-heartbeat/latest.json;'
     );
-    expect(heartbeatLocation).toContain('proxy_ssl_server_name on;');
-    expect(heartbeatLocation).toContain('proxy_ssl_name storage.googleapis.com;');
-    expect(heartbeatLocation).toContain('proxy_ssl_verify on;');
-    expect(heartbeatLocation).toContain(
-      'proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;'
-    );
-    expect(heartbeatLocation).toContain('proxy_pass_request_headers off;');
-    expect(heartbeatLocation).toContain('proxy_pass_request_body off;');
-    expect(heartbeatLocation).toContain('proxy_intercept_errors off;');
-    expect(heartbeatLocation).toContain('proxy_set_header Authorization "";');
-    expect(heartbeatLocation).toContain('proxy_set_header Cookie "";');
+    expect(heartbeatLocation).toContain('etag off;');
+    expect(heartbeatLocation).toContain('if_modified_since off;');
+    expect(heartbeatLocation).toContain('open_file_cache off;');
     expect(heartbeatLocation).toContain(
       'add_header Cache-Control "no-cache, no-store, must-revalidate" always;'
     );
     expect(heartbeatLocation).not.toContain('try_files');
-    expect(nginx.match(/\bproxy_pass\b/g)).toHaveLength(1);
-    expect(dockerfile).not.toContain('apk add');
+    expect(nginx).not.toContain('proxy_pass');
+    expect(dockerfile).toContain('/var/run/orqanix-heartbeat');
+    expect(dockerfile).not.toContain('latest.json /usr/share/nginx/html');
   });
 
   it('describes the server-published heartbeat consistently in both web builds', () => {

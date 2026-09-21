@@ -12,6 +12,7 @@ JOB="orqanix-heartbeat-preview"
 BUCKET="orqanix-heartbeat-preview-161074549006"
 WRITER_ACCOUNT_ID="orqanix-heartbeat-writer"
 TRIGGER_ACCOUNT_ID="orqanix-heartbeat-trigger"
+WEB_ACCOUNT_ID="orqaly-v2-web-preview"
 SCHEDULE="*/15 * * * *"
 TIME_ZONE="Etc/UTC"
 REGION_UPPER="EUROPE-WEST4"
@@ -19,7 +20,7 @@ REGION_UPPER="EUROPE-WEST4"
 HEARTBEAT_IMAGE="${HEARTBEAT_IMAGE:?set HEARTBEAT_IMAGE to the exact heartbeat image digest}"
 
 readonly PROJECT_ID PROJECT_NUMBER REGION REPOSITORY IMAGE_NAME JOB BUCKET
-readonly WRITER_ACCOUNT_ID TRIGGER_ACCOUNT_ID SCHEDULE TIME_ZONE REGION_UPPER
+readonly WRITER_ACCOUNT_ID TRIGGER_ACCOUNT_ID WEB_ACCOUNT_ID SCHEDULE TIME_ZONE REGION_UPPER
 readonly HEARTBEAT_IMAGE
 
 refuse_target() {
@@ -51,8 +52,9 @@ unset actual_project_number
 
 writer_account="${WRITER_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
 trigger_account="${TRIGGER_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
+web_account="${WEB_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
 run_uri="https://run.googleapis.com/v2/projects/${PROJECT_ID}/locations/${REGION}/jobs/${JOB}:run"
-readonly writer_account trigger_account run_uri
+readonly writer_account trigger_account web_account run_uri
 
 ensure_service_account() {
   local account_id="$1" display_name="$2" account output status
@@ -98,12 +100,12 @@ if test "${bucket_lookup_status}" -eq 0; then
   fi
   gcloud storage buckets update "gs://${BUCKET}" \
     --project="${PROJECT_ID}" --uniform-bucket-level-access \
-    --no-public-access-prevention --quiet >/dev/null
+    --public-access-prevention --quiet >/dev/null
 elif [[ "${bucket_lookup}" == *"NOT_FOUND"* || "${bucket_lookup}" == *"not found"* \
   || "${bucket_lookup}" == *"Not Found"* || "${bucket_lookup}" == *"does not exist"* ]]; then
   gcloud storage buckets create "gs://${BUCKET}" \
     --project="${PROJECT_ID}" --location="${REGION}" \
-    --uniform-bucket-level-access --no-public-access-prevention --quiet >/dev/null
+    --uniform-bucket-level-access --public-access-prevention --quiet >/dev/null
 else
   echo "Could not safely inspect the heartbeat bucket." >&2
   exit 1
@@ -119,7 +121,7 @@ if ! jq -e --arg expected_region "${REGION_UPPER}" \
   and ((.uniform_bucket_level_access
     // .iamConfiguration.uniformBucketLevelAccess.enabled // false) == true)
   and ((.public_access_prevention
-    // .iamConfiguration.publicAccessPrevention // "inherited") != "enforced")
+    // .iamConfiguration.publicAccessPrevention // "inherited") == "enforced")
 ' <<<"${bucket_document}" >/dev/null; then
   echo "Heartbeat bucket location or public access controls are incorrect." >&2
   exit 77
@@ -130,23 +132,22 @@ bucket_objects="$(gcloud storage objects list "gs://${BUCKET}/**" \
   --project="${PROJECT_ID}" --format='value(name)')"
 while IFS= read -r object; do
   if test -n "${object}" && test "${object}" != "latest.json"; then
-    echo "Refusing public access: unexpected object in heartbeat bucket: ${object}" >&2
+    echo "Unexpected object in dedicated heartbeat bucket: ${object}" >&2
     exit 77
   fi
 done <<<"${bucket_objects}"
 unset bucket_objects object
 
-# This dedicated bucket must contain only the deliberately public latest.json
-# status object. The writer can conditionally replace it; anonymous readers can
-# fetch it but receive no object-list permission.
+# Keep storage private. The collector replaces the status object; only the
+# existing web identity reads it through a read-only Cloud Run volume mount.
 gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --project="${PROJECT_ID}" \
   --member="serviceAccount:${writer_account}" \
   --role="roles/storage.objectUser" --quiet >/dev/null
 gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --project="${PROJECT_ID}" \
-  --member=allUsers \
-  --role="roles/storage.legacyObjectReader" --quiet >/dev/null
+  --member="serviceAccount:${web_account}" \
+  --role="roles/storage.objectViewer" --quiet >/dev/null
 
 gcloud run jobs deploy "${JOB}" \
   --project="${PROJECT_ID}" --region="${REGION}" \
