@@ -18,7 +18,8 @@ function request(change = () => {}) {
   const value = { taskId: 'engineering_task', conversationId: reference.conversationId,
     task: 'Handle malformed Retry-After input.', acceptanceCriteria: ['Malformed input returns null.'], researchReferences: [reference],
     evidence: { diff: { status: 'captured', before: 'return parse(value);', after: 'try { return parse(value); } catch { return null; }', changed: true },
-      tests: { status: 'passed', command: ['node', '--test', 'retry.test.mjs'], exitCode: 0, output: '2 tests passed', truncated: false }, toolsUsed: ['read', 'edit', 'bash'] } };
+      tests: { status: 'passed', command: ['node', '--test', 'retry.test.mjs'], exitCode: 0, output: '2 tests passed', truncated: false }, toolsUsed: ['read', 'edit', 'bash'],
+      changedFilesStatus: 'captured', changedFiles: [{ path: 'src/retry.js', change: 'edited' }], relevantIgnoredFilesChanged: false } };
   change(value);
   value.inputHash = sha256Hex(JSON.stringify({ task: value.task, acceptanceCriteria: value.acceptanceCriteria, researchReferences: value.researchReferences }));
   return value;
@@ -112,6 +113,30 @@ describe('bounded cloud engineering review', () => {
       (value) => { value.evidence.diff.after = value.evidence.diff.before; }, (value) => { value.evidence.tests.status = 'not_run'; },
       (value) => { value.evidence.tests.truncated = true; }, (value) => { value.evidence.tests.command = []; }, (value) => { value.evidence.tests.output = ''; }])
       expect((await f.service.review(auth, request(change))).review.status).toBe('not_evaluated');
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('fails closed when changed-file attribution is unavailable, empty or includes ignored files', async () => {
+    const f = fixture();
+    for (const [change, reason] of [
+      [(value) => { value.evidence.changedFilesStatus = 'unavailable'; value.evidence.changedFiles = []; }, 'missing_changed_file_evidence'],
+      [(value) => { value.evidence.changedFiles = []; }, 'missing_changed_file_evidence'],
+      [(value) => { value.evidence.relevantIgnoredFilesChanged = true; }, 'ignored_files_changed'],
+    ]) {
+      expect((await f.service.review(auth, request(change))).review).toMatchObject({ status: 'not_evaluated', reason });
+    }
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('strictly rejects malformed or inconsistent changed-file evidence', async () => {
+    const f = fixture();
+    for (const change of [
+      (value) => { delete value.evidence.changedFilesStatus; },
+      (value) => { value.evidence.changedFiles[0].path = '../secret'; },
+      (value) => { value.evidence.changedFiles[0].change = 'renamed'; },
+      (value) => { value.evidence.changedFiles.push({ ...value.evidence.changedFiles[0] }); },
+      (value) => { value.evidence.changedFilesStatus = 'unavailable'; },
+    ]) {
+      await expect(f.service.review(auth, request(change))).rejects.toMatchObject({ name: 'ZodError' });
+    }
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
   it('rejects combined oversized evidence and caller credentials without truncation', async () => {
