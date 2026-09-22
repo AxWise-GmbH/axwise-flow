@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "orqanix.heartbeat-snapshot.v6",
+  "kind": "endpoint-health-snapshot",
+  "environment": "public-preview",
+  "scope": "HTTP response headers measured from a single runner; public and preview domains share the preview deployment.",
+  "publication": "Scheduled runs are archived in GitHub Actions. This website snapshot changes only when its assets are deployed.",
+  "timestamp": "2026-09-20T20:31:09.550Z",
+  "staleAfterSeconds": 1800,
+  "expectedEndpointCount": 5,
+  "allHealthy": true,
+  "endpoints": [
+    {
+      "url": "https://orqanix.com/",
+      "name": "Public Preview",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 192,
+      "timestamp": "2026-09-20T20:31:03.338Z"
+    },
+    {
+      "url": "https://orqanix.com/instant",
+      "name": "Instant Preview",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 167,
+      "timestamp": "2026-09-20T20:31:03.335Z"
+    },
+    {
+      "url": "https://orqanix.com/benchmark",
+      "name": "Architecture Showcase",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 281,
+      "timestamp": "2026-09-20T20:31:03.448Z"
+    },
+    {
+      "url": "https://preview.orqanix.com/instant",
+      "name": "Preview Domain",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 233,
+      "timestamp": "2026-09-20T20:31:03.401Z"
+    },
+    {
+      "url": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app/readyz",
+      "name": "Preview API Readiness",
+      "status": 200,
+      "ok": true,
+      "latencyMs": 6383,
+      "timestamp": "2026-09-20T20:31:09.550Z"
+    }
+  ]
+}

@@ -67,10 +67,6 @@ class AssistantTurnService:
                     "route": "assistant_source_policy",
                     "status": "source_authority_required",
                     "call_count": 0,
-                    "input_tokens": 0,
-                    "output_tokens": 0,
-                    "total_tokens": 0,
-                    "usage_complete": True,
                 },
             )
         query = assistant_turn_query(input_value, source_policy=policy)

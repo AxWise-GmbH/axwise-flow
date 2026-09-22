@@ -1,0 +1,38 @@
+name: Orqanix Endpoint Health Snapshot
+
+on:
+  # Cloud Scheduler owns the public 15-minute heartbeat. This workflow remains
+  # available only for an operator-requested diagnostic artifact.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  heartbeat:
+    name: Check public preview endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Test snapshot generation and display states
+        run: node --test scripts/heartbeat-service.test.mjs scripts/heartbeat-publish.test.mjs
+
+      - name: Measure endpoint health and archive snapshot
+        run: node scripts/heartbeat-service.mjs
+
+      - name: Upload heartbeat artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: heartbeat-snapshot
+          path: artifacts/heartbeat/
+          retention-days: 7

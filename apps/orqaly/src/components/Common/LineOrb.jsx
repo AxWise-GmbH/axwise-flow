@@ -254,11 +254,16 @@ export default function LineOrb({
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
+  // Defer animation loop start via requestIdleCallback or setTimeout so critical
+  // FCP, LCP, and hydration metrics can complete first without main-thread competition.
   useEffect(() => {
     if (parked) return undefined;
 
     let raf = 0;
     let last = 0;
+    let idleHandle = null;
+    let timeoutHandle = null;
+
     const tick = (now) => {
       if (!last) last = now;
       const step = Math.min(now - last, MAX_STEP_MS);
@@ -268,8 +273,21 @@ export default function LineOrb({
       raf = requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const start = () => {
+      raf = requestAnimationFrame(tick);
+    };
+
+    if (typeof requestIdleCallback === 'function') {
+      idleHandle = requestIdleCallback(start, { timeout: 350 });
+    } else {
+      timeoutHandle = setTimeout(start, 50);
+    }
+
+    return () => {
+      if (idleHandle && typeof cancelIdleCallback === 'function') cancelIdleCallback(idleHandle);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [parked, speed]);
 
   return (

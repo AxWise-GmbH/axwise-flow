@@ -280,7 +280,7 @@ async def test_exact498_real_admission_and_projection(
     query = runtime.assistant_turn_query(input_value)
     try:
         if not include_official:
-            with pytest.raises(runtime.CognitiveExecutionFailure, match="^AXWISE_ASSISTANT_EMPTY_RESPONSE$") as caught:
+            with pytest.raises(runtime.CognitiveExecutionFailure, match="^AXWISE_ASSISTANT_RESEARCH_UNAVAILABLE$") as caught:
                 await service.execute(input_value)
             assert caught.value.evidence_diagnostics == captured[0]["runtime_diagnostics"]["evidence"]
         else:

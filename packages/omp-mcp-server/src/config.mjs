@@ -22,6 +22,7 @@ const OPTIONS = new Set([
   '--connector',
   '--connector-config',
   '--account-hash',
+  '--conversation-id',
   '--state-dir',
 ]);
 
@@ -152,6 +153,10 @@ export async function loadConfig({ argv = [], env = process.env, cwd = process.c
   const connectorConfig = await regularFile(options['--connector-config'], 'Connector config');
   const accountHash = options['--account-hash'];
   if (!ACCOUNT_HASH.test(accountHash || '')) throw new Error('Account hash is invalid.');
+  const conversationId = options['--conversation-id'];
+  if (conversationId !== undefined && !/^[A-Za-z0-9_-]{1,128}$/.test(conversationId)) {
+    throw new Error('Conversation ID is invalid.');
+  }
   const stateDir = await directoryRealpath(options['--state-dir'], 'OMP state directory', {
     create: true,
   });
@@ -168,6 +173,8 @@ export async function loadConfig({ argv = [], env = process.env, cwd = process.c
     connectorConfig,
     connectorCwd: dirname(connector),
     accountHash,
+    conversationId,
+    apiBaseUrl,
     stateDir,
     modelsFile,
     model: 'orqanix/orqaly-gemini',

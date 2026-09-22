@@ -93,4 +93,60 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).not.toContain('return 308 /workflows-v2');
     expect(nginx.match(/default_type text\/plain;/g)).toHaveLength(4);
   });
+
+  it('serves only the fixed heartbeat snapshot from the private read-only mount', () => {
+    const dockerfile = readFileSync('deploy/workflow-v2/Dockerfile.web', 'utf8');
+    const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
+    const heartbeatLocation = nginx.match(
+      /location = \/heartbeat\.json \{([\s\S]*?)\n {2}\}/
+    )?.[1];
+
+    expect(heartbeatLocation).toBeTruthy();
+    expect(heartbeatLocation).toContain('limit_except GET HEAD');
+    expect(heartbeatLocation).toContain(
+      'alias /var/run/orqanix-heartbeat/latest.json;'
+    );
+    expect(heartbeatLocation).toContain('etag off;');
+    expect(heartbeatLocation).toContain('if_modified_since off;');
+    expect(heartbeatLocation).toContain('open_file_cache off;');
+    expect(heartbeatLocation).toContain(
+      'add_header Cache-Control "no-cache, no-store, must-revalidate" always;'
+    );
+    expect(heartbeatLocation).not.toContain('try_files');
+    expect(nginx).not.toContain('proxy_pass');
+    expect(dockerfile).toContain('/var/run/orqanix-heartbeat');
+    expect(dockerfile).not.toContain('latest.json /usr/share/nginx/html');
+  });
+
+  it('describes the server-published heartbeat consistently in both web builds', () => {
+    const pagePairs = [
+      ['public/heartbeat.html', 'public-gcp/heartbeat.html'],
+      ['public/heartbeat/index.html', 'public-gcp/heartbeat/index.html'],
+      ['public/benchmark.html', 'public-gcp/benchmark.html'],
+      ['public/benchmark/index.html', 'public-gcp/benchmark/index.html'],
+    ];
+
+    for (const [fullPagePath, gcpPagePath] of pagePairs) {
+      const fullPage = readFileSync(fullPagePath, 'utf8');
+      const gcpPage = readFileSync(gcpPagePath, 'utf8');
+      expect(fullPage).toBe(gcpPage);
+      expect(gcpPage).toContain('/evaluation-dashboard.js');
+      if (gcpPagePath.includes('heartbeat')) expect(gcpPage).toContain('/heartbeat-telemetry.js');
+      expect(gcpPage).toContain('15 minutes');
+      expect(gcpPage).not.toContain('scheduled checks do not automatically publish here');
+    }
+  });
+
+  it('exposes only fixed evaluation summary and UUID evidence routes from the read-only bucket', () => {
+    const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
+    const summary = nginx.match(/location = \/heartbeat\/evaluations\.json \{([\s\S]*?)\n {2}\}/)?.[1];
+    expect(summary).toContain('alias /var/run/orqanix-agent-evaluations/public/evaluations.json;');
+    expect(summary).toContain('limit_except GET HEAD');
+    expect(summary).toContain('open_file_cache off;');
+    expect(summary).toContain('always;');
+    expect(summary).not.toContain('try_files');
+    expect(nginx).toContain('alias /var/run/orqanix-agent-evaluations/public/evidence/$1.json;');
+    expect(nginx).toMatch(/location \/heartbeat\/evidence\/ \{[\s\S]*?return 404;/);
+    expect(nginx).not.toContain('alias /var/run/orqanix-agent-evaluations/records');
+  });
 });
