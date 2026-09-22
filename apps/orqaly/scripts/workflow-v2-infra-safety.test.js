@@ -23,6 +23,84 @@ function assetSearchResponse({ resource, bindings, permissionsByRole }) {
 }
 
 describe('workflow v2 Preview infrastructure safety', () => {
+  it('pins Goose, capability work, Gemini, and TypeSafe JEV to their exact runtimes', () => {
+    const provision = read('infra/gcp/workflow-v2/provision-preview.sh');
+    const deploy = read('infra/gcp/workflow-v2/deploy-preview.sh');
+    const runtime = read('infra/gcp/workflow-v2/verify-preview-runtime.sh');
+    const secret = 'axwise-v2-preview-001-typesafe-api-key';
+    const account = 'orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com';
+    const binding =
+      'TYPESAFE_API_KEY=axwise-v2-preview-001-typesafe-api-key:${TYPESAFE_API_KEY_SECRET_VERSION}';
+    const geminiBinding =
+      'ORQALY_GOOSE_GEMINI_API_KEY=axwise-v2-preview-001-gemini-api-key:${AXWISE_GEMINI_SECRET_VERSION}';
+
+    expect(deploy).toContain(
+      'TYPESAFE_API_KEY_SECRET_VERSION="${TYPESAFE_API_KEY_SECRET_VERSION:?numeric TypeSafe API-key secret version is required}"'
+    );
+    expect(deploy).toContain(`require_secret_version ${secret}`);
+    expect(deploy).toContain(binding);
+    expect(deploy.match(new RegExp(binding.replace(/[${}]/g, '\\$&'), 'g'))).toHaveLength(2);
+    expect(deploy).toContain(geminiBinding);
+    expect(deploy).toContain('ORQALY_GOOSE_ENABLED=true');
+    expect(deploy).toContain('ORQALY_GOOSE_OAUTH_CLIENT_ID=UNciLDGl5PPmF9M8');
+    expect(deploy.match(/ORQALY_CAPABILITY_WORK_ENABLED=true/g)).toHaveLength(2);
+    expect(deploy).toContain('AXWISE_CAPABILITY_GENERATORS_ENABLED=false');
+    expect(deploy).toContain('AXWISE_CAPABILITY_GENERATORS_ENABLED=true');
+    const apiDeploy = deploy.split('gcloud run deploy orqaly-v2-api-preview \\\n')[1]
+      .split('\nrecord_invocation_created_service orqaly-v2-api-preview')[0];
+    const workerDeploy = deploy.split('gcloud run deploy orqaly-v2-worker-preview \\\n')[1]
+      .split('\nrecord_invocation_created_service orqaly-v2-worker-preview')[0];
+    for (const block of [apiDeploy, workerDeploy]) {
+      expect(block).toContain('--update-env-vars=');
+      expect(block).toContain('--update-secrets=');
+      expect(block).not.toContain('--set-env-vars=');
+      expect(block).not.toContain('--set-secrets=');
+    }
+    for (const service of ['axwise-v2-preview', 'axwise-v2-worker-preview']) {
+      const block = deploy.split(`gcloud run deploy ${service} \\\n`)[1]
+        .split(`\nrecord_invocation_created_service ${service}`)[0];
+      expect(block).toContain('--set-env-vars=');
+      expect(block).toContain('--set-secrets=');
+      expect(block).not.toContain('--update-env-vars=');
+      expect(block).not.toContain('--update-secrets=');
+    }
+    const webDeploy = deploy.split('gcloud run deploy orqaly-v2-web-preview \\\n')[1]
+      .split('\nrecord_invocation_created_service orqaly-v2-web-preview')[0];
+    expect(webDeploy).not.toContain('--set-env-vars=');
+    expect(webDeploy).not.toContain('--update-env-vars=');
+    expect(webDeploy).not.toContain('--set-secrets=');
+    expect(webDeploy).not.toContain('--update-secrets=');
+    expect(provision).toContain(`grant_secret_access ${secret} orqaly-v2-api-preview`);
+    expect(provision).toContain(`grant_secret_access ${secret} axwise-v2-worker-preview`);
+    expect(provision).toContain(
+      'grant_secret_access axwise-v2-preview-001-gemini-api-key orqaly-v2-api-preview'
+    );
+    expect(provision).toContain(`assert_secret_service_accounts ${secret}`);
+    expect(provision).toContain(`"${account}"`);
+    expect(runtime).toContain(`assert_direct_secret_service_accounts ${secret}`);
+    expect(runtime).toContain(
+      `assert_secret_ref orqaly-v2-api-preview TYPESAFE_API_KEY ${secret} "\${TYPESAFE_API_KEY_SECRET_VERSION}"`
+    );
+    expect(runtime).toContain(
+      `assert_secret_ref axwise-v2-worker-preview TYPESAFE_API_KEY ${secret} "\${TYPESAFE_API_KEY_SECRET_VERSION}"`
+    );
+    expect(runtime).toContain('assert_absent_env axwise-v2-preview TYPESAFE_API_KEY');
+    expect(runtime).toContain(
+      'assert_secret_ref orqaly-v2-api-preview ORQALY_GOOSE_GEMINI_API_KEY axwise-v2-preview-001-gemini-api-key "${AXWISE_GEMINI_SECRET_VERSION}"'
+    );
+    expect(runtime).toContain('assert_plain_env orqaly-v2-api-preview ORQALY_GOOSE_ENABLED true');
+    expect(runtime).toContain(
+      'assert_plain_env orqaly-v2-api-preview ORQALY_GOOSE_OAUTH_CLIENT_ID UNciLDGl5PPmF9M8'
+    );
+    expect(runtime.match(/assert_plain_env orqaly-v2-(?:api|worker)-preview ORQALY_CAPABILITY_WORK_ENABLED true/g)).toHaveLength(2);
+    expect(runtime).toContain(
+      'assert_plain_env axwise-v2-preview AXWISE_CAPABILITY_GENERATORS_ENABLED false'
+    );
+    expect(runtime).toContain(
+      'assert_plain_env axwise-v2-worker-preview AXWISE_CAPABILITY_GENERATORS_ENABLED true'
+    );
+  });
+
   it('admits native editor asset bursts without adding warm API instances or widening worker concurrency', () => {
     const deploy = read('infra/gcp/workflow-v2/deploy-preview.sh');
     const block = (service) => {
