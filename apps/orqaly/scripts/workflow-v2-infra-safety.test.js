@@ -103,6 +103,7 @@ describe('workflow v2 Preview infrastructure safety', () => {
 
   it('admits native editor asset bursts without adding warm API instances or widening worker concurrency', () => {
     const deploy = read('infra/gcp/workflow-v2/deploy-preview.sh');
+    const runtime = read('infra/gcp/workflow-v2/verify-preview-runtime.sh');
     const block = (service) => {
       const starts = deploy.split(`gcloud run deploy ${service} \\\n`);
       expect(starts).toHaveLength(2);
@@ -123,6 +124,12 @@ describe('workflow v2 Preview infrastructure safety', () => {
       expect(block(service).match(/--concurrency=\d+/g)).toEqual([`--concurrency=${concurrency}`]);
     }
     expect(api.match(/--concurrency=\d+/g)).toEqual(['--concurrency=80']);
+    expect(runtime).toContain(
+      '"orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com" all 80 0 4 true true'
+    );
+    expect(runtime).toContain(
+      '"axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" internal 1 1 1 false true \\\n  1 1Gi'
+    );
   });
 
   it('accepts only explicit user admins because IAM search cannot expand groups', () => {
@@ -343,6 +350,8 @@ describe('workflow v2 Preview infrastructure safety', () => {
     expect(deploy).toContain('rollback_required=true');
     expect(deploy).toContain('restore_previous_traffic');
     expect(deploy).toContain('candidate_traffic_option');
+    expect(deploy).toContain('map(select((.percent // 0) > 0))');
+    expect(deploy).not.toContain('and ((.tag // "") == "")');
     expect(deploy).toContain('ensure_orqaly_direct_vpc_all_traffic_egress');
     expect(deploy).toContain('gcloud run revisions describe "${created}"');
     expect(deploy).toContain('.type == "Ready" and .status == "True"');

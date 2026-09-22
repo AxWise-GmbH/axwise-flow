@@ -74,9 +74,11 @@ backward-compatible Orqaly consumers, then the AxWise producer, and the browser 
 it then requires 100% traffic on the tested revisions.
 Before its first mutation it validates the build attestation against both clean repository
 HEADs, image digests, web origin and Clerk publishable-key version. It captures all five
-effective traffic maps and promotes exact candidate revision names. Any promotion, final
-verification, or runtime-attestation failure restores all five pre-cutover maps;
-tagged/ambiguous traffic configurations fail before mutation.
+effective traffic allocations and promotes exact candidate revision names. Existing
+zero-percent tagged URLs are preserved but excluded from rollback allocation arguments.
+Any promotion, final verification, or runtime-attestation failure restores all five
+pre-cutover allocations; malformed or ambiguous positive traffic configurations fail
+before mutation.
 `resolve-preview-origins.sh` computes the three deterministic Cloud Run URLs from the
 hard-pinned project number before any service exists. Build and deploy both require those
 exact URLs, so a fresh project needs no placeholder service or unaudited bootstrap image.

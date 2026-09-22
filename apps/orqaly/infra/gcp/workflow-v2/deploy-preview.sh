@@ -231,22 +231,25 @@ capture_traffic() {
     --region="${REGION}" --format=json)"
   if ! jq -e '
     (.status.traffic // []) as $traffic
-    | ($traffic | length) > 0
+    | ($traffic | map(select((.percent // 0) > 0))) as $allocated
+    | ($allocated | length) > 0
       and all($traffic[];
         (.revisionName | type == "string")
         and (.revisionName | test("^[a-z0-9-]+$"))
-        and ((.tag // "") == "")
-        and ((.percent | type) == "number")
-        and (.percent > 0)
-        and (.percent == (.percent | floor)))
-      and (($traffic | map(.percent) | add) == 100)
-      and (($traffic | map(.revisionName) | unique | length) == ($traffic | length))
+        and ((.tag // "") | type == "string")
+        and ((.tag // "") | test("^[a-z0-9-]*$"))
+        and ((.percent // 0) | type == "number")
+        and ((.percent // 0) >= 0)
+        and ((.percent // 0) == ((.percent // 0) | floor)))
+      and (($allocated | map(.percent) | add) == 100)
+      and (($allocated | map(.revisionName) | unique | length) == ($allocated | length))
   ' <<<"${document}" >/dev/null; then
     echo "${service} has an unsupported or ambiguous pre-cutover traffic map." >&2
     return 77
   fi
   jq -r '
     .status.traffic
+    | map(select((.percent // 0) > 0))
     | sort_by(.revisionName)
     | map(.revisionName + "=" + (.percent | tostring))
     | join(",")
