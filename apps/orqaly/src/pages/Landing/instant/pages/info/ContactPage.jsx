@@ -1,5 +1,6 @@
 import Reveal from '../../ui/Reveal';
 import { InfoHead } from './InfoParts';
+import DirArrow from '../../ui/DirArrow';
 
 const ICONS = {
   hello: 'M4 5h16v11H10l-6 4z',
@@ -23,7 +24,7 @@ export default function ContactPage({ page }) {
               <p>{text}</p>
               <span className="oin-channel-mail">
                 {email}
-                <i aria-hidden="true">→</i>
+                <DirArrow as="i" />
               </span>
             </a>
           </Reveal>

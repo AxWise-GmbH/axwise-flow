@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "Subpemroses",
+    "summary": "Halaman ini mencantumkan perusahaan yang menangani data pribadi atas nama kami, tempat lain yang dapat dituju data Anda, dan lokasi server kami.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "Tentang halaman ini"
+    },
+    {
+      "type": "p",
+      "text": "Subpemroses adalah perusahaan yang kami bayar untuk menangani data pribadi atas nama kami, sesuai instruksi kami. Halaman ini mencantumkan subpemroses kami, tempat lain yang dapat dituju data Anda saat Anda menggunakan {company.name}, dan lokasi server kami. Halaman ini mencakup situs web kami dan semua produk kami. Kami menambahkan penyedia di sini sebelum penyedia tersebut mulai menangani data pribadi atas nama kami."
+    },
+    {
+      "type": "p",
+      "text": "[Kebijakan Privasi](/instant/legal/privacy) kami menjelaskan cara kami menggunakan data pribadi. Saat pelanggan bisnis API, layanan Korporat kami, atau Bot Asisten memberi kami data pribadi untuk diproses, [Adendum Pemrosesan Data](/instant/legal/dpa) kami yang berlaku."
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "Subpemroses kami"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Perusahaan",
+        "Untuk apa",
+        "Data",
+        "Lokasi",
+        "Dasar transfer"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "Hosting untuk situs web, aplikasi web, layanan yang dihubungi oleh Aplikasi Desktop, API, basis data kami, file yang disimpan, dan log server",
+          "ID akun, konten ruang kerja (obrolan, Tujuan, file, laporan, dan otomatisasi), pertanyaan riset dari Aplikasi Desktop, tugas dan keputusan API, alamat IP, dan log permintaan",
+          "UE (Belanda)",
+          "Data di-hosting di UE. Ketentuan pemrosesan data Google Cloud berlaku."
+        ],
+        [
+          "Google (Gemini API, termasuk grounding dengan Google Search)",
+          "Model AI bawaan untuk Aplikasi Desktop, asisten cloud, dan API",
+          "Prompt Anda, percakapan sejauh ini, keluaran alat seperti isi file dan keluaran perintah, serta suara Anda jika Anda menggunakan dikte",
+          "Tidak ditetapkan oleh kami. Google dapat memprosesnya di luar UE.",
+          "Ketentuan Gemini API Google. [Cara Kerja AI Kami](/instant/legal/ai#data-models-see) menjelaskan bagaimana Google dapat menggunakan data ini."
+        ],
+        [
+          "Clerk, Inc.",
+          "Proses masuk dan akun",
+          "Alamat email, nama, gambar profil (jika Anda masuk dengan Google), catatan masuk dan sesi, alamat IP, dan data perangkat",
+          "Amerika Serikat",
+          "EU-US Data Privacy Framework, dengan Klausul Kontrak Standar (Standard Contractual Clauses) sebagai cadangan (ketentuan pemrosesan data Clerk)"
+        ],
+        [
+          "Cloudflare (digunakan oleh Clerk, dan Turnstile saat pendaftaran)",
+          "Perlindungan bot di halaman masuk dan pendaftaran",
+          "Alamat IP, sinyal perangkat dan browser",
+          "Tidak ditetapkan oleh kami. Jaringan Cloudflare dapat memprosesnya di luar UE.",
+          "Digunakan melalui Clerk, sebagai bagian dari layanan Clerk"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Unduhan Aplikasi Desktop juga disajikan dari Google Cloud Storage. Saat Anda mengunduhnya, Google melihat alamat IP Anda."
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "Penerima lain"
+    },
+    {
+      "type": "p",
+      "text": "Perusahaan-perusahaan ini bukan subpemroses kami. Mereka menerima data saat Anda menggunakan fitur tertentu, dan mereka memutuskan cara menggunakannya berdasarkan ketentuan mereka sendiri."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Penerima",
+        "Kapan",
+        "Data",
+        "Lokasi",
+        "Peran mereka"
+      ],
+      "rows": [
+        [
+          "Mesin telusur publik: Google, Bing, Brave, dan DuckDuckGo",
+          "Saat asisten cloud, riset cloud, atau API menelusuri web. Kueri melewati layanan penelusuran kami sendiri.",
+          "Kueri penelusuran yang disusun dari permintaan Anda. Kami tidak mengirimkan detail akun Anda.",
+          "Server masing-masing mesin telusur, yang dapat berada di AS atau di tempat lain",
+          "Independen. Ketentuan dan kebijakan privasi mereka sendiri yang berlaku."
+        ],
+        [
+          "OpenRegister",
+          "Saat API atau riset cloud mencari suatu perusahaan di daftar perusahaan publik",
+          "Nama perusahaan. Hasilnya dapat mencakup nama direktur.",
+          "Ditetapkan oleh OpenRegister",
+          "Independen. Ketentuan mereka sendiri yang berlaku."
+        ],
+        [
+          "Google (Masuk dengan Google)",
+          "Hanya jika Anda memilih untuk masuk dengan akun Google Anda",
+          "Profil Google Anda: nama, alamat email, dan gambar profil",
+          "Server Google sendiri, yang dapat berada di AS",
+          "Pilihan Anda. Ketentuan Google yang berlaku."
+        ],
+        [
+          "Penyedia AI yang Anda hubungkan di Aplikasi Desktop, seperti OpenAI atau Anthropic",
+          "Hanya jika Anda mengalihkan Aplikasi Desktop ke penyedia pilihan Anda sendiri",
+          "Percakapan dan keluaran alat, seperti halnya dengan model bawaan",
+          "Ditetapkan oleh penyedia tersebut",
+          "Anda yang memilih mereka dan memiliki perjanjian sendiri dengan mereka. Ketentuan mereka yang berlaku, bukan ketentuan kami."
+        ],
+        [
+          "Aplikasi, alat, dan akun yang Anda hubungkan, seperti ekstensi di Aplikasi Desktop atau aplikasi perpesanan dan akun email yang Anda hubungkan ke Bot Asisten",
+          "Hanya jika Anda menghubungkannya",
+          "Apa yang dikirim oleh agen atau bot kepada layanan tersebut atau dibaca darinya saat mengerjakan tugas Anda",
+          "Ditetapkan oleh layanan tersebut",
+          "Anda yang memilih mereka dan memiliki perjanjian sendiri dengan mereka. Ketentuan mereka yang berlaku."
+        ],
+        [
+          "Hostinger",
+          "Layanan nama domain (DNS) untuk orqanix.com",
+          "Pencarian teknis nama domain kami. Tidak ada data akun.",
+          "Ditetapkan oleh Hostinger",
+          "Layanan teknis"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan model AI lokal di Mac Anda, percakapan Anda dikirim ke model tersebut, bukan ke penyedia AI. Pertanyaan yang dikirim agen ke riset cloud {company.name} tetap dikirim ke cloud kami dan ke penyedia di atas."
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak memiliki penyedia pembayaran, layanan analitik, maupun jaringan periklanan. Kami tidak menjual data pribadi."
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "Lokasi server kami"
+    },
+    {
+      "type": "p",
+      "text": "Kami meng-hosting layanan cloud dan basis data kami di Google Cloud di UE, di Belanda (region europe-west4). Ini mencakup situs web, aplikasi web, layanan yang dihubungi oleh Aplikasi Desktop, API beserta basis datanya sendiri, serta file dan laporan yang disimpan agen Anda di cloud. Setiap proyek Korporat di-hosting di region Google Cloud UE yang kami sepakati dengan pelanggan."
+    },
+    {
+      "type": "p",
+      "text": "Beberapa penyedia, seperti Clerk dan Google Gemini, dapat memproses data di AS atau di tempat lain. Data dienkripsi saat transit (HTTPS), dan penyedia cloud kami mengenkripsinya saat disimpan."
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "Transfer ke luar UE",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Saat data pribadi keluar dari EEA, Inggris Raya, atau Swiss, hukum mewajibkan adanya perlindungan. Untuk Clerk, perlindungannya adalah EU-US Data Privacy Framework, dengan Klausul Kontrak Standar UE sebagai cadangan (GDPR Art. 45 dan 46). Dengan Google Cloud, data Anda di-hosting di UE."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Untuk Google Gemini, kami menggunakan layanan berbayar Google. Ketentuan layanan berbayar Google dan ketentuan pemrosesan datanya berlaku untuk data yang kami kirimkan."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Untuk mendapatkan salinan perlindungan yang berlaku bagi data Anda, tulis ke {company.privacyEmail}."
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "Permintaan pemerintah asing",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Hukum UE mewajibkan penyedia cloud untuk menyatakan lokasi infrastrukturnya dan apa yang mereka lakukan terhadap permintaan dari pemerintah di luar UE (EU Data Act, Art. 28). Hal ini berlaku untuk semua data, tidak hanya data pribadi."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Infrastruktur kami: layanan cloud dan basis data kami berjalan di Google Cloud di Belanda, berdasarkan hukum UE. Proses masuk berjalan di Clerk di Amerika Serikat.",
+        "Google dan Clerk adalah perusahaan AS atau bagian dari grup AS, sehingga hukum AS juga dapat berlaku bagi mereka.",
+        "Jika pemerintah atau pengadilan di luar UE meminta data Anda kepada kami, kami memeriksa apakah permintaan tersebut sah menurut hukum dan apakah hukum UE atau hukum nasional mengizinkan kami menanggapinya.",
+        "Jika memungkinkan, kami menolak permintaan yang melanggar hukum atau terlalu luas. Kami hanya menyerahkan data minimum yang secara sah diwajibkan oleh permintaan tersebut.",
+        "Kami memberi tahu pelanggan yang bersangkutan sebelum kami menanggapi, kecuali hukum melarangnya."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "Undang-undang privasi negara bagian AS",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Berdasarkan undang-undang privasi negara bagian AS, Google Cloud, Clerk, dan Cloudflare bekerja untuk kami sebagai penyedia layanan (service providers) atau pemroses (processors). Ketentuan Google menetapkan bagaimana Google dapat menggunakan data yang kami kirimkan ke Gemini API, sebagaimana dijelaskan dalam [Cara Kerja AI Kami](/instant/legal/ai#data-models-see). Kami tidak menjual data pribadi atau membagikannya untuk iklan bertarget."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan pada daftar ini"
+    },
+    {
+      "type": "p",
+      "text": "Saat kami menambahkan atau mengganti subpemroses, kami memperbarui halaman ini dan tanggal di bagian atas."
+    },
+    {
+      "type": "p",
+      "text": "Pelanggan bisnis yang tercakup oleh [Adendum Pemrosesan Data](/instant/legal/dpa) kami menerima pemberitahuan sebelum subpemroses baru mulai menangani data mereka. Mereka dapat mengajukan keberatan, sebagaimana diatur dalam adendum tersebut."
+    }
+  ]
+}

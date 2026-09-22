@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "접근성 선언문",
+    "summary": "본 선언문은 Orqanix 웹사이트의 접근성 수준, 아직 부족한 부분, 그리고 접근성 장벽을 신고하는 방법을 설명합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "당사의 목표"
+    },
+    {
+      "type": "p",
+      "text": "당사는 키보드, 화면 낭독기, 확대 기능 또는 기타 보조 기술을 사용하는 사람을 포함하여 모든 사람이 {company.name} 웹사이트를 이용할 수 있기를 바랍니다. 당사의 목표는 국제적으로 통용되는 표준인 웹 콘텐츠 접근성 지침(WCAG) 2.1의 AA 수준입니다."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "적용 범위"
+    },
+    {
+      "type": "p",
+      "text": "본 선언문은 orqanix.com 웹사이트, 즉 홈페이지, 제품 및 솔루션 페이지, 뉴스 페이지 및 법률 센터에 적용됩니다. 웹 앱, 데스크톱 앱, 또는 당사의 로그인 제공업체인 Clerk가 제공하는 로그인 페이지에는 적용되지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "현재 상태"
+    },
+    {
+      "type": "p",
+      "text": "본 웹사이트는 WCAG 2.1 AA 수준을 부분적으로 충족합니다. 아직 전면적인 감사를 받지 않았으며, 당사는 완전한 준수를 주장하지 않습니다. 당사가 알고 있는 미비점은 [알려진 미비점](#known-gaps)에 기재되어 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "당사가 취한 조치"
+    },
+    {
+      "type": "list",
+      "items": [
+        "키보드: 키보드로 링크, 버튼 및 메뉴에 접근할 수 있으며, Escape 키로 열린 메뉴를 닫을 수 있습니다.",
+        "포커스 표시: 키보드로 링크와 버튼으로 이동하면 포커스가 눈에 보이게 표시됩니다.",
+        "동작 줄이기: 기기가 동작 줄이기로 설정되어 있으면 애니메이션 장면이 멈추고 콘텐츠가 애니메이션 없이 표시됩니다.",
+        "명암 대비: 본문 텍스트와 제목은 검은색 배경 위에 흰색에 가까운 색으로 표시됩니다.",
+        "대체 텍스트: 의미를 전달하는 메뉴, 컨트롤 및 장면에는 화면 낭독기를 위한 텍스트 레이블이 있습니다. 순수하게 장식적인 그래픽은 화면 낭독기에서 숨겨집니다.",
+        "구조: 페이지는 제목, 주요 콘텐츠 영역, 레이블이 지정된 주 메뉴 및 레이블이 지정된 바닥글 메뉴를 사용하며, 페이지 언어는 영어로 설정되어 있습니다.",
+        "작은 화면: 레이아웃은 휴대폰과 좁은 창에 맞게 조정됩니다."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "알려진 미비점"
+    },
+    {
+      "type": "list",
+      "items": [
+        "일부 일러스트레이션에는 애니메이션 제품 장면 안의 레이블 등 작은 텍스트가 포함되어 있습니다. 이러한 텍스트는 확대하더라도 읽기 어려울 수 있습니다.",
+        "일부 보조 레이블은 WCAG가 작은 텍스트에 요구하는 것보다 명암 대비가 낮은 흐린 회색을 사용합니다.",
+        "일부 사람들에게는 애니메이션 장면을 따라가기 어려울 수 있습니다. 기기가 동작 줄이기로 설정되어 있으면 장면이 멈춥니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사는 이러한 미비점을 해결할 계획입니다. 이 중 하나로 인해 필요한 정보를 얻지 못하는 경우 [당사에 알려 주시면](#feedback) 다른 방법으로 제공하도록 노력하겠습니다."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "피드백"
+    },
+    {
+      "type": "p",
+      "text": "당사 웹사이트에서 장벽을 겪으신 경우 {company.email}(으)로 알려 주십시오. 어느 페이지였는지, 무엇을 하려고 했는지, 그리고 원하시면 어떤 브라우저와 보조 기술을 사용하는지 알려 주십시오. 당사는 신속하게 답변하고 가능한 부분을 해결하기 위해 노력합니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU에 거주하시고 당사의 답변으로 문제가 해결되지 않는 경우, 귀하의 국가에서 접근성을 감독하는 당국에 연락할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "본 선언문에 관하여"
+    },
+    {
+      "type": "p",
+      "text": "당사는 웹사이트에 대한 자체 검토를 바탕으로 2026년 9월 21일에 본 선언문을 작성했습니다. 당사는 미비점을 해결하거나 감사를 완료하는 경우 본 선언문을 업데이트합니다."
+    }
+  ]
+}

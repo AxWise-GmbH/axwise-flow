@@ -1,0 +1,257 @@
+{
+  "tiny-llms-under-a-cent": [
+    "Estamos trabalhando em um novo jeito de atender aos seus pedidos. Em vez de mandar cada pedido para um único modelo de IA gigante, o Orqanix vai dividi-lo entre vários modelos minúsculos. Nossa meta é um pedido completo, bem feito, por menos de $0.01.",
+    "Isso ainda está em desenvolvimento. Ainda não está no app, e não temos resultados para mostrar. Mas a ideia é clara, e a parte que decide quem faz cada tarefa já está pronta. Veja abaixo a ideia, passo a passo.",
+    {
+      "h": "Por que o pequeno pode vencer o grande"
+    },
+    "LLMs são os modelos de IA por trás dos apps de chat. Os maiores fazem quase tudo. Mas a maioria dos pedidos do dia a dia não precisa de quase tudo. Precisa de algumas tarefas simples bem feitas: ler um arquivo, tirar os fatos principais, organizá-los, conferi-los e escrever uma resposta clara.",
+    "Pedir para um modelo gigante fazer tudo isso é como pedir para o especialista mais sênior do escritório fazer cada tarefinha. O trabalho sai, mas você paga preço de sênior para separar a correspondência.",
+    "Acreditamos que modelos pequenos, cada um com uma única tarefa em que é bom, podem custar menos e responder mais rápido. Juntos, uma equipe deles poderia se igualar ao gigante no trabalho do dia a dia, por muito menos.",
+    {
+      "h": "Dividir, resolver, juntar de novo"
+    },
+    "Este é o fluxo que estamos construindo. Nada aqui está no ar ainda:",
+    {
+      "list": [
+        "Dividir: o Orqanix lê o seu pedido e o quebra em pequenas tarefas.",
+        "Combinar: cada tarefa vai para o modelo minúsculo que melhor se encaixa nela.",
+        "Executar: tarefas que não dependem umas das outras rodam lado a lado. O resto roda em ordem.",
+        "Juntar: o Orqanix confere as partes e as junta de novo em uma só resposta."
+      ]
+    },
+    "Digamos que você peça um resumo curto dos e-mails de clientes da semana passada. Um modelo pequeno poderia ler os e-mails, outro poderia tirar os pontos principais, e um terceiro poderia escrever o resumo.",
+    "Você continuaria recebendo uma resposta só, não um monte de pedaços. E quando uma tarefa for difícil demais para um modelo pequeno, queremos que o Orqanix passe só aquela parte para um maior. Assim você só pagaria mais onde faz diferença.",
+    {
+      "h": "O seletor que já temos"
+    },
+    "Já construímos uma camada de raciocínio. A função dela é decidir quem deve fazer uma tarefa, e por quê. Hoje ela escolhe entre agentes de IA. Estamos ensinando-a a escolher também entre modelos minúsculos.",
+    "Quando escolhe um agente hoje, ela já pesa custo e velocidade. Primeiro vêm as regras fixas. Se um agente custar mais que o orçamento definido, ou demorar mais que o permitido, ele nem é escolhido. Depois, os restantes recebem uma nota. As habilidades certas contam mais. Custo e velocidade também contam, então um agente mais barato e mais rápido tira uma nota melhor. Mas o preço nunca ganha sozinho: um agente barato sem as habilidades necessárias fica de fora.",
+    "Cada escolha vem com seus motivos por escrito. E se uma etapa falhar ou a resposta dela for rejeitada, a camada de raciocínio pode fazer um novo plano.",
+    "Para os modelos minúsculos, queremos que o orçamento cubra o pedido inteiro: menos de um centavo, dividido entre todas as pequenas tarefas. Essa é a meta que estamos perseguindo.",
+    "Tem uma tarefa do dia a dia que você gostaria que custasse menos? Conte para a gente em hello@orqanix.com."
+  ],
+  "connect-any-agent": [
+    "Hoje existem muitos agentes de IA bons: Grok, Meta Muse, OpenClaw, Manus, Hermes Agents, CrewAI e outros. Cada um é bom em alguma coisa. Mas cada um também vive no próprio app, com o próprio login, a própria tela e o próprio jeito de trabalhar.",
+    "Então quem acaba fazendo o trabalho entre eles é você. Você tenta adivinhar qual agente usar. Copia sua pergunta de uma aba para a outra. Costura as respostas à mão. Uma semana depois, já não lembra qual agente fez o quê.",
+    "Estamos construindo uma solução. Nossa meta é conectar esses agentes ao Orqanix, para você usar todos eles de um só lugar.",
+    {
+      "h": "O que queremos mudar"
+    },
+    "A ideia é simples. Você pede uma vez, com palavras simples, como pediria a um colega. O Orqanix vai entender do que a tarefa precisa, escolher o agente certo e passar para ele o contexto certo. O resultado volta para o seu chat.",
+    {
+      "list": [
+        "Um só lugar para pedir, não um app por agente.",
+        "O agente certo para cada tarefa, com um motivo curto.",
+        "Um só lugar para ver cada resultado e quem o fez."
+      ]
+    },
+    "Algumas tarefas precisam de mais de um agente. Aí o plano pode ser uma pequena equipe, com um agente para cada etapa: um encontra os fatos, outro escreve e um terceiro confere o trabalho. Eles podem se revezar ou trabalhar lado a lado.",
+    {
+      "h": "Como o Orqanix vai escolher o agente"
+    },
+    "Escolher o agente é a parte difícil, por isso ela tem uma camada própria. Chamamos de camada de raciocínio: a parte que decide quem faz o quê. Ela funciona em três etapas.",
+    "Primeiro, ela descarta agentes. Um agente só continua no páreo se tiver as habilidades e ferramentas de que a tarefa precisa, estiver livre para trabalhar, tiver permissão para ver esse tipo de dado e couber no seu orçamento de custo e tempo. Falhou em uma regra, está fora. Uma nota ótima em outro quesito não o traz de volta.",
+    "Segundo, ela classifica os agentes que sobraram. As habilidades contam mais. Ferramentas, sucesso anterior, custo, velocidade e afinidade com as pessoas envolvidas também contam. Cada ponto vem com um motivo claro, e cada escolha fica salva, então sempre há um registro de por que um agente ganhou.",
+    "Terceiro, ela adiciona proteções. Se uma tarefa for arriscada ou não puder ser desfeita, o plano ganha um ponto de verificação em que uma pessoa precisa aprovar. Se nenhum agente servir, a tarefa vai para um humano em vez de um palpite. Cada etapa também tem um plano B: tentar de novo depois de uma falha, trocar por outro agente se um não estiver disponível, fazer um novo plano se uma ferramenta quebrar, ou passar para uma pessoa se uma aprovação for recusada. E antes de qualquer coisa rodar, o Orqanix vai conferir de novo se o agente ainda está livre, autorizado e dentro do orçamento.",
+    {
+      "h": "Onde isso está hoje"
+    },
+    "A camada de raciocínio já existe no nosso código, com testes que a colocam para rodar em tarefas bem diferentes, de atendimento ao cliente a finanças. Ela ainda não está ativada no app. Conectar agentes externos a ela é a parte em que estamos trabalhando agora. As conexões ao vivo com esses agentes ainda não estão prontas, e nós mesmos estamos construindo cada uma.",
+    "Vamos contar aqui cada passo conforme ele for ficando pronto.",
+    "Qual agente devemos conectar primeiro? Diga para a gente em hello@orqanix.com."
+  ],
+  "assistant-bot-for-business": [
+    "Nem todo mundo em uma equipe vai abrir um app novo. Em muitas equipes, a conversa de trabalho acontece em dois lugares: chat e e-mail. É ali que as perguntas são feitas, e onde as pessoas esperam as respostas.",
+    "Por isso estamos construindo um bot assistente para empresas. Sua equipe vai pedir ao Orqanix pelo mensageiro e pelo e-mail que já usa. O trabalho vai rodar no Orqanix, e a resposta vai voltar para a mesma conversa. Nossa meta é nenhuma janela nova para abrir e nenhum hábito novo para aprender.",
+    {
+      "h": "Peça onde vocês já conversam"
+    },
+    "Este é o fluxo que temos em mente. Alguém da sua equipe escreve uma mensagem, igual a qualquer outra no chat. O Orqanix a recebe, monta um plano e trabalha etapa por etapa. Quando o trabalho termina, a resposta chega na conversa onde a pergunta começou.",
+    "O e-mail vai funcionar do mesmo jeito: você manda um briefing curto, e o resultado volta para a sua caixa de entrada.",
+    "Por trás dessa resposta, nossa meta é que o Orqanix escolha o agente ou a equipe certa para a tarefa e passe o que ela precisa saber. Alguns trabalhos devem esperar uma pessoa dizer sim, então estamos incluindo aprovações no fluxo.",
+    {
+      "h": "O que sua equipe pode pedir"
+    },
+    "Estamos moldando o bot em torno das tarefas do dia a dia que enchem uma semana:",
+    {
+      "list": [
+        "Pesquisa: investigar um mercado, um concorrente ou uma pergunta antes de uma reunião.",
+        "Planos: transformar uma meta em etapas claras.",
+        "Rascunhos: uma primeira versão de um e-mail, um post ou uma proposta.",
+        "Listas: reunir contatos de vendas, tarefas ou ideias em uma lista organizada."
+      ]
+    },
+    "Nenhuma dessas tarefas é difícil sozinha. Mas elas se acumulam e tiram as pessoas do trabalho que só elas podem fazer. Passá-las adiante em uma mensagem serve para devolver esse tempo.",
+    {
+      "h": "Por que a conversa importa"
+    },
+    "Uma ferramenta nova só ajuda se as pessoas a usarem. Levar uma equipe inteira para outro app é difícil, e algumas pessoas nunca fazem a mudança. Quando a ajuda está no chat que elas já têm aberto, quase não há nada novo para aprender.",
+    "É também por isso que queremos a resposta na conversa. A pergunta, a resposta e o acompanhamento ficam lado a lado. A próxima pessoa vai poder ver o que foi pedido e o que voltou, sem caçar um link.",
+    "O bot vai ser mais uma forma de chegar ao Orqanix de onde você já está, ao lado do app para Mac e seu espaço de trabalho completo. Ele ainda está sendo construído.",
+    "Onde sua equipe conversa? Conte para a gente em hello@orqanix.com."
+  ],
+  "building-the-mobile-app": [
+    "Boas ideias raramente esperam você voltar para a mesa. Elas aparecem no trem, na fila do café ou logo depois de uma ligação com um cliente. Quando você abre o notebook, metade do pensamento já sumiu.",
+    "Por isso estamos construindo um app do Orqanix para o seu celular. Ele ainda está em desenvolvimento. Hoje, o Orqanix roda como um app de prévia em Macs com Apple silicon. Você entra, escreve o que precisa com palavras simples, e o Espaço de trabalho ao lado do chat mostra as etapas e os arquivos conforme são criados. O app para celular é como queremos que você chegue a esse mesmo trabalho quando estiver longe do seu Mac.",
+    {
+      "h": "Os momentos para os quais ele existe"
+    },
+    "Pense nos pequenos intervalos de um dia normal. É ali que o app para celular deve ajudar. Imagine alguns deles.",
+    "Você sai de uma reunião com uma ideia clara. Antes que ela se perca, você abriria o app e falaria em voz alta: o que precisa e para quê. Falar é mais fácil que digitar quando você está em movimento, então nossa meta é que as duas coisas funcionem igualmente bem.",
+    "Você está no trem e lembra da proposta que queria escrever. Poderia digitar uma linha e deixar o Orqanix começar enquanto você viaja.",
+    "Já é tarde, e você quer um primeiro rascunho pronto para a manhã. Poderia começar a tarefa do sofá e deixar o celular de lado.",
+    "Em todos os casos, a meta é a mesma: o trabalho começa na hora, não horas depois.",
+    {
+      "h": "Acompanhe sem ficar olhando"
+    },
+    "Você não deveria precisar ficar encarando a tela enquanto o Orqanix trabalha. No Mac, o Espaço de trabalho já mostra o trabalho etapa por etapa. Estamos levando essa visão para o celular, feita para uma tela pequena. Uma olhada rápida deve dizer:",
+    {
+      "list": [
+        "qual etapa está rodando agora",
+        "quais etapas estão concluídas",
+        "quando o Orqanix precisa de uma resposta curta sua"
+      ]
+    },
+    "Se ele precisar de um detalhe, a ideia é que você responda ali mesmo em poucas palavras e o trabalho continue. Depois o celular volta para o bolso.",
+    {
+      "h": "Seus arquivos esperam no seu Mac"
+    },
+    "O celular é ótimo para começar e conferir. Não é onde você quer ler um documento longo ou refazer um plano. Por isso nossa meta é que os arquivos que o Orqanix cria cheguem ao seu Espaço de trabalho, o mesmo lugar onde ficam hoje. Quando você se sentar diante do Mac, abriria a conversa e encontraria tudo lá: o chat, as etapas, os documentos e os resultados.",
+    "É isso que estamos construindo: nada de mandar arquivos por e-mail para si mesmo, nada de caçar coisas nos downloads. Uma conversa só, começada no caminho e terminada na sua mesa.",
+    "Quer começar hoje? Baixe o Orqanix para Mac pelo botão de download deste site."
+  ],
+  "orqanix-for-mac": [
+    "O Orqanix agora roda como um app de verdade no seu Mac. Esta primeira prévia é feita para Macs com Apple silicon, e é grátis enquanto estivermos nesta versão inicial.",
+    "Nós o criamos para quem quer o trabalho feito, não mais uma ferramenta para aprender. Você diz o que precisa e vê o plano e os arquivos tomarem forma em uma só janela.",
+    {
+      "h": "Entre e é só pedir"
+    },
+    "Na primeira vez que você abre o Orqanix, ele leva você ao navegador para entrar na conta. Quando termina, você volta direto para o app. Você não precisa de uma chave de IA, e não há mais nada para instalar.",
+    "Depois você escreve o que precisa, com palavras do dia a dia. O Orqanix pode dividir o trabalho em um plano curto e seguir etapa por etapa. Se precisar de uma resposta sua, ele para e pergunta. Quando quer ler ou alterar um arquivo no seu Mac, pode pedir sua permissão antes.",
+    "Cada chat guarda o próprio trabalho, e um chat novo começa do zero. Feche o app, abra de novo, e seus chats continuam lá.",
+    {
+      "h": "Um painel para todo o trabalho"
+    },
+    "Ao lado do chat fica o painel Espaço de trabalho. Ele mostra o que o Orqanix está fazendo, para você não precisar vasculhar um chat longo para achar.",
+    {
+      "list": [
+        "Status: Trabalhando, Precisa de você, Concluído ou Parado, com uma barra que enche etapa por etapa e quanto tempo levou.",
+        "Plano de ação: o plano, uma etapa de cada vez. Se não houver um plano escrito, ele transforma o que o Orqanix fez em etapas simples. Abra uma etapa para ver os arquivos que ela criou.",
+        "Arquivos: tudo o que foi criado ou alterado. Pesquise, filtre por tipo e abra páginas web, notas, tabelas simples (CSV) e código direto no painel. Em um arquivo alterado, você vê quais linhas mudaram.",
+        "Atividade: cada ação, descrita de forma simples, com o que falhou mostrado em vermelho."
+      ]
+    },
+    "Precisa de um arquivo em outro lugar? Salve uma cópia, salve vários de uma vez em um só arquivo ZIP ou mostre no Finder. Peça uma pesquisa, e o resultado abre no mesmo painel, com as fontes.",
+    {
+      "h": "Como conseguir"
+    },
+    "Clique em Baixar para macOS neste site. Você precisa de um Mac com chip M1 ou mais novo. Não tem certeza? Abra o menu Apple, escolha Sobre Este Mac e veja o item Chip.",
+    "Abra o arquivo baixado e arraste o Orqanix Preview para a pasta Aplicativos; depois, abra-o. Esta prévia não é notarizada (a verificação de segurança da própria Apple), então o macOS pode bloqueá-la na primeira vez. Se isso acontecer, vá em Ajustes do Sistema, depois em Privacidade e Segurança, e clique em Abrir Mesmo Assim. Depois, entre com sua conta Orqanix.",
+    "Usa Windows ou um Mac com Intel? O app para computador ainda não roda aí, mas você pode testar a versão web.",
+    "Esta é uma prévia inicial, e seguimos melhorando. Depois de testar, conte para a gente o que funciona e o que não funciona em hello@orqanix.com.",
+    "Baixe a prévia grátis pelo botão Baixar para macOS deste site."
+  ],
+  "orqaly-and-axwise-merge": [
+    "Orqaly e AxWise começaram como dois projetos separados. Em 13 de setembro de 2026, eles passaram a viver em uma só base de código, uma casa única e compartilhada para o código deles. Agora os dois são gerados a partir da mesma versão do código e saem juntos em um único lançamento.",
+    "A regra entre eles é curta: o AxWise decide, o Orqaly faz o trabalho. Um lado pensa na tarefa. O outro a executa e entrega o resultado a você.",
+    "A mudança em si não alterou o comportamento de nada. Demos ao código uma só casa, e cada parte continua rodando como um serviço próprio, com a própria função.",
+    {
+      "h": "Dois lados, uma função cada"
+    },
+    "O AxWise é a parte que pensa antes de qualquer trabalho começar. Quando chega uma tarefa, ele define:",
+    {
+      "list": [
+        "Quem deve fazê-la: um agente, uma equipe de agentes ou uma pessoa",
+        "Por que essa escolha serve para esta tarefa",
+        "Que contexto e que fatos devem ir junto",
+        "De quais verificações e aprovações ela precisa",
+        "O que fazer se uma etapa falhar"
+      ]
+    },
+    "O AxWise foi feito para pesquisar a mais só quando isso puder mudar a resposta, então uma tarefa clara pode ir direto para quem vai ajudar. Cada escolha vem com seus motivos.",
+    "O Orqaly é o app em volta dele. É o que você vê e usa: sua conta, o chat, os agentes e as ferramentas, o orçamento e as aprovações. Ele executa o trabalho etapa por etapa, acompanha em que pé as coisas estão, tenta de novo uma etapa que falha e entrega os arquivos no final.",
+    {
+      "h": "Um só produto para você"
+    },
+    "Você não precisa saber qual parte está trabalhando. Você encontra um só produto: o Orqanix.",
+    "Você começa com uma mensagem, não com um formulário longo. Se algo importante não estiver claro, o Orqanix faz no máximo uma pergunta. Depois mostra o que entendeu e pede para você confirmar. Em seguida mostra o plano e pergunta de novo. Só depois do seu sim o trabalho começa.",
+    "Enquanto ele roda, você vê em que ponto está. Quando termina, o resultado fica salvo no seu histórico, pronto para abrir e baixar. Se alguns fatos não puderam ser comprovados, o Orqanix marca essas lacunas no resultado em vez de escondê-las. Se algo falhar, ele avisa, com palavras claras que permitem agir.",
+    {
+      "h": "Mais seguro e mais claro desde a concepção"
+    },
+    "Uma sugestão não é uma permissão. O AxWise pode recomendar quem deve fazer uma tarefa, mas, por projeto, não recebe suas chaves nem senhas, não pode conceder acessos e não pode agir nos seus outros apps. Essas funções são do Orqaly.",
+    "Antes de qualquer coisa rodar, o Orqaly confere de novo. Este agente está disponível? Ele tem permissão? A tarefa cabe no orçamento e nas ferramentas que ela pode usar? Só então ele executa o plano que você aprovou.",
+    "Cada decisão fica salva do jeito que foi tomada, com seus motivos, para poder ser conferida depois. E cada parte tem uma função clara: o AxWise cuida do pensar, o Orqaly cuida do fazer.",
+    "Conferimos a mudança com cuidado. Os dois apps passaram nos testes, e depois da mudança um resultado criado antes ainda abria do mesmo jeito, com botão de download e tudo. Esta é a nossa prévia, não um lançamento em produção, e vamos continuar testando conforme ela cresce.",
+    "Quer saber como as duas partes se encaixam? Pergunte para a gente em hello@orqanix.com."
+  ],
+  "business-api": [
+    "Muitas equipes já têm seus próprios apps, agentes e pessoas. Achamos que a parte difícil é decidir quem deve fazer cada tarefa, e por quê. Queríamos oferecer esse raciocínio sozinho, sem mais uma tela.",
+    "Criamos uma API para a nossa camada de raciocínio, o AxWise. Uma API permite que dois programas conversem. Hoje ela está ligada à nossa própria plataforma. O mesmo design permite que o sistema de outra empresa envie uma tarefa e receba uma decisão de volta, e queremos abrir esse acesso uma equipe de cada vez.",
+    {
+      "h": "O que você envia, o que você recebe"
+    },
+    "Uma tarefa é uma descrição curta do trabalho: o objetivo, o resultado que você quer, o prazo, o quanto ela é arriscada e se pode ser desfeita. Junto vão os agentes e as ferramentas que você tem agora, suas regras de aprovação e seus limites de custo e tempo.",
+    "O que volta é uma decisão completa, não só um nome:",
+    {
+      "list": [
+        "Candidatos classificados, cada um com motivos claros",
+        "Exclusões fixas, como uma habilidade que falta ou uma ferramenta bloqueada, que nenhuma nota anula",
+        "Um pacote de contexto: os fatos de que a tarefa precisa",
+        "Proteções: os limites dentro dos quais o trabalho deve ficar",
+        "Pontos de aprovação, onde uma pessoa precisa dizer sim",
+        "Planos B: um plano reserva se algo der errado"
+      ]
+    },
+    "Se faltarem dados, a decisão diz isso em vez de chutar. As mesmas entradas, com a mesma versão de classificação, dão a mesma resposta. Cada decisão fica salva e nunca é reescrita.",
+    "A API só recomenda. Por projeto, o seu sistema confere cada decisão com o que é verdade agora e depois decide o que roda. Quando uma tarefa é mais arriscada do que suas regras permitem, não pode ser desfeita ou precisa de aval, a decisão inclui uma etapa de aprovação humana. Se nenhum agente servir, ela passa a tarefa para uma pessoa em vez de forçar uma escolha.",
+    {
+      "h": "Feita para trabalhos maiores"
+    },
+    "Três peças maiores ficam por cima, também no nosso código.",
+    "Primeiro, buscar fatos antes de escolher: ela confere se já sabe o suficiente. Pode seguir direto, usar evidências que você já tem, pedir a uma pessoa que esclareça ou, só se você permitir, fazer uma pesquisa limitada dentro dos seus limites de tempo e dinheiro. Uma tarefa clara nunca espera por pesquisa, e uma pesquisa fraca nunca vira uma resposta confiante.",
+    "Segundo, planos de equipe e recuperação. Ela pode planejar para uma equipe de agentes: um depois do outro, lado a lado, com um revisor no final ou com uma pessoa aprovando cada etapa. Cada etapa ganha um responsável, um critério claro de conclusão e um plano reserva. Se um agente sair, uma ferramenta falhar, o orçamento mudar ou uma pessoa intervier, ela faz um novo plano e mantém o antigo registrado.",
+    "Terceiro, aprendizado cuidadoso com os resultados. Seu sistema pode informar como foi o trabalho: qualidade, custo, tempo e retrabalho. O aprendizado vem desligado por padrão. Uma nova forma de classificar agentes só entra no ar depois que uma pessoa analisa as evidências e aprova, e ela pode ser revertida.",
+    {
+      "h": "Onde ela está"
+    },
+    "Nós a testamos em cinco trabalhos de exemplo diferentes: um incidente de software, uma escalada de cliente, uma revisão de conformidade, a preparação de uma campanha e uma análise financeira.",
+    "A API não está aberta ao público, e ainda não mostramos em pilotos reais que ela supera formas mais simples de distribuir o trabalho. Se você tem equipes reais e tarefas reais para testá-la, vamos adorar falar com você.",
+    "Para pedir acesso, escreva para hello@orqanix.com."
+  ],
+  "opening-the-source": [
+    "O motor dentro do Orqanix tem uma grande função. Ele foi feito para definir quem deve fazer cada tarefa, por que essa escolha serve e quando uma pessoa deve entrar em cena.",
+    "Achamos que um motor assim deve estar aberto para leitura. Por isso estamos abrindo o código.",
+    "O motor se chama AxWise Flow. Ele é a camada de raciocínio do Orqanix e agora tem a licença Apache 2.0, uma licença de código aberto. Os passos de instalação para rodá-lo estão escritos e prontos. Hoje o código ainda é privado, e só a nossa equipe pode vê-lo.",
+    {
+      "h": "Por que um motor aberto importa"
+    },
+    "Passar trabalho para a IA exige confiança. Você quer saber por que um agente ficou com a tarefa e não outro.",
+    "O AxWise Flow explica suas escolhas. Ele diz quem deve fazer uma tarefa, por que essa escolha serve e que contexto, verificações e planos reserva vão junto. Quando uma escolha precisa de mais fatos, ele pode fazer uma pesquisa curta, como entrevistas com clientes simulados. Cada descoberta aponta para as palavras exatas de onde veio.",
+    "O código aberto vai um passo além. Quando o abrirmos, você, ou alguém em quem você confia, poderá ler as regras por trás de cada resposta e conferi-las por conta própria. Você não vai precisar acreditar só na nossa palavra.",
+    "O código aberto também permite ver uma linha clara entre pensar e fazer. O motor só recomenda. A parte do Orqanix que executa o trabalho confere de novo permissões, orçamentos e ferramentas antes de qualquer coisa acontecer.",
+    {
+      "h": "O que quem desenvolve pode fazer"
+    },
+    "O código aberto também é para quem desenvolve. Quando o abrirmos, uma equipe vai poder:",
+    {
+      "list": [
+        "Rodar o motor no próprio computador.",
+        "Testar a API dele, o jeito como outros apps conversam com ele, a partir de uma página embutida no navegador.",
+        "Enviar entrevistas com clientes e explorar os resultados em um app web.",
+        "Alterá-lo e ampliá-lo para o próprio tipo de trabalho.",
+        "Enviar melhorias de volta, para que o motor fique melhor para todos."
+      ]
+    },
+    "Quando o código estiver aberto, a instalação é rápida. O guia pede o Docker, uma ferramenta que roda apps, e sua própria chave de IA do Google. Você copia um arquivo de configurações, adiciona sua chave e um segredo longo e aleatório, e inicia tudo com um só comando.",
+    {
+      "h": "O que a Apache 2.0 permite"
+    },
+    "Licenças são difíceis de ler, então aqui vai a versão curta.",
+    "A Apache 2.0 permite usar o motor de graça, em um projeto pessoal ou em uma empresa. Você pode copiá-lo, alterá-lo e compartilhar sua versão alterada. Pode integrá-lo ao seu próprio produto e vender esse produto. Quem contribui com código também dá a você um direito gratuito de usar as patentes dessa pessoa que cobrem esse código.",
+    "Em troca, ela pede algumas coisas justas. Mantenha a licença e os avisos originais em qualquer cópia que você compartilhar. Marque os arquivos que você alterou.",
+    "Também há alguns limites. A licença não dá a você o nosso nome nem a nossa marca. Se você processar alguém alegando que o motor viola uma das suas patentes, os direitos de patente que a licença deu a você terminam. E o código é fornecido como está, sem garantia.",
+    "Quer construir em cima do motor? Mande uma mensagem para hello@orqanix.com."
+  ]
+}

@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "移动应用条款",
+    "summary": "本条款涵盖将 Orqanix 手机应用用作您 Mac 上 Orqanix 的遥控器，包括应用商店要求的条款。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "关于本条款"
+    },
+    {
+      "type": "p",
+      "text": "本条款是对我们适用于 Orqanix 手机应用（“移动应用”）的[服务条款](/instant/legal/terms)的补充。本条款与服务条款、[桌面应用条款](/instant/legal/desktop-app-terms)、我们的[可接受使用政策](/instant/legal/acceptable-use)以及我们的[隐私政策](/instant/legal/privacy)共同构成一份协议。如果本条款与服务条款就移动应用存在不一致，以本条款为准。"
+    },
+    {
+      "type": "p",
+      "text": "在我们的产品处于早期阶段期间，移动应用免费提供。在任何付费方案开始之前，我们将公布价格以及付款和取消的规则。"
+    },
+    {
+      "type": "p",
+      "text": "在此之前，我们还将按照欧盟法律的要求公布撤回购买的规则。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "您 Mac 的遥控器"
+    },
+    {
+      "type": "p",
+      "text": "移动应用是您 Mac 上 Orqanix 的遥控器。当您使用它时："
+    },
+    {
+      "type": "list",
+      "items": [
+        "您需要在 Mac 上安装 Orqanix 应用（桌面应用）。请先从 Mac 应用开始，然后添加您的手机；",
+        "所有工作都在您的 Mac 上运行，使用其文件、工具和设置。手机显示正在进行的情况，并让您下达下一项任务；",
+        "文件在您的 Mac 上创建，并保留在其项目文件夹中。手机显示已创建的内容；原始文件保存在 Mac 上；",
+        "移动应用仅在您的 Mac 在线且 Orqanix 处于打开状态时才能工作。当 Mac 进入睡眠或离线时，手机会显示这一状态，并等待 Mac 恢复。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们不保证您的手机始终能够连接到您的 Mac。网络、睡眠设置和您的设备不在我们的控制范围之内。"
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "在手机上工作"
+    },
+    {
+      "type": "p",
+      "text": "您可以查看正在运行的任务、阅读结果、重新运行已保存的任务（配方），并通过输入或说出您的需求来启动新的工作。该工作由您 Mac 上的桌面应用根据[桌面应用条款](/instant/legal/desktop-app-terms)执行。这意味着："
+    },
+    {
+      "type": "list",
+      "items": [
+        "您 Mac 上的智能体可以执行实际操作，例如更改文件和运行命令。默认情况下，它们会直接执行这些操作而不事先询问，除非您已在 Mac 上[更改了该设置](/instant/legal/desktop-app-terms#approval-modes)；",
+        "您对从手机启动的工作负责，如同您是在 Mac 前启动的一样；",
+        "您不在 Mac 前观察，因此请谨慎选择您的请求，并在依赖结果之前先进行检查。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AI 会出错。结果可能错误、不完整或过时。请参阅[我们的 AI 如何运作](/instant/legal/ai)。"
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "通知"
+    },
+    {
+      "type": "p",
+      "text": "移动应用可以在任务完成时通知您。您可以在手机设置中关闭通知。通知可能会显示在锁定屏幕上，因此请根据您的需要设置通知预览。我们不保证每条通知都能送达或按时送达。"
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "您的账户和手机"
+    },
+    {
+      "type": "list",
+      "items": [
+        "您必须年满 18 周岁才能使用移动应用。",
+        "任何能够使用您已解锁手机的人，都可能通过移动应用在您的 Mac 上启动工作。请保持手机锁定。如果您丢失或转让手机，请尽可能移除移动应用，并告知我们。",
+        "如果您认为有他人使用了您的账户，请通过 {company.email} 告知我们。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[隐私政策](/instant/legal/privacy)说明了您使用移动应用时我们收集哪些数据以及原因。"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "您的许可"
+    },
+    {
+      "type": "p",
+      "text": "在您遵守本条款的前提下，我们授予您一项个人的、非独占的、不可转让的许可，允许您在您拥有或控制的手机上安装和使用移动应用。您不得出售、出租、出借或再许可移动应用，不得规避其安全措施或限制，也不得复制它来开发竞争产品。"
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "更新与变更"
+    },
+    {
+      "type": "p",
+      "text": "我们可能会发布移动应用的新版本，并更改或移除功能。如果您是从应用商店获取的移动应用，更新将根据该商店的规则通过该商店提供。有关变更的规则，请参阅[服务和本条款的变更](/instant/legal/terms#changes)。"
+    },
+    {
+      "type": "p",
+      "text": "如果您以消费者身份（在您的贸易或业务之外）使用移动应用，您享有欧盟法律就数字内容赋予消费者的权利。即使本应用免费，这些权利也同样适用，因为您为使用本应用向我们提供了个人数据（第 (EU) 2019/770 号指令）。在法律要求的期限内，我们将提供使其按所述方式正常运行所需的更新，包括安全更新。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "除此之外，我们仅会出于正当理由更改移动应用，且不会向您收取任何费用。如果此类变更对您使用本应用造成的不利影响超过轻微程度，我们将在变更发生前的合理时间内通过电子邮件通知您。届时，您可以在我们发出通知或变更发生之日（以较晚者为准）起 30 天内免费终止本协议，除非我们允许您免费继续使用未经更改的版本。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任"
+    },
+    {
+      "type": "p",
+      "text": "在法律允许的最大范围内，移动应用按“现状”和“现有”基础提供，不附带任何形式的保证。服务条款中的[免责声明](/instant/legal/terms#warranty)和[责任](/instant/legal/terms#liability)适用于移动应用。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "我们根据您所在国家/地区的法律对移动应用承担责任，详见服务条款中的[责任](/instant/legal/terms#liability)。本条款或应用商店条款中的任何内容均不限制您作为消费者的法定权利。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "应用商店条款"
+    },
+    {
+      "type": "p",
+      "text": "如果您是从应用商店获取的移动应用，则本节适用。该商店自身的条款也适用于您的下载和使用。您必须遵守这些条款以及您移动网络的任何条款，例如您的数据套餐。"
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "如果您是从 Apple 的 App Store 获取的移动应用，您与我们同意："
+    },
+    {
+      "type": "list",
+      "items": [
+        "本条款仅存在于您与我们之间，而非您与 Apple 之间。由我们（而非 Apple）对移动应用及其内容承担全部责任；",
+        "您的许可涵盖在您拥有或控制的 Apple 品牌产品上的使用，以 Apple [媒体服务条款与条件](https://www.apple.com/legal/internet-services/itunes/)中的使用规则所允许的范围为限。通过“家人共享”或批量购买与您的账户关联的其他人，也可以在这些规则允许的范围内使用；",
+        "我们独自负责移动应用的维护和支持。Apple 没有义务提供任何维护或支持；",
+        "如果移动应用未能符合适用于它的任何保证，您可以通知 Apple，Apple 将向您退还您为该应用支付的价款（如有）。在法律允许的最大范围内，Apple 对移动应用不承担其他任何保证义务。因此类不符合而产生的任何其他索赔、损失、责任、损害、成本或费用，在本条款和法律规定由我们承担的范围内，由我们负责；",
+        "由我们（而非 Apple）处理您或他人就移动应用或您对其的使用提出的任何索赔，包括产品责任索赔、关于其未能满足法律或监管要求的索赔，以及根据消费者保护、隐私或类似法律提出的索赔；",
+        "如果有人声称移动应用或您对其的使用侵犯其知识产权，在本条款规定由我们负责的范围内，由我们（而非 Apple）负责对该索赔进行调查、抗辩、和解和解决；",
+        "您并非位于受美国政府禁运的国家或被美国政府列为“支持恐怖主义”的国家，且您未被列入任何美国政府禁止或限制交易方名单；",
+        "Apple 及其子公司是本条款的第三方受益人。一旦您接受本条款，Apple 即有权（并被视为已接受该权利）作为第三方受益人对您执行本条款。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "有关移动应用的问题、投诉或索赔，请发送至 {company.email} 给我们，而不是发送给 Apple。"
+    },
+    {
+      "type": "p",
+      "text": "移动应用的开发者是 {company.legalName}，{company.address}。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "如果您是从 Google Play 获取的移动应用，您与我们同意："
+    },
+    {
+      "type": "list",
+      "items": [
+        "本条款仅存在于您与我们之间，而非您与 Google 之间。Google 不对移动应用、其内容、其支持或与之相关的任何索赔负责；",
+        "[Google Play 服务条款](https://play.google.com/about/play-terms/)也适用于您的下载和使用。如果其与本条款在您与 Google 之间的关系方面存在冲突，以 Google Play 服务条款为准；",
+        "通过 Google Play 购买的任何商品的退款均遵循 Google Play 的规则。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "制裁与出口"
+    },
+    {
+      "type": "p",
+      "text": "如果美国或欧盟的制裁或出口规则禁止，或者您被列入美国或欧盟的制裁名单，您不得下载或使用移动应用。请参阅服务条款中的[制裁与出口](/instant/legal/terms#sanctions)。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "停止使用"
+    },
+    {
+      "type": "p",
+      "text": "您可以随时从手机上删除移动应用以停止使用。这不会停止桌面应用、删除您 Mac 上的文件或关闭您的 Orqanix 账户。如需注销账户或要求我们删除您的数据，请参阅[服务条款](/instant/legal/terms)和[隐私政策](/instant/legal/privacy)。"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "联系我们"
+    },
+    {
+      "type": "p",
+      "text": "有关本条款的问题：{company.email}。隐私请求：{company.privacyEmail}。"
+    }
+  ]
+}

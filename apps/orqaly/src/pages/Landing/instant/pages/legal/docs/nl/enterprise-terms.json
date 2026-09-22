@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Zakelijke voorwaarden",
+    "summary": "De voorwaarden voor bedrijven die Orqanix inschakelen om met onze agents en experts AI te bouwen, te beheren of erover te adviseren.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Over deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "Deze Zakelijke voorwaarden zijn van toepassing wanneer uw bedrijf Orqanix inschakelt om AI te bouwen, te beheren of erover te adviseren. Ze gelden voor werk zoals AI-gereedheidsaudits, pilots, geautomatiseerde bedrijfsonderdelen, nieuwe AI-functies, maatwerkkoppelingen, beheerde agentoperaties en teamtrainingen."
+    },
+    {
+      "type": "p",
+      "text": "Ze vormen een aanvulling op onze [Servicevoorwaarden](/instant/legal/terms) en ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use). Wanneer wij persoonsgegevens voor u verwerken, is ook de [Verwerkersovereenkomst](/instant/legal/dpa) (de “verwerkersovereenkomst”) van toepassing; deze maakt deel uit van deze voorwaarden. Wanneer het werk de Orqanix API omvat, bijvoorbeeld een white-label redeneer-API, gelden voor dat deel ook de [API-voorwaarden](/instant/legal/api-terms)."
+    },
+    {
+      "type": "p",
+      "text": "“U” betekent het bedrijf dat ons inschakelt. De persoon die deze voorwaarden aanvaardt of een opdracht ondertekent, bevestigt dat hij of zij dat bedrijf mag binden. “Wij” en “ons” betekenen Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix wordt geëxploiteerd door {company.legalName}, {company.address}, die partij is bij deze voorwaarden en bij elke opdracht.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Zakelijk werk is uitsluitend bedoeld voor bedrijven. Iedereen die namens u met ons samenwerkt, moet 18 jaar of ouder zijn."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Opdrachten"
+    },
+    {
+      "type": "p",
+      "text": "Wij leggen elk onderdeel van het werk vast in een schriftelijke opdracht of werkomschrijving (een “opdracht”) voordat het werk begint. Elke opdracht beschrijft:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "de reikwijdte: wat wij zullen doen en wat niet is inbegrepen;",
+        "de op te leveren resultaten: wat u zult ontvangen;",
+        "de planning en eventuele mijlpalen;",
+        "de prijs en de wijze waarop wij kosten in rekening brengen: een vaste prijs per project, een maandelijks bedrag, een vergoeding per resultaat of een combinatie daarvan;",
+        "de acceptatiecriteria en hoeveel tijd u hebt om te testen;",
+        "waar het werk wordt gehost, inclusief welke EU-regio van Google Cloud;",
+        "alle software of diensten van derden waarop het werk steunt, en de voorwaarden daarvan."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Een opdracht bindt ons beiden zodra wij haar allebei hebben ondertekend of schriftelijk hebben bevestigd. E-mail is voldoende. Er kunnen meerdere opdrachten tegelijk lopen, en elke opdracht staat op zichzelf."
+    },
+    {
+      "type": "p",
+      "text": "Ons werk loopt doorgaans van verkenning en een schriftelijk plan (de “blauwdruk”), via het bouwen met uw gegevens en de lancering, tot het beheren en verbeteren. De opdracht vermeldt welke stappen zij omvat."
+    },
+    {
+      "type": "p",
+      "text": "Als documenten met elkaar in strijd zijn, geldt de volgende rangorde: de opdracht voor het werk, dan de verwerkersovereenkomst voor persoonsgegevens, dan deze voorwaarden, dan de Servicevoorwaarden."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Hoe wij werken"
+    },
+    {
+      "type": "p",
+      "text": "Wij voeren het werk uit met onze AI-agents, onze specialisten (engineers en consultants) of beide, zoals de opdracht bepaalt. Wij mogen onderaannemers inschakelen. Wij blijven verantwoordelijk voor hun werk en leggen hun dezelfde verplichtingen op het gebied van vertrouwelijkheid en gegevensbescherming op die wij zelf hebben."
+    },
+    {
+      "type": "p",
+      "text": "De agents die wij voor u bouwen en beheren, werken binnen regels die u vaststelt: goedkeuring per actie (Eén keer toestaan, Altijd toestaan of Weigeren), toegang op basis van rollen en een registratie van wat elke agent heeft gedaan. Deze instellingen spreken wij met u af in de opdracht of vóór de lancering."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "Uw medewerking"
+    },
+    {
+      "type": "p",
+      "text": "U zult:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ons tijdig de toegang geven tot mensen, systemen, gegevens en beslissingen die het werk vereist;",
+        "ervoor zorgen dat u het recht hebt om ons die gegevens en die toegang te geven, inclusief persoonsgegevens en de licenties voor uw eigen systemen en hulpmiddelen;",
+        "een contactpersoon aanwijzen die beslissingen kan nemen;",
+        "plannen en op te leveren resultaten zonder vertraging beoordelen;",
+        "zelf back-ups bijhouden van de systemen en gegevens waaraan wij werken;",
+        "ons informeren over regels die het werk raken, zoals regels voor uw sector."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Als u te laat bent, of als iets wat u ons hebt gegeven onjuist is, en wij daardoor vertraging oplopen, schuift de planning evenveel op. Extra inspanning die hierdoor ontstaat, wordt behandeld als een [wijziging](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Acceptatie"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer een opdracht acceptatiecriteria bevat, laten wij u weten wanneer een op te leveren resultaat klaar is. U test het aan de hand van die criteria binnen de termijn die de opdracht bepaalt. Voldoet het daaraan, dan accepteert u het. Voldoet het daar niet aan, dan laat u ons schriftelijk weten wat er ontbreekt, en wij herstellen het en bieden het opnieuw aan."
+    },
+    {
+      "type": "p",
+      "text": "Een op te leveren resultaat geldt als geaccepteerd wanneer u dat bevestigt, wanneer de testtermijn afloopt zonder een schriftelijke en gemotiveerde afwijzing, of wanneer u het anders dan om te testen in uw lopende bedrijfsvoering gaat gebruiken. Kleine gebreken die het gebruik niet verhinderen, staan acceptatie niet in de weg. Die herstellen wij onder [onze toezeggingen](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "Ieder van ons kan vragen om de reikwijdte te wijzigen. Wij laten u weten welke invloed de wijziging heeft op de planning en de prijs. Een wijziging geldt zodra wij haar allebei schriftelijk zijn overeengekomen. Tot die tijd werken wij verder volgens de opdracht zoals die luidt."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Vergoedingen en betaling"
+    },
+    {
+      "type": "p",
+      "text": "U betaalt de vergoedingen die in de opdracht zijn vastgelegd. Bij een vergoeding per resultaat bepaalt de opdracht wat als resultaat geldt en hoe dat wordt gemeten."
+    },
+    {
+      "type": "p",
+      "text": "Wij factureren zoals de opdracht bepaalt. U betaalt binnen de termijn die op de opdracht of de factuur staat. De vergoedingen zijn exclusief btw en andere belastingen, die u betaalt voor zover die van toepassing zijn. Wij brengen onkosten alleen in rekening voor zover de opdracht dat toestaat."
+    },
+    {
+      "type": "p",
+      "text": "Als u een deel van een factuur betwist, laat u ons dat te goeder trouw weten en betaalt u de rest. Als een bedrag na een herinnering nog steeds onbetaald is, mogen wij het werk onderbreken totdat het is betaald. Over te late betalingen is rente verschuldigd voor zover de wet dat toestaat."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Wie wat bezit"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Uw materiaal"
+    },
+    {
+      "type": "p",
+      "text": "U behoudt alle rechten op de gegevens, inhoud, systemen en ander materiaal dat u ons geeft. U staat ons toe dit uitsluitend te gebruiken om het werk uit te voeren."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Op te leveren resultaten"
+    },
+    {
+      "type": "p",
+      "text": "Zodra u een op te leveren resultaat volledig hebt betaald, bent u eigenaar van wat wij onder de opdracht specifiek voor u hebben gemaakt, zoals agentconfiguraties, workflows, koppelingen, documenten en code. Wij dragen de rechten die wij daarop hebben aan u over. Waar de wet niet toestaat dat een recht wordt overgedragen, geven wij u een exclusieve, wereldwijde, eeuwigdurende licentie die u mag doorgeven. Zolang u niet hebt betaald, mag u een op te leveren resultaat gebruiken om het te beoordelen en te testen."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Ons materiaal"
+    },
+    {
+      "type": "p",
+      "text": "Wij behouden alle rechten op onze hulpmiddelen, ons platform, onze software, agents, sjablonen, instructies, methoden en knowhow, en op alles wat wij vóór of buiten de opdracht hebben gemaakt. Waar ons materiaal deel uitmaakt van een op te leveren resultaat, krijgt u, na betaling, een niet-exclusieve, wereldwijde, eeuwigdurende licentie om het als onderdeel van dat resultaat voor uw eigen bedrijf te gebruiken, te kopiëren en te wijzigen. U mag ons materiaal niet los verkopen of in licentie geven."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Diensten, onderdelen van derden en AI-output"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer wij iets voor u beheren, zoals beheerde agentoperaties of een gehoste redeneer-API, is dat een dienst en geen op te leveren resultaat. Uw toegang daartoe duurt zolang de opdracht duurt."
+    },
+    {
+      "type": "p",
+      "text": "Onderdelen van derden en opensourceonderdelen van een op te leveren resultaat blijven onder hun eigen licenties vallen. Wij laten u weten welke daarvan een op te leveren resultaat bevat."
+    },
+    {
+      "type": "p",
+      "text": "Delen van een op te leveren resultaat kunnen door AI zijn gemaakt. In sommige landen is materiaal dat door AI is gemaakt zonder voldoende creatieve menselijke inbreng niet auteursrechtelijk beschermd. Wij dragen alle rechten over die bestaan, maar wij beloven niet dat er rechten bestaan."
+    },
+    {
+      "type": "p",
+      "text": "Ieder van ons mag de algemene vaardigheden en ervaring die met het werk zijn opgedaan blijven gebruiken, zonder gebruik te maken van de vertrouwelijke informatie van de ander."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Vertrouwelijkheid"
+    },
+    {
+      "type": "p",
+      "text": "Ieder van ons krijgt vertrouwelijke informatie van de ander te zien: niet-openbare informatie die als vertrouwelijk is gemarkeerd of die redelijkerwijs als zodanig moet worden begrepen."
+    },
+    {
+      "type": "p",
+      "text": "De partij die deze informatie ontvangt, gebruikt haar uitsluitend voor het werk, beschermt haar met redelijke zorg en deelt haar alleen met personen die haar nodig hebben en tot geheimhouding zijn verplicht. Deze verplichting geldt niet voor informatie die openbaar is, die de ontvanger al kende, die de ontvanger zelfstandig heeft ontwikkeld of die de ontvanger rechtmatig van een ander heeft verkregen. Als de wet openbaarmaking vereist, mag de ontvanger openbaar maken wat vereist is en licht hij, voor zover toegestaan, de andere partij eerst in. Wij noemen u alleen als klant met uw toestemming."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Gegevens en hosting"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer wij persoonsgegevens voor u verwerken, zijn wij uw verwerker: wij verwerken ze uitsluitend volgens uw instructies, en de verwerkersovereenkomst is van toepassing. Voor onze eigen administratie over u, zoals uw contactpersonen en facturen, handelen wij voor onszelf, en ons [Privacybeleid](/instant/legal/privacy) is van toepassing."
+    },
+    {
+      "type": "p",
+      "text": "Wij hosten uw werk in een EU-regio van Google Cloud die met u is afgesproken en in de opdracht is vermeld. Sommige aanbieders die wij gebruiken, zoals Google Gemini voor het AI-model, kunnen gegevens buiten de EU verwerken. De pagina [Subverwerkers](/instant/legal/subprocessors) vermeldt hen."
+    },
+    {
+      "type": "p",
+      "text": "Wij trainen onze eigen AI-modellen niet met uw gegevens, en wij verkopen ze niet."
+    },
+    {
+      "type": "p",
+      "text": "Geef ons geen beschermde gezondheidsinformatie die onder HIPAA valt. Wij sluiten geen business associate agreements.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "AI-wetgeving en uw rol"
+    },
+    {
+      "type": "p",
+      "text": "U bepaalt hoe de systemen die wij bouwen in uw bedrijf worden gebruikt. Onder de EU-AI-verordening bent u de “gebruiksverantwoordelijke” van wat wij voor u bouwen: de organisatie die een AI-systeem onder eigen verantwoordelijkheid gebruikt. Als u een systeem onder uw eigen naam in gebruik stelt, kunt u ook de “aanbieder” ervan zijn."
+    },
+    {
+      "type": "p",
+      "text": "Laat het ons weten voordat het werk begint als een systeem mogelijk wordt gebruikt op een terrein met een hoog risico, zoals werving en werk, onderwijs, krediet of toegang tot essentiële diensten. De opdracht bepaalt dan wie wat doet. Voor dat gebruik gelden uw verplichtingen als gebruiksverantwoordelijke vanaf 2 december 2027 (AI-verordening art. 26 en bijlage III). Daartoe behoren menselijk toezicht, het gebruik van het systeem volgens de instructies, het monitoren van de werking ervan en het bewaren van de logs."
+    },
+    {
+      "type": "p",
+      "text": "Waar de wet dat vereist, zorgt u ervoor dat mensen die te maken hebben met een systeem dat u beheert, weten dat zij met AI te maken hebben, en neemt u maatregelen om de AI-geletterdheid te bevorderen bij uw medewerkers die het systeem gebruiken (AI-verordening art. 4 en 50). Onze teamtraining kan daarbij helpen, maar deze verplichtingen blijven de uwe."
+    },
+    {
+      "type": "p",
+      "text": "Wetten van Amerikaanse staten over AI bij ingrijpende beslissingen zijn op u van toepassing als het bedrijf dat die beslissingen neemt. De wet van Colorado treedt bijvoorbeeld in werking op 1 januari 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Bedrijfsresultaten"
+    },
+    {
+      "type": "p",
+      "text": "Wij werken toe naar de doelen die in de opdracht zijn vastgelegd. Bedrijfsresultaten hangen echter af van uw gegevens, mensen, processen en markten, waarover wij geen zeggenschap hebben. Tenzij de opdracht uitdrukkelijk anders bepaalt, garanderen wij geen besparingen, omzet of ander bedrijfsresultaat. Een vergoeding per resultaat is een manier om het werk te prijzen, geen belofte dat een resultaat wordt bereikt."
+    },
+    {
+      "type": "p",
+      "text": "AI-output kan onjuist zijn, en agents kunnen fouten maken. Laat belangrijke beslissingen door mensen beoordelen en kies goedkeuringsinstellingen die bij het risico passen. [Hoe onze AI werkt](/instant/legal/ai) legt meer uit."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Onze toezeggingen"
+    },
+    {
+      "type": "p",
+      "text": "Wij beloven het werk met redelijke vakkundigheid en zorg uit te voeren, met daarvoor geschikte en gekwalificeerde mensen. Ook beloven wij dat elk op te leveren resultaat, wanneer het wordt geaccepteerd, op alle belangrijke punten overeenkomt met de opdracht."
+    },
+    {
+      "type": "p",
+      "text": "Als een op te leveren resultaat niet aan die belofte voldoet, laat u ons dat schriftelijk weten. Wij herstellen het of voeren het werk opnieuw uit. Als wij dat niet binnen een redelijke termijn kunnen, mag u dat deel van de opdracht beëindigen en krijgt u de vergoedingen terug die u daarvoor hebt betaald."
+    },
+    {
+      "type": "note",
+      "text": "Dat is uw enige rechtsmiddel voor een op te leveren resultaat dat niet aan onze belofte voldoet. Afgezien van de toezeggingen in deze voorwaarden en de opdracht, en voor zover de wet dat toestaat, geven wij geen andere garanties, uitdrukkelijk of stilzwijgend, waaronder garanties van verkoopbaarheid, geschiktheid voor een bepaald doel en niet-inbreuk.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Uw wettelijke rechten bij gebreken blijven gelden, maar u moet ons eerst een redelijke kans geven om het gebrek te herstellen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Aansprakelijkheid",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Voor zover de wet dat toestaat, is geen van ons aansprakelijk voor indirecte, incidentele, bijzondere of gevolgschade of voor punitieve schadevergoeding, of voor gederfde winst, omzet, gegevens of goodwill.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "De totale aansprakelijkheid van elke partij onder een opdracht is beperkt tot de vergoedingen die onder die opdracht zijn betaald en verschuldigd in de 12 maanden vóór de gebeurtenis die tot de vordering heeft geleid.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Deze beperkingen gelden niet voor uw verplichting om vergoedingen te betalen, voor schending van de vertrouwelijkheid, voor fraude of voor aansprakelijkheid die volgens de wet niet mag worden beperkt.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Aansprakelijkheid",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij zijn volledig aansprakelijk voor schade die wij opzettelijk of door grove nalatigheid veroorzaken, voor letsel aan leven, lichaam of gezondheid, en op grond van dwingend recht inzake productaansprakelijkheid.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bij lichte nalatigheid zijn wij alleen aansprakelijk wanneer wij een wezenlijke verplichting schenden: een verplichting die de behoorlijke uitvoering van de opdracht mogelijk maakt en op de nakoming waarvan u regelmatig mag vertrouwen. Zelfs dan zijn wij alleen aansprakelijk voor schade die typisch en voorzienbaar is voor dit soort overeenkomsten, en in totaal voor niet meer dan de vergoedingen die onder die opdracht zijn betaald en verschuldigd in de 12 maanden vóór de gebeurtenis. Voor het overige is onze aansprakelijkheid voor lichte nalatigheid uitgesloten.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "U vrijwaart ons tegen vorderingen van anderen die voortvloeien uit het materiaal dat u ons hebt gegeven of uit uw schending van deze voorwaarden, en tegen de redelijke kosten van de afhandeling daarvan. Wij informeren u zonder vertraging over zo’n vordering en laten u meewerken aan de afhandeling ervan."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Looptijd en beëindiging"
+    },
+    {
+      "type": "p",
+      "text": "Deze voorwaarden gelden vanaf uw eerste opdracht totdat uw laatste opdracht eindigt. Elke opdracht loopt gedurende de periode die zij vermeldt. Maandelijkse diensten lopen van maand tot maand door totdat een van ons ze beëindigt met inachtneming van de opzegtermijn die de opdracht bepaalt."
+    },
+    {
+      "type": "p",
+      "text": "Ieder van ons mag een opdracht schriftelijk met onmiddellijke ingang beëindigen als de ander haar ernstig schendt en de schending niet binnen een redelijke termijn na een melding daarvan herstelt, of als de ander insolvent wordt. U mag een opdracht ook vroegtijdig beëindigen voor zover de opdracht dat toestaat."
+    },
+    {
+      "type": "p",
+      "text": "Wanneer een opdracht eindigt, betaalt u voor het werk dat tot die datum is verricht en, als u de opdracht vroegtijdig hebt beëindigd, voor kosten die wij niet kunnen annuleren. Wij dragen uw gegevens en de op te leveren resultaten die u hebt betaald aan u over, stoppen de diensten die wij voor u beheerden en gaan met persoonsgegevens om zoals de verwerkersovereenkomst bepaalt. Delen van deze voorwaarden die naar hun aard moeten blijven gelden, zoals eigendom, vertrouwelijkheid, aansprakelijkheid en het toepasselijke recht, blijven van toepassing."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Overstappen naar een andere aanbieder",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer wij een gegevensverwerkingsdienst voor u beheren, zoals beheerde agentoperaties of hosting, geeft de EU-Dataverordening u het recht om over te stappen naar een andere aanbieder of naar uw eigen systemen (Dataverordening art. 23-31). Voor die diensten geldt:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "U kunt een overstap starten, of de dienst beëindigen en uw gegevens meenemen, door ons dat schriftelijk te laten weten. De opzegtermijn is ten hoogste twee maanden, en u kunt voor een kortere termijn kiezen.",
+        "Wij geven u uw gegevens, en de digitale activa die wij voor u hebben gemaakt en waarop u recht hebt, in een gangbaar machineleesbaar formaat.",
+        "De overgangsperiode duurt maximaal 30 dagen. Als dat technisch niet haalbaar is, laten wij u weten waarom en hoeveel tijd wij nodig hebben, binnen de grenzen die de Dataverordening toestaat.",
+        "Tijdens de overgangsperiode houden wij de dienst zoals afgesproken draaiende en helpen wij u en uw nieuwe aanbieder te goeder trouw.",
+        "Na afloop van de overgangsperiode hebt u nog ten minste 30 dagen om uw gegevens op te halen.",
+        "Zodra de overstap is voltooid, verwijderen wij uw gegevens zoals de verwerkersovereenkomst bepaalt.",
+        "Tot 12 januari 2027 mogen wij alleen onze directe kosten van een overstap in rekening brengen, en alleen voor zover de opdracht die vermeldt. Vanaf 12 januari 2027 brengen wij voor een overstap niets in rekening."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wanneer een dienst speciaal voor u op maat is gebouwd, kunnen sommige van deze regels slechts gedeeltelijk van toepassing zijn (Dataverordening art. 31). In dat geval vermeldt de opdracht welke, en laten wij u dat weten voordat u de opdracht ondertekent.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Locatie en toegang door overheden",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij hosten uw werk in de EU-regio van Google Cloud die in de opdracht is vermeld. De pagina [Subverwerkers](/instant/legal/subprocessors) vermeldt elke aanbieder en waar deze werkt (Dataverordening art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als een overheid buiten de EU ons om uw niet-persoonsgebonden gegevens vraagt, verstrekken wij die alleen voor zover het recht van de EU of van een lidstaat dat toestaat. Wij laten het u eerst weten, tenzij de wet dat verbiedt (Dataverordening art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Recht en geschillen"
+    },
+    {
+      "type": "p",
+      "text": "Op deze voorwaarden en op elke opdracht is het recht van {company.law} van toepassing, met uitsluiting van de regels van dat recht over conflictenrecht. De rechter van {company.law} beslecht geschillen, tenzij de wet een andere rechter voorschrijft.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Voordat een van ons naar de rechter stapt, proberen onze contactpersonen de kwestie te goeder trouw op te lossen. Schrijf naar {company.email} en beschrijf het probleem."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Deze voorwaarden bevatten geen arbitrageclausule. Ieder van ons mag een vordering instellen bij een small-claims court als de vordering daarvoor in aanmerking komt."
+    },
+    {
+      "type": "p",
+      "text": "U bevestigt dat u niet op een sanctielijst van de VS of de EU staat en niet bent gevestigd in een land waartegen de VS of de EU een embargo hebben ingesteld. Geen van ons zal het werk gebruiken in strijd met sanctie- of exportregels van de VS of de EU."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Algemeen"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Wij kunnen deze voorwaarden bijwerken. Voor een opdracht die al is overeengekomen, blijven de voorwaarden gelden die van toepassing waren toen zij werd overeengekomen, tenzij wij allebei anders afspreken.",
+        "Geen van ons mag deze voorwaarden of een opdracht overdragen zonder schriftelijke toestemming van de ander, behalve aan een onderneming die het betrokken bedrijf overneemt.",
+        "Geen van ons is verantwoordelijk voor vertraging die wordt veroorzaakt door gebeurtenissen buiten zijn redelijke controle.",
+        "Als een deel van deze voorwaarden ongeldig is, blijft de rest van toepassing.",
+        "Kennisgevingen aan ons gaan naar {company.email}. Kennisgevingen aan u gaan naar de contactpersoon die in de opdracht is vermeld."
+      ]
+    }
+  ]
+}

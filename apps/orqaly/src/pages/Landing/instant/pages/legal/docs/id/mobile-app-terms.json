@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Ketentuan Aplikasi Seluler",
+    "summary": "Ketentuan ini mengatur penggunaan aplikasi ponsel Orqanix sebagai remote untuk Orqanix di Mac Anda, termasuk ketentuan yang diwajibkan oleh toko aplikasi.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Tentang ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini melengkapi [Ketentuan Layanan](/instant/legal/terms) kami untuk aplikasi Orqanix untuk ponsel Anda (“Aplikasi Seluler”). Bersama Ketentuan Layanan, [Ketentuan Aplikasi Desktop](/instant/legal/desktop-app-terms), [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami, dan [Kebijakan Privasi](/instant/legal/privacy) kami, ketentuan ini membentuk satu perjanjian. Jika ketentuan ini dan Ketentuan Layanan bertentangan mengenai Aplikasi Seluler, ketentuan inilah yang berlaku."
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Seluler gratis selama produk kami masih dalam tahap awal. Sebelum paket berbayar apa pun dimulai, kami akan memublikasikan harga serta aturan pembayaran dan pembatalan."
+    },
+    {
+      "type": "p",
+      "text": "Sebelum itu, kami juga akan memublikasikan aturan pengunduran diri dari pembelian, sebagaimana diwajibkan oleh hukum UE.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Remote untuk Mac Anda"
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Seluler adalah remote untuk Orqanix di Mac Anda. Saat Anda menggunakannya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda memerlukan aplikasi Orqanix di Mac Anda (Aplikasi Desktop). Mulailah dengan aplikasi Mac, lalu tambahkan ponsel Anda;",
+        "semua pekerjaan berjalan di Mac Anda, dengan file, alat, dan pengaturannya. Ponsel menampilkan apa yang sedang terjadi dan memungkinkan Anda memberikan pekerjaan berikutnya;",
+        "file dibuat di Mac Anda dan tetap berada di folder proyeknya. Ponsel menampilkan apa yang telah dibuat; Mac menyimpan file aslinya;",
+        "Aplikasi Seluler hanya berfungsi selama Mac Anda terhubung ke internet dan Orqanix terbuka. Saat Mac tidur atau terputus dari internet, ponsel menampilkan hal tersebut dan menunggu hingga Mac kembali."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak menjanjikan bahwa ponsel Anda selalu dapat menjangkau Mac Anda. Jaringan, pengaturan mode tidur, dan perangkat Anda berada di luar kendali kami."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Bekerja dari ponsel Anda"
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat memeriksa pekerjaan yang sedang berjalan, membaca hasil, menjalankan ulang tugas tersimpan (resep), dan memulai pekerjaan baru dengan mengetik atau mengucapkan apa yang Anda perlukan. Aplikasi Desktop di Mac Anda yang melaksanakan pekerjaan tersebut, berdasarkan [Ketentuan Aplikasi Desktop](/instant/legal/desktop-app-terms). Artinya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "agen di Mac Anda dapat melakukan tindakan nyata, seperti mengubah file dan menjalankan perintah. Secara bawaan, agen melakukannya tanpa meminta izin terlebih dahulu, kecuali Anda telah [mengubah pengaturan tersebut](/instant/legal/desktop-app-terms#approval-modes) di Mac Anda;",
+        "Anda bertanggung jawab atas pekerjaan yang Anda mulai dari ponsel seolah-olah Anda memulainya di Mac Anda;",
+        "Anda tidak berada di depan Mac untuk mengawasinya, jadi pilihlah dengan cermat apa yang Anda minta dan periksa hasilnya sebelum Anda mengandalkannya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AI dapat membuat kesalahan. Hasilnya dapat salah, tidak lengkap, atau usang. Lihat [Cara Kerja AI Kami](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Notifikasi"
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Seluler dapat memberi tahu Anda saat suatu pekerjaan selesai. Anda dapat menonaktifkan notifikasi di pengaturan ponsel Anda. Notifikasi dapat muncul di layar kunci, jadi atur pratinjau notifikasi sesuai keinginan Anda. Kami tidak menjanjikan bahwa setiap notifikasi akan sampai, atau sampai tepat waktu."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "Akun dan ponsel Anda"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda harus berusia 18 tahun atau lebih untuk menggunakan Aplikasi Seluler.",
+        "Siapa pun yang dapat menggunakan ponsel Anda dalam keadaan tidak terkunci mungkin dapat memulai pekerjaan di Mac Anda melalui Aplikasi Seluler. Selalu kunci ponsel Anda. Jika ponsel Anda hilang atau Anda memberikannya kepada orang lain, hapus Aplikasi Seluler jika memungkinkan, dan beri tahu kami.",
+        "Beri tahu kami di {company.email} jika Anda menduga orang lain telah menggunakan akun Anda."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Kebijakan Privasi](/instant/legal/privacy) menjelaskan apa yang kami kumpulkan saat Anda menggunakan Aplikasi Seluler, dan alasannya."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Lisensi Anda"
+    },
+    {
+      "type": "p",
+      "text": "Selama Anda mematuhi ketentuan ini, kami memberi Anda lisensi pribadi, noneksklusif, dan tidak dapat dialihkan untuk memasang dan menggunakan Aplikasi Seluler di ponsel yang Anda miliki atau kendalikan. Anda tidak boleh menjual, menyewakan, meminjamkan, atau mensublisensikannya, mengakali langkah keamanan atau batasannya, atau menyalinnya untuk membangun produk pesaing."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Pembaruan dan perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat merilis versi baru Aplikasi Seluler dan mengubah atau menghapus fitur. Jika Anda mendapatkannya dari toko aplikasi, pembaruan diberikan melalui toko tersebut berdasarkan aturannya. Aturan tentang perubahan terdapat dalam [Perubahan pada Layanan dan ketentuan ini](/instant/legal/terms#changes)."
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan Aplikasi Seluler sebagai konsumen (di luar perdagangan atau bisnis Anda), Anda memiliki hak yang diberikan hukum UE kepada konsumen atas konten digital. Hak ini berlaku meskipun aplikasi gratis, karena Anda memberikan data pribadi kepada kami untuk menggunakannya (Dir. (EU) 2019/770). Selama diwajibkan oleh hukum, kami akan menyediakan pembaruan, termasuk pembaruan keamanan, yang diperlukan agar aplikasi tetap berfungsi sebagaimana dijelaskan.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Di luar itu, kami hanya akan mengubah Aplikasi Seluler karena alasan yang sah dan tanpa biaya bagi Anda. Jika perubahan tersebut merugikan penggunaan aplikasi oleh Anda lebih dari sekadar sedikit, kami akan mengirimkan email kepada Anda dalam waktu yang cukup sebelum perubahan itu terjadi. Anda kemudian dapat mengakhiri perjanjian ini tanpa biaya dalam waktu 30 hari sejak pemberitahuan kami atau sejak perubahan, mana yang lebih akhir, kecuali kami mengizinkan Anda tetap menggunakan versi yang tidak diubah tanpa biaya tambahan.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab hukum"
+    },
+    {
+      "type": "p",
+      "text": "Sejauh diizinkan oleh hukum, Aplikasi Seluler disediakan “sebagaimana adanya” dan “sebagaimana tersedia”, tanpa jaminan apa pun. [Penafian](/instant/legal/terms#warranty) dan [Tanggung Jawab Hukum](/instant/legal/terms#liability) di Ketentuan Layanan berlaku untuknya.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Kami bertanggung jawab atas Aplikasi Seluler berdasarkan hukum negara Anda, sebagaimana diatur dalam [Tanggung Jawab Hukum](/instant/legal/terms#liability) di Ketentuan Layanan. Tidak ada dalam ketentuan ini atau dalam ketentuan toko aplikasi yang membatasi hak hukum Anda sebagai konsumen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "Ketentuan toko aplikasi"
+    },
+    {
+      "type": "p",
+      "text": "Bagian ini berlaku jika Anda mendapatkan Aplikasi Seluler dari toko aplikasi. Ketentuan toko itu sendiri juga berlaku untuk unduhan dan penggunaan Anda. Anda harus mematuhinya serta ketentuan jaringan seluler Anda, seperti paket data Anda."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda mendapatkan Aplikasi Seluler dari App Store Apple, Anda dan kami sepakat bahwa:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ketentuan ini hanya berlaku antara Anda dan kami, bukan Apple. Kami, bukan Apple, yang sepenuhnya bertanggung jawab atas Aplikasi Seluler dan kontennya;",
+        "lisensi Anda mencakup penggunaan pada produk bermerek Apple yang Anda miliki atau kendalikan, sebagaimana diizinkan oleh Aturan Penggunaan dalam [Syarat dan Ketentuan Layanan Media](https://www.apple.com/legal/internet-services/itunes/) Apple. Orang lain yang terhubung ke akun Anda melalui Family Sharing atau pembelian volume juga dapat menggunakannya sebagaimana diizinkan oleh aturan tersebut;",
+        "hanya kami yang bertanggung jawab atas pemeliharaan dan dukungan Aplikasi Seluler. Apple tidak berkewajiban menyediakan hal tersebut;",
+        "jika Aplikasi Seluler tidak memenuhi jaminan yang berlaku atasnya, Anda dapat memberi tahu Apple, dan Apple akan mengembalikan harga yang Anda bayarkan untuk aplikasi tersebut, jika ada. Sejauh diizinkan oleh hukum, Apple tidak memiliki kewajiban jaminan lain atas Aplikasi Seluler. Setiap klaim, kerugian, kewajiban, kerusakan, biaya, atau pengeluaran lain yang disebabkan oleh kegagalan tersebut menjadi tanggung jawab kami, sejauh ditentukan demikian oleh ketentuan ini dan oleh hukum;",
+        "kami, bukan Apple, yang akan menangani setiap klaim dari Anda atau pihak lain tentang Aplikasi Seluler atau penggunaannya oleh Anda, termasuk klaim tanggung jawab produk, klaim bahwa aplikasi tidak memenuhi persyaratan hukum atau regulasi, serta klaim berdasarkan undang-undang perlindungan konsumen, privasi, atau undang-undang serupa;",
+        "jika seseorang mengklaim bahwa Aplikasi Seluler atau penggunaannya oleh Anda melanggar kekayaan intelektualnya, kami, bukan Apple, yang bertanggung jawab untuk menyelidiki, membela, menyelesaikan secara damai, dan menuntaskan klaim tersebut, sejauh ketentuan ini membebankan tanggung jawab tersebut kepada kami;",
+        "Anda tidak berada di negara yang dikenai embargo oleh pemerintah AS atau yang telah ditetapkan oleh pemerintah AS sebagai negara “pendukung terorisme”, dan Anda tidak tercantum dalam daftar pihak yang dilarang atau dibatasi oleh pemerintah AS;",
+        "Apple dan anak perusahaannya adalah pihak ketiga penerima manfaat dari ketentuan ini. Setelah Anda menerima ketentuan ini, Apple berhak, dan dianggap telah menerima hak tersebut, untuk menegakkannya terhadap Anda sebagai pihak ketiga penerima manfaat."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kirimkan pertanyaan, keluhan, atau klaim tentang Aplikasi Seluler kepada kami di {company.email}, bukan kepada Apple."
+    },
+    {
+      "type": "p",
+      "text": "Pengembang Aplikasi Seluler adalah {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda mendapatkan Aplikasi Seluler dari Google Play, Anda dan kami sepakat bahwa:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ketentuan ini hanya berlaku antara Anda dan kami, bukan Google. Google tidak bertanggung jawab atas Aplikasi Seluler, kontennya, dukungannya, atau klaim apa pun tentangnya;",
+        "[Persyaratan Layanan Google Play](https://play.google.com/about/play-terms/) juga berlaku untuk unduhan dan penggunaan Anda. Jika persyaratan tersebut bertentangan dengan ketentuan ini mengenai hubungan Anda dengan Google, Persyaratan Layanan Google Play yang berlaku;",
+        "pengembalian dana untuk apa pun yang dibeli melalui Google Play mengikuti aturan Google Play."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanksi dan ekspor"
+    },
+    {
+      "type": "p",
+      "text": "Anda tidak boleh mengunduh atau menggunakan Aplikasi Seluler di tempat yang dilarang oleh sanksi atau aturan ekspor AS atau UE, atau jika nama Anda tercantum dalam daftar sanksi AS atau UE. Lihat [Sanksi dan ekspor](/instant/legal/terms#sanctions) di Ketentuan Layanan."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Mengakhiri penggunaan"
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat berhenti menggunakan Aplikasi Seluler kapan saja dengan menghapusnya dari ponsel Anda. Hal ini tidak menghentikan Aplikasi Desktop, tidak menghapus file di Mac Anda, dan tidak menutup akun Orqanix Anda. Untuk menutup akun atau meminta kami menghapus data Anda, lihat [Ketentuan Layanan](/instant/legal/terms) dan [Kebijakan Privasi](/instant/legal/privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontak"
+    },
+    {
+      "type": "p",
+      "text": "Pertanyaan tentang ketentuan ini: {company.email}. Permintaan privasi: {company.privacyEmail}."
+    }
+  ]
+}

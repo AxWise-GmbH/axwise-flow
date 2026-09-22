@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "slug": "health-data",
+    "title": "Kebijakan Privasi Data Kesehatan Konsumen",
+    "summary": "Kebijakan ini menjelaskan cara Orqanix mengumpulkan, menggunakan, dan membagikan data kesehatan konsumen berdasarkan hukum Washington, Nevada, dan Connecticut, serta cara Anda dapat menggunakan hak Anda atas data tersebut.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'Orqanix is run by' line is hidden until filled (FACTS §14.1).",
+        "geminiPaidTier: the paid-tier sentence stays hidden until the owner confirms Google's paid Gemini tier and DPA; until then Google's use is described only by linking Google's terms (FACTS §14.3).",
+        "Lawyer: under MHMDA, do search queries sent to public search engines (which may contain health terms) count as 'sharing' that needs separate consent? The policy discloses them and treats them as part of the service requested.",
+        "Lawyer: MHMDA deletion duty vs. the immutable workspace tables (messages, artifacts, events). The text promises 'delete or anonymise, or tell you why'; a working deletion process is still missing (FACTS §3, §14.5).",
+        "Lawyer: confirm the response-time wording meets WA/NV/CT rules: requests \"within one month\" (the laws allow 45 days), appeals \"within 45 days\" (MHMDA); Attorney General contact given.",
+        "Consent UX: the policy now relies on \"necessary to provide the requested service\" (MHMDA) for collection and sharing, and promises consent for anything else; no in-product consent screen exists. Decide whether one is needed (FACTS §14.16).",
+        "Email: privacy@orqanix.com must receive mail (no MX record today, FACTS §14.2).",
+        "Keep a prominent footer/home-page link to this policy (Washington), unless health marketing is removed and the AUP bans health data (FACTS §14.16).",
+        "Lawyer/owner: Gemini tier. On Google's unpaid Gemini terms Google may use prompts for its own purposes, so Google would be a third party, not a processor; sending health data there may be \"sharing\" beyond what is necessary, and a free-service-for-data exchange could be argued to be a \"sale\". Confirm the paid tier before publishing (FACTS §14.3).",
+        "Lawyer: FTC Health Breach Notification Rule (16 CFR 318) may apply given the healthcare marketing; the text only says we notify where the law requires (verify.md, missing requirement 2).",
+        "Lawyer: HIPAA. Healthcare solution pages imply clinic use; this policy covers consumers only. A BAA or a \"no PHI\" clause is needed before clinics use it (us.md row 9)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Tentang kebijakan ini"
+    },
+    {
+      "type": "p",
+      "text": "Beberapa negara bagian AS melindungi \"data kesehatan konsumen\": informasi pribadi yang mengidentifikasi Anda, atau yang secara wajar dapat dikaitkan dengan Anda, dan yang mengungkapkan sesuatu tentang kesehatan fisik atau mental Anda di masa lalu, saat ini, atau di masa mendatang. Data ini mencakup informasi yang disimpulkan tentang Anda, misalnya dari hal-hal yang Anda tanyakan. Undang-undang utamanya adalah My Health My Data Act negara bagian Washington, undang-undang data kesehatan konsumen negara bagian Nevada, dan aturan negara bagian Connecticut tentang data kesehatan konsumen."
+    },
+    {
+      "type": "p",
+      "text": "Kebijakan ini menjelaskan cara Orqanix (\"kami\") menangani data kesehatan konsumen. Kebijakan ini berlaku bagi orang-orang di Amerika Serikat dan melengkapi [Kebijakan Privasi](/instant/legal/privacy) kami, yang mencakup semua data pribadi lainnya."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Orqanix dijalankan oleh {company.legalName}, {company.address}."
+    },
+    {
+      "type": "note",
+      "text": "Singkatnya: kami tidak meminta data kesehatan Anda. Data tersebut hanya sampai kepada kami jika Anda mengetik, mengucapkan, mengunggah, atau menghubungkannya. Kami menggunakannya hanya untuk melakukan apa yang Anda minta. Kami tidak pernah menjualnya, dan kami tidak menggunakannya untuk iklan."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Apa yang dapat sampai kepada kami"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix adalah asisten AI serbaguna, bukan layanan kesehatan. Kami tidak meminta informasi kesehatan, dan kami tidak mengumpulkannya dari sensor, perangkat, atau aplikasi kesehatan. Data kesehatan konsumen hanya sampai kepada kami apabila Anda memilih untuk menyertakannya, misalnya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "gejala, kondisi, diagnosis, obat, atau pengobatan yang Anda sebutkan dalam suatu permintaan;",
+        "dokumen kesehatan yang Anda unggah atau yang Anda minta dibaca oleh agen, seperti hasil tes, formulir, atau surat dari dokter;",
+        "janji temu, tagihan, atau rincian asuransi dalam file atau pesan yang Anda berikan kepada kami;",
+        "suara Anda, jika Anda membicarakan kesehatan Anda saat menggunakan fitur dikte di Aplikasi Desktop;",
+        "informasi kesehatan dalam pesan, kontak, dan file dari akun-akun yang Anda hubungkan ke Bot Asisten;",
+        "apa pun yang disimpulkan oleh AI tentang kesehatan Anda dari hal yang Anda tanyakan dan dimasukkan ke dalam jawabannya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak menggunakan lokasi yang akurat untuk mengetahui kondisi kesehatan Anda, dan kami tidak memasang batas virtual (geofence) di sekitar tempat-tempat penyediaan layanan kesehatan."
+    },
+    {
+      "type": "h2",
+      "id": "sources",
+      "text": "Dari mana asalnya"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Dari Anda, saat Anda mengetik, mengucapkan, atau mengunggah sesuatu.",
+        "Dari aplikasi perpesanan dan akun email yang Anda hubungkan ke Bot Asisten, serta dari file yang Anda minta dibaca oleh agen.",
+        "Dari halaman web publik yang ditemukan oleh riset kami saat Anda meminta riset.",
+        "Dari jawaban model AI atas permintaan Anda."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Cara kami menggunakannya"
+    },
+    {
+      "type": "p",
+      "text": "Kami mengumpulkan dan menggunakan data kesehatan konsumen hanya sejauh diperlukan untuk menyediakan layanan yang Anda minta. Artinya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "mengirimkan permintaan Anda ke model AI dan memberikan jawabannya kepada Anda;",
+        "melakukan pekerjaan yang Anda minta, seperti riset, memilah dokumen, atau membuat file;",
+        "menyimpan pekerjaan Anda di ruang kerja cloud Anda atau di Mac Anda agar Anda dapat kembali melanjutkannya, sebagaimana dijelaskan dalam [Kebijakan Privasi](/instant/legal/privacy#what-we-collect) kami;",
+        "menjaga keamanan layanan dan memenuhi kewajiban hukum kami."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak menggunakan data kesehatan konsumen untuk iklan, kami tidak membuat profil dari data tersebut, dan kami tidak melatih model AI kami sendiri dengannya."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Siapa yang menerimanya"
+    },
+    {
+      "type": "p",
+      "text": "Kami membagikan data kesehatan konsumen hanya kepada penyedia yang membantu kami menghadirkan layanan, dan hanya untuk tujuan tersebut. Kami membagikan data kesehatan yang ada dalam permintaan dan percakapan Anda (jenis-jenis yang tercantum dalam [Apa yang dapat sampai kepada kami](#what-we-collect)) kepada:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud, yang menjadi host server, basis data, dan file kami di UE (Belanda).",
+        "Google, yang Gemini API-nya menyediakan model AI yang menjawab Anda secara default. Google menerima permintaan dan percakapan Anda, dan dapat memprosesnya di luar UE.",
+        "Mesin pencari publik (Google, Bing, Brave, dan DuckDuckGo), saat Anda meminta riset. Layanan pencarian kami mengirimkan kueri yang disusun dari permintaan Anda kepada mesin pencari tersebut, sehingga suatu kueri dapat memuat istilah kesehatan yang Anda gunakan. Kami hanya mengirimkan kuerinya, bukan nama atau rincian akun Anda."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Ketentuan Gemini API Google](https://ai.google.dev/gemini-api/terms) mengatur cara Google dapat menggunakan data yang diterimanya melalui Gemini API."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Kami menggunakan layanan Gemini API berbayar dari Google. Berdasarkan ketentuan Google untuk layanan berbayar, Google memproses permintaan Anda atas nama kami dan tidak menggunakannya untuk meningkatkan produknya."
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menghubungkan penyedia AI lain di Aplikasi Desktop, seperti OpenAI atau Anthropic, penyedia tersebut menerima percakapan Anda atas arahan Anda, berdasarkan perjanjian Anda sendiri dengannya. Kami juga dapat mengungkapkan data apabila diwajibkan oleh hukum. Daftar lengkap penyedia kami tersedia di halaman [Sub-pemroses](/instant/legal/subprocessors) kami."
+    },
+    {
+      "type": "h2",
+      "id": "no-sale",
+      "text": "Kami tidak pernah menjualnya"
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak menjual data kesehatan konsumen. Hukum Washington mewajibkan otorisasi tertulis yang Anda tandatangani sebelum penjualan apa pun, dan kami tidak meminta otorisasi tersebut."
+    },
+    {
+      "type": "h2",
+      "id": "consent",
+      "text": "Persetujuan"
+    },
+    {
+      "type": "p",
+      "text": "Kami mengumpulkan dan membagikan data kesehatan konsumen hanya sejauh diperlukan untuk menyediakan layanan yang Anda minta, yang diizinkan oleh hukum tanpa persetujuan terpisah. Kami tidak akan mengumpulkan atau menggunakannya untuk tujuan lain apa pun, atau membagikannya di luar penyedia yang tercantum dalam [Siapa yang menerimanya](#who-gets-it), tanpa terlebih dahulu meminta persetujuan Anda. Jika Anda memberikan persetujuan, Anda dapat menariknya kapan saja dengan menulis ke {company.privacyEmail}. Anda juga dapat berhenti membagikan data kesehatan kapan saja: jangan sertakan data tersebut dalam apa yang Anda berikan kepada kami, dan hapus data tersebut sebagaimana dijelaskan dalam [Hak Anda](#your-rights)."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Hak Anda"
+    },
+    {
+      "type": "p",
+      "text": "Di negara bagian mana pun Anda tinggal, Anda dapat meminta kami untuk:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "mengonfirmasi apakah kami mengumpulkan, membagikan, atau menjual data kesehatan konsumen Anda;",
+        "memberi Anda akses ke data tersebut, beserta daftar pihak ketiga dan afiliasi yang menerima data tersebut dari kami serta cara menghubungi mereka;",
+        "menghapusnya, termasuk dari catatan kami dan dari penyedia yang menyimpannya untuk kami;",
+        "menarik persetujuan Anda atas pengumpulan atau pembagiannya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Apabila Anda meminta kami menghapusnya, kami menghapus atau menganonimkannya di ruang kerja cloud Anda dan meminta penyedia yang menyimpannya untuk kami agar melakukan hal yang sama. Salinan dalam cadangan kami akan hilang saat cadangan tersebut kedaluwarsa, dalam waktu sekitar 7 hari. Apabila kami wajib menyimpan suatu catatan, kami akan memberi tahu Anda alasannya. Data yang disimpan oleh Aplikasi Desktop di Mac Anda berada di tangan Anda: Anda dapat menghapusnya di sana kapan saja."
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak akan memperlakukan Anda secara berbeda, misalnya dengan menolak memberikan layanan atau mengubah kualitasnya, karena Anda menggunakan suatu hak."
+    },
+    {
+      "type": "h2",
+      "id": "how-to",
+      "text": "Menggunakan hak Anda"
+    },
+    {
+      "type": "p",
+      "text": "Tulis ke {company.privacyEmail} dan sebutkan hak mana yang ingin Anda gunakan. Kami dapat meminta Anda untuk mengonfirmasi identitas Anda, misalnya dengan menulis dari alamat email yang terdaftar di akun Anda. Orang yang Anda beri kuasa dapat mengajukan permintaan atas nama Anda. Kami dapat meminta bukti bahwa Anda telah memberinya izin. Penggunaan hak Anda tidak dipungut biaya. Kami menjawab dalam waktu satu bulan."
+    },
+    {
+      "type": "h3",
+      "id": "appeal",
+      "text": "Banding"
+    },
+    {
+      "type": "p",
+      "text": "Jika kami menolak permintaan Anda, Anda dapat mengajukan banding dengan membalas jawaban kami dengan subjek \"Appeal\". Kami akan memberi tahu Anda secara tertulis apa keputusan kami dan alasannya, dalam waktu 45 hari. Jika Anda masih tidak setuju, Anda dapat menghubungi Jaksa Agung (Attorney General) negara bagian Anda. Untuk Washington, lihat [halaman data kesehatan Jaksa Agung](https://www.atg.wa.gov/protecting-washingtonians-personal-health-data-and-privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Keamanan"
+    },
+    {
+      "type": "p",
+      "text": "Kami melindungi data kesehatan konsumen sebagaimana dijelaskan dalam [Kebijakan Privasi](/instant/legal/privacy#security) kami: data dikirim dalam keadaan terenkripsi, penyedia cloud kami mengenkripsinya saat disimpan, dan data di-host di UE. Aplikasi Desktop menyimpan riwayat obrolannya di Mac Anda tanpa enkripsi tambahan dari aplikasi itu sendiri, jadi pastikan Mac Anda tetap terkunci. Jika data kesehatan konsumen diakses atau diungkapkan tanpa otorisasi, kami akan memberi tahu Anda dan pihak berwenang apabila diwajibkan oleh hukum."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Apabila kebijakan ini berubah, kami memperbaruinya di sini dan mengubah tanggal di bagian atas. Sebelum kami menggunakan data kesehatan konsumen dengan cara baru, kami akan meminta persetujuan Anda. Pertanyaan: {company.privacyEmail}."
+    }
+  ]
+}

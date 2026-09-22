@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "모바일 앱 약관",
+    "summary": "본 약관은 Mac의 Orqanix를 원격으로 조작하기 위한 Orqanix 휴대폰 앱의 사용에 적용되며, 앱 스토어가 요구하는 약관을 포함합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "본 약관에 관하여"
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 휴대폰용 Orqanix 앱(이하 \"모바일 앱\")에 관하여 당사의 [서비스 약관](/instant/legal/terms)을 보충합니다. 본 약관은 서비스 약관, [데스크톱 앱 약관](/instant/legal/desktop-app-terms), 당사의 [허용 가능한 사용 정책](/instant/legal/acceptable-use) 및 [개인정보 처리방침](/instant/legal/privacy)과 함께 하나의 계약을 구성합니다. 모바일 앱에 관하여 본 약관과 서비스 약관이 서로 다른 경우에는 본 약관이 적용됩니다."
+    },
+    {
+      "type": "p",
+      "text": "모바일 앱은 당사 제품의 초기 단계 동안 무료입니다. 유료 요금제가 시작되기 전에 당사는 가격과 결제 및 해지에 관한 규칙을 게시합니다."
+    },
+    {
+      "type": "p",
+      "text": "또한 그 전에 당사는 EU 법률이 요구하는 바에 따라 구매 철회에 관한 규칙을 게시합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Mac을 위한 원격 조작 앱"
+    },
+    {
+      "type": "p",
+      "text": "모바일 앱은 귀하의 Mac에 있는 Orqanix를 원격으로 조작하는 앱입니다. 모바일 앱을 사용할 때:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하의 Mac에 Orqanix 앱(데스크톱 앱)이 필요합니다. Mac 앱으로 시작한 다음 휴대폰을 추가하십시오;",
+        "모든 작업은 귀하의 Mac에서 그 Mac의 파일, 도구 및 설정으로 실행됩니다. 휴대폰은 진행 상황을 보여 주고 다음 작업을 지시할 수 있게 해 줍니다;",
+        "파일은 귀하의 Mac에서 만들어지며 Mac의 프로젝트 폴더에 남습니다. 휴대폰은 무엇이 만들어졌는지 보여 주고, 원본은 Mac이 보관합니다;",
+        "모바일 앱은 귀하의 Mac이 온라인 상태이고 Orqanix가 열려 있는 동안에만 작동합니다. Mac이 잠자기 상태가 되거나 오프라인이 되면 휴대폰은 그 사실을 표시하고 Mac이 다시 연결될 때까지 기다립니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀하의 휴대폰이 항상 귀하의 Mac에 연결될 수 있다고 약속하지 않습니다. 네트워크, 잠자기 설정 및 귀하의 기기는 당사가 통제할 수 없습니다."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "휴대폰에서 작업하기"
+    },
+    {
+      "type": "p",
+      "text": "귀하는 실행 중인 작업을 확인하고, 결과를 읽고, 저장된 작업(레시피)을 다시 실행하고, 필요한 것을 입력하거나 말하여 새 작업을 시작할 수 있습니다. 그 작업은 [데스크톱 앱 약관](/instant/legal/desktop-app-terms)에 따라 귀하의 Mac에 있는 데스크톱 앱이 수행합니다. 이는 다음을 의미합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하의 Mac에 있는 에이전트는 파일 변경이나 명령 실행 등 실제 작업을 수행할 수 있습니다. 귀하가 Mac에서 [해당 설정을 변경](/instant/legal/desktop-app-terms#approval-modes)하지 않은 한, 에이전트는 기본적으로 먼저 묻지 않고 작업을 수행합니다;",
+        "귀하는 휴대폰에서 시작한 작업에 대해 Mac에서 직접 시작한 것과 같이 책임을 집니다;",
+        "귀하는 Mac 앞에서 지켜보고 있지 않으므로, 무엇을 요청할지 신중하게 선택하고 결과를 신뢰하기 전에 확인하십시오."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AI는 실수를 합니다. 결과는 틀리거나, 불완전하거나, 최신이 아닐 수 있습니다. [AI 작동 방식](/instant/legal/ai)을 참조하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "알림"
+    },
+    {
+      "type": "p",
+      "text": "모바일 앱은 작업이 완료되었을 때 귀하에게 알릴 수 있습니다. 휴대폰 설정에서 알림을 끌 수 있습니다. 알림은 잠금 화면에 표시될 수 있으므로, 알림 미리보기를 귀하에게 맞게 설정하십시오. 당사는 모든 알림이 도착하거나 제때 도착한다고 약속하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "귀하의 계정과 휴대폰"
+    },
+    {
+      "type": "list",
+      "items": [
+        "모바일 앱을 사용하려면 만 18세 이상이어야 합니다.",
+        "잠금 해제된 귀하의 휴대폰을 사용할 수 있는 사람은 누구든지 모바일 앱을 통해 귀하의 Mac에서 작업을 시작할 수 있습니다. 휴대폰을 잠가 두십시오. 휴대폰을 분실하거나 다른 사람에게 준 경우, 가능하면 모바일 앱을 제거하고 당사에 알려 주십시오.",
+        "다른 사람이 귀하의 계정을 사용했다고 생각되면 {company.email}로 당사에 알려 주십시오."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀하가 모바일 앱을 사용할 때 당사가 무엇을 왜 수집하는지는 [개인정보 처리방침](/instant/legal/privacy)에 설명되어 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "사용 라이선스"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 본 약관을 준수하는 동안, 당사는 귀하가 소유하거나 관리하는 휴대폰에 모바일 앱을 설치하고 사용할 수 있는 개인적이고 비독점적이며 양도 불가능한 라이선스를 귀하에게 부여합니다. 귀하는 모바일 앱을 판매, 임대, 대여하거나 서브라이선스해서는 안 되며, 앱의 보안 조치나 제한을 우회하거나, 경쟁 제품을 만들기 위해 앱을 복제해서는 안 됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "업데이트 및 변경"
+    },
+    {
+      "type": "p",
+      "text": "당사는 모바일 앱의 새 버전을 출시하고 기능을 변경하거나 제거할 수 있습니다. 귀하가 앱 스토어에서 앱을 받은 경우, 업데이트는 해당 스토어의 규칙에 따라 그 스토어를 통해 제공됩니다. 변경에 관한 규칙은 [서비스 및 본 약관의 변경](/instant/legal/terms#changes)에 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하가 소비자로서(귀하의 영업이나 사업 외의 목적으로) 모바일 앱을 사용하는 경우, 귀하는 디지털 콘텐츠에 관하여 EU 법률이 소비자에게 부여하는 권리를 갖습니다. 앱이 무료이더라도, 귀하가 앱을 사용하기 위해 당사에 개인정보를 제공하므로 이러한 권리가 적용됩니다(지침 (EU) 2019/770). 법률이 요구하는 기간 동안, 당사는 앱이 설명된 대로 계속 작동하는 데 필요한 업데이트(보안 업데이트 포함)를 제공합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "그 밖에는, 당사는 정당한 사유가 있는 경우에만 귀하에게 비용을 부과하지 않고 모바일 앱을 변경합니다. 그러한 변경으로 인해 귀하의 앱 사용이 경미한 정도를 넘어 불리해지는 경우, 당사는 변경 전에 충분한 시간을 두고 귀하에게 이메일로 알립니다. 이 경우 귀하는 당사의 통지일 또는 변경일 중 늦은 날로부터 30일 이내에 본 계약을 무료로 종료할 수 있습니다. 다만, 당사가 추가 비용 없이 변경되지 않은 버전을 계속 사용할 수 있도록 하는 경우에는 그러하지 아니합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "책임"
+    },
+    {
+      "type": "p",
+      "text": "법률이 허용하는 한도에서, 모바일 앱은 어떠한 종류의 보증도 없이 \"있는 그대로\" 및 \"제공 가능한 상태로\" 제공됩니다. 서비스 약관의 [면책 조항](/instant/legal/terms#warranty) 및 [책임](/instant/legal/terms#liability)이 모바일 앱에 적용됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "당사는 서비스 약관의 [책임](/instant/legal/terms#liability)에 규정된 바에 따라 귀하 국가의 법률에 의거하여 모바일 앱에 대해 책임을 집니다. 본 약관이나 앱 스토어 약관의 어떠한 내용도 소비자로서 귀하가 갖는 법정 권리를 제한하지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "앱 스토어 약관"
+    },
+    {
+      "type": "p",
+      "text": "이 조항은 귀하가 앱 스토어에서 모바일 앱을 받은 경우에 적용됩니다. 귀하의 다운로드 및 사용에는 해당 스토어 자체의 약관도 적용됩니다. 귀하는 그 약관과 데이터 요금제 등 귀하의 이동통신망 약관을 준수해야 합니다."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 Apple의 App Store에서 모바일 앱을 받은 경우, 귀하와 당사는 다음에 동의합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "본 약관은 Apple이 아닌 귀하와 당사 사이에서만 체결됩니다. 모바일 앱과 그 콘텐츠에 대해서는 Apple이 아닌 당사가 전적으로 책임을 집니다;",
+        "귀하의 라이선스는 Apple의 [미디어 서비스 이용 약관](https://www.apple.com/legal/internet-services/itunes/)의 사용 규칙이 허용하는 바에 따라, 귀하가 소유하거나 관리하는 Apple 브랜드 제품에서의 사용을 포함합니다. 가족 공유 또는 대량 구매를 통해 귀하의 계정에 연결된 다른 사람도 해당 규칙이 허용하는 바에 따라 이를 사용할 수 있습니다;",
+        "모바일 앱의 유지 관리 및 지원에 대해서는 당사만이 책임을 집니다. Apple은 이를 제공할 의무가 없습니다;",
+        "모바일 앱이 적용되는 보증을 충족하지 못하는 경우, 귀하는 Apple에 이를 알릴 수 있으며, Apple은 귀하가 앱에 대해 지불한 금액이 있다면 이를 환불합니다. 법률이 허용하는 한도에서, Apple은 모바일 앱에 대해 그 밖의 어떠한 보증 의무도 지지 않습니다. 그러한 불이행으로 인해 발생하는 그 밖의 모든 청구, 손실, 책임, 손해, 비용 또는 경비는 본 약관과 법률이 정하는 범위에서 당사의 책임입니다;",
+        "모바일 앱 또는 귀하의 앱 사용에 관한 귀하 또는 타인의 모든 청구(제조물 책임 청구, 앱이 법적 또는 규제상 요건을 충족하지 못한다는 청구, 소비자 보호법, 개인정보 보호법 또는 이와 유사한 법률에 따른 청구 포함)는 Apple이 아닌 당사가 처리합니다;",
+        "누군가가 모바일 앱 또는 귀하의 앱 사용이 자신의 지식재산권을 침해한다고 주장하는 경우, 본 약관이 당사에 책임을 지우는 범위에서, 그 청구의 조사, 방어, 합의 및 해결에 대해서는 Apple이 아닌 당사가 책임을 집니다;",
+        "귀하는 미국 정부의 금수 조치 대상 국가 또는 미국 정부가 \"테러 지원\" 국가로 지정한 국가에 소재하지 않으며, 미국 정부의 금지 또는 제한 대상자 명단에 올라 있지 않습니다;",
+        "Apple과 그 자회사는 본 약관의 제3자 수익자입니다. 귀하가 본 약관에 동의하면, Apple은 제3자 수익자로서 귀하에 대해 본 약관을 집행할 권리를 가지며, 그 권리를 수락한 것으로 간주됩니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "모바일 앱에 관한 질문, 불만 또는 청구는 Apple이 아닌 당사에 {company.email}로 보내십시오."
+    },
+    {
+      "type": "p",
+      "text": "모바일 앱의 개발자는 {company.legalName}, {company.address}입니다.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 Google Play에서 모바일 앱을 받은 경우, 귀하와 당사는 다음에 동의합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "본 약관은 Google이 아닌 귀하와 당사 사이에서만 체결됩니다. Google은 모바일 앱, 그 콘텐츠, 지원 또는 앱에 관한 어떠한 청구에 대해서도 책임지지 않습니다;",
+        "귀하의 다운로드 및 사용에는 [Google Play 서비스 약관](https://play.google.com/about/play-terms/)도 적용됩니다. Google과 귀하의 관계에 관하여 Google Play 서비스 약관이 본 약관과 상충하는 경우, Google Play 서비스 약관이 적용됩니다;",
+        "Google Play를 통해 구매한 항목의 환불은 Google Play의 규칙을 따릅니다."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "제재 및 수출"
+    },
+    {
+      "type": "p",
+      "text": "미국 또는 EU의 제재나 수출 규정이 금지하는 곳에서, 또는 귀하가 미국이나 EU의 제재 대상자 명단에 올라 있는 경우, 귀하는 모바일 앱을 다운로드하거나 사용해서는 안 됩니다. 서비스 약관의 [제재 및 수출](/instant/legal/terms#sanctions)을 참조하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "사용 종료"
+    },
+    {
+      "type": "p",
+      "text": "귀하는 휴대폰에서 모바일 앱을 삭제하여 언제든지 사용을 중단할 수 있습니다. 이는 데스크톱 앱을 중지하거나, 귀하의 Mac에 있는 파일을 삭제하거나, 귀하의 Orqanix 계정을 해지하지 않습니다. 계정을 해지하거나 당사에 데이터 삭제를 요청하려면 [서비스 약관](/instant/legal/terms) 및 [개인정보 처리방침](/instant/legal/privacy)을 참조하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "문의"
+    },
+    {
+      "type": "p",
+      "text": "본 약관에 관한 문의: {company.email}. 개인정보 관련 요청: {company.privacyEmail}."
+    }
+  ]
+}

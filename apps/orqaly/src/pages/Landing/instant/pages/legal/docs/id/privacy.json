@@ -1,0 +1,814 @@
+{
+  "meta": {
+    "slug": "privacy",
+    "title": "Kebijakan Privasi",
+    "summary": "Kebijakan ini menjelaskan data pribadi apa yang dikumpulkan Orqanix, alasan kami menggunakannya, siapa yang menerimanya, berapa lama kami menyimpannya, dan hak-hak apa yang Anda miliki.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'run by', controller and postal lines are hidden until filled. Hiding the controller breaks GDPR Art. 13(1)(a) in practice; fill before publishing the EU version (FACTS §14.1).",
+        "euRepresentative (GDPR Art. 27): the section is hidden until filled; needed only if the company is outside the EU. UK Art. 27 and Swiss Art. 14 representatives not addressed (FACTS §14.1).",
+        "geminiPaidTier: paid-tier sentences (Google not using data; Google's DPA covering transfers) stay hidden until confirmed. Without it, Google's own use of Gemini data is only described by linking Google's terms, and the transfer safeguard for Gemini is not named (FACTS §14.3).",
+        "Transfers: Clerk's UK Extension / Swiss-US DPF status, and Cloudflare's safeguards via Clerk, are not confirmed; the UK/Swiss wording is generic ('such as').",
+        "Retention: no periods exist in code for workspace data, API records, the artifact bucket or emails; written as 'as long as your account exists / business relationship lasts'. Server logs are 'a limited time under our cloud provider's standard settings' (30-day default not confirmed, FACTS §14.5, §14.6).",
+        "Deletion/export: no self-service deletion or export and no process that works with the immutable tables; text promises 'delete or anonymise, or tell you why' and an answer within one month (FACTS §3, §14.5).",
+        "Lawyer: legal basis for special-category data (GDPR Art. 9) that users choose to include (e.g. health) is not stated; text says we use it only to do what was asked.",
+        "Lawyer: roles for web searches and OpenRegister lookups (independent recipients vs processors), and for Assistant Bot contacts when used for business (processor under the DPA) (FACTS §7, §14.11).",
+        "Mobile App and Assistant Bot: written as usage rules from their product pages only; no code exists, so what the Mobile App stores on the phone or in our cloud (e.g. for notifications) is unknown (FACTS §5, §6, §14.13).",
+        "Desktop defaults disclosed as they are (auto-approve on, dictation on, provider keys in plain text); update if the owner changes them (FACTS §14.8).",
+        "Age 18+ and 'region at sign-up' need a sign-up self-declaration and an acceptance record (FACTS §14.9).",
+        "Email: privacy@ and hello@ must receive mail (no MX record today); our email provider is not named as a recipient because none is chosen (FACTS §14.2).",
+        "Describes the website AFTER this build (no cookies or third-party calls on marketing pages, self-hosted fonts). Publish only once that build is live.",
+        "US: 'we answer within one month' is used for US requests too; lawyer to confirm it fits CCPA (45 days) and other state deadlines. The US version assumes the CCPA may not apply yet but follows it anyway.",
+        "Lawyer/owner: Gemini tier and \"no sale\". If Google's unpaid Gemini terms apply, Google may use prompts to improve its products; that disclosure could count as a \"sale\" or \"sharing\" under CCPA and other state laws (and makes Google an independent recipient under GDPR), which would make \"we do not sell your data\" and the no-opt-out-link position wrong. Confirm the paid tier before publishing (FACTS §14.3; us.md §Recommendations 2).",
+        "Lawyer: transfer basis for independent recipients outside Europe (public search engines; OpenRegister if relevant) is not named; the text says only that some are outside Europe.",
+        "Lawyer/owner: data protection officer. No DPO is named; whether one is required (GDPR Art. 37, § 38 BDSG at 20+ staff) depends on the company. Add a DPO contact block if one is appointed.",
+        "Lawyer: DSA Art. 13 legal representative and UK Art. 27 / Swiss Art. 14 representatives if the company is not EU/UK/CH-established.",
+        "Desktop App built-in storage (theme, menu layout, pinned chats, recently typed messages, kept by the app on the Mac) is summarised, not listed item by item.",
+        "EU word count is about 3,670 (US about 3,510), above the 3,500 guide, because of the legal-basis table and the Art. 13(2)(e) sentence. The 2026-09-21 edit cut repetition but no content."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Siapa kami"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix (\"kami\") menyediakan situs web orqanix.com dan produk-produk Orqanix: Aplikasi Desktop untuk Mac Anda, Aplikasi Seluler, Bot Asisten, API, dan layanan Korporat kami. Aplikasi Desktop dan aplikasi web menggunakan satu akun online dan satu ruang kerja cloud yang sama. Kebijakan ini menjelaskan data pribadi apa yang kami kumpulkan melalui semua produk tersebut, alasannya, dan apa yang dapat Anda lakukan terkait hal itu."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix dijalankan oleh {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Untuk segala hal terkait privasi Anda, tulis ke {company.privacyEmail}."
+    },
+    {
+      "type": "note",
+      "text": "Singkatnya: kami mengumpulkan apa yang kami perlukan untuk menjalankan akun Anda dan melakukan pekerjaan yang Anda minta. Apa yang Anda tanyakan kepada AI dikirim ke penyedia model (secara default Google Gemini) untuk mendapatkan jawaban. Kami meng-host layanan cloud dan basis data kami di UE (Google Cloud, Belanda). Kami tidak menjual data Anda, tidak menampilkan iklan, tidak menggunakan pelacak iklan atau analitik, dan kami tidak melatih model AI kami sendiri dengan konten Anda."
+    },
+    {
+      "type": "h3",
+      "id": "controller",
+      "text": "Pengendali",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Untuk sebagian besar hal yang dijelaskan dalam kebijakan ini, kami adalah \"pengendali\": pihak yang menentukan alasan dan cara data pribadi Anda digunakan (GDPR Art. 4(7)). Apabila suatu bisnis menggunakan API kami, layanan Korporat kami, atau Bot Asisten dengan datanya sendiri, bisnis tersebut adalah pengendalinya. Kami adalah \"pemroses\"-nya: kami menangani data atas nama bisnis tersebut, berdasarkan [Adendum Pemrosesan Data](/instant/legal/dpa) kami. Pemberitahuan privasi milik bisnis tersebut menjelaskan cara bisnis itu menggunakan data."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Pengendalinya adalah {company.legalName}, {company.address}."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Apa yang kami kumpulkan"
+    },
+    {
+      "type": "p",
+      "text": "Apa yang kami kumpulkan bergantung pada bagian Orqanix mana yang Anda gunakan. Untuk membuat akun, Anda wajib memberikan rincian yang diminta dalam proses masuk, seperti alamat email Anda. Tanpa rincian tersebut, kami tidak dapat memberi Anda akun. Selebihnya merupakan pilihan Anda, meskipun beberapa fitur memerlukan data tertentu agar dapat berfungsi. Tidak ada hukum yang mewajibkan Anda memberikan data pribadi kepada kami."
+    },
+    {
+      "type": "h3",
+      "id": "website",
+      "text": "Situs web"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Penyedia hosting kami, Google Cloud, menyimpan log server biasa saat Anda berkunjung: alamat IP, browser, waktu, dan halaman yang Anda minta. Kami menggunakannya untuk menjaga keamanan situs dan memperbaiki masalah.",
+        "Halaman pemasaran dan halaman hukum kami tidak menetapkan cookie dan tidak melakukan panggilan ke perusahaan lain. Font-nya berasal dari server kami sendiri.",
+        "Jika Anda memilih versi AS atau UE di halaman hukum kami, browser Anda mengingat pilihan tersebut. Pilihan itu tetap berada di browser Anda dan tidak dikirimkan kepada kami.",
+        "Saat Anda mengunduh Aplikasi Desktop, file tersebut berasal dari Google Cloud Storage, sehingga Google melihat alamat IP Anda.",
+        "Halaman masuk dan aplikasi web menggunakan cookie dan penyimpanan browser yang diperlukan agar dapat berfungsi. [Cookie & Penyimpanan](/instant/legal/cookies) mencantumkan masing-masing."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "account",
+      "text": "Akun Anda"
+    },
+    {
+      "type": "p",
+      "text": "Anda memerlukan akun Orqanix untuk menggunakan Aplikasi Desktop dan aplikasi web. Clerk menjalankan proses masuk untuk kami. Clerk menyimpan alamat email Anda, nama Anda jika Anda memberikannya, dan foto profil Anda jika Anda masuk dengan Google. Untuk menjaga keamanan akun Anda, Clerk juga menyimpan catatan proses masuk dan sesi Anda, termasuk alamat IP dan rincian perangkat Anda. Saat pendaftaran, Cloudflare memeriksa untuk Clerk bahwa Anda adalah manusia dan bukan bot, menggunakan sinyal dari browser dan perangkat Anda. Basis data kami sendiri menyimpan ID pengguna Clerk yang menghubungkan akun Anda dengan ruang kerja Anda."
+    },
+    {
+      "type": "h3",
+      "id": "cloud-workspace",
+      "text": "Ruang kerja cloud Anda"
+    },
+    {
+      "type": "p",
+      "text": "Saat Anda menggunakan Orqanix secara online, kami menyimpan pekerjaan Anda di basis data kami di UE agar Anda dapat kembali melanjutkannya. Hal ini mencakup:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Percakapan asisten Anda: teks lengkap dari apa yang Anda tulis dan jawabannya.",
+        "Tujuan Anda, setiap eksekusi alur kerja, serta file dan laporan yang dibuat oleh agen, beserta catatan tentang cara masing-masing dibuat.",
+        "Persetujuan yang Anda berikan, dan log langkah-langkah yang diambil oleh agen.",
+        "Otomatisasi yang Anda atur, seperti jadwal dan webhook. Untuk kunci aplikasi yang kami terbitkan, kami hanya menyimpan bentuk teracaknya (sebuah \"hash\"). Kredensial yang Anda tambahkan untuk layanan yang terhubung disimpan di penyimpanan terenkripsi yang terpisah.",
+        "Pertanyaan riset yang dikirim oleh Aplikasi Desktop ke cloud (lihat [Aplikasi Desktop](#desktop-app))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Untuk menjawab Anda, asisten cloud mengirimkan permintaan Anda ke model AI (secara default Google Gemini). Untuk riset, layanan pencarian kami sendiri mengirimkan kueri pencarian yang disusun dari permintaan Anda ke mesin pencari publik (Google, Bing, Brave, dan DuckDuckGo). Layanan ini juga dapat mencari perusahaan di daftar publik melalui OpenRegister. Kami mengirimkan kuerinya, bukan nama atau rincian akun Anda."
+    },
+    {
+      "type": "p",
+      "text": "Laporan yang telah selesai juga disimpan sebagai file di area penyimpanan pribadi di UE. Beberapa catatan, seperti pesan dan log tentang apa yang dilakukan agen, disimpan sebagai log tetap yang tidak diedit setelahnya. [Berapa lama kami menyimpannya](#retention) menjelaskan apa yang terjadi saat Anda meminta kami menghapusnya."
+    },
+    {
+      "type": "h3",
+      "id": "desktop-app",
+      "text": "Aplikasi Desktop"
+    },
+    {
+      "type": "p",
+      "text": "Sebagian besar hal yang ditangani oleh Aplikasi Desktop tetap berada di Mac Anda. Sebagian lainnya harus keluar dari Mac Anda agar aplikasi dapat berfungsi."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Tetap berada di Mac Anda",
+        "Keluar dari Mac Anda"
+      ],
+      "rows": [
+        [
+          "Riwayat obrolan Anda, dalam file basis data lokal. Kami tidak menambahkan enkripsi kami sendiri.",
+          "Setiap kali model AI menjawab, seluruh percakapan hingga saat itu dikirimkan kepadanya: pesan Anda, hasil alat yang digunakan agen (seperti isi file yang mereka baca dan keluaran perintah), instruksi produk kami, dan konteks Tujuan apa pun."
+        ],
+        [
+          "File yang dibuat oleh agen, di folder proyek yang Anda pilih.",
+          "Dengan model default, data ini melewati gateway kami di UE menuju Google Gemini. Gateway kami meneruskan permintaan tersebut dan tidak menyimpannya."
+        ],
+        [
+          "Pengaturan, log (log lama dibersihkan secara otomatis), daftar pesan yang baru-baru ini Anda ketik agar dapat Anda panggil kembali, dan folder aplikasi yang hanya dapat dibaca oleh akun macOS Anda.",
+          "Saat agen meminta riset cloud, agen mengirimkan pertanyaan dan, jika diperlukan, kutipan dari maksimal lima file cloud Anda yang sudah ada. Data ini disimpan di ruang kerja cloud Anda."
+        ],
+        [
+          "Data masuk Orqanix Anda, di macOS Keychain. Keluar dari akun akan membatalkannya.",
+          "Jika Anda menggunakan dikte suara, suara Anda dikirimkan ke penyedia model."
+        ],
+        [
+          "Kunci untuk penyedia AI yang Anda hubungkan sendiri (seperti OpenAI atau Anthropic), disimpan dalam file pengaturan teks biasa di folder aplikasi.",
+          "Jika Anda beralih ke penyedia AI lain, penyedia tersebut menerima percakapan berdasarkan ketentuan dan kebijakan privasinya sendiri."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi ini tidak mengirimkan statistik penggunaan dan tidak memiliki pelapor kerusakan (crash reporter). Secara default, agen dapat membaca dan menulis file serta menjalankan perintah tanpa meminta izin Anda terlebih dahulu. Anda dapat mengubahnya agar aplikasi meminta izin sebelum setiap tindakan, atau hanya sebelum tindakan yang sensitif. Resep terjadwal hanya berjalan selama aplikasi terbuka."
+    },
+    {
+      "type": "h3",
+      "id": "mobile-app",
+      "text": "Aplikasi Seluler"
+    },
+    {
+      "type": "p",
+      "text": "Saat Anda menggunakan Aplikasi Seluler, aplikasi tersebut berfungsi sebagai pengendali jarak jauh untuk Orqanix di Mac Anda. Pekerjaan dijalankan di Mac Anda, sehingga apa yang dinyatakan kebijakan ini tentang [Aplikasi Desktop](#desktop-app) juga berlaku untuknya: file dibuat di Mac Anda dan tetap berada di folder proyek Anda, dan ponsel menampilkan apa yang telah dibuat. Permintaan dari ponsel ditangani seperti permintaan yang dibuat di Mac Anda. Aplikasi Seluler dapat memberi tahu Anda saat suatu pekerjaan selesai. Kami menggunakan data yang diperlukannya hanya untuk menghubungkan ponsel Anda ke Mac Anda, menampilkan hasilnya kepada Anda, dan mengirimkan pemberitahuan tersebut kepada Anda."
+    },
+    {
+      "type": "h3",
+      "id": "assistant-bot",
+      "text": "Bot Asisten"
+    },
+    {
+      "type": "p",
+      "text": "Saat Anda menggunakan Bot Asisten, Anda menghubungkan aplikasi perpesanan dan akun email serta memberikan peran kepada setiap bot. Bot membaca apa yang diperlukannya dari akun-akun tersebut untuk melakukan pekerjaannya: pesan, lampiran, kontak, dan file. Bot membuat peta bisnis Anda (tim, klien, pemasok, dan file Anda, serta keterkaitan di antara semuanya), mengumpulkan kontak dari email dan ponsel Anda ke dalam satu daftar, dan memilah dokumen ke dalam folder. File-filenya masuk ke Ruang Kerja Orqanix Anda, yang merupakan bagian dari ruang kerja cloud Anda. Saat bot menggunakan model AI atau riset, hal ini berjalan sebagaimana dijelaskan dalam [Ruang kerja cloud Anda](#cloud-workspace)."
+    },
+    {
+      "type": "p",
+      "text": "Hubungkan hanya akun yang berhak Anda hubungkan. Orang-orang di dalamnya, seperti klien dan pemasok Anda, juga memiliki hak privasi. Saat Anda menggunakan bot untuk bisnis Anda, Anda bertanggung jawab untuk memiliki alasan yang sah untuk memproses data mereka. Lihat [Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms)."
+    },
+    {
+      "type": "h3",
+      "id": "api",
+      "text": "API"
+    },
+    {
+      "type": "p",
+      "text": "API ditujukan untuk bisnis. Suatu bisnis mengirimkan tugas kepada kami beserta agen, alat, dan anggarannya, dan kami mengirimkan kembali sebuah keputusan: siapa yang sebaiknya melakukan pekerjaan tersebut, dan alasannya. Kami menyimpan keputusan tersebut, hasil yang dilaporkan kembali oleh bisnis, dan catatan cakupan setiap pekerjaan di basis data API sendiri di UE (Google Cloud, Belanda). Untuk mencapai suatu keputusan, kami dapat menggunakan model AI, pencarian web, dan pencarian di daftar perusahaan, sebagaimana dijelaskan dalam [Ruang kerja cloud Anda](#cloud-workspace). Hasil pencarian daftar dapat mencakup nama direktur perusahaan. Kami juga menyimpan rincian kontak orang-orang yang berurusan dengan kami di bisnis tersebut."
+    },
+    {
+      "type": "h3",
+      "id": "enterprise",
+      "text": "Korporat"
+    },
+    {
+      "type": "p",
+      "text": "Untuk proyek Korporat, kami menangani data yang diberikan pelanggan kepada kami untuk membangun dan menjalankan apa yang dipesannya. Setiap proyek di-host di region Google Cloud di UE yang disepakati dengan pelanggan. Pesanan tertulis dan [Adendum Pemrosesan Data](/instant/legal/dpa) kami menetapkan data apa yang terlibat dan apa yang boleh kami lakukan dengannya. Kami juga menyimpan rincian kontak orang-orang yang bekerja sama dengan kami di pihak pelanggan."
+    },
+    {
+      "type": "h3",
+      "id": "contact-us",
+      "text": "Email kepada kami"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda mengirim email kepada kami, kami menerima alamat email Anda, nama Anda jika Anda memberikannya, dan apa pun yang Anda tulis. Kami menggunakannya untuk menjawab Anda dan menangani permintaan Anda."
+    },
+    {
+      "type": "h3",
+      "id": "other-people",
+      "text": "Orang lain"
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat memproses data tentang orang-orang yang tidak menggunakan Orqanix sendiri: orang-orang yang disebutkan dalam konten yang diberikan pengguna kami kepada kami, kontak di akun-akun yang dihubungkan pengguna ke Bot Asisten, orang-orang yang disebutkan di halaman web yang ditemukan oleh riset kami, dan direktur perusahaan yang tercantum di daftar publik. Kami menggunakan data ini hanya untuk melakukan pekerjaan yang diminta oleh pengguna kami. Jika Anda adalah salah satu dari orang-orang tersebut, Anda memiliki hak yang dijelaskan dalam [Hak Anda](#your-rights)."
+    },
+    {
+      "type": "h3",
+      "id": "sensitive-data",
+      "text": "Data sensitif"
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak meminta data sensitif, seperti informasi kesehatan, pandangan politik, atau keyakinan agama. Jika Anda memilih untuk menyertakannya dalam apa yang Anda ketik, unggah, atau hubungkan, kami menggunakannya hanya untuk melakukan apa yang Anda minta. Harap bagikan data tersebut hanya apabila tugas Anda memerlukannya."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Jika Anda tinggal di AS, [Kebijakan Privasi Data Kesehatan Konsumen](/instant/legal/health-data) kami juga mencakup setiap informasi kesehatan yang sampai kepada kami."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Cara kami menggunakannya"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Untuk menyediakan akun Anda dan produk yang Anda gunakan, serta melakukan pekerjaan yang Anda minta.",
+        "Untuk mengirimkan permintaan Anda ke model AI dan mengembalikan jawabannya, serta menjalankan riset dan otomatisasi yang Anda atur.",
+        "Untuk menjaga keamanan Orqanix: mencegah penyalahgunaan, spam, dan serangan, serta menyelidiki masalah.",
+        "Untuk memperbaiki bug dan menjaga layanan tetap berfungsi.",
+        "Untuk menjawab pesan dan permintaan privasi Anda.",
+        "Untuk memenuhi kewajiban hukum kami dan membela diri terhadap tuntutan hukum."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak melatih model AI kami sendiri dengan konten Anda. Kami meningkatkan jawaban dengan menambahkan instruksi dan konteks pada apa yang kami kirimkan ke model. Kami tidak menggunakan data Anda untuk iklan. Kami tidak membuat keputusan otomatis tentang Anda yang memiliki akibat hukum atau akibat serius serupa."
+    },
+    {
+      "type": "h2",
+      "id": "legal-bases",
+      "text": "Dasar hukum kami",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Hukum pelindungan data hanya mengizinkan kami menggunakan data pribadi apabila kami memiliki alasan hukum, yang disebut \"dasar hukum\" (GDPR Art. 6). Tabel berikut menunjukkan dasar hukum untuk setiap tujuan."
+    },
+    {
+      "type": "table",
+      "only": "eu",
+      "head": [
+        "Tujuan",
+        "Data",
+        "Dasar hukum"
+      ],
+      "rows": [
+        [
+          "Menjalankan situs web dan menjaga keamanannya",
+          "Log server: alamat IP, browser, waktu, halaman",
+          "Kepentingan sah kami atas situs web yang berfungsi dan aman (GDPR Art. 6(1)(f))"
+        ],
+        [
+          "Membuat akun Anda dan memproses masuk Anda",
+          "Email, nama, foto profil (masuk dengan Google), catatan masuk dan sesi",
+          "Kontrak dengan Anda (GDPR Art. 6(1)(b))"
+        ],
+        [
+          "Melindungi proses masuk dari bot dan penyalahgunaan",
+          "Alamat IP, sinyal perangkat dan browser (Clerk, Cloudflare)",
+          "Kepentingan sah kami atas keamanan (GDPR Art. 6(1)(f))"
+        ],
+        [
+          "Menyediakan ruang kerja cloud, asisten, riset, dan otomatisasi",
+          "Pesan, tujuan, file, catatan alur kerja, pertanyaan riset Anda",
+          "Kontrak dengan Anda (GDPR Art. 6(1)(b))"
+        ],
+        [
+          "Mendapatkan jawaban dari model AI di Aplikasi Desktop",
+          "Percakapan, hasil alat, instruksi produk; suara Anda jika Anda mendikte",
+          "Kontrak dengan Anda (GDPR Art. 6(1)(b))"
+        ],
+        [
+          "Menjalankan Bot Asisten pada akun yang Anda hubungkan",
+          "Pesan, lampiran, kontak, dan file dari akun-akun tersebut",
+          "Kontrak dengan Anda (GDPR Art. 6(1)(b)); untuk orang lain di akun-akun tersebut, kepentingan sah Anda dan kami untuk melakukan pekerjaan yang Anda minta (GDPR Art. 6(1)(f)), atau pemrosesan oleh kami atas nama Anda jika Anda menggunakan bot untuk bisnis Anda (GDPR Art. 28)"
+        ],
+        [
+          "Mencari informasi publik untuk riset",
+          "Kueri pencarian; entri daftar publik, yang dapat mencakup nama direktur",
+          "Kontrak dengan pengguna kami (GDPR Art. 6(1)(b)); untuk orang-orang yang ditemukan, kepentingan sah kami untuk menjawab permintaan (GDPR Art. 6(1)(f))"
+        ],
+        [
+          "Berurusan dengan pelanggan bisnis API dan Korporat",
+          "Nama dan rincian kontak orang-orang yang berurusan dengan kami",
+          "Kepentingan sah kami untuk menjalankan hubungan bisnis (GDPR Art. 6(1)(f))"
+        ],
+        [
+          "Memproses data milik pelanggan bisnis di layanan API atau Korporat",
+          "Apa pun yang dikirimkan pelanggan kepada kami",
+          "Dasar hukum milik pelanggan; kami bertindak sebagai pemrosesnya (GDPR Art. 28)"
+        ],
+        [
+          "Menyimpan catatan yang andal tentang apa yang dilakukan agen, dan menangani tuntutan hukum",
+          "Peristiwa alur kerja, persetujuan, file, dan cara pembuatannya",
+          "Kepentingan sah kami atas riwayat yang tepercaya dan untuk membela diri terhadap atau mengajukan tuntutan hukum (GDPR Art. 6(1)(f))"
+        ],
+        [
+          "Menjawab pesan dan permintaan privasi Anda",
+          "Alamat email Anda dan apa yang Anda tulis",
+          "Kontrak atau kepentingan sah kami untuk menjawab Anda (GDPR Art. 6(1)(b), (f)); kewajiban hukum untuk permintaan privasi (GDPR Art. 6(1)(c))"
+        ],
+        [
+          "Memenuhi kewajiban hukum, seperti catatan pajak atau permintaan sah dari pihak berwenang",
+          "Apa yang diwajibkan oleh kewajiban tersebut",
+          "Kewajiban hukum (GDPR Art. 6(1)(c))"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Apabila kami mengandalkan kepentingan sah kami, kami telah menimbangnya terhadap kepentingan dan hak Anda. Anda dapat mengajukan keberatan kapan saja (lihat [Hak Anda](#your-rights))."
+    },
+    {
+      "type": "h2",
+      "id": "notice-at-collection",
+      "text": "Pemberitahuan saat pengumpulan",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Tabel ini merangkum, dengan istilah yang digunakan oleh undang-undang privasi negara bagian AS, apa yang kami kumpulkan, dari mana asalnya, alasannya, dan berapa lama."
+    },
+    {
+      "type": "table",
+      "only": "us",
+      "head": [
+        "Kategori",
+        "Contoh",
+        "Sumber",
+        "Alasan kami menggunakannya",
+        "Berapa lama kami menyimpannya"
+      ],
+      "rows": [
+        [
+          "Pengenal",
+          "Alamat email, nama, ID akun, alamat IP",
+          "Anda; Clerk; Google jika Anda masuk dengan Google",
+          "Akun Anda, proses masuk, keamanan",
+          "Selama akun Anda ada, kemudian sebagaimana diwajibkan oleh kewajiban hukum"
+        ],
+        [
+          "Aktivitas internet atau jaringan",
+          "Log server, catatan masuk dan sesi, rincian browser dan perangkat",
+          "Browser dan perangkat Anda",
+          "Keamanan, perbaikan masalah",
+          "Log server untuk waktu terbatas (lihat [Berapa lama kami menyimpannya](#retention)); catatan masuk selama akun Anda ada"
+        ],
+        [
+          "Konten yang Anda berikan kepada kami",
+          "Pesan, file, tujuan, pertanyaan riset, percakapan Aplikasi Desktop yang dikirim ke model AI",
+          "Anda; akun yang Anda hubungkan",
+          "Melakukan pekerjaan yang Anda minta",
+          "Selama akun Anda ada; permintaan yang melewati gateway AI kami tidak disimpan"
+        ],
+        [
+          "Audio",
+          "Suara Anda, jika Anda menggunakan dikte",
+          "Anda",
+          "Mengubah apa yang Anda ucapkan menjadi permintaan",
+          "Tidak disimpan oleh gateway kami; ketentuan penyedia model sendiri berlaku"
+        ],
+        [
+          "Informasi profesional",
+          "Rincian kontak orang-orang di pelanggan bisnis; nama direktur di daftar publik",
+          "Anda; daftar perusahaan publik",
+          "Layanan API dan Korporat, riset",
+          "Selama hubungan bisnis berlangsung, kemudian sebagaimana diwajibkan oleh kewajiban hukum"
+        ],
+        [
+          "Informasi pribadi sensitif",
+          "Login akun Anda (ditangani oleh Clerk); apa pun yang sensitif yang Anda pilih untuk disertakan, seperti rincian kesehatan",
+          "Anda",
+          "Memproses masuk Anda; melakukan pekerjaan yang Anda minta",
+          "Sama seperti kategori tempat data tersebut termasuk"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Kami menggunakan informasi pribadi sensitif hanya untuk menyediakan layanan yang Anda minta dan menjaga keamanannya, tidak pernah untuk menyimpulkan hal-hal tentang Anda. Kami tidak membuat profil tentang Anda. Kami mengungkapkan informasi pribadi untuk tujuan bisnis kepada penyedia layanan yang tercantum dalam [Siapa yang menerimanya](#who-gets-it)."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Siapa yang menerimanya"
+    },
+    {
+      "type": "p",
+      "text": "Kami membagikan data pribadi hanya sebagaimana dijelaskan dalam kebijakan ini. Halaman [Sub-pemroses](/instant/legal/subprocessors) kami mencantumkan penyedia yang menanganinya untuk kami, apa yang mereka lakukan, dan di mana. Penerima utamanya adalah:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud meng-host situs web, server, basis data, file, dan log kami, serta unduhan Aplikasi Desktop.",
+        "Google Gemini, melalui Gemini API milik Google, adalah model AI yang menjawab Anda secara default. Google Gemini menerima apa yang Anda tanyakan, percakapan dan hasil alat, serta suara Anda jika Anda mendikte. Google Gemini juga menjalankan Google Search untuk sebagian riset.",
+        "Clerk menjalankan proses masuk dan akun. Cloudflare melindungi proses masuk dari bot untuk Clerk. Google terlibat jika Anda memilih Masuk dengan Google.",
+        "Mesin pencari publik (Google, Bing, Brave, dan DuckDuckGo) menerima kueri pencarian yang disusun oleh riset kami dari permintaan Anda. OpenRegister menerima nama perusahaan untuk pencarian di daftar. Mereka hanya menerima kuerinya dan menggunakannya berdasarkan ketentuan mereka sendiri.",
+        "Penyedia AI yang Anda hubungkan sendiri di Aplikasi Desktop, seperti OpenAI atau Anthropic, menerima percakapan Anda berdasarkan perjanjian Anda sendiri dengan mereka.",
+        "Aplikasi, alat, dan akun yang Anda hubungkan, seperti ekstensi Aplikasi Desktop atau aplikasi perpesanan dan akun email yang Anda hubungkan ke Bot Asisten, menerima apa yang dikirimkan agen atau bot kepada mereka, berdasarkan ketentuan mereka sendiri."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Ketentuan Gemini API Google](https://ai.google.dev/gemini-api/terms) mengatur cara Google dapat menggunakan data yang diterimanya melalui Gemini API, termasuk berapa lama Google menyimpannya untuk pemantauan penyalahgunaan."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Kami menggunakan layanan Gemini API berbayar dari Google. Berdasarkan ketentuan Google untuk layanan berbayar, Google tidak menggunakan prompt atau jawaban Anda untuk meningkatkan produknya, dan memprosesnya berdasarkan ketentuan pemrosesan datanya."
+    },
+    {
+      "type": "p",
+      "text": "Kami juga dapat mengungkapkan data pribadi apabila diwajibkan oleh hukum, untuk melindungi keselamatan orang atau hak-hak kami, atau sebagai bagian dari merger atau penjualan bisnis kami. Dalam merger atau penjualan, kebijakan ini tetap melindungi data Anda."
+    },
+    {
+      "type": "h2",
+      "id": "where-we-process",
+      "text": "Tempat kami memprosesnya"
+    },
+    {
+      "type": "p",
+      "text": "Kami meng-host layanan cloud dan basis data kami di UE (Google Cloud, Belanda). Proyek Korporat berjalan di region Google Cloud di UE yang disepakati dengan pelanggan. Beberapa penyedia yang kami gunakan, seperti Clerk dan Google Gemini, dapat memproses data di AS atau di tempat lain."
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Transfer ke luar Eropa",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Apabila data pribadi dikirim ke negara yang belum dinyatakan oleh Komisi Eropa memberikan pelindungan yang memadai, kami menggunakan suatu pengaman hukum. Pengaman tersebut adalah EU-US Data Privacy Framework (DPF), jika penerimanya tersertifikasi berdasarkan kerangka tersebut, atau Standard Contractual Clauses (SCC), yaitu klausul kontrak yang disetujui oleh Komisi (GDPR Art. 45, 46)."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Clerk (AS): DPF, dengan SCC sebagai cadangan, berdasarkan perjanjian pemrosesan data Clerk.",
+        "Google Gemini: Google dapat memproses permintaan di luar UE, berdasarkan ketentuan Google."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Untuk Gemini API berbayar, ketentuan pemrosesan data Google menetapkan pengaman bagi data yang keluar dari UE."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Mesin pencari publik dan OpenRegister hanya menerima kueri pencarian dan nama perusahaan, dan menggunakannya berdasarkan ketentuan mereka sendiri. Sebagian di antaranya berada di luar Eropa. Untuk memperoleh salinan pengaman yang kami gunakan, tulis ke {company.privacyEmail}."
+    },
+    {
+      "type": "h2",
+      "id": "retention",
+      "text": "Berapa lama kami menyimpannya"
+    },
+    {
+      "type": "p",
+      "text": "Kami menyimpan data pribadi hanya selama kami memerlukannya untuk tujuan-tujuan dalam kebijakan ini, lalu menghapus atau menganonimkannya."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Data",
+        "Durasi"
+      ],
+      "rows": [
+        [
+          "Data akun dan data masuk",
+          "Selama akun Anda ada, kemudian sejauh diperlukan untuk memenuhi kewajiban hukum."
+        ],
+        [
+          "Ruang kerja cloud Anda",
+          "Selama akun Anda ada, kemudian sejauh diperlukan untuk memenuhi kewajiban hukum. Apabila Anda meminta kami menghapus akun Anda, kami menghapus atau menganonimkan data Anda atau, apabila kami wajib menyimpan suatu catatan, memberi tahu Anda alasannya."
+        ],
+        [
+          "Cadangan basis data",
+          "Data yang dihapus dapat tetap berada di cadangan kami untuk waktu singkat, hingga sekitar 7 hari."
+        ],
+        [
+          "Log server",
+          "Waktu terbatas berdasarkan pengaturan log standar penyedia cloud kami, lalu dihapus secara otomatis. Kami tidak mencatat isi prompt atau pesan Anda dalam log."
+        ],
+        [
+          "Permintaan yang melewati gateway AI kami",
+          "Tidak disimpan oleh kami."
+        ],
+        [
+          "Data Aplikasi Desktop di Mac Anda",
+          "Sampai Anda menghapusnya. Log lama dibersihkan secara otomatis."
+        ],
+        [
+          "Catatan API",
+          "Selama hubungan bisnis berlangsung, kemudian sejauh diperlukan untuk memenuhi kewajiban hukum."
+        ],
+        [
+          "Data proyek Korporat",
+          "Sebagaimana disepakati dalam pesanan tertulis."
+        ],
+        [
+          "Email yang Anda kirimkan kepada kami",
+          "Selama kami memerlukannya untuk menangani pesan Anda dan tindak lanjutnya, serta untuk memenuhi kewajiban hukum."
+        ],
+        [
+          "Pilihan wilayah Anda di halaman hukum",
+          "Di browser Anda sampai Anda menghapusnya."
+        ],
+        [
+          "Data yang diterima Google melalui Gemini API",
+          "Sebagaimana ditetapkan oleh kebijakan Google."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Keamanan"
+    },
+    {
+      "type": "p",
+      "text": "Kami melindungi data pribadi dengan langkah-langkah yang sesuai dengan risikonya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Data dikirim dalam keadaan terenkripsi (HTTPS), dan penyedia cloud kami mengenkripsinya saat disimpan.",
+        "Layanan cloud dan basis data kami berjalan di UE, dengan pencadangan harian dan pelindungan terhadap penghapusan yang tidak disengaja.",
+        "Kami menyimpan kunci aplikasi hanya dalam bentuk teracak (hash).",
+        "Aplikasi Desktop menyimpan data masuk Orqanix Anda di macOS Keychain, dan folder aplikasinya hanya dapat dibaca oleh akun macOS Anda."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sebagian pelindungan berada di tangan Anda. Riwayat obrolan Aplikasi Desktop tidak memiliki enkripsi tambahan dari aplikasi itu sendiri, dan kunci untuk penyedia AI yang Anda hubungkan disimpan dalam file teks biasa. Siapa pun yang dapat menggunakan akun macOS Anda dapat membacanya, jadi pastikan Mac Anda tetap terkunci dan gunakan FileVault."
+    },
+    {
+      "type": "p",
+      "text": "Tidak ada sistem yang sepenuhnya aman. Jika suatu pelanggaran membahayakan data pribadi Anda, kami akan memberi tahu Anda dan pihak berwenang apabila diwajibkan oleh hukum. Untuk melaporkan suatu kelemahan, lihat [Keamanan & Pengungkapan Kerentanan](/instant/legal/security)."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Anak-anak"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix hanya ditujukan bagi orang yang berusia 18 tahun ke atas. Kami tidak secara sadar mengumpulkan data pribadi dari siapa pun yang berusia di bawah 18 tahun. Jika Anda yakin seorang anak telah memberikan data pribadi kepada kami, tulis ke {company.privacyEmail} dan kami akan menghapusnya."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Orqanix tidak ditujukan bagi anak-anak di bawah 13 tahun, dan kami tidak secara sadar mengumpulkan informasi pribadi mereka (Children's Online Privacy Protection Act, COPPA)."
+    },
+    {
+      "type": "h2",
+      "id": "your-choices",
+      "text": "Pilihan Anda"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Di Aplikasi Desktop, pilih apakah agen bertindak sendiri atau meminta izin Anda terlebih dahulu, penyedia AI mana yang digunakan, dan apakah akan menggunakan dikte. Anda dapat menghapus riwayat obrolan di Mac Anda kapan saja.",
+        "Pilih akun mana, jika ada, yang akan dihubungkan ke Bot Asisten.",
+        "Pilih apa yang Anda ketik, unggah, atau minta dibaca oleh agen.",
+        "Hapus atau blokir cookie dan penyimpanan browser (lihat [Cookie & Penyimpanan](/instant/legal/cookies)). Proses masuk tidak akan berfungsi tanpa cookie yang diperlukannya.",
+        "Tulis ke {company.privacyEmail} untuk menggunakan hak-hak dalam [Hak Anda](#your-rights)."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Hak Anda",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Berdasarkan GDPR serta undang-undang pelindungan data Inggris dan Swiss, Anda memiliki hak-hak berikut:"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Akses: meminta salinan data pribadi Anda dan cara kami menggunakannya (GDPR Art. 15).",
+        "Perbaikan: meminta kami memperbaiki data yang salah atau tidak lengkap (GDPR Art. 16).",
+        "Penghapusan: meminta kami menghapus data Anda (GDPR Art. 17).",
+        "Pembatasan: meminta kami membatasi cara kami menggunakan data Anda selama suatu persoalan sedang diselesaikan (GDPR Art. 18).",
+        "Portabilitas: memperoleh data yang Anda berikan kepada kami dalam format umum yang dapat dibaca mesin, atau meminta agar data tersebut dikirimkan kepada pihak lain (GDPR Art. 20).",
+        "Keberatan: mengajukan keberatan kapan saja, dengan alasan yang berkaitan dengan situasi Anda, terhadap penggunaan apa pun yang didasarkan pada kepentingan sah kami. Kami kemudian akan berhenti kecuali kami memiliki alasan yang kuat atau memerlukannya untuk tuntutan hukum (GDPR Art. 21).",
+        "Persetujuan: apabila kami mengandalkan persetujuan Anda, menariknya kapan saja, tanpa memengaruhi apa yang telah kami lakukan sebelumnya (GDPR Art. 7(3)).",
+        "Pengaduan: mengajukan pengaduan kepada otoritas pengawas pelindungan data, khususnya di tempat Anda tinggal atau bekerja atau di tempat yang Anda anggap sebagai lokasi terjadinya masalah (GDPR Art. 77)."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Untuk menggunakan suatu hak, tulis ke {company.privacyEmail}. Kami dapat meminta Anda untuk mengonfirmasi identitas Anda, misalnya dengan menulis dari alamat email yang terdaftar di akun Anda. Kami menjawab dalam waktu satu bulan. Untuk permintaan yang rumit, kami dapat memperpanjangnya dua bulan lagi, dan kami akan memberi tahu Anda jika demikian (GDPR Art. 12(3)). Penggunaan hak Anda tidak dipungut biaya."
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Inggris dan Swiss",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Jika Anda tinggal di Inggris, UK GDPR dan Data Protection Act 2018 berlaku. Anda dapat mengajukan pengaduan kepada kami terlebih dahulu; kami mengonfirmasi penerimaan pengaduan dalam waktu 30 hari. Anda juga dapat mengajukan pengaduan kepada Information Commissioner's Office ([ico.org.uk](https://ico.org.uk)). Untuk data yang keluar dari Inggris, kami mengandalkan aturan kecukupan Inggris atau versi Inggris dari pengaman dalam [Transfer ke luar Eropa](#transfers): UK Extension to the DPF apabila penerimanya tersertifikasi berdasarkan kerangka tersebut, atau UK Addendum to the SCCs."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Jika Anda tinggal di Swiss, Federal Act on Data Protection (FADP) berlaku. Anda dapat mengajukan pengaduan kepada Federal Data Protection and Information Commissioner ([edoeb.admin.ch](https://www.edoeb.admin.ch)). Untuk data yang keluar dari Swiss, kami mengandalkan aturan kecukupan Swiss atau versi Swiss dari pengaman tersebut: Swiss-US DPF apabila penerimanya tersertifikasi berdasarkan kerangka tersebut, atau SCC sebagaimana diakui di Swiss."
+    },
+    {
+      "type": "h3",
+      "id": "eu-representative",
+      "text": "Perwakilan kami di UE",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ],
+      "text": "Karena kami tidak berkedudukan di UE, kami telah menunjuk perwakilan di sana (GDPR Art. 27): {company.euRepresentative}. Anda dapat menghubungi perwakilan tersebut sebagai ganti kami mengenai segala hal dalam kebijakan ini."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Hak Anda",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Beberapa negara bagian AS memberikan hak privasi kepada penduduknya. Kami memberikan hak yang sama kepada semua orang di Amerika Serikat, di negara bagian mana pun Anda tinggal:"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Mengetahui dan mengakses: menanyakan informasi pribadi apa yang kami miliki tentang Anda, dari mana asalnya, alasan kami menggunakannya, dan kepada siapa kami mengungkapkannya, serta memperoleh salinannya.",
+        "Menghapus: meminta kami menghapus informasi pribadi yang kami kumpulkan dari Anda.",
+        "Memperbaiki: meminta kami memperbaiki informasi yang salah.",
+        "Portabilitas: memperoleh informasi Anda dalam format yang dapat Anda bawa ke tempat lain.",
+        "Menolak (opt out): penjualan atau pembagian informasi pribadi Anda, iklan bertarget, dan pembuatan profil yang memiliki akibat hukum atau akibat serius serupa. Kami tidak melakukan satu pun dari hal-hal tersebut, sehingga tidak ada yang perlu dinonaktifkan.",
+        "Banding: jika kami menolak permintaan Anda, meminta kami untuk meninjaunya kembali.",
+        "Perlakuan yang setara: kami tidak akan memperlakukan Anda secara berbeda, misalnya dengan menolak memberikan layanan atau mengubah kualitasnya, karena Anda menggunakan suatu hak."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Untuk menggunakan suatu hak, tulis ke {company.privacyEmail}. Kami dapat meminta Anda untuk mengonfirmasi identitas Anda, misalnya dengan menulis dari alamat email yang terdaftar di akun Anda. Orang yang Anda beri kuasa dapat mengajukan permintaan atas nama Anda. Kami dapat meminta bukti bahwa Anda telah memberinya izin. Penggunaan hak Anda tidak dipungut biaya. Kami menjawab dalam waktu satu bulan."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Untuk mengajukan banding atas suatu keputusan, balas jawaban kami dengan subjek \"Appeal\". Kami akan memberi tahu Anda hasilnya dan alasan kami. Jika Anda tidak setuju, Anda dapat menghubungi Jaksa Agung (Attorney General) negara bagian Anda."
+    },
+    {
+      "type": "h3",
+      "id": "no-sale",
+      "text": "Tidak ada penjualan atau pembagian",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Kami tidak menjual informasi pribadi, dan kami tidak \"membagikannya\" untuk iklan perilaku lintas konteks, sebagaimana istilah tersebut digunakan dalam hukum California. Kami tidak menggunakannya untuk iklan bertarget. Kami tidak memiliki pengetahuan aktual tentang penjualan atau pembagian informasi pribadi siapa pun yang berusia di bawah 16 tahun. Karena kami tidak melakukan satu pun dari hal ini, kami tidak menampilkan tautan \"Do Not Sell or Share\". Kami juga tidak menjual \"covered information\" berdasarkan hukum Nevada. Anda tetap dapat mengirimkan permintaan penolakan (opt-out) kepada kami di {company.privacyEmail}."
+    },
+    {
+      "type": "h3",
+      "id": "privacy-signals",
+      "text": "Sinyal privasi browser",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Jika browser Anda mengirimkan sinyal Global Privacy Control (GPC), kami memperlakukannya sebagai permintaan untuk menolak penjualan dan pembagian informasi pribadi Anda. Kami tidak melakukan keduanya, sehingga tidak ada yang berubah bagi Anda. Kami tidak melacak Anda di situs web lain dari waktu ke waktu, dan kami tidak mengizinkan perusahaan lain melakukannya di situs kami. Oleh karena itu, kami memperlakukan sinyal Do Not Track dengan cara yang sama: tidak ada pelacakan yang perlu dihentikan."
+    },
+    {
+      "type": "h3",
+      "id": "california",
+      "text": "California",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Halaman ini adalah kebijakan privasi kami berdasarkan California Online Privacy Protection Act (CalOPPA) dan pemberitahuan kami berdasarkan California Consumer Privacy Act (CCPA). Kami tidak mengungkapkan informasi pribadi kepada pihak lain untuk pemasaran langsung mereka sendiri, sehingga tidak ada yang dapat diminta berdasarkan undang-undang \"Shine the Light\" California. Kami meninjau kebijakan ini setidaknya sekali setiap 12 bulan."
+    },
+    {
+      "type": "h3",
+      "id": "health-data",
+      "text": "Data kesehatan",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Washington, Nevada, dan Connecticut memiliki aturan khusus untuk data kesehatan konsumen. [Kebijakan Privasi Data Kesehatan Konsumen](/instant/legal/health-data) kami menjelaskan informasi kesehatan apa yang dapat sampai kepada kami, cara kami menggunakannya, dan hak Anda atas informasi tersebut."
+    },
+    {
+      "type": "h3",
+      "id": "other-countries",
+      "text": "Di luar AS dan Eropa",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Jika Anda tinggal di luar Amerika Serikat, EEA, Inggris, dan Swiss, Anda dapat menggunakan hak yang sama dengan menulis ke {company.privacyEmail}. Hukum privasi negara Anda mungkin memberi Anda hak yang lebih luas, dan kami akan menghormatinya. Data Anda diproses di UE dan di tempat-tempat lain yang dijelaskan dalam [Tempat kami memprosesnya](#where-we-process)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Kami akan memperbarui kebijakan ini apabila produk kami atau hukum berubah. Versi dan tanggal di bagian atas menunjukkan teks mana yang berlaku. Jika suatu perubahan berpengaruh pada cara kami menggunakan data Anda, kami akan memberi tahu Anda di dalam produk atau melalui email sebelum perubahan tersebut berlaku."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontak"
+    },
+    {
+      "type": "p",
+      "text": "Pertanyaan, permintaan, atau pengaduan terkait privasi: {company.privacyEmail}. Hal lainnya: {company.email}."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Melalui pos: {company.legalName}, {company.address}."
+    }
+  ]
+}

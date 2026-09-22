@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "アクセシビリティ方針",
+    "summary": "この方針では、Orqanixのウェブサイトのアクセシビリティの状況、まだ不十分な点、および障壁を報告する方法について説明します。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "当社の目標"
+    },
+    {
+      "type": "p",
+      "text": "当社は、キーボード、スクリーンリーダー、拡大表示その他の支援技術を使用する方を含め、すべての方に{company.name}のウェブサイトを利用していただけることを目指しています。当社の目標は、一般的な国際基準であるWeb Content Accessibility Guidelines（WCAG）2.1のレベルAAです。"
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "対象範囲"
+    },
+    {
+      "type": "p",
+      "text": "この方針は、orqanix.comのウェブサイト、すなわちホームページ、製品ページおよびソリューションページ、ニュースページ、ならびにリーガルセンターを対象とします。ウェブアプリ、デスクトップアプリ、および当社のサインインプロバイダーであるClerkが提供するサインインページは対象外です。"
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "現在の状況"
+    },
+    {
+      "type": "p",
+      "text": "本ウェブサイトは、WCAG 2.1レベルAAに部分的に適合しています。まだ完全な監査を受けておらず、当社は完全な適合を主張するものではありません。当社が把握している課題は、[既知の課題](#known-gaps)に記載しています。"
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "当社の取り組み"
+    },
+    {
+      "type": "list",
+      "items": [
+        "キーボード：リンク、ボタンおよびメニューにはキーボードで移動でき、Escキーで開いているメニューを閉じることができます。",
+        "フォーカスの表示：キーボードでリンクやボタンに移動すると、フォーカスが視覚的に表示されます。",
+        "動きの軽減：お使いのデバイスで視差効果を減らす設定がされている場合、アニメーションのシーンは停止し、コンテンツはアニメーションなしで表示されます。",
+        "コントラスト：本文および見出しは、黒い背景に白に近い色で表示されます。",
+        "代替テキスト：意味を持つメニュー、操作要素およびシーンには、スクリーンリーダー用のテキストラベルが付いています。純粋に装飾的な画像は、スクリーンリーダーから隠されています。",
+        "構造：ページには、見出し、メインコンテンツ領域、ラベル付きのメインメニューおよびラベル付きのフッターメニューが使用されており、ページの言語は英語に設定されています。",
+        "小さな画面：レイアウトはスマートフォンや幅の狭いウィンドウに合わせて調整されます。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "既知の課題"
+    },
+    {
+      "type": "list",
+      "items": [
+        "一部のイラストには、アニメーションの製品シーン内のラベルなど、小さな文字が含まれています。拡大表示しても読みにくい場合があります。",
+        "一部の補助的なラベルには、WCAGが小さな文字に求める水準よりもコントラストの低い暗いグレーが使用されています。",
+        "アニメーションのシーンは、一部の方にとって内容を追いにくい場合があります。お使いのデバイスで視差効果を減らす設定がされている場合、シーンは停止します。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当社はこれらの課題を解決する予定です。これらの課題のいずれかにより必要な情報を得られない場合は、[当社にお知らせください](#feedback)。別の方法でその情報を提供できるよう努めます。"
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "フィードバック"
+    },
+    {
+      "type": "p",
+      "text": "当社のウェブサイトで障壁に遭遇した場合は、{company.email}までお知らせください。どのページで、何をしようとしたか、また差し支えなければ、お使いのブラウザおよび支援技術をお知らせください。当社は迅速な返信と、可能な限りの修正に努めます。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EUにお住まいの方で、当社の回答により問題が解決しない場合は、お住まいの国のアクセシビリティを監督する当局に連絡することができます。"
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "この方針について"
+    },
+    {
+      "type": "p",
+      "text": "当社は、本ウェブサイトに関する当社自身の確認に基づき、2026年9月21日にこの方針を作成しました。課題を解決した場合または監査を完了した場合に、この方針を更新します。"
+    }
+  ]
+}

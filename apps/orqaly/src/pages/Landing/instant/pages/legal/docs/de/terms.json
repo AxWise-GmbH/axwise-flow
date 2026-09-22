@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "Allgemeine Geschäftsbedingungen",
+    "summary": "Diese Bedingungen sind der Hauptvertrag für alle Produkte von Orqanix und regeln Ihr Konto, Ihre Inhalte, Agenten, die Haftung und Streitigkeiten.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Wer wir sind"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix ist eine Familie von KI-Produkten: die Desktop-App, die Handy-App, der Assistenz-Bot, die API und unsere Leistungen für Unternehmen. Zusammen mit dieser Website und Ihrem Orqanix-Konto nennen wir sie die „Dienste“."
+    },
+    {
+      "type": "p",
+      "text": "Diese Allgemeinen Geschäftsbedingungen sind ein Vertrag zwischen Ihnen und dem Unternehmen, das Orqanix betreibt („Orqanix“, „wir“ oder „uns“)."
+    },
+    {
+      "type": "p",
+      "text": "Dieses Unternehmen ist {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Es ist eingetragen im {company.register}. Seine Umsatzsteuer-Identifikationsnummer lautet {company.vatId}.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sie erreichen uns unter {company.email}. Unsere [Datenschutzerklärung](/instant/legal/privacy) erklärt, wie wir mit personenbezogenen Daten umgehen. Sie ist nicht Bestandteil dieses Vertrags, aber bitte lesen Sie sie."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "Annahme dieser Bedingungen"
+    },
+    {
+      "type": "p",
+      "text": "Sie nehmen diese Bedingungen an, wenn Sie ein Konto erstellen oder einen der Dienste herunterladen oder nutzen. Wenn Sie nicht einverstanden sind, nutzen Sie die Dienste nicht."
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie die Bedingungen für ein Unternehmen oder eine andere Organisation annehmen, bestätigen Sie, dass Sie diese verpflichten dürfen. „Sie“ bezeichnet dann diese Organisation, und Sie müssen als Person, die die Dienste nutzt, diese Bedingungen ebenfalls einhalten."
+    },
+    {
+      "type": "p",
+      "text": "In diesen Bedingungen ist ein „Verbraucher“ eine Person, die die Dienste überwiegend zu Zwecken nutzt, die außerhalb ihrer gewerblichen, geschäftlichen, handwerklichen oder beruflichen Tätigkeit liegen. „Geschäftskunde“ ist jede andere Person. Einige der folgenden Regelungen weichen für Verbraucher ab, weil das Gesetz ihnen mehr Schutz gewährt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Einige der folgenden Regelungen hängen davon ab, ob Sie die Dienste für sich selbst oder für ein Unternehmen nutzen. „Geschäftskunde“ ist jede Person, die die Dienste für eine gewerbliche, geschäftliche oder berufliche Tätigkeit oder im Namen einer Organisation nutzt.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Wer Orqanix nutzen darf"
+    },
+    {
+      "type": "p",
+      "text": "Sie müssen mindestens 18 Jahre alt sein, um die Dienste zu nutzen, unabhängig davon, wo Sie leben. Die Dienste sind nicht für Kinder bestimmt, und Sie dürfen sie nicht nutzen, um etwas zu entwickeln, das sich an Personen unter 18 Jahren richtet."
+    },
+    {
+      "type": "p",
+      "text": "Sie dürfen die Dienste außerdem nicht nutzen, wenn das Gesetz es verbietet, auch nach den Regeln unter [Sanktionen und Export](#sanctions), oder wenn wir ein früheres Konto von Ihnen wegen eines schweren Verstoßes gegen diese Bedingungen geschlossen haben."
+    },
+    {
+      "type": "p",
+      "text": "Die API und die Leistungen für Unternehmen sind ausschließlich für Geschäftskunden bestimmt."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "Ihr Konto"
+    },
+    {
+      "type": "p",
+      "text": "Für die meisten Dienste benötigen Sie ein Orqanix-Konto. Ein Anmeldeanbieter betreibt die Anmeldung für uns, und Sie können sich auch mit Google anmelden. Machen Sie uns gegenüber zutreffende Angaben und halten Sie diese aktuell."
+    },
+    {
+      "type": "p",
+      "text": "Schützen Sie Ihre Anmeldedaten und teilen Sie Ihr Konto nicht mit anderen. Sie sind für alles verantwortlich, was unter Ihrem Konto geschieht, es sei denn, es geschieht durch unser Verschulden. Wenn Sie vermuten, dass jemand anderes Ihr Konto genutzt hat, teilen Sie uns dies unverzüglich unter {company.email} mit."
+    },
+    {
+      "type": "p",
+      "text": "Um Ihr Konto zu schließen oder eine Kopie Ihrer Daten zu erhalten, schreiben Sie an {company.privacyEmail}. Unsere [Datenschutzerklärung](/instant/legal/privacy) erklärt, was wir aufbewahren und warum."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "Unsere Produkte"
+    },
+    {
+      "type": "p",
+      "text": "Diese Bedingungen gelten für alle Dienste. Jedes Produkt hat zusätzlich eigene Bedingungen, die Regeln für dieses Produkt ergänzen:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[Bedingungen Desktop-App](/instant/legal/desktop-app-terms): die macOS-App, in der KI-Agenten recherchieren, planen und echte Dateien auf Ihrem Mac erstellen.",
+        "[Bedingungen Handy-App](/instant/legal/mobile-app-terms): die Smartphone-App, die als Fernbedienung für die Desktop-App dient.",
+        "[Bedingungen Assistenz-Bot](/instant/legal/assistant-bot-terms): der Business-Assistent, den Sie über die von Ihnen verbundenen Messenger-Apps und E-Mail-Konten erreichen.",
+        "[API-AGB](/instant/legal/api-terms): die Denk-Ebene für andere Produkte (nur für Geschäftskunden).",
+        "[Bedingungen für Unternehmen](/instant/legal/enterprise-terms): Leistungen, bei denen unsere Agenten und Experten Lösungen für Sie entwickeln (nur für Geschäftskunden)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie ein Produkt nutzen, gelten sowohl dessen Bedingungen als auch diese Bedingungen. Widersprechen sie sich, haben für dieses Produkt die Produktbedingungen Vorrang. Eine schriftliche Vereinbarung, die Sie mit uns unterzeichnen, etwa eine Bestellung für Leistungen für Unternehmen, hat für ihren Regelungsbereich Vorrang vor beiden."
+    },
+    {
+      "type": "p",
+      "text": "Wenn Geschäftskunden der API, unserer Leistungen für Unternehmen oder des Assistenz-Bots uns personenbezogene Daten zur Verarbeitung in ihrem Auftrag übergeben, gilt außerdem unser [Auftragsverarbeitungsvertrag](/instant/legal/dpa)."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "Preis"
+    },
+    {
+      "type": "p",
+      "text": "Die Dienste sind in dieser frühen Phase kostenlos. Wir berechnen Ihnen nichts, es sei denn, Sie stimmen einem kostenpflichtigen Tarif zu."
+    },
+    {
+      "type": "p",
+      "text": "Bevor ein kostenpflichtiger Tarif beginnt, veröffentlichen wir seinen Preis und die Regeln für Zahlung und Kündigung. Sie können dann entscheiden, ob Sie ihn möchten.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Bevor ein kostenpflichtiger Tarif beginnt, veröffentlichen wir seinen Preis einschließlich Steuern sowie die Regeln für Zahlung, Kündigung und Widerruf. Zu diesem Zeitpunkt erläutern wir Ihnen Ihr Widerrufsrecht als Verbraucher. Sie können dann entscheiden, ob Sie ihn möchten.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Da die Dienste kostenlos sind, können Sie diesen Vertrag jederzeit, kostenfrei und ohne Angabe von Gründen beenden. Dies geht über das 14-tägige Widerrufsrecht hinaus, das das EU-Recht Verbrauchern gewährt.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "Ihre Inhalte"
+    },
+    {
+      "type": "p",
+      "text": "„Eingaben“ sind alles, was Sie den Diensten übergeben: Prompts, Nachrichten, Dateien, Sprache, Anweisungen und alles, was die Agenten mit Ihrer Erlaubnis lesen. „Ausgaben“ sind alles, was die Dienste zurückgeben: Antworten, Berichte, Dateien und andere Ergebnisse. Zusammen bilden sie „Ihre Inhalte“."
+    },
+    {
+      "type": "p",
+      "text": "Im Verhältnis zwischen Ihnen und uns gehören Ihre Inhalte Ihnen. Wir beanspruchen kein Eigentum daran. Sollten uns Rechte an Ihren Ausgaben zustehen, übertragen wir sie Ihnen."
+    },
+    {
+      "type": "p",
+      "text": "Um die Dienste zu betreiben, benötigen wir Ihre Erlaubnis, Ihre Inhalte zu nutzen. Sie räumen uns eine weltweite, nicht ausschließliche, unentgeltliche Lizenz ein, sie zu hosten, zu speichern, zu kopieren, zu verarbeiten, zu übermitteln und anzuzeigen. Wir nutzen diese Lizenz nur, um die Dienste für Sie bereitzustellen, abzusichern und zu unterstützen, um sie rechtmäßig zu halten und um diese Bedingungen durchzusetzen. Sie endet, wenn Ihre Inhalte aus unseren Systemen gelöscht werden, mit Ausnahme von Kopien, die wir aufgrund gesetzlicher Pflichten oder wie in unserer [Datenschutzerklärung](/instant/legal/privacy) erläutert aufbewahren müssen."
+    },
+    {
+      "type": "p",
+      "text": "Wir trainieren unsere eigenen KI-Modelle nicht mit Ihren Inhalten. Wir verkaufen Ihre personenbezogenen Daten nicht und zeigen keine Werbung."
+    },
+    {
+      "type": "p",
+      "text": "Sie sind für Ihre Eingaben verantwortlich. Sie bestätigen, dass Sie über die Rechte und Erlaubnisse verfügen, sie uns zu übergeben, auch von Personen, deren personenbezogene Daten darin enthalten sind, und dass ihre Verwendung mit den Diensten weder gegen das Gesetz noch gegen diese Bedingungen verstößt."
+    },
+    {
+      "type": "p",
+      "text": "KI-Modelle können verschiedenen Personen ähnliche Ausgaben liefern. Ausgaben, die andere erhalten, sind nicht Ihre Inhalte, auch wenn sie Ihren ähneln."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "KI kann sich irren"
+    },
+    {
+      "type": "p",
+      "text": "Die Dienste verwenden künstliche Intelligenz. KI-Ausgaben können falsch, unvollständig, veraltet oder anstößig sein, selbst wenn sie überzeugt klingen. Sie können sich auch bei jeder Anfrage unterscheiden."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Prüfen Sie Ausgaben, bevor Sie sich darauf verlassen oder sie weitergeben, insbesondere bei allem, was wichtig ist.",
+        "Ausgaben sind keine Rechts-, Medizin-, Finanz-, Steuer- oder sonstige fachliche Beratung und ersetzen keine qualifizierte Fachperson.",
+        "Verwenden Sie Ausgaben nicht als einzige Grundlage für Entscheidungen, die die Rechte, die Gesundheit, das Geld oder die Arbeitsplätze von Menschen betreffen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[So funktioniert unsere KI](/instant/legal/ai) erklärt, welche Modelle wir verwenden und wie."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "Agenten"
+    },
+    {
+      "type": "p",
+      "text": "Einige Dienste verwenden KI-Agenten. Ein Agent antwortet nicht nur. Er führt Aktionen aus. Je nach Produkt und Ihren Einstellungen können Agenten Dateien lesen und ändern, Befehle auf Ihrem Computer ausführen, im Web suchen und von Ihnen verbundene Werkzeuge nutzen, wozu auch das Versenden von Nachrichten oder E-Mails in Ihrem Namen gehören kann."
+    },
+    {
+      "type": "p",
+      "text": "Agenten handeln auf Ihre Anweisung und im Rahmen der Berechtigungen, die Sie ihnen erteilen. Standardmäßig genehmigt die Desktop-App die Aktionen von Agenten automatisch. Sie können dies so ändern, dass sie Sie vorher fragt, nur bei sensiblen Aktionen fragt oder nur chattet. Die [Bedingungen Desktop-App](/instant/legal/desktop-app-terms) erklären die Einstellungen."
+    },
+    {
+      "type": "p",
+      "text": "Sie sind für die Aktionen verantwortlich, die Sie erlauben, gleich ob Sie sie einzeln oder im Voraus genehmigen. Insbesondere:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Lassen Sie Agenten nur Computer, Konten, Dateien und Systeme nutzen, die Sie selbst nutzen dürfen.",
+        "Prüfen Sie, was ein Agent tun wird, wenn es darauf ankommt, und beobachten Sie seine Arbeit, wenn Sie ihn selbstständig arbeiten lassen.",
+        "Erstellen Sie Sicherungskopien von allem, was wichtig ist. Agenten können Dateien versehentlich ändern oder löschen.",
+        "Ein Agent, der anderen Personen Nachrichten sendet, tut dies in Ihrem Namen. Sie sind für diese Nachrichten verantwortlich und dafür, Personen darauf hinzuweisen, dass sie von einer KI stammen, wo unsere [Nutzungsrichtlinie](/instant/legal/acceptable-use) oder das Gesetz dies verlangt."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Dies hebt unsere Verantwortung nicht auf, wenn die Dienste selbst fehlerhaft sind. Siehe [Haftung](#liability)."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "Verbundene Dienste"
+    },
+    {
+      "type": "p",
+      "text": "Unser Standard-KI-Modell ist Google Gemini. Wenn Ihre Inhalte dorthin gelangen, gelten für den Umgang von Google damit auch die Bedingungen von Google für diesen Dienst. [So funktioniert unsere KI](/instant/legal/ai) und unsere [Datenschutzerklärung](/instant/legal/privacy) erklären, was übermittelt wird. Sie müssen außerdem die Regeln von Google einhalten, die unsere [Nutzungsrichtlinie](/instant/legal/acceptable-use) aufführt."
+    },
+    {
+      "type": "p",
+      "text": "In einigen Produkten können Sie selbst andere Dienste verbinden, etwa KI-Modelle von OpenAI, Anthropic oder anderen, Messenger-Apps, E-Mail-Konten oder andere Werkzeuge. Wenn Sie dies tun:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "besteht Ihre Beziehung zu diesem Dienst zwischen Ihnen und seinem Anbieter, und es gelten dessen Bedingungen und Preise;",
+        "erhält dieser Dienst die Inhalte, die er für seine Aufgabe benötigt, etwa Ihre Unterhaltung;",
+        "sind Sie für Ihre Schlüssel und Konten bei diesem Dienst und für alle Kosten verantwortlich, die er berechnet;",
+        "haben wir keinen Einfluss auf ihn und sind nicht für sein Handeln verantwortlich, außer soweit das Gesetz uns dafür verantwortlich macht."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "Zulässige Nutzung"
+    },
+    {
+      "type": "p",
+      "text": "Sie müssen unsere [Nutzungsrichtlinie](/instant/legal/acceptable-use) einhalten, die Bestandteil dieser Bedingungen ist. Kurz gesagt: nichts Rechtswidriges, nichts, was Menschen schadet, keine Angriffe auf uns oder andere, keine Täuschung und keine Nutzungen, die die Richtlinie nur im Rahmen einer besonderen Vereinbarung erlaubt."
+    },
+    {
+      "type": "p",
+      "text": "Sie dürfen die Dienste außerdem nicht ohne unsere schriftliche Vereinbarung kopieren, verkaufen oder weiterverkaufen, unsere Begrenzungen oder Sicherheitsmaßnahmen umgehen oder die Dienste in einer Weise nutzen, die ihre Sicherheit oder andere Nutzer gefährdet."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Feedback"
+    },
+    {
+      "type": "p",
+      "text": "Wir freuen uns über Ideen und Vorschläge. Wenn Sie uns Feedback senden, dürfen wir es frei zur Verbesserung der Dienste verwenden, ohne Sie zu vergüten und ohne Ihnen gegenüber verpflichtet zu sein. Wir veröffentlichen Ihren Namen dazu nicht ohne Ihre Erlaubnis."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "Unsere Rechte"
+    },
+    {
+      "type": "p",
+      "text": "Die Dienste, einschließlich unserer Software, Designs, Namen und Logos, gehören uns oder unseren Lizenzgebern und sind gesetzlich geschützt. Diese Bedingungen geben Ihnen das Recht, die Dienste wie darin beschrieben zu nutzen, solange Sie sie nutzen dürfen. Weitere Rechte geben sie Ihnen nicht."
+    },
+    {
+      "type": "p",
+      "text": "Einige Teile der Dienste sind Open-Source-Software. Für diese Teile gelten eigene Lizenzen, die für diese Teile Vorrang vor diesen Bedingungen haben. Siehe [Open-Source-Hinweise](/instant/legal/open-source)."
+    },
+    {
+      "type": "p",
+      "text": "Sie dürfen die Dienste nicht zerlegen, dekompilieren oder zurückentwickeln, außer soweit das Gesetz oder eine Open-Source-Lizenz dies erlaubt."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Sperrung und Beendigung"
+    },
+    {
+      "type": "p",
+      "text": "Sie können die Nutzung der Dienste jederzeit beenden und uns bitten, Ihr Konto zu schließen, wie unter [Ihr Konto](#your-account) erläutert."
+    },
+    {
+      "type": "p",
+      "text": "Wir dürfen Ihren Zugang sperren oder einschränken, Inhalte entfernen oder Ihr Konto schließen, wenn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sie schwerwiegend oder wiederholt gegen diese Bedingungen oder die [Nutzungsrichtlinie](/instant/legal/acceptable-use) verstoßen;",
+        "das Gesetz oder eine Behörde es verlangt;",
+        "Ihre Nutzung andere Personen, die Dienste oder uns dem Risiko eines Schadens oder einer rechtlichen Haftung aussetzt; oder",
+        "Ihr Konto lange Zeit nicht genutzt wurde und wir Sie vorher darauf hingewiesen haben."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wo möglich, warnen wir Sie vorher und geben Ihnen Gelegenheit, das Problem zu beheben. Wir handeln verhältnismäßig zu dem, was geschehen ist. Wenn wir handeln, teilen wir Ihnen mit, was wir getan haben und warum, es sei denn, das Gesetz verbietet es oder die Mitteilung würde Schaden verursachen."
+    },
+    {
+      "type": "p",
+      "text": "Wir dürfen außerdem einen Dienst oder alle Dienste einstellen. In diesem Fall informieren wir Sie mit angemessener Frist und geben Ihnen Zeit, eine Kopie Ihrer Daten anzufordern, es sei denn, wir müssen aus rechtlichen oder Sicherheitsgründen früher einstellen."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Um Ihre Daten zu einem anderen Anbieter oder in Ihre eigenen Systeme zu übertragen, schreiben Sie an {company.privacyEmail}. Wir stellen Ihnen eine Kopie Ihrer Inhalte und Daten in einem strukturierten, gängigen und maschinenlesbaren Format zur Verfügung und unterstützen Sie kostenlos beim Wechsel. Sie können den Vertrag jederzeit beenden. (EU-Datenverordnung, Art. 23 und 25)"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie mit einer Entscheidung zu Ihrem Konto nicht einverstanden sind, antworten Sie auf unsere Nachricht oder schreiben Sie an {company.email}. Ein Mensch prüft die Entscheidung erneut."
+    },
+    {
+      "type": "p",
+      "text": "Teile dieser Bedingungen, die ihrem Wesen nach fortbestehen sollen, etwa die zu Inhalten, Haftung, Freistellung und Streitigkeiten, gelten nach Vertragsende fort."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Änderungen der Dienste und dieser Bedingungen"
+    },
+    {
+      "type": "p",
+      "text": "Die Dienste befinden sich in einer frühen Phase und werden sich ändern. Wir fügen Funktionen hinzu, verbessern und entfernen sie und wechseln die KI-Modelle, die wir verwenden."
+    },
+    {
+      "type": "p",
+      "text": "Wir dürfen diese Bedingungen ändern, etwa wenn sich die Dienste, das Gesetz oder unser Geschäft ändern. Das Datum oben zeigt, wann die aktuelle Fassung wirksam wurde. Änderungen gelten nicht für die vergangene Nutzung oder für bereits bestehende Streitigkeiten."
+    },
+    {
+      "type": "p",
+      "text": "Über Änderungen, die für Sie von Bedeutung sind, informieren wir Sie vorab per E-Mail oder in den Diensten. Wenn Sie die Dienste nach Inkrafttreten einer Änderung weiter nutzen, gelten die neuen Bedingungen. Wenn Sie nicht einverstanden sind, beenden Sie die Nutzung der Dienste und schließen Sie Ihr Konto.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "Ihre Rechte bei Änderungen",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wir ändern die Dienste in einer Weise, die Sie betrifft, nur aus einem triftigen Grund: um sie an neue Technik oder an Änderungen bei den Modellanbietern anzupassen, auf die wir angewiesen sind, um sie sicher zu halten, um gesetzliche Pflichten zu erfüllen oder um sie zu verbessern oder neu zu ordnen. Jede Änderung erfolgt ohne zusätzliche Kosten für Sie. (Richtlinie (EU) 2019/770, Art. 19)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Beeinträchtigt eine Änderung Ihren Zugang zu den Diensten oder deren Nutzung mehr als nur unerheblich, informieren wir Sie vorab klar auf einem dauerhaften Datenträger, etwa per E-Mail. Sie können den Vertrag dann innerhalb von 30 Tagen nach der Mitteilung oder nach der Änderung, je nachdem, was später eintritt, kostenfrei beenden.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Über Änderungen dieser Bedingungen, die Sie betreffen, informieren wir Sie mindestens 30 Tage vor ihrem Inkrafttreten per E-Mail und erläutern, was sich ändert. Wo das Gesetz Ihre Zustimmung verlangt, holen wir sie ein. Ihr Schweigen werten wir nicht als Zustimmung. Wenn Sie nicht einverstanden sind, können Sie Ihr Konto vor Inkrafttreten der Änderung kostenfrei schließen. Wir nutzen Änderungen niemals, um Ihnen Rechte zu nehmen, die Ihnen das Gesetz gibt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wir stellen die gesetzlich erforderlichen Aktualisierungen bereit, einschließlich Sicherheitsaktualisierungen, damit die Dienste wie beschrieben funktionieren, und zwar so lange, wie das Gesetz es verlangt. Für die Desktop-App erscheinen neue Versionen als neuer Download, wie die [Bedingungen Desktop-App](/instant/legal/desktop-app-terms) erläutern. Haben wir Sie über eine Aktualisierung und die Folgen ihrer Nichtinstallation informiert, sind wir nicht für Probleme verantwortlich, die durch die Installation behoben worden wären.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Haftungsausschlüsse",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Die Dienste befinden sich in einer frühen Phase und werden kostenlos bereitgestellt. Sie können sich ändern, ausfallen oder eingestellt werden, und Ausgaben können falsch sein.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "SOWEIT GESETZLICH ZULÄSSIG, WERDEN DIE DIENSTE UND ALLE AUSGABEN „WIE BESEHEN“ UND „WIE VERFÜGBAR“ BEREITGESTELLT. WIR ÜBERNEHMEN KEINERLEI GEWÄHRLEISTUNG, WEDER AUSDRÜCKLICH NOCH STILLSCHWEIGEND NOCH KRAFT GESETZES, EINSCHLIESSLICH DER GEWÄHRLEISTUNG DER MARKTGÄNGIGKEIT, DER EIGNUNG FÜR EINEN BESTIMMTEN ZWECK, DES RECHTSTITELS, DER NICHTVERLETZUNG VON RECHTEN DRITTER UND DER RICHTIGKEIT. WIR GARANTIEREN NICHT, DASS DIE DIENSTE UNTERBRECHUNGSFREI, SICHER ODER FEHLERFREI SIND, DASS INHALTE NICHT VERLOREN GEHEN ODER DASS AUSGABEN ODER AKTIONEN VON AGENTEN RICHTIG ODER SICHER SIND.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Manche Rechtsordnungen erlauben den Ausschluss bestimmter Gewährleistungen nicht. Dort gelten die obigen Ausschlüsse nur, soweit das Gesetz es zulässt.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Gesetzliche Gewährleistung",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Verbraucher sind, gewährt Ihnen das EU-Recht eine gesetzliche Gewährleistung für digitale Inhalte und digitale Dienstleistungen. Die Dienste müssen dem entsprechen, was diese Bedingungen und die Produktbedingungen beschreiben, und wir sind verantwortlich, wenn sie das nicht tun. Nichts in diesen Bedingungen schränkt diese Gewährleistung ein. (Richtlinie (EU) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Die Dienste befinden sich in einer frühen Phase, und Funktionen können sich wie unter [Änderungen der Dienste und dieser Bedingungen](#changes) beschrieben ändern. Bevor Sie sich registrieren, weisen wir Sie darauf hin, dass KI-Ausgaben falsch sein können (siehe [KI kann sich irren](#ai-limits)). Solche fehlerhaften Ausgaben gehören zur heutigen Funktionsweise von KI-Diensten. Für Fehler der Dienste selbst bleiben wir verantwortlich.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Geschäftskunde sind, stellen wir die Dienste so bereit, wie sie sind, ohne Gewährleistung, außer soweit das Gesetz sie vorschreibt und ihren Ausschluss nicht zulässt.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Haftung",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "SOWEIT GESETZLICH ZULÄSSIG: (A) HAFTEN WIR NICHT FÜR MITTELBARE, BEILÄUFIGE, BESONDERE ODER FOLGESCHÄDEN, FÜR SCHADENSERSATZ MIT STRAF- ODER ABSCHRECKUNGSCHARAKTER ODER FÜR ENTGANGENEN GEWINN, UMSATZ, DATENVERLUST ODER VERLUST DES GESCHÄFTSWERTS, SELBST WENN WIR AUF DIE MÖGLICHKEIT SOLCHER SCHÄDEN HINGEWIESEN WURDEN; UND (B) IST UNSERE GESAMTHAFTUNG FÜR ALLE ANSPRÜCHE IM ZUSAMMENHANG MIT DEN DIENSTEN ODER DIESEN BEDINGUNGEN AUF DEN HÖHEREN DER FOLGENDEN BETRÄGE BEGRENZT: DEN BETRAG, DEN SIE UNS IN DEN 12 MONATEN VOR DEM DEN ANSPRUCH AUSLÖSENDEN EREIGNIS FÜR DIE DIENSTE GEZAHLT HABEN, ODER 100 US-DOLLAR.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Dies gilt unabhängig von der Rechtsgrundlage, ob Vertrag, Gewährleistung, unerlaubte Handlung (einschließlich Fahrlässigkeit) oder sonstige. Es beschränkt nicht die Haftung, deren Beschränkung das Gesetz nicht zulässt, etwa die Haftung für Betrug oder für Tod oder Körperverletzung, die durch unsere Fahrlässigkeit verursacht wurden. Manche Rechtsordnungen lassen diese Beschränkungen nicht zu. Dort gelten sie nur, soweit das Gesetz es zulässt.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sie sind für die Aktionen verantwortlich, die Sie Agenten erlauben, und dafür, wie Sie Ausgaben verwenden, wie unter [Agenten](#agents) erläutert.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Haftung",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wir haften unbeschränkt:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "für Schäden, die wir vorsätzlich oder grob fahrlässig verursachen;",
+        "für Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit;",
+        "nach dem Produkthaftungsrecht und im Rahmen einer von uns übernommenen Garantie;",
+        "in allen anderen Fällen, in denen das Gesetz eine Haftungsbeschränkung nicht zulässt."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Im Übrigen haften wir bei nur leichter Fahrlässigkeit nur, wenn wir eine wesentliche Vertragspflicht verletzen. Das ist eine Pflicht, deren Erfüllung die ordnungsgemäße Durchführung des Vertrags überhaupt erst ermöglicht und auf deren Einhaltung Sie regelmäßig vertrauen dürfen. Unsere Haftung ist dann auf den vertragstypischen Schaden begrenzt, der bei Annahme des Vertrags vorhersehbar war.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wir haften nicht für Schäden, die Sie durch eigene zumutbare Maßnahmen hätten vermeiden können, etwa durch Sicherungskopien, die Prüfung von Ausgaben oder die Prüfung von Aktionen vor ihrer Genehmigung (siehe [Agenten](#agents)). Dies gilt nicht, soweit das Gesetz Sie vor einer solchen Regelung schützt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Diese Regelungen schützen auch unsere Mitarbeitenden und die Personen, die für uns tätig sind.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "Freistellung"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Geschäftskunde sind, verteidigen Sie uns gegen Ansprüche Dritter und stellen uns von ihnen frei, die sich aus Ihren Inhalten, aus Ihrer Nutzung der Dienste unter Verstoß gegen diese Bedingungen oder das Gesetz oder aus den Aktionen ergeben, die Sie Agenten erlaubt haben. „Freistellen“ bedeutet, dass Sie unsere angemessenen Kosten, Verluste und Rechtsanwaltsgebühren tragen. Wir informieren Sie unverzüglich über einen solchen Anspruch, überlassen Ihnen die Führung der Verteidigung und unterstützen Sie in angemessenem Umfang auf Ihre Kosten. Sie dürfen einen Anspruch nicht in einer Weise vergleichen, die ein Verschulden unsererseits einräumt oder uns ohne unsere Zustimmung bindet."
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Verbraucher sind, gilt dieser Abschnitt nicht für Sie. Sie bleiben nach dem Gesetz für Schäden verantwortlich, die Sie verursachen.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie die Dienste nur für sich selbst und nicht für ein Unternehmen nutzen, gilt dieser Abschnitt nicht für Sie. Sie bleiben nach dem Gesetz für Schäden verantwortlich, die Sie verursachen.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanktionen und Export"
+    },
+    {
+      "type": "p",
+      "text": "Wir halten die Sanktions- und Exportvorschriften der Vereinigten Staaten und der Europäischen Union ein, und auch Sie müssen sie einhalten. Sie dürfen die Dienste nicht nutzen, wenn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sie sich in einem Land oder einer Region befinden oder dort Ihren gewöhnlichen Aufenthalt haben, das oder die umfassenden Sanktionen der USA oder der EU unterliegt;",
+        "Sie auf einer Sanktionsliste der USA oder der EU stehen oder im Eigentum oder unter der Kontrolle einer dort gelisteten Person stehen; oder",
+        "Ihre Nutzung gegen Sanktions- oder Exportvorschriften der USA oder der EU verstoßen würde, etwa indem Sie die Dienste einer solchen Person oder für einen verbotenen Zweck bereitstellen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wir dürfen den Zugang sperren, Konten schließen oder die Leistung verweigern, um diese Vorschriften einzuhalten."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Streitigkeiten und anwendbares Recht",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie ein Problem mit den Diensten haben, schreiben Sie bitte zuerst an {company.email}. Die meisten Probleme lassen sich so schnell lösen, und wir bemühen uns in gutem Glauben darum.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Diese Bedingungen und alle Streitigkeiten über sie oder die Dienste unterliegen dem Recht von {company.law} unter Ausschluss seiner Kollisionsnormen.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Streitigkeiten werden vor Gerichten und nicht in Schiedsverfahren ausgetragen. Sie verzichten nicht auf das Recht, sich einer Sammel- oder Gruppenklage anzuschließen, soweit das Gesetz dies erlaubt. Ansprüche werden vor den nach anwendbarem Recht zuständigen Gerichten geltend gemacht, einschließlich der Gerichte an Ihrem Wohnort, wenn das örtliche Recht Ihnen dieses Recht gibt.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jede Partei kann stattdessen einen individuellen Anspruch vor einem Gericht für geringfügige Forderungen (Small Claims Court) geltend machen, sofern der Anspruch dafür in Frage kommt, und zwar an Ihrem Wohnort oder an unserem Sitz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Nichts in diesen Bedingungen nimmt Ihnen Rechte, die Ihnen nach dem Verbraucherschutzrecht Ihres Wohnorts zustehen, sofern dieses Recht ihren Ausschluss nicht zulässt.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Streitigkeiten und anwendbares Recht",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie ein Problem mit den Diensten haben, schreiben Sie bitte zuerst an {company.email}. Die meisten Probleme lassen sich so schnell lösen, und wir bemühen uns in gutem Glauben darum.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Diese Bedingungen unterliegen dem Recht von {company.law}. Das UN-Übereinkommen über Verträge über den internationalen Warenkauf (UN-Kaufrecht) findet keine Anwendung.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Verbraucher sind, behalten Sie den Schutz der zwingenden Vorschriften des Landes, in dem Sie leben, unabhängig davon, welches Recht diese Bedingungen wählen. Sie können Ansprüche gegen uns vor den Gerichten an Ihrem Wohnort geltend machen. Wir können Ansprüche gegen Sie nur vor den Gerichten an Ihrem Wohnort geltend machen.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Geschäftskunde sind, sind die Gerichte an unserem Sitz zuständig, soweit das Gesetz es zulässt. Wir können Ansprüche auch an Ihrem Sitz geltend machen.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Es gibt kein Schiedsverfahren, und nichts in diesen Bedingungen schränkt Ihr Recht ein, sich an einer Verbandsklage oder kollektiven Klage zu beteiligen, soweit das Gesetz dies erlaubt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wir nehmen nicht an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teil und sind dazu auch nicht bereit.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "Kontaktstellen und Moderation",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Der EU-Digital Services Act (DSA) verpflichtet uns, Ihnen mitzuteilen, wie Sie uns erreichen und wie wir mit Inhalten umgehen.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "Kontaktstellen",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Unsere zentrale Kontaktstelle für Nutzer sowie für die Behörden der EU-Mitgliedstaaten, die Europäische Kommission und das Europäische Gremium für digitale Dienste ist {company.email}. Sie können uns auf Englisch schreiben und erreichen stets einen Menschen, nicht nur ein automatisiertes System. (Art. 11 und 12 DSA)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Unser gesetzlicher Vertreter in der EU ist {company.euRepresentative}. Sie können sich in allen Angelegenheiten nach dem DSA an ihn wenden. (Art. 13 DSA)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "Was wir hosten und wie wir moderieren",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie unseren Cloud-Arbeitsbereich, die Cloud-Recherche der Desktop-App, den Assistenz-Bot oder die API nutzen, speichern wir Inhalte in Ihrem Auftrag, etwa Ihre Chats, Rechercheanfragen, Ziele, Dateien und Berichte. Wir veröffentlichen sie nicht und teilen sie nicht mit anderen Nutzern. Wir überwachen sie nicht allgemein, und wir bewerten oder empfehlen keine Inhalte.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Unsere Inhaltsregeln stehen in diesen Bedingungen und in der [Nutzungsrichtlinie](/instant/legal/acceptable-use). Wir handeln, wenn wir von rechtswidrigen Inhalten oder einem Verstoß gegen diese Regeln erfahren, vor allem durch Meldungen.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Jeder kann Inhalte melden, die er für rechtswidrig oder regelwidrig hält, wie unter [Verstoß melden](/instant/legal/acceptable-use#report) erläutert.",
+        "Ein Mensch prüft jede Meldung und entscheidet. Wir handeln zeitnah, sorgfältig und objektiv und achten die Rechte aller Beteiligten, einschließlich der Meinungsfreiheit.",
+        "Maßnahmen können das Entfernen oder Sperren von Inhalten, die Einschränkung von Funktionen sowie die Sperrung oder Schließung eines Kontos umfassen. Wir wählen die mildeste wirksame Maßnahme.",
+        "Wir geben dem betroffenen Nutzer eine Begründung: was wir getan haben, den Sachverhalt, ob automatisierte Mittel eingesetzt wurden, die Regel oder das Gesetz, auf die wir uns gestützt haben, und wie die Entscheidung angefochten werden kann. (Art. 17 DSA)",
+        "Erfahren wir von einer Straftat, die das Leben oder die Sicherheit einer Person bedroht, informieren wir die Behörden. (Art. 18 DSA)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie mit einer Entscheidung nicht einverstanden sind, antworten Sie auf unsere Nachricht oder schreiben Sie an {company.email}, und ein Mensch prüft sie erneut. Sie können auch vor Gericht gehen oder sich beim Koordinator für digitale Dienste in dem Land beschweren, in dem Sie leben.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "Mitteilungen"
+    },
+    {
+      "type": "p",
+      "text": "Wir senden Mitteilungen an die E-Mail-Adresse Ihres Kontos oder zeigen sie in den Diensten an. Halten Sie Ihre E-Mail-Adresse aktuell. Sie können uns Mitteilungen an {company.email} senden."
+    },
+    {
+      "type": "p",
+      "text": "Förmliche rechtliche Mitteilungen können auch per Post an {company.legalName}, {company.address} gesendet werden.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Allgemeines"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Diese Bedingungen, die Produktbedingungen und die darin verlinkten Richtlinien bilden die gesamte Vereinbarung zwischen Ihnen und uns über die Dienste. Eine gesonderte schriftliche Vereinbarung, die Sie mit uns unterzeichnen, hat für ihren Regelungsbereich Vorrang.",
+        "Erklärt ein Gericht einen Teil dieser Bedingungen für unwirksam, gilt der Rest weiter. An die Stelle des unwirksamen Teils tritt die gesetzliche Regelung.",
+        "Wenn wir ein Recht nicht sofort durchsetzen, verzichten wir damit nicht darauf.",
+        "Sie dürfen Ihre Rechte oder Pflichten aus diesen Bedingungen nicht ohne unsere schriftliche Zustimmung übertragen. Wir dürfen den Vertrag auf ein Unternehmen übertragen, das die Dienste übernimmt, sofern Ihre Rechte dadurch nicht geschmälert werden. Wir informieren Sie vorab, und Sie können den Vertrag dann jederzeit beenden.",
+        "Wir sind nicht verantwortlich für Verzögerungen oder Ausfälle, die durch Ereignisse außerhalb unserer zumutbaren Kontrolle verursacht werden, etwa Ausfälle bei den Anbietern, auf die wir angewiesen sind, Naturkatastrophen oder hoheitliche Maßnahmen. Ihre Rechte als Verbraucher werden dadurch nicht geschmälert.",
+        "Außer Ihnen und uns hat niemand Rechte aus diesen Bedingungen.",
+        "Diese Bedingungen sind auf Englisch verfasst. Stellen wir eine Übersetzung bereit, gilt bei Abweichungen die englische Fassung, sofern das Gesetz nichts anderes bestimmt."
+      ]
+    }
+  ]
+}

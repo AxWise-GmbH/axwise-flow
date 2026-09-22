@@ -1,6 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ClerkProvider } from '@clerk/react';
+// Inter is served from our own server, not Google Fonts (no visitor data goes to Google).
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@fontsource/inter/800.css';
 import './index.css';
 import App from '@orqaly-app-entry';
 import { initSentry } from './lib/sentry';
@@ -53,15 +59,22 @@ if (
   });
 }
 
+const clerkProps = {
+  publishableKey: clerkPublishableKey,
+  localization: previewLocalization,
+  signInFallbackRedirectUrl: '/home',
+  signUpFallbackRedirectUrl: '/home',
+};
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ClerkProvider
-      publishableKey={clerkPublishableKey}
-      localization={previewLocalization}
-      signInFallbackRedirectUrl="/home"
-      signUpFallbackRedirectUrl="/home"
-    >
-      <App />
-    </ClerkProvider>
+    {import.meta.env.MODE === 'gcp-launch' ? (
+      // The GCP app starts Clerk itself, only on the pages that need sign-in (GcpApp.jsx).
+      <App clerkProps={clerkProps} />
+    ) : (
+      <ClerkProvider {...clerkProps}>
+        <App />
+      </ClerkProvider>
+    )}
   </StrictMode>
 );

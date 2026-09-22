@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "slug": "ai",
+    "title": "我们的 AI 如何运作",
+    "summary": "关于 Orqanix 中 AI 的简明指南：我们使用哪些模型、智能体做什么、模型能看到哪些数据，以及您如何保持掌控。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "EU AI Act Art. 50(2): outputs are not machine-marked today, and the page says so. The 2 Dec 2026 grace period applies only if the Desktop App was on the EU market before 2 Aug 2026; if not, marking of text and files applies now (FACTS.md open point 10; critique item 11). Owner to decide on marking and give the first EU market date.",
+        "geminiPaidTier is empty: the paid-tier statement about Google's use of data stays hidden until the owner confirms Google's paid Gemini tier and data processing terms (FACTS.md open point 3). Google's terms require the paid tier for users in the EEA, UK and Switzerland.",
+        "Google's processing location is not pinned in our code; the page says Google may process data outside the EU.",
+        "Desktop defaults (auto-approve on, shell and file tools on, dictation on) are disclosed as they are. Owner may change them (FACTS.md open point 8); update this page if so.",
+        "Whether dictation works end to end is uncertain; the page only says that, if you use it, your voice goes to the model provider.",
+        "The Assistant Bot has no code yet; its AI disclosure to other people is a rule in the Assistant Bot Terms and must be built before launch.",
+        "US state chatbot rules are summarised in plain words without listing each law. Colorado HB 26-1263 (from 2027-01-01) and California SB 243 / SB 1119 positioning need lawyer review.",
+        "Research questions sent from the Desktop App to the cloud research tool are stored in our cloud (FACTS.md §4). The page says so, and the Privacy Policy, Desktop App Terms and Sub-processors page say the same (cross-check 2026-09-21).",
+        "The claim 'No one at Orqanix reads along' was removed because FACTS.md does not cover staff access to cloud data (support, abuse, legal requests). Owner to define staff access and state it in the Privacy Policy.",
+        "Art. 50(1) disclosure for third parties: Desktop agents can message or email other people through tools the user connects. The page leaves that duty with the user and the bot rule; lawyer to confirm whether we, as provider, must add an AI label to agent-sent messages from the Desktop App too.",
+        "Art. 50(4) deployer duties are passed to users for non-personal use; lawyer to confirm the wording and whether the Code of Practice on marking should be signed.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): AI output errors are described as a known limit; lawyer to confirm this does not read as a liability exclusion for consumers (liability is in the Terms of Service).",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "working-with-ai",
+      "text": "与 AI 协作"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 是一款 AI 产品。当您与 Orqanix 聊天、向其交付目标或使用助理机器人时，与您协作的是 AI 智能体，而不是人。AI 智能体是一种软件，它使用 AI 模型来理解任务、规划步骤，并借助工具（例如读取文件或搜索网络）执行这些步骤。"
+    },
+    {
+      "type": "p",
+      "text": "智能体的回答和操作来自 AI，而不是来自 Orqanix 的任何人员。只有在您联系我们（例如通过电子邮件）时，或在我们与您书面约定的企业版项目中，我们的团队才会参与您的工作。"
+    },
+    {
+      "type": "h2",
+      "id": "models",
+      "text": "我们的模型"
+    },
+    {
+      "type": "p",
+      "text": "默认情况下，我们的智能体通过 Gemini API 使用 Google Gemini，这是由 Google 开发的 AI 模型。在云端助理和 API 中，智能体还可以通过 Gemini 使用 Google 搜索来查找最新信息。我们选择模型版本，并可能在有更好的版本推出时进行更换。"
+    },
+    {
+      "type": "p",
+      "text": "在桌面应用中，您可以改为连接其他模型提供商，例如 OpenAI 或 Anthropic，或在您的 Mac 上运行本地模型。如果您连接某个提供商，您的对话将根据您与该提供商之间的协议发送给该提供商，并适用其条款。如果您运行本地模型，对话将保留在您 Mac 上的该模型中。"
+    },
+    {
+      "type": "p",
+      "text": "这些公司开发模型。我们构建智能体：即我们提供给模型的指令、工具和上下文，使其能够完成您的工作。"
+    },
+    {
+      "type": "h2",
+      "id": "what-agents-do",
+      "text": "智能体做什么"
+    },
+    {
+      "type": "table",
+      "head": [
+        "产品",
+        "AI 做什么",
+        "由谁执行结果"
+      ],
+      "rows": [
+        [
+          "桌面应用",
+          "在您的 Mac 上进行研究、规划并创建真实文件。它可以读写文件并运行命令。",
+          "智能体，在您的 Mac 上，并在您选择的设置范围内。"
+        ],
+        [
+          "移动应用",
+          "让您在手机上查看任务、阅读结果，并启动您 Mac 上的工作。",
+          "您 Mac 上的桌面应用。"
+        ],
+        [
+          "助理机器人",
+          "在您赋予它的角色中工作：通过您连接的账户起草消息、整理文件、收集联系人并运行定时任务。",
+          "机器人，在您授予它的访问权限范围内。请参阅[助理机器人条款](/instant/legal/assistant-bot-terms)。"
+        ],
+        [
+          "API",
+          "推荐应由谁来完成某项任务（智能体、团队或个人），并附上理由、防护措施和计划。",
+          "您自己的系统。API 仅提供建议，不执行工作。"
+        ],
+        [
+          "企业版",
+          "智能体和专家为您的企业构建并运行 AI 工作流。",
+          "按照您的书面订单中的约定。"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "智能体不会作出对您产生法律效力或类似重要影响的决定，例如关于信贷、工作或合同的决定。它们不会利用您的数据投放定向广告，而且 Orqanix 没有广告。"
+    },
+    {
+      "type": "h2",
+      "id": "ai-can-be-wrong",
+      "text": "AI 可能出错"
+    },
+    {
+      "type": "p",
+      "text": "AI 模型预测的是可能的答案。它们可能错误、不完整或过时，并且可能自信地陈述不实内容。智能体可能会误解任务、选错文件，或执行您意料之外的步骤。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "在依赖、分享结果或据此采取行动之前，请先检查结果。",
+        "检查智能体所写任何内容中的事实、数字、姓名、来源和引文。",
+        "AI 输出不构成专业建议，例如法律、医疗、税务或财务建议。如需此类建议，请咨询合格的专业人士。",
+        "在让智能体更改重要文件之前，请保留这些文件的副本。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-control",
+      "text": "人工掌控"
+    },
+    {
+      "type": "p",
+      "text": "在桌面应用中，您可以选择智能体可以自主执行多少操作："
+    },
+    {
+      "type": "table",
+      "head": [
+        "模式",
+        "会发生什么"
+      ],
+      "rows": [
+        [
+          "自动批准（默认）",
+          "智能体会直接执行其步骤（例如编辑文件或运行命令），而不事先征求您的同意。"
+        ],
+        [
+          "仅对敏感步骤询问",
+          "智能体在执行其视为敏感的步骤前会询问您，其余步骤则直接执行。您可以选择“Allow Once”（允许一次）、“Always Allow”（始终允许）或“Deny”（拒绝）。"
+        ],
+        [
+          "每一步前都询问",
+          "智能体在每项操作前都会询问您。您可以选择“Allow Once”（允许一次）、“Always Allow”（始终允许）或“Deny”（拒绝）。"
+        ],
+        [
+          "仅聊天",
+          "智能体只回答问题，不执行任何操作。"
+        ]
+      ]
+    },
+    {
+      "type": "note",
+      "text": "默认设置是不经询问直接执行操作。如果您希望逐步批准，请在开始工作前更改模式。"
+    },
+    {
+      "type": "p",
+      "text": "您可以随时停止智能体，并查看它做了什么。它创建的文件会存放到您选择的项目文件夹中。对于机器人，[助理机器人条款](/instant/legal/assistant-bot-terms)说明了您如何设定其角色和访问权限。"
+    },
+    {
+      "type": "h2",
+      "id": "data-models-see",
+      "text": "模型能看到的数据"
+    },
+    {
+      "type": "p",
+      "text": "为完成工作，模型需要上下文。在每一步中，智能体都会将截至当时的对话发送给模型提供商：包括您写的内容、智能体读取的文件内容、它运行的命令结果以及我们的指令。如果您使用听写，您的语音将被发送给模型提供商。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "在桌面应用中，发往默认模型的请求会在传送至 Google 的途中经过我们位于欧盟的云端。我们不会在那里存储其内容。",
+        "当智能体搜索网络时，根据您的任务生成的搜索查询会发送给搜索引擎。某些研究还可能查询公司登记信息。",
+        "如果桌面智能体使用 Orqanix 云端研究，它发送的问题以及其中包含的任何云端文件摘录都会存储在您的云端工作区中。",
+        "我们的云端存储您的云端聊天、目标以及智能体在云端创建的文件。云端托管在欧盟（Google Cloud，荷兰）。桌面应用将其聊天记录保存在您 Mac 上的一个文件中。",
+        "Google 可能会在欧盟以外处理其收到的数据。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[隐私政策](/instant/legal/privacy)全面说明了我们收集哪些数据、数据的去向、保留期限以及您的权利。我们的[子处理方](/instant/legal/subprocessors)清单列出了涉及的公司。"
+    },
+    {
+      "type": "h2",
+      "id": "training",
+      "text": "模型训练"
+    },
+    {
+      "type": "p",
+      "text": "我们不会使用您的内容训练我们自己的 AI 模型。我们不会出售您的个人数据。"
+    },
+    {
+      "type": "p",
+      "text": "Google 可以如何处理其收到的数据，取决于 Google 的[Gemini API 条款](https://ai.google.dev/gemini-api/terms)。Google 会按照其自身政策所述，将部分数据保留一段有限的时间，例如用于检测滥用行为。"
+    },
+    {
+      "type": "p",
+      "text": "我们使用 Google 的付费 Gemini API 服务。根据 Google 的付费服务条款，Google 不会使用您的提示词或其回答来改进其产品。Google 根据其数据处理条款处理这些数据。",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如果您在桌面应用中连接 OpenAI、Anthropic 或其他提供商，则由该提供商的条款决定其如何使用您的数据。"
+    },
+    {
+      "type": "h2",
+      "id": "ai-made-content",
+      "text": "AI 生成的内容"
+    },
+    {
+      "type": "p",
+      "text": "智能体创建的文件、文本、报告和消息均由 AI 生成，即使它们看起来像是由人撰写的。目前，这些内容不带有表明这一点的隐藏水印或机器可读标签。"
+    },
+    {
+      "type": "p",
+      "text": "由您决定如何处理 AI 生成的内容，并由您对其负责。如果您发布这些内容，请确保其准确合法，并在诚信或法律要求时说明其由 AI 生成。"
+    },
+    {
+      "type": "p",
+      "text": "在欧盟，如果您将 AI 生成的内容用于纯个人目的以外的用途，您可能需要自行对其进行标注。如果您发布 AI 生成的文本以就公共利益事项向公众提供信息，您必须说明该文本由 AI 生成，除非已有人对其进行审核和编辑并承担编辑责任。如果您制作或分享深度伪造内容（看起来真实但由 AI 生成或修改的图像、音频或视频），您必须对此加以说明（欧盟《人工智能法》第 50(4) 条）。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "一些法律和许多平台的规则要求您标注 AI 生成的内容，例如在政治广告中。在这些规则适用于您时，请遵守。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "不得利用 Orqanix 制作在内容由谁或由什么制作这一点上欺骗他人的内容。我们的[可接受使用政策](/instant/legal/acceptable-use)列明了哪些行为不被允许。"
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "AI 法律",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "欧盟《人工智能法》为 AI 制定了规则。对于 Orqanix 这样的产品，主要规则是透明度：人们必须知道自己何时在与 AI 打交道，而且 AI 生成的内容必须可被识别。本页面是我们遵守该规则的方式之一（欧盟《人工智能法》第 50 条，自 2026 年 8 月 2 日起适用）。",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "我们在产品中和本页面上告知您，您正在与 AI 协作。",
+        "当助理机器人给他人写信时，它必须告知对方自己是 AI。[助理机器人条款](/instant/legal/assistant-bot-terms)对此作出了要求。",
+        "如果您使用我们的 API 构建自己的 AI 系统并将其提供给他人，您应负责履行适用于您系统的《人工智能法》义务，包括告知您的用户他们正在与 AI 打交道。",
+        "我们不会将 AI 用于《人工智能法》禁止的做法，您也不得将 Orqanix 用于这些做法。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "AI 法律",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "美国多个州对 AI 聊天机器人制定了规则。简而言之，不得误导人们以为自己在与真人交谈，并且在有人询问时，AI 必须说明自己是 AI。一些州还对面向公众使用的聊天机器人以及建立个人关系的陪伴型聊天机器人制定了额外规则。",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "我们在产品中和本页面上告知您，您正在与 AI 协作。",
+        "当助理机器人给他人写信时，它必须告知对方自己是 AI，包括在对方询问时。[助理机器人条款](/instant/legal/assistant-bot-terms)对此作出了要求。",
+        "Orqanix 专为工作而打造。它不是陪伴型聊天机器人，您也不得将其设置为陪伴型聊天机器人。",
+        "如果您使用我们的 API 构建自己的 AI 系统并将其提供给他人，您应负责履行适用于您系统的披露义务及其他义务。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report-a-problem",
+      "text": "报告问题"
+    },
+    {
+      "type": "p",
+      "text": "如果智能体给出了有害、违法或严重错误的结果，或做了不应做的事情，请告诉我们。我们会利用报告来修复问题，并改进我们的指令和保护措施。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "非法内容或滥用行为：请发送电子邮件至 {company.email}，主题注明“Report”。请说明发生了什么以及发生的时间，如有可能，请附上副本或链接。我们会进行审核并作出决定，然后将理由告知您和受影响的用户。详情请参阅[举报违规行为](/instant/legal/acceptable-use#report)。",
+        "错误或有害的 AI 结果，以及有关我们 AI 的其他问题：{company.email}。",
+        "有关您数据的问题：{company.privacyEmail}。",
+        "安全漏洞：{company.securityEmail}。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "根据欧盟《数字服务法》，我们面向主管机关和用户的单一联络点是 {company.email}，使用英语。",
+      "only": "eu"
+    }
+  ]
+}

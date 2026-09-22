@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Seen } from '../../SpeedStrip';
 import HeroFrame from './HeroFrame';
+import { useT } from '../../i18n/useT';
 import './FeaturesHero.css';
 
 /*
@@ -11,23 +12,16 @@ import './FeaturesHero.css';
  */
 const COURSES = { wide: [5, 4, 3], mid: [4, 2, 3, 3], slim: [7, 5] };
 
-function place(course, index) {
+function span(course, index) {
   const row = Math.floor(index / course.length);
   const slot = index % course.length;
-  const widths = course.map((_, at) => course[(at + row) % course.length]);
-  const start = widths.slice(0, slot).reduce((sum, width) => sum + width, 0);
-  return { span: widths[slot], start, row };
+  return course[(slot + row) % course.length];
 }
 
-// The CSS needs to know where a tile sits, not only how wide it is: the band of light is
-// drawn tile by tile and has to cross the wall as one straight line.
 function placement(index) {
   const style = { '--i': index };
   for (const [wall, course] of Object.entries(COURSES)) {
-    const { span, start, row } = place(course, index);
-    style[`--ohf-${wall}-span`] = span;
-    style[`--ohf-${wall}-start`] = start;
-    style[`--ohf-${wall}-row`] = row;
+    style[`--ohf-${wall}-span`] = span(course, index);
   }
   return style;
 }
@@ -66,9 +60,6 @@ function Tile({ item, index }) {
   return (
     <li className="ohf-slot" style={style} data-mid-span={style['--ohf-mid-span']}>
       <Link className="ohf-tile" to={{ hash: item.hash }}>
-        <span className="ohf-light" aria-hidden="true">
-          <i />
-        </span>
         <span className="ohf-top">
           {item.icon}
           <i className="ohf-ruler" aria-hidden="true" />
@@ -94,14 +85,13 @@ function Tile({ item, index }) {
  * icons, so the wall cannot drift away from what it links to.
  */
 export default function FeaturesHero({ id, tag, title, line, items }) {
+  const { t } = useT('pg');
   const wall = (
-    <Seen as="nav" className="ohf-wall" aria-label="Jump to a feature">
+    <Seen as="nav" className="ohf-wall" aria-label={t('pg.featureshero.nav', 'Jump to a feature')}>
       <OrbGhost />
       <div className="ohf-head">
-        <p className="oi-tag ohf-head-label">Jump to</p>
-        <span className="ohf-head-rule" aria-hidden="true">
-          <i />
-        </span>
+        <p className="oi-tag ohf-head-label">{t('pg.featureshero.jump', 'Jump to')}</p>
+        <span className="ohf-head-rule" aria-hidden="true" />
         <p className="oi-tag ohf-head-count" aria-hidden="true">
           01 &ndash; {twoDigits(items.length)}
         </p>

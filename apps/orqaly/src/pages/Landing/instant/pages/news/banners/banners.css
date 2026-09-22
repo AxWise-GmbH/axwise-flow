@@ -1,0 +1,306 @@
+/*
+ * Article banners: shared stage, units, clock and small parts.
+ *
+ * Units: every size inside a scene is written in var(--u). It is 1% of the banner's width on
+ * wide screens and larger on phones (the banner is taller there), so a scene scales like a
+ * picture yet stays legible. The wide canvas is 100u x 43.75u; the phone canvas is about
+ * 41.7u x 52u. Build phone layouts with @container nb (max-width: 600px).
+ *
+ * Clock: every animation in a scene uses the same duration, var(--nb-loop), and says WHEN
+ * things happen with keyframe percentages. Same duration = the parts never drift apart.
+ *
+ * Rest frame: a scene's plain (non-animated) styles are its FINISHED frame: everything that
+ * has landed is visible. Keyframes bring things in and take them out. Under reduced motion
+ * all animation is off, so the finished frame is what people see.
+ */
+
+.nb {
+  --nb-loop: 12s;
+  --nb-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nb-ink: #fafafa;
+  --nb-text: #d6d6d6;
+  --nb-muted: #8f8f8f;
+  --nb-faint: #5a5a5a;
+  --nb-line: rgba(255, 255, 255, 0.14);
+  --nb-line-strong: rgba(255, 255, 255, 0.3);
+  --nb-panel: #1d1d1d;
+  --nb-panel-2: #262626;
+  --nb-bubble: #323232;
+  --nb-accent: #e6e6e6;
+  /* The stage, the soft light in its middle, and what sits under a window's glass. */
+  --nb-ground: #070707;
+  --nb-spot: rgba(var(--oi-lift-rgb), 0.06);
+  --nb-under: #111;
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+  /* One letter of a <Words> line (about an average sans letter); typing steps by it too. */
+  --nb-ch: 0.55em;
+
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 7;
+  container: nb / inline-size;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background:
+    radial-gradient(70% 90% at 50% 40%, var(--nb-spot), transparent 70%),
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.045) 1px, transparent 1px) center / 28px 28px,
+    linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.045) 1px, transparent 1px) center / 28px 28px,
+    var(--nb-ground);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.12);
+  color: var(--nb-text);
+  font-family: inherit;
+  isolation: isolate;
+}
+
+/* Light: a pale stage with a soft white light in its middle. The parts take the app's light
+   theme: white windows and chips, dark ink, grey hairlines. Device frames stay dark, like
+   real hardware (see phone.css). */
+[data-oi-theme='light'] .nb {
+  --nb-ink: #111111;
+  --nb-text: #3a3a3a;
+  --nb-muted: #6b6b6b;
+  --nb-faint: #a6a6a6;
+  --nb-line: rgba(0, 0, 0, 0.1);
+  --nb-line-strong: rgba(0, 0, 0, 0.22);
+  --nb-panel: #fafafa;
+  --nb-panel-2: #ffffff;
+  --nb-bubble: #ebebeb;
+  --nb-accent: #1f1f1f;
+  --nb-ground: #eeeeee;
+  --nb-spot: rgba(var(--oi-lift-rgb), 0.85);
+  --nb-under: #ffffff;
+}
+
+.nb-scene {
+  --u: 1cqi;
+
+  position: absolute;
+  inset: 0;
+  font-size: calc(var(--u) * 1.25);
+  line-height: 1.35;
+}
+
+@container nb (max-width: 600px) {
+  .nb-scene {
+    --u: 2.4cqi;
+  }
+}
+
+@media (max-width: 600px) {
+  .nb {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+/* Off screen: everything rests where it stands. */
+.nb[data-live='false'] *,
+.nb[data-live='false'] *::before,
+.nb[data-live='false'] *::after {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nb *,
+  .nb *::before,
+  .nb *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Shared parts -------------------------------------------------------------------------- */
+
+/* A dark app window with the three dots. */
+.nb-window {
+  position: absolute;
+  overflow: hidden;
+  border: var(--nb-stroke) solid var(--oi-app-edge);
+  border-radius: calc(var(--u) * 1.1);
+  background: var(--oi-app-surface), var(--nb-under);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.14),
+    0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1.5)
+      rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
+}
+
+.nb-window-bar {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.5);
+  height: calc(var(--u) * 2.6);
+  padding: 0 calc(var(--u) * 1);
+  border-bottom: var(--nb-stroke) solid var(--nb-line);
+  color: var(--nb-muted);
+  font-size: calc(var(--u) * 0.95);
+}
+
+.nb-window-bar > i {
+  width: calc(var(--u) * 0.55);
+  height: calc(var(--u) * 0.55);
+  border-radius: 50%;
+  background: var(--nb-faint);
+}
+
+/* A chat bubble; add .nb-bubble-me for the asker's side. */
+.nb-bubble {
+  display: inline-block;
+  max-width: 100%;
+  padding: calc(var(--u) * 0.7) calc(var(--u) * 1.1);
+  border-radius: calc(var(--u) * 1.1);
+  background: var(--nb-bubble);
+  color: var(--nb-text);
+  font-size: calc(var(--u) * 1.1);
+  line-height: 1.35;
+}
+
+.nb-bubble-me {
+  border: var(--nb-stroke) solid var(--nb-line);
+  background: var(--nb-panel-2);
+}
+
+/* Typing: wrap a <Words> line in .nb-type with --n (its length); the width steps open. */
+.nb-type {
+  display: inline-block;
+  overflow: hidden;
+  max-width: calc(var(--n, 20) * var(--nb-ch));
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.nb-caret {
+  display: inline-block;
+  width: var(--nb-stroke);
+  height: 1.1em;
+  margin-left: 1px;
+  background: var(--nb-accent);
+  vertical-align: text-bottom;
+  animation: nb-blink 1s steps(1) infinite;
+}
+
+@keyframes nb-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* A file row: icon tile + name; data-state="writing" shows a moving bar. */
+.nb-file {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.7);
+  color: var(--nb-text);
+  font-size: calc(var(--u) * 1);
+}
+
+.nb-file-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 2);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: calc(var(--u) * 0.5);
+}
+
+.nb-file-icon svg,
+.nb-icon {
+  width: 60%;
+  height: 60%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A small rounded tag, e.g. an agent name or a channel. */
+.nb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.45);
+  padding: calc(var(--u) * 0.35) calc(var(--u) * 0.9);
+  border: var(--nb-stroke) solid var(--nb-line);
+  border-radius: 999px;
+  background: var(--nb-panel);
+  color: var(--nb-text);
+  font-size: calc(var(--u) * 0.95);
+  white-space: nowrap;
+}
+
+/* A round tick mark. */
+.nb-tick {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--u) * 1.3);
+  height: calc(var(--u) * 1.3);
+  border-radius: 50%;
+  background: var(--nb-accent);
+  color: rgb(var(--oi-bg-rgb));
+}
+
+.nb-tick svg {
+  width: 70%;
+  height: 70%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Words without words (owner rule: no text on a banner). One bar per word in the current
+   colour, each --n characters long, so a line sits where the text would and types open
+   inside .nb-type. Two lines in a row keep a word gap. */
+.nb-words {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.79em var(--nb-ch);
+  max-width: 100%;
+  padding: 0.395em 0;
+  vertical-align: middle;
+}
+
+/* While typing, and in a chip, a line stays on one row. */
+.nb-type .nb-words,
+.nb-chip .nb-words {
+  flex-wrap: nowrap;
+  max-width: none;
+}
+
+.nb-words > span {
+  flex: none;
+  width: calc(var(--n) * var(--nb-ch));
+  height: 0.56em;
+  border-radius: calc(var(--u) * 0.2);
+  background: color-mix(in srgb, currentColor 64%, transparent);
+}
+
+.nb-words + .nb-words {
+  margin-left: var(--nb-ch);
+}
+
+/* Monospace text (code, file names in a terminal). */
+.nb-mono {
+  font-family: var(--oi-mono);
+  font-size: calc(var(--u) * 1);
+}
+
+/* An SVG layer for wires and paths, drawn in the scene's own units. */
+.nb-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--nb-line-strong);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.nb-wires * {
+  vector-effect: non-scaling-stroke;
+}

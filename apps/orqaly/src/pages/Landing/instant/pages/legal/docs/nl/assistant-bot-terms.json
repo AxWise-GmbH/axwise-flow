@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "Voorwaarden Assistent-bot",
+    "summary": "Aanvullende regels voor assistent-bots van Orqanix, die namens u kunnen handelen in uw bestanden en in de berichtenapps en e-mailaccounts die u koppelt.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Over deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "Deze voorwaarden vormen een aanvulling op onze [Servicevoorwaarden](/instant/legal/terms). Ze zijn van toepassing wanneer u de Assistent-bot gebruikt, inclusief elke assistent die u ermee maakt (een \"bot\"). Een bot is een AI-assistent met een rol, zoals verkoop, financiën, support, het kantoor of een rol die u zelf omschrijft. Hij kan voor u werken in de berichtenapps en e-mailaccounts die u koppelt, en in uw Orqanix-werkruimte."
+    },
+    {
+      "type": "p",
+      "text": "Ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use), ons [Privacybeleid](/instant/legal/privacy) en [Hoe onze AI werkt](/instant/legal/ai) zijn ook van toepassing. Als deze voorwaarden en de Servicevoorwaarden over een punt dat bots betreft met elkaar in strijd zijn, gaan deze voorwaarden voor."
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "Toegang en gebruik"
+    },
+    {
+      "type": "list",
+      "items": [
+        "U moet 18 jaar of ouder zijn en een Orqanix-account hebben.",
+        "U mag zoveel bots maken als u nodig hebt en de rol van een bot op elk moment wijzigen. De bot volgt de nieuwe rol vanaf zijn volgende taak.",
+        "Een bot kan gebruiken wat de Orqanix-app kan: chats, onderzoek, recepten, planningen, gekoppelde hulpmiddelen en bestanden. Zijn bestanden komen in uw Orqanix-werkruimte terecht.",
+        "Bots zijn gratis zolang de producten zich in een vroeg stadium bevinden. Voordat een betaald abonnement ingaat, publiceren wij de prijs en de regels voor betalen en opzeggen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Voordat een betaald abonnement ingaat, publiceren wij ook de regels voor het herroepen van een aankoop.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Agentische acties"
+    },
+    {
+      "type": "p",
+      "text": "Een bot doet meer dan antwoorden. Afhankelijk van wat u koppelt en toestaat, kan hij acties voor u uitvoeren (\"agentische acties\"). Hij kan bijvoorbeeld:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "documenten lezen, sorteren en archiveren, zoals facturen, contracten, foto’s en notities;",
+        "contacten uit de e-mailaccounts en de telefoon die u koppelt samenbrengen in één lijst en dubbele vermeldingen samenvoegen;",
+        "cijfers en gegevens verzamelen uit uw e-mail, bestanden en hulpmiddelen;",
+        "berichten beantwoorden en antwoorden, briefings en rapporten opstellen, op de manieren die u toestaat;",
+        "recepten en ingeplande taken uitvoeren die elke dag of week terugkeren."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "Uw machtiging"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u een bot een rol geeft, een account koppelt of hem een taak laat uitvoeren, machtigt u hem om binnen die reikwijdte namens u te handelen. Tegenover de mensen en diensten waarmee hij te maken heeft, gelden de acties van een bot binnen de toegang die u hebt gegeven als uw acties."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Koppel alleen accounts, apparaten en gegevens die u mag gebruiken, en geef een bot alleen de toegang die hij nodig heeft.",
+        "Stel de rol en de instructies duidelijk in. U bent verantwoordelijk voor wat u een bot laat doen.",
+        "Houd uw Orqanix-account en gekoppelde accounts veilig. Laat het ons weten via {company.email} als u denkt dat iemand anders ze gebruikt.",
+        "U kunt op elk moment stoppen met het gebruik van een bot en zijn toegang tot een gekoppeld account intrekken, bijvoorbeeld in de eigen instellingen van dat account. Acties die al zijn uitgevoerd, kunnen mogelijk niet ongedaan worden gemaakt."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "Menselijke controle"
+    },
+    {
+      "type": "p",
+      "text": "Een bot kan zich vergissen, onvolledig zijn of verouderde informatie gebruiken. Hij kan een situatie verkeerd inschatten, het verkeerde bestand of contact kiezen, of iets onwaars schrijven."
+    },
+    {
+      "type": "p",
+      "text": "U kunt zien wat elke bot heeft gedaan. Controleer het werk van een bot voordat u erop vertrouwt, en bekijk concepten voordat ze worden verzonden. Wees extra voorzichtig met alles wat moeilijk ongedaan te maken is of wat andere mensen raakt, bijvoorbeeld:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "berichten aan klanten, leveranciers of grote groepen;",
+        "alles wat te maken heeft met geld, facturen, contracten of wettelijke termijnen;",
+        "het verwijderen, verplaatsen of delen van bestanden;",
+        "persoonlijke of gevoelige informatie over anderen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Waar Orqanix u laat kiezen of een bot u vraagt voordat hij handelt, is die keuze aan u. Als u een bot laat handelen zonder te vragen, aanvaardt u dat hij handelt zonder uw controle. De output van een bot is geen juridisch, medisch, fiscaal of financieel advies."
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "Aansprakelijkheid"
+    },
+    {
+      "type": "p",
+      "text": "U bent verantwoordelijk voor de acties die u een bot toestaat uit te voeren en voor de gevolgen daarvan. Dit omvat berichten die hij verstuurt en wijzigingen die hij aanbrengt in uw bestanden en gekoppelde accounts. Wij zijn niet verantwoordelijk voor verliezen die worden veroorzaakt door acties die u hebt toegestaan of instructies die u hebt gegeven, behalve waar onze [Servicevoorwaarden](/instant/legal/terms) of de wet anders bepalen.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Voor zover de wet dat toestaat, gelden de uitsluitingen en beperkingen van aansprakelijkheid in de Servicevoorwaarden voor bots en hun acties. Bots worden geleverd \"in de huidige staat\". Wij garanderen niet dat een bot correct, volledig of tijdig handelt.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Als iemand anders een vordering tegen ons instelt vanwege een actie van een bot op basis van uw instructies, vergoedt u onze redelijke verliezen als gevolg van die vordering. Dit geldt voor zover de wet dat toestaat en de vordering voortvloeit uit uw schending van deze voorwaarden of van de wet.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "U bent verantwoordelijk voor de instructies die u geeft, de instellingen die u kiest en de toegang die u verleent. Wij blijven verantwoordelijk wanneer een bot schade veroorzaakt omdat onze dienst gebrekkig was. Onze aansprakelijkheid volgt dan de [Servicevoorwaarden](/instant/legal/terms#liability) en de wet.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Niets in deze voorwaarden beperkt onze aansprakelijkheid waar de wet dat niet toestaat, bijvoorbeeld bij opzet, grove nalatigheid, letsel aan leven, lichaam of gezondheid, of op grond van het recht inzake productaansprakelijkheid. Als u een consument bent, behoudt u de rechten die het recht van uw woonland u geeft.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u bots voor uw bedrijf gebruikt en iemand anders een vordering tegen ons instelt vanwege een actie van een bot op basis van uw instructies, vergoedt u onze redelijke verliezen als gevolg van die vordering, voor zover die voortvloeit uit uw schending van deze voorwaarden of van de wet. Dit geldt niet voor consumenten.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "Gekoppelde diensten"
+    },
+    {
+      "type": "p",
+      "text": "Een bot werkt via de berichtenapps, e-mailaccounts en hulpmiddelen die u koppelt, en met de bestanden die u hem geeft. Deze diensten worden door andere bedrijven geleverd."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Op uw gebruik ervan zijn hun eigen voorwaarden en beleid van toepassing, inclusief hun regels over geautomatiseerde berichten, bots en AI. U bent verantwoordelijk voor de naleving daarvan.",
+        "Door een dienst te koppelen, staat u ons toe er namens u toegang toe te krijgen voor zover dat nodig is om uw bots te laten werken. U kunt die toegang op elk moment intrekken.",
+        "Sommige diensten beperken of verbieden AI-assistenten in bepaalde landen, of brengen er kosten voor in rekening. Als een dienst een bot of uw account blokkeert, beperkt of opschort, kunnen wij dat mogelijk niet herstellen.",
+        "Wij hebben geen zeggenschap over deze diensten en zijn niet verantwoordelijk voor hoe zij werken of met uw gegevens omgaan."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "Mensen met wie de bot praat"
+    },
+    {
+      "type": "p",
+      "text": "Een bot kan schrijven aan andere mensen dan u, zoals klanten, leveranciers of collega’s. Wanneer hij dat doet, gelden de volgende regels:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "De bot moet duidelijk maken dat hij een AI is en geen mens. Verwijder of verberg dat niet, en draag een bot niet op zich voor te doen als mens.",
+        "Als iemand vraagt of hij of zij met een AI praat, moet de bot ja zeggen.",
+        "Berichten die een bot namens u verstuurt, gaan uit op uw naam, en u bent de afzender ervan.",
+        "U moet het recht hebben om contact op te nemen met elke persoon, bijvoorbeeld omdat hij of zij uw klant is of ermee heeft ingestemd iets van u te horen. Leef de wetten na over e-mail, sms-berichten en marketing die op u en op hen van toepassing zijn.",
+        "Gebruik een bot niet voor ongevraagde massaberichten, spam, intimidatie of misleiding.",
+        "Bots zijn gemaakt voor werk en dagelijkse taken. Stel er geen in als gezelschap of als romantische of emotionele partner, of om therapie, diagnoses of ander gereglementeerd professioneel advies te geven."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wanneer een bot contacten verzamelt of berichten leest, verwerkt hij persoonsgegevens over andere mensen. U bent ervoor verantwoordelijk dat u daarvoor een rechtmatige grond hebt en dat u, waar de wet dat vereist, die mensen informeert. Als u bots voor uw bedrijf gebruikt, zie dan [Zakelijke gebruikers](#business-users)."
+    },
+    {
+      "type": "p",
+      "text": "Gebruik bots niet om gezondheidsinformatie te verwerken die wordt beschermd door HIPAA, de Amerikaanse wet op de privacy van gezondheidsgegevens. Wij sluiten geen business associate agreements.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "Uw bedrijfskaart"
+    },
+    {
+      "type": "p",
+      "text": "Om zijn werk te doen, bouwt een bot een kaart van uw bedrijf op en houdt die bij: uw team, klanten, leveranciers en bestanden, en hoe die met elkaar samenhangen. Hij vult de kaart aan terwijl hij werkt."
+    },
+    {
+      "type": "list",
+      "items": [
+        "De kaart maakt deel uit van uw inhoud. Wij gebruiken haar om uw bots te laten werken en onze diensten aan u te leveren, zoals ons [Privacybeleid](/instant/legal/privacy) beschrijft. [Hoe onze AI werkt](/instant/legal/ai#data-models-see) legt uit wat de AI-modellen te zien krijgen.",
+        "Wij trainen onze eigen AI-modellen er niet mee, en wij verkopen haar niet.",
+        "De kaart kan gegevens over andere mensen bevatten. De regels in [Mensen met wie de bot praat](#people-the-bot-talks-to) zijn er ook op van toepassing.",
+        "Om een kopie van de kaart of van andere botgegevens te krijgen, of om die te laten corrigeren of verwijderen, schrijft u naar {company.privacyEmail}. Sommige registraties van wat agents hebben gedaan, worden als onveranderlijk logboek bewaard. Wanneer u ons vraagt gegevens te verwijderen, verwijderen of anonimiseren wij ze of laten wij u, waar wij een registratie moeten bewaren, weten waarom."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "Een bot delen"
+    },
+    {
+      "type": "p",
+      "text": "Als u een bot of uw werkruimte deelt, kunnen de mensen met wie u deelt zien wat de bot weet en heeft gedaan, en hem taken geven. Deel alleen met mensen die die toegang horen te hebben."
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "Verwijderen van inhoud"
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen inhoud verwijderen of blokkeren, de actie van een bot stoppen, een bot pauzeren of een dienst ontkoppelen als wij redelijkerwijs menen dat die in strijd is met deze voorwaarden, het [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) of de wet, of dat die mensen, systemen of gekoppelde diensten in gevaar brengt. Waar mogelijk laten wij u weten wat wij hebben gedaan en waarom."
+    },
+    {
+      "type": "p",
+      "text": "Om illegale inhoud of misbruik door een bot te melden, stuurt u een e-mail naar {company.email} met als onderwerp \"Melding\". [Een overtreding melden](/instant/legal/acceptable-use#report) vermeldt wat u daarin moet opnemen. Wij beoordelen elke melding, nemen een beslissing en delen onze redenen mee aan de melder en de betrokken gebruiker."
+    },
+    {
+      "type": "p",
+      "text": "Als wij uw inhoud, een bot of uw account beperken, geven wij u een motivering van onze redenen (EU-digitaledienstenverordening art. 17). U kunt ons vragen de beslissing te heroverwegen door te schrijven naar {company.email}, en u kunt ook naar de rechter stappen. Ons centrale contactpunt voor autoriteiten en gebruikers is {company.email}, in het Engels.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "Zakelijke gebruikers"
+    },
+    {
+      "type": "p",
+      "text": "Als u bots voor uw bedrijf gebruikt, verwerken zij vaak persoonsgegevens over uw medewerkers, klanten en leveranciers. Voor die gegevens bepaalt u waarom en hoe ze worden gebruikt, en wij verwerken ze voor u volgens uw instructies."
+    },
+    {
+      "type": "p",
+      "text": "Onze [Verwerkersovereenkomst](/instant/legal/dpa) maakt deel uit van uw overeenkomst met ons wanneer wij persoonsgegevens voor uw bedrijf verwerken. Zij regelt de beveiliging, onze [subverwerkers](/instant/legal/subprocessors) en hoe wij helpen bij verzoeken van betrokkenen. Waar wij gegevens voor onze eigen doeleinden gebruiken, zoals het [Privacybeleid](/instant/legal/privacy) beschrijft, zijn wij zelf verantwoordelijk voor dat gebruik."
+    },
+    {
+      "type": "p",
+      "text": "In termen van gegevensbescherming bent u daarmee de verwerkingsverantwoordelijke en zijn wij uw verwerker voor die gegevens (AVG art. 28). U bent verantwoordelijk voor een rechtsgrondslag, voor het informeren van de betrokkenen (AVG art. 13 en 14) en voor de afhandeling van hun verzoeken. Wij helpen daarbij zoals de verwerkersovereenkomst beschrijft.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Waar privacywetten van Amerikaanse staten van toepassing zijn, treden wij voor die gegevens op als uw service provider of processor en gebruiken wij ze uitsluitend om de diensten aan u te leveren.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "Wij verbeteren bots in de loop van de tijd en kunnen functies, koppelingen of rollen toevoegen, wijzigen of verwijderen. De datum bovenaan deze pagina geeft de huidige versie van deze voorwaarden aan."
+    },
+    {
+      "type": "p",
+      "text": "Als een wijziging van deze voorwaarden voor u van belang is, laten wij u dat weten voordat zij van kracht wordt. Als u bots na die datum blijft gebruiken, gelden de nieuwe voorwaarden. Als u er niet mee instemt, stop dan met het gebruik van bots en trek hun toegang tot uw accounts in.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Als u een consument bent, gelden de regels in [Uw rechten wanneer wij wijzigingen doorvoeren](/instant/legal/terms#changes-eu) voor bots en voor deze voorwaarden. Kort gezegd: wij wijzigen bots alleen om een geldige reden en zonder extra kosten, wij informeren u vooraf over wijzigingen die u raken, en u kunt de overeenkomst kosteloos beëindigen als u er niet mee instemt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u bots voor uw bedrijf gebruikt, laten wij u vóór de inwerkingtreding van een wijziging van deze voorwaarden die voor u van belang is, weten dat die wijziging eraan komt. Als u bots na die datum blijft gebruiken, gelden de nieuwe voorwaarden.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contact"
+    },
+    {
+      "type": "p",
+      "text": "Vragen over deze voorwaarden: {company.email}. Verzoeken over gegevens: {company.privacyEmail}. Beveiligingsproblemen: {company.securityEmail}."
+    }
+  ]
+}

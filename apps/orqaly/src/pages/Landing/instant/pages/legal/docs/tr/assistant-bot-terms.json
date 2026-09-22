@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "Asistan Botu Koşulları",
+    "summary": "Dosyalarınızda ve bağladığınız mesajlaşma uygulamaları ile e-posta hesaplarında sizin adınıza hareket edebilen Orqanix asistan botları için ek kurallar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Bu koşullar hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar, [Hizmet Koşullarımıza](/instant/legal/terms) ek niteliğindedir. Asistan Botu’nu, onunla oluşturduğunuz her asistan (bir “bot”) dahil olmak üzere, kullandığınızda uygulanır. Bot; satış, finans, destek, ofis işleri veya kendi yazdığınız bir rol gibi bir role sahip bir yapay zekâ asistanıdır. Bağladığınız mesajlaşma uygulamalarında ve e-posta hesaplarında ve Orqanix Çalışma Alanınızda sizin için çalışabilir."
+    },
+    {
+      "type": "p",
+      "text": "[Kabul Edilebilir Kullanım Politikamız](/instant/legal/acceptable-use), [Gizlilik Politikamız](/instant/legal/privacy) ve [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai) sayfası da uygulanır. Bu koşullar ile Hizmet Koşulları botlarla ilgili bir konuda çeliştiğinde bu koşullar geçerli olur."
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "Erişim ve kullanım"
+    },
+    {
+      "type": "list",
+      "items": [
+        "18 yaşında veya daha büyük olmalı ve bir Orqanix hesabınız olmalıdır.",
+        "İhtiyacınız kadar bot oluşturabilir ve bir botun rolünü istediğiniz zaman değiştirebilirsiniz. Bot, yeni rolü bir sonraki görevinden itibaren uygular.",
+        "Bir bot, Orqanix uygulamasının yapabildiklerini kullanabilir: sohbetler, araştırma, tarifler, zamanlamalar, bağlı araçlar ve dosyalar. Dosyaları Orqanix Çalışma Alanınıza kaydedilir.",
+        "Ürünler erken aşamadayken botlar ücretsizdir. Herhangi bir ücretli plan başlamadan önce fiyatı ve ödeme ile iptal kurallarını yayımlarız."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Herhangi bir ücretli plan başlamadan önce bir satın alımdan cayma kurallarını da yayımlarız.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Ajan eylemleri"
+    },
+    {
+      "type": "p",
+      "text": "Bir bot yanıt vermekten fazlasını yapar. Neleri bağladığınıza ve neye izin verdiğinize bağlı olarak sizin adınıza eylemlerde bulunabilir (“ajan eylemleri”). Örneğin şunları yapabilir:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "faturalar, sözleşmeler, fotoğraflar ve notlar gibi belgeleri okumak, sıralamak ve dosyalamak;",
+        "bağladığınız e-posta hesaplarındaki ve telefondaki kişileri tek bir listede toplamak ve yinelenenleri birleştirmek;",
+        "postanızdan, dosyalarınızdan ve araçlarınızdan rakam ve ayrıntıları derlemek;",
+        "izin verdiğiniz şekillerde mesajları yanıtlamak ve yanıt, özet ve rapor taslakları hazırlamak;",
+        "her gün veya her hafta tekrarlanan tarifleri ve zamanlanmış işleri çalıştırmak."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "Yetkilendirmeniz"
+    },
+    {
+      "type": "p",
+      "text": "Bir bota bir rol verdiğinizde, bir hesap bağladığınızda veya ondan bir görev yapmasını istediğinizde, onu bu kapsam dahilinde sizin adınıza hareket etmeye yetkilendirmiş olursunuz. Botun muhatap olduğu kişiler ve hizmetler karşısında, verdiğiniz erişim dahilindeki eylemleri sizin eylemleriniz sayılır."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Yalnızca kullanmaya yetkili olduğunuz hesapları, cihazları ve verileri bağlayın ve bir bota yalnızca ihtiyaç duyduğu erişimi verin.",
+        "Rolü ve talimatları açıkça belirleyin. Bir bottan ne yapmasını istediğinizden siz sorumlusunuz.",
+        "Orqanix hesabınızı ve bağlı hesaplarınızı güvende tutun. Başka birinin bunları kullandığını düşünüyorsanız {company.email} adresinden bize bildirin.",
+        "Bir botu kullanmayı istediğiniz zaman bırakabilir ve onun bağlı bir hesaba erişimini, örneğin o hesabın kendi ayarlarından, kaldırabilirsiniz. Önceden gerçekleştirilmiş eylemler geri alınamayabilir."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "İnsan incelemesi"
+    },
+    {
+      "type": "p",
+      "text": "Bir bot hatalı, eksik veya güncelliğini yitirmiş olabilir. Bir durumu yanlış yorumlayabilir, yanlış dosyayı veya kişiyi seçebilir ya da doğru olmayan bir şey yazabilir."
+    },
+    {
+      "type": "p",
+      "text": "Her botun ne yaptığını görebilirsiniz. Bir botun işine güvenmeden önce onu kontrol edin ve taslakları gönderilmeden önce inceleyin. Geri alınması zor olan veya başka kişileri etkileyen her şeyde ekstra özen gösterin; örneğin:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "müşterilere, tedarikçilere veya büyük gruplara gönderilen mesajlar;",
+        "para, fatura, sözleşme veya yasal süreler içeren her şey;",
+        "dosyaların silinmesi, taşınması veya paylaşılması;",
+        "başkalarına ilişkin kişisel veya hassas bilgiler."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Orqanix, bir botun harekete geçmeden önce size sorup sormayacağını seçmenize izin verdiğinde seçim sizindir. Bir botun size sormadan hareket etmesine izin verirseniz, onun sizin incelemeniz olmadan hareket etmesini kabul etmiş olursunuz. Bir botun çıktısı hukuki, tıbbi, vergisel veya finansal tavsiye değildir."
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "Sorumluluk"
+    },
+    {
+      "type": "p",
+      "text": "Bir botu gerçekleştirmeye yetkilendirdiğiniz eylemlerden ve bunların sonuçlarından siz sorumlusunuz. Buna botun gönderdiği mesajlar ve dosyalarınızda ve bağlı hesaplarınızda yaptığı değişiklikler dahildir. [Hizmet Koşullarımızın](/instant/legal/terms) veya kanunun aksini öngördüğü durumlar dışında, izin verdiğiniz eylemlerin veya verdiğiniz talimatların neden olduğu kayıplardan sorumlu değiliz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Kanunun izin verdiği ölçüde, Hizmet Koşullarındaki garanti reddi beyanları ve sorumluluk sınırları botlara ve eylemlerine de uygulanır. Botlar “olduğu gibi” sunulur. Bir botun doğru, eksiksiz veya zamanında hareket edeceğini garanti etmeyiz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Başka biri, bir botun sizin talimatlarınıza dayanan bir eylemi nedeniyle bize karşı bir talepte bulunursa, bu talepten doğan makul kayıplarımızı karşılarsınız. Bu, kanunun izin verdiği ölçüde ve talebin bu koşulları veya kanunu ihlal etmenizden kaynaklanması hâlinde geçerlidir.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Verdiğiniz talimatlardan, seçtiğiniz ayarlardan ve tanıdığınız erişimden siz sorumlusunuz. Bir bot, hizmetimiz kusurlu olduğu için zarar verirse sorumluluğumuz devam eder. Bu durumda sorumluluğumuz [Hizmet Koşullarına](/instant/legal/terms#liability) ve kanuna tabidir.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullardaki hiçbir hüküm, kanunun izin vermediği durumlarda, örneğin kast, ağır ihmal, hayata, vücuda veya sağlığa verilen zararlar ya da ürün sorumluluğu mevzuatı kapsamında sorumluluğumuzu sınırlamaz. Tüketiciyseniz, ikamet ettiğiniz ülkenin kanunlarının size tanıdığı haklar saklıdır.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Botları işiniz için kullanıyorsanız ve başka biri, bir botun sizin talimatlarınıza dayanan bir eylemi nedeniyle bize karşı bir talepte bulunursa, bu talebin bu koşulları veya kanunu ihlal etmenizden kaynaklandığı ölçüde, bu talepten doğan makul kayıplarımızı karşılarsınız. Bu, tüketiciler için geçerli değildir.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "Bağlı hizmetler"
+    },
+    {
+      "type": "p",
+      "text": "Bir bot, bağladığınız mesajlaşma uygulamaları, e-posta hesapları ve araçlar üzerinden ve ona verdiğiniz dosyalarla çalışır. Bu hizmetleri başka şirketler işletir."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bunları kullanımınıza, otomatik mesajlar, botlar ve yapay zekâ ile ilgili kuralları dahil olmak üzere, kendi koşulları ve politikaları uygulanır. Bunlara uymaktan siz sorumlusunuz.",
+        "Bir hizmeti bağlayarak, botlarınızı çalıştırmak için gerektiği ölçüde ona sizin adınıza erişmemize izin verirsiniz. Bu erişimi istediğiniz zaman kaldırabilirsiniz.",
+        "Bazı hizmetler bazı ülkelerde yapay zekâ asistanlarını sınırlar, yasaklar veya ücrete tabi tutar. Bir hizmet bir botu veya hesabınızı engeller, sınırlar veya askıya alırsa, onu geri getiremeyebiliriz.",
+        "Bu hizmetleri kontrol etmeyiz ve nasıl çalıştıklarından veya verilerinizi nasıl işlediklerinden sorumlu değiliz."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "Botun konuştuğu kişiler"
+    },
+    {
+      "type": "p",
+      "text": "Bir bot; müşteriler, tedarikçiler veya iş arkadaşları gibi sizin dışınızdaki kişilere yazabilir. Bu durumda şu kurallar uygulanır:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bot, bir insan değil bir yapay zekâ olduğunu açıkça belirtmelidir. Bunu kaldırmayın veya gizlemeyin ve bir bota insanmış gibi davranmasını söylemeyin.",
+        "Biri bir yapay zekâ ile konuşup konuşmadığını sorarsa, bot evet demelidir.",
+        "Bir botun sizin adınıza gönderdiği mesajlar sizin adınızla gönderilir ve bu mesajların göndericisi sizsiniz.",
+        "Her kişiyle iletişime geçme hakkınız olmalıdır; örneğin o kişi müşteriniz olduğu veya sizden haber almayı kabul ettiği için. Size ve onlara uygulanan e-posta, kısa mesaj ve pazarlama mevzuatına uyun.",
+        "Bir botu istenmeyen toplu mesajlar, spam, taciz veya aldatma için kullanmayın.",
+        "Botlar iş ve günlük görevler için yapılmıştır. Bir botu arkadaş, romantik veya duygusal partner olarak ya da terapi, teşhis veya diğer düzenlemeye tabi mesleki tavsiyeleri vermek için kurmayın."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bir bot kişileri topladığında veya mesajları okuduğunda, başka kişilere ilişkin kişisel verileri işler. Bunun için hukuka uygun bir nedeniniz olmasından ve kanunun gerektirdiği durumlarda bu kişileri bilgilendirmekten siz sorumlusunuz. Botları işiniz için kullanıyorsanız [Kurumsal kullanıcılar](#business-users) bölümüne bakın."
+    },
+    {
+      "type": "p",
+      "text": "Botları, ABD sağlık gizliliği kanunu HIPAA ile korunan sağlık bilgilerini işlemek için kullanmayın. İş ortağı sözleşmeleri (business associate agreements) imzalamayız.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "İşletme haritanız"
+    },
+    {
+      "type": "p",
+      "text": "Bir bot, işini yapmak için işletmenizin bir haritasını oluşturur ve saklar: ekibiniz, müşterileriniz, tedarikçileriniz ve dosyalarınız ile bunların birbiriyle nasıl bağlantılı olduğu. Çalıştıkça haritaya eklemeler yapar."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Harita, içeriğinizin bir parçasıdır. Onu, [Gizlilik Politikamızda](/instant/legal/privacy) açıklandığı gibi botlarınızı çalıştırmak ve size hizmetlerimizi sunmak için kullanırız. Yapay zekâ modellerinin neleri gördüğünü [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai#data-models-see) sayfası açıklar.",
+        "Kendi yapay zekâ modellerimizi onunla eğitmeyiz ve onu satmayız.",
+        "Harita başka kişilere ilişkin ayrıntılar içerebilir. [Botun konuştuğu kişiler](#people-the-bot-talks-to) bölümündeki kurallar harita için de geçerlidir.",
+        "Haritanın veya diğer bot verilerinin bir kopyasını almak ya da bunların düzeltilmesini veya silinmesini istemek için {company.privacyEmail} adresine yazın. Ajanların yaptıklarına ilişkin bazı kayıtlar değiştirilemez bir günlük olarak tutulur. Bizden verilerin silinmesini istediğinizde, bunları siler veya anonim hâle getiririz ya da bir kaydı saklamak zorunda olduğumuz durumlarda nedenini size bildiririz."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "Bir botu paylaşma"
+    },
+    {
+      "type": "p",
+      "text": "Bir botu veya Çalışma Alanınızı paylaşırsanız, paylaştığınız kişiler botun bildiklerini ve yaptıklarını görebilir ve ona görev verebilir. Yalnızca bu erişime sahip olması gereken kişilerle paylaşın."
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "İçerik kaldırma"
+    },
+    {
+      "type": "p",
+      "text": "İçeriğin bu koşulları, [Kabul Edilebilir Kullanım Politikasını](/instant/legal/acceptable-use) veya kanunu ihlal ettiğine ya da kişileri, sistemleri veya bağlı hizmetleri riske attığına makul olarak inanırsak; içeriği kaldırabilir veya engelleyebilir, bir botun eylemini durdurabilir, bir botu duraklatabilir veya bir hizmetin bağlantısını kesebiliriz. Mümkün olduğunda ne yaptığımızı ve nedenini size bildiririz."
+    },
+    {
+      "type": "p",
+      "text": "Bir bota ilişkin yasa dışı içeriği veya kötüye kullanımı bildirmek için {company.email} adresine “Report” konu başlığıyla e-posta gönderin. Nelerin ekleneceğini [İhlal bildirme](/instant/legal/acceptable-use#report) bölümü açıklar. Her bildirimi inceler, karar verir ve gerekçelerimizi bildirimde bulunan kişiye ve etkilenen kullanıcıya bildiririz."
+    },
+    {
+      "type": "p",
+      "text": "İçeriğinizi, bir botu veya hesabınızı kısıtlarsak, size gerekçelerimizi içeren bir açıklama sunarız (EU Digital Services Act Art. 17). {company.email} adresine yazarak kararın yeniden incelenmesini isteyebilir ve mahkemeye de başvurabilirsiniz. Makamlar ve kullanıcılar için tek irtibat noktamız, İngilizce olarak, {company.email} adresidir.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "Kurumsal kullanıcılar"
+    },
+    {
+      "type": "p",
+      "text": "Botları işiniz için kullanıyorsanız, bunlar çoğu zaman çalışanlarınıza, müşterilerinize ve tedarikçilerinize ilişkin kişisel verileri işler. Bu veriler için neden ve nasıl kullanılacaklarına siz karar verirsiniz; biz de bunları sizin adınıza ve sizin talimatlarınız doğrultusunda işleriz."
+    },
+    {
+      "type": "p",
+      "text": "İşiniz için kişisel verileri işlediğimizde, [Veri İşleme Ekimiz](/instant/legal/dpa) (VİE) bizimle yaptığınız sözleşmenin bir parçasını oluşturur. Güvenliği, [alt işleyenlerimizi](/instant/legal/subprocessors) ve kişilerin taleplerine nasıl yardımcı olduğumuzu kapsar. Verileri [Gizlilik Politikasında](/instant/legal/privacy) açıklandığı gibi kendi amaçlarımız için kullandığımızda, bu kullanımdan kendimiz sorumluyuz."
+    },
+    {
+      "type": "p",
+      "text": "Veri koruma açısından bu, söz konusu veriler için sizi veri sorumlusu, bizi de veri işleyeniniz yapar (GDPR Art. 28). Bir hukuki dayanağa sahip olmaktan, ilgili kişileri bilgilendirmekten (GDPR Art. 13 ve 14) ve onların taleplerini karşılamaktan siz sorumlusunuz. Biz de VİE’de açıklandığı şekilde yardımcı oluruz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "ABD eyalet gizlilik kanunlarının uygulandığı durumlarda, bu veriler için hizmet sağlayıcınız veya veri işleyeniniz olarak hareket eder ve bunları yalnızca size hizmetleri sunmak için kullanırız.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Botları zaman içinde geliştiririz ve özellikler, bağlantılar veya roller ekleyebilir, değiştirebilir ya da kaldırabiliriz. Bu sayfanın üst kısmındaki tarih, bu koşulların güncel sürümünü gösterir."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullardaki bir değişiklik sizin için önemliyse, yürürlüğe girmeden önce size bildiririz. O tarihten sonra botları kullanmaya devam ederseniz yeni koşullar uygulanır. Kabul etmiyorsanız botları kullanmayı bırakın ve hesaplarınıza erişimlerini kaldırın.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Tüketiciyseniz, [Değişiklik yaptığımızda haklarınız](/instant/legal/terms#changes-eu) bölümündeki kurallar botlara ve bu koşullara uygulanır. Kısaca: botları yalnızca geçerli bir nedenle ve ek ücret olmadan değiştiririz, sizi etkileyen değişiklikleri önceden bildiririz ve kabul etmezseniz sözleşmeyi ücretsiz olarak sona erdirebilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Botları işiniz için kullanıyorsanız, bu koşullarda sizin için önemli olan bir değişiklik yürürlüğe girmeden önce size bildiririz. O tarihten sonra botları kullanmaya devam ederseniz yeni koşullar uygulanır.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "İletişim"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullarla ilgili sorular: {company.email}. Veri talepleri: {company.privacyEmail}. Güvenlik sorunları: {company.securityEmail}."
+    }
+  ]
+}

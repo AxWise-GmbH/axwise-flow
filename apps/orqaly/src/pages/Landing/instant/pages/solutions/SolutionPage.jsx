@@ -3,7 +3,9 @@ import HeroFrame from '../heroes/HeroFrame';
 import DownloadBlock from '../../DownloadBlock';
 import Reveal from '../../ui/Reveal';
 import { Seen } from '../../SpeedStrip';
+import { useT } from '../../i18n/useT';
 import Scene from './scenes';
+import { localizeSolution } from './data';
 import SolutionHeroVisual from './SolutionHeroVisual';
 import { IndustryIcon, SolutionIcon } from './solutionIcons';
 import { SOLUTIONS_MENU, solutionPath } from './solutionsMenu';
@@ -40,7 +42,8 @@ function AgentMark() {
   );
 }
 
-function Pillars({ eyebrow, pillars }) {
+function Pillars({ pillars }) {
+  const { t } = useT('sp');
   return (
     <Seen
       as="section"
@@ -49,11 +52,8 @@ function Pillars({ eyebrow, pillars }) {
     >
       <div className="oi-container">
         <Seen className="ois-gate osl-head">
-          <Reveal as="p" className="oi-tag oi-tag-bracket">
-            {eyebrow}
-          </Reveal>
-          <Reveal as="h2" id="osl-pillars-heading" className="oi-h2" delay={90}>
-            Four jobs, handled.
+          <Reveal as="h2" id="osl-pillars-heading" className="oi-h2">
+            {t('sp.pillars.title', 'Four jobs, handled.')}
           </Reveal>
         </Seen>
         <Seen as="ul" className="ois-gate osl-band" threshold={0.2}>
@@ -125,10 +125,7 @@ function Agents({ title, agents }) {
     >
       <div className="oi-container">
         <Seen className="ois-gate osl-head">
-          <Reveal as="p" className="oi-tag oi-tag-bracket">
-            Agents
-          </Reveal>
-          <Reveal as="h2" id="osl-agents-heading" className="oi-h2" delay={90}>
+          <Reveal as="h2" id="osl-agents-heading" className="oi-h2">
             {title}
           </Reveal>
         </Seen>
@@ -155,6 +152,8 @@ function Related({ slug, related }) {
   const picks = related
     .map((item) => SOLUTIONS_MENU.find((entry) => entry.slug === item))
     .filter(Boolean);
+  const { t } = useT('sp');
+  const label = (item) => t(`solutions.${item.slug}.label`, item.label);
   return (
     <Seen
       as="section"
@@ -163,11 +162,8 @@ function Related({ slug, related }) {
     >
       <div className="oi-container">
         <Seen className="ois-gate osl-head">
-          <Reveal as="p" className="oi-tag oi-tag-bracket">
-            Solutions
-          </Reveal>
-          <Reveal as="h2" id="osl-related-heading" className="oi-h2" delay={90}>
-            Other kinds of work.
+          <Reveal as="h2" id="osl-related-heading" className="oi-h2">
+            {t('sp.related.title', 'Other kinds of work.')}
           </Reveal>
         </Seen>
         <Seen as="ul" className="ois-gate osl-related-grid" threshold={0.2}>
@@ -176,8 +172,10 @@ function Related({ slug, related }) {
               <Reveal delay={index * 110}>
                 <RouterLink to={solutionPath(item.slug)} className="osl-related-link">
                   <IndustryIcon slug={item.slug} className="osl-related-icon" />
-                  <span className="osl-related-label">{item.label}</span>
-                  <span className="osl-related-line">{item.line}</span>
+                  <span className="osl-related-label">{label(item)}</span>
+                  <span className="osl-related-line">
+                    {t(`solutions.${item.slug}.line`, item.line)}
+                  </span>
                   <ArrowGlyph className="osl-related-arrow" />
                 </RouterLink>
               </Reveal>
@@ -186,7 +184,7 @@ function Related({ slug, related }) {
         </Seen>
         <nav className="osl-all" aria-labelledby="osl-all-heading">
           <p id="osl-all-heading" className="oi-tag">
-            All solutions
+            {t('sp.related.all', 'All solutions')}
           </p>
           <ul>
             {SOLUTIONS_MENU.map((item) => (
@@ -196,7 +194,7 @@ function Related({ slug, related }) {
                   className="osl-all-link"
                   aria-current={item.slug === slug ? 'page' : undefined}
                 >
-                  {item.label}
+                  {label(item)}
                 </RouterLink>
               </li>
             ))}
@@ -208,34 +206,35 @@ function Related({ slug, related }) {
 }
 
 /** One Solutions page, drawn from one data object (see ./data). */
-export default function SolutionPage({ data }) {
+export default function SolutionPage({ data: english }) {
+  const { t } = useT('sp');
+  // Every word of the page in the current language (English data, keys sp.<slug>.<path>).
+  const data = localizeSolution(english, t);
   // The opening window plays the third job, so the first thing below it is a new picture.
   const openingScene = data.spotlights[2].scene;
-  const label = SOLUTIONS_MENU.find((item) => item.slug === data.slug)?.label ?? data.eyebrow;
   return (
     <>
       <HeroFrame
         id="osl-heading"
         className="osl-hero"
-        tag={`Solutions · ${label}`}
         title={data.title}
         line={data.subtitle}
         visual={<SolutionHeroVisual pillars={data.pillars} scene={openingScene} />}
       >
         <div className="osl-actions">
           <a href="#download" className="osl-cta">
-            Download for macOS
+            {t('sp.hero.download', 'Download for macOS')}
           </a>
           <RouterLink to={HOW_IT_WORKS} className="osl-quiet">
-            See how it works
+            {t('sp.hero.how', 'See how it works')}
             <ArrowGlyph className="osl-quiet-arrow" />
           </RouterLink>
         </div>
       </HeroFrame>
 
-      <Pillars eyebrow={data.eyebrow} pillars={data.pillars} />
+      <Pillars pillars={data.pillars} />
 
-      <section className="oi-section ois-section osl-spots" aria-label="How it helps">
+      <section className="oi-section ois-section osl-spots" aria-label={t('sp.spots.label', 'How it helps')}>
         <div className="oi-container">
           {data.spotlights.map((spotlight, index) => (
             <Spotlight key={spotlight.id} spotlight={spotlight} index={index} />

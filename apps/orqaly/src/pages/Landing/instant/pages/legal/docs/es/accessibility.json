@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Declaración de accesibilidad",
+    "summary": "Esta declaración explica el grado de accesibilidad del sitio web de Orqanix, en qué aspectos todavía no cumple y cómo comunicar una barrera.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primera versión."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Nuestro objetivo"
+    },
+    {
+      "type": "p",
+      "text": "Queremos que todo el mundo pueda utilizar el sitio web de {company.name}, incluidas las personas que utilizan un teclado, un lector de pantalla, el zoom u otras tecnologías de apoyo. Nuestro objetivo es el nivel AA de las Pautas de Accesibilidad para el Contenido Web (WCAG) 2.1, el estándar internacional de referencia."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Ámbito"
+    },
+    {
+      "type": "p",
+      "text": "Esta declaración abarca el sitio web orqanix.com: la página de inicio, las páginas de productos y soluciones, la página de Noticias y el Centro legal. No abarca la aplicación web, la App de escritorio ni las páginas de inicio de sesión que ofrece Clerk, nuestro proveedor de inicio de sesión."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Situación actual"
+    },
+    {
+      "type": "p",
+      "text": "El sitio web cumple parcialmente el nivel AA de las WCAG 2.1. Todavía no se ha sometido a una auditoría completa, y no afirmamos que cumpla plenamente. Las carencias que conocemos se enumeran en [Carencias conocidas](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "Lo que hemos hecho"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Teclado: puede acceder a enlaces, botones y menús con el teclado, y la tecla Escape cierra los menús abiertos.",
+        "Foco visible: los enlaces y botones muestran un estilo de foco visible cuando se desplaza a ellos con el teclado.",
+        "Menos movimiento: si su dispositivo está configurado para reducir el movimiento, las escenas animadas dejan de moverse y el contenido aparece sin animación.",
+        "Contraste: el texto principal y los títulos son de un blanco casi puro sobre fondo negro.",
+        "Alternativas textuales: los menús, controles y escenas que transmiten información tienen etiquetas de texto para los lectores de pantalla. Los gráficos puramente decorativos se ocultan a estos lectores.",
+        "Estructura: las páginas utilizan encabezados, un área de contenido principal, un menú principal etiquetado y un menú de pie de página etiquetado, y el idioma de la página está definido como inglés.",
+        "Pantallas pequeñas: el diseño se adapta a teléfonos y ventanas estrechas."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Carencias conocidas"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Algunas ilustraciones contienen texto pequeño, como las etiquetas de las escenas animadas de producto. Puede resultar difícil de leer, incluso con zoom.",
+        "Algunas etiquetas secundarias utilizan un gris tenue con menos contraste del que exigen las WCAG para el texto pequeño.",
+        "Las escenas animadas pueden resultar difíciles de seguir para algunas personas. Dejan de moverse si su dispositivo está configurado para reducir el movimiento."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Tenemos la intención de corregir estas carencias. Si alguna de ellas le impide obtener la información que necesita, [comuníquenoslo](#feedback) e intentaremos proporcionársela de otra forma."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Comentarios"
+    },
+    {
+      "type": "p",
+      "text": "Si encuentra una barrera en nuestro sitio web, comuníquenoslo en {company.email}. Indique en qué página estaba, qué intentaba hacer y, si lo desea, qué navegador y qué tecnología de apoyo utiliza. Procuramos responder con rapidez y corregir lo que podamos."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Si vive en la UE y nuestra respuesta no resuelve el problema, puede dirigirse a la autoridad de su país encargada de supervisar la accesibilidad."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "Sobre esta declaración"
+    },
+    {
+      "type": "p",
+      "text": "Elaboramos esta declaración el 21 de septiembre de 2026, a partir de nuestra propia revisión del sitio web. La actualizaremos cuando corrijamos una carencia o completemos una auditoría."
+    }
+  ]
+}

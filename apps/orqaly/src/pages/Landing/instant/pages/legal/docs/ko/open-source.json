@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "오픈 소스 고지",
+    "summary": "이 페이지는 Orqanix 데스크톱 앱과 당사 웹사이트에 포함된 오픈 소스 소프트웨어, 그 라이선스, 그리고 라이선스 전문을 받는 방법을 나열합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "이 페이지에 대하여"
+    },
+    {
+      "type": "p",
+      "text": "당사 제품의 일부는 오픈 소스 소프트웨어, 즉 저작자가 공개된 라이선스에 따라 누구나 사용, 수정 및 공유할 수 있도록 허용한 소프트웨어입니다. 이 페이지는 주요 오픈 소스 구성 요소와 그 라이선스 전문을 받는 방법을 나열합니다."
+    },
+    {
+      "type": "p",
+      "text": "각 구성 요소는 각자의 라이선스를 따릅니다. 당사의 [서비스 약관](/instant/legal/terms) 또는 [데스크톱 앱 약관](/instant/legal/desktop-app-terms)의 어떠한 내용도 해당 라이선스가 귀하에게 부여하는 권리를 제한하지 않습니다. 라이선스에 저작자가 어떠한 보증도 하지 않는다고 명시된 경우, 이는 해당 저작자의 저작물에 적용됩니다. 당사 제품에 관한 당사 자신의 약속은 당사 약관에 명시되어 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "데스크톱 앱"
+    },
+    {
+      "type": "p",
+      "text": "Mac용 Orqanix 앱에는 다음과 같은 오픈 소스 소프트웨어가 포함되어 있습니다."
+    },
+    {
+      "type": "table",
+      "head": [
+        "소프트웨어",
+        "앱에서의 역할",
+        "라이선스"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "앱의 에이전트가 실행되는 에이전트 프레임워크",
+          "Apache License 2.0"
+        ],
+        [
+          "앱에 번들로 포함된 선택적 엔지니어링 런타임",
+          "앱의 엔지니어링 도구를 실행",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "앱의 창과 데스크톱 셸",
+          "MIT License"
+        ],
+        [
+          "Chromium(Electron에 포함)",
+          "앱의 화면을 표시",
+          "BSD 방식 라이선스 및 기타 라이선스"
+        ],
+        [
+          "Node.js",
+          "앱의 일부를 실행",
+          "MIT License(번들로 포함된 일부 구성 요소는 다른 라이선스 적용)"
+        ],
+        [
+          "다수의 소규모 npm 및 Rust 패키지",
+          "앱 전반에서 사용되는 구성 요소",
+          "MIT, Apache 2.0 및 BSD 등 다양한 오픈 소스 라이선스"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "앱에는 Goose, 엔지니어링 런타임, Electron, Chromium 및 Node.js의 라이선스 전문과 고지가 포함되어 있습니다. 이를 보려면 Finder에서 앱을 Control-클릭하고 '패키지 내용 보기'를 선택한 다음 Contents를 열고 이어서 Resources를 여십시오. 해당 파일이 정본이며, 이 표는 요약일 뿐입니다. 소규모 패키지의 경우 [라이선스 전문 및 소스 코드](#get-the-texts)에서 설명하는 방법으로 당사에 요청하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "당사 웹사이트"
+    },
+    {
+      "type": "p",
+      "text": "당사 웹사이트는 Geist, Geist Mono 및 Inter 서체를 사용하며, 모두 [SIL Open Font License 1.1](https://openfontlicense.org)에 따라 라이선스가 부여됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "명칭 및 상표"
+    },
+    {
+      "type": "p",
+      "text": "오픈 소스 프로젝트의 명칭은 해당 소유자에게 귀속됩니다. 당사가 그 소프트웨어를 사용한다고 해서 해당 프로젝트나 그 소유자가 Orqanix를 보증한다는 의미는 아니며, 라이선스는 누구에게도 그 명칭이나 로고에 대한 권리를 부여하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "라이선스 전문 및 소스 코드"
+    },
+    {
+      "type": "p",
+      "text": "라이선스 전문의 사본을 요청하거나, 라이선스가 귀하에게 소스 코드에 대한 권리를 부여하는 경우 소스 코드를 요청하려면 제목을 \"Open source\"로 하여 {company.email}(으)로 연락하십시오. 귀하가 사용하는 데스크톱 앱의 버전을 알려주십시오."
+    },
+    {
+      "type": "p",
+      "text": "당사가 고지를 누락했거나 라이선스가 허용하지 않는 방식으로 오픈 소스 소프트웨어를 사용했다고 생각되는 경우, 같은 주소로 알려주시면 당사가 이를 검토하겠습니다."
+    }
+  ]
+}

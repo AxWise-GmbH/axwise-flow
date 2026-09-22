@@ -1,0 +1,789 @@
+/*
+ * API scene (class prefix pap-): a task, the reasoning ring, three lanes and the reasons.
+ * Plain styles are the finished frame; keyframes on the shared clock take parts out and bring
+ * them back. Every rule is scoped to this scene: [data-product='api'] or a pap- class only
+ * it uses. This file holds the base and the menu cut (it ships with the header); the page's
+ * own cuts (hero, uses) live in api-page.css, which ships with the API page.
+ *
+ * Positions use --ps-u (1% of the card). Sizes use --u, which a part may scale up on its
+ * own subtree for small cards. The decision box (.pap-dia) has its own unit --d: its SVG is
+ * 64 x 40 of them, and its lanes are placed in % of it, so the ring, the lines and the
+ * lanes always meet, whatever size a cut gives the box.
+ *
+ * Every story animation starts at var(--pap-at): 0 for the menu; the hero sets a negative
+ * offset, so each cut opens on a strong frame.
+ *
+ * menu (10s): opens on the finished frame and holds it. 13-17% it clears, 17-24% the task
+ *   comes back, 24-29% its line draws with a pulse at the tip, 28-38% the ring flashes and
+ *   three lines fan out, 34-47% the scores fill, 47-54% Agent wins, 56-71% the reasons land,
+ *   72-76% the 201. It rests on the finished frame into the next loop.
+ */
+
+[data-product='api'] {
+  --pap-bg: var(--oi-paper-strong);
+  --pap-at: 0s;
+}
+
+/* A faint dot grid, and a soft light behind the ring (below the grid; both are white). */
+[data-product='api'] .ps-scene::before,
+[data-product='api'] .ps-scene::after {
+  content: '';
+  position: absolute;
+}
+
+[data-product='api'] .ps-scene::before {
+  inset: 0;
+  background: radial-gradient(
+      rgba(var(--oi-fg-rgb), calc(0.13 * var(--oi-halo-k))) max(0.6px, calc(var(--ps-u) * 0.1)),
+      transparent max(1px, calc(var(--ps-u) * 0.15))
+    )
+    0 0 / calc(var(--ps-u) * 2.5) calc(var(--ps-u) * 2.5);
+  -webkit-mask: radial-gradient(ellipse 62% 70% at 50% 46%, #000, transparent);
+  mask: radial-gradient(ellipse 62% 70% at 50% 46%, #000, transparent);
+}
+
+[data-product='api'] .ps-scene::after {
+  top: calc(var(--ps-u) * 2);
+  left: calc(var(--ps-u) * 18);
+  z-index: -1;
+  width: calc(var(--ps-u) * 50);
+  height: calc(var(--ps-u) * 50);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.11 * var(--oi-halo-k))),
+    transparent
+  );
+  animation: pap-breathe var(--ps-loop) ease-in-out infinite;
+}
+
+/* The menu is drawn for 16:10; a taller card centres it. */
+[data-product='api'][data-cut='menu'] .ps-scene {
+  top: max(0px, 50% - var(--ps-u) * 31.25);
+  bottom: auto;
+  height: calc(var(--ps-u) * 62.5);
+}
+
+.pap-in,
+.pap-task,
+.pap-win,
+.pap-why,
+.pap-post {
+  display: none;
+}
+
+.pap-task,
+.pap-dia,
+.pap-why,
+.pap-post,
+.pap-win.ps-win,
+.pap-in {
+  position: absolute;
+  margin: 0;
+}
+
+/* The task card --------------------------------------------------------------------------- */
+
+[data-product='api'][data-cut='menu'] .pap-task {
+  display: block;
+}
+
+.pap-task {
+  --pap-link: calc(var(--ps-u) * 5);
+
+  top: calc(var(--ps-u) * 27.5);
+  left: calc(var(--ps-u) * 5);
+  width: calc(var(--ps-u) * 22.5);
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 1.8) calc(var(--u) * 1.8);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.4);
+  background:
+    linear-gradient(180deg, rgba(var(--oi-fg-rgb), 0.075), rgba(var(--oi-fg-rgb), 0.02)),
+    var(--pap-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.12),
+    0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1)
+      rgba(var(--oi-shadow-rgb), calc(0.85 * var(--oi-shadow-k)));
+  color: var(--oi-app-text);
+  font-size: max(9px, calc(var(--u) * 2.15));
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  translate: 0 -50%;
+  animation: pap-m-task var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-task span {
+  display: block;
+  margin-bottom: calc(var(--u) * 0.7);
+  color: var(--oi-app-muted);
+  font-size: max(9px, calc(var(--u) * 1.65));
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The line into the ring, and the pulse that rides its tip as it draws. */
+.pap-task::after,
+.pap-task::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 100%;
+}
+
+.pap-task::after {
+  width: var(--pap-link);
+  height: var(--ps-line);
+  background: linear-gradient(90deg, var(--oi-app-border-strong), rgba(var(--oi-fg-rgb), 0.7));
+  transform-origin: left;
+  animation: pap-m-link var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-task::before {
+  width: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 0.9);
+  margin: calc(var(--u) * -0.45) 0 0 calc(var(--u) * -0.45);
+  border-radius: 50%;
+  background: rgb(var(--oi-fg-rgb));
+  box-shadow: 0 0 calc(var(--u) * 1.4) rgba(var(--oi-fg-rgb), calc(0.9 * var(--oi-halo-k)));
+  opacity: 0;
+  animation: pap-m-pulse var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+/* The decision box: ring, fan of lines, three lanes -------------------------------------- */
+
+.pap-dia {
+  --d: var(--ps-u);
+
+  top: calc(var(--ps-u) * 7.5);
+  left: calc(var(--ps-u) * 31);
+  z-index: 1;
+  isolation: isolate;
+  width: calc(var(--d) * 64);
+  height: calc(var(--d) * 40);
+  font-size: calc(var(--d) * 2.1);
+}
+
+.pap-dia svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+}
+
+/* The ring, centred at (9, 20) of the box: four svg boxes (each turns or flashes as a whole),
+   a halo and a core. */
+.pap-ring {
+  position: absolute;
+  top: calc(var(--d) * 7.5);
+  left: calc(var(--d) * -3.5);
+  width: calc(var(--d) * 25);
+  height: calc(var(--d) * 25);
+  animation: pap-m-ring var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-ring svg:nth-child(1) {
+  stroke: rgba(var(--oi-fg-rgb), 0.1);
+  stroke-width: 0.1;
+  stroke-dasharray: 0.12 0.6;
+}
+
+.pap-ring svg:nth-child(2) {
+  stroke: rgba(var(--oi-fg-rgb), 0.42);
+  stroke-width: 0.16;
+  stroke-dasharray: 0.35 0.9;
+  animation: ps-spin calc(var(--ps-loop) * 2) linear infinite;
+}
+
+.pap-ring svg:nth-child(3) {
+  stroke: rgba(var(--oi-fg-rgb), 0.85);
+  stroke-width: 0.2;
+  stroke-dasharray: 21 16.7;
+  animation: ps-spin var(--ps-loop) linear infinite reverse;
+}
+
+.pap-ring svg:nth-child(4) {
+  stroke: rgba(var(--oi-fg-rgb), 0.24);
+  stroke-width: 0.12;
+}
+
+.pap-ring::before,
+.pap-ring::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+}
+
+.pap-ring::before {
+  inset: calc(50% - var(--d) * 2.6);
+  background: rgba(var(--oi-fg-rgb), 0.14);
+  animation: pap-m-halo var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-ring::after {
+  inset: calc(50% - var(--d) * 1.2);
+  background: rgb(var(--oi-fg-rgb));
+}
+
+/* The fan: the winner's line bright, the others quiet. */
+.pap-dia path {
+  stroke: rgba(var(--oi-fg-rgb), 0.3);
+  stroke-width: 0.16;
+  stroke-dasharray: 1 2;
+  animation: pap-m-draw var(--ps-loop) var(--oi-ease) var(--pap-at) infinite backwards;
+}
+
+.pap-dia path:nth-of-type(1) {
+  stroke: rgba(var(--oi-fg-rgb), 0.9);
+  stroke-width: 0.2;
+}
+
+.pap-dia path:nth-of-type(2) {
+  animation-delay: calc(var(--pap-at) + var(--ps-loop) * 0.02);
+}
+
+.pap-dia path:nth-of-type(3) {
+  animation-delay: calc(var(--pap-at) + var(--ps-loop) * 0.04);
+}
+
+/* A spark runs down the winner's line when it is picked. */
+.pap-dia path:nth-of-type(4) {
+  stroke: rgb(var(--oi-fg-rgb));
+  stroke-width: 0.5;
+  stroke-dasharray: 0.08 2;
+  stroke-dashoffset: -1.1;
+  animation-name: pap-m-spark;
+  animation-timing-function: ease-in;
+}
+
+.pap-lane {
+  --s: 0.84;
+
+  position: absolute;
+  top: 5%;
+  right: 0;
+  left: 40.625%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-content: center;
+  align-items: center;
+  gap: calc(var(--d) * 0.9) calc(var(--d) * 0.9);
+  height: 25%;
+  margin: 0;
+  padding: 0 calc(var(--d) * 1.6);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--d) * 1.3);
+  background: rgba(var(--oi-fg-rgb), 0.025);
+  color: var(--oi-app-muted);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* The winner's light, on a layer of its own so only opacity moves. */
+.pap-lane::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  z-index: -1;
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.55);
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.13), rgba(var(--oi-fg-rgb), 0.05));
+  box-shadow: 0 0 calc(var(--d) * 4) rgba(var(--oi-fg-rgb), calc(0.1 * var(--oi-halo-k)));
+  opacity: 0;
+}
+
+.pap-lane:nth-of-type(1) {
+  color: var(--oi-app-text);
+}
+
+.pap-lane:nth-of-type(1)::before {
+  opacity: 1;
+  animation: pap-m-lit var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-lane:nth-of-type(2) {
+  --s: 0.52;
+
+  top: 37.5%;
+}
+
+.pap-lane:nth-of-type(3) {
+  --s: 0.31;
+
+  top: 70%;
+}
+
+.pap-lane:nth-of-type(n + 2) {
+  opacity: 0.5;
+  animation: pap-m-dim var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+/* The score, drawn here (the scene text never holds digits in pairs). */
+.pap-lane::after {
+  content: '0.84';
+  grid-area: 1 / 3;
+  color: var(--oi-app-muted);
+  font: max(9px, 0.8em) / 1 var(--oi-mono);
+  animation: pap-m-score var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-lane:nth-of-type(2)::after {
+  content: '0.52';
+}
+
+.pap-lane:nth-of-type(3)::after {
+  content: '0.31';
+}
+
+.pap-lane:nth-of-type(1)::after {
+  color: var(--oi-app-text);
+}
+
+.pap-lane .ps-icon {
+  width: 1.15em;
+  height: 1.15em;
+}
+
+.pap-lane .ps-tick {
+  grid-area: 1 / 4;
+  width: 1.3em;
+  height: 1.3em;
+  opacity: 0;
+}
+
+.pap-lane:nth-of-type(1) .ps-tick {
+  opacity: 1;
+  animation: pap-m-tick var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-fill {
+  grid-column: 1 / -1;
+  height: calc(var(--d) * 0.6);
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(var(--oi-fg-rgb), 0.08);
+}
+
+.pap-fill::before {
+  content: '';
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.25), rgba(var(--oi-fg-rgb), 0.55));
+  transform: scaleX(var(--s));
+  transform-origin: left;
+  animation: pap-m-fill var(--ps-loop) var(--oi-ease) var(--pap-at) infinite backwards;
+}
+
+.pap-lane:nth-of-type(1) .pap-fill::before {
+  background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.45), rgb(var(--oi-fg-rgb)));
+}
+
+.pap-lane:nth-of-type(2) .pap-fill::before {
+  animation-delay: calc(var(--pap-at) + var(--ps-loop) * 0.01);
+}
+
+.pap-lane:nth-of-type(3) .pap-fill::before {
+  animation-delay: calc(var(--pap-at) + var(--ps-loop) * 0.02);
+}
+
+/* The reasons and the endpoint ---------------------------------------------------------- */
+
+[data-product='api'][data-cut='menu'] .pap-why {
+  display: flex;
+}
+
+/* The row clears as one; each reason comes back on its own. */
+.pap-why {
+  --pap-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5 6.5 12 13 4.5'/%3E%3C/svg%3E");
+
+  top: calc(var(--ps-u) * 49.5);
+  right: calc(var(--ps-u) * 5);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: calc(var(--u) * 0.7);
+  width: calc(var(--ps-u) * 50);
+  animation: pap-m-lit var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-why .ps-chip {
+  gap: 0.4em;
+  padding: 0.36em 0.75em 0.36em 0.55em;
+  border-color: var(--oi-app-border-strong);
+  background: rgba(var(--oi-fg-rgb), 0.07);
+  color: var(--oi-app-text);
+  font-size: max(9px, calc(var(--u) * 1.65));
+  animation: pap-m-why var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+.pap-why .ps-chip:nth-child(2) {
+  animation-delay: calc(var(--pap-at) + var(--ps-loop) * 0.05);
+}
+
+.pap-why .ps-chip:nth-child(3) {
+  animation-delay: calc(var(--pap-at) + var(--ps-loop) * 0.1);
+}
+
+.pap-why .ps-chip::before {
+  content: '';
+  width: 1em;
+  height: 1em;
+  background: currentColor;
+  -webkit-mask: var(--pap-tick) center / contain no-repeat;
+  mask: var(--pap-tick) center / contain no-repeat;
+}
+
+[data-product='api'][data-cut='menu'] .pap-post {
+  display: flex;
+}
+
+.pap-post {
+  top: calc(var(--ps-u) * 49.6);
+  left: calc(var(--ps-u) * 5);
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.45em 0.5em 0.45em 0.9em;
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: 99px;
+  background: rgba(var(--oi-fg-rgb), 0.03);
+  color: var(--oi-app-soft);
+  font-size: max(9px, calc(var(--u) * 1.62));
+  white-space: nowrap;
+}
+
+.pap-post::after {
+  content: '201';
+  padding: 0.15em 0.65em;
+  border-radius: 99px;
+  background: var(--oi-app-text);
+  color: var(--pap-bg);
+  font-weight: 600;
+  animation: pap-m-ok var(--ps-loop) var(--oi-ease) var(--pap-at) infinite;
+}
+
+/* The menu on a small card: bigger words, the reasons in a row of their own. */
+@container ps (max-width: 480px) {
+  [data-product='api'] .pap-task {
+    --u: calc(var(--ps-u) * 1.55);
+    --pap-link: calc(var(--ps-u) * 3);
+
+    top: calc(var(--ps-u) * 23.6);
+    left: calc(var(--ps-u) * 4);
+    width: calc(var(--ps-u) * 27);
+    padding: calc(var(--u) * 1.1) calc(var(--u) * 1.2) calc(var(--u) * 1.3);
+    font-size: max(10px, calc(var(--u) * 2.15));
+  }
+
+  [data-product='api'][data-cut='menu'] .pap-dia {
+    --d: calc(var(--ps-u) * 0.98);
+
+    top: calc(var(--ps-u) * 4);
+    left: calc(var(--ps-u) * 33);
+    font-size: max(9px, calc(var(--d) * 3.1));
+  }
+
+  [data-product='api'][data-cut='menu'] .pap-lane {
+    gap: calc(var(--d) * 0.7);
+    padding: 0 calc(var(--d) * 1.3);
+  }
+
+  [data-product='api'][data-cut='menu'] .pap-why {
+    --u: calc(var(--ps-u) * 1.8);
+
+    top: calc(var(--ps-u) * 44);
+    right: auto;
+    left: calc(var(--ps-u) * 4);
+    justify-content: flex-start;
+    width: calc(var(--ps-u) * 94);
+    gap: calc(var(--u) * 0.5);
+  }
+
+  [data-product='api'][data-cut='menu'] .pap-why .ps-chip {
+    gap: 0.3em;
+    padding: 0.32em 0.6em 0.32em 0.45em;
+    font-size: max(9px, calc(var(--u) * 1.65));
+  }
+
+  [data-product='api'] .pap-post {
+    --u: calc(var(--ps-u) * 1.7);
+
+    top: calc(var(--ps-u) * 52);
+    left: calc(var(--ps-u) * 4);
+    padding-block: 0.3em;
+    font-size: max(9px, calc(var(--u) * 1.62));
+  }
+
+  [data-product='api'] .pap-post::after {
+    padding-block: 0.08em;
+  }
+}
+
+/* Keyframes ------------------------------------------------------------------------------ */
+
+@keyframes pap-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* menu: 0-13% hold the finished frame, 13-17% clear, then the story, then rest. */
+@keyframes pap-m-task {
+  0%,
+  13% {
+    opacity: 1;
+    translate: 0 -50%;
+  }
+  16.5% {
+    opacity: 0;
+    translate: 0 -50%;
+  }
+  17% {
+    opacity: 0;
+    translate: calc(var(--ps-u) * -3) -50%;
+  }
+  24%,
+  100% {
+    opacity: 1;
+    translate: 0 -50%;
+  }
+}
+
+@keyframes pap-m-link {
+  0%,
+  17% {
+    transform: none;
+  }
+  18%,
+  24% {
+    transform: scaleX(0);
+  }
+  29%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pap-m-pulse {
+  0%,
+  23.9% {
+    opacity: 0;
+    transform: none;
+  }
+  24% {
+    opacity: 1;
+    transform: none;
+  }
+  29% {
+    opacity: 1;
+    transform: translateX(var(--pap-link));
+  }
+  31%,
+  100% {
+    opacity: 0;
+    transform: translateX(var(--pap-link));
+  }
+}
+
+@keyframes pap-m-ring {
+  0%,
+  28% {
+    scale: 1;
+  }
+  31% {
+    scale: 1.1;
+  }
+  37%,
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pap-m-halo {
+  0%,
+  28% {
+    opacity: 0.6;
+    scale: 1;
+  }
+  31% {
+    opacity: 1;
+    scale: 1.9;
+  }
+  39%,
+  100% {
+    opacity: 0.6;
+    scale: 1;
+  }
+}
+
+/* The lines fade out, reset while unseen, then draw themselves again. */
+@keyframes pap-m-draw {
+  0%,
+  13% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  17% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+  18% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  19%,
+  31% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  38%,
+  100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pap-m-fill {
+  0%,
+  13% {
+    transform: scaleX(var(--s));
+  }
+  17%,
+  34% {
+    transform: scaleX(0);
+  }
+  46%,
+  100% {
+    transform: scaleX(var(--s));
+  }
+}
+
+@keyframes pap-m-spark {
+  0%,
+  47% {
+    opacity: 0;
+    stroke-dashoffset: 0.08;
+  }
+  48% {
+    opacity: 1;
+    stroke-dashoffset: 0.08;
+  }
+  52% {
+    opacity: 1;
+    stroke-dashoffset: -1;
+  }
+  53%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -1.1;
+  }
+}
+
+@keyframes pap-m-score {
+  0%,
+  13% {
+    opacity: 1;
+  }
+  16%,
+  42% {
+    opacity: 0;
+  }
+  47%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* The winner's light; the reasons row clears and comes back with it. */
+@keyframes pap-m-lit {
+  0%,
+  13% {
+    opacity: 1;
+  }
+  16%,
+  49% {
+    opacity: 0;
+  }
+  53%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pap-m-tick {
+  0%,
+  13% {
+    opacity: 1;
+    transform: none;
+  }
+  16%,
+  50% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  54%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pap-m-dim {
+  0%,
+  13% {
+    opacity: 0.5;
+  }
+  16%,
+  49% {
+    opacity: 1;
+  }
+  54%,
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* A reason hides while its row is out (17-18%), then lands on its own. */
+@keyframes pap-m-why {
+  0%,
+  17% {
+    opacity: 1;
+    transform: none;
+  }
+  18%,
+  56% {
+    opacity: 0;
+    transform: translateY(calc(var(--ps-u) * 1)) scale(0.94);
+  }
+  61%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pap-m-ok {
+  0%,
+  13% {
+    opacity: 1;
+    transform: none;
+  }
+  16%,
+  72% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  76%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}

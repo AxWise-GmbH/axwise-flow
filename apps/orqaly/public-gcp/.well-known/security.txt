@@ -1,0 +1,6 @@
+# How to report a security problem in Orqanix (RFC 9116).
+Contact: mailto:security@orqanix.com
+Expires: 2027-09-21T00:00:00.000Z
+Policy: https://orqanix.com/instant/legal/eu/security
+Preferred-Languages: en
+Canonical: https://orqanix.com/.well-known/security.txt

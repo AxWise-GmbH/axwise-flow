@@ -1,0 +1,1460 @@
+/*
+ * Open banner: a file tree opens its LICENSE, then a commit graph grows beside it. No words.
+ * Timeline on the 12s clock (keyframe %):
+ *   0-9    a pointer moves to the LICENSE row and clicks
+ *   8-12   the row lights up and the file opens in a tab
+ *   11-21  its title types in, a seal lands, then the text lines draw in
+ *   19-23  a spark runs along the wire and lights main's root (a faint ghost until then)
+ *   22-60  main grows left to right
+ *   27-50  branch one splits off, two contributors join, it merges back with a tick
+ *   36-59  branch two does the same below
+ *   60-88  the head lights up; two pulses run along main, each ending in a ripple
+ *   91-96  everything that landed fades; the pointer comes back for the next loop
+ */
+
+.nb-open {
+  /* The lit file name; the tab's name; the face of a commit or root ring (the stage shows
+     through it) and of a contributor ring. */
+  --nb-open-lit: rgba(250, 250, 250, 0.88);
+  --nb-open-tab-ink: rgba(214, 214, 214, 0.7);
+  --nb-open-hole: #0b0b0b;
+  --nb-open-face: #141414;
+}
+
+/* Light: dark ink on white; the rings get white faces, like the windows. */
+[data-oi-theme='light'] .nb-open {
+  --nb-open-lit: rgba(17, 17, 17, 0.85);
+  --nb-open-tab-ink: rgba(40, 40, 40, 0.6);
+  --nb-open-hole: #ffffff;
+  --nb-open-face: #ffffff;
+}
+
+/* The editor: file tree on the left, the open file on the right. */
+.nb-open-editor {
+  top: calc(var(--u) * 10);
+  left: calc(var(--u) * 5);
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--u) * 42);
+  height: calc(var(--u) * 24);
+}
+
+/* banners.css works out --nb-stroke on .nb, where --u is not set yet; work it out here. */
+.nb-open-editor,
+.nb-open-wire,
+.nb-open-graph {
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+}
+
+.nb-open-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: calc(var(--u) * 15) 1fr;
+  min-height: 0;
+}
+
+.nb-open-tree {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 0.8);
+  border-right: var(--nb-stroke) solid var(--nb-line);
+}
+
+.nb-open-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.65);
+  height: calc(var(--u) * 2.8);
+  padding: 0 calc(var(--u) * 0.8);
+  color: var(--nb-muted);
+  isolation: isolate;
+}
+
+.nb-open-ico {
+  flex: none;
+  width: calc(var(--u) * 1.35);
+  height: calc(var(--u) * 1.35);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A file or folder name, drawn as a grey bar. */
+.nb-open-name {
+  flex: none;
+  height: calc(var(--u) * 0.55);
+  border-radius: calc(var(--u) * 0.3);
+  background: rgba(var(--oi-fg-rgb), 0.18);
+}
+
+.nb-open-row:nth-child(1) .nb-open-name {
+  width: 60%;
+}
+
+.nb-open-row:nth-child(2) .nb-open-name {
+  width: 42%;
+}
+
+.nb-open-row:nth-child(3) .nb-open-name {
+  width: 48%;
+}
+
+.nb-open-row:nth-child(4) .nb-open-name {
+  width: 58%;
+}
+
+.nb-open-row:nth-child(5) .nb-open-name {
+  width: 66%;
+}
+
+/* LICENSE: lit, with a bright edge on the left and a bright name. */
+.nb-open-row-on {
+  color: var(--nb-ink);
+  animation: nb-open-row var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-row-on .nb-open-name {
+  background: var(--nb-open-lit);
+  animation: nb-open-name var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-row-on::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: calc(var(--u) * 0.5);
+  background: rgba(var(--oi-fg-rgb), 0.1);
+  box-shadow: inset calc(var(--u) * 0.22) 0 0 var(--nb-ink);
+  transform-origin: left center;
+  animation: nb-open-band var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The pointer only shows while it moves and clicks; the finished frame has none. */
+.nb-open-pointer {
+  position: absolute;
+  top: calc(var(--u) * 1.15);
+  left: calc(var(--u) * 6.4);
+  width: calc(var(--u) * 2.2);
+  height: calc(var(--u) * 2.2);
+  overflow: visible;
+  opacity: 0;
+  fill: var(--nb-ink);
+  stroke: rgb(var(--oi-bg-rgb));
+  stroke-width: 1;
+  stroke-linejoin: round;
+  filter: drop-shadow(
+    0 calc(var(--u) * 0.2) calc(var(--u) * 0.35)
+      rgba(var(--oi-shadow-rgb), calc(0.8 * var(--oi-shadow-k)))
+  );
+  transform-origin: 18% 10%;
+  animation: nb-open-pointer var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-click {
+  position: absolute;
+  top: calc(var(--u) * 0.2);
+  left: calc(var(--u) * 5.6);
+  width: calc(var(--u) * 2.6);
+  height: calc(var(--u) * 2.6);
+  border: var(--nb-stroke) solid var(--nb-ink);
+  border-radius: 50%;
+  opacity: 0;
+  animation: nb-open-click var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The open file. */
+.nb-open-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nb-open-tabs {
+  display: flex;
+  align-items: flex-end;
+  flex: none;
+  height: calc(var(--u) * 2.9);
+  padding-left: calc(var(--u) * 1);
+  border-bottom: var(--nb-stroke) solid var(--nb-line);
+}
+
+.nb-open-tab {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.6);
+  height: calc(var(--u) * 2.25);
+  margin-bottom: calc(var(--nb-stroke) * -1);
+  padding: 0 calc(var(--u) * 1.1);
+  border: var(--nb-stroke) solid var(--nb-line);
+  border-bottom-color: var(--nb-panel-2);
+  border-radius: calc(var(--u) * 0.5) calc(var(--u) * 0.5) 0 0;
+  background: var(--nb-panel-2);
+  color: var(--nb-text);
+  animation: nb-open-tab var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-tab .nb-open-ico {
+  width: calc(var(--u) * 1.15);
+  height: calc(var(--u) * 1.15);
+}
+
+.nb-open-tab-name {
+  width: calc(var(--u) * 3.6);
+  height: calc(var(--u) * 0.5);
+  border-radius: calc(var(--u) * 0.25);
+  background: var(--nb-open-tab-ink);
+}
+
+.nb-open-doc {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.1);
+  padding: calc(var(--u) * 2) calc(var(--u) * 2);
+}
+
+/* The file's title: three bright word bars that type in, then a seal. */
+.nb-open-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.1);
+  height: calc(var(--u) * 2.4);
+  margin-bottom: calc(var(--u) * 0.2);
+}
+
+.nb-open-title {
+  position: relative;
+  width: 58%;
+  height: calc(var(--u) * 1);
+}
+
+.nb-open-words {
+  display: flex;
+  gap: calc(var(--u) * 0.55);
+  height: 100%;
+  clip-path: inset(0 0 0 0);
+  animation: nb-open-words var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-words > i {
+  border-radius: calc(var(--u) * 0.3);
+  background: var(--nb-ink);
+  opacity: 0.9;
+}
+
+.nb-open-words > i:nth-child(1) {
+  flex: 6;
+}
+
+.nb-open-words > i:nth-child(2) {
+  flex: 7;
+}
+
+.nb-open-words > i:nth-child(3) {
+  flex: 2.4;
+}
+
+/* The caret rides the typing edge and is gone once the title is in. */
+.nb-open-caret {
+  position: absolute;
+  top: 0;
+  right: calc(var(--u) * -0.6);
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  opacity: 0;
+  font-size: calc(var(--u) * 1.4);
+  animation: nb-open-caret var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-seal {
+  flex: none;
+  width: calc(var(--u) * 2.4);
+  height: calc(var(--u) * 2.4);
+  fill: none;
+  stroke: var(--nb-ink);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: nb-open-seal var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-seal circle {
+  stroke-width: 1.6;
+}
+
+.nb-open-seal path {
+  stroke-width: 2.1;
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 0;
+  animation: nb-open-check var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-bar {
+  height: calc(var(--u) * 0.6);
+  border-radius: calc(var(--u) * 0.3);
+  background: rgba(var(--oi-fg-rgb), 0.16);
+  transform-origin: left center;
+}
+
+.nb-open-bar-1 {
+  width: 94%;
+  animation: nb-open-bar-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-bar-2 {
+  width: 80%;
+  animation: nb-open-bar-2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-bar-3 {
+  width: 88%;
+  animation: nb-open-bar-3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-bar-4 {
+  width: 62%;
+  animation: nb-open-bar-4 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-bar-5 {
+  width: 74%;
+  animation: nb-open-bar-5 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* From the editor to main's root: a dashed wire and a spark that runs along it. */
+.nb-open-wire {
+  position: absolute;
+  top: calc(var(--u) * 22 - var(--nb-stroke) / 2);
+  left: calc(var(--u) * 47);
+  width: calc(var(--u) * 5.8);
+  height: var(--nb-stroke);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--nb-line-strong) 0 calc(var(--u) * 0.45),
+    transparent 0 calc(var(--u) * 0.85)
+  );
+  transform-origin: left center;
+  animation: nb-open-wire var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-spark {
+  position: absolute;
+  top: calc(var(--u) * 21.55);
+  left: calc(var(--u) * 46.55);
+  width: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 0.9);
+  border-radius: 50%;
+  background: var(--nb-ink);
+  box-shadow: 0 0 calc(var(--u) * 1.2) rgba(var(--oi-fg-rgb), 0.7);
+  opacity: 0;
+  animation: nb-open-spark var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Light: the spark is a dark point; a faint halo, not a smudge. */
+[data-oi-theme='light'] .nb-open-spark {
+  box-shadow: 0 0 calc(var(--u) * 0.8) rgba(var(--oi-fg-rgb), 0.22);
+}
+
+/* The commit graph. Its SVG units scale with the box (42 x 30). */
+.nb-open-graph {
+  position: absolute;
+  top: calc(var(--u) * 7);
+  left: calc(var(--u) * 52);
+  width: calc(var(--u) * 42);
+  height: calc(var(--u) * 30);
+}
+
+.nb-open-graph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+}
+
+.nb-open-track {
+  stroke: rgba(var(--oi-fg-rgb), 0.14);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.5 0.6;
+  animation: nb-open-track var(--nb-loop) linear infinite;
+}
+
+.nb-open-main,
+.nb-open-branch {
+  /* A gap longer than the path: no stray dash shows at the far end. */
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 0;
+}
+
+.nb-open-main {
+  stroke: var(--nb-ink);
+  stroke-width: 0.34;
+  animation: nb-open-main var(--nb-loop) linear infinite;
+}
+
+.nb-open-branch {
+  stroke: var(--nb-muted);
+  stroke-width: 0.26;
+}
+
+.nb-open-branch-1 {
+  animation: nb-open-branch-1 var(--nb-loop) linear infinite;
+}
+
+.nb-open-branch-2 {
+  animation: nb-open-branch-2 var(--nb-loop) linear infinite;
+}
+
+/* Short bright runs along main once everything has merged. */
+.nb-open-pulse {
+  stroke: rgb(var(--oi-fg-rgb));
+  stroke-width: 0.7;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 1.2;
+  stroke-dashoffset: 0.06;
+  opacity: 0;
+  animation: nb-open-pulse var(--nb-loop) linear infinite;
+}
+
+.nb-open-commit,
+.nb-open-root,
+.nb-open-tick,
+.nb-open-head,
+.nb-open-ripple,
+.nb-open-person {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.nb-open-commit {
+  fill: var(--nb-open-hole);
+  stroke: var(--nb-ink);
+  stroke-width: 0.26;
+}
+
+.nb-open-commit-3,
+.nb-open-commit-4,
+.nb-open-commit-5,
+.nb-open-commit-6 {
+  stroke: var(--nb-text);
+}
+
+/* Root and head wait as faint ghosts; they light up when the graph reaches them. */
+.nb-open-root {
+  animation: nb-open-root var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-root > circle {
+  fill: var(--nb-open-hole);
+  stroke: var(--nb-ink);
+  stroke-width: 0.28;
+}
+
+.nb-open-root > .nb-open-dot {
+  fill: var(--nb-ink);
+  stroke: none;
+}
+
+/* Contributors: a ring with a grey dot, on a short stem down (or up) to their commit. */
+.nb-open-person > path {
+  stroke: var(--nb-faint);
+  stroke-width: 0.2;
+}
+
+.nb-open-person > circle {
+  fill: var(--nb-open-face);
+  stroke: var(--nb-ink);
+  stroke-width: 0.2;
+}
+
+.nb-open-person > .nb-open-dot {
+  fill: var(--nb-open-shade);
+  stroke: none;
+}
+
+.nb-open-person-1 {
+  --nb-open-shade: #fafafa;
+
+  transform-origin: center bottom;
+  animation: nb-open-person-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-person-2 {
+  --nb-open-shade: #9a9a9a;
+
+  transform-origin: center bottom;
+  animation: nb-open-person-2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-person-3 {
+  --nb-open-shade: #c8c8c8;
+
+  transform-origin: center top;
+  animation: nb-open-person-3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-person-4 {
+  --nb-open-shade: #6e6e6e;
+
+  transform-origin: center top;
+  animation: nb-open-person-4 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Light: the four shades keep their contrast with the ring's face, so the ramp turns over:
+   the brightest dot on dark becomes the darkest on white. */
+[data-oi-theme='light'] .nb-open-person-1 {
+  --nb-open-shade: #111111;
+}
+
+[data-oi-theme='light'] .nb-open-person-2 {
+  --nb-open-shade: #797979;
+}
+
+[data-oi-theme='light'] .nb-open-person-3 {
+  --nb-open-shade: #4b4b4b;
+}
+
+[data-oi-theme='light'] .nb-open-person-4 {
+  --nb-open-shade: #a5a5a5;
+}
+
+.nb-open-tick > circle {
+  fill: var(--nb-accent);
+}
+
+.nb-open-tick > path {
+  stroke: rgb(var(--oi-bg-rgb));
+  stroke-width: 0.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nb-open-head {
+  fill: var(--nb-ink);
+  animation: nb-open-head var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-ripple {
+  stroke: var(--nb-ink);
+  stroke-width: 0.12;
+  opacity: 0;
+  animation: nb-open-ripple var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-commit-1 {
+  animation: nb-open-commit-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-commit-2 {
+  animation: nb-open-commit-2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-commit-3 {
+  animation: nb-open-commit-3 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-commit-4 {
+  animation: nb-open-commit-4 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-commit-5 {
+  animation: nb-open-commit-5 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-commit-6 {
+  animation: nb-open-commit-6 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-tick-1 {
+  animation: nb-open-tick-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-open-tick-2 {
+  animation: nb-open-tick-2 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Phone: the editor on top, the graph below it, both nearly full width. */
+@container nb (max-width: 600px) {
+  .nb-open-editor {
+    top: calc(var(--u) * 2.3);
+    left: calc(var(--u) * 2.1);
+    width: calc(var(--u) * 37.5);
+    height: calc(var(--u) * 19.6);
+  }
+
+  .nb-open-body {
+    grid-template-columns: calc(var(--u) * 14.2) 1fr;
+  }
+
+  .nb-open-tree {
+    padding: calc(var(--u) * 0.9) calc(var(--u) * 0.6);
+  }
+
+  .nb-open-row {
+    height: calc(var(--u) * 2.4);
+  }
+
+  .nb-open-pointer {
+    top: calc(var(--u) * 0.95);
+    left: calc(var(--u) * 5.9);
+    width: calc(var(--u) * 2);
+    height: calc(var(--u) * 2);
+  }
+
+  .nb-open-click {
+    top: calc(var(--u) * 0.05);
+    left: calc(var(--u) * 5.2);
+    width: calc(var(--u) * 2.4);
+    height: calc(var(--u) * 2.4);
+  }
+
+  .nb-open-tabs {
+    height: calc(var(--u) * 2.6);
+  }
+
+  .nb-open-tab {
+    height: calc(var(--u) * 2);
+    padding: 0 calc(var(--u) * 0.9);
+  }
+
+  .nb-open-doc {
+    gap: calc(var(--u) * 0.95);
+    padding: calc(var(--u) * 1.5) calc(var(--u) * 1.4);
+  }
+
+  .nb-open-line {
+    gap: calc(var(--u) * 0.9);
+    height: calc(var(--u) * 2.2);
+    margin-bottom: 0;
+  }
+
+  .nb-open-title {
+    width: 62%;
+    height: calc(var(--u) * 0.9);
+  }
+
+  .nb-open-caret {
+    font-size: calc(var(--u) * 1.25);
+  }
+
+  .nb-open-seal {
+    width: calc(var(--u) * 2.2);
+    height: calc(var(--u) * 2.2);
+  }
+
+  .nb-open-bar {
+    height: calc(var(--u) * 0.55);
+  }
+
+  /* The wire drops from the editor's bottom edge to main's root (x = 4.76u, top 35.94u). */
+  .nb-open-wire {
+    top: calc(var(--u) * 21.9);
+    left: calc(var(--u) * 4.76 - var(--nb-stroke) / 2);
+    width: var(--nb-stroke);
+    height: calc(var(--u) * 14.04);
+    background: repeating-linear-gradient(
+      180deg,
+      var(--nb-line-strong) 0 calc(var(--u) * 0.45),
+      transparent 0 calc(var(--u) * 0.85)
+    );
+    transform-origin: center top;
+    animation-name: nb-open-wire-y;
+  }
+
+  .nb-open-spark {
+    top: calc(var(--u) * 21.45);
+    left: calc(var(--u) * 4.31);
+    animation-name: nb-open-spark-y;
+  }
+
+  /* The SVG keeps 42:30 and sits centred in this box, so root lands at x = 4.76u. */
+  .nb-open-graph {
+    top: calc(var(--u) * 24.3);
+    left: calc(var(--u) * 2.1);
+    width: calc(var(--u) * 37.5);
+    height: calc(var(--u) * 25.4);
+  }
+}
+
+/* Keyframes ----------------------------------------------------------------------------- */
+
+@keyframes nb-open-pointer {
+  0%,
+  2% {
+    opacity: 1;
+    transform: translate(calc(var(--u) * 8), calc(var(--u) * 5));
+  }
+  7% {
+    transform: translate(0, 0);
+  }
+  7.8% {
+    transform: translate(0, 0) scale(0.84);
+  }
+  9%,
+  12% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  18% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * 4), calc(var(--u) * 3.5));
+  }
+  95% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * 9), calc(var(--u) * 6));
+  }
+  100% {
+    opacity: 1;
+    transform: translate(calc(var(--u) * 8), calc(var(--u) * 5));
+  }
+}
+
+@keyframes nb-open-click {
+  0%,
+  7.8% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  8.3% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  13%,
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+@keyframes nb-open-row {
+  0%,
+  8% {
+    color: var(--nb-muted);
+  }
+  10.5%,
+  91% {
+    color: var(--nb-ink);
+  }
+  96%,
+  100% {
+    color: var(--nb-muted);
+  }
+}
+
+@keyframes nb-open-name {
+  0%,
+  8% {
+    background: rgba(var(--oi-fg-rgb), 0.18);
+  }
+  10.5%,
+  91% {
+    background: var(--nb-open-lit);
+  }
+  96%,
+  100% {
+    background: rgba(var(--oi-fg-rgb), 0.18);
+  }
+}
+
+@keyframes nb-open-band {
+  0%,
+  8% {
+    opacity: 0;
+    transform: scaleX(0.3);
+  }
+  11%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-tab {
+  0%,
+  9% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 0.8));
+  }
+  12%,
+  91% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/* The title types in, word by word: the clip and the caret step open together. */
+@keyframes nb-open-words {
+  0%,
+  11% {
+    opacity: 1;
+    clip-path: inset(0 100% 0 0);
+    animation-timing-function: steps(12, end);
+  }
+  18%,
+  91% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes nb-open-caret {
+  0%,
+  10.5% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  11% {
+    opacity: 1;
+    transform: translateX(-100%);
+    animation-timing-function: steps(12, end);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  20.5%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+@keyframes nb-open-seal {
+  0%,
+  18% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-40deg);
+  }
+  19.5% {
+    opacity: 1;
+    transform: scale(1.2) rotate(0);
+  }
+  21%,
+  91% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes nb-open-check {
+  0%,
+  19% {
+    stroke-dashoffset: 1;
+  }
+  21.5%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nb-open-bar-1 {
+  0%,
+  19% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  22.2%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-bar-2 {
+  0%,
+  20.4% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  23.6%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-bar-3 {
+  0%,
+  21.8% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  25%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-bar-4 {
+  0%,
+  23.2% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  26.4%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-bar-5 {
+  0%,
+  24.6% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  27.8%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-wire {
+  0%,
+  18.5% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  21.5%,
+  91% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-open-spark {
+  0%,
+  18.5% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  19% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  21.5% {
+    opacity: 1;
+    transform: translateX(calc(var(--u) * 6.5));
+  }
+  23.5%,
+  100% {
+    opacity: 0;
+    transform: translateX(calc(var(--u) * 6.5));
+  }
+}
+
+@keyframes nb-open-wire-y {
+  0%,
+  18.5% {
+    opacity: 1;
+    transform: scaleY(0);
+  }
+  21.5%,
+  91% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes nb-open-spark-y {
+  0%,
+  18.5% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  19% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  21.5% {
+    opacity: 1;
+    transform: translateY(calc(var(--u) * 14.8));
+  }
+  23.5%,
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 14.8));
+  }
+}
+
+@keyframes nb-open-root {
+  0%,
+  21% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  22.2% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  23.5%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-open-main {
+  0%,
+  21.5% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  60%,
+  91% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nb-open-branch-1 {
+  0%,
+  27% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  47%,
+  91% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nb-open-branch-2 {
+  0%,
+  36% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  56%,
+  91% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes nb-open-track {
+  to {
+    stroke-dashoffset: -6.6;
+  }
+}
+
+/* Two runs, each ending at the head as a ripple goes out. */
+@keyframes nb-open-pulse {
+  0%,
+  62.5% {
+    opacity: 0;
+    stroke-dashoffset: 0.06;
+  }
+  63%,
+  70% {
+    opacity: 1;
+  }
+  71% {
+    opacity: 0;
+    stroke-dashoffset: -1;
+  }
+  71.5%,
+  72.5% {
+    opacity: 0;
+    stroke-dashoffset: 0.06;
+  }
+  73%,
+  81% {
+    opacity: 1;
+  }
+  82%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -1;
+  }
+}
+
+/* Main's commits: where branch one and branch two split off. */
+@keyframes nb-open-commit-1 {
+  0%,
+  26% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  27.4% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  28.8%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-open-commit-2 {
+  0%,
+  35.1% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  36.5% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  37.9%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Branch commits: each lands as its line passes, right after its contributor joins. */
+@keyframes nb-open-commit-3 {
+  0%,
+  34.6% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  36% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  37.4%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-open-commit-4 {
+  0%,
+  38.2% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  39.6% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  41%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-open-commit-5 {
+  0%,
+  43.6% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  46.4%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-open-commit-6 {
+  0%,
+  47.2% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  48.6% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  50%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Contributors drift in from outside the graph and settle on their stem. */
+@keyframes nb-open-person-1 {
+  0%,
+  32% {
+    opacity: 0;
+    transform: translateY(-45%) scale(0.7);
+  }
+  35%,
+  91% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nb-open-person-2 {
+  0%,
+  35.8% {
+    opacity: 0;
+    transform: translateY(-45%) scale(0.7);
+  }
+  38.8%,
+  91% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nb-open-person-3 {
+  0%,
+  41.2% {
+    opacity: 0;
+    transform: translateY(45%) scale(0.7);
+  }
+  44.2%,
+  91% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nb-open-person-4 {
+  0%,
+  44.8% {
+    opacity: 0;
+    transform: translateY(45%) scale(0.7);
+  }
+  47.8%,
+  91% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Merge ticks: the moment each branch meets main again. */
+@keyframes nb-open-tick-1 {
+  0%,
+  47% {
+    opacity: 0;
+    transform: scale(0) rotate(-40deg);
+  }
+  48.5% {
+    opacity: 1;
+    transform: scale(1.25) rotate(0);
+  }
+  50%,
+  91% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes nb-open-tick-2 {
+  0%,
+  56% {
+    opacity: 0;
+    transform: scale(0) rotate(-40deg);
+  }
+  57.5% {
+    opacity: 1;
+    transform: scale(1.25) rotate(0);
+  }
+  59%,
+  91% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes nb-open-head {
+  0%,
+  59.5% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  61% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  62.5%,
+  91% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-open-ripple {
+  0%,
+  70.5% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  71% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  77%,
+  81% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+  81.3% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  82% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  88%,
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}

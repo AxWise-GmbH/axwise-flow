@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Erişilebilirlik Beyanı",
+    "summary": "Bu beyan, Orqanix web sitesinin ne ölçüde erişilebilir olduğunu, hâlâ nerelerde eksik kaldığını ve bir engeli nasıl bildirebileceğinizi açıklar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Amacımız"
+    },
+    {
+      "type": "p",
+      "text": "Klavye, ekran okuyucu, yakınlaştırma veya başka yardımcı teknolojiler kullananlar dahil herkesin {company.name} web sitesini kullanabilmesini istiyoruz. Hedefimiz, yaygın uluslararası standart olan Web İçeriği Erişilebilirlik Yönergeleri (WCAG) 2.1’in AA düzeyidir."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Kapsam"
+    },
+    {
+      "type": "p",
+      "text": "Bu beyan, orqanix.com adresindeki web sitesini kapsar: ana sayfa, ürün ve çözüm sayfaları, Haberler sayfası ve Hukuk Merkezi. Web uygulamasını, Masaüstü Uygulamasını ve oturum açma sağlayıcımız Clerk tarafından sunulan oturum açma sayfalarını kapsamaz."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Mevcut durum"
+    },
+    {
+      "type": "p",
+      "text": "Web sitesi WCAG 2.1 AA düzeyini kısmen karşılamaktadır. Henüz tam bir denetimden geçmemiştir ve tam uygunluk iddiasında bulunmuyoruz. Bildiğimiz eksiklikler [Bilinen eksiklikler](#known-gaps) başlığı altında listelenmiştir."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "Neler yaptık"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Klavye: Bağlantılara, düğmelere ve menülere klavyeyle ulaşabilirsiniz; Escape tuşu açık menüleri kapatır.",
+        "Görünür odak: Bağlantılar ve düğmeler, klavyeyle üzerlerine geldiğinizde görünür bir odak stili gösterir.",
+        "Daha az hareket: Cihazınız hareketi azaltacak şekilde ayarlanmışsa animasyonlu sahneler durur ve içerik animasyonsuz görünür.",
+        "Kontrast: Gövde metni ve başlıklar siyah arka plan üzerinde beyaza yakın renktedir.",
+        "Metin alternatifleri: Anlam taşıyan menüler, kontroller ve sahneler ekran okuyucular için metin etiketlerine sahiptir. Yalnızca süsleme amaçlı grafikler ekran okuyuculardan gizlenir.",
+        "Yapı: Sayfalarda başlıklar, bir ana içerik alanı, etiketli bir ana menü ve etiketli bir alt bilgi menüsü kullanılır; sayfa dili İngilizce olarak ayarlanmıştır.",
+        "Küçük ekranlar: Düzen, telefonlara ve dar pencerelere uyum sağlar."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Bilinen eksiklikler"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bazı çizimler, animasyonlu ürün sahnelerinin içindeki etiketler gibi küçük metinler içerir. Bu metinler yakınlaştırıldığında bile zor okunabilir.",
+        "Bazı ikincil etiketlerde, WCAG’nin küçük metinler için istediğinden daha düşük kontrasta sahip soluk bir gri kullanılır.",
+        "Animasyonlu sahneleri takip etmek bazı kişiler için zor olabilir. Cihazınız hareketi azaltacak şekilde ayarlanmışsa sahneler durur."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bu eksiklikleri gidermeyi amaçlıyoruz. Bunlardan biri ihtiyaç duyduğunuz bilgiye ulaşmanızı engelliyorsa [bize bildirin](#feedback), bu bilgiyi size başka bir yolla ulaştırmaya çalışalım."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Geri bildirim"
+    },
+    {
+      "type": "p",
+      "text": "Web sitemizde bir engelle karşılaşırsanız lütfen {company.email} adresinden bize bildirin. Hangi sayfada olduğunu, ne yapmaya çalıştığınızı ve isterseniz hangi tarayıcıyı ve yardımcı teknolojiyi kullandığınızı belirtin. Hızlı yanıt vermeyi ve düzeltebildiklerimizi düzeltmeyi amaçlıyoruz."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "AB’de yaşıyorsanız ve yanıtımız sorunu çözmüyorsa, ülkenizde erişilebilirliği denetleyen makama başvurabilirsiniz."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "Bu beyan hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu beyanı, web sitesini kendimiz incelememize dayanarak 21 Eylül 2026’da hazırladık. Bir eksikliği giderdiğimizde veya bir denetimi tamamladığımızda beyanı güncelleyeceğiz."
+    }
+  ]
+}

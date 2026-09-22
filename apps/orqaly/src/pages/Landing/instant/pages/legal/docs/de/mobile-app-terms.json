@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Bedingungen Handy-App",
+    "summary": "Diese Bedingungen regeln die Nutzung der Orqanix-App für das Smartphone als Fernbedienung für Orqanix auf Ihrem Mac, einschließlich der Bedingungen, die App-Stores vorschreiben.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Über diese Bedingungen"
+    },
+    {
+      "type": "p",
+      "text": "Diese Bedingungen ergänzen unsere [AGB](/instant/legal/terms) für die Orqanix-App für Ihr Smartphone (die „Handy-App“). Zusammen mit den AGB, den [Bedingungen Desktop-App](/instant/legal/desktop-app-terms), unserer [Nutzungsrichtlinie](/instant/legal/acceptable-use) und unserer [Datenschutzerklärung](/instant/legal/privacy) bilden sie eine einheitliche Vereinbarung. Widersprechen sich diese Bedingungen und die AGB in Bezug auf die Handy-App, gelten diese Bedingungen."
+    },
+    {
+      "type": "p",
+      "text": "Die Handy-App ist kostenlos, solange sich unsere Produkte in einer frühen Phase befinden. Bevor ein kostenpflichtiger Tarif beginnt, veröffentlichen wir den Preis sowie die Regeln für Zahlung und Kündigung."
+    },
+    {
+      "type": "p",
+      "text": "Zuvor veröffentlichen wir außerdem, wie es das EU-Recht verlangt, die Regeln für den Widerruf eines Kaufs.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Eine Fernbedienung für Ihren Mac"
+    },
+    {
+      "type": "p",
+      "text": "Die Handy-App ist eine Fernbedienung für Orqanix auf Ihrem Mac. Wenn Sie sie nutzen:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "benötigen Sie die Orqanix-App auf Ihrem Mac (die Desktop-App). Beginnen Sie mit der Mac-App und fügen Sie dann Ihr Smartphone hinzu;",
+        "läuft die gesamte Arbeit auf Ihrem Mac, mit dessen Dateien, Werkzeugen und Einstellungen. Das Smartphone zeigt, was geschieht, und ermöglicht es Ihnen, den nächsten Auftrag zu erteilen;",
+        "werden Dateien auf Ihrem Mac erstellt und verbleiben in dessen Projektordner. Das Smartphone zeigt, was erstellt wurde; der Mac behält die Originale;",
+        "funktioniert die Handy-App nur, solange Ihr Mac online ist und Orqanix geöffnet hat. Wenn der Mac in den Ruhezustand wechselt oder offline geht, zeigt das Smartphone dies an und wartet, bis er wieder verfügbar ist."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wir versprechen nicht, dass Ihr Smartphone Ihren Mac immer erreichen kann. Netzwerke, Ruhezustandseinstellungen und Ihre Geräte liegen außerhalb unserer Kontrolle."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Arbeiten vom Smartphone aus"
+    },
+    {
+      "type": "p",
+      "text": "Sie können einen laufenden Auftrag prüfen, Ergebnisse lesen, gespeicherte Aufgaben (Rezepte) erneut ausführen und neue Arbeit starten, indem Sie eintippen oder sagen, was Sie benötigen. Die Desktop-App auf Ihrem Mac führt diese Arbeit gemäß den [Bedingungen Desktop-App](/instant/legal/desktop-app-terms) aus. Das bedeutet:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "die Agenten auf Ihrem Mac können reale Aktionen ausführen, etwa Dateien ändern und Befehle ausführen. Standardmäßig tun sie dies, ohne vorher zu fragen, es sei denn, Sie haben [diese Einstellung](/instant/legal/desktop-app-terms#approval-modes) auf Ihrem Mac geändert;",
+        "Sie sind für Arbeit, die Sie vom Smartphone aus starten, so verantwortlich, als hätten Sie sie an Ihrem Mac gestartet;",
+        "Sie sitzen nicht an Ihrem Mac, um zuzusehen. Wählen Sie daher sorgfältig, worum Sie bitten, und prüfen Sie die Ergebnisse, bevor Sie sich darauf verlassen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "KI macht Fehler. Ergebnisse können falsch, unvollständig oder veraltet sein. Siehe [So funktioniert unsere KI](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Mitteilungen"
+    },
+    {
+      "type": "p",
+      "text": "Die Handy-App kann Sie benachrichtigen, wenn ein Auftrag abgeschlossen ist. Sie können Mitteilungen in den Einstellungen Ihres Smartphones deaktivieren. Sie können auf Ihrem Sperrbildschirm erscheinen; stellen Sie die Vorschau von Mitteilungen daher nach Ihren Wünschen ein. Wir versprechen nicht, dass jede Mitteilung ankommt oder rechtzeitig ankommt."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "Ihr Konto und Ihr Smartphone"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sie müssen mindestens 18 Jahre alt sein, um die Handy-App zu nutzen.",
+        "Jede Person, die Ihr entsperrtes Smartphone benutzen kann, kann möglicherweise über die Handy-App Arbeit auf Ihrem Mac starten. Halten Sie Ihr Smartphone gesperrt. Wenn Sie es verlieren oder weitergeben, entfernen Sie nach Möglichkeit die Handy-App und informieren Sie uns.",
+        "Informieren Sie uns unter {company.email}, wenn Sie vermuten, dass jemand anderes Ihr Konto genutzt hat."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Die [Datenschutzerklärung](/instant/legal/privacy) erläutert, was wir bei der Nutzung der Handy-App erheben und warum."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Ihre Lizenz"
+    },
+    {
+      "type": "p",
+      "text": "Solange Sie diese Bedingungen einhalten, gewähren wir Ihnen eine persönliche, nicht ausschließliche, nicht übertragbare Lizenz, die Handy-App auf Smartphones zu installieren und zu nutzen, die Ihnen gehören oder über die Sie die Kontrolle haben. Sie dürfen sie nicht verkaufen, vermieten, verleihen oder unterlizenzieren, ihre Sicherheitsmaßnahmen oder Beschränkungen umgehen oder sie kopieren, um ein Konkurrenzprodukt zu entwickeln."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Updates und Änderungen"
+    },
+    {
+      "type": "p",
+      "text": "Wir können neue Versionen der Handy-App veröffentlichen und Funktionen ändern oder entfernen. Wenn Sie die App aus einem App-Store bezogen haben, erhalten Sie Updates über diesen Store nach dessen Regeln. Die Regeln für Änderungen finden Sie im Abschnitt [Änderungen der Dienste und dieser Bedingungen](/instant/legal/terms#changes)."
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie die Handy-App als Verbraucher nutzen (außerhalb Ihrer gewerblichen oder selbstständigen beruflichen Tätigkeit), haben Sie die Rechte, die das EU-Recht Verbrauchern für digitale Inhalte gewährt. Sie gelten, obwohl die App kostenlos ist, weil Sie uns zu ihrer Nutzung personenbezogene Daten bereitstellen (RL (EU) 2019/770). So lange, wie es das Gesetz verlangt, stellen wir die Updates, einschließlich Sicherheitsupdates, bereit, die erforderlich sind, damit sie wie beschrieben funktioniert.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Darüber hinaus ändern wir die Handy-App nur aus einem triftigen Grund und ohne Kosten für Sie. Beeinträchtigt eine solche Änderung Ihre Nutzung der App mehr als nur unerheblich, informieren wir Sie rechtzeitig vorher per E-Mail. Sie können diese Vereinbarung dann innerhalb von 30 Tagen nach unserer Mitteilung oder nach der Änderung, je nachdem, was später eintritt, kostenlos beenden, es sei denn, wir ermöglichen Ihnen, die unveränderte Version ohne zusätzliche Kosten weiter zu nutzen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Haftung"
+    },
+    {
+      "type": "p",
+      "text": "Soweit gesetzlich zulässig, wird die Handy-App „wie besehen“ und „wie verfügbar“ bereitgestellt, ohne Gewährleistungen jeglicher Art. Die Abschnitte [Haftungsausschlüsse](/instant/legal/terms#warranty) und [Haftung](/instant/legal/terms#liability) der AGB gelten für sie.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Wir haften für die Handy-App nach dem Recht Ihres Landes, wie im Abschnitt [Haftung](/instant/legal/terms#liability) der AGB dargelegt. Nichts in diesen Bedingungen oder in den Bedingungen eines App-Stores beschränkt Ihre gesetzlichen Rechte als Verbraucher.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "Bedingungen der App-Stores"
+    },
+    {
+      "type": "p",
+      "text": "Dieser Abschnitt gilt, wenn Sie die Handy-App aus einem App-Store bezogen haben. Für Ihren Download und Ihre Nutzung gelten zusätzlich die eigenen Bedingungen des Stores. Sie müssen diese einhalten sowie etwaige Bedingungen Ihres Mobilfunknetzes, etwa Ihres Datentarifs."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie die Handy-App aus dem App Store von Apple bezogen haben, vereinbaren Sie und wir Folgendes:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "diese Bedingungen gelten ausschließlich zwischen Ihnen und uns, nicht mit Apple. Wir, nicht Apple, sind allein verantwortlich für die Handy-App und ihre Inhalte;",
+        "Ihre Lizenz umfasst die Nutzung auf Produkten der Marke Apple, die Ihnen gehören oder über die Sie die Kontrolle haben, soweit die Nutzungsregeln in Apples [Bedingungen für Apple Mediendienste](https://www.apple.com/legal/internet-services/itunes/) dies erlauben. Andere Personen, die über die Familienfreigabe oder Volumenkäufe mit Ihrem Konto verbunden sind, dürfen sie ebenfalls nutzen, soweit diese Regeln es gestatten;",
+        "für Wartung und Support der Handy-App sind allein wir verantwortlich. Apple ist nicht verpflichtet, Wartung oder Support zu leisten;",
+        "erfüllt die Handy-App eine für sie geltende Gewährleistung nicht, können Sie Apple informieren, und Apple erstattet Ihnen den für die App gezahlten Preis, falls vorhanden. Soweit gesetzlich zulässig, hat Apple keine weiteren Gewährleistungspflichten für die Handy-App. Alle sonstigen Ansprüche, Verluste, Verbindlichkeiten, Schäden, Kosten oder Aufwendungen, die durch eine solche Nichterfüllung verursacht werden, liegen in unserer Verantwortung, soweit diese Bedingungen und das Gesetz dies vorsehen;",
+        "wir, nicht Apple, bearbeiten alle Ansprüche von Ihnen oder Dritten in Bezug auf die Handy-App oder Ihre Nutzung, einschließlich Produkthaftungsansprüchen, Ansprüchen, dass sie eine gesetzliche oder behördliche Anforderung nicht erfüllt, und Ansprüchen aus Verbraucherschutz-, Datenschutz- oder ähnlichen Gesetzen;",
+        "macht jemand geltend, dass die Handy-App oder Ihre Nutzung sein geistiges Eigentum verletzt, sind wir, nicht Apple, für die Untersuchung, Abwehr, Beilegung und Erledigung dieses Anspruchs verantwortlich, soweit diese Bedingungen uns dafür verantwortlich machen;",
+        "Sie befinden sich nicht in einem Land, gegen das die US-Regierung ein Embargo verhängt hat oder das die US-Regierung als „den Terrorismus unterstützendes“ Land eingestuft hat, und Sie stehen auf keiner Liste der US-Regierung mit verbotenen oder eingeschränkten Parteien;",
+        "Apple und seine Tochtergesellschaften sind begünstigte Dritte dieser Bedingungen. Sobald Sie diese Bedingungen akzeptieren, hat Apple das Recht (und es wird davon ausgegangen, dass Apple dieses Recht angenommen hat), diese Bedingungen Ihnen gegenüber als begünstigter Dritter durchzusetzen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Richten Sie Fragen, Beschwerden oder Ansprüche zur Handy-App an uns unter {company.email}, nicht an Apple."
+    },
+    {
+      "type": "p",
+      "text": "Entwickler der Handy-App ist {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie die Handy-App über Google Play bezogen haben, vereinbaren Sie und wir Folgendes:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "diese Bedingungen gelten ausschließlich zwischen Ihnen und uns, nicht mit Google. Google ist nicht verantwortlich für die Handy-App, ihre Inhalte, ihren Support oder Ansprüche in Bezug auf sie;",
+        "für Ihren Download und Ihre Nutzung gelten zusätzlich die [Nutzungsbedingungen von Google Play](https://play.google.com/about/play-terms/). Widersprechen diese in Bezug auf Ihr Verhältnis zu Google diesen Bedingungen, gelten die Nutzungsbedingungen von Google Play;",
+        "Erstattungen für Käufe über Google Play richten sich nach den Regeln von Google Play."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanktionen und Export"
+    },
+    {
+      "type": "p",
+      "text": "Sie dürfen die Handy-App nicht herunterladen oder nutzen, wo Sanktionen oder Exportvorschriften der USA oder der EU dies verbieten, oder wenn Sie auf einer Sanktionsliste der USA oder der EU stehen. Siehe [Sanktionen und Export](/instant/legal/terms#sanctions) in den AGB."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Nutzung beenden"
+    },
+    {
+      "type": "p",
+      "text": "Sie können die Nutzung der Handy-App jederzeit beenden, indem Sie sie von Ihrem Smartphone löschen. Dadurch wird weder die Desktop-App gestoppt, noch werden Dateien auf Ihrem Mac gelöscht oder Ihr Orqanix-Konto geschlossen. Wie Sie Ihr Konto schließen oder die Löschung Ihrer Daten verlangen können, erfahren Sie in den [AGB](/instant/legal/terms) und der [Datenschutzerklärung](/instant/legal/privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontakt"
+    },
+    {
+      "type": "p",
+      "text": "Fragen zu diesen Bedingungen: {company.email}. Datenschutzanfragen: {company.privacyEmail}."
+    }
+  ]
+}

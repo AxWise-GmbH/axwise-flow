@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Açık Kaynak Bildirimleri",
+    "summary": "Bu sayfada Orqanix Masaüstü Uygulaması'nda ve web sitemizde yer alan açık kaynak yazılımlar, bunların lisansları ve lisans metinlerini nasıl edinebileceğiniz listelenmektedir.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "Bu sayfa hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Ürünlerimizin bazı bölümleri açık kaynak yazılımdır: yazarlarının, yayımlanmış bir lisans kapsamında herkesin kullanmasına, değiştirmesine ve paylaşmasına izin verdiği yazılımlar. Bu sayfada başlıca açık kaynak bileşenler ve bunların lisans metinlerini nasıl edinebileceğiniz listelenmektedir."
+    },
+    {
+      "type": "p",
+      "text": "Her bileşen kendi lisansına tabi olmaya devam eder. [Hizmet Koşullarımız](/instant/legal/terms) veya [Masaüstü Uygulaması Koşullarımız](/instant/legal/desktop-app-terms) içindeki hiçbir hüküm, bu lisansların size tanıdığı hakları sınırlamaz. Bir lisansta yazarlarının hiçbir garanti vermediği belirtiliyorsa bu, onların çalışmaları için geçerlidir. Ürünlerimize ilişkin kendi taahhütlerimiz koşullarımızda yer almaktadır."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Masaüstü Uygulaması"
+    },
+    {
+      "type": "p",
+      "text": "Mac için Orqanix uygulaması, örneğin şu açık kaynak yazılımları içerir:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Yazılım",
+        "Uygulamada ne işe yaradığı",
+        "Lisans"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "Uygulamadaki ajanların üzerinde çalıştığı ajan çerçevesi",
+          "Apache License 2.0"
+        ],
+        [
+          "Uygulamayla birlikte gelen isteğe bağlı bir mühendislik çalışma ortamı",
+          "Uygulamanın mühendislik araçlarını çalıştırır",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "Uygulamanın penceresi ve masaüstü kabuğu",
+          "MIT License"
+        ],
+        [
+          "Chromium (Electron'a dahildir)",
+          "Uygulamanın ekranlarını görüntüler",
+          "BSD tarzı bir lisans ve diğerleri"
+        ],
+        [
+          "Node.js",
+          "Uygulamanın bazı bölümlerini çalıştırır",
+          "MIT License; birlikte gelen bazı bileşenler başka lisanslara tabidir"
+        ],
+        [
+          "Çok sayıda küçük npm ve Rust paketi",
+          "Uygulamanın genelinde kullanılan yapı taşları",
+          "MIT, Apache 2.0 ve BSD gibi çeşitli açık kaynak lisansları"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Uygulama; Goose, mühendislik çalışma ortamı, Electron, Chromium ve Node.js için lisans metinlerini ve bildirimleri içerir. Bunları görmek için Finder'da uygulamaya Control tuşuyla tıklayın, Paket İçeriğini Göster'i seçin, ardından önce Contents, sonra Resources klasörünü açın. Bağlayıcı metinler bu dosyalardır; bu tablo yalnızca bir özettir. Daha küçük paketler için [Lisans metinleri ve kaynak kodu](#get-the-texts) bölümünde açıklandığı şekilde bize başvurun."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Web sitemiz"
+    },
+    {
+      "type": "p",
+      "text": "Web sitemiz, tamamı [SIL Open Font License 1.1](https://openfontlicense.org) kapsamında lisanslanmış Geist, Geist Mono ve Inter yazı tiplerini kullanır."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Adlar ve ticari markalar"
+    },
+    {
+      "type": "p",
+      "text": "Açık kaynak projelerinin adları sahiplerine aittir. Yazılımlarını kullanmamız, bu projelerin veya sahiplerinin Orqanix'i desteklediği anlamına gelmez ve lisanslar hiç kimseye bu projelerin adları veya logoları üzerinde hak tanımaz."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Lisans metinleri ve kaynak kodu"
+    },
+    {
+      "type": "p",
+      "text": "Bir lisans metninin kopyasını veya bir lisansın size hak tanıdığı durumlarda kaynak kodunu talep etmek için \"Open source\" konu satırıyla {company.email} adresine yazın. Hangi Masaüstü Uygulaması sürümüne sahip olduğunuzu belirtin."
+    },
+    {
+      "type": "p",
+      "text": "Bir bildirimi atladığımızı veya açık kaynak bir yazılımı lisansının izin vermediği bir şekilde kullandığımızı düşünüyorsanız aynı adresten bize bildirin; konuyu inceleyeceğiz."
+    }
+  ]
+}

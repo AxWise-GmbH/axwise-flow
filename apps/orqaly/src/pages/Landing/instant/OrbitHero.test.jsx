@@ -69,13 +69,11 @@ describe('OrbitHero', () => {
   it('shows the exact two-part headline with no eyebrow above it', () => {
     renderHero();
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
-      'Instant Intelligence.On your Apple computers.'
+      'Instant Intelligence.'
     );
     expect(screen.queryByText(/AI app for your Mac/)).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Say what you need. AI agents research, plan and make the real files, right on your Mac.'
-      )
+      screen.getByText('Turn a Single Prompt into Completed Work - Delivered Directly to Your Mac.')
     ).toBeVisible();
     expect(screen.getByText('For founders and small teams.')).toBeVisible();
     expect(screen.getByText('Free during the early version.')).toBeVisible();
@@ -86,11 +84,10 @@ describe('OrbitHero', () => {
     const toggle = screen.getByRole('button', { name: 'More' });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText(LONG_TEXT)).not.toBeVisible();
-    expect(screen.getByText(/Preview \(not notarized\)/)).not.toBeVisible();
 
     fireEvent.click(toggle);
     expect(screen.getByText(LONG_TEXT)).toBeVisible();
-    expect(screen.getByText(/Preview \(not notarized\)/)).toBeVisible();
+    expect(screen.queryByText(/Preview \(not notarized\)/)).toBeNull();
     expect(toggle).toHaveTextContent('Less');
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(toggle).toHaveAttribute('aria-controls', 'instant-hero-more');
@@ -99,19 +96,16 @@ describe('OrbitHero', () => {
     expect(screen.getByText(LONG_TEXT)).not.toBeVisible();
   });
 
-  it('has one download link, described by the release facts while More is closed', () => {
+  it('has one download link, with Apple silicon under it and no release small print', () => {
     renderHero();
     expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
     const downloads = screen.getAllByRole('link', { name: 'Download for macOS' });
     expect(downloads).toHaveLength(1);
     expect(downloads[0]).toHaveAttribute('href', DESKTOP_RELEASE.url);
+    expect(screen.getByText('Apple silicon')).toHaveClass('oh-silicon');
     expect(downloads[0]).toHaveAttribute('download', DESKTOP_RELEASE.filename);
-    expect(downloads[0]).toHaveAccessibleDescription(
-      /Apple Silicon.*MB.*Preview \(not notarized\).*Sign in/
-    );
-    expect(downloads[0]).toHaveAccessibleDescription(
-      new RegExp(`${Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB`)
-    );
+    expect(downloads[0]).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByText(/Sign in with your Orqanix account/)).toBeNull();
   });
 
   it('has no second call to action and no screenshots or embeds', () => {

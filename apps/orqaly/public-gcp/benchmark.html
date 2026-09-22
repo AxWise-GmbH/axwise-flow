@@ -7,16 +7,16 @@
   <style>
     :root {
       --bg: #090a0f;
-      --card-bg: rgba(18, 20, 29, 0.7);
+      --card-bg: rgba(18, 18, 18, 0.7);
       --border: rgba(255, 255, 255, 0.08);
-      --border-active: rgba(99, 102, 241, 0.4);
-      --primary: #6366f1;
-      --primary-light: #818cf8;
-      --accent: #10b981;
-      --accent-glow: rgba(16, 185, 129, 0.15);
+      --border-active: rgba(255, 255, 255, 0.4);
+      --primary: #e6e6e6;
+      --primary-light: #ffffff;
+      --accent: #e6e6e6;
+      --accent-glow: rgba(255, 255, 255, 0.10);
       --text: #f3f4f6;
-      --text-muted: #9ca3af;
-      --danger: #ef4444;
+      --text-muted: #a1a1a1;
+      --danger: #8a8a8a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
@@ -24,8 +24,8 @@
     
     /* Header */
     header { text-align: center; margin-bottom: 50px; }
-    .badge { display: inline-block; padding: 6px 14px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--primary-light); border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 16px; }
-    h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; background: linear-gradient(135deg, #fff 40%, #9ca3af 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { display: inline-block; padding: 6px 14px; background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--primary-light); border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 16px; }
+    h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; background: linear-gradient(135deg, #fff 40%, #a1a1a1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     p.subtitle { font-size: 18px; color: var(--text-muted); max-width: 780px; margin: 0 auto; }
 
     /* Highlights Grid */
@@ -44,27 +44,27 @@
     th { padding: 18px 20px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02); }
     td { padding: 18px 20px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
     tr:last-child td { border-bottom: none; }
-    .tag-live { display: inline-block; padding: 3px 8px; background: rgba(16, 185, 129, 0.15); color: var(--accent); border-radius: 6px; font-weight: 700; font-size: 12px; }
-    .tag-crypto { display: inline-block; padding: 3px 8px; background: rgba(99, 102, 241, 0.15); color: var(--primary-light); border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .tag-live { display: inline-block; padding: 3px 8px; background: rgba(255, 255, 255, 0.10); color: var(--accent); border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .tag-crypto { display: inline-block; padding: 3px 8px; background: rgba(255, 255, 255, 0.10); color: var(--primary-light); border-radius: 6px; font-weight: 700; font-size: 12px; }
 
     /* Prompts & Turns Deep Dive */
     .turn-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; }
     .turn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .turn-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
-    .badge-assistant { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-    .badge-research { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-    .badge-goal { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-    .badge-agent { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .badge-assistant { background: rgba(255, 255, 255, 0.10); color: #d0d0d0; }
+    .badge-research { background: rgba(255, 255, 255, 0.10); color: #ffffff; }
+    .badge-goal { background: rgba(255, 255, 255, 0.10); color: #d0d0d0; }
+    .badge-agent { background: rgba(255, 255, 255, 0.10); color: #d0d0d0; }
 
     .prompt-box { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: #e5e7eb; margin-bottom: 16px; line-height: 1.5; }
     .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
     .diff-pane { padding: 14px; border-radius: 8px; font-size: 13px; }
-    .pane-before { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .pane-after { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .pane-before { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); }
+    .pane-after { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.28); }
     .pane-title { font-weight: 700; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .pane-before .pane-title { color: #f87171; }
-    .pane-after .pane-title { color: #34d399; }
+    .pane-before .pane-title { color: #8a8a8a; }
+    .pane-after .pane-title { color: #ffffff; }
 
     /* Footer */
     footer { text-align: center; margin-top: 60px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 30px; }
@@ -176,11 +176,11 @@
               <span style="color:var(--text-muted);font-size:12px">Single-pass executive brief</span>
             </td>
             <td>
-              <span style="color:#f87171;font-weight:700">45.0 &ndash; 60.0 seconds</span><br>
+              <span style="color:#8a8a8a;font-weight:700">45.0 &ndash; 60.0 seconds</span><br>
               <span style="color:var(--text-muted);font-size:12px">Unfiltered web discovery &bull; 2.12s LLM intent generation &bull; No context caching</span>
             </td>
             <td>
-              <span style="color:#34d399;font-weight:700">19.08 seconds</span><br>
+              <span style="color:#ffffff;font-weight:700">19.08 seconds</span><br>
               <span style="color:var(--text-muted);font-size:12px">0.75s Jev intent &bull; 1.48s Jev Gate A triage &bull; Sub-second Jev Gate B audit (0.77s)</span>
             </td>
             <td>
@@ -198,11 +198,11 @@
               <span style="color:var(--text-muted);font-size:12px">Full 10-stage enterprise runbook</span>
             </td>
             <td>
-              <span style="color:#f87171;font-weight:700">125.4 &ndash; 180.0 seconds</span><br>
+              <span style="color:#8a8a8a;font-weight:700">125.4 &ndash; 180.0 seconds</span><br>
               <span style="color:var(--text-muted);font-size:12px">15s scraper timeouts (discovery_rows_incomplete) &bull; Quality Gate rejections on unhedged text &bull; Manual human clicking at Gate 1 &amp; 2</span>
             </td>
             <td>
-              <span style="color:#34d399;font-weight:700">84.04 seconds (~1.4 min)</span><br>
+              <span style="color:#ffffff;font-weight:700">84.04 seconds (~1.4 min)</span><br>
               <span style="color:var(--text-muted);font-size:12px">25s scraper window &bull; Parallel specialist analyses &bull; Automated Gate 1/2 cryptographic bindings &bull; 0.71s Gate B audit</span>
             </td>
             <td>

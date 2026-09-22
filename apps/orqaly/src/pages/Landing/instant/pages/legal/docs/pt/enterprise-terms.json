@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Termos Empresariais",
+    "summary": "Os termos para empresas que contratam o Orqanix para construir, operar ou prestar consultoria em IA com nossos agentes e especialistas.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Sobre estes termos"
+    },
+    {
+      "type": "p",
+      "text": "Estes Termos Empresariais se aplicam quando a sua empresa contrata o Orqanix para construir, operar ou prestar consultoria em IA. Eles abrangem trabalhos como auditorias de prontidão para IA, projetos-piloto, unidades de negócio automatizadas, novas funções de IA, conectores personalizados, operação gerenciada de agentes e treinamento de equipes."
+    },
+    {
+      "type": "p",
+      "text": "Eles complementam os nossos [Termos de Serviço](/instant/legal/terms) e a nossa [Política de Uso Aceitável](/instant/legal/acceptable-use). Quando tratamos dados pessoais em seu nome, o [Adendo de Tratamento de Dados](/instant/legal/dpa) (o “DPA”) também se aplica e faz parte destes termos. Quando o trabalho incluir a API do Orqanix, por exemplo uma API de raciocínio com marca própria (white-label), os [Termos da API](/instant/legal/api-terms) também se aplicam a essa parte."
+    },
+    {
+      "type": "p",
+      "text": "“Você” significa a empresa que nos contrata. A pessoa que aceita estes termos ou assina um pedido confirma que tem poderes para vincular essa empresa. “Nós” e “nos” significam o Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "O Orqanix é operado por {company.legalName}, {company.address}, que é a parte destes termos e de todos os pedidos.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Os serviços empresariais são destinados apenas a empresas. Todas as pessoas que trabalham conosco em seu nome devem ter 18 anos ou mais."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Pedidos"
+    },
+    {
+      "type": "p",
+      "text": "Acordamos cada trabalho em um pedido ou declaração de trabalho por escrito (um “pedido”) antes do início do trabalho. Cada pedido descreve:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "o escopo: o que faremos e o que não está incluído;",
+        "as entregas: o que você receberá;",
+        "o cronograma e eventuais marcos;",
+        "o preço e a forma de cobrança: um preço fixo por projeto, uma mensalidade, uma remuneração por resultado ou uma combinação;",
+        "os critérios de aceite e o prazo que você tem para testar;",
+        "onde o trabalho é hospedado, incluindo qual região do Google Cloud na UE;",
+        "qualquer software ou serviço de terceiros de que o trabalho dependa, e os respectivos termos."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Um pedido vincula ambas as partes assim que ambas o tiverem assinado ou confirmado por escrito. E-mail é suficiente. Vários pedidos podem estar em vigor ao mesmo tempo, e cada um é independente."
+    },
+    {
+      "type": "p",
+      "text": "Nosso trabalho normalmente vai da descoberta e de um plano por escrito (o “blueprint”), passando pela construção com os seus dados e pelo lançamento, até a operação e a melhoria contínua. O pedido indica quais etapas abrange."
+    },
+    {
+      "type": "p",
+      "text": "Se houver divergência entre documentos, a ordem de prevalência é: o pedido referente ao trabalho, depois o DPA para dados pessoais, depois estes termos e, por fim, os Termos de Serviço."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Como trabalhamos"
+    },
+    {
+      "type": "p",
+      "text": "Realizamos o trabalho com nossos agentes de IA, nossos especialistas (engenheiros e consultores) ou ambos, conforme o pedido indicar. Podemos usar subcontratados. Continuamos responsáveis pelo trabalho deles e os vinculamos aos mesmos deveres de confidencialidade e proteção de dados que nós temos."
+    },
+    {
+      "type": "p",
+      "text": "Os agentes que construímos e operamos para você trabalham dentro das regras que você define: aprovações para cada ação (Permitir uma vez, Sempre permitir ou Negar), acesso baseado em funções e um registro do que cada agente fez. Acordamos essas configurações com você no pedido ou antes do lançamento."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "Sua colaboração"
+    },
+    {
+      "type": "p",
+      "text": "Você irá:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "nos dar, em tempo hábil, o acesso a pessoas, sistemas, dados e decisões de que o trabalho precisa;",
+        "garantir que tem o direito de nos fornecer esses dados e esse acesso, incluindo dados pessoais e as licenças dos seus próprios sistemas e ferramentas;",
+        "indicar uma pessoa de contato com poder de decisão;",
+        "revisar prontamente os planos e as entregas;",
+        "manter os seus próprios backups dos sistemas e dados com os quais trabalhamos;",
+        "nos informar sobre normas que afetem o trabalho, como as normas do seu setor."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Se você atrasar, ou se algo que você nos forneceu estiver errado, e isso nos atrasar, o cronograma é prorrogado pelo mesmo período. Qualquer esforço adicional causado por isso é tratado como uma [alteração](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Aceite"
+    },
+    {
+      "type": "p",
+      "text": "Quando um pedido estabelecer critérios de aceite, nós avisaremos quando uma entrega estiver pronta. Você a testa com base nesses critérios dentro do prazo definido no pedido. Se ela os atender, você a aceita. Se não atender, você nos informa por escrito o que está insuficiente, e nós corrigimos e a apresentamos novamente."
+    },
+    {
+      "type": "p",
+      "text": "Uma entrega é considerada aceita quando você a confirma, quando o prazo de teste termina sem uma recusa por escrito e fundamentada, ou quando você começa a usá-la na operação real da sua empresa para fins que não sejam de teste. Pequenos defeitos que não impeçam o seu uso não bloqueiam o aceite. Nós os corrigimos de acordo com [as nossas garantias](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Alterações"
+    },
+    {
+      "type": "p",
+      "text": "Qualquer uma das partes pode solicitar a alteração do escopo. Informamos a você como a alteração afeta o cronograma e o preço. A alteração passa a valer quando ambas as partes a tiverem acordado por escrito. Até lá, continuamos trabalhando conforme o pedido vigente."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Remuneração e pagamento"
+    },
+    {
+      "type": "p",
+      "text": "Você paga a remuneração definida no pedido. No caso de remuneração por resultado, o pedido define o que conta como resultado e como ele é medido."
+    },
+    {
+      "type": "p",
+      "text": "Faturamos conforme o pedido indicar. Você paga dentro do prazo indicado no pedido ou na fatura. A remuneração não inclui IVA nem outros tributos, que você paga quando aplicáveis. Cobramos despesas somente quando o pedido permitir."
+    },
+    {
+      "type": "p",
+      "text": "Se você contestar parte de uma fatura, informe-nos de boa-fé e pague o restante. Se um valor continuar em aberto após um lembrete, podemos pausar o trabalho até que seja pago. Pagamentos em atraso estão sujeitos a juros na forma permitida pela lei."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Quem é dono do quê"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Seu material"
+    },
+    {
+      "type": "p",
+      "text": "Você mantém todos os direitos sobre os dados, conteúdos, sistemas e demais materiais que nos fornece. Você nos permite usá-los apenas para realizar o trabalho."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Entregas"
+    },
+    {
+      "type": "p",
+      "text": "Depois que você tiver pago integralmente uma entrega, você passa a ser dono do que fizemos especificamente para você com base no pedido, como configurações de agentes, fluxos de trabalho, conectores, documentos e código. Transferimos a você os direitos que temos sobre isso. Quando a lei não permitir a transferência de um direito, concedemos a você uma licença exclusiva, mundial e permanente, que você pode repassar. Até que você tenha pago, você pode usar uma entrega para revisá-la e testá-la."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Nosso material"
+    },
+    {
+      "type": "p",
+      "text": "Mantemos todos os direitos sobre nossas ferramentas, plataforma, software, agentes, modelos, instruções, métodos e know-how, e sobre tudo o que fizemos antes do pedido ou fora dele. Quando o nosso material fizer parte de uma entrega, você recebe, após o pagamento, uma licença não exclusiva, mundial e permanente para usá-lo, copiá-lo e alterá-lo como parte dessa entrega, para a sua própria empresa. Você não pode vender nem licenciar o nosso material isoladamente."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Serviços, componentes de terceiros e resultados de IA"
+    },
+    {
+      "type": "p",
+      "text": "Quando operamos algo para você, como a operação gerenciada de agentes ou uma API de raciocínio hospedada, isso é um serviço, não uma entrega. O seu acesso a ele dura enquanto durar o pedido."
+    },
+    {
+      "type": "p",
+      "text": "Os componentes de terceiros e de código aberto de uma entrega continuam sujeitos às suas próprias licenças. Informamos a você quais deles uma entrega inclui."
+    },
+    {
+      "type": "p",
+      "text": "Partes de uma entrega podem ser feitas por IA. Em alguns países, material feito por IA sem contribuição criativa humana suficiente não é protegido por direitos autorais. Transferimos os direitos que existirem, mas não garantimos que existam."
+    },
+    {
+      "type": "p",
+      "text": "Cada uma das partes pode continuar usando as habilidades e a experiência gerais adquiridas com o trabalho, sem usar as informações confidenciais da outra."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Confidencialidade"
+    },
+    {
+      "type": "p",
+      "text": "Cada uma das partes terá acesso a informações confidenciais da outra: informações não públicas que estejam marcadas como confidenciais ou que razoavelmente devam ser entendidas como tal."
+    },
+    {
+      "type": "p",
+      "text": "A parte que as recebe as usa apenas para o trabalho, as protege com cuidado razoável e as compartilha somente com pessoas que precisem delas e que estejam obrigadas a manter sigilo. Esse dever não abrange informações que sejam públicas, já conhecidas por quem as recebe, desenvolvidas de forma independente ou recebidas licitamente de terceiros. Se a lei exigir a divulgação, quem as recebe pode divulgar o que for exigido e, quando permitido, avisa a outra parte antes. Só mencionamos você como cliente com a sua permissão."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Dados e hospedagem"
+    },
+    {
+      "type": "p",
+      "text": "Quando tratamos dados pessoais em seu nome, somos o seu operador: nós os tratamos somente conforme as suas instruções, e o DPA se aplica. Para os nossos próprios registros sobre você, como as suas pessoas de contato e as faturas, atuamos por conta própria, e a nossa [Política de Privacidade](/instant/legal/privacy) se aplica."
+    },
+    {
+      "type": "p",
+      "text": "Hospedamos o seu trabalho em uma região do Google Cloud na UE acordada com você e indicada no pedido. Alguns provedores que usamos, como o Google Gemini para o modelo de IA, podem tratar dados fora da UE. A página de [Suboperadores](/instant/legal/subprocessors) lista esses provedores."
+    },
+    {
+      "type": "p",
+      "text": "Não treinamos nossos próprios modelos de IA com os seus dados e não os vendemos."
+    },
+    {
+      "type": "p",
+      "text": "Não nos forneça informações de saúde protegidas abrangidas pela HIPAA. Não assinamos business associate agreements.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "Leis de IA e o seu papel"
+    },
+    {
+      "type": "p",
+      "text": "Você decide como os sistemas que construímos são usados na sua empresa. Nos termos do Regulamento Europeu de IA (AI Act), você é o “responsável pela implantação” (deployer) do que construímos para você: a organização que usa um sistema de IA sob a sua própria autoridade. Se você colocar um sistema em serviço em seu próprio nome, também poderá ser o seu “fornecedor” (provider)."
+    },
+    {
+      "type": "p",
+      "text": "Informe-nos antes do início do trabalho se um sistema puder ser usado em uma área de alto risco, como contratação e trabalho, educação, crédito ou acesso a serviços essenciais. O pedido então define quem faz o quê. Para esses usos, os seus deveres de responsável pela implantação se aplicam a partir de 2 de dezembro de 2027 (AI Act Art. 26 e Anexo III). Eles incluem supervisão humana, uso do sistema conforme as instruções, monitoramento do seu funcionamento e manutenção dos seus registros (logs)."
+    },
+    {
+      "type": "p",
+      "text": "Quando a lei exigir, você garante que as pessoas que interagem com um sistema que você opera saibam que estão interagindo com IA, e toma medidas para desenvolver a literacia em IA entre os membros da sua equipe que o utilizam (AI Act Art. 4 e 50). O nosso treinamento de equipes pode ajudar, mas esses deveres continuam sendo seus."
+    },
+    {
+      "type": "p",
+      "text": "As leis estaduais dos EUA sobre IA em decisões relevantes (consequential decisions) se aplicam a você como a empresa que toma essas decisões. Por exemplo, a lei do Colorado entra em vigor em 1º de janeiro de 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Resultados de negócio"
+    },
+    {
+      "type": "p",
+      "text": "Trabalhamos para atingir os objetivos definidos no pedido. Mas os resultados de negócio dependem dos seus dados, pessoas, processos e mercados, que não controlamos. Salvo se o pedido disser expressamente o contrário, não garantimos economias, receitas nem qualquer outro resultado de negócio. A remuneração por resultado é uma forma de precificar o trabalho, não uma promessa de que um resultado será alcançado."
+    },
+    {
+      "type": "p",
+      "text": "Os resultados da IA podem estar errados, e os agentes podem cometer erros. Mantenha a revisão humana para decisões importantes e escolha configurações de aprovação adequadas ao risco. [Como Nossa IA Funciona](/instant/legal/ai) explica mais."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Nossas garantias"
+    },
+    {
+      "type": "p",
+      "text": "Garantimos realizar o trabalho com habilidade e cuidado razoáveis, usando pessoas devidamente qualificadas. Garantimos também que cada entrega, quando aceita, corresponde ao pedido em todos os aspectos importantes."
+    },
+    {
+      "type": "p",
+      "text": "Se uma entrega não atender a essa garantia, informe-nos por escrito. Nós a corrigiremos ou refaremos o trabalho. Se não conseguirmos fazê-lo em um prazo razoável, você poderá encerrar essa parte do pedido e receber de volta a remuneração que pagou por ela."
+    },
+    {
+      "type": "note",
+      "text": "Esse é o seu único recurso para uma entrega que não atenda à nossa garantia. Além das garantias previstas nestes termos e no pedido, e na medida em que a lei permitir, não damos nenhuma outra garantia, expressa ou implícita, incluindo garantias de comerciabilidade, adequação a uma finalidade específica e não violação.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Os seus direitos legais em caso de defeitos continuam válidos, mas você deve primeiro nos dar uma oportunidade razoável de corrigir o defeito.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilidade",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Na medida em que a lei permitir, nenhuma das partes é responsável por danos indiretos, incidentais, especiais, consequenciais ou punitivos, nem por lucros cessantes, perda de receita, de dados ou de fundo de comércio (goodwill).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "A responsabilidade total de cada parte com base em um pedido está limitada à remuneração paga e a pagar com base nesse pedido nos 12 meses anteriores ao evento que deu origem à reclamação.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Esses limites não se aplicam ao seu dever de pagar a remuneração, à violação da confidencialidade, à fraude nem à responsabilidade que a lei não permite limitar.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilidade",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Respondemos integralmente pelos danos que causarmos com dolo ou culpa grave, por lesões à vida, ao corpo ou à saúde, e nos termos da legislação obrigatória de responsabilidade pelo produto.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Em caso de culpa leve, respondemos somente quando violarmos um dever essencial: um dever que torna possível a execução adequada do pedido e no qual você pode normalmente confiar. Mesmo assim, respondemos somente pelos danos típicos e previsíveis para esse tipo de contrato e, no total, por no máximo a remuneração paga e a pagar com base nesse pedido nos 12 meses anteriores ao evento. Nos demais casos, a nossa responsabilidade por culpa leve fica excluída.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Você nos isentará de reclamações de terceiros decorrentes do material que você nos forneceu ou da sua violação destes termos, bem como dos custos razoáveis para lidar com elas. Informamos prontamente você sobre qualquer reclamação desse tipo e permitimos que você participe da sua condução."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Vigência e encerramento"
+    },
+    {
+      "type": "p",
+      "text": "Estes termos se aplicam desde o seu primeiro pedido até o término do seu último pedido. Cada pedido vigora pelo prazo nele indicado. Os serviços mensais continuam mês a mês até que uma das partes os encerre com o aviso prévio definido no pedido."
+    },
+    {
+      "type": "p",
+      "text": "Qualquer uma das partes pode encerrar um pedido imediatamente, por escrito, se a outra o violar gravemente e não corrigir a violação em um prazo razoável após ser notificada, ou se a outra se tornar insolvente. Você também pode encerrar um pedido antecipadamente quando o pedido permitir."
+    },
+    {
+      "type": "p",
+      "text": "Quando um pedido termina, você paga pelo trabalho realizado até essa data e, se o tiver encerrado antecipadamente, pelos custos que não podemos cancelar. Entregamos os seus dados e as entregas que você pagou, encerramos os serviços que operávamos para você e tratamos os dados pessoais conforme previsto no DPA. As partes destes termos que, por sua natureza, devam perdurar, como propriedade, confidencialidade, responsabilidade e a lei aplicável, continuam em vigor."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Troca de provedor",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Quando operamos para você um serviço de tratamento de dados, como a operação gerenciada de agentes ou hospedagem, o Regulamento de Dados da UE (Data Act) lhe dá o direito de migrar para outro provedor ou para os seus próprios sistemas (Data Act Art. 23-31). Para esses serviços:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Você pode iniciar uma troca, ou encerrar o serviço e levar os seus dados, informando-nos por escrito. O prazo de aviso prévio é de no máximo dois meses, e você pode escolher um prazo menor.",
+        "Fornecemos a você os seus dados, e os ativos digitais que criamos para você e aos quais você tem direito, em um formato comum e legível por máquina.",
+        "A transição dura até 30 dias. Se isso não for tecnicamente possível, informamos a você o motivo e de quanto tempo precisamos, dentro dos limites permitidos pelo Data Act.",
+        "Durante a transição, mantemos o serviço funcionando conforme acordado e ajudamos você e o seu novo provedor de boa-fé.",
+        "Depois que a transição terminar, você tem pelo menos mais 30 dias para recuperar os seus dados.",
+        "Concluída a troca, excluímos os seus dados conforme previsto no DPA.",
+        "Até 12 de janeiro de 2027, podemos cobrar somente os nossos custos diretos de uma troca, e somente quando o pedido os listar. A partir de 12 de janeiro de 2027, não cobramos nada pela troca."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Quando um serviço for construído sob medida para você, algumas dessas regras podem se aplicar apenas em parte (Data Act Art. 31). Nesse caso, o pedido indica quais, e informamos você antes que o assine.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Localização e acesso governamental",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hospedamos o seu trabalho na região do Google Cloud na UE indicada no pedido. A página de [Suboperadores](/instant/legal/subprocessors) lista cada provedor e onde ele atua (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Se um governo de fora da UE nos solicitar os seus dados não pessoais, só os entregaremos quando a legislação da UE ou de um Estado-Membro permitir. Avisamos você antes, a menos que a lei o proíba (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Lei aplicável e disputas"
+    },
+    {
+      "type": "p",
+      "text": "Estes termos e todos os pedidos são regidos pela lei de {company.law}, sem as suas regras sobre conflito de leis. Os tribunais de {company.law} decidem as disputas, salvo se a lei exigir outro tribunal.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Antes que qualquer uma das partes recorra aos tribunais, as nossas pessoas de contato tentam resolver a questão de boa-fé. Escreva para {company.email} e descreva o problema."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Estes termos não têm cláusula de arbitragem. Qualquer uma das partes pode apresentar uma reclamação em um tribunal de pequenas causas (small-claims court), se a reclamação se enquadrar."
+    },
+    {
+      "type": "p",
+      "text": "Você confirma que não consta em nenhuma lista de sanções dos EUA ou da UE e que não está localizado em um país sob embargo dos EUA ou da UE. Nenhuma das partes usará o trabalho em violação de sanções ou normas de exportação dos EUA ou da UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Disposições gerais"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Podemos atualizar estes termos. Um pedido já acordado mantém os termos que se aplicavam quando foi acordado, salvo se ambas as partes acordarem de outra forma.",
+        "Nenhuma das partes pode transferir estes termos ou um pedido sem o consentimento por escrito da outra, exceto para uma empresa que assuma o negócio em questão.",
+        "Nenhuma das partes é responsável por atrasos causados por eventos fora do seu controle razoável.",
+        "Se uma parte destes termos for inválida, o restante continua valendo.",
+        "Os avisos para nós devem ser enviados para {company.email}. Os avisos para você são enviados à pessoa de contato indicada no pedido."
+      ]
+    }
+  ]
+}

@@ -14,6 +14,8 @@ import GcpInviteCallback from './pages/Auth/GcpInviteCallback';
 import GcpNotFound from './pages/Public/GcpNotFound';
 import GcpPublicPage from './pages/Public/GcpPublicPage';
 import LandingPageSimple from './pages/Landing/LandingPageSimple';
+import { getTheme } from './pages/Landing/instant/themeMode';
+import { pageBackground } from './pages/Landing/instant/palette';
 
 /* eslint-disable react-refresh/only-export-components -- route components and the exported route table must stay together so tests exercise the production manifest. */
 
@@ -22,6 +24,11 @@ const InstantSubPage = lazy(() => import('./pages/Landing/instant/pages/InstantS
 const InstantSolutionPage = lazy(
   () => import('./pages/Landing/instant/pages/InstantSolutionPage.jsx')
 );
+const InstantProductPage = lazy(
+  () => import('./pages/Landing/instant/pages/products/InstantProductPage.jsx')
+);
+const NewsArticle = lazy(() => import('./pages/Landing/instant/pages/news/NewsArticle.jsx'));
+const LegalCenter = lazy(() => import('./pages/Landing/instant/pages/legal/LegalCenter.jsx'));
 const WorkflowV2 = lazy(() => import('./pages/WorkflowV2/WorkflowV2.jsx'));
 const GcpClerkSettings = lazy(() => import('./pages/Settings/GcpClerkSettings.jsx'));
 const HomePage = lazy(() => import('./pages/GcpWorkspace/HomePage.jsx'));
@@ -106,6 +113,17 @@ function Loading() {
 }
 function LazyPage({ children }) {
   return <Suspense fallback={<Loading />}>{children}</Suspense>;
+}
+// The landing pages open on their own entrance, so while their code arrives the screen is
+// just their page, black or (the visitor's footer pick) light: no spinner flashing before the
+// first words rise, and no black flash between two light pages.
+function LazyLandingPage({ children }) {
+  const ground = pageBackground(getTheme());
+  return (
+    <Suspense fallback={<Box aria-hidden="true" sx={{ minHeight: '100vh', bgcolor: ground }} />}>
+      {children}
+    </Suspense>
+  );
 }
 
 const GCP_DRAFT_MAX_LENGTH = 24_000;
@@ -226,9 +244,20 @@ function ScopedPreviewPage() {
   );
 }
 
+// The old legal placeholders now open the Legal Center's documents.
+const LEGAL_REDIRECTS = {
+  '/privacy': '/instant/legal/privacy',
+  '/terms': '/instant/legal/terms',
+  '/cookies': '/instant/legal/cookies',
+};
+
 const publicRoutes = Object.entries(publicPages).map(([path, [eyebrow, title, body]]) => ({
   path,
-  element: <GcpPublicPage eyebrow={eyebrow} title={title} body={body} />,
+  element: LEGAL_REDIRECTS[path] ? (
+    <Navigate to={LEGAL_REDIRECTS[path]} replace />
+  ) : (
+    <GcpPublicPage eyebrow={eyebrow} title={title} body={body} />
+  ),
 }));
 
 export const gcpRoutePaths = [
@@ -260,9 +289,9 @@ export const gcpRouter = createBrowserRouter([
   {
     path: '/',
     element: (
-      <LazyPage>
+      <LazyLandingPage>
         <LandingPageInstant />
-      </LazyPage>
+      </LazyLandingPage>
     ),
   },
   // The page this one replaced, kept reachable rather than deleted.
@@ -273,17 +302,43 @@ export const gcpRouter = createBrowserRouter([
   {
     path: '/instant/:page',
     element: (
-      <LazyPage>
+      <LazyLandingPage>
         <InstantSubPage />
-      </LazyPage>
+      </LazyLandingPage>
+    ),
+  },
+  {
+    path: '/instant/news/:slug',
+    element: (
+      <LazyLandingPage>
+        <NewsArticle />
+      </LazyLandingPage>
     ),
   },
   {
     path: '/instant/solutions/:slug',
     element: (
-      <LazyPage>
+      <LazyLandingPage>
         <InstantSolutionPage />
-      </LazyPage>
+      </LazyLandingPage>
+    ),
+  },
+  // A bare /instant/products (or an unknown product) lands on the Desktop App page.
+  {
+    path: '/instant/products/:slug?',
+    element: (
+      <LazyLandingPage>
+        <InstantProductPage />
+      </LazyLandingPage>
+    ),
+  },
+  // The Legal Center: /instant/legal, /instant/legal/<us|eu>, /instant/legal/<us|eu>/<document>.
+  {
+    path: '/instant/legal/*',
+    element: (
+      <LazyLandingPage>
+        <LegalCenter />
+      </LazyLandingPage>
     ),
   },
   { path: '/login', element: <GcpAuthPage mode="login" /> },

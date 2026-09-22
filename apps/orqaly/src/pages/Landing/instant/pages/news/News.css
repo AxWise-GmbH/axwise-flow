@@ -1,0 +1,572 @@
+/* News page and articles --------------------------------------------------- */
+
+.onw {
+  /* Reading text (a summary, an article's paragraphs): a step under the ink. */
+  --onw-text: #d4d4d4;
+  --onw-read-hover: #d9d9d9;
+  /* The ground a thumbnail's banner is drawn on, and which shows through its see-through edge. */
+  --onw-thumb-ground: #070707;
+  padding-top: var(--oi-s4);
+}
+
+/* Light: reading text sits between the ink and the muted grey, thumbnails rest on the pale
+   stage. The Read pill and the chosen chip use the ink and accent tokens, so they turn dark
+   with light words by themselves, like the header's Try For Free. */
+[data-oi-theme='light'] .onw {
+  --onw-text: #333333;
+  --onw-read-hover: #2e2e2e;
+  --onw-thumb-ground: #eeeeee;
+}
+
+.onw a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.onw :focus-visible {
+  outline: 2px solid var(--oi-stage-focus);
+  outline-offset: 3px;
+}
+
+.onw-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+/* Featured post: words on the left, a big titled cover on the right (as x.ai). */
+.onw-featured {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: var(--oi-s4);
+}
+
+.onw-featured-text {
+  display: grid;
+  justify-items: start;
+  gap: var(--oi-s3);
+}
+
+.onw-featured-date {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 1rem;
+}
+
+.onw-featured-title {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(2.4rem, 4.4vw, 4rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.onw-featured-summary {
+  margin: 0;
+  color: var(--onw-text);
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.onw-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  margin-top: var(--oi-s2);
+  padding: 0 24px 0 28px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: rgb(var(--oi-bg-rgb)) !important;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color var(--oi-fade) ease;
+}
+
+.onw-read:hover {
+  background: var(--onw-read-hover);
+}
+
+.onw-read .onw-chevron {
+  stroke: rgb(var(--oi-bg-rgb));
+}
+
+.onw-featured-cover-link {
+  display: block;
+}
+
+.onw-featured-cover {
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  transition:
+    border-color 400ms ease,
+    transform 600ms var(--oi-ease);
+}
+
+.onw-featured-cover-link:hover .onw-featured-cover {
+  border-color: rgba(var(--oi-fg-rgb), 0.28);
+  transform: translateY(-2px);
+}
+
+.onw-chevron {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--oi-fade) ease;
+}
+
+.onw-read:hover .onw-chevron,
+.onw-card-link:hover .onw-chevron {
+  transform: translateX(3px);
+}
+
+/* Small cards ---------------------------------------------------------------- */
+
+.onw-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--oi-s4) var(--oi-s3);
+  margin: var(--oi-s5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onw-card-link {
+  display: grid;
+  gap: 14px;
+}
+
+.onw-card-cover {
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 14px;
+  transition:
+    border-color 400ms ease,
+    transform 600ms var(--oi-ease);
+}
+
+.onw-card-link:hover .onw-card-cover {
+  border-color: rgba(var(--oi-fg-rgb), 0.28);
+  transform: translateY(-2px);
+}
+
+.onw-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--oi-muted);
+  font-size: 0.88rem;
+}
+
+.onw-card-cat {
+  color: var(--oi-ink);
+}
+
+.onw-card-title {
+  color: var(--oi-ink);
+  font-size: 1.15rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.onw-nowrap {
+  white-space: nowrap;
+}
+
+.onw-card-title .onw-chevron {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 8px;
+  vertical-align: 0;
+  color: var(--oi-muted);
+}
+
+/* All posts ------------------------------------------------------------------ */
+
+.onw-all {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--oi-s2) var(--oi-s3);
+  margin: var(--oi-s5) 0 var(--oi-s3);
+}
+
+.onw-all-heading {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
+/* Pictures: the post's article banner, drawn wide and scaled into the card ------ */
+
+.onw-thumb {
+  position: relative;
+  overflow: hidden;
+  background: var(--onw-thumb-ground);
+}
+
+/* Drawn at a fixed width so the scene keeps its wide layout, then scaled to the card. The
+   frame's own edge and corners come from the card, so the banner drops its own. */
+.onw-thumb .onw-thumb-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--nbt-width);
+  aspect-ratio: 16 / 7 !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: scale(var(--nbt-scale, 0.3));
+  transform-origin: 0 0;
+}
+
+/* Small cards rest on the finished frame and play while pointed at or focused. */
+.onw-card-link:not(:hover, :focus-visible) .onw-thumb[data-still='true'] .nb *,
+.onw-card-link:not(:hover, :focus-visible) .onw-thumb[data-still='true'] .nb *::before,
+.onw-card-link:not(:hover, :focus-visible) .onw-thumb[data-still='true'] .nb *::after {
+  animation: none !important;
+}
+
+/* Filters ------------------------------------------------------------------ */
+
+.onw-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oi-s1);
+}
+
+.onw-chip {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-pill);
+  background: transparent;
+  color: var(--oi-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    background-color var(--oi-fade) ease,
+    color var(--oi-fade) ease;
+}
+
+.onw-chip:hover {
+  color: var(--oi-ink);
+}
+
+.onw-chip[aria-pressed='true'] {
+  background: var(--oi-accent);
+  border-color: var(--oi-accent);
+  color: rgb(var(--oi-bg-rgb));
+}
+
+/* Rows --------------------------------------------------------------------- */
+
+.onw-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.onw-row {
+  border-bottom: 1px solid var(--oi-hairline);
+}
+
+.onw-row-link {
+  display: grid;
+  grid-template-columns: 150px 110px minmax(0, 1fr) 24px;
+  align-items: baseline;
+  gap: var(--oi-s3);
+  padding: 28px 8px;
+  transition: background-color var(--oi-fade) ease;
+}
+
+.onw-row-link:hover {
+  background: rgba(var(--oi-fg-rgb), 0.03);
+}
+
+.onw-date,
+.onw-cat {
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.78rem;
+}
+
+.onw-row-text {
+  display: grid;
+  gap: 6px;
+}
+
+.onw-row-title {
+  color: var(--oi-ink);
+  font-size: 1.35rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.onw-row-summary {
+  color: var(--oi-muted);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.onw-arrow {
+  width: 16px;
+  height: 16px;
+  align-self: center;
+  fill: none;
+  stroke: var(--oi-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition:
+    stroke var(--oi-fade) ease,
+    transform var(--oi-fade) ease;
+}
+
+.onw-row-link:hover .onw-arrow {
+  stroke: var(--oi-ink);
+  transform: translate(2px, -2px);
+}
+
+/* Article ------------------------------------------------------------------ */
+
+.onw-back {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: var(--oi-s4);
+  color: var(--oi-muted) !important;
+  font-size: 0.95rem;
+  transition: color var(--oi-fade) ease;
+}
+
+.onw-back:hover {
+  color: var(--oi-ink) !important;
+}
+
+.onw-article-head {
+  display: grid;
+  gap: var(--oi-s2);
+  max-width: 900px;
+}
+
+.onw-article-title {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.onw-article-summary {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+.onw-article-banner {
+  margin: var(--oi-s4) 0;
+}
+
+.onw-body {
+  max-width: 680px;
+  margin-inline: auto;
+}
+
+.onw-body p {
+  margin: 0 0 1.3em;
+  color: var(--onw-text);
+  font-size: 1.15rem;
+  line-height: 1.7;
+}
+
+.onw-body-heading {
+  margin: 2em 0 0.7em;
+  color: var(--oi-ink);
+  font-size: 1.55rem;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.onw-body-list {
+  margin: 0 0 1.3em;
+  padding-left: 1.2em;
+  color: var(--onw-text);
+  font-size: 1.15rem;
+  line-height: 1.7;
+}
+
+.onw-body-list li {
+  margin-bottom: 0.45em;
+  padding-left: 0.3em;
+}
+
+.onw-body-list li::marker {
+  color: var(--oi-muted);
+}
+
+.onw-body .onw-body-note {
+  color: var(--oi-muted);
+}
+
+/* While the text loads: a few soft lines where the paragraphs will be. */
+.onw-body-skeleton {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 1.3em;
+}
+
+.onw-body-skeleton i {
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(var(--oi-fg-rgb), 0.06);
+}
+
+.onw-body-skeleton i:nth-child(2n) {
+  width: 82%;
+}
+
+.onw-body .onw-commit {
+  margin-top: var(--oi-s4);
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.78rem;
+}
+
+.onw-commit code {
+  font: inherit;
+  color: var(--oi-ink);
+}
+
+.onw-more {
+  margin-top: var(--oi-s5);
+}
+
+.onw-more-heading {
+  margin: 0 0 var(--oi-s3);
+  color: var(--oi-ink);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Smaller screens ---------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .onw-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  /* The cover first, then the words, as one column. */
+  .onw-featured {
+    grid-template-columns: 1fr;
+    gap: var(--oi-s3);
+  }
+
+  .onw-featured-cover-link {
+    order: -1;
+  }
+
+  .onw-featured-text {
+    gap: var(--oi-s2);
+  }
+
+  .onw-cards,
+  .onw-all {
+    margin-top: var(--oi-s4);
+  }
+
+  /* Date · category on one line above the title. */
+  .onw-row-link {
+    grid-template-columns: auto minmax(0, 1fr) 20px;
+    grid-template-areas:
+      'date cat arrow'
+      'text text text';
+    gap: 10px var(--oi-s2);
+    padding: 22px 4px;
+  }
+
+  .onw-date {
+    grid-area: date;
+  }
+
+  .onw-cat {
+    grid-area: cat;
+  }
+
+  .onw-row-text {
+    grid-area: text;
+  }
+
+  .onw-arrow {
+    grid-area: arrow;
+  }
+
+  .onw-row-title {
+    font-size: 1.15rem;
+  }
+
+  .onw-body p,
+  .onw-body-list {
+    font-size: 1.05rem;
+  }
+
+  .onw-body-heading {
+    font-size: 1.35rem;
+  }
+}
+
+/* Phones: the four cards slide sideways in one row, each most of the screen wide. */
+@media (max-width: 600px) {
+  .onw-cards {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 80%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .onw-cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .onw-card {
+    scroll-snap-align: start;
+  }
+
+  .onw-featured-summary {
+    font-size: 1.05rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onw-featured-cover,
+  .onw-card-cover {
+    transform: none !important;
+  }
+}

@@ -141,7 +141,7 @@ describe('Capabilities', () => {
 });
 
 describe('PrivacyPreface', () => {
-  it('answers in one line and keeps the old diagram behind More', () => {
+  it('answers in one line, with no diagram and no More under it', () => {
     renderSection(<PrivacyPreface />);
     expect(
       screen.getByRole('heading', { level: 2, name: 'What stays on your Mac' })
@@ -151,25 +151,8 @@ describe('PrivacyPreface', () => {
         "On your Mac: files, commands, chat history. In the cloud: the AI's thinking."
       )
     ).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'From your request to useful work.' })).toBeNull();
-    expect(screen.getByText(/AI model keys stay on our servers/)).not.toBeVisible();
-
-    const toggle = open('More, with the diagram');
-    expect(toggle).toHaveTextContent('Less');
-    expect(
-      screen.getByRole('heading', { name: 'From your request to useful work.' })
-    ).toBeVisible();
-    expect(
-      screen.getByText(
-        'Your conversation and the results the AI needs are sent to the cloud to get an answer.'
-      )
-    ).toBeVisible();
-    expect(
-      screen.getByText('AI model keys stay on our servers. They never reach your Mac.')
-    ).toBeVisible();
-    expect(screen.getByLabelText('How Orqanix connects your desktop and the cloud')).toBeVisible();
-
-    fireEvent.click(toggle);
+    // Owner, 2026-09-21: "More, with the diagram" is gone, and the diagram with it.
+    expect(screen.queryByRole('button', { name: /More/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'From your request to useful work.' })).toBeNull();
   });
 });
@@ -196,19 +179,29 @@ describe('DevelopersMore', () => {
 
 describe('InstantFaq', () => {
   const ANSWERS = {
-    'Do I need to code?':
-      'No. You describe what you need in plain words. Orqanix writes the files and shows you each change to review.',
+    'How is this different from ChatGPT?':
+      'ChatGPT gives you an answer. Orqanix does the work: AI agents research, plan and make the real files on your Mac, like documents, plans, replies and code.',
+    'What can I use it for?':
+      'Anything that ends in a file or a finished task: a business plan, a campaign, client replies, reports, a website. Save any job as a recipe and run it again, or put it on a schedule.',
+    'Do I need technical skills?':
+      'No. Type or say what you need in plain words. It asks you when it needs something, and you review the result.',
+    'Can it change or break things on my Mac?':
+      'You set the rules: approve every action, approve only the risky ones, or let it run. It starts in “let it run”, and you can stop any run at any moment.',
+    'Where does my data go?':
+      'Your files and chat history stay on your Mac. Only your conversation and what the AI needs to answer go to the cloud AI. No ads, no tracking, and we don’t sell your data.',
+    'Which AI does it use?':
+      'Google Gemini by default. You can connect other models, such as OpenAI or Anthropic.',
+    'Does it work with my other tools?':
+      'Yes. You can switch on 50+ connectors one at a time, and it works alongside your code editor.',
+    'Who owns what it makes?':
+      'You do. AI can make mistakes, so check the results before you rely on them.',
     'What does it cost?':
-      'Orqanix is free during the early version. Commercial terms will be published before paid access begins.',
-    'Is my data safe?':
-      'Your files, commands and chat history stay on your Mac. Your conversation and the results the AI needs are sent to the cloud AI to get an answer. Your sign-in is stored in the macOS Keychain. Chat history is saved on your Mac in a normal file; Orqanix does not add its own encryption.',
-    'Will it work on my Mac?':
-      'It needs a Mac with an Apple M1 chip or newer. To check: Apple menu > About This Mac > Chip. Intel Macs and Windows are not supported yet; the web version works in any browser.',
-    'What does early version mean?':
-      'It is a preview build. It works, but it is not notarized by Apple yet, so macOS asks you to confirm the first time you open it. Expect changes.',
+      'It’s free during the early version. We’ll publish prices before any paid plan starts.',
+    'What do I need to start?':
+      'A Mac with Apple M1 or newer, an internet connection and a free account. The first time you open it, macOS may block it. Go to System Settings › Privacy & Security › Open Anyway. You only do this once.',
   };
 
-  it('has five closed rows that each open to their own answer', () => {
+  it('has ten closed rows that each open to their own answer', () => {
     renderSection(<InstantFaq />);
     expect(screen.getByRole('heading', { level: 2, name: 'Questions' })).toBeInTheDocument();
     const rows = screen.getAllByRole('button');
@@ -241,6 +234,16 @@ describe('DownloadBlock', () => {
     expect(screen.getByText(`Free · M1 Mac or newer · ${SIZE_MB} MB`)).toBeVisible();
     expect(screen.getByText(/Preview \(not notarized\)/)).not.toBeVisible();
     expect(screen.queryByRole('link', { name: 'SHA-256 checksum' })).toBeNull();
+  });
+
+  it('can end on the button alone: no More, the facts still describe the download', () => {
+    renderSection(<DownloadBlock details={false} />);
+    expect(screen.queryByRole('button', { name: 'More' })).toBeNull();
+    expect(screen.getByText(`Free · M1 Mac or newer · ${SIZE_MB} MB`)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Download for macOS' })).toHaveAccessibleDescription(
+      RELEASE_FACTS
+    );
+    expect(screen.getByText(/Preview \(not notarized\)/)).not.toBeVisible();
   });
 
   it('opens to the checksum, the chip check, the first-open steps and the web version', () => {
@@ -289,8 +292,11 @@ describe('every static section', () => {
       expect(canvas.closest('[data-orb]')).toHaveAttribute('aria-hidden', 'true');
     }
     const toggles = container.querySelectorAll('.oi-more-toggle');
-    // The capability strip has nothing to fold away; every other section keeps a More.
-    if (_name !== 'Capabilities') expect(toggles.length).toBeGreaterThan(0);
+    // The capability strip and What stays on your Mac have nothing to fold away; every other
+    // section keeps a More.
+    if (!['Capabilities', 'PrivacyPreface'].includes(_name)) {
+      expect(toggles.length).toBeGreaterThan(0);
+    }
     for (const toggle of toggles) {
       expect(toggle).toHaveAttribute('aria-expanded', 'false');
       expect(document.getElementById(toggle.getAttribute('aria-controls'))).not.toBeVisible();

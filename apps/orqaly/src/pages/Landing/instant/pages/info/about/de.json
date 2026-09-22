@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Geschichte",
+    "goal": "Ziel",
+    "mission": "Mission",
+    "founders": "Gründer"
+  },
+  "story": {
+    "tag": "Unsere Geschichte",
+    "title": "Zwei Wege, die sich trafen.",
+    "lede": "Zwei Product Manager, zwei Produkte, eine Idee. So entstand Orqanix.",
+    "steps": [
+      {
+        "when": "Nov. 2024",
+        "who": "Vitaly · AxWise",
+        "title": "Die Denkebene",
+        "text": "Vitaly begann, die neue KI-Branche zu kartieren, die gerade entstand: ihre Modelle, Anbieter und Dienste. Seine Idee war eine kognitive Ebene, eine KI, die ein Problem zu Ende denkt, bevor sie antwortet, damit das fertige Ergebnis sofort einsatzbereit ist."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Von 40 Minuten zu Sekunden",
+        "text": "Die ersten Durchläufe dauerten 30 bis 40 Minuten. Dann wurden die Modelle besser, und die Ebene wurde mit ihnen besser. Jede Runde kam schneller und präziser zurück, bis dieselbe Arbeit nur noch Sekunden dauerte."
+      },
+      {
+        "when": "Feb. 2026",
+        "who": "Viktor · Orqaly",
+        "title": "Eine Person, die Arbeit eines ganzen Teams",
+        "text": "Viktor hatte KI jahrelang verfolgt. Als ein neues Spitzenmodell erschien, erkannte er, dass er allein ein echtes Produkt bauen konnte, ohne Frontend-, Backend-, DevOps- oder Design-Team. Also startete er eine Plattform, auf der KI-Agenten sich die Arbeit teilen, ohne Übergaben, die sie ausbremsen."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Das fehlende Teil",
+        "text": "Viele Experimente scheiterten, und jedes lehrte etwas. Schließlich funktionierte die Plattform, doch ein Teil fehlte noch: Agenten, die zuverlässig genug waren, ihre letzte Ebene zu sein."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Der Anruf",
+        "text": "Dann rief Viktor Vitaly an, einen Freund aus dem Studium. Bei diesem Gespräch stellten sie fest, dass sie dasselbe von zwei entgegengesetzten Enden aus bauten: die Denkebene und die Orchestrierung darum herum."
+      },
+      {
+        "when": "Sep. 2026",
+        "who": "AxWise + Orqaly",
+        "title": "Ein Produkt",
+        "text": "Monate, in denen ein Produkt in das andere einfloss, begleitet von Recherche und Benchmarks, wurden zu einer Plattform: Orqanix. Sie hilft Menschen, ein Geschäft zu planen, einfache oder tiefgehende Fragen zu recherchieren und echte Dinge schneller zu bauen."
+      }
+    ],
+    "close": "Recherchieren, planen und bauen. In Minuten."
+  },
+  "goal": {
+    "tag": "Unser Ziel",
+    "title": "Deine KI. Deine Maschine. Deine Wahl.",
+    "lede": "KI sollte dort laufen, wo du willst, mit den Modellen, die du wählst, und dein Wissen sollte dir gehören, wenn du wechselst.",
+    "core": "Dein Wissen",
+    "orbit": [
+      "Lokales Modell",
+      "Cloud-Modell",
+      "Dein Agent"
+    ],
+    "caption": "Modelle ändern sich. Dein Wissen bleibt.",
+    "points": [
+      {
+        "title": "Modelle lokal betreiben",
+        "text": "Lokale Sprachmodelle oder andere Arten von KI direkt auf deinem eigenen Computer ausführen."
+      },
+      {
+        "title": "Jeden Anbieter nutzen",
+        "text": "Wähle jeden Dienst, der mit KI funktioniert. Keine Bindung an eine Cloud oder einen Anbieter."
+      },
+      {
+        "title": "Agenten mitbringen oder bauen",
+        "text": "Importiere den Agenten, den du schon nutzt, oder erstelle deinen eigenen für die Aufgabe."
+      },
+      {
+        "title": "Eine Wissensbasis",
+        "text": "Bewahre alles an einem Ort auf, damit nichts verloren geht, wenn du zu einem anderen Modell wechselst."
+      }
+    ],
+    "close": "Wähle, was zur heutigen Aufgabe und deiner Hardware passt. Das ist die Freiheit, KI auf deine Art zu nutzen."
+  },
+  "mission": {
+    "tag": "Unsere Mission",
+    "statement": [
+      "Ein KI-Raum, der mit dir wächst.",
+      "Aufgebaut um das, wer du bist und was du schaffen willst."
+    ],
+    "stages": [
+      {
+        "title": "Lernt dich kennen",
+        "text": "Sie liest, was du ihr sagst, deine Dateien und dein Geschäft, und versteht, was du brauchst."
+      },
+      {
+        "title": "Formt deinen Raum",
+        "text": "Sie baut einen persönlichen Arbeitsbereich um deine Ziele, keinen Einheitschat."
+      },
+      {
+        "title": "Verbessert sich selbst",
+        "text": "Wie ein lebendiges Wesen wird sie immer besser: zuverlässiger, sicherer, einfacher zu nutzen."
+      }
+    ],
+    "loopLabel": "Die Schleife",
+    "loop": [
+      "Rechnungen zahlen",
+      "Zur Arbeit gehen",
+      "Bezahlt werden",
+      "Wiederholen"
+    ],
+    "pathLabel": "Dein Weg",
+    "path": "Groß denken. Finde, worin du gut bist. Baue das Leben, das du willst.",
+    "text": "Wir wollen, dass jeder, der beim Rennen mitmachen will, einen eigenen Weg hat, jenseits der üblichen Arten, mit KI zu arbeiten. Ein neuer Weg zu schaffen, zu lernen und zu behalten, was du weißt."
+  },
+  "founders": {
+    "tag": "Gründer",
+    "title": "Die Menschen hinter Orqanix.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "10+ Jahre Erfahrung",
+        "since": "Baut AxWise seit November 2024",
+        "place": "Berlin",
+        "text": "Leitet die kognitive Ebene: wie Orqanix eine Aufgabe zu Ende denkt, bevor es antwortet.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "10+ Jahre Erfahrung",
+        "since": "Baut Orqaly seit Februar 2026",
+        "place": "",
+        "text": "Leitet die Orchestrierung: wie KI-Agenten sich die Arbeit teilen und daraus echte Dateien machen.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

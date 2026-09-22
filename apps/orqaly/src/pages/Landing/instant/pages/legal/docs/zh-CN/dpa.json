@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "数据处理附录",
+    "summary": "当您的企业使用 API、企业版工作或助理机器人时，我们作为您的处理者如何处理个人数据。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "关于本附录"
+    },
+    {
+      "type": "p",
+      "text": "本数据处理附录（“DPA”）规定了我们为企业客户处理个人数据的规则。本附录构成[API 条款](/instant/legal/api-terms)、[企业版条款](/instant/legal/enterprise-terms)的一部分，以及在您为企业使用助理机器人时构成[助理机器人条款](/instant/legal/assistant-bot-terms)的一部分。适用于您的上述任一条款，我们称为“主协议”。"
+    },
+    {
+      "type": "p",
+      "text": "当您接受主协议时，本 DPA 自动适用，无需签字。如果您需要一份签字副本存档，请发送邮件至 {company.privacyEmail}。"
+    },
+    {
+      "type": "p",
+      "text": "如果本 DPA 与主协议在个人数据方面存在不一致，以本 DPA 为准。在适用标准合同条款的情况下（参见[国际传输](#transfers)），标准合同条款优先于两者。"
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "双方"
+    },
+    {
+      "type": "p",
+      "text": "本 DPA 由您（企业客户，“您”）与 Orqanix（“我们”）订立。"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 由 {company.legalName}（地址：{company.address}）运营，该公司为本 DPA 的一方。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们在欧盟的代表为 {company.euRepresentative}。",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们的数据保护联系方式为 {company.privacyEmail}。请告知我们您的联系人，以便我们就本 DPA 与您联系。"
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "我们使用的术语"
+    },
+    {
+      "type": "list",
+      "items": [
+        "“个人数据”是指与已识别或可识别的自然人有关的任何信息。",
+        "“处理”是指对个人数据进行的任何操作，例如存储、读取、发送或删除。",
+        "“控制者”决定处理个人数据的目的和方式。“处理者”为控制者并按照其指示处理个人数据。“子处理者”是指我们使用的处理者。",
+        "“客户个人数据”是指我们根据主协议为您处理的个人数据。",
+        "“数据保护法”是指适用于该处理的所有隐私法律，例如欧盟《通用数据保护条例》（GDPR）、英国 GDPR、瑞士《联邦数据保护法》（FADP）以及美国各州的隐私法律。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "我们的角色"
+    },
+    {
+      "type": "p",
+      "text": "您是客户个人数据的控制者，或为您自己的客户行事的处理者。我们是您的处理者或子处理者。我们会出于自身目的处理部分数据，对于这些数据，我们是控制者："
+    },
+    {
+      "type": "table",
+      "head": [
+        "数据",
+        "我们的角色",
+        "适用规则"
+      ],
+      "rows": [
+        [
+          "您或您的用户发送至 API 的内容、企业版工作中的内容，或企业用途助理机器人的工作区和所连接账户中所含的个人数据",
+          "您的处理者",
+          "本 DPA"
+        ],
+        [
+          "您的员工和联系人的账户与登录数据，以及我们的合同和发票记录",
+          "控制者",
+          "我们的[隐私政策](/instant/legal/privacy)"
+        ],
+        [
+          "服务和安全日志（IP 地址、浏览器、时间、请求的地址）",
+          "控制者",
+          "我们的隐私政策"
+        ],
+        [
+          "我们自己的搜索服务为完成任务而发送给网络搜索引擎的搜索查询",
+          "控制者",
+          "我们的隐私政策"
+        ],
+        [
+          "通过 OpenRegister 进行的公司登记查询，其结果可能包含董事姓名",
+          "控制者",
+          "我们的隐私政策"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们的搜索和登记查询如何运作由我们决定，因此就这些活动而言，我们为自身行事（GDPR 第 4 条第 7 项）。搜索查询是根据您的任务生成的，因此除非任务需要，请不要在任务文本中包含个人数据。"
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "处理详情"
+    },
+    {
+      "type": "table",
+      "head": [
+        "项目",
+        "详情"
+      ],
+      "rows": [
+        [
+          "主题事项",
+          "提供主协议中的服务：API、企业版工作，或为您的企业使用的助理机器人。"
+        ],
+        [
+          "期限",
+          "在主协议有效期内，以及此后直至我们按照本 DPA 的规定删除或返还客户个人数据为止。"
+        ],
+        [
+          "性质",
+          "接收、存储、整理、读取、使用 AI 模型进行分析、生成回答和文件、发送给您和您的系统，以及删除。"
+        ],
+        [
+          "目的",
+          "仅为向您提供服务、保障服务安全以及履行我们的法律义务。"
+        ],
+        [
+          "个人数据类型",
+          "您选择发送给我们或连接的任何数据。通常包括姓名、联系方式、职位、业务关系，以及任务、消息、文档和文件的内容。"
+        ],
+        [
+          "相关人员",
+          "您的员工、您的客户和最终用户、您的供应商和业务联系人，以及您发送或连接的数据中提及的任何其他人，包括您连接到企业用途助理机器人的电子邮件和即时通讯账户中的联系人。"
+        ],
+        [
+          "特殊类别",
+          "无，除非我们另有书面约定。未经此类约定，请不要向我们发送健康、生物识别或其他特殊类别数据，或有关刑事定罪的数据。"
+        ],
+        [
+          "频率",
+          "持续进行，只要您或您的用户使用服务。"
+        ],
+        [
+          "地点",
+          "我们的云端工作区和 API 将数据存储在位于欧盟（荷兰）的 Google Cloud 上。企业版工作托管在订单中指定的欧盟 Google Cloud 区域。子处理者可能在其他地方处理数据，具体见[子处理方](/instant/legal/subprocessors)页面。"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "我们的承诺"
+    },
+    {
+      "type": "p",
+      "text": "这些承诺以通俗的语言表述了处理者的义务（GDPR 第 28 条第 3 款；英国 GDPR 第 28 条第 3 款；FADP 第 9 条）。"
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "您的指示"
+    },
+    {
+      "type": "p",
+      "text": "我们仅根据您有记录的指示处理客户个人数据，包括有关将数据发送至其他国家的指示。您的指示包括主协议、本 DPA 以及您设置和使用服务的方式。如果与服务相符，您可以给出进一步的书面指示。仅在法律要求时，我们才可以在没有您指示的情况下处理数据。此时我们会事先告知您，除非该法律禁止这样做。如果我们认为某项指示违反数据保护法，我们会立即告知您。"
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "保密"
+    },
+    {
+      "type": "p",
+      "text": "只有因工作需要而使用客户个人数据的人员才能访问这些数据，且每位此类人员均负有保密义务。"
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "安全"
+    },
+    {
+      "type": "p",
+      "text": "我们采取与风险相适应的技术和组织措施，保护客户个人数据免遭意外或非法的丢失、更改、披露或访问（GDPR 第 32 条）。本 DPA 末尾的[安全附件](#security-measures)对这些措施作了说明。我们可能会不时更改这些措施，但不会降低整体保护水平。"
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "子处理者"
+    },
+    {
+      "type": "p",
+      "text": "您允许我们使用子处理者。[子处理方](/instant/legal/subprocessors)页面列出了我们目前使用的子处理者、其职能及所在地。对于企业版工作，订单中可能会列出更多子处理者。"
+    },
+    {
+      "type": "p",
+      "text": "在我们添加或更换子处理者之前，我们会更新该页面并通知您，以便您在变更生效前提出异议。如果您出于合理的数据保护理由提出异议，我们会与您一起寻找解决方案。如果找不到解决方案，您可以终止相关部分的服务。"
+    },
+    {
+      "type": "p",
+      "text": "我们以书面形式要求每一个子处理者承担至少与本 DPA 同等保护水平的数据保护义务。我们仍就其工作对您负责。"
+    },
+    {
+      "type": "p",
+      "text": "您所连接的即时通讯应用、电子邮件账户和其他服务是您自己选择的提供商。它们不是我们的子处理者，它们对数据的处理适用其自身的条款。"
+    },
+    {
+      "type": "p",
+      "text": "我们使用 Google Gemini 作为我们的 AI 模型，因此任务和对话的内容会被发送给 Google。Google 可能在欧盟以外处理这些内容。"
+    },
+    {
+      "type": "p",
+      "text": "我们使用 Google 的付费 Gemini API。在此情况下，Google 根据其数据处理条款担任我们的处理者，不会使用这些内容改进其产品。",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "个人的权利"
+    },
+    {
+      "type": "p",
+      "text": "个人可以要求查看、更正、删除或转移其数据，或反对使用其数据。如果我们收到有关客户个人数据的此类请求，我们会将其转交给您，除非您要求我们答复，否则我们不会自行答复。在服务性质允许的范围内，我们会协助您答复请求（GDPR 第 12-23 条）。"
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "数据泄露"
+    },
+    {
+      "type": "p",
+      "text": "如果我们发现影响客户个人数据的安全事件，我们会及时告知您，不会无故拖延。我们会向您提供我们已知的信息，并在了解更多情况后补充提供（GDPR 第 33 条第 2 款和第 3 款）："
+    },
+    {
+      "type": "list",
+      "items": [
+        "发生了什么；",
+        "受影响的数据类型和人员类型，以及大致数量；",
+        "可能造成的影响；",
+        "我们已经采取和计划采取的措施；",
+        "您可以联系的人员。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "告知您并不代表承认过错。"
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "其他协助"
+    },
+    {
+      "type": "p",
+      "text": "在服务性质和我们所掌握的信息允许的范围内，我们会协助您履行安全义务、开展数据保护影响评估以及咨询您的数据保护主管机关（GDPR 第 32-36 条）。"
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "返还与删除"
+    },
+    {
+      "type": "p",
+      "text": "主协议终止时，我们会删除客户个人数据。如果您在此之前提出要求，我们会先将数据返还给您。我们仅在法律要求时保留副本，保留期限仅以法律要求为限，并按本 DPA 的规定予以保护。备份中的副本会随备份到期而消失。"
+    },
+    {
+      "type": "p",
+      "text": "智能体操作的部分记录以无法更改的固定日志形式保存。如果此类记录包含客户个人数据，我们会将其删除或匿名化；如果我们必须保留，则会告知您原因。"
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "审计"
+    },
+    {
+      "type": "p",
+      "text": "我们会向您提供您为证明我们履行了这些义务而合理需要的信息。如果这些信息不足，您或负有保密义务的独立审计师可以对我们进行审计。您需提前合理通知我们，且审计不得干扰我们的服务或危及其他客户的数据。您自行承担审计费用。数据保护主管机关始终可以在法律允许的范围内对我们进行审计。"
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "您的承诺"
+    },
+    {
+      "type": "list",
+      "items": [
+        "您具有处理的法律依据，并向相关人员提供法律要求的隐私信息，包括您使用我们的服务这一事实。",
+        "您的指示符合数据保护法。",
+        "您只向我们发送服务所需的个人数据，除非我们已书面同意，否则不发送特殊类别数据。",
+        "您在您这一方安全地设置服务，包括妥善保管访问密钥和登录信息，以及为智能体选择合适的批准设置。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "国际传输"
+    },
+    {
+      "type": "p",
+      "text": "我们的云端工作区、API 和企业版托管服务将客户个人数据存储在欧盟。部分子处理者可能在其他国家处理这些数据，具体见[子处理方](/instant/legal/subprocessors)页面。"
+    },
+    {
+      "type": "p",
+      "text": "我们仅在数据保护法允许的情况下，将个人数据传输至欧洲经济区、英国或瑞士以外。例如，我们将数据传输至欧盟认定其数据保护水平充分的国家、传输至根据欧盟-美国数据隐私框架获得认证的美国公司，或依据标准合同条款进行传输。"
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "标准合同条款"
+    },
+    {
+      "type": "p",
+      "text": "如果您与我们之间的传输需要，欧盟委员会批准的标准合同条款（决定 (EU) 2021/914，“SCC”）构成本 DPA 的一部分。SCC 的哪一部分（“模块”）适用，取决于我们双方各自的设立地："
+    },
+    {
+      "type": "list",
+      "items": [
+        "模块二（控制者至处理者）：适用于您是控制者并向位于欧洲经济区以外的我们发送数据的情况。",
+        "模块三（处理者至处理者）：适用于您是您自己客户的处理者并向位于欧洲经济区以外的我们发送数据的情况。",
+        "模块四（处理者至控制者）：适用于我们位于欧洲经济区内并向位于欧洲经济区以外的您返还数据的情况。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "就 SCC 而言，我们作出以下选择："
+    },
+    {
+      "type": "list",
+      "items": [
+        "第 7 条：可选的加入条款适用。",
+        "第 9 条：选项 2（对子处理者的一般授权）适用，通知方式按[子处理者](#sub-processors)的规定。",
+        "第 11 条：可选措辞不适用。",
+        "第 13 条：监管机构为作为数据输出方的您的主管监管机构。",
+        "附件：[我们的角色](#roles)和[处理详情](#details)构成附件一的内容，[安全附件](#security-measures)构成附件二的内容，子处理方页面构成附件三的内容。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "根据第 17 条和第 18 条，SCC 受您设立地所在欧盟成员国的法律管辖，争议由该国法院管辖。如果您未在欧盟设立，则 SCC 受 {company.law} 的法律和法院管辖，前提是其为欧盟成员国。",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "英国和瑞士"
+    },
+    {
+      "type": "p",
+      "text": "对于来自英国的传输，适用英国信息专员发布的 SCC 国际数据传输附录（“英国附录”），并以本 DPA 中的详细信息填写。"
+    },
+    {
+      "type": "p",
+      "text": "对于来自瑞士的传输，SCC 在作出以下修改后适用：瑞士联邦数据保护和信息专员是 FADP 下传输的监管机构；对 GDPR 的引用也指 FADP；“成员国”包括瑞士，以便当地人员可以在其居住地提起索赔。"
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "子处理者进行的传输"
+    },
+    {
+      "type": "p",
+      "text": "如果子处理者将客户个人数据传输至欧洲经济区、英国或瑞士以外，我们会确保有有效的依据涵盖该传输，例如数据隐私框架或我们与该子处理者签订的合同中的 SCC。"
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "美国各州隐私法律",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如果您是 California Consumer Privacy Act 下的“企业”，或其他美国州隐私法律下的控制者，则就客户个人数据而言，我们是您的“服务提供商”、“承包商”或“处理者”。我们：",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "不出售或共享客户个人数据（按这些法律中对这些用语的定义）；",
+        "仅为主协议和本 DPA 中规定的业务目的处理客户个人数据，而不用于任何其他商业目的；",
+        "不在我们与您的直接业务关系之外保留、使用或披露客户个人数据；",
+        "除非这些法律允许，否则不将其与我们从他人处收到或自行收集的个人数据相结合；",
+        "遵守这些法律，并提供其所要求的同等水平的隐私保护；",
+        "如果我们认定无法再履行这些义务，会告知您。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "您可以采取合理且适当的措施，确保我们按照这些法律使用客户个人数据，并制止和纠正任何不被允许的使用。我们了解这些限制，并将予以遵守。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任"
+    },
+    {
+      "type": "p",
+      "text": "在数据保护法允许的范围内，各方在本 DPA 下的责任遵循主协议中的限制。这些限制不减少个人直接根据数据保护法享有的权利。"
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "期限与更新"
+    },
+    {
+      "type": "p",
+      "text": "只要我们为您处理客户个人数据，本 DPA 就持续有效，即使主协议已经终止。"
+    },
+    {
+      "type": "p",
+      "text": "我们可能会更新本 DPA，以反映法律、我们的子处理者或我们的服务的变化。未经您的同意，我们不会以降低客户个人数据保护水平的方式修改本 DPA，除非法律要求作出该修改。"
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "附件：安全措施"
+    },
+    {
+      "type": "p",
+      "text": "以下是我们目前采取的主要技术和组织措施。[安全与漏洞披露](/instant/legal/security)页面说明了如何通过 {company.securityEmail} 向我们报告安全问题。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "领域",
+        "我们的做法"
+      ],
+      "rows": [
+        [
+          "托管",
+          "我们的云服务和数据库运行在位于欧盟（荷兰）的 Google Cloud 上。企业版工作托管在订单中指定的欧盟 Google Cloud 区域。"
+        ],
+        [
+          "加密",
+          "数据在传输过程中加密（HTTPS），并由我们的云服务提供商进行静态加密。"
+        ],
+        [
+          "账户访问",
+          "用户通过我们的登录服务提供商 Clerk 登录 Orqanix 工作区，注册时会进行机器人检测。API 只能通过我们签发的秘密访问密钥访问。"
+        ],
+        [
+          "存储的密钥和机密",
+          "用于自动化的应用密钥仅以哈希值形式存储，而不以可读形式存储。我们的服务所使用的机密保存在 Google Cloud Secret Manager 中，而不是在我们的代码中。"
+        ],
+        [
+          "存储的文件",
+          "云端工作区生成的文件保存在位于欧盟的私有 Google Cloud Storage 存储桶中。"
+        ],
+        [
+          "员工访问",
+          "只有因工作需要而需要访问的人员才拥有访问权限，且他们负有保密义务。"
+        ],
+        [
+          "智能体操作记录",
+          "智能体执行了哪些操作、哪些操作获得了批准以及它们生成的文件，都记录在事后无法更改的日志中。企业客户可以设置批准方式（允许一次、始终允许、拒绝）和基于角色的访问权限。"
+        ],
+        [
+          "日志",
+          "请求日志包含 IP 地址、浏览器、时间、请求的地址和结果。我们不记录提示或消息的内容。"
+        ],
+        [
+          "备份",
+          "云端工作区数据库每天自动备份，支持时间点恢复，并具有防止意外删除的保护。"
+        ],
+        [
+          "模型",
+          "我们不使用客户数据训练我们自己的 AI 模型。"
+        ],
+        [
+          "事件",
+          "如发生个人数据泄露，我们会按照[数据泄露](#breaches)的规定及时告知受影响的客户，不会无故拖延。"
+        ]
+      ]
+    }
+  ]
+}

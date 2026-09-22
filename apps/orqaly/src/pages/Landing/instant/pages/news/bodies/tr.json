@@ -1,0 +1,257 @@
+{
+  "tiny-llms-under-a-cent": [
+    "İsteklerini yanıtlamanın yeni bir yolu üzerinde çalışıyoruz. Orqanix her isteği tek bir dev yapay zekâ modeline göndermek yerine, onu birçok küçük modele paylaştıracak. Hedefimiz, eksiksiz ve iyi yapılmış bir isteği $0.01’in altında tamamlamak.",
+    "Bu iş hâlâ sürüyor. Henüz uygulamada yok ve paylaşabileceğimiz bir sonuç da yok. Ama fikir net ve her işi kimin yapacağına karar veren kısım zaten hazır. Aşağıda fikri adım adım anlatıyoruz.",
+    {
+      "h": "Küçük neden büyüğü yenebilir"
+    },
+    "LLM’ler, sohbet uygulamalarının arkasındaki yapay zekâ modelleridir. En büyükleri neredeyse her şeyi yapabilir. Ama gündelik isteklerin çoğu neredeyse her şeye ihtiyaç duymaz. Birkaç basit işin iyi yapılması yeterlidir: bir dosyayı okumak, önemli bilgileri çıkarmak, onları sıralamak, kontrol etmek ve anlaşılır bir yanıt yazmak.",
+    "Bütün bunları tek bir dev modelden istemek, ofisteki her küçük işi en kıdemli uzmanına yaptırmaya benzer. İş yapılır, ama postaları ayırmak için kıdemli uzman ücreti ödersin.",
+    "Her biri iyi olduğu tek bir işe odaklanan küçük modellerin daha ucuza ve daha hızlı yanıt verebileceğine inanıyoruz. Bir ekip olarak, gündelik işlerde devle boy ölçüşebilirler, hem de çok daha düşük maliyetle.",
+    {
+      "h": "Böl, çöz, yeniden birleştir"
+    },
+    "Kurduğumuz akış bu. Buradakilerin hiçbiri henüz yayında değil:",
+    {
+      "list": [
+        "Böl: Orqanix isteğini okur ve onu küçük işlere ayırır.",
+        "Eşleştir: her iş, ona en uygun küçük modele gider.",
+        "Çalıştır: birbirine bağlı olmayan işler yan yana çalışır. Diğerleri sırayla çalışır.",
+        "Birleştir: Orqanix parçaları kontrol eder ve onları tek bir yanıtta toplar."
+      ]
+    },
+    "Diyelim ki geçen haftanın müşteri e-postalarının kısa bir özetini istedin. Küçük bir model e-postaları okuyabilir, bir diğeri ana noktaları çıkarabilir, üçüncüsü de özeti yazabilir.",
+    "Yine de bir yığın parça değil, tek bir yanıt alırsın. Bir iş küçük bir model için fazla zorsa, Orqanix’in yalnızca o kısmı daha büyük bir modele vermesini istiyoruz. Böylece yalnızca gerçekten gereken yerde daha fazla ödersin.",
+    {
+      "h": "Hazırdaki seçici"
+    },
+    "Bir akıl yürütme katmanını zaten kurduk. Görevi, bir işi kimin yapması gerektiğine ve nedenine karar vermek. Bugün yapay zekâ ajanları arasında seçim yapıyor. Ona küçük modeller arasında da seçim yapmayı öğretiyoruz.",
+    "Bugün bir ajan seçerken maliyeti ve hızı zaten hesaba katıyor. Önce kesin kurallar gelir. Bir ajan belirlenen bütçeden fazlasına mal olacaksa ya da izin verilenden uzun sürecekse hiç seçilmez. Sonra kalanlar puanlanır. En çok doğru beceriler önemlidir. Maliyet ve hız da sayılır, yani daha ucuz ve daha hızlı bir ajan daha yüksek puan alır. Ama fiyat tek başına asla kazanmaz: gereken becerilere sahip olmayan ucuz bir ajan dışarıda kalır.",
+    "Her seçimin gerekçeleri yazılı olarak gelir. Bir adım başarısız olursa ya da yanıtı reddedilirse, akıl yürütme katmanı yeni bir plan yapabilir.",
+    "Küçük modeller için bütçenin isteğin tamamını kapsamasını istiyoruz: her küçük işe paylaştırılan, bir sentin altında bir tutar. Üzerinde çalıştığımız hedef bu.",
+    "Daha ucuza mal olmasını istediğin gündelik bir işin mi var? hello@orqanix.com adresinden bizimle paylaş."
+  ],
+  "connect-any-agent": [
+    "Artık pek çok iyi yapay zekâ ajanı var: Grok, Meta Muse, OpenClaw, Manus, Hermes Agents, CrewAI ve daha fazlası. Her biri bir işte iyi. Ama her biri kendi uygulamasında, kendi girişiyle, kendi ekranıyla ve kendi çalışma biçimiyle yaşıyor.",
+    "Sonunda aradaki işi sen yapıyorsun. Hangi ajanı kullanacağını tahmin ediyorsun. Sorunu bir sekmeden diğerine kopyalıyorsun. Yanıtları elle birleştiriyorsun. Bir hafta sonra hangi ajanın ne yaptığını hatırlamıyorsun.",
+    "Buna bir çözüm geliştiriyoruz. Hedefimiz bu ajanları Orqanix’e bağlamak, böylece hepsini tek bir yerden kullanabileceksin.",
+    {
+      "h": "Neyi değiştirmek istiyoruz"
+    },
+    "Fikir basit. Bir iş arkadaşına sorar gibi, sade kelimelerle bir kez sorarsın. Orqanix işin neye ihtiyaç duyduğunu çıkaracak, uygun ajanı seçecek ve ona doğru bağlamı verecek. Sonuç sohbetine geri gelecek.",
+    {
+      "list": [
+        "Her ajan için ayrı bir uygulama değil, sormak için tek bir yer.",
+        "Her iş için doğru ajan, kısa bir gerekçesiyle.",
+        "Her sonucu ve onu kimin yaptığını görmek için tek bir yer."
+      ]
+    },
+    "Bazı işler birden fazla ajan gerektirir. O zaman plan, her adım için bir ajanın olduğu küçük bir ekip olabilir: biri bilgileri bulur, bir diğeri yazar, bir başkası da işi kontrol eder. Sırayla ya da yan yana çalışabilirler.",
+    {
+      "h": "Orqanix ajanı nasıl seçecek"
+    },
+    "Ajanı seçmek işin zor kısmı, bu yüzden kendine ait bir katmanı var. Ona akıl yürütme katmanı diyoruz: kimin neyi yapacağına karar veren kısım. Üç adımda çalışır.",
+    "Önce ajanları eler. Bir ajan ancak işin gerektirdiği becerilere ve araçlara sahipse, çalışmaya müsaitse, bu tür verileri görmesine izin veriliyorsa ve maliyet ile süre bütçene uyuyorsa yarışta kalır. Tek bir kuralı geçemezse elenir. Başka bir yerdeki yüksek puan onu geri getiremez.",
+    "İkinci olarak kalan ajanları sıralar. En çok beceriler önemlidir. Araçlar, geçmiş başarılar, maliyet, hız ve işe dahil olan kişilerle uyum da sayılır. Her puan sade bir gerekçeyle gelir ve her seçim kaydedilir, böylece bir ajanın neden kazandığına dair her zaman bir kayıt olur.",
+    "Üçüncü olarak güvenlik önlemleri ekler. Bir iş riskliyse ya da geri alınamıyorsa, plana bir kişinin onaylaması gereken bir kontrol noktası eklenir. Hiçbir ajan uymuyorsa, iş tahmine bırakılmaz, bir insana verilir. Her adımın bir yedeği de vardır: bir aksaklıktan sonra bir kez daha dene, bir ajan müsait değilse yerine başkasını koy, bir araç bozulursa yeni bir plan yap ya da bir onay reddedilirse işi bir kişiye devret. Ve bir şey çalışmadan önce Orqanix, ajanın hâlâ müsait, yetkili ve bütçe içinde olduğunu yeniden kontrol edecek.",
+    {
+      "h": "Bugün neredeyiz"
+    },
+    "Akıl yürütme katmanı kodumuzda zaten var ve müşteri desteğinden finansa kadar çok farklı işlerde onu çalıştıran testleri de var. Uygulamada henüz açık değil. Dış ajanları ona bağlamak, şu an üzerinde çalıştığımız kısım. Bu ajanlarla canlı bağlantılar henüz hazır değil ve onları kendimiz geliştiriyoruz.",
+    "Her adımı bir araya geldikçe burada paylaşacağız.",
+    "Önce hangi ajanı bağlamalıyız? hello@orqanix.com adresinden bize yaz."
+  ],
+  "assistant-bot-for-business": [
+    "Ekipteki herkes yeni bir uygulama açmaz. Birçok ekipte iş konuşmaları iki yerde döner: sohbet ve e-posta. Sorular orada sorulur ve insanlar yanıtları orada bekler.",
+    "Bu yüzden işletmeler için bir asistan robot geliştiriyoruz. Ekibin, zaten kullandığı mesajlaşma uygulamasından ve e-postadan Orqanix’e soracak. İş Orqanix’te yürüyecek ve yanıt aynı yazışmaya geri gelecek. Hedefimiz: açılacak yeni bir pencere yok, öğrenilecek yeni bir alışkanlık yok.",
+    {
+      "h": "Zaten konuştuğun yerde sor"
+    },
+    "Aklımızdaki akış şu. Ekibinden biri, sohbetteki herhangi bir mesaj gibi bir mesaj yazacak. Orqanix onu alacak, bir plan yapacak ve adımları tek tek yürütecek. İş bittiğinde yanıt, sorunun başladığı yazışmaya düşecek.",
+    "E-posta da aynı şekilde çalışacak: kısa bir talimat gönderirsin, sonuç gelen kutuna geri gelir.",
+    "O yanıtın arkasında hedefimiz, Orqanix’in işe uyan ajanı ya da ekibi seçmesi ve ona bilmesi gerekenleri vermesi. Bazı işler bir kişinin onay vermesini beklemeli, bu yüzden onayları akışın içine yerleştiriyoruz.",
+    {
+      "h": "Ekibin neler isteyebilir"
+    },
+    "Robotu, bir haftayı dolduran gündelik işlerin etrafında şekillendiriyoruz:",
+    {
+      "list": [
+        "Araştırma: bir toplantıdan önce bir pazarı, bir rakibi ya da bir soruyu incele.",
+        "Planlar: bir hedefi net adımlara dönüştür.",
+        "Taslaklar: bir e-postanın, bir gönderinin ya da bir teklifin ilk hâli.",
+        "Listeler: potansiyel müşterileri, görevleri ya da fikirleri tek bir düzenli listede topla."
+      ]
+    },
+    "Bu işlerin hiçbiri tek başına zor değil. Ama birikirler ve insanları yalnızca onların yapabileceği işten uzaklaştırırlar. Onları tek bir mesajla devretmek, o zamanı geri kazandırmak için.",
+    {
+      "h": "Yazışma neden önemli"
+    },
+    "Yeni bir araç ancak insanlar onu kullanırsa işe yarar. Bütün bir ekibi başka bir uygulamaya taşımak zordur ve bazı insanlar bu geçişi hiç yapmaz. Yardım zaten açık olan sohbetin içindeyse, öğrenilecek yeni pek bir şey kalmaz.",
+    "Yanıtı yazışmanın içinde istememizin nedeni de bu. Soru, yanıt ve devamı yan yana duracak. Sonraki kişi, bir bağlantı aramadan neyin sorulduğunu ve ne geldiğini görebilecek.",
+    "Robot, Mac uygulamasının ve onun eksiksiz çalışma alanının yanında, Orqanix’e zaten bulunduğun yerden ulaşmanın bir yolu daha olacak. Hâlâ geliştiriliyor.",
+    "Ekibin nerede konuşuyor? hello@orqanix.com adresinden bize haber ver."
+  ],
+  "building-the-mobile-app": [
+    "İyi fikirler masana dönmeni nadiren bekler. Trende, kahve kuyruğunda ya da bir müşteriyle görüşmenin hemen ardından gelirler. Dizüstü bilgisayarını açana kadar düşüncenin yarısı uçup gitmiştir.",
+    "Bu yüzden telefonun için bir Orqanix uygulaması geliştiriyoruz. Hâlâ yapım aşamasında. Bugün Orqanix, Apple silicon’lu Mac’lerde bir önizleme uygulaması olarak çalışıyor. Giriş yaparsın, ne istediğini sade kelimelerle yazarsın ve sohbetin yanındaki çalışma alanı, adımları ve dosyaları oluşturuldukça gösterir. Telefon uygulaması, Mac’inden uzaktayken aynı işe ulaşmanı istediğimiz yol.",
+    {
+      "h": "Hangi anlar için"
+    },
+    "Sıradan bir gündeki küçük boşlukları düşün. Telefon uygulamasının yardım etmesi gereken yer orası. Birkaçını gözünün önüne getir.",
+    "Bir toplantıdan net bir fikirle çıkıyorsun. O fikir solmadan uygulamayı açıp yüksek sesle söylersin: neye ihtiyacın var ve ne için. Hareket hâlindeyken konuşmak yazmaktan kolaydır, bu yüzden hedefimiz ikisinin de aynı iyi çalışması.",
+    "Trendesin ve yazmayı düşündüğün teklifi hatırlıyorsun. Tek bir satır yazıp sen yoldayken Orqanix’in işe başlamasını sağlayabilirsin.",
+    "Saat geç ve sabaha hazır bir ilk taslak istiyorsun. Görevi kanepeden başlatıp telefonu bırakabilirsin.",
+    "Her seferinde hedef aynı: iş saatler sonra değil, o anda başlar.",
+    {
+      "h": "Başında beklemeden takip et"
+    },
+    "Orqanix çalışırken ekranına dik dik bakmak zorunda kalmamalısın. Mac’te çalışma alanı işi zaten adım adım gösteriyor. Bu görünümü küçük ekrana uygun hâliyle telefona getiriyoruz. Kısa bir bakış sana şunları söylemeli:",
+    {
+      "list": [
+        "şu an hangi adımın çalıştığını",
+        "hangi adımların bittiğini",
+        "Orqanix’in senden ne zaman kısa bir yanıt beklediğini"
+      ]
+    },
+    "Bir ayrıntıya ihtiyaç duyarsa, fikir şu: orada birkaç kelimeyle yanıt verirsin ve iş devam eder. Sonra telefon cebine geri döner.",
+    {
+      "h": "Dosyaların Mac’inde seni bekler"
+    },
+    "Telefon, başlatmak ve kontrol etmek için harikadır. Ama uzun bir belge okumak ya da bir planı yeniden düzenlemek isteyeceğin yer değildir. Bu yüzden hedefimiz, Orqanix’in oluşturduğu dosyaların bugün olduğu gibi çalışma alanına düşmesi. Mac’inin başına oturduğunda konuşmayı açar ve hepsini orada bulursun: sohbeti, adımları, belgeleri ve sonuçları.",
+    "Hedeflediğimiz şey bu: dosyaları kendine e-postayla göndermek yok, indirilenler klasöründe arayıp durmak yok. Yolda başlayıp masanda biten tek bir konuşma.",
+    "Bugün başlamak mı istiyorsun? Bu sitedeki indirme düğmesinden Mac için Orqanix’i edin."
+  ],
+  "orqanix-for-mac": [
+    "Orqanix artık Mac’inde gerçek bir uygulama olarak çalışıyor. Bu ilk önizleme Apple silicon’lu Mac’ler için yapıldı ve bu erken sürümde ücretsiz.",
+    "Onu, öğrenecek bir araç daha değil, işin yapılmasını isteyen insanlar için geliştirdik. Ne istediğini söylersin, sonra planın ve dosyaların tek bir pencerede bir araya gelişini izlersin.",
+    {
+      "h": "Giriş yap ve sadece sor"
+    },
+    "Orqanix’i ilk açtığında, giriş yapman için seni tarayıcına götürür. İşin bitince doğrudan uygulamaya dönersin. Bir yapay zekâ anahtarına ihtiyacın yok ve kurulacak başka bir şey de yok.",
+    "Sonra ne istediğini gündelik kelimelerle yazarsın. Orqanix işi kısa bir plana bölebilir ve adım adım yürütebilir. Senden bir yanıta ihtiyaç duyarsa durur ve sorar. Mac’indeki bir dosyayı okumak ya da değiştirmek istediğinde önce onayını isteyebilir.",
+    "Her sohbet kendi işini saklar ve yeni bir sohbet temiz başlar. Uygulamadan çık, yeniden aç, sohbetlerin hâlâ orada.",
+    {
+      "h": "Bütün iş için tek bir panel"
+    },
+    "Sohbetin yanında çalışma alanı paneli durur. Orqanix’in ne yaptığını gösterir, böylece bulmak için uzun bir sohbeti karıştırmak zorunda kalmazsın.",
+    {
+      "list": [
+        "Durum: Çalışıyor, Sana ihtiyaç var, Bitti ya da Durduruldu; adım adım dolan bir çubuk ve ne kadar sürdüğüyle birlikte.",
+        "Yol haritası: plan, her seferinde bir adım. Yazılı bir plan yoksa Orqanix’in yaptıklarını basit adımlara dönüştürür. Oluşturduğu dosyaları görmek için bir adımı aç.",
+        "Dosyalar: oluşturulan ya da değiştirilen her şey. Onları ara, türe göre filtrele; web sayfalarını, notları, basit tabloları (CSV) ve kodu doğrudan panelde aç. Değişmiş bir dosyada hangi satırların değiştiğini görebilirsin.",
+        "Etkinlik: her işlem, basitçe anlatılmış; başarısız olan her şey kırmızıyla gösterilir."
+      ]
+    },
+    "Bir dosyaya başka bir yerde mi ihtiyacın var? Bir kopyasını kaydet, birkaçını tek bir ZIP dosyası olarak birden kaydet ya da Finder’da göster. Araştırma iste, sonuç kaynaklarıyla birlikte aynı panelde açılır.",
+    {
+      "h": "Nasıl edinilir"
+    },
+    "Bu sitede macOS için indir’e tıkla. M1 çipli ya da daha yeni bir Mac gerekir. Emin değil misin? Apple menüsünü aç, Bu Mac Hakkında’yı seç ve Çip satırına bak.",
+    "İndirdiğin dosyayı aç ve Orqanix Preview’u Uygulamalar klasörüne sürükle, sonra onu aç. Bu önizleme noter onaylı değil (Apple’ın kendi güvenlik kontrolü), bu yüzden macOS onu ilk seferde engelleyebilir. Engellerse Sistem Ayarları’na, ardından Gizlilik ve Güvenlik’e git ve Yine de Aç’a tıkla. Sonra Orqanix hesabınla giriş yap.",
+    "Windows’ta ya da Intel Mac’te misin? Masaüstü uygulaması orada henüz çalışmıyor, ama web sürümünü deneyebilirsin.",
+    "Bu erken bir önizleme ve onu geliştirmeye devam ediyoruz. Denedikten sonra neyin işe yarayıp neyin yaramadığını hello@orqanix.com adresinden bize anlat.",
+    "Ücretsiz önizlemeyi bu sitedeki macOS için indir düğmesinden edin."
+  ],
+  "orqaly-and-axwise-merge": [
+    "Orqaly ve AxWise iki ayrı proje olarak başladı. 13 Eylül 2026’da tek bir kod tabanına, kodları için ortak tek bir yuvaya taşındılar. Artık ikisi de kodun aynı sürümünden derleniyor ve tek bir sürüm olarak birlikte yayımlanıyor.",
+    "Aralarındaki kural kısa: AxWise karar verir, Orqaly işi yapar. Bir taraf görev üzerine düşünür. Diğer taraf onu yürütür ve sonucu sana teslim eder.",
+    "Taşımanın kendisi hiçbir şeyin çalışma biçimini değiştirmedi. Koda tek bir yuva verdik ve her parça hâlâ kendi işiyle, kendi hizmeti olarak çalışıyor.",
+    {
+      "h": "İki taraf, her birine tek iş"
+    },
+    "AxWise, herhangi bir iş başlamadan önce düşünen kısım. Bir görev geldiğinde şunları belirler:",
+    {
+      "list": [
+        "Onu kim yapmalı: bir ajan, bir ajan ekibi ya da bir kişi",
+        "Bu seçim bu göreve neden uyuyor",
+        "Onunla birlikte hangi bağlam ve bilgiler gitmeli",
+        "Hangi kontrollere ve onaylara ihtiyaç var",
+        "Bir adım başarısız olursa ne yapılmalı"
+      ]
+    },
+    "AxWise, ek araştırmayı yalnızca yanıtı değiştirebilecekse yapacak şekilde tasarlandı; böylece net bir görev doğrudan doğru yardımcıya gidebilir. Her seçim gerekçeleriyle gelir.",
+    "Orqaly ise etrafındaki uygulama. Gördüğün ve kullandığın kısım o: hesabın, sohbet, ajanlar ve araçlar, bütçe ve onaylar. İşi adım adım yürütür, nerede olunduğunu takip eder, başarısız olan bir adımı yeniden dener ve sonunda dosyaları sana teslim eder.",
+    {
+      "h": "Senin için tek ürün"
+    },
+    "Hangi parçanın çalıştığını bilmen gerekmiyor. Karşına tek bir ürün çıkar: Orqanix.",
+    "Uzun bir formla değil, bir mesajla başlarsın. Önemli bir şey belirsizse Orqanix en fazla bir soru sorar. Sonra ne anladığını gösterir ve onaylamanı ister. Ardından planı gösterir ve yeniden sorar. İş ancak sen evet dedikten sonra başlar.",
+    "İş sürerken nerede olduğunu görebilirsin. Bittiğinde sonuç geçmişine kaydedilir, açılmaya ve indirilmeye hazırdır. Bazı bilgiler doğrulanamadıysa Orqanix bu eksikleri gizlemek yerine sonucun üzerinde işaretler. Bir şey başarısız olursa bunu sana, harekete geçebileceğin açık kelimelerle söyler.",
+    {
+      "h": "Tasarımı gereği daha güvenli ve daha açık"
+    },
+    "Bir öneri izin değildir. AxWise bir görevi kimin yapması gerektiğini önerebilir, ama tasarımı gereği anahtarlarını ya da parolalarını almaz, erişim dağıtamaz ve diğer uygulamalarında işlem yapamaz. Bu işler Orqaly’ye aittir.",
+    "Bir şey çalışmadan önce Orqaly yeniden kontrol eder. Bu ajan müsait mi? Ona izin veriliyor mu? Görev bütçeye ve kullanabileceği araçlara uyuyor mu? Ancak o zaman onayladığın planı yürütür.",
+    "Her karar, verildiği hâliyle gerekçeleriyle birlikte kaydedilir, böylece sonradan kontrol edilebilir. Ve her parçanın tek bir net işi vardır: düşünmek AxWise’ın, yapmak Orqaly’nin işidir.",
+    "Geçişi dikkatle kontrol ettik. İki uygulama da testlerini geçti ve geçişten sonra daha önce oluşturulmuş bir sonuç, indirme düğmesi dahil, aynı şekilde açıldı. Bu bizim önizlememiz, bir üretim lansmanı değil ve büyüdükçe test etmeye devam edeceğiz.",
+    "İki parçanın nasıl bir araya geldiğini merak mı ediyorsun? hello@orqanix.com adresinden bize sor."
+  ],
+  "business-api": [
+    "Birçok ekip zaten kendi uygulamalarını, ajanlarını ve insanlarını yönetiyor. Bize göre zor kısım, her görevi kimin yapması gerektiğine ve nedenine karar vermek. Bu düşünme işini, ek bir ekran olmadan tek başına sunmak istedik.",
+    "Akıl yürütme katmanımız AxWise için bir API geliştirdik. API, iki programın konuşmasını sağlar. Bugün kendi platformumuza bağlı. Aynı tasarım, başka bir şirketin sisteminin bir görev göndermesine ve karşılığında bir karar almasına olanak tanır; bu erişimi her seferinde bir ekibe açmak istiyoruz.",
+    {
+      "h": "Ne gönderirsin, ne alırsın"
+    },
+    "Görev, işin kısa bir tanımıdır: hedef, istediğin sonuç, son tarih, ne kadar riskli olduğu ve geri alınıp alınamayacağı. Yanında şu an elindeki ajanlar ve araçlar, onay kuralların ve maliyet ile süre sınırların da gider.",
+    "Geri gelen yalnızca bir isim değil, eksiksiz bir karardır:",
+    {
+      "list": [
+        "Her biri sade gerekçelerle sıralanmış adaylar",
+        "Eksik bir beceri ya da engellenmiş bir araç gibi, hiçbir puanın geçersiz kılamayacağı kesin elemeler",
+        "Bir bağlam paketi: görevin ihtiyaç duyduğu bilgiler",
+        "Güvenlik sınırları: işin içinde kalması gereken sınırlar",
+        "Onay noktaları: bir kişinin evet demesi gereken yerler",
+        "Yedekler: bir şeyler ters giderse bir B planı"
+      ]
+    },
+    "Bazı veriler eksikse karar tahmin yürütmek yerine bunu belirtir. Aynı girdiler, aynı sıralama sürümüyle aynı yanıtı verir. Her karar kaydedilir ve asla yeniden yazılmaz.",
+    "API yalnızca öneride bulunur. Tasarımı gereği sistemin her kararı o anki gerçek duruma göre kontrol eder, sonra neyin çalışacağına karar verir. Bir görev kurallarının izin verdiğinden daha riskliyse, geri alınamıyorsa ya da onay gerektiriyorsa, karar bir insan onayı adımı ekler. Hiçbir ajan uymuyorsa, zorla bir eşleşme yapmak yerine görevi bir kişiye devreder.",
+    {
+      "h": "Daha büyük işler için yapıldı"
+    },
+    "Üstünde yine kodumuzda bulunan üç büyük parça daha var.",
+    "Birincisi, seçmeden önce bilgi bulmak: yeterince bilip bilmediğini kontrol eder. Doğrudan ilerleyebilir, elinde zaten olan kanıtları kullanabilir, bir kişiden açıklama isteyebilir ya da yalnızca sen izin verirsen, zaman ve para sınırların içinde sınırlı bir araştırma yapabilir. Net bir görev asla araştırma beklemez ve zayıf bir araştırma asla kendinden emin bir yanıta dönüşmez.",
+    "İkincisi, ekip planları ve toparlanma. Bir ajan ekibi için plan yapabilir: arka arkaya, yan yana, sonunda bir denetleyiciyle ya da her adımı bir kişinin onayladığı şekilde. Her adımın bir sahibi, net bir bitiş çizgisi ve bir yedek planı olur. Bir ajan ayrılırsa, bir araç başarısız olursa, bütçe değişirse ya da bir kişi devreye girerse yeni bir plan yapar ve eskisini kayıtta tutar.",
+    "Üçüncüsü, sonuçlardan dikkatli öğrenme. Sistemin işin nasıl gittiğini bildirebilir: kalite, maliyet, süre ve yeniden yapılan iş. Öğrenme varsayılan olarak kapalıdır. Ajanları sıralamanın yeni bir yolu ancak bir kişi kanıtları inceleyip onay verdikten sonra devreye girer ve geri alınabilir.",
+    {
+      "h": "Şu an ne durumda"
+    },
+    "Onu beş farklı örnek iş üzerinde test ediyoruz: bir yazılım olayı, bir müşteri şikâyetinin üst kademeye taşınması, bir uyumluluk incelemesi, kampanya hazırlığı ve bir finans analizi.",
+    "API herkese açık değil ve gerçek pilot çalışmalarda işi dağıtmanın daha basit yollarından daha iyi olduğunu henüz göstermedik. Onu test edebileceğin gerçek ekiplerin ve gerçek görevlerin varsa, senden haber almayı çok isteriz.",
+    "Erişim hakkında sormak için hello@orqanix.com adresine yaz."
+  ],
+  "opening-the-source": [
+    "Orqanix’in içindeki motorun tek bir büyük görevi var. Her işi kimin yapması gerektiğini, neden uygun olduklarını ve bir kişinin ne zaman devreye girmesi gerektiğini belirlemek için yapıldı.",
+    "Böyle bir motorun okunmaya açık olması gerektiğini düşünüyoruz. Bu yüzden kaynak kodunu açıyoruz.",
+    "Motorun adı AxWise Flow. Orqanix’in akıl yürütme katmanı o ve artık açık kaynaklı bir lisans olan Apache 2.0 lisansını taşıyor. Onu çalıştırmak için kurulum adımları yazıldı ve hazır. Bugün kod hâlâ gizli ve yalnızca ekibimiz görebiliyor.",
+    {
+      "h": "Açık bir motor neden önemli"
+    },
+    "İşi yapay zekâya devretmek güven ister. Bir ajanın işi neden aldığını, diğerinin neden almadığını bilmek istersin.",
+    "AxWise Flow seçimlerini açıklar. Bir görevi kimin yapması gerektiğini, neden uygun olduğunu ve onunla birlikte hangi bağlamın, kontrollerin ve yedek planların gittiğini söyler. Bir seçim daha fazla bilgi gerektirdiğinde, simüle edilmiş müşterilerle görüşmeler gibi kısa bir araştırma yapabilir. Her bulgu, geldiği kelimelerin tam kendisine bağlanır.",
+    "Açık kod bir adım daha ileri gider. Onu açtığımızda sen ya da güvendiğin biri, her yanıtın arkasındaki kuralları okuyup kendiniz kontrol edebileceksiniz. Bizim sözümüze güvenmek zorunda kalmayacaksın.",
+    "Açık kod, düşünmek ile yapmak arasındaki net çizgiyi görmeni de sağlar. Motor yalnızca öneride bulunur. Orqanix’in işi yürüten kısmı, bir şey olmadan önce izinleri, bütçeleri ve araçları yeniden kontrol eder.",
+    {
+      "h": "Geliştiriciler neler yapabilir"
+    },
+    "Açık kod, bir şeyler geliştiren insanlar için de. Onu açtığımızda bir ekip şunları yapabilecek:",
+    {
+      "list": [
+        "Motoru kendi bilgisayarında çalıştırmak.",
+        "Diğer uygulamaların onunla konuşma yolu olan API’sini, tarayıcıdaki yerleşik bir sayfadan test etmek.",
+        "Müşteri görüşmelerini yükleyip sonuçları bir web uygulamasında incelemek.",
+        "Onu kendi işlerine göre değiştirmek ve genişletmek.",
+        "İyileştirmeleri geri göndermek, böylece motor herkes için daha iyi hâle gelebilir."
+      ]
+    },
+    "Kod açıldığında kurulum kısa. Rehber, uygulamaları çalıştıran bir araç olan Docker’ı ve Google’dan alacağın kendi yapay zekâ anahtarını ister. Bir ayar dosyasını kopyalarsın, anahtarını ve uzun, rastgele bir gizli anahtar eklersin ve her şeyi tek bir komutla başlatırsın.",
+    {
+      "h": "Apache 2.0 neye izin verir"
+    },
+    "Lisansları okumak zordur, işte kısa hâli.",
+    "Apache 2.0, motoru kişisel bir projede ya da bir işletmede ücretsiz kullanmana izin verir. Onu kopyalayabilir, değiştirebilir ve değiştirdiğin sürümü paylaşabilirsin. Onu kendi ürününe yerleştirip o ürünü satabilirsin. Ona kod ekleyen kişiler, o kodu kapsayan patentlerini kullanman için sana ücretsiz bir hak da tanır.",
+    "Karşılığında birkaç makul şey ister. Paylaştığın her kopyada lisansı ve orijinal bildirimleri koru. Değiştirdiğin dosyaları işaretle.",
+    "Birkaç sınır da geçerlidir. Lisans sana adımızı ya da markamızı vermez. Motorun senin patentlerinden birini ihlal ettiğini iddia ederek birini mahkemeye verirsen, lisansın sana tanıdığı patent hakları sona erer. Ve kod olduğu gibi, hiçbir garanti olmadan gelir.",
+    "Motorun üzerine bir şey mi geliştirmek istiyorsun? hello@orqanix.com adresinden bize bir satır yaz."
+  ]
+}

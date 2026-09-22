@@ -1,0 +1,257 @@
+{
+  "tiny-llms-under-a-cent": [
+    "Kami sedang mengerjakan cara baru untuk menjawab permintaan Anda. Alih-alih mengirim setiap permintaan ke satu model AI raksasa, Orqanix akan membaginya ke banyak model mungil. Target kami: satu permintaan utuh, dikerjakan dengan baik, dengan biaya di bawah $0.01.",
+    "Ini masih dalam pengerjaan. Fitur ini belum ada di aplikasi, dan kami belum punya hasil untuk dibagikan. Tetapi idenya jelas, dan bagian yang menentukan siapa mengerjakan setiap tugas sudah dibuat. Berikut idenya, langkah demi langkah.",
+    {
+      "h": "Mengapa yang kecil bisa mengalahkan yang besar"
+    },
+    "LLM adalah model AI di balik aplikasi chat. Yang terbesar bisa melakukan hampir apa saja. Tetapi sebagian besar permintaan sehari-hari tidak membutuhkan hampir apa saja. Yang dibutuhkan hanya beberapa tugas sederhana yang dikerjakan dengan baik: membaca file, mengambil fakta penting, mengurutkannya, memeriksanya, lalu menulis jawaban yang jelas.",
+    "Meminta satu model raksasa mengerjakan semua itu sama seperti meminta pakar paling senior Anda mengerjakan setiap tugas kecil di kantor. Pekerjaannya selesai, tetapi Anda membayar tarif senior hanya untuk memilah surat.",
+    "Kami yakin model kecil, yang masing-masing diberi satu tugas yang dikuasainya, bisa lebih murah dan menjawab lebih cepat. Bersama-sama, satu tim model kecil bisa menyamai model raksasa untuk pekerjaan sehari-hari, dengan biaya jauh lebih rendah.",
+    {
+      "h": "Pecah, kerjakan, satukan lagi"
+    },
+    "Inilah alur yang sedang kami bangun. Belum ada yang aktif:",
+    {
+      "list": [
+        "Pecah: Orqanix membaca permintaan Anda dan memecahnya menjadi tugas-tugas kecil.",
+        "Cocokkan: setiap tugas diberikan ke model mungil yang paling cocok.",
+        "Jalankan: tugas yang tidak saling bergantung berjalan berdampingan. Sisanya berjalan berurutan.",
+        "Satukan: Orqanix memeriksa setiap bagian dan menyatukannya kembali menjadi satu jawaban."
+      ]
+    },
+    "Misalnya Anda meminta ringkasan singkat email pelanggan minggu lalu. Satu model kecil bisa membaca email-emailnya, model lain bisa mengambil poin-poin utamanya, dan model ketiga bisa menulis ringkasannya.",
+    "Anda tetap akan mendapat satu jawaban, bukan tumpukan potongan. Dan jika suatu tugas terlalu sulit untuk model kecil, kami ingin Orqanix menyerahkan bagian itu saja ke model yang lebih besar. Jadi Anda hanya membayar lebih di bagian yang benar-benar penting.",
+    {
+      "h": "Pemilih yang sudah kami punya"
+    },
+    "Kami sudah membangun lapisan penalaran. Tugasnya memutuskan siapa yang harus mengerjakan suatu tugas, dan mengapa. Saat ini lapisan itu memilih di antara agen AI. Kami sedang mengajarinya untuk juga memilih di antara model-model mungil.",
+    "Saat memilih agen hari ini, lapisan itu sudah menimbang biaya dan kecepatan. Pertama ada aturan tegas. Jika sebuah agen akan memakan biaya lebih dari anggaran yang ditetapkan, atau butuh waktu lebih lama dari yang diizinkan, agen itu sama sekali tidak dipilih. Lalu agen yang tersisa diberi skor. Keahlian yang tepat paling berpengaruh. Biaya dan kecepatan juga dihitung, jadi agen yang lebih murah dan lebih cepat mendapat skor lebih baik. Tetapi harga tidak pernah menang sendirian: agen murah tanpa keahlian yang dibutuhkan tetap tersingkir.",
+    "Setiap pilihan disertai alasan yang ditulis dengan jelas. Dan jika suatu langkah gagal atau jawabannya ditolak, lapisan penalaran bisa membuat rencana baru.",
+    "Untuk model mungil, kami ingin anggarannya mencakup seluruh permintaan: di bawah satu sen, dibagi ke semua tugas kecil. Itulah target yang sedang kami kejar.",
+    "Punya tugas sehari-hari yang Anda harap bisa lebih murah? Ceritakan kepada kami di hello@orqanix.com."
+  ],
+  "connect-any-agent": [
+    "Kini ada banyak agen AI yang bagus: Grok, Meta Muse, OpenClaw, Manus, Hermes Agents, CrewAI, dan lainnya. Masing-masing unggul dalam sesuatu. Tetapi masing-masing juga punya aplikasinya sendiri, dengan login sendiri, layar sendiri, dan cara kerja sendiri.",
+    "Akhirnya Andalah yang mengerjakan bagian di antara mereka. Anda menebak agen mana yang harus dipakai. Anda menyalin pertanyaan dari satu tab ke tab berikutnya. Anda merangkai jawaban-jawabannya secara manual. Seminggu kemudian, Anda tidak ingat lagi agen mana mengerjakan apa.",
+    "Kami sedang membangun solusinya. Target kami adalah menghubungkan agen-agen ini ke Orqanix, sehingga Anda bisa memakai semuanya dari satu tempat.",
+    {
+      "h": "Apa yang ingin kami ubah"
+    },
+    "Idenya sederhana. Anda cukup bertanya sekali, dengan kata-kata biasa, seperti bertanya kepada rekan kerja. Orqanix akan mencari tahu apa yang dibutuhkan pekerjaan itu, memilih agen yang cocok, dan memberinya konteks yang tepat. Hasilnya akan kembali ke chat Anda.",
+    {
+      "list": [
+        "Satu tempat untuk bertanya, bukan satu aplikasi per agen.",
+        "Agen yang tepat untuk setiap pekerjaan, dengan alasan singkat mengapa.",
+        "Satu tempat untuk melihat setiap hasil dan siapa yang membuatnya."
+      ]
+    },
+    "Beberapa pekerjaan butuh lebih dari satu agen. Dalam hal itu, rencananya bisa berupa tim kecil, dengan satu agen untuk setiap langkah: satu mencari fakta, satu lagi menulis, dan agen lain memeriksa hasilnya. Mereka bisa bergiliran atau bekerja berdampingan.",
+    {
+      "h": "Cara Orqanix akan memilih agen"
+    },
+    "Memilih agen adalah bagian tersulit, jadi bagian ini punya lapisannya sendiri. Kami menyebutnya lapisan penalaran: bagian yang memutuskan siapa mengerjakan apa. Lapisan ini bekerja dalam tiga langkah.",
+    "Pertama, lapisan ini menyingkirkan agen. Sebuah agen tetap dipertimbangkan hanya jika punya keahlian dan alat yang dibutuhkan pekerjaan itu, sedang bebas, diizinkan melihat jenis data ini, dan sesuai dengan anggaran biaya dan waktu Anda. Gagal satu aturan saja, agen itu tersingkir. Skor tinggi di bagian lain tidak bisa mengembalikannya.",
+    "Kedua, lapisan ini mengurutkan agen yang tersisa. Keahlian paling berpengaruh. Alat, keberhasilan sebelumnya, biaya, kecepatan, dan kecocokan dengan orang-orang yang terlibat juga dihitung. Setiap poin disertai alasan yang jelas, dan setiap pilihan disimpan, jadi selalu ada catatan mengapa satu agen menang.",
+    "Ketiga, lapisan ini menambahkan pengaman. Jika suatu tugas berisiko atau tidak bisa dibatalkan, rencananya mendapat titik periksa yang harus disetujui seseorang. Jika tidak ada agen yang cocok, pekerjaan itu diserahkan ke manusia, bukan ditebak. Setiap langkah juga punya cadangan: coba sekali lagi setelah ada gangguan, ganti dengan agen lain jika satu agen tidak tersedia, buat rencana baru jika suatu alat rusak, atau serahkan ke seseorang jika persetujuan ditolak. Dan sebelum apa pun dijalankan, Orqanix akan memeriksa lagi bahwa agen itu masih bebas, diizinkan, dan masih dalam anggaran.",
+    {
+      "h": "Posisinya saat ini"
+    },
+    "Lapisan penalaran sudah ada di kode kami, lengkap dengan pengujian yang menjalankannya pada pekerjaan yang sangat berbeda, dari dukungan pelanggan sampai keuangan. Lapisan ini belum diaktifkan di aplikasi. Menghubungkan agen dari luar ke lapisan ini adalah bagian yang sedang kami kerjakan sekarang. Koneksi langsung ke agen-agen ini belum siap, dan kami membangunnya sendiri.",
+    "Kami akan membagikan setiap langkahnya di sini begitu siap.",
+    "Agen mana yang sebaiknya kami hubungkan lebih dulu? Beri tahu kami di hello@orqanix.com."
+  ],
+  "assistant-bot-for-business": [
+    "Tidak semua orang dalam tim mau membuka aplikasi baru. Bagi banyak tim, obrolan kerja terjadi di dua tempat: chat dan email. Di situlah pertanyaan diajukan, dan di situ pula orang menunggu jawaban.",
+    "Karena itu kami sedang membangun bot asisten untuk bisnis. Tim Anda akan bertanya kepada Orqanix dari aplikasi pesan dan email yang sudah mereka pakai. Pekerjaannya berjalan di Orqanix, dan jawabannya kembali ke utas yang sama. Target kami: tidak ada jendela baru yang perlu dibuka, dan tidak ada kebiasaan baru yang perlu dipelajari.",
+    {
+      "h": "Bertanya di tempat Anda sudah mengobrol"
+    },
+    "Inilah alur yang kami bayangkan. Seseorang di tim Anda menulis pesan, sama seperti pesan lain di chat. Orqanix akan menangkapnya, membuat rencana, dan mengerjakan langkah-langkahnya. Setelah pekerjaannya selesai, balasannya akan muncul di utas tempat pertanyaan itu dimulai.",
+    "Email akan bekerja dengan cara yang sama: Anda mengirim arahan singkat, dan hasilnya kembali ke kotak masuk Anda.",
+    "Di balik balasan itu, target kami adalah Orqanix memilih agen atau tim yang cocok untuk pekerjaan itu dan memberinya informasi yang perlu diketahui. Beberapa pekerjaan sebaiknya menunggu persetujuan seseorang, jadi kami membangun persetujuan ke dalam alurnya.",
+    {
+      "h": "Apa yang bisa diminta tim Anda"
+    },
+    "Kami membentuk bot ini di sekitar pekerjaan sehari-hari yang mengisi satu minggu:",
+    {
+      "list": [
+        "Riset: mempelajari pasar, pesaing, atau suatu pertanyaan sebelum rapat.",
+        "Rencana: mengubah tujuan menjadi langkah-langkah yang jelas.",
+        "Draf: versi pertama email, unggahan, atau proposal.",
+        "Daftar: mengumpulkan prospek, tugas, atau ide menjadi satu daftar yang rapi."
+      ]
+    },
+    "Tidak satu pun dari pekerjaan ini sulit jika berdiri sendiri. Tetapi semuanya menumpuk, dan menarik orang menjauh dari pekerjaan yang hanya bisa mereka lakukan. Menyerahkannya lewat satu pesan dimaksudkan untuk mengembalikan waktu itu.",
+    {
+      "h": "Mengapa utas itu penting"
+    },
+    "Alat baru hanya membantu jika orang memakainya. Memindahkan seluruh tim ke aplikasi lain itu sulit, dan sebagian orang tidak pernah benar-benar pindah. Jika bantuan ada di chat yang sudah mereka buka, hampir tidak ada hal baru yang perlu dipelajari.",
+    "Itu juga sebabnya kami ingin jawabannya ada di utas. Pertanyaan, jawaban, dan tindak lanjutnya akan berdampingan. Orang berikutnya bisa melihat apa yang ditanyakan dan apa hasilnya, tanpa harus mencari tautan.",
+    "Bot ini akan menjadi satu cara lagi untuk menjangkau Orqanix dari tempat Anda sudah berada, di samping aplikasi Mac dan ruang kerjanya yang lengkap. Bot ini masih dalam pengembangan.",
+    "Di mana tim Anda biasa mengobrol? Beri tahu kami di hello@orqanix.com."
+  ],
+  "building-the-mobile-app": [
+    "Ide bagus jarang menunggu sampai Anda kembali ke meja kerja. Ide muncul di kereta, saat antre kopi, atau tepat setelah menelepon pelanggan. Saat Anda membuka laptop, setengah pikiran itu sudah hilang.",
+    "Karena itu kami sedang membangun aplikasi Orqanix untuk ponsel Anda. Aplikasi ini masih dalam pengerjaan. Saat ini, Orqanix berjalan sebagai aplikasi pratinjau di Mac dengan Apple silicon. Anda masuk, mengetik apa yang Anda butuhkan dengan kata-kata biasa, dan Ruang kerja di samping chat menampilkan langkah-langkah dan file saat semuanya dibuat. Aplikasi ponsel adalah cara kami agar Anda bisa menjangkau pekerjaan yang sama saat jauh dari Mac.",
+    {
+      "h": "Untuk momen-momen seperti ini"
+    },
+    "Bayangkan celah-celah kecil dalam hari biasa. Di situlah aplikasi ponsel seharusnya membantu. Bayangkan beberapa di antaranya.",
+    "Anda keluar dari rapat dengan ide yang jelas. Sebelum ide itu memudar, Anda bisa membuka aplikasi dan mengucapkannya: apa yang Anda butuhkan, dan untuk apa. Berbicara lebih mudah daripada mengetik saat sedang bergerak, jadi target kami adalah keduanya berfungsi sama baiknya.",
+    "Anda sedang di kereta dan teringat penawaran yang ingin Anda tulis. Anda cukup mengetik satu baris dan membiarkan Orqanix mulai bekerja selama Anda di perjalanan.",
+    "Sudah larut, dan Anda ingin draf pertama siap untuk besok pagi. Anda bisa memulai tugasnya dari sofa lalu meletakkan ponsel.",
+    "Setiap kali, tujuannya sama: pekerjaan dimulai saat itu juga, bukan berjam-jam kemudian.",
+    {
+      "h": "Ikuti tanpa harus menonton"
+    },
+    "Anda tidak perlu terus menatap layar selagi Orqanix bekerja. Di Mac, Ruang kerja sudah menampilkan pekerjaan langkah demi langkah. Kami membawa tampilan itu ke ponsel, dirancang untuk layar kecil. Sekilas lihat saja sudah cukup untuk tahu:",
+    {
+      "list": [
+        "langkah mana yang sedang berjalan",
+        "langkah mana yang sudah selesai",
+        "kapan Orqanix butuh jawaban singkat dari Anda"
+      ]
+    },
+    "Jika Orqanix butuh suatu detail, idenya adalah Anda membalas langsung di sana dengan beberapa kata dan pekerjaan terus berjalan. Lalu ponsel kembali ke saku Anda.",
+    {
+      "h": "File Anda menunggu di Mac"
+    },
+    "Ponsel sangat cocok untuk memulai dan memeriksa. Tetapi ponsel bukan tempat untuk membaca dokumen panjang atau merombak rencana. Jadi target kami adalah file yang dibuat Orqanix masuk ke Ruang kerja Anda, tempat yang sama seperti sekarang. Saat Anda duduk di depan Mac, Anda cukup membuka percakapannya dan menemukan semuanya di sana: chat, langkah-langkah, serta dokumen dan hasilnya.",
+    "Itulah yang sedang kami tuju: tidak perlu mengirim file ke email sendiri, tidak perlu mencari-cari di folder unduhan. Satu percakapan, dimulai di perjalanan dan diselesaikan di meja kerja.",
+    "Ingin mulai hari ini? Dapatkan Orqanix untuk Mac lewat tombol unduh di situs ini."
+  ],
+  "orqanix-for-mac": [
+    "Orqanix kini berjalan sebagai aplikasi sungguhan di Mac Anda. Pratinjau pertama ini dibuat untuk Mac dengan Apple silicon, dan gratis selama masih dalam versi awal ini.",
+    "Kami membuatnya untuk orang yang ingin pekerjaannya selesai, bukan alat baru yang harus dipelajari. Anda cukup mengatakan apa yang Anda butuhkan, lalu melihat rencana dan file-filenya terbentuk dalam satu jendela.",
+    {
+      "h": "Masuk, lalu tinggal bertanya"
+    },
+    "Saat pertama kali Anda membuka Orqanix, aplikasi ini membawa Anda ke browser untuk masuk. Setelah selesai, Anda langsung kembali ke aplikasi. Anda tidak perlu kunci AI, dan tidak ada lagi yang perlu diinstal.",
+    "Lalu Anda mengetik apa yang Anda butuhkan, dengan kata-kata sehari-hari. Orqanix bisa memecah pekerjaan itu menjadi rencana singkat dan mengerjakannya langkah demi langkah. Jika butuh jawaban dari Anda, Orqanix berhenti dan bertanya. Saat ingin membaca atau mengubah file di Mac Anda, Orqanix bisa meminta persetujuan Anda lebih dulu.",
+    "Setiap chat menyimpan pekerjaannya sendiri, dan chat baru dimulai dari awal. Tutup aplikasinya, buka lagi, dan chat Anda masih ada.",
+    {
+      "h": "Satu panel untuk semua pekerjaan"
+    },
+    "Di samping chat ada panel Ruang kerja. Panel ini menampilkan apa yang sedang dikerjakan Orqanix, jadi Anda tidak perlu menggali chat yang panjang untuk menemukannya.",
+    {
+      "list": [
+        "Status: Bekerja, Butuh Anda, Selesai, atau Dihentikan, dengan bilah yang terisi langkah demi langkah dan berapa lama waktu yang sudah berjalan.",
+        "Peta jalan: rencananya, satu langkah demi satu langkah. Jika tidak ada rencana tertulis, panel ini mengubah apa yang sudah dilakukan Orqanix menjadi langkah-langkah sederhana. Buka satu langkah untuk melihat file yang dibuatnya.",
+        "File: semua yang dibuat atau diubah. Cari file, saring menurut jenis, dan buka halaman web, catatan, tabel sederhana (CSV), serta kode langsung di panel. Untuk file yang diubah, Anda bisa melihat baris mana yang berubah.",
+        "Aktivitas: setiap tindakan, dijelaskan dengan sederhana, dan apa pun yang gagal ditampilkan dengan warna merah."
+      ]
+    },
+    "Butuh file di tempat lain? Simpan salinannya, simpan beberapa sekaligus sebagai satu file ZIP, atau tampilkan di Finder. Minta riset, dan hasilnya terbuka di panel yang sama, lengkap dengan sumbernya.",
+    {
+      "h": "Cara mendapatkannya"
+    },
+    "Klik Unduh untuk macOS di situs ini. Anda butuh Mac dengan chip M1 atau yang lebih baru. Tidak yakin? Buka menu Apple, pilih About This Mac, lalu lihat bagian Chip.",
+    "Buka file yang Anda unduh dan seret Orqanix Preview ke folder Applications, lalu buka. Pratinjau ini belum dinotarisasi (pemeriksaan keamanan milik Apple), jadi macOS mungkin memblokirnya saat pertama kali dibuka. Jika itu terjadi, buka System Settings, lalu Privacy & Security, dan klik Open Anyway. Setelah itu, masuk dengan akun Orqanix Anda.",
+    "Memakai Windows atau Mac Intel? Aplikasi desktop belum bisa berjalan di sana, tetapi Anda bisa mencoba versi web.",
+    "Ini adalah pratinjau awal, dan kami terus menyempurnakannya. Setelah mencobanya, beri tahu kami apa yang berfungsi dan apa yang tidak di hello@orqanix.com.",
+    "Dapatkan pratinjau gratisnya lewat tombol Unduh untuk macOS di situs ini."
+  ],
+  "orqaly-and-axwise-merge": [
+    "Orqaly dan AxWise awalnya adalah dua proyek terpisah. Pada 13 September 2026, keduanya dipindahkan ke satu basis kode, satu rumah bersama untuk kode mereka. Kini keduanya dibangun dari versi kode yang sama dan dirilis bersama sebagai satu rilis.",
+    "Aturan di antara keduanya singkat: AxWise memutuskan, Orqaly mengerjakan. Satu sisi memikirkan tugasnya. Sisi lain menjalankannya dan menyerahkan hasilnya kepada Anda.",
+    "Pemindahan ini sendiri tidak mengubah cara kerja apa pun. Kami memberi kode satu rumah, dan setiap bagian tetap berjalan sebagai layanannya sendiri, dengan tugasnya sendiri.",
+    {
+      "h": "Dua sisi, masing-masing satu tugas"
+    },
+    "AxWise adalah bagian yang berpikir sebelum pekerjaan apa pun dimulai. Saat sebuah tugas masuk, AxWise menentukan:",
+    {
+      "list": [
+        "Siapa yang harus mengerjakannya: satu agen, satu tim agen, atau seseorang",
+        "Mengapa pilihan itu cocok untuk tugas ini",
+        "Konteks dan fakta apa yang harus menyertainya",
+        "Pemeriksaan dan persetujuan apa yang dibutuhkan",
+        "Apa yang harus dilakukan jika suatu langkah gagal"
+      ]
+    },
+    "AxWise dirancang untuk melakukan riset tambahan hanya jika riset itu bisa mengubah jawabannya, jadi tugas yang jelas bisa langsung diberikan ke pembantu yang tepat. Setiap pilihan disertai alasannya.",
+    "Orqaly adalah aplikasi di sekelilingnya. Inilah yang Anda lihat dan pakai: akun Anda, chat, agen dan alat, anggaran, serta persetujuan. Orqaly menjalankan pekerjaan langkah demi langkah, mencatat sampai mana prosesnya, mengulang langkah yang gagal, dan menyerahkan file-filenya kepada Anda di akhir.",
+    {
+      "h": "Satu produk untuk Anda"
+    },
+    "Anda tidak perlu tahu bagian mana yang sedang bekerja. Anda hanya bertemu satu produk: Orqanix.",
+    "Anda mulai dengan sebuah pesan, bukan formulir panjang. Jika ada hal penting yang belum jelas, Orqanix mengajukan paling banyak satu pertanyaan. Lalu Orqanix menunjukkan apa yang dipahaminya dan meminta Anda mengonfirmasinya. Berikutnya Orqanix menunjukkan rencananya dan bertanya lagi. Baru setelah Anda setuju, pekerjaan dimulai.",
+    "Selama berjalan, Anda bisa melihat sampai mana prosesnya. Setelah selesai, hasilnya disimpan di riwayat Anda, siap dibuka dan diunduh. Jika ada fakta yang tidak bisa didukung bukti, Orqanix menandai hasilnya dengan celah-celah itu alih-alih menyembunyikannya. Jika ada yang gagal, Orqanix memberi tahu Anda, dengan kata-kata jelas yang bisa langsung Anda tindak lanjuti.",
+    {
+      "h": "Lebih aman dan lebih jelas sejak dirancang"
+    },
+    "Saran bukanlah izin. AxWise bisa merekomendasikan siapa yang harus mengerjakan suatu tugas, tetapi sesuai rancangannya, AxWise tidak mendapat kunci atau kata sandi Anda, tidak bisa membagikan akses, dan tidak bisa bertindak di aplikasi Anda yang lain. Semua tugas itu milik Orqaly.",
+    "Sebelum apa pun dijalankan, Orqaly memeriksa lagi. Apakah agen ini tersedia? Apakah agen ini diizinkan? Apakah tugasnya sesuai dengan anggaran dan alat yang boleh dipakai? Baru setelah itu Orqaly menjalankan rencana yang Anda setujui.",
+    "Setiap keputusan disimpan persis seperti saat dibuat, lengkap dengan alasannya, sehingga bisa diperiksa nanti. Dan setiap bagian punya satu tugas yang jelas: AxWise memegang pemikiran, Orqaly memegang pengerjaan.",
+    "Kami memeriksa perpindahan ini dengan cermat. Kedua aplikasi lulus pengujiannya, dan setelah perpindahan, hasil yang dibuat sebelumnya tetap terbuka dengan cara yang sama, termasuk tombol unduhnya. Ini adalah pratinjau kami, bukan peluncuran produksi, dan kami akan terus menguji seiring perkembangannya.",
+    "Penasaran bagaimana kedua bagian ini saling melengkapi? Tanyakan kepada kami di hello@orqanix.com."
+  ],
+  "business-api": [
+    "Banyak tim sudah menjalankan aplikasi, agen, dan orang-orang mereka sendiri. Menurut kami, bagian tersulitnya adalah memutuskan siapa yang harus mengerjakan setiap tugas, dan mengapa. Kami ingin menawarkan kemampuan berpikir itu secara terpisah, tanpa layar tambahan.",
+    "Kami telah membangun API untuk lapisan penalaran kami, AxWise. API memungkinkan dua program saling berkomunikasi. Saat ini API tersebut terhubung ke platform kami sendiri. Rancangan yang sama memungkinkan sistem perusahaan lain mengirim tugas dan menerima keputusan, dan kami ingin membuka akses itu satu tim demi satu tim.",
+    {
+      "h": "Apa yang Anda kirim, apa yang Anda dapat"
+    },
+    "Tugas adalah deskripsi singkat pekerjaannya: tujuannya, hasil yang Anda inginkan, tenggat waktunya, seberapa berisiko, dan apakah bisa dibatalkan. Bersamanya dikirim agen dan alat yang Anda miliki saat ini, aturan persetujuan Anda, serta batas biaya dan waktu Anda.",
+    "Yang kembali adalah keputusan lengkap, bukan sekadar nama:",
+    {
+      "list": [
+        "Kandidat yang diurutkan, masing-masing dengan alasan yang jelas",
+        "Pengecualian mutlak, seperti keahlian yang tidak ada atau alat yang diblokir, yang tidak bisa dikalahkan skor apa pun",
+        "Paket konteks: fakta-fakta yang dibutuhkan tugas itu",
+        "Pagar pengaman: batas-batas yang harus dipatuhi pekerjaan",
+        "Titik persetujuan, tempat seseorang harus menyetujui",
+        "Cadangan: rencana alternatif jika ada yang salah"
+      ]
+    },
+    "Jika ada data yang kurang, keputusan itu menyebutkannya alih-alih menebak. Masukan yang sama, dengan versi pemeringkatan yang sama, memberikan jawaban yang sama. Setiap keputusan disimpan dan tidak pernah ditulis ulang.",
+    "API ini hanya merekomendasikan. Sesuai rancangannya, sistem Anda memeriksa setiap keputusan terhadap kondisi saat ini, lalu memutuskan apa yang dijalankan. Jika suatu tugas lebih berisiko daripada yang diizinkan aturan Anda, tidak bisa dibatalkan, atau butuh persetujuan resmi, keputusan itu menambahkan langkah persetujuan manusia. Jika tidak ada agen yang cocok, tugas itu diserahkan ke seseorang alih-alih dipaksakan.",
+    {
+      "h": "Dibangun untuk pekerjaan yang lebih besar"
+    },
+    "Tiga bagian yang lebih besar berada di atasnya, juga sudah ada di kode kami.",
+    "Pertama, mencari fakta sebelum memilih: sistem memeriksa apakah informasinya sudah cukup. Sistem bisa langsung lanjut, memakai bukti yang sudah Anda miliki, meminta seseorang memperjelas, atau, hanya jika Anda mengizinkan, menjalankan riset terbatas dalam batas waktu dan biaya Anda. Tugas yang jelas tidak pernah menunggu riset, dan riset yang lemah tidak pernah berubah menjadi jawaban yang terdengar yakin.",
+    "Kedua, rencana tim dan pemulihan. Sistem bisa merencanakan untuk satu tim agen: satu per satu, berdampingan, dengan peninjau di akhir, atau dengan seseorang yang menyetujui setiap langkah. Setiap langkah mendapat penanggung jawab, garis akhir yang jelas, dan rencana cadangan. Jika sebuah agen keluar, suatu alat gagal, anggarannya berubah, atau seseorang turun tangan, sistem membuat rencana baru dan menyimpan rencana lama sebagai catatan.",
+    "Ketiga, belajar dengan hati-hati dari hasil. Sistem Anda bisa melaporkan bagaimana pekerjaan berjalan: kualitas, biaya, waktu, dan pengerjaan ulang. Pembelajaran nonaktif secara bawaan. Cara baru untuk memeringkat agen baru aktif setelah seseorang meninjau buktinya dan menyetujuinya, dan cara itu bisa dibatalkan kembali.",
+    {
+      "h": "Posisinya saat ini"
+    },
+    "Kami mengujinya pada lima contoh pekerjaan yang berbeda: insiden perangkat lunak, eskalasi pelanggan, tinjauan kepatuhan, persiapan kampanye, dan analisis keuangan.",
+    "API ini belum terbuka untuk publik, dan kami belum membuktikan dalam uji coba nyata bahwa API ini lebih baik daripada cara-cara yang lebih sederhana untuk membagi pekerjaan. Jika Anda punya tim nyata dan tugas nyata untuk mengujinya, kami senang mendengar kabar dari Anda.",
+    "Untuk menanyakan akses, tulis ke hello@orqanix.com."
+  ],
+  "opening-the-source": [
+    "Mesin di dalam Orqanix punya satu tugas besar. Mesin ini dibuat untuk menentukan siapa yang harus mengerjakan setiap tugas, mengapa mereka cocok, dan kapan seseorang harus turun tangan.",
+    "Menurut kami, mesin seperti itu seharusnya terbuka untuk dibaca. Jadi kami membuka kode sumbernya.",
+    "Mesin itu bernama AxWise Flow. Mesin ini adalah lapisan penalaran Orqanix, dan kini memakai lisensi Apache 2.0, sebuah lisensi sumber terbuka. Langkah-langkah pemasangan untuk menjalankannya sudah ditulis dan siap. Saat ini kodenya masih privat, dan hanya tim kami yang bisa melihatnya.",
+    {
+      "h": "Mengapa mesin terbuka itu penting"
+    },
+    "Menyerahkan pekerjaan kepada AI butuh kepercayaan. Anda ingin tahu mengapa satu agen mendapat pekerjaan itu dan bukan agen lain.",
+    "AxWise Flow menjelaskan pilihannya. Mesin ini menyebutkan siapa yang harus mengerjakan suatu tugas, mengapa mereka cocok, serta konteks, pemeriksaan, dan rencana cadangan apa yang menyertainya. Jika suatu pilihan butuh lebih banyak fakta, mesin ini bisa menjalankan riset singkat, seperti wawancara dengan pelanggan simulasi. Setiap temuan tertaut kembali ke kata-kata persis asalnya.",
+    "Kode terbuka melangkah lebih jauh. Setelah kami membukanya, Anda, atau orang yang Anda percaya, bisa membaca aturan di balik setiap jawaban dan memeriksanya sendiri. Anda tidak perlu hanya memercayai kata-kata kami.",
+    "Kode terbuka juga memperlihatkan garis yang jelas antara berpikir dan mengerjakan. Mesin ini hanya merekomendasikan. Bagian Orqanix yang menjalankan pekerjaan memeriksa izin, anggaran, dan alat sekali lagi sebelum apa pun terjadi.",
+    {
+      "h": "Apa yang bisa dilakukan para pembuat"
+    },
+    "Kode terbuka juga untuk orang-orang yang membangun. Setelah kami membukanya, sebuah tim akan bisa:",
+    {
+      "list": [
+        "Menjalankan mesin ini di komputer mereka sendiri.",
+        "Menguji API-nya, cara aplikasi lain berkomunikasi dengannya, dari halaman bawaan di browser.",
+        "Mengunggah wawancara pelanggan dan menjelajahi hasilnya di aplikasi web.",
+        "Mengubah dan memperluasnya untuk jenis pekerjaan mereka sendiri.",
+        "Mengirim perbaikan kembali, agar mesin ini bisa menjadi lebih baik untuk semua orang."
+      ]
+    },
+    "Setelah kodenya terbuka, pemasangannya singkat. Panduannya membutuhkan Docker, alat untuk menjalankan aplikasi, dan kunci AI Anda sendiri dari Google. Anda menyalin satu file pengaturan, menambahkan kunci Anda dan sebuah rahasia acak yang panjang, lalu menjalankan semuanya dengan satu perintah.",
+    {
+      "h": "Apa yang diizinkan Apache 2.0"
+    },
+    "Lisensi itu sulit dibaca, jadi inilah versi singkatnya.",
+    "Apache 2.0 mengizinkan Anda memakai mesin ini secara gratis, dalam proyek pribadi maupun bisnis. Anda boleh menyalinnya, mengubahnya, dan membagikan versi yang sudah Anda ubah. Anda boleh memasukkannya ke produk Anda sendiri dan menjual produk itu. Orang yang menambahkan kode ke dalamnya juga memberi Anda hak gratis untuk memakai paten mereka yang mencakup kode tersebut.",
+    "Sebagai gantinya, lisensi ini meminta beberapa hal yang wajar. Sertakan lisensi dan pemberitahuan aslinya pada setiap salinan yang Anda bagikan. Tandai file-file yang Anda ubah.",
+    "Ada juga beberapa batasan. Lisensi ini tidak memberi Anda hak atas nama atau merek kami. Jika Anda menggugat siapa pun ke pengadilan dengan klaim bahwa mesin ini melanggar salah satu paten Anda, hak paten yang diberikan lisensi kepada Anda berakhir. Dan kodenya disediakan apa adanya, tanpa jaminan.",
+    "Ingin membangun di atas mesin ini? Hubungi kami di hello@orqanix.com."
+  ]
+}

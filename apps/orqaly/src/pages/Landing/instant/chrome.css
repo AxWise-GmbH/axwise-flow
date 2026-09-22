@@ -1,4 +1,4 @@
-/* Page chrome for the "Instant" landing: top bar, phone menu and the opening curtain. */
+/* Page chrome for the "Instant" landing: top bar, Solutions panel, phone menu, opening fade. */
 
 /* Top bar ------------------------------------------------------------------ */
 
@@ -12,10 +12,9 @@
     border-color 400ms ease;
 }
 
-.oi-bar[data-scrolled='true'],
-.oi-bar[data-open='true'] {
+.oi-bar[data-scrolled='true'] {
   border-bottom-color: var(--oi-hairline);
-  background: rgba(3, 11, 7, 0.72);
+  background: rgba(var(--oi-bg-rgb), 0.72);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
 }
@@ -58,33 +57,18 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  font-family: var(--oi-mono);
-  font-size: 0.74rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--oi-sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   text-decoration: none;
 }
 
+/* The page you are on reads in full white; there is no line under it. */
 .oi-nav-link {
-  position: relative;
   padding: 0 14px;
   color: var(--oi-muted);
   transition: color 300ms ease;
-}
-
-/* A hairline of light grows under the link you point at. */
-.oi-nav-link::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  bottom: 9px;
-  left: 14px;
-  height: 1px;
-  background: var(--oi-accent);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  transition: transform 500ms var(--oi-ease);
 }
 
 .oi-nav-link:hover,
@@ -95,21 +79,15 @@
   color: var(--oi-ink);
 }
 
-.oi-nav-link:hover::after,
-.oi-nav-link:focus-visible::after,
-.oi-nav-link[aria-current='page']::after,
-.oi-nav-link[data-active='true']::after {
-  transform: scaleX(1);
-}
-
 .oi-nav-cta,
 .oi-sheet-cta {
   justify-content: center;
-  margin-left: 12px;
+  margin-inline-start: 12px;
   padding: 0 22px;
   border-radius: var(--oi-radius-pill);
   background: var(--oi-ink);
-  color: #060a08;
+  color: var(--oi-on-ink);
+  font-weight: 500;
   transition:
     background-color 300ms ease,
     box-shadow 400ms ease;
@@ -117,8 +95,14 @@
 
 .oi-nav-cta:hover,
 .oi-sheet-cta:hover {
-  background: #ffffff;
-  box-shadow: 0 0 32px rgba(var(--oi-accent-rgb), 0.5);
+  background: rgb(var(--oi-fg-rgb));
+  box-shadow: 0 0 32px rgba(var(--oi-accent-rgb), calc(0.5 * var(--oi-halo-k)));
+}
+
+/* On the light page a dark pill does not glow; it lifts. */
+[data-oi-theme='light'] .oi-nav-cta:hover,
+[data-oi-theme='light'] .oi-sheet-cta:hover {
+  box-shadow: 0 8px 22px -8px rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
 }
 
 .oi-bar a:focus-visible,
@@ -142,19 +126,13 @@
   cursor: pointer;
 }
 
-.oi-sol-button::after {
-  right: 33px;
-}
-
-.oi-sol-chevron,
-.oi-sheet-chevron {
+.oi-sol-chevron {
   width: 12px;
   height: 12px;
   transition: transform 420ms var(--oi-ease);
 }
 
-[aria-expanded='true'] > .oi-sol-chevron,
-[aria-expanded='true'] > .oi-sheet-chevron {
+[aria-expanded='true'] > .oi-sol-chevron {
   transform: rotate(180deg);
 }
 
@@ -166,14 +144,14 @@
   right: var(--oi-s3);
   width: min(720px, calc(100vw - 2 * var(--oi-s3)));
   padding: 10px;
-  border: 1px solid var(--oi-hairline-strong);
+  /* The shared card graphite (--oi-app-* in instant.css), over solid black so the page
+     never shows through a menu. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 20px;
-  background:
-    radial-gradient(ellipse 70% 60% at 100% 0, rgba(var(--oi-glow-rgb), 0.42), transparent 70%),
-    var(--oi-stage-panel);
+  background: var(--oi-app-surface), var(--oi-page);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 40px 90px -20px rgba(0, 0, 0, 0.9);
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16),
+    0 40px 90px -20px rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
   animation: oi-sol-in 420ms var(--oi-ease) backwards;
 }
 
@@ -181,14 +159,15 @@
   display: none;
 }
 
-/* Bridges the gap under the button, so the pointer never leaves on its way down. */
+/* Bridges the gap under the button, so the pointer never leaves on its way down. Kept short,
+   as on the Products panel: a taller bridge covers the other buttons in the bar. */
 .oi-sol-panel::before {
   content: '';
   position: absolute;
   right: 0;
   bottom: 100%;
   left: 0;
-  height: 18px;
+  height: 8px;
 }
 
 @keyframes oi-sol-in {
@@ -214,8 +193,7 @@
   animation-delay: calc(60ms + var(--i, 0) * 28ms);
 }
 
-.oi-sol-link,
-.oi-sheet-sublink {
+.oi-sol-link {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -229,14 +207,12 @@
 
 .oi-sol-link:hover,
 .oi-sol-link:focus-visible,
-.oi-sol-link[aria-current='page'],
-.oi-sheet-sublink[aria-current='page'] {
-  background: rgba(255, 255, 255, 0.05);
+.oi-sol-link[aria-current='page'] {
+  background: rgba(var(--oi-fg-rgb), 0.05);
 }
 
 /* The page you are on keeps a point of light, so it never reads as just another hover. */
-.oi-sol-link[aria-current='page']::after,
-.oi-sheet-sublink[aria-current='page']::after {
+.oi-sol-link[aria-current='page']::after {
   content: '';
   flex: none;
   width: 6px;
@@ -246,8 +222,7 @@
   background: var(--oi-accent);
 }
 
-.oi-sol-icon,
-.oi-sheet-subicon {
+.oi-sol-icon {
   flex: none;
   box-sizing: border-box;
   width: 40px;
@@ -263,28 +238,24 @@
 
 .oi-sol-link:hover .oi-sol-icon,
 .oi-sol-link:focus-visible .oi-sol-icon,
-[aria-current='page'] > .oi-sol-icon,
-[aria-current='page'] > .oi-sheet-subicon {
+[aria-current='page'] > .oi-sol-icon {
   border-color: rgba(var(--oi-accent-rgb), 0.6);
   color: var(--oi-accent);
 }
 
-.oi-sol-link span,
-.oi-sheet-sublink span {
+.oi-sol-link span {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.oi-sol-link b,
-.oi-sheet-sublink b {
+.oi-sol-link b {
   font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: -0.015em;
 }
 
-.oi-sol-link small,
-.oi-sheet-sublink small {
+.oi-sol-link small {
   color: var(--oi-muted);
   font-size: 0.8rem;
   line-height: 1.35;
@@ -306,35 +277,67 @@
 
 /* Phone menu --------------------------------------------------------------- */
 
+/* A small grey disc with three short white lines; open, the outer two cross into an X. The
+   button keeps a 44px touch target around the 34px disc. */
 .oi-menu-toggle {
+  position: relative;
   display: none;
   place-items: center;
   width: 44px;
   height: 44px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--oi-hairline-strong);
-  border-radius: 50%;
+  border: 0;
   background: none;
-  color: var(--oi-ink);
+  color: rgb(var(--oi-fg-rgb));
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oi-menu-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--oi-control);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-pale-rgb), 0.07);
+  transition:
+    background-color 300ms ease,
+    scale 200ms var(--oi-ease);
+}
+
+.oi-menu-toggle:hover::before,
+.oi-menu-toggle[aria-expanded='true']::before {
+  background: var(--oi-control-hover);
+}
+
+.oi-menu-toggle:active::before {
+  scale: 0.92;
+}
+
+.oi-bar .oi-menu-toggle:focus-visible {
+  outline-offset: -3px;
+  border-radius: 50%;
 }
 
 .oi-menu-icon {
   position: relative;
   display: block;
-  width: 16px;
-  height: 10px;
+  width: 14px;
+  height: 9px;
 }
 
 .oi-menu-icon i {
   position: absolute;
+  top: 3.75px;
   left: 0;
   width: 100%;
   height: 1.5px;
   border-radius: 1px;
   background: currentColor;
-  transition: transform 420ms var(--oi-ease);
+  transition:
+    transform 320ms var(--oi-ease),
+    opacity 200ms ease;
 }
 
 .oi-menu-icon i:first-child {
@@ -342,118 +345,326 @@
 }
 
 .oi-menu-icon i:last-child {
-  bottom: 0;
+  top: 7.5px;
 }
 
 .oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:first-child {
-  transform: translateY(4.25px) rotate(45deg);
+  transform: translateY(3.75px) rotate(45deg);
+}
+
+.oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0.2);
 }
 
 .oi-menu-toggle[aria-expanded='true'] .oi-menu-icon i:last-child {
-  transform: translateY(-4.25px) rotate(-45deg);
+  transform: translateY(-3.75px) rotate(-45deg);
 }
 
+/* A fixed sheet needs a bar without glass: a backdrop filter would pin the sheet to the bar's
+   box instead of the screen. */
+.oi-bar[data-menu='open'],
+.oi-bar[data-menu='closing'] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/*
+ * The sheet: the whole screen in black, with no lines, under the bar row. It sits in the bar's
+ * own layer at z-index -1, so the logo and the X stay on top of it with no seam, and it hides
+ * the bar's glass and hairline. InstantTopBar locks the page behind it while it is open.
+ */
 .oi-sheet-menu {
-  display: grid;
-  gap: 2px;
-  /* Taller than the screen once Solutions is open, so the sheet scrolls, not the page. */
-  max-height: calc(100dvh - 61px);
-  padding: var(--oi-s1) var(--oi-s2) var(--oi-s3);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  /* The bar row is 60px, plus its 1px border. */
+  padding-top: 61px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: var(--oi-page);
+  animation: oi-sheet-show 220ms ease-out both;
 }
 
 .oi-sheet-menu[hidden] {
   display: none;
 }
 
-.oi-sheet-link {
+.oi-sheet-menu[data-state='closing'] {
+  pointer-events: none;
+  animation: oi-sheet-hide 180ms ease-in forwards;
+}
+
+/* The tiles at the top, Try For Free held at the bottom of the screen. */
+.oi-sheet-inner {
   display: flex;
-  align-items: baseline;
-  gap: 14px;
-  min-height: 60px;
-  padding-top: 16px;
-  border-bottom: 1px solid var(--oi-hairline);
+  flex-direction: column;
+  min-height: 100%;
+  padding-block: 12px max(var(--oi-s3), env(safe-area-inset-bottom));
+}
+
+/*
+ * The bento: the page tiles side by side, Solutions across the full width under them with all
+ * ten kinds of work as chips. Every tile is the shared card graphite (--oi-app-* in
+ * instant.css); the chips inside are plain lighter fills, with no lines.
+ */
+.oi-bento {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: var(--oi-s3);
+}
+
+.oi-bento-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 136px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 20px;
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.12);
   color: var(--oi-ink);
-  font-size: 1.7rem;
-  font-weight: 400;
-  letter-spacing: -0.035em;
   text-decoration: none;
-  animation: oi-sheet-in 520ms var(--oi-ease) backwards;
-  animation-delay: calc(var(--i, 0) * 70ms);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 250ms ease,
+    scale 200ms var(--oi-ease);
+  animation: oi-tile-in 420ms var(--oi-ease) backwards;
+  animation-delay: calc(50ms + var(--i, 0) * 50ms);
 }
 
-.oi-sheet-link span {
-  color: var(--oi-dim);
-  font-family: var(--oi-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+a.oi-bento-tile:active {
+  scale: 0.97;
 }
 
-.oi-sheet-group {
-  animation: oi-sheet-in 520ms var(--oi-ease) backwards;
-  animation-delay: calc(var(--i, 0) * 70ms);
+@media (hover: hover) {
+  a.oi-bento-tile:hover {
+    border-color: rgba(var(--oi-pale-rgb), 0.3);
+  }
 }
 
-.oi-sheet-button {
-  width: 100%;
-  margin: 0;
-  padding-inline: 0;
-  border-width: 0 0 1px;
-  border-style: solid;
-  background: none;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  animation: none;
+/* The page you are on: a brighter edge, and a point of light where the arrow was. */
+.oi-bento-tile[aria-current='page'],
+.oi-bento-tile[data-active='true'] {
+  border-color: rgba(var(--oi-pale-rgb), 0.38);
 }
 
-.oi-sheet-button[data-active='true'] {
-  color: var(--oi-accent);
+.oi-bento-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: auto;
 }
 
-.oi-sheet-chevron {
-  align-self: center;
+.oi-bento-badge {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--oi-app-fill);
+}
+
+.oi-bento-badge svg {
   width: 16px;
   height: 16px;
-  margin-left: auto;
+}
+
+.oi-bento-arrow {
+  width: 16px;
+  height: 16px;
   color: var(--oi-muted);
+  transition:
+    translate 250ms var(--oi-ease),
+    color 250ms ease;
 }
 
-.oi-sheet-sub {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 2px 10px;
-  margin: 0;
-  padding: 10px 0 12px;
-  border-bottom: 1px solid var(--oi-hairline);
-  list-style: none;
+a.oi-bento-tile:active .oi-bento-arrow {
+  translate: 2px -2px;
+  color: var(--oi-ink);
 }
 
-.oi-sheet-sub[hidden] {
+@media (hover: hover) {
+  a.oi-bento-tile:hover .oi-bento-arrow {
+    translate: 2px -2px;
+    color: var(--oi-ink);
+  }
+}
+
+.oi-bento-tile[aria-current='page'] .oi-bento-arrow {
   display: none;
 }
 
-.oi-sheet-sub li {
-  animation: oi-sheet-in 420ms var(--oi-ease) backwards;
-  animation-delay: calc(var(--i, 0) * 30ms);
+.oi-bento-tile[aria-current='page'] .oi-bento-top::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin: 6px 4px 0 0;
+  border-radius: 50%;
+  background: var(--oi-accent);
 }
 
-.oi-sheet-sublink {
-  min-height: 56px;
-  padding-inline: 6px;
+.oi-bento-name {
+  margin-top: 18px;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.oi-bento-line {
+  margin-top: 4px;
+  color: var(--oi-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.oi-bento-wide {
+  grid-column: 1 / -1;
+  min-height: 0;
+  padding: 16px 12px 12px;
+}
+
+.oi-bento-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 4px 12px;
+}
+
+.oi-bento-head > * {
+  margin-top: 0;
+}
+
+.oi-bento-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oi-bento-chips li {
+  min-width: 0;
+  animation: oi-tile-in 320ms var(--oi-ease) backwards;
+  animation-delay: calc(170ms + var(--i, 0) * 16ms);
+}
+
+.oi-bento-chip {
+  --oi-bento-ink: #d4d4d4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 6px 12px;
+  border-radius: 13px;
+  background: var(--oi-app-fill);
+  color: var(--oi-bento-ink);
+  font-size: 0.875rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    scale 200ms var(--oi-ease);
+}
+
+[data-oi-theme='light'] .oi-bento-chip {
+  --oi-bento-ink: #333333;
+}
+
+.oi-bento-chip:active {
+  scale: 0.97;
+  background: rgba(var(--oi-fg-rgb), 0.1);
+  color: var(--oi-ink);
+}
+
+@media (hover: hover) {
+  .oi-bento-chip:hover {
+    background: rgba(var(--oi-fg-rgb), 0.09);
+    color: var(--oi-ink);
+  }
+}
+
+.oi-bento-chip[aria-current='page'] {
+  background: rgba(var(--oi-fg-rgb), 0.12);
+  color: var(--oi-ink);
+}
+
+.oi-bento-chip[aria-current='page']::after {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: auto;
+  border-radius: 50%;
+  background: var(--oi-accent);
+}
+
+.oi-bento-chip span {
+  min-width: 0;
+}
+
+/* Name only: the one-line description stays in the desktop panel. */
+.oi-bento-chip b {
+  font-weight: 400;
+}
+
+.oi-bento-chip small {
+  display: none;
+}
+
+.oi-bento-chip-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--oi-muted);
+}
+
+[aria-current='page'] > .oi-bento-chip-icon {
+  color: var(--oi-ink);
 }
 
 .oi-sheet-cta {
+  flex: none;
   min-height: 52px;
-  margin: var(--oi-s3) 0 0;
-  animation: oi-sheet-in 520ms var(--oi-ease) 240ms backwards;
+  margin: auto 0 0;
+  animation: oi-sheet-in 380ms var(--oi-ease) backwards;
+  animation-delay: calc(60ms + var(--i, 0) * 50ms);
+}
+
+@keyframes oi-sheet-show {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes oi-sheet-hide {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
 }
 
 @keyframes oi-sheet-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 14px, 0);
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+@keyframes oi-tile-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.97);
   }
 }
 
@@ -487,52 +698,39 @@
   }
 }
 
-/* Opening curtain ---------------------------------------------------------- */
+/* Opening ------------------------------------------------------------------ */
 
-.oi-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: grid;
-  place-items: center;
-  background: var(--oi-page);
-  color: var(--oi-orb);
-  transition: opacity 700ms ease;
+/* On a page that opens with an entrance (InstantLayout's data-entrance), the bar fades in
+   with the first screen's words. While the fonts are on their way it holds its first
+   frame, like the hero's entrances (OrbitHero.css). */
+[data-entrance] .oi-bar {
+  animation: oi-bar-in 900ms ease 80ms backwards;
 }
 
-.oi-loader > * {
-  transition:
-    transform 900ms var(--oi-ease),
-    filter 700ms ease;
+[data-entrance='wait'] .oi-bar {
+  animation-play-state: paused;
 }
 
-/* The orb swells toward the viewer and dissolves into the page behind it. */
-.oi-loader[data-phase='leave'] {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.oi-loader[data-phase='leave'] > * {
-  transform: scale(2.4);
+@keyframes oi-bar-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .oi-loader,
-  .oi-loader > *,
-  .oi-sheet-link,
+  [data-entrance] .oi-bar,
+  .oi-menu-toggle::before,
+  .oi-menu-icon i,
+  .oi-sheet-menu,
+  .oi-bento-tile,
+  .oi-bento-arrow,
+  .oi-bento-chips li,
+  .oi-bento-chip,
   .oi-sheet-cta,
-  .oi-sheet-group,
-  .oi-sheet-sub li,
   .oi-sol-panel,
   .oi-sol-grid li,
-  .oi-sol-chevron,
-  .oi-sheet-chevron {
+  .oi-sol-chevron {
     transition: none;
     animation: none;
-  }
-
-  .oi-loader[data-phase='leave'] > * {
-    transform: none;
-    filter: none;
   }
 }

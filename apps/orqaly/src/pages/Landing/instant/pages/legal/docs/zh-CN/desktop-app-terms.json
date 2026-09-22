@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "桌面应用条款",
+    "summary": "本条款涵盖在您的 Mac 上安装和使用 Orqanix 应用，包括其 AI 智能体可以执行的实际操作。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "关于本条款"
+    },
+    {
+      "type": "p",
+      "text": "本条款是对我们适用于 Orqanix Mac 应用（“桌面应用”）的[服务条款](/instant/legal/terms)的补充。本条款与服务条款、我们的[可接受使用政策](/instant/legal/acceptable-use)以及我们的[隐私政策](/instant/legal/privacy)共同构成一份协议。如果本条款与服务条款就桌面应用存在不一致，以本条款为准。"
+    },
+    {
+      "type": "p",
+      "text": "在我们的产品处于早期阶段期间，桌面应用免费提供。在任何付费方案开始之前，我们将公布价格以及付款和取消的规则。"
+    },
+    {
+      "type": "p",
+      "text": "在此之前，我们还将按照欧盟法律的要求公布撤回购买的规则。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "您的许可"
+    },
+    {
+      "type": "p",
+      "text": "在您遵守本条款的前提下，我们授予您一项个人的、非独占的、不可转让的许可，允许您在您拥有或控制的 Mac 上下载、安装和使用桌面应用。我们可以按照服务条款中[暂停与终止](/instant/legal/terms#ending)所述终止该许可。"
+    },
+    {
+      "type": "p",
+      "text": "您不得："
+    },
+    {
+      "type": "list",
+      "items": [
+        "出售、出租、出借或再许可桌面应用；",
+        "删除或更改我们的声明或他人的许可声明；",
+        "规避登录或我们在应用中设定的任何限制；",
+        "使用桌面应用开发竞争产品，或为此复制我们的产品指令。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "这些限制不适用于应用中的开源部分，例如 Goose（Apache 2.0），这些部分仍受其各自许可的约束（参见[开源声明](/instant/legal/open-source)）。这些限制也不会剥夺法律允许您对合法使用的软件所做的任何事情，例如研究其工作原理或使其与其他程序协同工作。"
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "您需要什么"
+    },
+    {
+      "type": "list",
+      "items": [
+        "一台搭载 Apple silicon（M1 或更新型号）的 Mac。本应用无法在 Intel Mac 或其他系统上运行。",
+        "互联网连接以及用于登录的 Orqanix 账户。默认模型不需要任何 AI 提供商的密钥。",
+        "您必须年满 18 周岁。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "请仅从 orqanix.com 上的链接下载桌面应用。对于从任何其他来源获得的副本，我们概不负责。"
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "首次启动"
+    },
+    {
+      "type": "p",
+      "text": "Apple 尚未对桌面应用进行公证（公证是 Apple 对在其 App Store 之外提供的应用进行的自动检查），因此 macOS 可能会在您首次打开时阻止它。如需允许打开，请在“系统设置”>“隐私与安全性”中选择“仍要打开”。请仅对来自 orqanix.com 的副本执行此操作。"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "智能体操作"
+    },
+    {
+      "type": "p",
+      "text": "桌面应用在您的 Mac 上运行 AI 智能体。智能体是一种使用 AI 模型来选择步骤并加以执行的软件。当您向应用交付一项任务时，其智能体可以在您的 Mac 上执行实际操作，例如："
+    },
+    {
+      "type": "list",
+      "items": [
+        "读取、创建、更改、移动和删除文件；",
+        "在 Mac 的终端（shell）中运行命令，这些命令可能会安装软件、更改设置或访问互联网；",
+        "使用您启用的工具、扩展和已连接的服务，这些工具和服务可能会在您在其他地方的账户中执行操作；",
+        "按计划运行已保存的任务（配方），但仅限于桌面应用处于打开状态时。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "首次安装应用时，shell 和文件工具即处于启用状态。"
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "智能体何时先征求您的同意"
+    },
+    {
+      "type": "p",
+      "text": "默认情况下，智能体会直接执行操作，而不事先征求您的同意。这一默认模式称为“Automatically approve tool calls”（自动批准工具调用）。您可以在应用设置中将其更改为："
+    },
+    {
+      "type": "list",
+      "items": [
+        "每次操作前都询问；",
+        "仅在应用视为敏感的操作前询问；",
+        "仅聊天，不执行任何操作。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当应用询问时，您可以回答“Allow Once”（允许一次）、“Always Allow”（始终允许）或“Deny”（拒绝）。选择“Always Allow”后，对于该类操作，智能体将不再询问。"
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "您的责任"
+    },
+    {
+      "type": "p",
+      "text": "由您决定智能体可以做什么：任务、批准模式，以及它们可以使用的文件夹、工具和账户。您授权它们在这些限制范围内执行的操作，并对这些操作负责，如同您本人执行了这些操作一样。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "仅让智能体处理您有权使用、并有权允许软件代您使用的文件、系统和账户。",
+        "遵守智能体在其中执行操作的任何服务的条款，以及我们的[可接受使用政策](/instant/legal/acceptable-use)。",
+        "未经他人许可，不得使用智能体访问他人的系统或数据。",
+        "如果您为企业工作，请确保该企业允许您在其文件和系统上使用桌面应用。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "人工审核"
+    },
+    {
+      "type": "p",
+      "text": "AI 会出错。智能体可能会误解任务、选错文件、运行有害命令，或在失败时报告成功。结果可能错误、不完整或过时，且不构成法律、医疗、财务或其他专业建议。请参阅[我们的 AI 如何运作](/instant/legal/ai)。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "在让智能体处理任何重要内容之前，请先进行备份。我们无法恢复被智能体删除或更改的文件。",
+        "对于涉及重要文件、资金、他人或在线运行系统的工作，请使用会先询问的[批准模式](#approval-modes)。",
+        "在依赖、发送或发布智能体制作的内容之前，请先进行检查。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "责任"
+    },
+    {
+      "type": "p",
+      "text": "智能体在您的 Mac 上或在您已连接的账户中执行的操作可能产生难以或无法撤销的实际后果，例如数据丢失、设置被更改、消息被发送或其他提供商收取的费用。"
+    },
+    {
+      "type": "p",
+      "text": "在法律允许的最大范围内，对于因您允许智能体执行的操作、您对批准模式的选择或缺少备份而导致的损失或损害，我们概不负责。桌面应用按“现状”和“现有”基础提供，不附带任何形式的保证，详见服务条款中的[免责声明](/instant/legal/terms#warranty)和[责任](/instant/legal/terms#liability)。本条款中的任何内容均不限制法律不允许我们限制的责任。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "根据您所在国家/地区的法律，如果桌面应用不符合我们的合同，以及对于我们造成的损害，我们应承担责任。对于仅因您允许智能体执行的操作、您对批准模式的选择或缺少备份而导致的损害，我们不承担责任，除非该损害是由于我们违反自身义务所致。本条款中的任何内容均不限制您作为消费者的法定权利，也不限制对故意、重大过失、生命、身体或健康伤害承担的责任或依据产品责任法承担的责任。其余事项见服务条款中的[责任](/instant/legal/terms#liability)。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "您的数据去向"
+    },
+    {
+      "type": "p",
+      "text": "以下为摘要。完整详情请参阅[隐私政策](/instant/legal/privacy)。"
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "在您的 Mac 上"
+    },
+    {
+      "type": "list",
+      "items": [
+        "应用将其数据保存在您 Mac 的“资源库”中的一个文件夹里，只有您的 macOS 用户账户可以读取。",
+        "您的聊天记录保存在本地数据库文件中，除您的 Mac 本身提供的保护外，没有其他加密。",
+        "您连接的 AI 提供商的密钥以及您添加的扩展的密钥以纯文本文件形式存储在应用的文件夹中，而非存储在 macOS 钥匙串中。任何能够读取您文件的人或程序都可以读取这些密钥。",
+        "您的 Orqanix 登录信息存储在 macOS 钥匙串中。退出登录即可将其取消。",
+        "智能体创建的文件会存放在您选择的项目文件夹中。",
+        "应用会在您的 Mac 上保留日志，并自动清理旧日志。它不会向我们发送任何使用统计数据，也没有崩溃报告程序。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "从您的 Mac 发出的数据"
+    },
+    {
+      "type": "p",
+      "text": "使用默认模型时，任务的每一步都会将截至当时的整个对话发送给 AI 模型：包括您写的内容、智能体读取的文件内容、命令输出以及我们的产品指令。这些数据经由我们位于欧盟的服务器（Google Cloud，荷兰）传送至 Google Gemini。我们的服务器仅转发这些数据，不会存储。Google 可能会根据其[Gemini API 条款](https://ai.google.dev/gemini-api/terms)在欧盟以外处理这些数据。"
+    },
+    {
+      "type": "p",
+      "text": "语音听写默认处于启用状态。如果您使用该功能，您的语音将被发送给模型提供商。"
+    },
+    {
+      "type": "p",
+      "text": "当智能体使用我们的研究工具时，它会向您的 Orqanix 云端工作区发送一个问题；如果智能体选中了您的云端文档，还会附带其中最多五份文档的摘录。问题、摘录以及包含其来源的结果将作为固定记录存储在该处。研究过程可能会搜索网络并查询公开的公司登记信息。[隐私政策](/instant/legal/privacy)说明了如何申请获取副本或删除数据。"
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "其他 AI 提供商和工具"
+    },
+    {
+      "type": "p",
+      "text": "您可以连接其他 AI 提供商，例如 OpenAI、Anthropic 或在您的 Mac 上运行的模型，也可以添加由他人开发的工具和扩展。当您这样做时："
+    },
+    {
+      "type": "list",
+      "items": [
+        "该提供商将根据其自身的条款和隐私政策，直接接收您的对话和工具结果；",
+        "您与该提供商之间的协议（包括其收取的任何费用）仅存在于您与该提供商之间；",
+        "对于其他提供商、工具或扩展，或它们如何处理您的数据，我们不进行控制、检查，也不承担责任。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "更新与变更"
+    },
+    {
+      "type": "p",
+      "text": "桌面应用不会自动更新。每个新版本都需要从 orqanix.com 重新下载，并由您覆盖安装旧版本。安全修复会包含在较新的版本中，因此请使用最新版本。我们没有设定旧版本持续获得修复的固定期限。"
+    },
+    {
+      "type": "p",
+      "text": "我们可能会在新版本中更改或移除功能。有关变更的规则，请参阅[服务和本条款的变更](/instant/legal/terms#changes)。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如果您以消费者身份（在您的贸易或业务之外）使用桌面应用，您享有欧盟法律就数字内容赋予消费者的权利。即使本应用免费，这些权利也同样适用，因为您为使用本应用向我们提供了个人数据（第 (EU) 2019/770 号指令）。本应用必须按照本条款和我们网站上的描述运行。在法律要求的期限内，我们将提供为保持这一状态所需的更新（包括安全更新），并在 orqanix.com 上说明何时有可用更新以及它修复了什么问题。如果您未在合理时间内安装我们已告知您的更新，对于该更新本可修复的故障，我们不承担责任，除非是我们的安装说明有误。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "除保持其正常运行所需的变更外，我们仅会出于正当理由（例如新的法律、安全或改进）更改桌面应用，且不会向您收取任何费用。如果某项变更对您访问或使用本应用造成的不利影响超过轻微程度，我们将在变更发生前的合理时间内通过电子邮件通知您。届时，您可以在我们发出通知或变更发生之日（以较晚者为准）起 30 天内免费终止本协议，除非我们允许您免费继续使用未经更改的版本。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "制裁与出口"
+    },
+    {
+      "type": "p",
+      "text": "如果美国或欧盟的制裁或出口规则禁止，或者您被列入美国或欧盟的制裁名单，您不得下载或使用桌面应用。请参阅服务条款中的[制裁与出口](/instant/legal/terms#sanctions)。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "停止使用"
+    },
+    {
+      "type": "p",
+      "text": "您可以随时停止使用桌面应用。首先请退出登录，这将取消您的 Orqanix 登录。然后从“应用程序”文件夹中删除该应用。如需移除本地聊天记录、设置、日志和已存储的密钥，还请删除其位于 Mac“资源库”中（Application Support 下）的文件夹。智能体在您的项目文件夹中创建的文件会一直保留，直到您将其删除。"
+    },
+    {
+      "type": "p",
+      "text": "删除应用不会删除您的 Orqanix 账户或云端工作区。如需注销账户或要求我们删除您的数据，请参阅[服务条款](/instant/legal/terms)和[隐私政策](/instant/legal/privacy)。"
+    },
+    {
+      "type": "p",
+      "text": "如果您的许可终止，您必须停止使用桌面应用并将其删除。服务条款中的[暂停与终止](/instant/legal/terms#ending)说明了您的账户将会如何处理。"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "联系我们"
+    },
+    {
+      "type": "p",
+      "text": "有关本条款的问题：{company.email}。安全问题：{company.securityEmail}。隐私请求：{company.privacyEmail}。"
+    }
+  ]
+}

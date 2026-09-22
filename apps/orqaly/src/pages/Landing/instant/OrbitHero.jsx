@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import LineOrb from '../../../components/Common/LineOrb';
-import { DesktopDownloadButton, DesktopReleaseDetails } from '../simple/DesktopDownload';
+import { AppleMark, DesktopDownloadButton } from '../simple/DesktopDownload';
 import More from './ui/More';
 import HeroPulse from './HeroPulse';
 import './OrbitHero.css';
-import { ORB_ACCENT } from './palette';
+import { useOrbAccent } from './useInstantTheme';
+import { useT } from './i18n/useT';
 
 const ORB_SIZES = [
   ['(min-width: 1200px)', 1040],
@@ -51,7 +52,7 @@ const LABEL_ICONS = {
 
 // The owner's seven, in the owner's order. `key` names the part of the scene that lights
 // up (data-region in HeroPulse) and the label's station in OrbitHero.css.
-const LABELS = [
+export const LABELS = [
   {
     key: 'ready',
     tag: 'Ready to use',
@@ -104,6 +105,11 @@ const LABELS = [
 ];
 
 const STATUS = Object.fromEntries(LABELS.map(({ key, status }) => [key, status]));
+
+/** The translation key of a label's `tag`, `line` or `status`. */
+export function labelKey(key, field) {
+  return `hero.label.${key}.${field}`;
+}
 
 function matches(query) {
   return globalThis.window?.matchMedia?.(query)?.matches ?? false;
@@ -179,7 +185,8 @@ function useSceneTilt(stageRef) {
 function HeadlinePart({ line, children }) {
   return (
     <span className="oh-mask">
-      <span className="oh-rise" style={{ '--oh-line': line }}>
+      {/* dir="auto": a Latin line keeps its full stop at its own end on a right-to-left page. */}
+      <span className="oh-rise" dir="auto" style={{ '--oh-line': line }}>
         {children}
       </span>
     </span>
@@ -187,6 +194,8 @@ function HeadlinePart({ line, children }) {
 }
 
 export default function OrbitHero() {
+  const { t } = useT();
+  const orbInk = useOrbAccent();
   const [sticky, setSticky] = useState(null);
   const [preview, setPreview] = useState(null);
   const [offscreen, setOffscreen] = useState(false);
@@ -245,36 +254,34 @@ export default function OrbitHero() {
             {/* Each word group is its own mask, so every line rises by itself however
                 the headline wraps. The text itself is unchanged. */}
             <h1 id="instant-hero-heading" className="oh-title">
-              <HeadlinePart line={0}>Instant</HeadlinePart>{' '}
-              <HeadlinePart line={1}>Intelligence.</HeadlinePart>
-              <span className="oh-accent">
-                <HeadlinePart line={2}>On your Apple</HeadlinePart>{' '}
-                <HeadlinePart line={3}>computers.</HeadlinePart>
-              </span>
+              <HeadlinePart line={0}>{t('hero.title.1', 'Instant')}</HeadlinePart>{' '}
+              <HeadlinePart line={1}>{t('hero.title.2', 'Intelligence.')}</HeadlinePart>
             </h1>
             <p className="oh-lead">
-              Say what you need. AI agents research, plan and make the real files, right on your
-              Mac.
+              {t('hero.lead.1', 'Turn a Single Prompt into Completed Work -')}
+              <br className="oh-lead-break" /> {t('hero.lead.2', 'Delivered Directly to Your Mac.')}
             </p>
             <div className="oh-more">
               <More id="instant-hero-more">
                 <p>
-                  The AI thinks in the cloud and does the work on your Mac. Tell it what you need in
-                  plain words: it researches, plans and makes the real files, from a business plan
-                  to web pages. Every step and file sits beside the chat for you to check. No
-                  coding, nothing else to install.
+                  {t(
+                    'hero.more.body',
+                    'The AI thinks in the cloud and does the work on your Mac. Tell it what you need in plain words: it researches, plans and makes the real files, from a business plan to web pages. Every step and file sits beside the chat for you to check. No coding, nothing else to install.'
+                  )}
                 </p>
-                <DesktopReleaseDetails id="instant-hero-release" />
               </More>
             </div>
             <div className="oh-lines">
-              <p className="oi-line">For founders and small teams.</p>
-              <p className="oi-line">Free during the early version.</p>
+              <p className="oi-line">{t('hero.line.who', 'For founders and small teams.')}</p>
+              <p className="oi-line">{t('hero.line.free', 'Free during the early version.')}</p>
             </div>
-            {/* Described by the release facts inside the closed More: hidden, not dropped. */}
             <div className="oh-cta">
-              <DesktopDownloadButton descriptionId="instant-hero-release" />
+              <DesktopDownloadButton />
             </div>
+            <p className="oh-silicon">
+              <AppleMark />
+              {t('hero.silicon', 'Apple silicon')}
+            </p>
           </div>
 
           <div
@@ -284,13 +291,14 @@ export default function OrbitHero() {
             data-offscreen={offscreen ? '' : undefined}
             {...tilt}
           >
-            <div className="oh-scene">
+            {/* A picture: it must not mirror in a right-to-left language. */}
+            <div className="oh-scene" dir="ltr">
               <div className="oh-orb" data-orb aria-hidden="true">
                 <i className="oh-bloom" />
                 <div className="oh-orb-lines" style={{ '--oh-orb-zoom': 1 / ORB_RENDER_SCALE }}>
                   <LineOrb
                     size={Math.round(orbSize * ORB_RENDER_SCALE)}
-                    accent={ORB_ACCENT}
+                    accent={orbInk}
                     hollow={0.64}
                     speed={0.7}
                     title="Orqanix line-orb"
@@ -311,7 +319,7 @@ export default function OrbitHero() {
               </div>
             </div>
 
-            <ul className="oh-labels" aria-label="What you are looking at">
+            <ul className="oh-labels" aria-label={t('hero.labels', 'What you are looking at')}>
               {LABELS.map(({ key, tag, line, tier }, index) => (
                 <li key={key} data-key={key} style={{ '--oh-i': index }}>
                   <button
@@ -347,14 +355,14 @@ export default function OrbitHero() {
                         {LABEL_ICONS[key]}
                       </svg>
                     </span>
-                    <span className="oi-tag oh-label-tag">{tag}</span>
-                    <span className="oh-label-line">{line}</span>
+                    <span className="oi-tag oh-label-tag">{t(labelKey(key, 'tag'), tag)}</span>
+                    <span className="oh-label-line">{t(labelKey(key, 'line'), line)}</span>
                   </button>
                 </li>
               ))}
             </ul>
             <p className="oi-sr-only" role="status">
-              {hasActive ? STATUS[active] : ''}
+              {hasActive ? t(labelKey(active, 'status'), STATUS[active]) : ''}
             </p>
           </div>
         </div>

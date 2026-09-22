@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router-dom';
-import FeaturesHero from './heroes/FeaturesHero';
 import Reveal from '../ui/Reveal';
 import { Badge } from '../ui/Card';
 import { Seen } from '../SpeedStrip';
-import { SWITCH_ON_LABEL } from '../capabilities.data';
-import { DEEP_DIVE_IDS, FEATURES } from './features.data';
+import { DEEP_DIVE_IDS, FEATURES, localizeFeature } from './features.data';
+import { useT } from '../i18n/useT';
 import FeatureDeepDives from './FeatureDeepDives';
 import './FeaturesPage.css';
 
 const PHONE_QUERY = '(max-width: 820px)';
-const SETUP_LABEL = 'needs setup';
 const EXPLORER_ID = 'features-explorer';
-const REST_FEATURES = FEATURES.filter((feature) => !DEEP_DIVE_IDS.includes(feature.id));
+
+/** Every feature, in the current language. */
+function useFeatures() {
+  const { t } = useT('pg');
+  return FEATURES.map((feature) => localizeFeature(feature, t));
+}
 
 // 24-unit line icons, one stroke weight. Every path draws itself (pathLength 1, see the CSS).
 const ICON_PATHS = {
@@ -70,6 +73,37 @@ const ICON_PATHS = {
   ],
   code: ['M8.5 7l-5 5 5 5', 'M15.5 7l5 5-5 5', 'M13.5 5l-3 14'],
   clock: ['M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z', 'M12 7.5V12l3 2'],
+  chip: [
+    'M8 6.5h8A1.5 1.5 0 0 1 17.5 8v8a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 16V8A1.5 1.5 0 0 1 8 6.5z',
+    'M10 10h4v4h-4z',
+    'M10 3.5v3',
+    'M14 3.5v3',
+    'M10 17.5v3',
+    'M14 17.5v3',
+    'M3.5 10h3',
+    'M3.5 14h3',
+    'M17.5 10h3',
+    'M17.5 14h3',
+  ],
+  prompt: [
+    'M5.5 3.5h9l4 4v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z',
+    'M14.5 3.5v4h4',
+    'M7.5 11.5 10 13.5l-2.5 2',
+    'M12 16h4',
+  ],
+  layers: ['M12 3.5 20.5 8 12 12.5 3.5 8z', 'M3.5 12 12 16.5 20.5 12', 'M3.5 16 12 20.5 20.5 16'],
+  calendar: [
+    'M5.5 5.5h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z',
+    'M3.5 10h17',
+    'M8 3.5v4',
+    'M16 3.5v4',
+    'M12 13v2.5l1.75 1',
+  ],
+  box: ['M12 3.5 20 7.75v8.5L12 20.5 4 16.25v-8.5z', 'M4 7.75 12 12l8-4.25', 'M12 12v8.5'],
+  spark: [
+    'M12 3.5c.6 3.9 2.1 5.4 6 6-3.9.6-5.4 2.1-6 6-.6-3.9-2.1-5.4-6-6 3.9-.6 5.4-2.1 6-6z',
+    'M18.5 15.5c.3 1.7.8 2.2 2.5 2.5-1.7.3-2.2.8-2.5 2.5-.3-1.7-.8-2.2-2.5-2.5 1.7-.3 2.2-.8 2.5-2.5z',
+  ],
 };
 
 function FeatureIcon({ name, className }) {
@@ -86,10 +120,10 @@ function twoDigits(value) {
   return String(value).padStart(2, '0');
 }
 
-// The data marks a condition in plain words; the badge only repeats which kind it is.
-function noteBadge(note) {
-  if (/switch/i.test(note)) return SWITCH_ON_LABEL;
-  if (/setup/i.test(note)) return SETUP_LABEL;
+// The data marks a condition in plain words (read in English); the badge only repeats which kind it is.
+function noteBadge(note, t) {
+  if (/switch/i.test(note)) return t('pg.features.badge.switch', 'you switch it on');
+  if (/setup/i.test(note)) return t('pg.features.badge.setup', 'needs setup');
   return null;
 }
 
@@ -101,17 +135,10 @@ function ids(feature) {
   };
 }
 
-// The hero's wall: one tile per feature, linking to the anchor that feature carries below.
-const HERO_ITEMS = FEATURES.map((feature) => ({
-  id: feature.id,
-  name: feature.name,
-  hash: `#${ids(feature).panel}`,
-  icon: <FeatureIcon name={feature.icon} className="oif-icon ohf-icon" />,
-}));
-
 /** The words of one feature: the main text, its condition if any, and a second line under "Also". */
 function FeatureText({ feature }) {
-  const badge = feature.note ? noteBadge(feature.note) : null;
+  const { t } = useT('pg');
+  const badge = feature.note ? noteBadge(feature.english.note, t) : null;
   return (
     <>
       <p id={ids(feature).today} className="oif-today">
@@ -125,7 +152,7 @@ function FeatureText({ feature }) {
       )}
       {feature.also && (
         <p className="oif-also">
-          <span className="oi-tag oif-also-tag">Also</span>
+          <span className="oi-tag oif-also-tag">{t('pg.features.also', 'Also')}</span>
           <span className="oif-also-text">{feature.also}</span>
         </p>
       )}
@@ -157,10 +184,11 @@ function bringIntoView(element) {
 }
 
 /*
- * A tile of the hero links to #feature-<id>. On a desktop that feature's panel is hidden
- * until it is picked, so the browser has nothing to scroll to: each layout lands the link
- * itself. `arrive` shows the feature and returns the element to bring into view. The
- * location key is watched too, so picking the same tile twice lands twice.
+ * A link to #feature-<id> (a shared address, or a link from elsewhere) opens that feature.
+ * On a desktop that feature's panel is hidden until it is picked, so the browser has
+ * nothing to scroll to: each layout lands the link itself. `arrive` shows the feature and
+ * returns the element to bring into view. The location key is watched too, so following
+ * the same link twice lands twice.
  */
 function useFeatureJump(arrive) {
   const { hash, key } = useLocation();
@@ -212,6 +240,8 @@ const KEY_TARGETS = {
 
 /** Desktop: the list on the left picks which feature the glass stage on the right shows. */
 function Explorer() {
+  const { t } = useT('pg');
+  const features = useFeatures();
   // The feature that just left stays painted for one short fade, so the change is a cross-fade.
   const [view, setView] = useState({ active: 0, leaving: -1 });
   const rows = useRef([]);
@@ -258,8 +288,8 @@ function Explorer() {
       onPointerMove={trackPointer}
     >
       <div className="oif-index">
-        <ul className="oif-list" aria-label="Features">
-          {FEATURES.map((feature, index) => (
+        <ul className="oif-list" aria-label={t('pg.features.list', 'Features')}>
+          {features.map((feature, index) => (
             <li key={feature.id} className="oif-row" style={{ '--i': index }}>
               <button
                 type="button"
@@ -301,10 +331,10 @@ function Explorer() {
             <span className="oif-progress">
               <i />
             </span>
-            <p className="oi-tag oif-status">Ready</p>
+            <p className="oi-tag oif-status">{t('pg.features.ready', 'Ready')}</p>
           </div>
           <div className="oif-panels">
-            {FEATURES.map((feature, index) => (
+            {features.map((feature, index) => (
               <article
                 key={feature.id}
                 id={ids(feature).panel}
@@ -334,6 +364,8 @@ function Explorer() {
 
 /** Phones: no panes. Every feature is its own card and arrives as it is reached. */
 function CardColumn() {
+  const { t } = useT('pg');
+  const features = useFeatures();
   const arrive = useCallback((index) => {
     const card = document.getElementById(ids(FEATURES[index]).panel);
     card?.focus({ preventScroll: true });
@@ -342,8 +374,8 @@ function CardColumn() {
   useFeatureJump(arrive);
 
   return (
-    <ul className="oif-cards" aria-label="Features">
-      {FEATURES.map((feature, index) => (
+    <ul className="oif-cards" aria-label={t('pg.features.list', 'Features')}>
+      {features.map((feature, index) => (
         <Seen
           as="li"
           key={feature.id}
@@ -374,26 +406,24 @@ function CardColumn() {
 }
 
 function FeatureIndex() {
+  const { t } = useT('pg');
   const phone = useSyncExternalStore(subscribeToPhone, isPhone, () => false);
   return (
     <Seen
       as="section"
       id="features-all"
-      className="oi-section oif-section oif-ruled"
+      className="oi-section oif-section"
       aria-labelledby="features-all-heading"
     >
       <div className="oi-container">
         <Seen className="oif-gate oif-head oif-head-split">
           <div className="oif-head-main">
-            <Reveal as="p" className="oi-tag oi-tag-bracket">
-              Feature by feature
-            </Reveal>
-            <Reveal as="h2" id="features-all-heading" className="oi-h2" delay={90}>
-              In the app today
+            <Reveal as="h1" id="features-all-heading" className="oi-h2">
+              {t('pg.features.title', 'In the app today')}
             </Reveal>
           </div>
-          <Reveal as="p" className="oi-small oif-legend" delay={180}>
-            Some parts are off until you switch them on.
+          <Reveal as="p" className="oi-small oif-legend" delay={90}>
+            {t('pg.features.legend', 'Some parts are off until you switch them on.')}
           </Reveal>
         </Seen>
         {phone ? <CardColumn /> : <Explorer />}
@@ -429,7 +459,9 @@ function useCardSpotlight() {
 
 /** The eight features without a story of their own, as one compact grid. */
 function RestGrid() {
+  const { t } = useT('pg');
   const trackPointer = useCardSpotlight();
+  const rest = useFeatures().filter((feature) => !DEEP_DIVE_IDS.includes(feature.id));
   return (
     <Seen
       as="section"
@@ -439,15 +471,12 @@ function RestGrid() {
     >
       <div className="oi-container">
         <Seen className="oif-gate oif-head">
-          <Reveal as="p" className="oi-tag oi-tag-bracket">
-            {twoDigits(REST_FEATURES.length)} more
-          </Reveal>
-          <Reveal as="h2" id="features-rest-heading" className="oi-h2" delay={90}>
-            And the rest
+          <Reveal as="h2" id="features-rest-heading" className="oi-h2">
+            {t('pg.features.rest', 'And the rest')}
           </Reveal>
         </Seen>
         <Seen as="ul" className="oif-rest" threshold={0.08} onPointerMove={trackPointer}>
-          {REST_FEATURES.map((feature, index) => (
+          {rest.map((feature, index) => (
             <li key={feature.id} className="oif-rest-slot" style={{ '--i': index }}>
               <article className="oif-rest-card" aria-labelledby={`rest-${feature.id}-name`}>
                 <span className="oif-rest-badge">
@@ -466,16 +495,12 @@ function RestGrid() {
   );
 }
 
+// The owner took the opening wall ("Everything it does.", FeaturesHero) off, with the rule
+// under it and the "Feature by feature" tag, so the page starts at the explorer and its
+// heading is the page's h1. FeaturesHero stays in heroes/, unused, with its own tests.
 export default function FeaturesPage() {
   return (
     <>
-      <FeaturesHero
-        id="features-heading"
-        tag="Features"
-        title="Everything it does."
-        line="Twelve things it does for you, one by one."
-        items={HERO_ITEMS}
-      />
       <FeatureIndex />
       <FeatureDeepDives />
       <RestGrid />

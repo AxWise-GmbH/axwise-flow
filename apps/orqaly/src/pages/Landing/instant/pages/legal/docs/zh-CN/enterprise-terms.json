@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "企业版条款",
+    "summary": "适用于委托 Orqanix 借助我们的智能体和专家构建、运行 AI 或就 AI 提供咨询的企业的条款。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "关于本条款"
+    },
+    {
+      "type": "p",
+      "text": "当您的企业委托 Orqanix 构建、运行 AI 或就 AI 提供咨询时，适用本企业版条款。本条款涵盖的工作包括 AI 就绪度审计、试点项目、自动化业务单元、新的 AI 岗位、定制连接器、托管式智能体运营以及团队培训等。"
+    },
+    {
+      "type": "p",
+      "text": "本条款是对我们的[服务条款](/instant/legal/terms)和[可接受使用政策](/instant/legal/acceptable-use)的补充。当我们为您处理个人数据时，[数据处理附录](/instant/legal/dpa)（“DPA”）同样适用，并构成本条款的一部分。当工作包含 Orqanix API（例如白标推理 API）时，[API 条款](/instant/legal/api-terms)也适用于该部分。"
+    },
+    {
+      "type": "p",
+      "text": "“您”指委托我们的企业。接受本条款或签署订单的人士确认其有权代表该企业并使其受约束。“我们”指 Orqanix。"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 由 {company.legalName}（地址：{company.address}）运营，该主体是本条款及每一份订单的合同方。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "企业版工作仅面向企业。代表您与我们合作的所有人员均须年满 18 周岁。"
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "订单"
+    },
+    {
+      "type": "p",
+      "text": "在每项工作开始前，我们会以书面订单或工作说明书（“订单”）的形式就该工作达成一致。每份订单说明："
+    },
+    {
+      "type": "list",
+      "items": [
+        "范围：我们将做什么，以及哪些内容不包括在内；",
+        "交付成果：您将获得什么；",
+        "时间表及任何里程碑；",
+        "价格及计费方式：按项目固定价格、按月收费、按成果收费，或以上方式的组合；",
+        "验收标准以及您的测试期限；",
+        "工作的托管地点，包括具体使用哪个欧盟 Google Cloud 区域；",
+        "工作所依赖的任何第三方软件或服务及其条款。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "订单在双方签署或以书面形式确认后即对双方具有约束力。电子邮件即可。多份订单可以同时执行，且各自独立。"
+    },
+    {
+      "type": "p",
+      "text": "我们的工作通常从调研和书面计划（“蓝图”）开始，经过使用您的数据进行构建和上线，直至运行和持续改进。订单会说明其涵盖哪些步骤。"
+    },
+    {
+      "type": "p",
+      "text": "如各文件之间存在冲突，按以下顺序确定优先效力：该工作的订单，其次是关于个人数据的 DPA，然后是本条款，最后是服务条款。"
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "我们的工作方式"
+    },
+    {
+      "type": "p",
+      "text": "我们按照订单的约定，由我们的 AI 智能体、我们的专业人员（工程师和顾问）或两者共同完成工作。我们可以使用分包商。我们仍对其工作负责，并要求其承担与我们相同的保密和数据保护义务。"
+    },
+    {
+      "type": "p",
+      "text": "我们为您构建和运行的智能体在您设定的规则范围内工作：每项操作的审批设置（允许一次、始终允许或拒绝）、基于角色的访问权限，以及每个智能体所执行操作的记录。我们会在订单中或上线前与您商定这些设置。"
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "您的配合"
+    },
+    {
+      "type": "p",
+      "text": "您应当："
+    },
+    {
+      "type": "list",
+      "items": [
+        "及时向我们提供工作所需的人员、系统、数据接触权限以及相关决策；",
+        "确保您有权向我们提供这些数据和访问权限，包括个人数据以及您自有系统和工具的许可；",
+        "指定一名能够作出决策的联系人；",
+        "及时审阅计划和交付成果；",
+        "自行备份我们所处理的系统和数据；",
+        "告知我们影响工作的规则，例如您所在行业的规则。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如因您的延误或您提供的内容有误而导致我们延误，时间表相应顺延同等时长。由此产生的任何额外工作量将作为[变更](#changes)处理。"
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "验收"
+    },
+    {
+      "type": "p",
+      "text": "如订单设定了验收标准，我们会在交付成果准备就绪时通知您。您应在订单规定的期限内依据这些标准进行测试。如符合标准，您应予以验收。如不符合，您应以书面形式告知我们不足之处，我们将予以修正并再次提交。"
+    },
+    {
+      "type": "p",
+      "text": "在以下情况下，交付成果视为已验收：您确认验收；测试期届满而您未提出附理由的书面拒绝；或您开始在实际业务中使用该交付成果（测试用途除外）。不影响使用的轻微缺陷不妨碍验收。我们将根据[我们的承诺](#warranties)修复这些缺陷。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "变更"
+    },
+    {
+      "type": "p",
+      "text": "任何一方均可要求变更范围。我们会告知您该变更对时间表和价格的影响。变更在双方以书面形式同意后生效。在此之前，我们继续按现行订单开展工作。"
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "费用与付款"
+    },
+    {
+      "type": "p",
+      "text": "您应支付订单中规定的费用。对于按成果收费，订单会界定何为成果以及如何衡量。"
+    },
+    {
+      "type": "p",
+      "text": "我们按订单约定开具发票。您应在订单或发票规定的期限内付款。费用不含增值税或其他税费，如适用，由您支付。我们仅在订单允许的情况下收取开支费用。"
+    },
+    {
+      "type": "p",
+      "text": "如您对发票的某部分有异议，请本着诚信告知我们，并支付其余部分。如某笔款项在提醒后仍未支付，我们可暂停工作直至该款项付清。逾期付款按法律允许的范围计收利息。"
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "权利归属"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "您的材料"
+    },
+    {
+      "type": "p",
+      "text": "您保留对您向我们提供的数据、内容、系统及其他材料的全部权利。您仅允许我们为完成工作而使用这些材料。"
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "交付成果"
+    },
+    {
+      "type": "p",
+      "text": "在您全额支付某项交付成果的费用后，我们根据订单专门为您制作的内容（例如智能体配置、工作流、连接器、文档和代码）归您所有。我们将我们对其享有的权利转让给您。如法律不允许转让某项权利，我们向您授予一项独占的、全球范围的、永久的许可，且您可以将其转授。在您付款之前，您可以使用交付成果进行审阅和测试。"
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "我们的材料"
+    },
+    {
+      "type": "p",
+      "text": "我们保留对我们的工具、平台、软件、智能体、模板、指令、方法和专有技术，以及我们在订单之前或订单之外制作的任何内容的全部权利。如我们的材料构成交付成果的一部分，在付款后，您将获得一项非独占的、全球范围的、永久的许可，可将其作为该交付成果的一部分，为您自身业务使用、复制和修改。您不得单独出售或许可我们的材料。"
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "服务、第三方组件与 AI 输出"
+    },
+    {
+      "type": "p",
+      "text": "我们为您运行的内容（例如托管式智能体运营或托管推理 API）属于服务，而非交付成果。您对其的访问权限在订单有效期内持续。"
+    },
+    {
+      "type": "p",
+      "text": "交付成果中的第三方组件和开源组件仍受其各自许可的约束。我们会告知您交付成果中包含哪些此类组件。"
+    },
+    {
+      "type": "p",
+      "text": "交付成果的部分内容可能由 AI 生成。在某些国家/地区，缺乏足够人类创造性投入而由 AI 生成的材料不受版权保护。我们会转让任何现有权利，但不保证此类权利存在。"
+    },
+    {
+      "type": "p",
+      "text": "双方均可继续使用从工作中获得的一般技能和经验，但不得使用对方的保密信息。"
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "保密"
+    },
+    {
+      "type": "p",
+      "text": "双方都将接触到对方的保密信息，即标注为保密或按合理理解应视为保密的非公开信息。"
+    },
+    {
+      "type": "p",
+      "text": "接收方仅为完成工作而使用该信息，以合理的谨慎加以保护，并仅与有需要且负有保密义务的人员共享。该义务不适用于已公开的信息、接收方已知悉的信息、接收方独立开发的信息，或从他人处合法获得的信息。如法律要求披露，接收方可披露所要求的内容，并在允许的情况下事先通知另一方。我们仅在获得您许可的情况下称您为我们的客户。"
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "数据与托管"
+    },
+    {
+      "type": "p",
+      "text": "当我们为您处理个人数据时，我们是您的处理者：我们仅按您的指示处理这些数据，并适用 DPA。对于我们自己保存的与您有关的记录（例如您的联系人和发票），我们以自身名义行事，并适用我们的[隐私政策](/instant/legal/privacy)。"
+    },
+    {
+      "type": "p",
+      "text": "我们将您的工作托管在与您商定并在订单中载明的欧盟 Google Cloud 区域。我们使用的部分服务商（例如提供 AI 模型的 Google Gemini）可能在欧盟境外处理数据。[子处理方](/instant/legal/subprocessors)页面列出了这些服务商。"
+    },
+    {
+      "type": "p",
+      "text": "我们不会使用您的数据训练我们自己的 AI 模型，也不会出售您的数据。"
+    },
+    {
+      "type": "p",
+      "text": "请勿向我们提供受 HIPAA 保护的健康信息。我们不签署业务伙伴协议（business associate agreement）。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "AI 法律与您的角色"
+    },
+    {
+      "type": "p",
+      "text": "您决定我们构建的系统如何在您的业务中使用。根据欧盟《人工智能法》，您是我们为您构建的系统的“部署者”，即在其自身职权下使用 AI 系统的组织。如您以自己的名义将某系统投入使用，您也可能成为其“提供者”。"
+    },
+    {
+      "type": "p",
+      "text": "如某系统可能被用于高风险领域（例如招聘与工作、教育、信贷或基本服务的获取），请在工作开始前告知我们。届时订单将约定各方的分工。对于此类用途，您作为部署者的义务自 2027 年 12 月 2 日起适用（《人工智能法》第 26 条及附件三）。这些义务包括人工监督、按照说明使用系统、监控系统运行情况以及保存其日志。"
+    },
+    {
+      "type": "p",
+      "text": "在法律要求的情况下，您应确保与您运行的系统打交道的人知道他们正在与 AI 交互，并应采取措施提升使用该系统的员工的 AI 素养（《人工智能法》第 4 条和第 50 条）。我们的团队培训可以提供帮助，但这些义务仍由您承担。"
+    },
+    {
+      "type": "p",
+      "text": "美国各州关于在重大决策中使用 AI 的法律适用于您，因为您是作出这些决策的企业。例如，科罗拉多州的相关法律将于 2027 年 1 月 1 日生效。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "业务成果"
+    },
+    {
+      "type": "p",
+      "text": "我们会朝着订单中设定的目标努力。但业务成果取决于您的数据、人员、流程和市场，而这些并非我们所能控制。除非订单明确规定，否则我们不保证节省成本、增加收入或实现任何其他业务成果。按成果收费是一种工作定价方式，而非对达成某项成果的承诺。"
+    },
+    {
+      "type": "p",
+      "text": "AI 输出可能有误，智能体也可能出错。对于重要决策，请保留人工审核，并选择与风险相匹配的审批设置。[我们的 AI 如何运作](/instant/legal/ai)对此有更多说明。"
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "我们的承诺"
+    },
+    {
+      "type": "p",
+      "text": "我们承诺以合理的技能和谨慎、由具备相应资质的人员完成工作。我们还承诺，每项交付成果在验收时在所有重要方面均符合订单。"
+    },
+    {
+      "type": "p",
+      "text": "如某项交付成果未达到该承诺，请以书面形式告知我们。我们将予以修复或重新完成工作。如我们无法在合理时间内做到，您可以终止订单的该部分，并取回您为此支付的费用。"
+    },
+    {
+      "type": "note",
+      "text": "这是您针对未达到我们承诺的交付成果所享有的唯一救济。除本条款和订单中的承诺外，在法律允许的范围内，我们不作任何其他明示或默示的保证，包括关于适销性、特定用途适用性和不侵权的保证。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "您就缺陷享有的法定权利仍然适用，但您必须首先给予我们修复缺陷的合理机会。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "在法律允许的范围内，任何一方均不对间接的、附带的、特殊的、后果性的或惩罚性的损害赔偿，或利润、收入、数据或商誉的损失承担责任。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "每一方在一份订单项下的总责任，以导致索赔的事件发生前 12 个月内根据该订单已支付及应支付的费用为限。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "上述限制不适用于您支付费用的义务、违反保密义务、欺诈，或法律不允许限制的责任。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于我们故意或因重大过失造成的损害、对生命、身体或健康的伤害，以及依据强制性产品责任法，我们承担全部责任。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于轻微过失，我们仅在违反根本义务时承担责任；根本义务是指使订单得以适当履行、且您通常可以信赖的义务。即便如此，我们也仅对此类合同中典型且可预见的损害承担责任，且总额不超过事件发生前 12 个月内根据该订单已支付及应支付的费用。除此之外，我们对轻微过失的责任予以排除。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于他人因您提供给我们的材料或因您违反本条款而提出的索赔，以及处理这些索赔所产生的合理费用，您应使我们免受损失。我们会及时告知您任何此类索赔，并让您参与处理。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "期限与终止"
+    },
+    {
+      "type": "p",
+      "text": "本条款自您的首份订单起适用，直至您的最后一份订单终止。每份订单的期限以其规定为准。按月提供的服务逐月续延，直至任何一方按订单规定的通知期予以终止。"
+    },
+    {
+      "type": "p",
+      "text": "如一方严重违反订单，且在收到通知后的合理时间内未予纠正，或一方资不抵债，另一方可以书面形式立即终止该订单。在订单允许的情况下，您也可以提前终止订单。"
+    },
+    {
+      "type": "p",
+      "text": "订单终止时，您应支付截至该日已完成工作的费用；如您提前终止，还应支付我们无法取消的费用。我们将移交您的数据以及您已付费的交付成果，停止为您运行的服务，并按照 DPA 的规定处理个人数据。本条款中按其性质应继续有效的部分（例如权利归属、保密、责任和适用法律）继续适用。"
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "更换服务商",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如我们为您运行数据处理服务（例如托管式智能体运营或托管服务），欧盟《数据法》赋予您更换至其他服务商或您自有系统的权利（《数据法》第 23-31 条）。对于这些服务：",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "您可以书面通知我们，发起更换，或终止服务并取回您的数据。通知期最长为两个月，您也可以选择更短的通知期。",
+        "我们以通用的机器可读格式向您提供您的数据，以及我们为您制作且您有权获得的数字资产。",
+        "过渡期最长为 30 天。如技术上无法做到，我们会在《数据法》允许的限度内告知您原因以及所需时间。",
+        "在过渡期内，我们按约定持续运行服务，并本着诚信协助您和您的新服务商。",
+        "过渡期结束后，您至少还有 30 天时间取回您的数据。",
+        "更换完成后，我们按照 DPA 的规定删除您的数据。",
+        "在 2027 年 1 月 12 日之前，我们仅可收取更换所产生的直接成本，且仅限订单中列明的成本。自 2027 年 1 月 12 日起，我们不再收取任何更换费用。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如某项服务是为您定制构建的，其中部分规则可能仅部分适用（《数据法》第 31 条）。如属此情况，订单会说明适用哪些规则，并且我们会在您签署前告知您。",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "所在地与政府访问",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们将您的工作托管在订单中载明的欧盟 Google Cloud 区域。[子处理方](/instant/legal/subprocessors)页面列出了每个服务商及其运营地点（《数据法》第 28 条）。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如欧盟以外的政府要求我们提供您的非个人数据，我们仅在欧盟或成员国法律允许的情况下提供。除非法律禁止，我们会事先告知您（《数据法》第 32 条）。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "法律与争议"
+    },
+    {
+      "type": "p",
+      "text": "本条款及每份订单均受 {company.law} 法律管辖，但不适用其冲突法规则。争议由 {company.law} 的法院裁决，除非法律要求由其他法院管辖。",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "在任何一方诉诸法院之前，双方联系人应本着诚信尝试解决争议。请写信至 {company.email} 并描述问题。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "本条款不含仲裁条款。如索赔符合条件，任何一方均可向小额诉讼法院提起诉讼。"
+    },
+    {
+      "type": "p",
+      "text": "您确认您未被列入美国或欧盟的制裁名单，也不位于受美国或欧盟禁运的国家/地区。任何一方均不得以违反美国或欧盟制裁或出口规则的方式使用该工作。"
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "一般条款"
+    },
+    {
+      "type": "list",
+      "items": [
+        "我们可能会更新本条款。已商定的订单继续适用商定时有效的条款，除非双方另有约定。",
+        "未经另一方书面同意，任何一方均不得转让本条款或订单，但转让给接管相关业务的公司的除外。",
+        "任何一方均不对超出其合理控制范围的事件所导致的延误负责。",
+        "如本条款的某一部分无效，其余部分仍然适用。",
+        "致我们的通知请发送至 {company.email}。致您的通知将发送给订单中指定的联系人。"
+      ]
+    }
+  ]
+}

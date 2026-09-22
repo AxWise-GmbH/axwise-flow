@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "Beleid voor aanvaardbaar gebruik",
+    "summary": "Dit beleid beschrijft wat u niet mag doen met Orqanix-producten of hun agents, en hoe u inhoud of activiteiten meldt die de regels overtreden.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Waarop dit beleid van toepassing is"
+    },
+    {
+      "type": "p",
+      "text": "Dit beleid bevat de regels voor het gebruik van elk Orqanix-product: de Computerapp, de Mobiele app, de Assistent-bot, de API, onze zakelijke diensten (Zakelijk) en onze website (samen de \"Diensten\"). Het geldt voor particulieren en bedrijven en maakt deel uit van onze [Servicevoorwaarden](/instant/legal/terms)."
+    },
+    {
+      "type": "p",
+      "text": "Het heeft betrekking op wat u vraagt, wat u met de output doet en wat uw agents doen. Als u anderen toegang geeft, bijvoorbeeld via de API, zorg er dan voor dat ook zij dit beleid naleven."
+    },
+    {
+      "type": "note",
+      "text": "Kort gezegd: gebruik Orqanix niet om de wet te overtreden, mensen schade toe te brengen, systemen aan te vallen of iemand te misleiden over met wie of wat hij te maken heeft."
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "Illegaal en schadelijk gebruik"
+    },
+    {
+      "type": "p",
+      "text": "Gebruik de Diensten niet om:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "een wet te overtreden, of iemand anders te helpen die te overtreden;",
+        "iemand te bedreigen, lastig te vallen, te pesten of te stalken, of geweld of haat aan te moedigen tegen mensen vanwege wie zij zijn;",
+        "terrorisme, gewelddadig extremisme of het maken van wapens die massale schade kunnen veroorzaken te plannen of te ondersteunen;",
+        "fraude, oplichting of identiteitsdiefstal te plegen, of mensen te misleiden voor geld;",
+        "mensen zonder rechtsgrond te volgen, gegevens over hen te verzamelen of profielen van hen op te stellen, of hun privégegevens zonder hun toestemming openbaar te maken;",
+        "mensen onrechtmatig te discrimineren, bijvoorbeeld bij huisvesting, werk, krediet of dienstverlening;",
+        "zelfbeschadiging, zelfdoding of eetstoornissen aan te moedigen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "Verboden AI-praktijken"
+    },
+    {
+      "type": "p",
+      "text": "Gebruik de Diensten niet voor praktijken die het EU-recht verbiedt voor AI-systemen. Wij passen deze lijst wereldwijd toe. (EU AI-verordening, art. 5)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "mensen manipuleren met technieken waarvan zij zich niet bewust zijn, of door misleiding, op een manier die hun beslissingen verstoort en hun waarschijnlijk aanzienlijke schade berokkent;",
+        "misbruik maken van kwetsbaarheden van mensen vanwege hun leeftijd, handicap of sociale of economische situatie;",
+        "sociale scoring: mensen beoordelen op hun sociale gedrag of persoonlijke kenmerken op een manier die leidt tot een oneerlijke of niet-gerelateerde behandeling;",
+        "voorspellen of iemand een strafbaar feit zal plegen, uitsluitend op basis van profilering of diens persoonlijkheidskenmerken;",
+        "databanken voor gezichtsherkenning aanleggen of uitbreiden door ongericht gezichtsafbeeldingen van internet of van camerabeelden te schrapen;",
+        "emoties van mensen herkennen op het werk of in het onderwijs, behalve om medische of veiligheidsredenen;",
+        "mensen indelen op basis van hun biometrische gegevens om hun ras, politieke opvattingen, lidmaatschap van een vakbond, religie of levensovertuiging, seksleven of seksuele gerichtheid af te leiden;",
+        "mensen op afstand en in real time identificeren aan de hand van hun biometrische gegevens in openbare ruimten met het oog op rechtshandhaving."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Gebruik de Diensten nooit om materiaal van seksueel misbruik van kinderen te maken, te delen of te zoeken, of om intieme of seksuele beelden van een echt persoon zonder diens toestemming te maken of te delen, ook als die beelden nep zijn."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Kinderen"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is bedoeld voor volwassenen (18 jaar en ouder). Laat geen kinderen uw account gebruiken. Gebruik de Diensten, inclusief de API, niet in iets dat gericht is op personen jonger dan 18 jaar of waarschijnlijk door hen zal worden gebruikt."
+    },
+    {
+      "type": "p",
+      "text": "Gebruik de Diensten nooit om kinderen te seksualiseren, te groomen, uit te buiten of in gevaar te brengen. Wij melden materiaal van seksueel misbruik van kinderen aan de autoriteiten zoals de wet vereist, en wij heffen de betrokken accounts op."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Beveiliging en misbruik"
+    },
+    {
+      "type": "p",
+      "text": "U en uw agents mogen de Diensten niet gebruiken om:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "malware, ransomware of andere schadelijke code te maken, te verspreiden of uit te voeren;",
+        "zonder toestemming van de eigenaar in te breken in computers, netwerken of accounts, deze af te tasten of te verstoren;",
+        "agents te laten werken op computers, accounts of systemen die u niet mag gebruiken, of hun toegang te geven die zij niet mogen hebben;",
+        "onze beveiliging, aanmelding, limieten of veiligheidsmaatregelen te omzeilen, of die van de diensten die u koppelt;",
+        "de Diensten of het gebruik ervan door anderen te overbelasten, aan te vallen of te verstoren;",
+        "toegang tot uw account of de Diensten te delen, te verkopen of door te verkopen zonder onze schriftelijke toestemming;",
+        "onze code of prompts, of de modellen die wij gebruiken, te achterhalen, behalve waar de wet of een opensourcelicentie dat toestaat."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Beveiligingsonderzoek naar onze eigen systemen is welkom als u ons beleid voor [Beveiliging en melding van kwetsbaarheden](/instant/legal/security) volgt."
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "Eerlijkheid over AI"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Doe niet alsof een AI een mens is, of alsof AI-output door een persoon is geschreven of gemaakt, als dat iemand zou kunnen misleiden.",
+        "Als een agent of bot namens u berichten of e-mails stuurt aan of praat met andere mensen, moet hij duidelijk zeggen dat hij een AI is, uiterlijk in zijn eerste bericht.",
+        "Gebruik de Diensten niet om u voor te doen als een echt persoon of een echte organisatie, of om nepbeoordelingen, valse documenten of valse identiteiten te maken.",
+        "Als u realistische, door AI gemaakte beelden, audio of video van echte personen, plaatsen of gebeurtenissen publiceert (deepfakes), vermeld dan duidelijk dat deze door AI zijn gemaakt of bewerkt.",
+        "Gebruik de Diensten niet voor desinformatiecampagnes of om verkiezingen te beïnvloeden."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Als u door AI gemaakte tekst publiceert om het publiek te informeren over aangelegenheden van algemeen belang, vermeld dan dat deze door AI is gemaakt, tenzij een persoon de tekst heeft beoordeeld en er de redactionele verantwoordelijkheid voor draagt. (EU AI-verordening, art. 50, lid 4)",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "Gebruik dat wij niet ondersteunen"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is gemaakt voor werk. Gebruik het niet voor:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "gezelschap, vriendschap, romantiek of een andere emotionele relatie met een AI;",
+        "therapie, counseling of behandeling van psychische problemen. Als u in crisis verkeert, neem dan contact op met de lokale hulpdiensten of een crisislijn;",
+        "het geven van professioneel medisch, juridisch, fiscaal of financieel advies aan anderen, tenzij een gekwalificeerde professional het beoordeelt en er de verantwoordelijkheid voor neemt;",
+        "het stellen van diagnoses bij, het behandelen van of het nemen van beslissingen over patiënten."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Verstrek de Diensten geen gezondheidsgegevens van patiënten die beschermd zijn door wetgeving inzake de privacy van gezondheidsgegevens, tenzij wij dat schriftelijk met u zijn overeengekomen."
+    },
+    {
+      "type": "p",
+      "text": "Onder HIPAA, de Amerikaanse wet op de privacy van gezondheidsgegevens, zou daarvoor een business associate agreement nodig zijn, en die ondertekenen wij niet. Ons [Privacybeleid voor gezondheidsgegevens van consumenten](/instant/legal/health-data) legt uit hoe wij met andere gezondheidsgegevens omgaan.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Beslissingen met een hoog risico"
+    },
+    {
+      "type": "p",
+      "text": "Sommige toepassingen kunnen grote gevolgen hebben voor het leven van mensen. U mag de Diensten alleen gebruiken om daarbij te helpen als u voldoet aan elke wet die op u van toepassing is, een gekwalificeerd persoon verantwoordelijk houdt voor elke beslissing en betrokkenen informeert waar de wet dat vereist. Het gaat onder meer om:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "het aannemen, bevorderen, aansturen of ontslaan van werknemers;",
+        "het toelaten, beoordelen of volgen van studenten, of het opsporen van fraude bij examens;",
+        "beslissingen over krediet, verzekeringen, huisvesting, of toegang tot overheidsuitkeringen of essentiële diensten;",
+        "biometrische identificatie of categorisering van personen;",
+        "het beheer van kritieke infrastructuur zoals energie, water of verkeer;",
+        "rechtshandhaving, migratie, asiel, grenstoezicht, rechtspraak of verkiezingen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "In de EU zijn de meeste van deze toepassingen \"hoog-risico\"-toepassingen volgens de AI-verordening, die extra verplichtingen oplegt aan iedereen die AI daarvoor gebruikt. U bent verantwoordelijk voor het nakomen van die verplichtingen voor zover zij op u van toepassing zijn. (EU AI-verordening, art. 26 en bijlage III)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Gebruik output niet als enige basis voor een beslissing met rechtsgevolgen of vergelijkbaar ernstige gevolgen voor een persoon.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "Spam, rechten en scraping"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Verstuur geen spam: massaberichten of ongewenste berichten, of berichten die in strijd zijn met wetten tegen spam of met marketingwetgeving. Wanneer agents of bots namens u berichten versturen, bent u de afzender.",
+        "Koppel alleen berichtenapps, e-mailaccounts en contactenlijsten die u mag gebruiken, en verwerk gegevens van anderen alleen waar de wet dat toestaat.",
+        "Maak geen inbreuk op auteursrechten, merkrechten, bedrijfsgeheimen of andere rechten, en gebruik de Diensten niet om betaalmuren of kopieerbeveiliging te omzeilen.",
+        "Laat agents geen gegevens van websites verzamelen in strijd met hun voorwaarden, toegangsregels of robots.txt-instructies, of in een tempo dat hun schade berokkent."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "De regels van Google"
+    },
+    {
+      "type": "p",
+      "text": "Ons standaard AI-model is Google Gemini. Wanneer u dit via Orqanix gebruikt, moet u ook het [Beleid voor verboden gebruik van generatieve AI](https://policies.google.com/terms/generative-ai/use-policy) van Google naleven. U mag de Diensten niet gebruiken om AI-modellen te ontwikkelen die concurreren met die van Google, waar de [Gemini API-voorwaarden van Google](https://ai.google.dev/gemini-api/terms) dat verbieden. Als u in de Computerapp een andere modelaanbieder koppelt, gelden voor dat gebruik de regels van die aanbieder. [Hoe onze AI werkt](/instant/legal/ai) legt uit welke modellen wij gebruiken."
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Een overtreding melden"
+    },
+    {
+      "type": "p",
+      "text": "Als u inhoud of activiteit in de Diensten ziet waarvan u denkt dat die illegaal is of dit beleid overtreedt, schrijf dan naar {company.email} met als onderwerp \"Report\". Iedereen kan een melding doen, met of zonder account. (EU Digitaledienstenverordening, art. 16)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u inhoud of activiteit in de Diensten ziet waarvan u denkt dat die illegaal is of dit beleid overtreedt, schrijf dan naar {company.email} met als onderwerp \"Report\". Iedereen kan een melding doen, met of zonder account.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Als iemands leven of veiligheid direct in gevaar is, neem dan eerst contact op met de politie of de hulpdiensten."
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "Wat u vermeldt"
+    },
+    {
+      "type": "list",
+      "items": [
+        "waar de inhoud zich bevindt, zo precies mogelijk: een link, de naam van een bot of account, een bericht, een datum en tijdstip;",
+        "waarom u denkt dat de inhoud illegaal is of dit beleid overtreedt, en, bij illegale inhoud, welke wet;",
+        "uw naam en e-mailadres, zodat wij kunnen reageren. U mag deze weglaten als uw melding over materiaal van seksueel misbruik van kinderen gaat;",
+        "een verklaring dat u te goeder trouw meent dat uw melding juist en volledig is."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "Hoe wij beslissen"
+    },
+    {
+      "type": "p",
+      "text": "Wij bevestigen dat wij uw melding hebben ontvangen. Een persoon beoordeelt de melding en beslist tijdig, zorgvuldig en objectief. Die persoon kijkt naar de inhoud, de context en de rechten van alle betrokkenen, waaronder de vrijheid van meningsuiting. Daarna laten wij u weten wat wij hebben besloten en waarom."
+    },
+    {
+      "type": "p",
+      "text": "Als wij optreden tegen inhoud of een account, geven wij de betrokken gebruiker een motivering: wat wij hebben gedaan, de feiten waarop dat berust, of er geautomatiseerde middelen zijn gebruikt, de regel of wet waarop wij ons baseren en hoe de beslissing kan worden aangevochten. Wij vertellen niet wie de melding heeft gedaan, tenzij de wet dat vereist. (EU Digitaledienstenverordening, art. 17)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als wij optreden tegen inhoud of een account, laten wij de betrokken gebruiker weten wat wij hebben gedaan en waarom, tenzij de wet dat verbiedt of het schade zou veroorzaken. Wij vertellen niet wie de melding heeft gedaan, tenzij de wet dat vereist.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "Als u het er niet mee eens bent"
+    },
+    {
+      "type": "p",
+      "text": "Zowel de melder als de betrokken gebruiker kan onze beslissing aanvechten. Beantwoord ons bericht, of schrijf naar {company.email} en leg uit waarom. Waar mogelijk beoordeelt iemand die niet de eerste beslissing heeft genomen de zaak opnieuw, en wij laten u de uitkomst weten."
+    },
+    {
+      "type": "p",
+      "text": "U kunt ook naar de rechter stappen, of een klacht indienen bij de digitaledienstencoördinator in het EU-land waar u woont.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij kunnen stoppen met het behandelen van meldingen van iemand die vaak kennelijk ongegronde meldingen doet, nadat wij die persoon hebben gewaarschuwd."
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "Handhaving"
+    },
+    {
+      "type": "p",
+      "text": "Als u dit beleid overtreedt, kunnen wij, afhankelijk van de ernst, u waarschuwen, inhoud verwijderen of ontoegankelijk maken, een agent of bot stopzetten, functies beperken, of uw account opschorten of opheffen. In de ernstigste gevallen, zoals bij materiaal van seksueel misbruik van kinderen, treden wij onmiddellijk en zonder waarschuwing op, en informeren wij de autoriteiten waar de wet dat vereist of toestaat."
+    },
+    {
+      "type": "p",
+      "text": "Wij treden op in verhouding tot wat er is gebeurd en lichten onze beslissing toe zoals beschreven in [Hoe wij beslissen](#how-we-decide). Onze [Servicevoorwaarden](/instant/legal/terms#ending) leggen opschorting en opheffing van accounts uitgebreider uit."
+    }
+  ]
+}

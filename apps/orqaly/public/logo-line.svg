@@ -10,7 +10,7 @@
        be dead weight. One fixed light-neutral stroke, because currentColor is
        not honoured in a favicon and this has to read on both a light and a
        dark tab strip. -->
-  <g stroke="#D5DAE1" stroke-linecap="round" fill="none" stroke-width="4.4">
+  <g stroke="#d9d9d9" stroke-linecap="round" fill="none" stroke-width="4.4">
     <line x1="25.00" y1="0.00" x2="44.51" y2="9.02" opacity="0.95"/>
     <line x1="24.15" y1="6.47" x2="41.61" y2="20.71" opacity="0.97"/>
     <line x1="21.65" y1="12.50" x2="33.56" y2="29.65" opacity="0.94"/>
@@ -36,7 +36,7 @@
     <line x1="21.65" y1="-12.50" x2="37.91" y2="-12.72" opacity="0.86"/>
     <line x1="24.15" y1="-6.47" x2="41.97" y2="-2.60" opacity="0.90"/>
   </g>
-  <g stroke="#D5DAE1" stroke-linecap="round" fill="none" stroke-width="3" opacity="0.5">
+  <g stroke="#d9d9d9" stroke-linecap="round" fill="none" stroke-width="3" opacity="0.5">
     <line x1="26.28" y1="3.44" x2="38.45" y2="-0.77" opacity="0.92"/>
     <line x1="22.96" y1="13.23" x2="35.80" y2="14.00" opacity="0.92"/>
     <line x1="16.15" y1="21.01" x2="26.57" y2="25.52" opacity="0.87"/>

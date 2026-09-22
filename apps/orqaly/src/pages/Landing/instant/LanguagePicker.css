@@ -1,0 +1,133 @@
+/* The footer's language button and the card it opens under it, over the tagline and the
+   email (the footer panel clips anything that would stick out above it). */
+.oi-lang {
+  position: relative;
+}
+
+.oi-lang-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding-inline: 14px 12px;
+  color: var(--oi-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  background: none;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease;
+}
+
+.oi-lang-button:hover,
+.oi-lang[data-open='true'] .oi-lang-button {
+  border-color: var(--oi-accent);
+  background: rgba(var(--oi-accent-rgb), 0.14);
+}
+
+.oi-lang-button:focus-visible,
+.oi-lang-option:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 2px;
+}
+
+.oi-lang-globe {
+  width: 16px;
+  height: 16px;
+  color: var(--oi-muted);
+}
+
+.oi-lang-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--oi-muted);
+  transition: transform var(--oi-fade) ease;
+}
+
+.oi-lang[data-open='true'] .oi-lang-chevron {
+  transform: rotate(180deg);
+}
+
+.oi-lang-card {
+  position: absolute;
+  inset-block-start: calc(100% + 10px);
+  inset-inline-start: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 2px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  background: var(--oi-app-surface), var(--oi-page);
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16),
+    0 24px 60px rgba(var(--oi-shadow-rgb), calc(0.6 * var(--oi-shadow-k)));
+}
+
+.oi-lang-card[hidden] {
+  display: none;
+}
+
+.oi-lang-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding-inline: 12px;
+  color: var(--oi-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: start;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.oi-lang-option:hover,
+.oi-lang-option:focus-visible,
+.oi-lang-option[aria-current='true'] {
+  color: var(--oi-ink);
+  background: rgba(var(--oi-fg-rgb), 0.07);
+}
+
+.oi-lang-check {
+  width: 14px;
+  height: 14px;
+  color: var(--oi-accent);
+}
+
+/* Phones: two columns, and the card takes the logo row's whole width. */
+@media (max-width: 640px) {
+  .oi-footer-brand-row {
+    position: relative;
+  }
+
+  .oi-lang {
+    position: static;
+  }
+
+  .oi-lang-card {
+    inset-inline: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oi-lang-option {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oi-lang-chevron {
+    transition: none;
+  }
+}

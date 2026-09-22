@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Mobil Uygulama Koşulları",
+    "summary": "Bu koşullar, Orqanix telefon uygulamasının Mac'inizdeki Orqanix için bir uzaktan kumanda olarak kullanılmasını, uygulama mağazalarının gerektirdiği koşullar da dahil olmak üzere kapsar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Bu koşullar hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar, telefonunuz için Orqanix uygulamasına (\"Mobil Uygulama\") ilişkin olarak [Hizmet Koşullarımıza](/instant/legal/terms) ek niteliğindedir. Hizmet Koşulları, [Masaüstü Uygulaması Koşulları](/instant/legal/desktop-app-terms), [Kabul Edilebilir Kullanım Politikamız](/instant/legal/acceptable-use) ve [Gizlilik Politikamız](/instant/legal/privacy) ile birlikte tek bir sözleşme oluştururlar. Mobil Uygulama konusunda bu koşullar ile Hizmet Koşulları arasında bir çelişki olması halinde bu koşullar uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "Ürünlerimiz erken aşamadayken Mobil Uygulama ücretsizdir. Herhangi bir ücretli plan başlamadan önce fiyatı ve ödeme ile iptal kurallarını yayımlayacağız."
+    },
+    {
+      "type": "p",
+      "text": "Bundan önce, AB hukukunun gerektirdiği şekilde bir satın almadan cayma kurallarını da yayımlayacağız.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Mac'iniz için bir uzaktan kumanda"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulama, Mac'inizdeki Orqanix için bir uzaktan kumandadır. Onu kullandığınızda:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Mac'inizde Orqanix uygulamasına (Masaüstü Uygulaması) ihtiyacınız vardır. Mac uygulamasıyla başlayın, ardından telefonunuzu ekleyin;",
+        "tüm işler Mac'inizde, onun dosyaları, araçları ve ayarlarıyla çalışır. Telefon neler olduğunu gösterir ve bir sonraki işi vermenizi sağlar;",
+        "dosyalar Mac'inizde oluşturulur ve onun proje klasöründe kalır. Telefon neyin oluşturulduğunu gösterir; asıl dosyalar Mac'te kalır;",
+        "Mobil Uygulama yalnızca Mac'iniz çevrimiçiyken ve Orqanix açıkken çalışır. Mac uyku moduna geçtiğinde veya çevrimdışı olduğunda telefon bunu gösterir ve Mac geri gelene kadar bekler."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Telefonunuzun Mac'inize her zaman erişebileceğini taahhüt etmiyoruz. Ağlar, uyku ayarları ve cihazlarınız bizim kontrolümüz dışındadır."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Telefonunuzdan çalışmak"
+    },
+    {
+      "type": "p",
+      "text": "Devam eden bir işi kontrol edebilir, sonuçları okuyabilir, kaydedilmiş görevleri (tarifleri) yeniden çalıştırabilir ve neye ihtiyacınız olduğunu yazarak veya söyleyerek yeni işler başlatabilirsiniz. Bu işi, [Masaüstü Uygulaması Koşulları](/instant/legal/desktop-app-terms) kapsamında Mac'inizdeki Masaüstü Uygulaması gerçekleştirir. Bu şu anlama gelir:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Mac'inizdeki ajanlar, dosyaları değiştirmek ve komut çalıştırmak gibi gerçek eylemler gerçekleştirebilir. Mac'inizde [bu ayarı değiştirmediyseniz](/instant/legal/desktop-app-terms#approval-modes), varsayılan olarak bunu önce sormadan yaparlar;",
+        "telefondan başlattığınız işlerden, onları Mac'inizin başında başlatmışsınız gibi sorumlusunuz;",
+        "izlemek için Mac'inizin başında değilsiniz; bu nedenle ne istediğinizi dikkatle seçin ve sonuçlara güvenmeden önce onları kontrol edin."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ hata yapar. Sonuçlar yanlış, eksik veya güncelliğini yitirmiş olabilir. Bkz. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Bildirimler"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulama, bir iş bittiğinde size haber verebilir. Bildirimleri telefonunuzun ayarlarından kapatabilirsiniz. Bildirimler kilit ekranınızda görünebilir; bu nedenle bildirim önizlemelerinizi size uygun şekilde ayarlayın. Her bildirimin ulaşacağını veya zamanında ulaşacağını taahhüt etmiyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "Hesabınız ve telefonunuz"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Mobil Uygulamayı kullanmak için 18 yaşında veya daha büyük olmalısınız.",
+        "Kilidi açık telefonunuzu kullanabilen herkes, Mobil Uygulama aracılığıyla Mac'inizde iş başlatabilir. Telefonunuzu kilitli tutun. Telefonunuzu kaybederseniz veya başkasına verirseniz, mümkünse Mobil Uygulamayı kaldırın ve bize bildirin.",
+        "Hesabınızı başka birinin kullandığını düşünüyorsanız {company.email} adresinden bize bildirin."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Gizlilik Politikası](/instant/legal/privacy), Mobil Uygulamayı kullandığınızda neleri ve neden topladığımızı açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Lisansınız"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullara uyduğunuz sürece, Mobil Uygulamayı sahip olduğunuz veya kontrol ettiğiniz telefonlara kurmanız ve kullanmanız için size kişisel, münhasır olmayan ve devredilemez bir lisans veriyoruz. Mobil Uygulamayı satamaz, kiralayamaz, ödünç veremez veya alt lisansını veremez, güvenlik önlemlerini ya da sınırlarını atlatamaz veya rakip bir ürün geliştirmek için kopyalayamazsınız."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Güncellemeler ve değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamanın yeni sürümlerini yayımlayabilir ve özellikleri değiştirebilir veya kaldırabiliriz. Uygulamayı bir uygulama mağazasından edindiyseniz güncellemeler, o mağazanın kurallarına tabi olarak mağaza üzerinden gelir. Değişikliklere ilişkin kurallar [Hizmetlerde ve bu koşullarda yapılan değişiklikler](/instant/legal/terms#changes) bölümünde yer almaktadır."
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamayı tüketici olarak (ticari veya mesleki faaliyetiniz dışında) kullanıyorsanız, AB hukukunun dijital içerik konusunda tüketicilere tanıdığı haklara sahipsiniz. Uygulama ücretsiz olsa bile bu haklar geçerlidir, çünkü uygulamayı kullanmak için bize kişisel veri vermektesiniz (Dir. (EU) 2019/770). Hukukun gerektirdiği süre boyunca, uygulamanın açıklandığı şekilde çalışmaya devam etmesi için gereken güvenlik güncellemeleri de dahil olmak üzere güncellemeleri kullanıma sunacağız.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bunun ötesinde, Mobil Uygulamayı yalnızca geçerli bir nedenle ve size hiçbir maliyet yüklemeden değiştireceğiz. Böyle bir değişiklik uygulamayı kullanımınızı önemsiz olmayan bir ölçüde olumsuz etkilerse, değişiklik gerçekleşmeden makul bir süre önce size e-posta göndereceğiz. Bu durumda, değişmemiş sürümü ek bir ücret olmadan kullanmaya devam etmenize izin vermediğimiz sürece, bildirimimizden veya değişiklikten (hangisi daha sonraysa) itibaren 30 gün içinde bu sözleşmeyi ücretsiz olarak sona erdirebilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk"
+    },
+    {
+      "type": "p",
+      "text": "Hukukun izin verdiği ölçüde, Mobil Uygulama hiçbir türde garanti verilmeksizin \"olduğu gibi\" ve \"mevcut olduğu şekilde\" sunulur. Hizmet Koşullarındaki [Sorumluluk reddi beyanları](/instant/legal/terms#warranty) ve [Sorumluluk](/instant/legal/terms#liability) bölümleri Mobil Uygulama için de geçerlidir.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamadan, Hizmet Koşullarındaki [Sorumluluk](/instant/legal/terms#liability) bölümünde belirtildiği şekilde, ülkenizin hukuku uyarınca sorumluyuz. Bu koşullardaki veya bir uygulama mağazasının koşullarındaki hiçbir hüküm, tüketici olarak sahip olduğunuz yasal hakları sınırlamaz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "Uygulama mağazası koşulları"
+    },
+    {
+      "type": "p",
+      "text": "Bu bölüm, Mobil Uygulamayı bir uygulama mağazasından edindiyseniz geçerlidir. Mağazanın kendi koşulları da uygulamayı indirmeniz ve kullanmanız için geçerlidir. Bu koşullara ve mobil şebekenizin, örneğin veri paketinizin koşullarına uymalısınız."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamayı Apple'ın App Store'undan edindiyseniz, siz ve biz şu konularda mutabıkız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "bu koşullar Apple ile değil, yalnızca siz ve biz aramızdadır. Mobil Uygulamadan ve içeriğinden Apple değil, yalnızca biz sorumluyuz;",
+        "lisansınız, Apple'ın [Medya Hizmetleri Hüküm ve Koşulları](https://www.apple.com/legal/internet-services/itunes/) içindeki Kullanım Kurallarının izin verdiği şekilde, sahip olduğunuz veya kontrol ettiğiniz Apple markalı ürünlerde kullanımı kapsar. Aile Paylaşımı veya toplu satın alma yoluyla hesabınıza bağlı diğer kişiler de bu kuralların izin verdiği şekilde uygulamayı kullanabilir;",
+        "Mobil Uygulamanın bakımından ve desteğinden yalnızca biz sorumluyuz. Apple'ın herhangi bir bakım veya destek sağlama yükümlülüğü yoktur;",
+        "Mobil Uygulama kendisi için geçerli bir garantiyi karşılamazsa Apple'a bildirebilirsiniz ve Apple, varsa uygulama için ödediğiniz bedeli size iade eder. Hukukun izin verdiği ölçüde Apple'ın Mobil Uygulama için başka hiçbir garanti yükümlülüğü yoktur. Böyle bir karşılamama durumunun yol açtığı diğer tüm talepler, kayıplar, yükümlülükler, zararlar, maliyetler veya giderler, bu koşulların ve hukukun bizi sorumlu tuttuğu ölçüde bizim sorumluluğumuzdadır;",
+        "Mobil Uygulama veya onu kullanımınız hakkında sizin ya da başkalarının ileri süreceği ürün sorumluluğu talepleri, uygulamanın yasal veya düzenleyici bir gerekliliği karşılamadığına ilişkin talepler ve tüketicinin korunması, gizlilik veya benzeri yasalar kapsamındaki talepler dahil tüm talepleri Apple değil, biz ele alırız;",
+        "biri Mobil Uygulamanın veya onu kullanımınızın kendi fikri mülkiyet haklarını ihlal ettiğini iddia ederse, bu iddianın araştırılmasından, savunulmasından, uzlaşmayla sonuçlandırılmasından ve çözülmesinden, bu koşulların bizi sorumlu tuttuğu ölçüde Apple değil, biz sorumluyuz;",
+        "ABD hükümetinin ambargosuna tabi olan veya ABD hükümetinin \"teröre destek veren\" ülke olarak belirlediği bir ülkede bulunmuyorsunuz ve ABD hükümetinin yasaklı veya kısıtlı taraflar listelerinin hiçbirinde yer almıyorsunuz;",
+        "Apple ve bağlı ortaklıkları bu koşulların üçüncü taraf lehtarlarıdır. Bu koşulları kabul ettiğiniz andan itibaren Apple, üçüncü taraf lehtar olarak bu koşulları size karşı uygulama hakkına sahiptir ve bu hakkı kabul etmiş sayılır."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamayla ilgili soru, şikâyet veya taleplerinizi Apple'a değil, {company.email} adresinden bize gönderin."
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamanın geliştiricisi {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamayı Google Play'den edindiyseniz, siz ve biz şu konularda mutabıkız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "bu koşullar Google ile değil, yalnızca siz ve biz aramızdadır. Google; Mobil Uygulamadan, içeriğinden, desteğinden veya onunla ilgili herhangi bir talepten sorumlu değildir;",
+        "[Google Play Hizmet Şartları](https://play.google.com/about/play-terms/) da uygulamayı indirmeniz ve kullanmanız için geçerlidir. Google ile ilişkiniz konusunda bu koşullarla çeliştikleri durumlarda Google Play Hizmet Şartları uygulanır;",
+        "Google Play üzerinden satın alınan her şeyin iadesi Google Play'in kurallarına tabidir."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Yaptırımlar ve ihracat"
+    },
+    {
+      "type": "p",
+      "text": "ABD veya AB yaptırımlarının ya da ihracat kurallarının yasakladığı yerlerde veya bir ABD ya da AB yaptırım listesinde adınız yer alıyorsa Mobil Uygulamayı indiremez veya kullanamazsınız. Hizmet Koşullarındaki [Yaptırımlar ve ihracat](/instant/legal/terms#sanctions) bölümüne bakın."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Kullanımın sona ermesi"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulamayı telefonunuzdan silerek istediğiniz zaman kullanmayı bırakabilirsiniz. Bu, Masaüstü Uygulamasını durdurmaz, Mac'inizdeki dosyaları silmez veya Orqanix hesabınızı kapatmaz. Hesabınızı kapatmak veya verilerinizin silinmesini talep etmek için [Hizmet Koşullarına](/instant/legal/terms) ve [Gizlilik Politikasına](/instant/legal/privacy) bakın."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "İletişim"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullarla ilgili sorular: {company.email}. Gizlilik talepleri: {company.privacyEmail}."
+    }
+  ]
+}

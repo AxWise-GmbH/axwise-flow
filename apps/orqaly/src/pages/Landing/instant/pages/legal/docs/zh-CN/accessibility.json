@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "无障碍声明",
+    "summary": "本声明说明 Orqanix 网站的无障碍程度、仍存在的不足，以及如何报告障碍。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "我们的目标"
+    },
+    {
+      "type": "p",
+      "text": "我们希望每个人都能使用 {company.name} 网站，包括使用键盘、屏幕阅读器、缩放功能或其他辅助技术的人。我们的目标是达到《Web 内容无障碍指南》（WCAG）2.1 的 AA 级，这是通用的国际标准。"
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "适用范围"
+    },
+    {
+      "type": "p",
+      "text": "本声明适用于 orqanix.com 网站：首页、产品和解决方案页面、新闻页面以及法律中心。本声明不适用于网页应用、桌面应用，也不适用于由我们的登录服务提供商 Clerk 提供的登录页面。"
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "当前状态"
+    },
+    {
+      "type": "p",
+      "text": "本网站部分符合 WCAG 2.1 AA 级。本网站尚未经过全面审核，我们不声称完全符合。我们已知的不足列于[已知不足](#known-gaps)。"
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "我们已采取的措施"
+    },
+    {
+      "type": "list",
+      "items": [
+        "键盘：您可以使用键盘访问链接、按钮和菜单，按 Esc 键可关闭已打开的菜单。",
+        "可见焦点：当您使用键盘移动到链接和按钮上时，它们会显示可见的焦点样式。",
+        "减少动效：如果您的设备设置为减少动态效果，动画场景会停止运动，内容会以无动画的方式显示。",
+        "对比度：正文和标题均为黑色背景上的近白色文字。",
+        "文本替代：具有含义的菜单、控件和场景都带有供屏幕阅读器使用的文本标签。纯装饰性图形对屏幕阅读器隐藏。",
+        "结构：页面使用标题、主内容区域、带标签的主菜单和带标签的页脚菜单，页面语言设置为英语。",
+        "小屏幕：布局可适应手机和窄窗口。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "已知不足"
+    },
+    {
+      "type": "list",
+      "items": [
+        "部分插图包含小号文字，例如动画产品场景中的标签。即使放大，这些文字也可能难以阅读。",
+        "部分次要标签使用暗灰色，其对比度低于 WCAG 对小号文字的要求。",
+        "部分人可能难以跟上动画场景。如果您的设备设置为减少动态效果，这些场景会停止运动。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们打算修复这些不足。如果其中某项不足妨碍您获取所需的信息，请[告诉我们](#feedback)，我们会尽量通过其他方式向您提供。"
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "反馈"
+    },
+    {
+      "type": "p",
+      "text": "如果您在我们的网站上遇到障碍，请通过 {company.email} 告诉我们。请说明是在哪个页面、您想做什么，如果愿意，也可以告诉我们您使用的浏览器和辅助技术。我们力求尽快回复，并修复我们能够修复的问题。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "如果您居住在欧盟，而我们的答复未能解决问题，您可以联系您所在国家负责监督无障碍事务的主管机关。"
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "关于本声明"
+    },
+    {
+      "type": "p",
+      "text": "我们于 2026 年 9 月 21 日根据我们自己对网站的审查编写了本声明。我们在修复某项不足或完成审核后会更新本声明。"
+    }
+  ]
+}

@@ -109,7 +109,10 @@ const explicitTopLevelPatterns = [
   '/standart',
   '/instant',
   '/instant/:page',
+  '/instant/news/:slug',
   '/instant/solutions/:slug',
+  '/instant/products/:slug?',
+  '/instant/legal/*',
   '/login',
   '/signup',
   '/auth/callback',
@@ -363,7 +366,7 @@ describe('GCP launch route allowlist', () => {
     expect(gcpRoutePaths).not.toContain('/instant');
   });
 
-  it.each(['/instant/how-it-works', '/instant/features', '/instant/speed'])(
+  it.each(['/instant/how-it-works', '/instant/features', '/instant/speed', '/instant/news'])(
     'serves the preview sub-page %s publicly through one parameterised route',
     (location) => {
       const routeMatches = matches(location);
@@ -381,6 +384,50 @@ describe('GCP launch route allowlist', () => {
       expect(routeMatches[0].route.path).toBe('/instant/solutions/:slug');
       expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
       expect(gcpRoutePaths).not.toContain('/instant/solutions/:slug');
+    }
+  );
+
+  it.each(['/instant/products/desktop', '/instant/products/assistant-bot', '/instant/products'])(
+    'serves the product page %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/products/:slug?');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+      expect(gcpRoutePaths).not.toContain('/instant/products/:slug?');
+    }
+  );
+
+  it.each([
+    '/instant/legal',
+    '/instant/legal/eu',
+    '/instant/legal/us/privacy',
+    '/instant/legal/terms',
+  ])('serves the Legal Center path %s publicly through one route', (location) => {
+    const routeMatches = matches(location);
+    expect(routeMatches).toHaveLength(1);
+    expect(routeMatches[0].route.path).toBe('/instant/legal/*');
+    expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+    expect(gcpRoutePaths).not.toContain('/instant/legal/*');
+  });
+
+  it.each([
+    ['/privacy', '/instant/legal/privacy'],
+    ['/terms', '/instant/legal/terms'],
+    ['/cookies', '/instant/legal/cookies'],
+  ])('sends the old %s placeholder to its Legal Center document', (from, to) => {
+    const route = leaf(from);
+    expect(route.element.type).toBe(Navigate);
+    expect(route.element.props).toMatchObject({ to, replace: true });
+  });
+
+  it.each(['/instant/news/orqaly-and-axwise-merge', '/instant/news/business-api'])(
+    'serves the news article %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/news/:slug');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
     }
   );
 

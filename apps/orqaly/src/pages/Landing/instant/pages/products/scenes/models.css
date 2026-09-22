@@ -1,0 +1,949 @@
+/*
+ * Personalised Models scene (class prefix ppm-, scoped to [data-product='personalised-models']):
+ * your files drift into a core of turning rings; each one that lands locks a group of rings and
+ * leaves a lit arc, until the rings settle into one print, "Your model". Plain styles are the
+ * finished frame. ModelsPage imports this file while the header menu leaves the product out.
+ *
+ * Places are in card units (--u): the card is 100 wide and 62.5 tall, centred on its middle
+ * so a taller card only adds air. The core sits at (50, 27).
+ *
+ * Loop (--ps-loop): file k leaves its corner at 6 + 12k %, lands at 15 + 12k %; its ring
+ * group locks at 16 + 12k % with an arc; the print is whole at 52 %, a scan passes down it and
+ * the full light answers; from 80 % the arcs fade, the rings loosen and the files come back.
+ * The hero cut adds four files further back (6 % later each) and a stronger light.
+ *
+ * First frame: people look at a menu row for a second or two, so every story animation starts
+ * 44 % in (--ppm-at): the last file sets off and the outer rings are closing. The print
+ * completes 0.8 s in, the scan follows, then the loop plays the whole story.
+ *
+ * Motion stays on transform and opacity, on HTML boxes (Chrome runs an <svg>'s own transform
+ * on the main thread): each ring group and each arc is an <i> around its SVG and turns as one,
+ * and a spark runs down each waiting file's path. Nothing inside an SVG animates.
+ */
+
+[data-product='personalised-models'] {
+  --ppm-at: calc(var(--ps-loop) * -0.44);
+  /* A file card, and the dimmer four at the back. */
+  --ppm-file-bg: linear-gradient(180deg, #222222, #141414);
+  --ppm-file-back: linear-gradient(180deg, #181818, #101010);
+}
+
+/* Light: the app's light theme, white file cards and paler ones at the back. */
+[data-product='personalised-models']:is([data-oi-theme='light'] *) {
+  --ppm-file-bg: linear-gradient(180deg, #ffffff, #f4f4f4);
+  --ppm-file-back: linear-gradient(180deg, #f7f7f7, #eeeeee);
+}
+
+/* The page's card rises in over its first second, so the hero starts a beat earlier and the
+   print completes once the card is in view. */
+[data-product='personalised-models'][data-cut='hero'] {
+  --ppm-at: calc(var(--ps-loop) * -0.4);
+}
+
+[data-product='personalised-models'] > .ps-scene > * {
+  position: absolute;
+}
+
+/* The light at the core, and the scan when the print is whole ------------------------- */
+
+.ppm-glow,
+.ppm-scan {
+  left: 50%;
+  top: calc(50% - var(--u) * 4.25);
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+
+.ppm-glow {
+  width: calc(var(--u) * 62);
+  aspect-ratio: 1;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.16 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.05 * var(--oi-halo-k))) 48%,
+    transparent
+  );
+  opacity: 0.85;
+  scale: 1.04;
+  animation: ppm-glow var(--ps-loop) ease-in-out var(--ppm-at) infinite;
+}
+
+/* A band of light passes down the finished print once, as a reader would. The oval clips it
+   to the print. */
+.ppm-scan {
+  width: calc(var(--u) * 40);
+  height: calc(var(--u) * 44);
+  overflow: hidden;
+}
+
+.ppm-scan::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * -4.5);
+  height: calc(var(--u) * 8);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(var(--oi-fg-rgb), 0.03) 70%,
+    rgba(var(--oi-fg-rgb), 0.6) 95%,
+    transparent
+  );
+  -webkit-mask: linear-gradient(90deg, transparent, #000000 30%, #000000 70%, transparent);
+  mask: linear-gradient(90deg, transparent, #000000 30%, #000000 70%, transparent);
+  opacity: 0;
+  animation: ppm-scan var(--ps-loop) cubic-bezier(0.3, 0, 0.6, 1) var(--ppm-at) infinite;
+}
+
+/* The dotted paths the files take (still: the sparks bring the motion) ------------------ */
+
+.ppm-links {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--oi-app-muted);
+  stroke-width: 0.3;
+  stroke-linecap: round;
+  stroke-dasharray: 0 1.2;
+  opacity: 0.75;
+  animation: ppm-links var(--ps-loop) ease-in-out var(--ppm-at) infinite;
+}
+
+/* The core: four ridge groups, then the four lit arcs ----------------------------------- */
+
+.ppm-core {
+  left: 50%;
+  top: calc(50% - var(--u) * 4.25);
+  width: calc(var(--u) * 46);
+  aspect-ratio: 1;
+  fill: none;
+  stroke: var(--oi-app-soft);
+  stroke-width: 0.17;
+  stroke-linecap: round;
+  translate: -50% -50%;
+  animation: ppm-breathe var(--ps-loop) ease-in-out var(--ppm-at) infinite;
+}
+
+.ppm-core i {
+  position: absolute;
+  inset: 0;
+}
+
+.ppm-core svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* A ridge group: lies flat at its own tilt (--e) and spins like an orbit (--n turns), then
+   opens and locks into the print at its time. */
+.ppm-core i:nth-child(-n + 4) {
+  --n: 1;
+  --f: 0.32;
+  --e: 20deg;
+
+  opacity: 0.62;
+  animation: ppm-r0 var(--ps-loop) var(--ppm-at) infinite;
+}
+
+.ppm-core i:nth-child(2) {
+  --n: -1;
+  --e: -70deg;
+
+  animation-name: ppm-r1;
+}
+
+.ppm-core i:nth-child(3) {
+  --e: 65deg;
+
+  animation-name: ppm-r2;
+}
+
+.ppm-core i:nth-child(4) {
+  --n: -1;
+  --e: -25deg;
+
+  animation-name: ppm-r3;
+}
+
+/* Breaks in the ridges, as in a real print. */
+.ppm-core ellipse {
+  stroke-dasharray: 46 5 44 5;
+}
+
+.ppm-core ellipse:nth-child(2) {
+  stroke-dasharray: 90 10;
+}
+
+.ppm-core ellipse:nth-child(3) {
+  stroke-dasharray: 20 4 58 18;
+}
+
+/* One arc per file, on the side it came from (--a places it). It swings in onto its ridge. */
+.ppm-core i:nth-child(n + 5) {
+  --a: 42.5px;
+
+  stroke: var(--oi-app-text);
+  stroke-width: 0.5;
+  animation: ppm-a0 var(--ps-loop) var(--oi-ease) var(--ppm-at) infinite;
+}
+
+.ppm-core i:nth-child(n + 5) ellipse {
+  stroke-dasharray: 8 92;
+  stroke-dashoffset: var(--a);
+}
+
+.ppm-core i:nth-child(6) {
+  --a: 16.5px;
+
+  animation-name: ppm-a1;
+}
+
+.ppm-core i:nth-child(7) {
+  --a: 67.5px;
+
+  animation-name: ppm-a2;
+}
+
+.ppm-core i:nth-child(8) {
+  --a: 92.5px;
+
+  animation-name: ppm-a3;
+}
+
+/* The files ------------------------------------------------------------------------------ */
+
+.ppm-file {
+  --dx: calc((50 - var(--x)) * var(--u));
+  --dy: calc((27 - var(--y)) * var(--u));
+
+  left: calc(var(--x) * var(--u));
+  top: calc(50% + (var(--y) - 31.25) * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 0.75) calc(var(--u) * 1.2) calc(var(--u) * 0.75) calc(var(--u) * 0.8);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.1);
+  background: var(--ppm-file-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.1),
+    0 calc(var(--u) * 1.4) calc(var(--u) * 3) calc(var(--u) * -0.8)
+      rgba(var(--oi-shadow-rgb), calc(0.75 * var(--oi-shadow-k)));
+  color: var(--oi-app-soft);
+  font-size: max(10px, calc(var(--u) * 1.6));
+  line-height: 1.2;
+  white-space: nowrap;
+  translate: -50% -50%;
+  animation:
+    ppm-f0 var(--ps-loop) var(--ppm-at) infinite,
+    ppm-float calc(var(--ps-loop) / 2) ease-in-out infinite alternate;
+}
+
+/* A spark runs from the file down its path to the print while the file waits. */
+.ppm-file::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--u) * 0.9);
+  aspect-ratio: 1;
+  margin: calc(var(--u) * -0.45);
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 1.2) rgba(var(--oi-fg-rgb), calc(0.7 * var(--oi-halo-k)));
+  opacity: 0;
+  animation: ppm-spark calc(var(--ps-loop) / 5) linear infinite;
+  animation-delay: calc(var(--ps-loop) * (var(--x) + var(--y) * 3) * -0.001);
+}
+
+.ppm-file .ps-icon {
+  width: calc(var(--u) * 2.2);
+  height: calc(var(--u) * 2.2);
+  color: var(--oi-app-text);
+}
+
+.ppm-file b {
+  font-weight: 400;
+}
+
+.ppm-file b:empty {
+  display: none;
+}
+
+.ppm-file:nth-of-type(4n + 2) {
+  animation-name: ppm-f1, ppm-float;
+  animation-delay: var(--ppm-at), calc(var(--ps-loop) * -0.13);
+}
+
+.ppm-file:nth-of-type(4n + 3) {
+  animation-name: ppm-f2, ppm-float;
+  animation-delay: var(--ppm-at), calc(var(--ps-loop) * -0.29);
+}
+
+.ppm-file:nth-of-type(4n) {
+  animation-name: ppm-f3, ppm-float;
+  animation-delay: var(--ppm-at), calc(var(--ps-loop) * -0.41);
+}
+
+/* The four back files: smaller, dimmer, a beat behind the front four, no spark. */
+.ppm-file:nth-of-type(n + 5) {
+  padding: calc(var(--u) * 0.7);
+  border-color: var(--oi-app-fill);
+  background: var(--ppm-file-back);
+  box-shadow: none;
+  animation-delay: calc(var(--ppm-at) + var(--ps-loop) * 0.06), calc(var(--ps-loop) * -0.2);
+}
+
+.ppm-file:nth-of-type(n + 5)::after {
+  content: none;
+}
+
+.ppm-file:nth-of-type(n + 5) .ps-icon {
+  width: calc(var(--u) * 1.7);
+  height: calc(var(--u) * 1.7);
+  color: var(--oi-app-dim);
+}
+
+[data-product='personalised-models'][data-cut='menu'] .ppm-file:nth-of-type(n + 5),
+[data-product='personalised-models'][data-cut='menu'] .ppm-links path:nth-child(n + 5) {
+  display: none;
+}
+
+/* "Your model", its learning line, and (hero only) the pill ---------------------------- */
+
+.ppm-label {
+  left: 50%;
+  top: calc(50% + var(--u) * 23.4);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.2);
+  white-space: nowrap;
+  translate: -50% -50%;
+}
+
+.ppm-label b {
+  color: var(--oi-app-text);
+  font-size: max(12px, calc(var(--u) * 2.6));
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  animation: ppm-name var(--ps-loop) ease-in-out var(--ppm-at) infinite;
+}
+
+.ppm-label::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--u) * -1.3);
+  left: 0;
+  height: var(--ps-line);
+  background: linear-gradient(90deg, transparent, var(--oi-app-text) 30%, transparent);
+  transform-origin: left;
+  animation: ppm-learn var(--ps-loop) var(--oi-ease) var(--ppm-at) infinite;
+}
+
+.ppm-label .ps-chip {
+  padding: calc(var(--u) * 0.4) calc(var(--u) * 1.1);
+  font-size: max(10px, calc(var(--u) * 1.2));
+}
+
+/* The hero: a stronger light at the core. */
+[data-product='personalised-models'][data-cut='hero'] .ppm-glow {
+  width: calc(var(--u) * 76);
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.22 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.07 * var(--oi-halo-k))) 42%,
+    transparent
+  );
+}
+
+/* A small card (the phone menu, a phone's hero): icons only, a bigger print a little higher,
+   lines a touch heavier. The pill steps out here too: the words beside the card say it. */
+@container ps (max-width: 480px) {
+  .ppm-glow,
+  .ppm-scan,
+  .ppm-core {
+    top: calc(50% - var(--u) * 6);
+  }
+
+  .ppm-core {
+    width: calc(var(--u) * 51);
+  }
+
+  .ppm-scan {
+    width: calc(var(--u) * 44);
+    height: calc(var(--u) * 49);
+  }
+
+  .ppm-label {
+    top: calc(50% + var(--u) * 25);
+  }
+
+  .ppm-label .ps-chip {
+    display: none;
+  }
+
+  .ppm-file {
+    padding: calc(var(--u) * 1.3);
+    border-radius: calc(var(--u) * 1.6);
+  }
+
+  .ppm-file::after {
+    width: calc(var(--u) * 1.4);
+    margin: calc(var(--u) * -0.7);
+  }
+
+  .ppm-file .ps-icon {
+    width: calc(var(--u) * 3.6);
+    height: calc(var(--u) * 3.6);
+  }
+
+  .ppm-file b {
+    display: none;
+  }
+
+  .ppm-file:nth-of-type(n + 5) {
+    padding: calc(var(--u) * 0.9);
+  }
+
+  .ppm-file:nth-of-type(n + 5) .ps-icon {
+    width: calc(var(--u) * 2.4);
+    height: calc(var(--u) * 2.4);
+  }
+
+  .ppm-core {
+    stroke-width: 0.3;
+  }
+
+  .ppm-core i:nth-child(n + 5) {
+    stroke-width: 0.8;
+  }
+
+  .ppm-links {
+    stroke-width: 0.5;
+    stroke-dasharray: 0 1.6;
+  }
+}
+
+/* Keyframes ------------------------------------------------------------------------------ */
+
+@keyframes ppm-glow {
+  0%,
+  14% {
+    opacity: 0.3;
+    scale: 0.85;
+  }
+  16% {
+    opacity: 0.62;
+    scale: 0.95;
+  }
+  22%,
+  26% {
+    opacity: 0.42;
+    scale: 0.9;
+  }
+  28% {
+    opacity: 0.74;
+    scale: 1;
+  }
+  34%,
+  38% {
+    opacity: 0.54;
+    scale: 0.94;
+  }
+  40% {
+    opacity: 0.86;
+    scale: 1.04;
+  }
+  46%,
+  50% {
+    opacity: 0.64;
+    scale: 0.98;
+  }
+  52% {
+    opacity: 1;
+    scale: 1.14;
+  }
+  60%,
+  80% {
+    opacity: 0.85;
+    scale: 1.04;
+  }
+  100% {
+    opacity: 0.3;
+    scale: 0.85;
+  }
+}
+
+@keyframes ppm-scan {
+  0%,
+  53% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  56%,
+  61% {
+    opacity: 1;
+  }
+  65%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--u) * 48), 0);
+  }
+}
+
+@keyframes ppm-links {
+  0%,
+  48% {
+    opacity: 0.75;
+  }
+  58%,
+  84% {
+    opacity: 0;
+  }
+}
+
+@keyframes ppm-breathe {
+  0%,
+  48% {
+    scale: 0.97;
+  }
+  54% {
+    scale: 1.025;
+  }
+  62%,
+  80% {
+    scale: 1;
+  }
+  100% {
+    scale: 0.97;
+  }
+}
+
+/* A ridge group: spins flat like an orbit, then opens and locks into the print at its time,
+   holds, and loosens back to its tilt at the end. --e and --e minus whole turns look the
+   same, so the loop never jumps. */
+@keyframes ppm-r0 {
+  0% {
+    rotate: calc(var(--e) - var(--n) * 1turn);
+    scale: 1 var(--f);
+    opacity: 0.3;
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.3, 1);
+  }
+  10% {
+    scale: 1 var(--f);
+  }
+  13% {
+    opacity: 0.3;
+  }
+  16% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 1;
+  }
+  24%,
+  80% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 0.62;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.6);
+  }
+  100% {
+    rotate: var(--e);
+    scale: 1 var(--f);
+    opacity: 0.3;
+  }
+}
+
+@keyframes ppm-r1 {
+  0% {
+    rotate: calc(var(--e) - var(--n) * 1turn);
+    scale: 1 var(--f);
+    opacity: 0.3;
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.3, 1);
+  }
+  22% {
+    scale: 1 var(--f);
+  }
+  25% {
+    opacity: 0.3;
+  }
+  28% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 1;
+  }
+  36%,
+  80% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 0.62;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.6);
+  }
+  100% {
+    rotate: var(--e);
+    scale: 1 var(--f);
+    opacity: 0.3;
+  }
+}
+
+@keyframes ppm-r2 {
+  0% {
+    rotate: calc(var(--e) - var(--n) * 1turn);
+    scale: 1 var(--f);
+    opacity: 0.3;
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.3, 1);
+  }
+  34% {
+    scale: 1 var(--f);
+  }
+  37% {
+    opacity: 0.3;
+  }
+  40% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 1;
+  }
+  48%,
+  80% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 0.62;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.6);
+  }
+  100% {
+    rotate: var(--e);
+    scale: 1 var(--f);
+    opacity: 0.3;
+  }
+}
+
+@keyframes ppm-r3 {
+  0% {
+    rotate: calc(var(--e) - var(--n) * 1turn);
+    scale: 1 var(--f);
+    opacity: 0.3;
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.3, 1);
+  }
+  46% {
+    scale: 1 var(--f);
+  }
+  49% {
+    opacity: 0.3;
+  }
+  52% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 1;
+  }
+  60%,
+  80% {
+    rotate: 0deg;
+    scale: 1;
+    opacity: 0.62;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.6);
+  }
+  100% {
+    rotate: var(--e);
+    scale: 1 var(--f);
+    opacity: 0.3;
+  }
+}
+
+/* An arc lands with its file, swings into place, and stays until the end. */
+@keyframes ppm-a0 {
+  0%,
+  15% {
+    opacity: 0;
+    rotate: -24deg;
+  }
+  16% {
+    opacity: 1;
+  }
+  23%,
+  80% {
+    opacity: 1;
+    rotate: 0deg;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    rotate: 0deg;
+  }
+}
+
+@keyframes ppm-a1 {
+  0%,
+  27% {
+    opacity: 0;
+    rotate: -24deg;
+  }
+  28% {
+    opacity: 1;
+  }
+  35%,
+  80% {
+    opacity: 1;
+    rotate: 0deg;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    rotate: 0deg;
+  }
+}
+
+@keyframes ppm-a2 {
+  0%,
+  39% {
+    opacity: 0;
+    rotate: -24deg;
+  }
+  40% {
+    opacity: 1;
+  }
+  47%,
+  80% {
+    opacity: 1;
+    rotate: 0deg;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    rotate: 0deg;
+  }
+}
+
+@keyframes ppm-a3 {
+  0%,
+  51% {
+    opacity: 0;
+    rotate: -24deg;
+  }
+  52% {
+    opacity: 1;
+  }
+  59%,
+  80% {
+    opacity: 1;
+    rotate: 0deg;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    rotate: 0deg;
+  }
+}
+
+/* A file waits, drifts into the core (faster as it nears, shrinking into light), and comes
+   back to its corner at the end of the loop. */
+@keyframes ppm-f0 {
+  0%,
+  6% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.8, 0.5);
+  }
+  12% {
+    translate: calc(-50% + var(--dx) * 0.8) calc(-50% + var(--dy) * 0.8);
+    scale: 0.55;
+    opacity: 0.85;
+  }
+  15% {
+    translate: calc(-50% + var(--dx)) calc(-50% + var(--dy));
+    scale: 0.2;
+    opacity: 0;
+  }
+  84% {
+    translate: -50% -50%;
+    scale: 0.85;
+    opacity: 0;
+    animation-timing-function: var(--oi-ease);
+  }
+  94%,
+  100% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes ppm-f1 {
+  0%,
+  18% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.8, 0.5);
+  }
+  24% {
+    translate: calc(-50% + var(--dx) * 0.8) calc(-50% + var(--dy) * 0.8);
+    scale: 0.55;
+    opacity: 0.85;
+  }
+  27% {
+    translate: calc(-50% + var(--dx)) calc(-50% + var(--dy));
+    scale: 0.2;
+    opacity: 0;
+  }
+  84% {
+    translate: -50% -50%;
+    scale: 0.85;
+    opacity: 0;
+    animation-timing-function: var(--oi-ease);
+  }
+  94%,
+  100% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes ppm-f2 {
+  0%,
+  30% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.8, 0.5);
+  }
+  36% {
+    translate: calc(-50% + var(--dx) * 0.8) calc(-50% + var(--dy) * 0.8);
+    scale: 0.55;
+    opacity: 0.85;
+  }
+  39% {
+    translate: calc(-50% + var(--dx)) calc(-50% + var(--dy));
+    scale: 0.2;
+    opacity: 0;
+  }
+  84% {
+    translate: -50% -50%;
+    scale: 0.85;
+    opacity: 0;
+    animation-timing-function: var(--oi-ease);
+  }
+  94%,
+  100% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes ppm-f3 {
+  0%,
+  42% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.8, 0.5);
+  }
+  48% {
+    translate: calc(-50% + var(--dx) * 0.8) calc(-50% + var(--dy) * 0.8);
+    scale: 0.55;
+    opacity: 0.85;
+  }
+  51% {
+    translate: calc(-50% + var(--dx)) calc(-50% + var(--dy));
+    scale: 0.2;
+    opacity: 0;
+  }
+  84% {
+    translate: -50% -50%;
+    scale: 0.85;
+    opacity: 0;
+    animation-timing-function: var(--oi-ease);
+  }
+  94%,
+  100% {
+    translate: -50% -50%;
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes ppm-float {
+  from {
+    transform: translate3d(0, calc(var(--u) * 0.5), 0);
+  }
+  to {
+    transform: translate3d(0, calc(var(--u) * -0.5), 0);
+  }
+}
+
+/* The spark leaves the file's edge, runs down the path and fades at the print's rim. */
+@keyframes ppm-spark {
+  0%,
+  20% {
+    opacity: 0;
+    transform: translate3d(calc(var(--dx) * 0.2), calc(var(--dy) * 0.2), 0) scale(0.5);
+  }
+  32% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--dx) * 0.47), calc(var(--dy) * 0.47), 0) scale(1);
+  }
+}
+
+@keyframes ppm-name {
+  0%,
+  50% {
+    opacity: 0.5;
+  }
+  56%,
+  80% {
+    opacity: 1;
+  }
+  88%,
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* The learning line fills a quarter with each file. */
+@keyframes ppm-learn {
+  0%,
+  14% {
+    scale: 0 1;
+    opacity: 1;
+  }
+  17%,
+  26% {
+    scale: 0.25 1;
+  }
+  29%,
+  38% {
+    scale: 0.5 1;
+  }
+  41%,
+  50% {
+    scale: 0.75 1;
+  }
+  53%,
+  80% {
+    scale: 1 1;
+    opacity: 1;
+  }
+  86% {
+    scale: 1 1;
+    opacity: 0;
+  }
+  100% {
+    scale: 0 1;
+    opacity: 0;
+  }
+}

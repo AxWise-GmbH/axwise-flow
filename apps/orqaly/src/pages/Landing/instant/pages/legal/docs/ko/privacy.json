@@ -1,0 +1,814 @@
+{
+  "meta": {
+    "slug": "privacy",
+    "title": "개인정보 처리방침",
+    "summary": "이 방침은 Orqanix가 어떤 개인정보를 수집하는지, 왜 이를 이용하는지, 누가 이를 제공받는지, 얼마나 오래 보관하는지, 그리고 귀하에게 어떤 권리가 있는지를 설명합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'run by', controller and postal lines are hidden until filled. Hiding the controller breaks GDPR Art. 13(1)(a) in practice; fill before publishing the EU version (FACTS §14.1).",
+        "euRepresentative (GDPR Art. 27): the section is hidden until filled; needed only if the company is outside the EU. UK Art. 27 and Swiss Art. 14 representatives not addressed (FACTS §14.1).",
+        "geminiPaidTier: paid-tier sentences (Google not using data; Google's DPA covering transfers) stay hidden until confirmed. Without it, Google's own use of Gemini data is only described by linking Google's terms, and the transfer safeguard for Gemini is not named (FACTS §14.3).",
+        "Transfers: Clerk's UK Extension / Swiss-US DPF status, and Cloudflare's safeguards via Clerk, are not confirmed; the UK/Swiss wording is generic ('such as').",
+        "Retention: no periods exist in code for workspace data, API records, the artifact bucket or emails; written as 'as long as your account exists / business relationship lasts'. Server logs are 'a limited time under our cloud provider's standard settings' (30-day default not confirmed, FACTS §14.5, §14.6).",
+        "Deletion/export: no self-service deletion or export and no process that works with the immutable tables; text promises 'delete or anonymise, or tell you why' and an answer within one month (FACTS §3, §14.5).",
+        "Lawyer: legal basis for special-category data (GDPR Art. 9) that users choose to include (e.g. health) is not stated; text says we use it only to do what was asked.",
+        "Lawyer: roles for web searches and OpenRegister lookups (independent recipients vs processors), and for Assistant Bot contacts when used for business (processor under the DPA) (FACTS §7, §14.11).",
+        "Mobile App and Assistant Bot: written as usage rules from their product pages only; no code exists, so what the Mobile App stores on the phone or in our cloud (e.g. for notifications) is unknown (FACTS §5, §6, §14.13).",
+        "Desktop defaults disclosed as they are (auto-approve on, dictation on, provider keys in plain text); update if the owner changes them (FACTS §14.8).",
+        "Age 18+ and 'region at sign-up' need a sign-up self-declaration and an acceptance record (FACTS §14.9).",
+        "Email: privacy@ and hello@ must receive mail (no MX record today); our email provider is not named as a recipient because none is chosen (FACTS §14.2).",
+        "Describes the website AFTER this build (no cookies or third-party calls on marketing pages, self-hosted fonts). Publish only once that build is live.",
+        "US: 'we answer within one month' is used for US requests too; lawyer to confirm it fits CCPA (45 days) and other state deadlines. The US version assumes the CCPA may not apply yet but follows it anyway.",
+        "Lawyer/owner: Gemini tier and \"no sale\". If Google's unpaid Gemini terms apply, Google may use prompts to improve its products; that disclosure could count as a \"sale\" or \"sharing\" under CCPA and other state laws (and makes Google an independent recipient under GDPR), which would make \"we do not sell your data\" and the no-opt-out-link position wrong. Confirm the paid tier before publishing (FACTS §14.3; us.md §Recommendations 2).",
+        "Lawyer: transfer basis for independent recipients outside Europe (public search engines; OpenRegister if relevant) is not named; the text says only that some are outside Europe.",
+        "Lawyer/owner: data protection officer. No DPO is named; whether one is required (GDPR Art. 37, § 38 BDSG at 20+ staff) depends on the company. Add a DPO contact block if one is appointed.",
+        "Lawyer: DSA Art. 13 legal representative and UK Art. 27 / Swiss Art. 14 representatives if the company is not EU/UK/CH-established.",
+        "Desktop App built-in storage (theme, menu layout, pinned chats, recently typed messages, kept by the app on the Mac) is summarised, not listed item by item.",
+        "EU word count is about 3,670 (US about 3,510), above the 3,500 guide, because of the legal-basis table and the Art. 13(2)(e) sentence. The 2026-09-21 edit cut repetition but no content."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "회사 소개"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix(\"당사\", \"저희\")는 orqanix.com 웹사이트와 Orqanix 제품, 즉 Mac용 데스크톱 앱, 모바일 앱, 어시스턴트 봇, API 및 엔터프라이즈 서비스를 제공합니다. 데스크톱 앱과 웹 앱은 하나의 온라인 계정과 하나의 클라우드 작업 공간을 공유합니다. 이 방침은 당사가 이 모든 것을 통해 어떤 개인정보를 수집하는지, 그 이유는 무엇인지, 그리고 귀하가 이에 대해 무엇을 할 수 있는지를 설명합니다."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 {company.legalName}({company.address})이(가) 운영합니다.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "개인정보와 관련된 모든 사항은 {company.privacyEmail}(으)로 문의하시기 바랍니다."
+    },
+    {
+      "type": "note",
+      "text": "요약하면, 당사는 귀하의 계정을 운영하고 귀하가 요청한 작업을 수행하는 데 필요한 정보를 수집합니다. 귀하가 AI에 요청한 내용은 답변을 위해 모델 제공자(기본값은 Google Gemini)에게 전달됩니다. 당사는 클라우드 서비스와 데이터베이스를 EU(Google Cloud, 네덜란드)에서 호스팅합니다. 당사는 귀하의 데이터를 판매하지 않고, 광고를 표시하지 않으며, 광고 또는 분석 추적기를 사용하지 않고, 귀하의 콘텐츠로 자체 AI 모델을 학습시키지 않습니다."
+    },
+    {
+      "type": "h3",
+      "id": "controller",
+      "text": "컨트롤러",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "이 방침에서 설명하는 대부분의 사항에 대해 당사는 \"컨트롤러\", 즉 귀하의 개인정보가 왜 그리고 어떻게 이용되는지를 결정하는 자입니다(GDPR Art. 4(7)). 기업이 자체 데이터를 가지고 당사의 API, 엔터프라이즈 서비스 또는 어시스턴트 봇을 이용하는 경우에는 해당 기업이 컨트롤러입니다. 이때 당사는 그 기업의 \"프로세서\"로서, 당사의 [데이터 처리 부속서](/instant/legal/dpa)에 따라 그 기업을 대신하여 데이터를 처리합니다. 해당 기업이 데이터를 어떻게 이용하는지는 그 기업의 자체 개인정보 처리방침에서 설명합니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "컨트롤러는 {company.legalName}({company.address})입니다."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "수집하는 정보"
+    },
+    {
+      "type": "p",
+      "text": "당사가 수집하는 정보는 귀하가 Orqanix의 어떤 부분을 이용하는지에 따라 달라집니다. 계정을 만들려면 로그인 과정에서 요구하는 정보(예: 이메일 주소)를 반드시 제공해야 합니다. 이 정보가 없으면 당사는 귀하에게 계정을 제공할 수 없습니다. 그 밖의 모든 것은 귀하의 선택이지만, 일부 기능은 작동하는 데 특정 데이터가 필요합니다. 귀하에게 당사에 개인정보를 제공하도록 요구하는 법률은 없습니다."
+    },
+    {
+      "type": "h3",
+      "id": "website",
+      "text": "웹사이트"
+    },
+    {
+      "type": "list",
+      "items": [
+        "당사의 호스팅 업체인 Google Cloud는 귀하가 방문할 때 일반적인 서버 로그, 즉 귀하의 IP 주소, 브라우저, 시각 및 요청한 페이지를 기록합니다. 당사는 이를 사이트를 안전하게 유지하고 문제를 해결하는 데 이용합니다.",
+        "당사의 마케팅 페이지와 법률 페이지는 쿠키를 설정하지 않으며 다른 회사로 요청을 보내지 않습니다. 이 페이지의 글꼴은 당사 자체 서버에서 제공됩니다.",
+        "귀하가 당사 법률 페이지에서 미국 버전 또는 EU 버전을 선택하면 귀하의 브라우저가 그 선택을 기억합니다. 이 정보는 귀하의 브라우저에만 남으며 당사로 전송되지 않습니다.",
+        "귀하가 데스크톱 앱을 다운로드할 때 파일은 Google Cloud Storage에서 제공되므로 Google은 귀하의 IP 주소를 보게 됩니다.",
+        "로그인 페이지와 웹 앱은 작동에 필요한 쿠키와 브라우저 저장소를 사용합니다. [쿠키 및 저장소](/instant/legal/cookies)에 각 항목이 나열되어 있습니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "account",
+      "text": "귀하의 계정"
+    },
+    {
+      "type": "p",
+      "text": "데스크톱 앱과 웹 앱을 이용하려면 Orqanix 계정이 필요합니다. 로그인은 Clerk가 당사를 위해 운영합니다. Clerk는 귀하의 이메일 주소, 귀하가 제공한 경우 이름, 그리고 Google로 로그인한 경우 프로필 사진을 보유합니다. 또한 귀하의 계정을 안전하게 보호하기 위해 IP 주소와 기기 정보를 포함한 로그인 및 세션 기록을 보관합니다. 가입 시 Cloudflare는 Clerk를 위해 귀하의 브라우저와 기기에서 얻은 신호를 이용하여 귀하가 봇이 아닌 사람인지 확인합니다. 당사 자체 데이터베이스는 귀하의 계정을 작업 공간과 연결하는 Clerk 사용자 ID를 보관합니다."
+    },
+    {
+      "type": "h3",
+      "id": "cloud-workspace",
+      "text": "귀하의 클라우드 작업 공간"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 Orqanix를 온라인으로 이용하는 경우, 당사는 귀하가 다시 돌아와 작업을 이어갈 수 있도록 귀하의 작업을 EU에 있는 당사 데이터베이스에 저장합니다. 여기에는 다음이 포함됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "어시스턴트 대화: 귀하가 작성한 내용과 답변의 전체 텍스트.",
+        "귀하의 목표, 각 워크플로 실행, 에이전트가 만든 파일과 보고서, 그리고 각각이 어떻게 만들어졌는지에 대한 기록.",
+        "귀하가 한 승인, 그리고 에이전트가 수행한 단계의 로그.",
+        "귀하가 설정한 자동화(예: 일정 및 웹훅). 당사가 발급하는 애플리케이션 키는 뒤섞인 형태(\"해시\")로만 보관합니다. 귀하가 연결된 서비스를 위해 추가한 자격 증명은 별도의 암호화된 저장소에 보관됩니다.",
+        "데스크톱 앱이 클라우드로 보내는 리서치 질문([데스크톱 앱](#desktop-app) 참조)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀하에게 답변하기 위해 클라우드 어시스턴트는 귀하의 요청을 AI 모델(기본값은 Google Gemini)로 보냅니다. 리서치를 위해 당사 자체 검색 서비스는 귀하의 요청을 바탕으로 만든 검색어를 공개 검색 엔진(Google, Bing, Brave 및 DuckDuckGo)으로 보냅니다. 또한 OpenRegister를 통해 공공 등기부에서 회사를 조회할 수 있습니다. 당사는 검색어만 보내며, 귀하의 이름이나 계정 정보는 보내지 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "완성된 보고서는 EU에 있는 비공개 저장 영역에도 파일로 저장됩니다. 메시지와 에이전트가 수행한 작업의 로그 등 일부 기록은 나중에 수정되지 않는 고정 로그로 보관됩니다. 귀하가 삭제를 요청할 경우 어떻게 되는지는 [보관 기간](#retention)에서 설명합니다."
+    },
+    {
+      "type": "h3",
+      "id": "desktop-app",
+      "text": "데스크톱 앱"
+    },
+    {
+      "type": "p",
+      "text": "데스크톱 앱이 처리하는 정보의 상당 부분은 귀하의 Mac에 남습니다. 앱이 작동하려면 그중 일부는 귀하의 Mac 밖으로 전송되어야 합니다."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Mac에 남는 정보",
+        "Mac 밖으로 전송되는 정보"
+      ],
+      "rows": [
+        [
+          "귀하의 채팅 기록(로컬 데이터베이스 파일). 당사는 자체 암호화를 추가하지 않습니다.",
+          "AI 모델이 답변할 때마다 그때까지의 전체 대화가 모델로 전송됩니다. 여기에는 귀하의 메시지, 에이전트가 사용한 도구의 결과(예: 에이전트가 읽은 파일의 내용 및 명령의 출력), 당사의 제품 지침 및 목표 관련 맥락이 포함됩니다."
+        ],
+        [
+          "에이전트가 만든 파일(귀하가 선택한 프로젝트 폴더에 저장).",
+          "기본 모델을 사용하는 경우, 이 정보는 EU에 있는 당사 게이트웨이를 거쳐 Google Gemini로 전달됩니다. 당사 게이트웨이는 요청을 전달만 하며 저장하지 않습니다."
+        ],
+        [
+          "설정, 로그(오래된 로그는 자동으로 정리됨), 최근 입력한 메시지를 다시 불러올 수 있도록 하는 목록, 그리고 귀하의 macOS 계정만 읽을 수 있는 앱 폴더.",
+          "에이전트가 클라우드 리서치를 요청하면 질문과, 필요한 경우 귀하의 기존 클라우드 파일 중 최대 다섯 개에서 발췌한 내용을 보냅니다. 이는 귀하의 클라우드 작업 공간에 저장됩니다."
+        ],
+        [
+          "귀하의 Orqanix 로그인 정보(macOS 키체인에 저장). 로그아웃하면 이 정보는 무효화됩니다.",
+          "음성 받아쓰기를 사용하는 경우 귀하의 음성은 모델 제공자에게 전송됩니다."
+        ],
+        [
+          "귀하가 직접 연결한 AI 제공자(예: OpenAI 또는 Anthropic)의 키(앱 폴더의 일반 텍스트 설정 파일에 저장).",
+          "다른 AI 제공자로 전환하면 해당 제공자가 자체 약관과 개인정보 처리방침에 따라 대화를 받습니다."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "이 앱은 사용 통계를 보내지 않으며 충돌 보고 기능이 없습니다. 기본적으로 에이전트는 먼저 귀하에게 묻지 않고 파일을 읽고 쓰며 명령을 실행할 수 있습니다. 귀하는 앱이 모든 작업 전에 묻도록 하거나, 민감한 작업 전에만 묻도록 이 설정을 변경할 수 있습니다. 예약된 레시피는 앱이 열려 있는 동안에만 실행됩니다."
+    },
+    {
+      "type": "h3",
+      "id": "mobile-app",
+      "text": "모바일 앱"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 모바일 앱을 이용하는 경우, 모바일 앱은 귀하의 Mac에 있는 Orqanix의 리모컨 역할을 합니다. 작업은 귀하의 Mac에서 실행되므로, 이 방침에서 [데스크톱 앱](#desktop-app)에 관해 설명한 내용이 모바일 앱에도 적용됩니다. 즉, 파일은 귀하의 Mac에서 만들어져 프로젝트 폴더에 남으며, 휴대폰은 만들어진 결과를 보여줍니다. 휴대폰에서 보낸 요청은 Mac에서 한 요청과 동일하게 처리됩니다. 모바일 앱은 작업이 완료되면 알려줄 수 있습니다. 당사는 휴대폰을 Mac에 연결하고, 결과를 보여주며, 이러한 알림을 보내는 데 필요한 데이터만 이용합니다."
+    },
+    {
+      "type": "h3",
+      "id": "assistant-bot",
+      "text": "어시스턴트 봇"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 어시스턴트 봇을 이용하는 경우, 귀하는 메시징 앱과 이메일 계정을 연결하고 각 봇에 역할을 부여합니다. 봇은 작업을 수행하기 위해 해당 계정에서 필요한 정보, 즉 메시지, 첨부 파일, 연락처 및 파일을 읽습니다. 봇은 귀하의 비즈니스 지도(귀하의 팀, 고객, 공급업체와 파일, 그리고 이들이 서로 어떻게 연결되는지)를 만들고, 귀하의 이메일과 휴대폰의 연락처를 하나의 목록으로 모으며, 문서를 폴더별로 분류합니다. 봇의 파일은 귀하의 클라우드 작업 공간의 일부인 Orqanix 작업 공간에 저장됩니다. 봇이 AI 모델이나 리서치를 이용하는 경우에는 [귀하의 클라우드 작업 공간](#cloud-workspace)에서 설명한 방식으로 작동합니다."
+    },
+    {
+      "type": "p",
+      "text": "연결할 권한이 있는 계정만 연결하십시오. 그 계정에 포함된 사람들, 예컨대 귀하의 고객과 공급업체에게도 개인정보에 관한 권리가 있습니다. 귀하가 비즈니스를 위해 봇을 이용하는 경우, 그들의 데이터를 처리할 적법한 근거를 갖추는 것은 귀하의 책임입니다. [어시스턴트 봇 약관](/instant/legal/assistant-bot-terms)을 참조하십시오."
+    },
+    {
+      "type": "h3",
+      "id": "api",
+      "text": "API"
+    },
+    {
+      "type": "p",
+      "text": "API는 기업을 위한 것입니다. 기업이 자사의 에이전트, 도구 및 예산과 함께 작업을 당사에 보내면, 당사는 누가 작업을 해야 하는지와 그 이유라는 결정을 회신합니다. 당사는 그 결정, 기업이 회신한 결과, 그리고 각 작업의 범위에 대한 기록을 EU(Google Cloud, 네덜란드)에 있는 API 전용 데이터베이스에 저장합니다. 결정을 내리기 위해 당사는 [귀하의 클라우드 작업 공간](#cloud-workspace)에서 설명한 대로 AI 모델, 웹 검색 및 회사 등기부 조회를 이용할 수 있습니다. 등기부 조회 결과에는 회사 이사의 이름이 포함될 수 있습니다. 당사는 또한 해당 기업에서 당사와 거래하는 사람들의 연락처 정보를 보관합니다."
+    },
+    {
+      "type": "h3",
+      "id": "enterprise",
+      "text": "엔터프라이즈"
+    },
+    {
+      "type": "p",
+      "text": "엔터프라이즈 프로젝트의 경우, 당사는 고객이 주문한 것을 구축하고 운영하기 위해 고객이 제공한 데이터를 처리합니다. 각 프로젝트는 고객과 합의한 EU 내 Google Cloud 리전에서 호스팅됩니다. 서면 주문서와 당사의 [데이터 처리 부속서](/instant/legal/dpa)는 어떤 데이터가 관련되는지와 당사가 그 데이터로 무엇을 할 수 있는지를 정합니다. 당사는 또한 고객 측에서 당사와 함께 일하는 사람들의 연락처 정보를 보관합니다."
+    },
+    {
+      "type": "h3",
+      "id": "contact-us",
+      "text": "당사로 보내는 이메일"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 당사에 이메일을 보내면 당사는 귀하의 이메일 주소, 귀하가 제공한 경우 이름, 그리고 귀하가 작성한 내용을 받게 됩니다. 당사는 이를 귀하에게 답변하고 귀하의 요청을 처리하는 데 이용합니다."
+    },
+    {
+      "type": "h3",
+      "id": "other-people",
+      "text": "다른 사람들"
+    },
+    {
+      "type": "p",
+      "text": "당사는 Orqanix를 직접 이용하지 않는 사람들에 관한 데이터를 처리할 수 있습니다. 여기에는 사용자가 당사에 제공한 콘텐츠에 언급된 사람, 사용자가 어시스턴트 봇에 연결한 계정의 연락처, 당사 리서치가 찾은 웹 페이지에 언급된 사람, 그리고 공공 등기부에 등재된 회사 이사가 포함됩니다. 당사는 이 데이터를 사용자가 요청한 작업을 수행하는 데에만 이용합니다. 귀하가 이러한 사람 중 한 명이라면, 귀하에게는 [귀하의 권리](#your-rights)에서 설명하는 권리가 있습니다."
+    },
+    {
+      "type": "h3",
+      "id": "sensitive-data",
+      "text": "민감한 데이터"
+    },
+    {
+      "type": "p",
+      "text": "당사는 건강 정보, 정치적 견해 또는 종교적 신념과 같은 민감한 데이터를 요구하지 않습니다. 귀하가 입력하거나 업로드하거나 연결하는 내용에 이를 포함하기로 선택하는 경우, 당사는 이를 귀하가 요청한 작업을 수행하는 데에만 이용합니다. 작업에 필요한 경우에만 이를 공유하시기 바랍니다."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "귀하가 미국에 거주하는 경우, 당사의 [소비자 건강 데이터 개인정보 처리방침](/instant/legal/health-data)도 당사에 전달되는 모든 건강 정보에 적용됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "정보의 이용 방법"
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하의 계정과 귀하가 이용하는 제품을 제공하고, 귀하가 요청한 작업을 수행하기 위해.",
+        "귀하의 요청을 AI 모델로 보내고 그 답변을 돌려주며, 귀하가 설정한 리서치와 자동화를 실행하기 위해.",
+        "Orqanix를 안전하게 유지하기 위해: 남용, 스팸 및 공격을 막고 문제를 조사하기 위해.",
+        "버그를 수정하고 서비스가 계속 작동하도록 하기 위해.",
+        "귀하의 메시지와 개인정보 관련 요청에 답변하기 위해.",
+        "당사의 법적 의무를 이행하고 법적 청구에 대응하기 위해."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀하의 콘텐츠로 자체 AI 모델을 학습시키지 않습니다. 당사는 모델에 보내는 내용에 지침과 맥락을 추가하는 방식으로 답변을 개선합니다. 당사는 귀하의 데이터를 광고에 이용하지 않습니다. 당사는 귀하에게 법적 효과 또는 이와 유사하게 중대한 영향을 미치는 자동화된 결정을 내리지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "legal-bases",
+      "text": "법적 근거",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "데이터 보호법은 당사가 \"법적 근거\"라고 하는 법적 이유가 있을 때에만 개인정보를 이용할 수 있도록 허용합니다(GDPR Art. 6). 아래 표는 각 목적별 근거를 보여줍니다."
+    },
+    {
+      "type": "table",
+      "only": "eu",
+      "head": [
+        "목적",
+        "데이터",
+        "법적 근거"
+      ],
+      "rows": [
+        [
+          "웹사이트 운영 및 보안 유지",
+          "서버 로그: IP 주소, 브라우저, 시각, 페이지",
+          "정상적으로 작동하고 안전한 웹사이트에 대한 당사의 정당한 이익(GDPR Art. 6(1)(f))"
+        ],
+        [
+          "계정 생성 및 로그인 처리",
+          "이메일, 이름, 프로필 사진(Google 로그인), 로그인 및 세션 기록",
+          "귀하와의 계약(GDPR Art. 6(1)(b))"
+        ],
+        [
+          "봇과 남용으로부터 로그인 보호",
+          "IP 주소, 기기 및 브라우저 신호(Clerk, Cloudflare)",
+          "보안에 대한 당사의 정당한 이익(GDPR Art. 6(1)(f))"
+        ],
+        [
+          "클라우드 작업 공간, 어시스턴트, 리서치 및 자동화 제공",
+          "귀하의 메시지, 목표, 파일, 워크플로 기록, 리서치 질문",
+          "귀하와의 계약(GDPR Art. 6(1)(b))"
+        ],
+        [
+          "데스크톱 앱에서 AI 모델의 답변 받기",
+          "대화, 도구 결과, 제품 지침, 받아쓰기를 하는 경우 귀하의 음성",
+          "귀하와의 계약(GDPR Art. 6(1)(b))"
+        ],
+        [
+          "귀하가 연결한 계정에서 어시스턴트 봇 실행",
+          "해당 계정의 메시지, 첨부 파일, 연락처 및 파일",
+          "귀하와의 계약(GDPR Art. 6(1)(b)). 해당 계정에 포함된 다른 사람들에 대해서는 귀하가 요청한 작업을 수행하는 데 대한 귀하와 당사의 정당한 이익(GDPR Art. 6(1)(f)), 또는 귀하가 비즈니스를 위해 봇을 이용하는 경우 귀하를 대신한 당사의 처리(GDPR Art. 28)"
+        ],
+        [
+          "리서치를 위한 공개 정보 조회",
+          "검색어, 이사의 이름이 포함될 수 있는 공공 등기부 기재 사항",
+          "당사 사용자와의 계약(GDPR Art. 6(1)(b)). 조회된 사람들에 대해서는 요청에 답변하는 데 대한 당사의 정당한 이익(GDPR Art. 6(1)(f))"
+        ],
+        [
+          "API 및 엔터프라이즈 기업 고객과의 거래",
+          "당사와 거래하는 사람들의 이름과 연락처 정보",
+          "비즈니스 관계 운영에 대한 당사의 정당한 이익(GDPR Art. 6(1)(f))"
+        ],
+        [
+          "API 또는 엔터프라이즈 서비스에서 기업 고객 자체 데이터의 처리",
+          "고객이 당사에 보내는 모든 것",
+          "고객의 법적 근거. 당사는 고객의 프로세서로서 행위합니다(GDPR Art. 28)"
+        ],
+        [
+          "에이전트가 수행한 작업에 대한 신뢰할 수 있는 기록 유지 및 법적 청구 대응",
+          "워크플로 이벤트, 승인, 파일 및 파일이 만들어진 방식",
+          "신뢰할 수 있는 이력과 법적 청구의 방어 또는 제기에 대한 당사의 정당한 이익(GDPR Art. 6(1)(f))"
+        ],
+        [
+          "귀하의 메시지와 개인정보 관련 요청에 대한 답변",
+          "귀하의 이메일 주소와 귀하가 작성한 내용",
+          "계약 또는 귀하에게 답변하는 데 대한 당사의 정당한 이익(GDPR Art. 6(1)(b), (f)). 개인정보 관련 요청에 대해서는 법적 의무(GDPR Art. 6(1)(c))"
+        ],
+        [
+          "세무 기록 또는 당국의 적법한 요청 등 법적 의무 이행",
+          "해당 의무가 요구하는 정보",
+          "법적 의무(GDPR Art. 6(1)(c))"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "당사가 정당한 이익에 근거하는 경우, 당사는 이를 귀하의 이익 및 권리와 비교 형량하였습니다. 귀하는 언제든지 이의를 제기할 수 있습니다([귀하의 권리](#your-rights) 참조)."
+    },
+    {
+      "type": "h2",
+      "id": "notice-at-collection",
+      "text": "수집 시 고지",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "이 표는 미국 주(州) 개인정보 보호법에서 사용하는 용어로, 당사가 무엇을 수집하는지, 그것이 어디에서 오는지, 왜 수집하는지, 얼마나 오래 보관하는지를 요약합니다."
+    },
+    {
+      "type": "table",
+      "only": "us",
+      "head": [
+        "범주",
+        "예시",
+        "출처",
+        "이용 목적",
+        "보관 기간"
+      ],
+      "rows": [
+        [
+          "식별자",
+          "이메일 주소, 이름, 계정 ID, IP 주소",
+          "귀하, Clerk, Google로 로그인하는 경우 Google",
+          "귀하의 계정, 로그인, 보안",
+          "귀하의 계정이 존재하는 동안, 그 이후에는 법적 의무가 요구하는 바에 따라"
+        ],
+        [
+          "인터넷 또는 네트워크 활동",
+          "서버 로그, 로그인 및 세션 기록, 브라우저 및 기기 정보",
+          "귀하의 브라우저 및 기기",
+          "보안, 문제 해결",
+          "서버 로그는 제한된 기간 동안([보관 기간](#retention) 참조), 로그인 기록은 귀하의 계정이 존재하는 동안"
+        ],
+        [
+          "귀하가 제공하는 콘텐츠",
+          "메시지, 파일, 목표, 리서치 질문, AI 모델로 전송되는 데스크톱 앱 대화",
+          "귀하, 귀하가 연결한 계정",
+          "귀하가 요청한 작업 수행",
+          "귀하의 계정이 존재하는 동안. 당사 AI 게이트웨이를 거치는 요청은 저장되지 않음"
+        ],
+        [
+          "오디오",
+          "받아쓰기를 사용하는 경우 귀하의 음성",
+          "귀하",
+          "귀하가 말한 내용을 요청으로 변환",
+          "당사 게이트웨이는 저장하지 않음. 모델 제공자 자체 약관이 적용됨"
+        ],
+        [
+          "직업 관련 정보",
+          "기업 고객 측 사람들의 연락처 정보, 공공 등기부상 이사의 이름",
+          "귀하, 공공 회사 등기부",
+          "API 및 엔터프라이즈 서비스, 리서치",
+          "비즈니스 관계가 지속되는 동안, 그 이후에는 법적 의무가 요구하는 바에 따라"
+        ],
+        [
+          "민감한 개인정보",
+          "귀하의 계정 로그인 정보(Clerk가 처리), 건강 정보 등 귀하가 포함하기로 선택한 모든 민감한 정보",
+          "귀하",
+          "귀하의 로그인 처리, 귀하가 요청한 작업 수행",
+          "해당 정보가 속하는 범주에 따름"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "당사는 민감한 개인정보를 귀하가 요청한 서비스를 제공하고 이를 안전하게 유지하는 데에만 이용하며, 귀하에 관한 사항을 추론하는 데에는 결코 이용하지 않습니다. 당사는 귀하의 프로필을 만들지 않습니다. 당사는 비즈니스 목적으로 [정보를 제공받는 자](#who-gets-it)에 열거된 서비스 제공자에게 개인정보를 공개합니다."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "정보를 제공받는 자"
+    },
+    {
+      "type": "p",
+      "text": "당사는 이 방침에서 설명하는 경우에만 개인정보를 공유합니다. 당사의 [하위 처리자](/instant/legal/subprocessors) 페이지에는 당사를 위해 개인정보를 처리하는 제공자, 이들이 수행하는 업무 및 처리 장소가 나열되어 있습니다. 주요 수령자는 다음과 같습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud는 당사의 웹사이트, 서버, 데이터베이스, 파일 및 로그, 그리고 데스크톱 앱 다운로드를 호스팅합니다.",
+        "Google Gemini는 Google의 Gemini API를 통해 기본적으로 귀하에게 답변하는 AI 모델입니다. Google Gemini는 귀하의 요청 내용, 대화 및 도구 결과, 그리고 받아쓰기를 하는 경우 귀하의 음성을 받습니다. 또한 일부 리서치를 위해 Google 검색을 실행합니다.",
+        "Clerk는 로그인과 계정을 운영합니다. Cloudflare는 Clerk를 위해 봇으로부터 로그인을 보호합니다. 귀하가 Google로 로그인을 선택하는 경우 Google이 관여합니다.",
+        "공개 검색 엔진(Google, Bing, Brave 및 DuckDuckGo)은 당사 리서치가 귀하의 요청을 바탕으로 만든 검색어를 받습니다. OpenRegister는 등기부 조회를 위해 회사 이름을 받습니다. 이들은 검색어만 받으며, 자체 약관에 따라 이를 이용합니다.",
+        "귀하가 데스크톱 앱에서 직접 연결한 AI 제공자(예: OpenAI 또는 Anthropic)는 귀하가 그들과 맺은 자체 계약에 따라 귀하의 대화를 받습니다.",
+        "귀하가 연결한 앱, 도구 및 계정(예: 데스크톱 앱 확장 프로그램, 또는 귀하가 어시스턴트 봇에 연결한 메시징 앱과 이메일 계정)은 에이전트나 봇이 보내는 내용을 자체 약관에 따라 받습니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Google의 Gemini API 약관](https://ai.google.dev/gemini-api/terms)은 Google이 Gemini API를 통해 받은 데이터를 어떻게 이용할 수 있는지를 정하며, 여기에는 Google이 남용 모니터링을 위해 데이터를 얼마나 오래 보관하는지가 포함됩니다."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "당사는 Google의 유료 Gemini API 서비스를 이용합니다. Google의 유료 서비스 약관에 따라 Google은 귀하의 프롬프트나 답변을 자사 제품 개선에 이용하지 않으며, 자사의 데이터 처리 약관에 따라 이를 처리합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 또한 법률이 요구하는 경우, 사람들의 안전이나 당사의 권리를 보호하기 위한 경우, 또는 당사 사업의 합병이나 매각의 일환으로 개인정보를 공개할 수 있습니다. 합병이나 매각 시에도 이 방침은 계속해서 귀하의 데이터를 보호합니다."
+    },
+    {
+      "type": "h2",
+      "id": "where-we-process",
+      "text": "처리 장소"
+    },
+    {
+      "type": "p",
+      "text": "당사는 클라우드 서비스와 데이터베이스를 EU(Google Cloud, 네덜란드)에서 호스팅합니다. 엔터프라이즈 프로젝트는 고객과 합의한 EU 내 Google Cloud 리전에서 실행됩니다. Clerk와 Google Gemini 등 당사가 이용하는 일부 제공자는 미국 또는 다른 곳에서 데이터를 처리할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "유럽 외부로의 이전",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "개인정보가 유럽연합 집행위원회로부터 적절한 보호 수준을 인정받지 못한 국가로 이전되는 경우, 당사는 법적 보호 조치를 이용합니다. 그 보호 조치는 수령자가 EU-미국 데이터 프라이버시 프레임워크(DPF)의 인증을 받은 경우에는 DPF이고, 그렇지 않은 경우에는 집행위원회가 승인한 계약 조항인 표준 계약 조항(SCC)입니다(GDPR Art. 45, 46)."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Clerk(미국): Clerk의 데이터 처리 계약에 따라 DPF, 그리고 예비 수단으로서 SCC.",
+        "Google Gemini: Google은 Google의 약관에 따라 EU 외부에서 요청을 처리할 수 있습니다."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "유료 Gemini API의 경우, EU 밖으로 이전되는 데이터에 대한 보호 조치는 Google의 데이터 처리 약관이 정합니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "공개 검색 엔진과 OpenRegister는 검색어와 회사 이름만 받으며, 자체 약관에 따라 이를 이용합니다. 이들 중 일부는 유럽 외부에 있습니다. 당사가 이용하는 보호 조치의 사본을 받으려면 {company.privacyEmail}(으)로 문의하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "retention",
+      "text": "보관 기간"
+    },
+    {
+      "type": "p",
+      "text": "당사는 이 방침에 명시된 목적에 필요한 기간 동안에만 개인정보를 보관하며, 그 후에는 이를 삭제하거나 익명화합니다."
+    },
+    {
+      "type": "table",
+      "head": [
+        "데이터",
+        "보관 기간"
+      ],
+      "rows": [
+        [
+          "계정 및 로그인 데이터",
+          "귀하의 계정이 존재하는 동안, 그 이후에는 법적 의무를 이행하는 데 필요한 기간 동안."
+        ],
+        [
+          "귀하의 클라우드 작업 공간",
+          "귀하의 계정이 존재하는 동안, 그 이후에는 법적 의무를 이행하는 데 필요한 기간 동안. 귀하가 계정 삭제를 요청하면 당사는 귀하의 데이터를 삭제하거나 익명화하며, 기록을 보관해야 하는 경우에는 그 이유를 귀하에게 알려드립니다."
+        ],
+        [
+          "데이터베이스 백업",
+          "삭제된 데이터는 짧은 기간, 최대 약 7일 동안 당사 백업에 남아 있을 수 있습니다."
+        ],
+        [
+          "서버 로그",
+          "당사 클라우드 제공자의 표준 로그 설정에 따른 제한된 기간 동안 보관된 후 자동으로 삭제됩니다. 당사는 귀하의 프롬프트나 메시지 내용을 로그로 기록하지 않습니다."
+        ],
+        [
+          "당사 AI 게이트웨이를 거치는 요청",
+          "당사는 저장하지 않습니다."
+        ],
+        [
+          "귀하의 Mac에 있는 데스크톱 앱 데이터",
+          "귀하가 삭제할 때까지. 오래된 로그는 자동으로 정리됩니다."
+        ],
+        [
+          "API 기록",
+          "비즈니스 관계가 지속되는 동안, 그 이후에는 법적 의무를 이행하는 데 필요한 기간 동안."
+        ],
+        [
+          "엔터프라이즈 프로젝트 데이터",
+          "서면 주문서에서 합의한 바에 따라."
+        ],
+        [
+          "귀하가 당사에 보내는 이메일",
+          "귀하의 메시지와 후속 조치를 처리하고 법적 의무를 이행하는 데 필요한 기간 동안."
+        ],
+        [
+          "법률 페이지에서 귀하가 선택한 지역",
+          "귀하가 삭제할 때까지 귀하의 브라우저에 보관."
+        ],
+        [
+          "Google이 Gemini API를 통해 받는 데이터",
+          "Google의 정책에서 정한 바에 따라."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "보안"
+    },
+    {
+      "type": "p",
+      "text": "당사는 위험에 맞는 조치로 개인정보를 보호합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "데이터는 암호화된 상태(HTTPS)로 전송되며, 당사 클라우드 제공자는 저장된 데이터를 암호화합니다.",
+        "당사의 클라우드 서비스와 데이터베이스는 EU에서 운영되며, 매일 백업되고 실수로 인한 삭제로부터 보호됩니다.",
+        "당사는 애플리케이션 키를 뒤섞인(해시된) 형태로만 저장합니다.",
+        "데스크톱 앱은 귀하의 Orqanix 로그인 정보를 macOS 키체인에 보관하며, 앱 폴더는 귀하의 macOS 계정만 읽을 수 있습니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "보호의 일부는 귀하의 몫입니다. 데스크톱 앱의 채팅 기록에는 자체적인 추가 암호화가 없으며, 귀하가 연결한 AI 제공자의 키는 일반 텍스트 파일에 보관됩니다. 귀하의 macOS 계정을 사용할 수 있는 사람은 누구나 이를 읽을 수 있으므로, Mac을 잠가 두고 FileVault를 사용하십시오."
+    },
+    {
+      "type": "p",
+      "text": "완벽하게 안전한 시스템은 없습니다. 침해 사고로 귀하의 개인정보가 위험에 처하는 경우, 당사는 법률이 요구하는 때에 귀하와 관계 당국에 이를 알립니다. 취약점을 신고하려면 [보안 및 취약점 공개](/instant/legal/security)를 참조하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "아동"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 만 18세 이상인 사람만을 위한 것입니다. 당사는 18세 미만인 사람으로부터 고의로 개인정보를 수집하지 않습니다. 아동이 당사에 개인정보를 제공했다고 생각되는 경우 {company.privacyEmail}(으)로 알려주시면 당사가 이를 삭제합니다."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Orqanix는 13세 미만 아동을 대상으로 하지 않으며, 당사는 이들의 개인정보를 고의로 수집하지 않습니다(Children's Online Privacy Protection Act, COPPA)."
+    },
+    {
+      "type": "h2",
+      "id": "your-choices",
+      "text": "귀하의 선택"
+    },
+    {
+      "type": "list",
+      "items": [
+        "데스크톱 앱에서 에이전트가 스스로 작업할지 아니면 먼저 귀하에게 물을지, 어떤 AI 제공자를 사용할지, 그리고 받아쓰기를 사용할지를 선택할 수 있습니다. 귀하는 언제든지 Mac에서 채팅 기록을 삭제할 수 있습니다.",
+        "어시스턴트 봇에 어떤 계정을 연결할지, 또는 연결하지 않을지를 선택할 수 있습니다.",
+        "무엇을 입력하고 업로드할지, 또는 에이전트에게 무엇을 읽도록 요청할지를 선택할 수 있습니다.",
+        "쿠키와 브라우저 저장소를 지우거나 차단할 수 있습니다([쿠키 및 저장소](/instant/legal/cookies) 참조). 필요한 쿠키가 없으면 로그인이 작동하지 않습니다.",
+        "[귀하의 권리](#your-rights)에 명시된 권리를 행사하려면 {company.privacyEmail}(으)로 문의하십시오."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "귀하의 권리",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "GDPR 및 영국과 스위스의 데이터 보호법에 따라 귀하에게는 다음과 같은 권리가 있습니다."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "열람: 귀하의 개인정보 사본과 당사가 이를 어떻게 이용하는지에 대한 정보를 요청할 수 있습니다(GDPR Art. 15).",
+        "정정: 잘못되었거나 불완전한 데이터를 정정하도록 요청할 수 있습니다(GDPR Art. 16).",
+        "삭제: 귀하의 데이터를 삭제하도록 요청할 수 있습니다(GDPR Art. 17).",
+        "처리 제한: 문제가 해결되는 동안 당사가 귀하의 데이터를 이용하는 방식을 제한하도록 요청할 수 있습니다(GDPR Art. 18).",
+        "이동: 귀하가 당사에 제공한 데이터를 일반적으로 사용되는 기계 판독 가능 형식으로 받거나, 다른 자에게 전송하도록 할 수 있습니다(GDPR Art. 20).",
+        "이의 제기: 귀하의 특수한 상황과 관련된 사유로, 당사의 정당한 이익에 근거한 모든 이용에 대해 언제든지 이의를 제기할 수 있습니다. 이 경우 당사는 불가피한 사유가 있거나 법적 청구를 위해 필요한 경우가 아니면 이용을 중단합니다(GDPR Art. 21).",
+        "동의: 당사가 귀하의 동의에 근거하는 경우, 언제든지 동의를 철회할 수 있으며, 이는 철회 이전에 당사가 한 처리에 영향을 미치지 않습니다(GDPR Art. 7(3)).",
+        "불만 제기: 데이터 보호 감독 기관, 특히 귀하가 거주하거나 근무하는 곳 또는 문제가 발생했다고 생각하는 곳의 감독 기관에 불만을 제기할 수 있습니다(GDPR Art. 77)."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "권리를 행사하려면 {company.privacyEmail}(으)로 문의하십시오. 당사는 예컨대 귀하의 계정에 등록된 이메일 주소로 연락해 달라고 하는 방식으로 귀하의 신원 확인을 요청할 수 있습니다. 당사는 1개월 이내에 답변합니다. 복잡한 요청의 경우 이 기간을 2개월 더 연장할 수 있으며, 연장하는 경우 귀하에게 알려드립니다(GDPR Art. 12(3)). 권리 행사는 무료입니다."
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "영국 및 스위스",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "귀하가 영국에 거주하는 경우 UK GDPR과 Data Protection Act 2018이 적용됩니다. 귀하는 먼저 당사에 불만을 제기할 수 있으며, 당사는 30일 이내에 불만 접수를 확인합니다. 귀하는 정보위원회(Information Commissioner's Office)([ico.org.uk](https://ico.org.uk))에 불만을 제기할 수도 있습니다. 영국 밖으로 이전되는 데이터에 대해 당사는 영국의 적정성 규정 또는 [유럽 외부로의 이전](#transfers)에 명시된 보호 조치의 영국판, 즉 수령자가 인증을 받은 경우 DPF의 UK Extension 또는 SCC의 UK Addendum에 근거합니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "귀하가 스위스에 거주하는 경우 연방 데이터 보호법(FADP)이 적용됩니다. 귀하는 연방 데이터 보호 및 정보 위원(Federal Data Protection and Information Commissioner)([edoeb.admin.ch](https://www.edoeb.admin.ch))에 불만을 제기할 수 있습니다. 스위스 밖으로 이전되는 데이터에 대해 당사는 스위스의 적정성 규정 또는 이러한 보호 조치의 스위스판, 즉 수령자가 인증을 받은 경우 스위스-미국 DPF 또는 스위스에서 인정되는 SCC에 근거합니다."
+    },
+    {
+      "type": "h3",
+      "id": "eu-representative",
+      "text": "EU 내 당사 대리인",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ],
+      "text": "당사는 EU에 설립되어 있지 않으므로 EU 내에 대리인을 지정하였습니다(GDPR Art. 27): {company.euRepresentative}. 귀하는 이 방침의 모든 사항에 관하여 당사 대신 대리인에게 연락할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "귀하의 권리",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "미국의 여러 주는 주민에게 개인정보에 관한 권리를 부여합니다. 당사는 귀하가 어느 주에 거주하든 미국 내 모든 사람에게 동일한 권리를 부여합니다."
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "알 권리 및 열람: 당사가 귀하에 관해 어떤 개인정보를 보유하고 있는지, 그것이 어디에서 왔는지, 왜 이용하는지, 누구에게 공개했는지를 요청하고, 그 사본을 받을 수 있습니다.",
+        "삭제: 당사가 귀하로부터 수집한 개인정보를 삭제하도록 요청할 수 있습니다.",
+        "정정: 잘못된 정보를 정정하도록 요청할 수 있습니다.",
+        "이동: 귀하의 정보를 다른 곳으로 가져갈 수 있는 형식으로 받을 수 있습니다.",
+        "옵트아웃: 귀하의 개인정보 판매 또는 공유, 타깃 광고, 그리고 법적 효과 또는 이와 유사하게 중대한 영향을 미치는 프로파일링을 거부할 수 있습니다. 당사는 이 중 어느 것도 하지 않으므로 해제할 것이 없습니다.",
+        "이의 신청: 당사가 귀하의 요청을 거절하는 경우, 이를 다시 검토하도록 요청할 수 있습니다.",
+        "동등한 대우: 당사는 귀하가 권리를 행사했다는 이유로 서비스 거부나 품질 변경 등 귀하를 다르게 대우하지 않습니다."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "권리를 행사하려면 {company.privacyEmail}(으)로 문의하십시오. 당사는 예컨대 귀하의 계정에 등록된 이메일 주소로 연락해 달라고 하는 방식으로 귀하의 신원 확인을 요청할 수 있습니다. 귀하가 권한을 부여한 사람이 귀하를 대신하여 요청할 수 있습니다. 당사는 귀하가 그 사람에게 권한을 부여했다는 증빙을 요청할 수 있습니다. 권리 행사는 무료입니다. 당사는 1개월 이내에 답변합니다."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "결정에 대해 이의를 신청하려면 제목을 \"Appeal\"로 하여 당사의 답변에 회신하십시오. 당사는 그 결과와 이유를 귀하에게 알려드립니다. 귀하가 동의하지 않는 경우, 귀하가 거주하는 주의 법무장관(Attorney General)에게 연락할 수 있습니다."
+    },
+    {
+      "type": "h3",
+      "id": "no-sale",
+      "text": "판매 또는 공유 없음",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "당사는 캘리포니아주 법률에서 사용하는 의미로 개인정보를 판매하지 않으며, 교차 맥락 행동 광고를 위해 개인정보를 \"공유\"하지도 않습니다. 당사는 개인정보를 타깃 광고에 이용하지 않습니다. 당사는 16세 미만인 사람의 개인정보를 판매하거나 공유한 사실을 실제로 알고 있지 않습니다. 당사는 이 중 어느 것도 하지 않으므로 \"Do Not Sell or Share\"(판매 또는 공유 금지) 링크를 표시하지 않습니다. 당사는 또한 네바다주 법률에 따른 \"보호 대상 정보(covered information)\"를 판매하지 않습니다. 그럼에도 귀하는 {company.privacyEmail}(으)로 옵트아웃 요청을 보낼 수 있습니다."
+    },
+    {
+      "type": "h3",
+      "id": "privacy-signals",
+      "text": "브라우저 개인정보 보호 신호",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "귀하의 브라우저가 Global Privacy Control(GPC) 신호를 보내는 경우, 당사는 이를 귀하의 개인정보 판매 및 공유를 거부하는 요청으로 취급합니다. 당사는 둘 다 하지 않으므로 귀하에게 달라지는 것은 없습니다. 당사는 시간이 지남에 따라 다른 웹사이트에 걸쳐 귀하를 추적하지 않으며, 다른 회사가 당사 사이트에서 그렇게 하도록 허용하지도 않습니다. 따라서 당사는 Do Not Track 신호도 같은 방식으로 취급합니다. 중단할 추적이 없습니다."
+    },
+    {
+      "type": "h3",
+      "id": "california",
+      "text": "캘리포니아",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "이 페이지는 California Online Privacy Protection Act(CalOPPA)에 따른 당사의 개인정보 처리방침이자 California Consumer Privacy Act(CCPA)에 따른 당사의 고지입니다. 당사는 다른 자의 직접 마케팅을 위해 개인정보를 공개하지 않으므로, 캘리포니아주의 \"Shine the Light\" 법에 따라 요청할 것이 없습니다. 당사는 이 방침을 최소 12개월에 한 번 검토합니다."
+    },
+    {
+      "type": "h3",
+      "id": "health-data",
+      "text": "건강 데이터",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "워싱턴주, 네바다주 및 코네티컷주에는 소비자 건강 데이터에 관한 특별 규정이 있습니다. 당사의 [소비자 건강 데이터 개인정보 처리방침](/instant/legal/health-data)은 어떤 건강 정보가 당사에 전달될 수 있는지, 당사가 이를 어떻게 이용하는지, 그리고 이에 대한 귀하의 권리를 설명합니다."
+    },
+    {
+      "type": "h3",
+      "id": "other-countries",
+      "text": "미국 및 유럽 외 지역",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "귀하가 미국, EEA, 영국 및 스위스 외 지역에 거주하는 경우, {company.privacyEmail}(으)로 문의하여 동일한 권리를 행사할 수 있습니다. 귀하 국가의 개인정보 보호법이 귀하에게 더 많은 권리를 부여할 수 있으며, 당사는 이를 존중합니다. 귀하의 데이터는 EU 및 [처리 장소](#where-we-process)에서 설명하는 기타 장소에서 처리됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "변경"
+    },
+    {
+      "type": "p",
+      "text": "당사는 당사 제품이나 법률이 변경되는 경우 이 방침을 업데이트합니다. 상단의 버전과 날짜는 어떤 텍스트가 적용되는지를 보여줍니다. 변경 사항이 당사의 데이터 이용 방식에 중요한 경우, 당사는 변경 사항이 시행되기 전에 제품 내에서 또는 이메일로 귀하에게 알려드립니다."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "연락처"
+    },
+    {
+      "type": "p",
+      "text": "개인정보 관련 질문, 요청 또는 불만: {company.privacyEmail}. 그 밖의 사항: {company.email}."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "우편: {company.legalName}, {company.address}."
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "सुलभता विवरण",
+    "summary": "यह विवरण बताता है कि Orqanix वेबसाइट कितनी सुलभ है, वह अभी कहाँ कम पड़ती है, और किसी बाधा की रिपोर्ट कैसे करें।",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "पहला संस्करण।"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "हमारा लक्ष्य"
+    },
+    {
+      "type": "p",
+      "text": "हम चाहते हैं कि हर कोई {company.name} वेबसाइट का उपयोग कर सके, जिसमें वे लोग भी शामिल हैं जो कीबोर्ड, स्क्रीन रीडर, ज़ूम या अन्य सहायक तकनीक का उपयोग करते हैं। हमारा लक्ष्य Web Content Accessibility Guidelines (WCAG) 2.1 का स्तर AA है, जो सामान्य अंतरराष्ट्रीय मानक है।"
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "दायरा"
+    },
+    {
+      "type": "p",
+      "text": "यह विवरण orqanix.com पर स्थित वेबसाइट को कवर करता है: होम पेज, उत्पाद और समाधान पृष्ठ, समाचार पृष्ठ और कानूनी केंद्र। यह वेब ऐप, डेस्कटॉप ऐप, या हमारे साइन-इन प्रदाता Clerk द्वारा प्रदान किए गए साइन-इन पृष्ठों को कवर नहीं करता है।"
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "वर्तमान स्थिति"
+    },
+    {
+      "type": "p",
+      "text": "यह वेबसाइट WCAG 2.1 स्तर AA को आंशिक रूप से पूरा करती है। इसका अभी तक पूर्ण ऑडिट नहीं हुआ है, और हम पूर्ण अनुरूपता का दावा नहीं करते हैं। जिन कमियों के बारे में हम जानते हैं, वे [ज्ञात कमियाँ](#known-gaps) के अंतर्गत सूचीबद्ध हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "हमने क्या किया है"
+    },
+    {
+      "type": "list",
+      "items": [
+        "कीबोर्ड: आप कीबोर्ड से लिंक, बटन और मेनू तक पहुँच सकते हैं, और Escape कुंजी खुले मेनू बंद कर देती है।",
+        "दिखाई देने वाला फ़ोकस: जब आप कीबोर्ड से लिंक और बटन पर जाते हैं, तो वे एक दिखाई देने वाली फ़ोकस शैली दिखाते हैं।",
+        "कम गति: यदि आपका डिवाइस गति कम करने के लिए सेट है, तो एनिमेटेड दृश्य हिलना बंद कर देते हैं और सामग्री बिना एनिमेशन के दिखाई देती है।",
+        "कंट्रास्ट: मुख्य पाठ और शीर्षक काली पृष्ठभूमि पर लगभग सफ़ेद हैं।",
+        "पाठ विकल्प: अर्थ रखने वाले मेनू, नियंत्रण और दृश्यों में स्क्रीन रीडर के लिए पाठ लेबल हैं। केवल सजावटी ग्राफ़िक्स उनसे छिपाए गए हैं।",
+        "संरचना: पृष्ठों में शीर्षक, एक मुख्य सामग्री क्षेत्र, एक लेबल किया गया मुख्य मेनू और एक लेबल किया गया फ़ुटर मेनू है, और पृष्ठ की भाषा अंग्रेज़ी पर सेट है।",
+        "छोटी स्क्रीन: लेआउट फ़ोन और संकरी विंडो के अनुसार ढल जाता है।"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "ज्ञात कमियाँ"
+    },
+    {
+      "type": "list",
+      "items": [
+        "कुछ चित्रों में छोटा पाठ है, जैसे एनिमेटेड उत्पाद दृश्यों के भीतर के लेबल। इसे पढ़ना कठिन हो सकता है, ज़ूम करने पर भी।",
+        "कुछ द्वितीयक लेबल हल्के धूसर रंग का उपयोग करते हैं, जिसका कंट्रास्ट छोटे पाठ के लिए WCAG की अपेक्षा से कम है।",
+        "कुछ लोगों के लिए एनिमेटेड दृश्यों को समझना कठिन हो सकता है। यदि आपका डिवाइस गति कम करने के लिए सेट है, तो वे हिलना बंद कर देते हैं।"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "हम इन कमियों को ठीक करने का इरादा रखते हैं। यदि इनमें से कोई कमी आपको आवश्यक जानकारी प्राप्त करने से रोकती है, तो [हमें बताएँ](#feedback) और हम उसे आपको किसी अन्य तरीके से देने का प्रयास करेंगे।"
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "प्रतिक्रिया"
+    },
+    {
+      "type": "p",
+      "text": "यदि आपको हमारी वेबसाइट पर कोई बाधा मिलती है, तो कृपया हमें {company.email} पर बताएँ। बताएँ कि यह किस पृष्ठ पर थी, आप क्या करने का प्रयास कर रहे थे और, यदि आप चाहें, तो आप कौन-सा ब्राउज़र और सहायक तकनीक उपयोग करते हैं। हमारा लक्ष्य जल्दी उत्तर देना और जो ठीक कर सकें उसे ठीक करना है।"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "यदि आप EU में रहते हैं और हमारे उत्तर से समस्या हल नहीं होती है, तो आप अपने देश के उस प्राधिकरण से संपर्क कर सकते हैं जो सुलभता की निगरानी करता है।"
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "इस विवरण के बारे में"
+    },
+    {
+      "type": "p",
+      "text": "हमने यह विवरण 21 सितंबर 2026 को, वेबसाइट की अपनी समीक्षा के आधार पर तैयार किया। जब हम कोई कमी ठीक करेंगे या कोई ऑडिट पूरा करेंगे, तब हम इसे अपडेट करेंगे।"
+    }
+  ]
+}

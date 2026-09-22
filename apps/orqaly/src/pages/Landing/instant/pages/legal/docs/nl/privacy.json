@@ -1,0 +1,814 @@
+{
+  "meta": {
+    "slug": "privacy",
+    "title": "Privacybeleid",
+    "summary": "Dit beleid legt uit welke persoonsgegevens Orqanix verzamelt, waarom we ze gebruiken, wie ze ontvangt, hoe lang we ze bewaren en welke rechten u hebt.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'run by', controller and postal lines are hidden until filled. Hiding the controller breaks GDPR Art. 13(1)(a) in practice; fill before publishing the EU version (FACTS §14.1).",
+        "euRepresentative (GDPR Art. 27): the section is hidden until filled; needed only if the company is outside the EU. UK Art. 27 and Swiss Art. 14 representatives not addressed (FACTS §14.1).",
+        "geminiPaidTier: paid-tier sentences (Google not using data; Google's DPA covering transfers) stay hidden until confirmed. Without it, Google's own use of Gemini data is only described by linking Google's terms, and the transfer safeguard for Gemini is not named (FACTS §14.3).",
+        "Transfers: Clerk's UK Extension / Swiss-US DPF status, and Cloudflare's safeguards via Clerk, are not confirmed; the UK/Swiss wording is generic ('such as').",
+        "Retention: no periods exist in code for workspace data, API records, the artifact bucket or emails; written as 'as long as your account exists / business relationship lasts'. Server logs are 'a limited time under our cloud provider's standard settings' (30-day default not confirmed, FACTS §14.5, §14.6).",
+        "Deletion/export: no self-service deletion or export and no process that works with the immutable tables; text promises 'delete or anonymise, or tell you why' and an answer within one month (FACTS §3, §14.5).",
+        "Lawyer: legal basis for special-category data (GDPR Art. 9) that users choose to include (e.g. health) is not stated; text says we use it only to do what was asked.",
+        "Lawyer: roles for web searches and OpenRegister lookups (independent recipients vs processors), and for Assistant Bot contacts when used for business (processor under the DPA) (FACTS §7, §14.11).",
+        "Mobile App and Assistant Bot: written as usage rules from their product pages only; no code exists, so what the Mobile App stores on the phone or in our cloud (e.g. for notifications) is unknown (FACTS §5, §6, §14.13).",
+        "Desktop defaults disclosed as they are (auto-approve on, dictation on, provider keys in plain text); update if the owner changes them (FACTS §14.8).",
+        "Age 18+ and 'region at sign-up' need a sign-up self-declaration and an acceptance record (FACTS §14.9).",
+        "Email: privacy@ and hello@ must receive mail (no MX record today); our email provider is not named as a recipient because none is chosen (FACTS §14.2).",
+        "Describes the website AFTER this build (no cookies or third-party calls on marketing pages, self-hosted fonts). Publish only once that build is live.",
+        "US: 'we answer within one month' is used for US requests too; lawyer to confirm it fits CCPA (45 days) and other state deadlines. The US version assumes the CCPA may not apply yet but follows it anyway.",
+        "Lawyer/owner: Gemini tier and \"no sale\". If Google's unpaid Gemini terms apply, Google may use prompts to improve its products; that disclosure could count as a \"sale\" or \"sharing\" under CCPA and other state laws (and makes Google an independent recipient under GDPR), which would make \"we do not sell your data\" and the no-opt-out-link position wrong. Confirm the paid tier before publishing (FACTS §14.3; us.md §Recommendations 2).",
+        "Lawyer: transfer basis for independent recipients outside Europe (public search engines; OpenRegister if relevant) is not named; the text says only that some are outside Europe.",
+        "Lawyer/owner: data protection officer. No DPO is named; whether one is required (GDPR Art. 37, § 38 BDSG at 20+ staff) depends on the company. Add a DPO contact block if one is appointed.",
+        "Lawyer: DSA Art. 13 legal representative and UK Art. 27 / Swiss Art. 14 representatives if the company is not EU/UK/CH-established.",
+        "Desktop App built-in storage (theme, menu layout, pinned chats, recently typed messages, kept by the app on the Mac) is summarised, not listed item by item.",
+        "EU word count is about 3,670 (US about 3,510), above the 3,500 guide, because of the legal-basis table and the Art. 13(2)(e) sentence. The 2026-09-21 edit cut repetition but no content."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Wie we zijn"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix (“wij”, “ons”) levert de website orqanix.com en de Orqanix-producten: de Computerapp voor uw Mac, de Mobiele app, de Assistent-bot, de API en onze zakelijke diensten (Zakelijk). De Computerapp en de webapp delen één online account en één cloudwerkruimte. Dit beleid legt uit welke persoonsgegevens we via al deze producten verzamelen, waarom, en wat u eraan kunt doen."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix wordt geëxploiteerd door {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Voor alles wat met uw privacy te maken heeft, kunt u schrijven naar {company.privacyEmail}."
+    },
+    {
+      "type": "note",
+      "text": "In het kort: we verzamelen wat we nodig hebben om uw account te beheren en het werk te doen waarom u vraagt. Wat u de AI vraagt, gaat naar de modelaanbieder (standaard Google Gemini) om een antwoord te krijgen. We hosten onze clouddiensten en database in de EU (Google Cloud, Nederland). We verkopen uw gegevens niet, tonen geen advertenties, gebruiken geen advertentie- of analysetrackers en trainen onze eigen AI-modellen niet met uw inhoud."
+    },
+    {
+      "type": "h3",
+      "id": "controller",
+      "text": "Verwerkingsverantwoordelijke",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Voor het meeste wat dit beleid beschrijft, zijn wij de “verwerkingsverantwoordelijke”: degene die bepaalt waarom en hoe uw persoonsgegevens worden gebruikt (art. 4, punt 7, AVG). Wanneer een bedrijf onze API, onze zakelijke diensten of de Assistent-bot met zijn eigen gegevens gebruikt, is dat bedrijf de verwerkingsverantwoordelijke. Wij zijn dan zijn “verwerker”: we verwerken de gegevens namens het bedrijf, op grond van onze [Verwerkersovereenkomst](/instant/legal/dpa). De eigen privacyverklaring van het bedrijf legt uit hoe het de gegevens gebruikt."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "De verwerkingsverantwoordelijke is {company.legalName}, {company.address}."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Wat we verzamelen"
+    },
+    {
+      "type": "p",
+      "text": "Wat we verzamelen, hangt af van welke onderdelen van Orqanix u gebruikt. Om een account aan te maken, moet u de gegevens verstrekken waarom het aanmelden vraagt, zoals uw e-mailadres. Zonder die gegevens kunnen we u geen account geven. Al het andere is uw keuze, al hebben sommige functies bepaalde gegevens nodig om te werken. Geen enkele wet verplicht u ons persoonsgegevens te verstrekken."
+    },
+    {
+      "type": "h3",
+      "id": "website",
+      "text": "De website"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Onze hostingpartij, Google Cloud, houdt gewone serverlogs bij wanneer u de site bezoekt: uw IP-adres, uw browser, het tijdstip en de pagina die u opvroeg. We gebruiken ze om de site veilig te houden en om problemen op te lossen.",
+        "Onze marketing- en juridische pagina's plaatsen geen cookies en maken geen verbinding met andere bedrijven. Hun lettertypen komen van onze eigen server.",
+        "Als u op onze juridische pagina's de Amerikaanse of de EU-versie kiest, onthoudt uw browser die keuze. Die blijft in uw browser en wordt niet naar ons verstuurd.",
+        "Wanneer u de Computerapp downloadt, komt het bestand van Google Cloud Storage, zodat Google uw IP-adres ziet.",
+        "De aanmeldpagina's en de webapp gebruiken de cookies en browseropslag die ze nodig hebben om te werken. [Cookies en opslag](/instant/legal/cookies) noemt ze allemaal."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "account",
+      "text": "Uw account"
+    },
+    {
+      "type": "p",
+      "text": "U hebt een Orqanix-account nodig om de Computerapp en de webapp te gebruiken. Clerk verzorgt het aanmelden voor ons. Clerk bewaart uw e-mailadres, uw naam als u die opgeeft, en uw profielfoto als u zich aanmeldt met Google. Om uw account te beveiligen, houdt Clerk ook gegevens bij over uw aanmeldingen en sessies, waaronder uw IP-adres en apparaatgegevens. Bij het registreren controleert Cloudflare voor Clerk of u een mens bent en geen bot, aan de hand van signalen van uw browser en apparaat. Onze eigen database bewaart de gebruikers-ID van Clerk die uw account aan uw werkruimte koppelt."
+    },
+    {
+      "type": "h3",
+      "id": "cloud-workspace",
+      "text": "Uw cloudwerkruimte"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u Orqanix online gebruikt, slaan we uw werk op in onze database in de EU, zodat u er later naar kunt terugkeren. Dit omvat:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Uw gesprekken met de assistent: de volledige tekst van wat u schrijft en de antwoorden.",
+        "Uw doelen, elke uitvoering van een werkstroom, en de bestanden en rapporten die de agents maken, met een overzicht van hoe elk ervan tot stand is gekomen.",
+        "De goedkeuringen die u geeft, en een logboek van de stappen die de agents hebben gezet.",
+        "Automatiseringen die u instelt, zoals planningen en webhooks. Van de applicatiesleutels die wij uitgeven, bewaren we alleen een onleesbaar gemaakte vorm (een “hash”). Inloggegevens die u toevoegt voor gekoppelde diensten, worden in een aparte versleutelde opslag bewaard.",
+        "Onderzoeksvragen die de Computerapp naar de cloud stuurt (zie [De Computerapp](#desktop-app))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Om u te antwoorden, stuurt de cloudassistent uw verzoek naar het AI-model (standaard Google Gemini). Voor onderzoek stuurt onze eigen zoekdienst zoekopdrachten die op basis van uw verzoek zijn opgesteld naar openbare zoekmachines (Google, Bing, Brave en DuckDuckGo). Ook kan hij via OpenRegister bedrijven opzoeken in openbare registers. We sturen de zoekopdracht, niet uw naam of accountgegevens."
+    },
+    {
+      "type": "p",
+      "text": "Afgeronde rapporten worden ook als bestanden opgeslagen in een afgeschermde opslagruimte in de EU. Sommige gegevens, zoals berichten en het logboek van wat agents hebben gedaan, worden bewaard als een vast logboek dat achteraf niet wordt gewijzigd. [Hoe lang we het bewaren](#retention) legt uit wat er gebeurt wanneer u ons vraagt ze te verwijderen."
+    },
+    {
+      "type": "h3",
+      "id": "desktop-app",
+      "text": "De Computerapp"
+    },
+    {
+      "type": "p",
+      "text": "Veel van wat de Computerapp verwerkt, blijft op uw Mac. Een deel ervan moet uw Mac verlaten om de app te laten werken."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Blijft op uw Mac",
+        "Verlaat uw Mac"
+      ],
+      "rows": [
+        [
+          "Uw chatgeschiedenis, in een lokaal databasebestand. We voegen geen eigen versleuteling toe.",
+          "Telkens wanneer het AI-model antwoordt, gaat het volledige gesprek tot dan toe naar het model: uw berichten, de resultaten van de hulpmiddelen die de agents gebruikten (zoals de inhoud van bestanden die ze lazen en de uitvoer van opdrachten), onze productinstructies en eventuele context van een doel."
+        ],
+        [
+          "De bestanden die de agents maken, in de projectmap die u kiest.",
+          "Met het standaardmodel gaat dit via onze gateway in de EU naar Google Gemini. Onze gateway stuurt het verzoek door en slaat het niet op."
+        ],
+        [
+          "Instellingen, logbestanden (oude logbestanden worden automatisch opgeruimd), een lijst met berichten die u onlangs hebt getypt zodat u ze opnieuw kunt oproepen, en een app-map die alleen uw macOS-account kan lezen.",
+          "Wanneer een agent om onderzoek in de cloud vraagt, stuurt hij een vraag en, indien nodig, fragmenten uit maximaal vijf van uw bestaande cloudbestanden. Dit wordt opgeslagen in uw cloudwerkruimte."
+        ],
+        [
+          "Uw Orqanix-aanmelding, in de macOS-sleutelhanger. Afmelden trekt die in.",
+          "Als u spraakdicteren gebruikt, wordt uw stem naar de modelaanbieder gestuurd."
+        ],
+        [
+          "Sleutels voor AI-aanbieders die u zelf koppelt (zoals OpenAI of Anthropic), opgeslagen in een instellingenbestand met platte tekst in de map van de app.",
+          "Als u overstapt op een andere AI-aanbieder, ontvangt die aanbieder het gesprek onder zijn eigen voorwaarden en privacybeleid."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "De app verstuurt geen gebruiksstatistieken en heeft geen crashrapportage. Standaard kunnen de agents bestanden lezen en schrijven en opdrachten uitvoeren zonder het u eerst te vragen. U kunt dit wijzigen, zodat de app vóór elke handeling toestemming vraagt, of alleen vóór gevoelige handelingen. Geplande recepten worden alleen uitgevoerd terwijl de app geopend is."
+    },
+    {
+      "type": "h3",
+      "id": "mobile-app",
+      "text": "De Mobiele app"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u de Mobiele app gebruikt, werkt die als afstandsbediening voor Orqanix op uw Mac. Het werk wordt uitgevoerd op uw Mac, dus wat dit beleid zegt over [de Computerapp](#desktop-app) geldt hiervoor ook: bestanden worden op uw Mac gemaakt en blijven in uw projectmap, en de telefoon laat u zien wat er is gemaakt. Een verzoek vanaf de telefoon wordt behandeld als een verzoek op uw Mac. De Mobiele app kan u laten weten wanneer een taak klaar is. We gebruiken de gegevens die de app nodig heeft alleen om uw telefoon met uw Mac te verbinden, u de resultaten te tonen en u die meldingen te sturen."
+    },
+    {
+      "type": "h3",
+      "id": "assistant-bot",
+      "text": "De Assistent-bot"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u de Assistent-bot gebruikt, koppelt u berichtenapps en e-mailaccounts en geeft u elke bot een rol. De bot leest uit die accounts wat hij nodig heeft voor zijn werk: berichten, bijlagen, contactpersonen en bestanden. Hij brengt uw bedrijf in kaart (uw team, klanten, leveranciers en bestanden, en hoe ze met elkaar samenhangen), voegt contactpersonen uit uw e-mail en uw telefoon samen tot één lijst en sorteert documenten in mappen. Zijn bestanden komen in uw Orqanix-werkruimte, die deel uitmaakt van uw cloudwerkruimte. Wanneer hij het AI-model of onderzoek gebruikt, werkt dat zoals beschreven in [Uw cloudwerkruimte](#cloud-workspace)."
+    },
+    {
+      "type": "p",
+      "text": "Koppel alleen accounts die u mag koppelen. De mensen daarin, zoals uw klanten en leveranciers, hebben ook privacyrechten. Wanneer u de bot voor uw bedrijf gebruikt, bent u ervoor verantwoordelijk dat u een wettige grondslag hebt om hun gegevens te verwerken. Zie de [Voorwaarden Assistent-bot](/instant/legal/assistant-bot-terms)."
+    },
+    {
+      "type": "h3",
+      "id": "api",
+      "text": "De API"
+    },
+    {
+      "type": "p",
+      "text": "De API is bedoeld voor bedrijven. Een bedrijf stuurt ons een taak met zijn agents, hulpmiddelen en een budget, en wij sturen een beslissing terug: wie het werk moet doen, en waarom. We slaan de beslissingen, de uitkomsten die het bedrijf aan ons terugmeldt en de gegevens over de omvang van elke opdracht op in de eigen database van de API in de EU (Google Cloud, Nederland). Om tot een beslissing te komen, kunnen we het AI-model, zoeken op het web en opzoekingen in bedrijfsregisters gebruiken, zoals beschreven in [Uw cloudwerkruimte](#cloud-workspace). Resultaten uit registers kunnen de namen van bestuurders van bedrijven bevatten. We bewaren ook de contactgegevens van de mensen met wie we bij het bedrijf te maken hebben."
+    },
+    {
+      "type": "h3",
+      "id": "enterprise",
+      "text": "Zakelijk"
+    },
+    {
+      "type": "p",
+      "text": "Voor zakelijke projecten verwerken we de gegevens die de klant ons geeft om te bouwen en te beheren wat hij heeft besteld. Elk project wordt gehost in een Google Cloud-regio in de EU die met de klant is afgesproken. De schriftelijke opdracht en onze [Verwerkersovereenkomst](/instant/legal/dpa) bepalen om welke gegevens het gaat en wat we ermee mogen doen. We bewaren ook de contactgegevens van de mensen met wie we bij de klant samenwerken."
+    },
+    {
+      "type": "h3",
+      "id": "contact-us",
+      "text": "E-mails aan ons"
+    },
+    {
+      "type": "p",
+      "text": "Als u ons e-mailt, ontvangen we uw e-mailadres, uw naam als u die opgeeft, en wat u ook maar schrijft. We gebruiken dat om u te antwoorden en uw verzoek af te handelen."
+    },
+    {
+      "type": "h3",
+      "id": "other-people",
+      "text": "Andere personen"
+    },
+    {
+      "type": "p",
+      "text": "We kunnen gegevens verwerken over mensen die Orqanix zelf niet gebruiken: mensen die worden genoemd in de inhoud die onze gebruikers ons geven, contactpersonen in de accounts die een gebruiker aan de Assistent-bot koppelt, mensen die worden genoemd op webpagina's die ons onderzoek vindt, en bestuurders van bedrijven die in openbare registers staan. We gebruiken deze gegevens alleen om het werk te doen waarom onze gebruiker heeft gevraagd. Als u een van deze personen bent, hebt u de rechten die worden beschreven in [Uw rechten](#your-rights)."
+    },
+    {
+      "type": "h3",
+      "id": "sensitive-data",
+      "text": "Gevoelige gegevens"
+    },
+    {
+      "type": "p",
+      "text": "We vragen niet om gevoelige gegevens, zoals gezondheidsinformatie, politieke opvattingen of religieuze overtuigingen. Als u ervoor kiest ze op te nemen in wat u typt, uploadt of koppelt, gebruiken we ze alleen om te doen waarom u hebt gevraagd. Deel ze alstublieft alleen wanneer uw taak dat vereist."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Als u in de VS woont, geldt ons [Privacybeleid voor consumentengezondheidsgegevens](/instant/legal/health-data) ook voor alle gezondheidsinformatie die ons bereikt."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Hoe we het gebruiken"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Om uw account en de producten die u gebruikt te leveren, en om het werk te doen waarom u vraagt.",
+        "Om uw verzoeken naar het AI-model te sturen en de antwoorden terug te geven, en om het onderzoek en de automatiseringen uit te voeren die u instelt.",
+        "Om Orqanix veilig te houden: om misbruik, spam en aanvallen te stoppen, en om problemen te onderzoeken.",
+        "Om fouten te herstellen en de dienst werkend te houden.",
+        "Om uw berichten en privacyverzoeken te beantwoorden.",
+        "Om aan onze wettelijke verplichtingen te voldoen en ons te verweren tegen rechtsvorderingen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We trainen onze eigen AI-modellen niet met uw inhoud. We verbeteren antwoorden door instructies en context toe te voegen aan wat we naar het model sturen. We gebruiken uw gegevens niet voor advertenties. We nemen over u geen geautomatiseerde besluiten met rechtsgevolgen of andere, vergelijkbaar ingrijpende gevolgen."
+    },
+    {
+      "type": "h2",
+      "id": "legal-bases",
+      "text": "Onze rechtsgronden",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "De privacywetgeving staat ons alleen toe persoonsgegevens te gebruiken wanneer we daarvoor een wettelijke reden hebben, een “rechtsgrond” genoemd (art. 6 AVG). De tabel toont de rechtsgrond voor elk doel."
+    },
+    {
+      "type": "table",
+      "only": "eu",
+      "head": [
+        "Doel",
+        "Gegevens",
+        "Rechtsgrond"
+      ],
+      "rows": [
+        [
+          "De website laten werken en beveiligen",
+          "Serverlogs: IP-adres, browser, tijdstip, pagina",
+          "Ons gerechtvaardigd belang bij een werkende, veilige website (art. 6 lid 1 onder f AVG)"
+        ],
+        [
+          "Uw account aanmaken en u aanmelden",
+          "E-mailadres, naam, profielfoto (aanmelden met Google), gegevens over aanmeldingen en sessies",
+          "Overeenkomst met u (art. 6 lid 1 onder b AVG)"
+        ],
+        [
+          "Het aanmelden beschermen tegen bots en misbruik",
+          "IP-adres, apparaat- en browsersignalen (Clerk, Cloudflare)",
+          "Ons gerechtvaardigd belang bij beveiliging (art. 6 lid 1 onder f AVG)"
+        ],
+        [
+          "De cloudwerkruimte, de assistent, onderzoek en automatiseringen leveren",
+          "Uw berichten, doelen, bestanden, gegevens over werkstromen, onderzoeksvragen",
+          "Overeenkomst met u (art. 6 lid 1 onder b AVG)"
+        ],
+        [
+          "Antwoorden van het AI-model krijgen in de Computerapp",
+          "Het gesprek, resultaten van hulpmiddelen, productinstructies; uw stem als u dicteert",
+          "Overeenkomst met u (art. 6 lid 1 onder b AVG)"
+        ],
+        [
+          "De Assistent-bot laten werken op de accounts die u koppelt",
+          "Berichten, bijlagen, contactpersonen en bestanden uit die accounts",
+          "Overeenkomst met u (art. 6 lid 1 onder b AVG); voor andere personen in die accounts: uw en ons gerechtvaardigd belang om het werk te doen waarom u hebt gevraagd (art. 6 lid 1 onder f AVG), of onze verwerking namens u als u de bot voor uw bedrijf gebruikt (art. 28 AVG)"
+        ],
+        [
+          "Openbare informatie opzoeken voor onderzoek",
+          "Zoekopdrachten; vermeldingen in openbare registers, die namen van bestuurders kunnen bevatten",
+          "Overeenkomst met onze gebruiker (art. 6 lid 1 onder b AVG); voor de gevonden personen: ons gerechtvaardigd belang om het verzoek te beantwoorden (art. 6 lid 1 onder f AVG)"
+        ],
+        [
+          "Contact onderhouden met zakelijke klanten van de API en Zakelijk",
+          "Namen en contactgegevens van de mensen met wie we te maken hebben",
+          "Ons gerechtvaardigd belang bij het onderhouden van de zakelijke relatie (art. 6 lid 1 onder f AVG)"
+        ],
+        [
+          "De eigen gegevens van een zakelijke klant verwerken in de API of de zakelijke diensten",
+          "Wat de klant ons ook maar stuurt",
+          "De rechtsgrond van de klant; wij treden op als zijn verwerker (art. 28 AVG)"
+        ],
+        [
+          "Een betrouwbaar overzicht bijhouden van wat agents hebben gedaan, en rechtsvorderingen afhandelen",
+          "Gebeurtenissen in werkstromen, goedkeuringen, bestanden en hoe ze tot stand zijn gekomen",
+          "Ons gerechtvaardigd belang bij een betrouwbare geschiedenis en bij het instellen van of verweer voeren tegen rechtsvorderingen (art. 6 lid 1 onder f AVG)"
+        ],
+        [
+          "Uw berichten en privacyverzoeken beantwoorden",
+          "Uw e-mailadres en wat u schrijft",
+          "Overeenkomst of ons gerechtvaardigd belang om u te antwoorden (art. 6 lid 1 onder b en f AVG); wettelijke verplichting voor privacyverzoeken (art. 6 lid 1 onder c AVG)"
+        ],
+        [
+          "Aan wettelijke verplichtingen voldoen, zoals belastingadministratie of rechtmatige verzoeken van autoriteiten",
+          "Wat de verplichting vereist",
+          "Wettelijke verplichting (art. 6 lid 1 onder c AVG)"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Waar we ons op ons gerechtvaardigd belang baseren, hebben we dat afgewogen tegen uw belangen en rechten. U kunt op elk moment bezwaar maken (zie [Uw rechten](#your-rights))."
+    },
+    {
+      "type": "h2",
+      "id": "notice-at-collection",
+      "text": "Kennisgeving bij verzameling",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Deze tabel vat samen, in de termen die de privacywetten van Amerikaanse staten gebruiken, wat we verzamelen, waar het vandaan komt, waarom en hoe lang."
+    },
+    {
+      "type": "table",
+      "only": "us",
+      "head": [
+        "Categorie",
+        "Voorbeelden",
+        "Bron",
+        "Waarom we het gebruiken",
+        "Hoe lang we het bewaren"
+      ],
+      "rows": [
+        [
+          "Identificatiegegevens",
+          "E-mailadres, naam, account-ID, IP-adres",
+          "U; Clerk; Google als u zich aanmeldt met Google",
+          "Uw account, aanmelden, beveiliging",
+          "Zolang uw account bestaat, daarna zolang wettelijke verplichtingen dat vereisen"
+        ],
+        [
+          "Internet- of netwerkactiviteit",
+          "Serverlogs, gegevens over aanmeldingen en sessies, browser- en apparaatgegevens",
+          "Uw browser en apparaat",
+          "Beveiliging, problemen oplossen",
+          "Serverlogs gedurende een beperkte tijd (zie [Hoe lang we het bewaren](#retention)); gegevens over aanmeldingen zolang uw account bestaat"
+        ],
+        [
+          "Inhoud die u ons geeft",
+          "Berichten, bestanden, doelen, onderzoeksvragen, het gesprek uit de Computerapp dat naar het AI-model wordt gestuurd",
+          "U; de accounts die u koppelt",
+          "Het werk doen waarom u vraagt",
+          "Zolang uw account bestaat; verzoeken die via onze AI-gateway gaan, worden niet opgeslagen"
+        ],
+        [
+          "Audio",
+          "Uw stem, als u dicteren gebruikt",
+          "U",
+          "Wat u zegt omzetten in een verzoek",
+          "Niet opgeslagen door onze gateway; de eigen voorwaarden van de modelaanbieder zijn van toepassing"
+        ],
+        [
+          "Beroepsgegevens",
+          "Contactgegevens van mensen bij zakelijke klanten; namen van bestuurders in openbare registers",
+          "U; openbare bedrijfsregisters",
+          "API en zakelijke diensten, onderzoek",
+          "Zolang de zakelijke relatie duurt, daarna zolang wettelijke verplichtingen dat vereisen"
+        ],
+        [
+          "Gevoelige persoonsgegevens",
+          "Uw accountaanmelding (verzorgd door Clerk); alles wat gevoelig is en wat u zelf opneemt, zoals gezondheidsgegevens",
+          "U",
+          "U aanmelden; het werk doen waarom u vraagt",
+          "Zoals voor de categorie waartoe het behoort"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "We gebruiken gevoelige persoonsgegevens alleen om de dienst te leveren waarom u hebt gevraagd en om die te beveiligen, nooit om conclusies over u te trekken. We stellen geen profielen van u op. We verstrekken persoonsgegevens voor bedrijfsdoeleinden aan de dienstverleners die worden genoemd in [Wie het ontvangt](#who-gets-it)."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Wie het ontvangt"
+    },
+    {
+      "type": "p",
+      "text": "We delen persoonsgegevens alleen zoals dit beleid beschrijft. Onze pagina [Subverwerkers](/instant/legal/subprocessors) noemt de aanbieders die de gegevens voor ons verwerken, wat ze doen en waar. De belangrijkste ontvangers zijn:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud host onze website, servers, database, bestanden en logs, en de download van de Computerapp.",
+        "Google Gemini, via de Gemini API van Google, is het AI-model dat u standaard antwoordt. Het ontvangt wat u vraagt, het gesprek en de resultaten van hulpmiddelen, en uw stem als u dicteert. Het voert ook Google Search uit voor een deel van het onderzoek.",
+        "Clerk verzorgt het aanmelden en de accounts. Cloudflare beschermt het aanmelden voor Clerk tegen bots. Google is betrokken als u kiest voor Aanmelden met Google.",
+        "Openbare zoekmachines (Google, Bing, Brave en DuckDuckGo) ontvangen de zoekopdrachten die ons onderzoek op basis van uw verzoeken opstelt. OpenRegister ontvangt bedrijfsnamen om registers te raadplegen. Zij krijgen alleen de zoekopdracht en gebruiken die onder hun eigen voorwaarden.",
+        "AI-aanbieders die u zelf in de Computerapp koppelt, zoals OpenAI of Anthropic, ontvangen uw gesprek op grond van uw eigen overeenkomst met hen.",
+        "Apps, hulpmiddelen en accounts die u koppelt, zoals uitbreidingen van de Computerapp of de berichtenapps en e-mailaccounts die u aan de Assistent-bot koppelt, ontvangen wat een agent of bot hun stuurt, onder hun eigen voorwaarden."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[De voorwaarden van Google voor de Gemini API](https://ai.google.dev/gemini-api/terms) bepalen hoe Google de gegevens mag gebruiken die het via de Gemini API ontvangt, waaronder hoe lang Google ze bewaart voor toezicht op misbruik."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "We gebruiken de betaalde Gemini API-dienst van Google. Volgens de voorwaarden van Google voor betaalde diensten gebruikt Google uw prompts of antwoorden niet om zijn producten te verbeteren, en verwerkt het ze onder zijn voorwaarden voor gegevensverwerking."
+    },
+    {
+      "type": "p",
+      "text": "We kunnen persoonsgegevens ook verstrekken wanneer de wet dat vereist, om de veiligheid van mensen of onze rechten te beschermen, of als onderdeel van een fusie of verkoop van ons bedrijf. Bij een fusie of verkoop blijft dit beleid uw gegevens beschermen."
+    },
+    {
+      "type": "h2",
+      "id": "where-we-process",
+      "text": "Waar we het verwerken"
+    },
+    {
+      "type": "p",
+      "text": "We hosten onze clouddiensten en onze database in de EU (Google Cloud, Nederland). Zakelijke projecten draaien in een Google Cloud-regio in de EU die met de klant is afgesproken. Sommige aanbieders die we gebruiken, zoals Clerk en Google Gemini, kunnen gegevens verwerken in de VS of elders."
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Doorgifte buiten Europa",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Wanneer persoonsgegevens naar een land gaan waarvan de Europese Commissie niet heeft vastgesteld dat het die gegevens passend beschermt, gebruiken we een wettelijke waarborg. Die waarborg is ofwel het EU-VS-gegevensprivacykader (Data Privacy Framework, DPF), als de ontvanger daaronder gecertificeerd is, ofwel de modelcontractbepalingen (Standard Contractual Clauses, SCC's): contractvoorwaarden die door de Commissie zijn goedgekeurd (art. 45 en 46 AVG)."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Clerk (VS): het DPF, met de SCC's als terugvaloptie, op grond van de verwerkersovereenkomst van Clerk.",
+        "Google Gemini: Google kan verzoeken buiten de EU verwerken, onder de voorwaarden van Google."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Voor de betaalde Gemini API bepalen de voorwaarden van Google voor gegevensverwerking de waarborgen voor gegevens die de EU verlaten."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Openbare zoekmachines en OpenRegister ontvangen alleen zoekopdrachten en bedrijfsnamen, en gebruiken die onder hun eigen voorwaarden. Sommige van hen bevinden zich buiten Europa. Voor een kopie van de waarborgen die we gebruiken, kunt u schrijven naar {company.privacyEmail}."
+    },
+    {
+      "type": "h2",
+      "id": "retention",
+      "text": "Hoe lang we het bewaren"
+    },
+    {
+      "type": "p",
+      "text": "We bewaren persoonsgegevens alleen zolang we ze nodig hebben voor de doelen in dit beleid, en verwijderen of anonimiseren ze daarna."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Gegevens",
+        "Hoe lang"
+      ],
+      "rows": [
+        [
+          "Account- en aanmeldgegevens",
+          "Zolang uw account bestaat, en daarna voor zover nodig om aan wettelijke verplichtingen te voldoen."
+        ],
+        [
+          "Uw cloudwerkruimte",
+          "Zolang uw account bestaat, en daarna voor zover nodig om aan wettelijke verplichtingen te voldoen. Wanneer u ons vraagt uw account te verwijderen, verwijderen of anonimiseren we uw gegevens of, waar we een registratie moeten bewaren, laten we u weten waarom."
+        ],
+        [
+          "Databaseback-ups",
+          "Verwijderde gegevens kunnen korte tijd in onze back-ups blijven staan, tot ongeveer 7 dagen."
+        ],
+        [
+          "Serverlogs",
+          "Een beperkte tijd volgens de standaardloginstellingen van onze cloudaanbieder, daarna worden ze automatisch verwijderd. We leggen de inhoud van uw prompts of berichten niet vast in logs."
+        ],
+        [
+          "Verzoeken die via onze AI-gateway gaan",
+          "Worden door ons niet opgeslagen."
+        ],
+        [
+          "Gegevens van de Computerapp op uw Mac",
+          "Totdat u ze verwijdert. Oude logbestanden worden automatisch opgeruimd."
+        ],
+        [
+          "Gegevens van de API",
+          "Zolang de zakelijke relatie duurt, en daarna voor zover nodig om aan wettelijke verplichtingen te voldoen."
+        ],
+        [
+          "Gegevens van zakelijke projecten",
+          "Zoals afgesproken in de schriftelijke opdracht."
+        ],
+        [
+          "E-mails die u ons stuurt",
+          "Zolang we ze nodig hebben om uw bericht en eventuele vervolgstappen af te handelen, en om aan wettelijke verplichtingen te voldoen."
+        ],
+        [
+          "Uw regiokeuze op de juridische pagina's",
+          "In uw browser totdat u die wist."
+        ],
+        [
+          "Gegevens die Google via de Gemini API ontvangt",
+          "Zoals bepaald door het beleid van Google."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Beveiliging"
+    },
+    {
+      "type": "p",
+      "text": "We beschermen persoonsgegevens met maatregelen die passen bij het risico:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Gegevens worden versleuteld verzonden (HTTPS), en onze cloudaanbieder versleutelt ze bij opslag.",
+        "Onze clouddiensten en database draaien in de EU, met dagelijkse back-ups en bescherming tegen onbedoeld verwijderen.",
+        "We slaan applicatiesleutels alleen in onleesbaar gemaakte (gehashte) vorm op.",
+        "De Computerapp bewaart uw Orqanix-aanmelding in de macOS-sleutelhanger, en de app-map kan alleen door uw macOS-account worden gelezen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Een deel van de bescherming ligt in uw handen. De chatgeschiedenis van de Computerapp heeft geen eigen extra versleuteling, en sleutels voor AI-aanbieders die u koppelt, worden in een bestand met platte tekst bewaard. Iedereen die uw macOS-account kan gebruiken, kan ze lezen, dus houd uw Mac vergrendeld en gebruik FileVault."
+    },
+    {
+      "type": "p",
+      "text": "Geen enkel systeem is volledig veilig. Als een inbreuk uw persoonsgegevens in gevaar brengt, informeren we u en de autoriteiten waar de wet dat vereist. Om een zwakke plek te melden, zie [Beveiliging en melden van kwetsbaarheden](/instant/legal/security)."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Kinderen"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is alleen bedoeld voor mensen van 18 jaar of ouder. We verzamelen niet bewust persoonsgegevens van iemand jonger dan 18. Als u denkt dat een kind ons persoonsgegevens heeft gegeven, schrijf dan naar {company.privacyEmail} en we verwijderen ze."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Orqanix is niet gericht op kinderen jonger dan 13 jaar, en we verzamelen niet bewust hun persoonsgegevens (Children's Online Privacy Protection Act, COPPA)."
+    },
+    {
+      "type": "h2",
+      "id": "your-choices",
+      "text": "Uw keuzes"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kies in de Computerapp of agents zelfstandig handelen of u eerst iets vragen, welke AI-aanbieder u gebruikt en of u dicteren gebruikt. U kunt uw chatgeschiedenis op uw Mac op elk moment verwijderen.",
+        "Kies welke accounts u eventueel aan de Assistent-bot koppelt.",
+        "Kies wat u typt, uploadt of de agents laat lezen.",
+        "Wis of blokkeer cookies en browseropslag (zie [Cookies en opslag](/instant/legal/cookies)). Aanmelden werkt niet zonder de cookies die daarvoor nodig zijn.",
+        "Schrijf naar {company.privacyEmail} om de rechten uit te oefenen die worden beschreven in [Uw rechten](#your-rights)."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Uw rechten",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Op grond van de AVG en de privacywetgeving van het VK en Zwitserland hebt u deze rechten:"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Inzage: vraag om een kopie van uw persoonsgegevens en om uitleg over hoe we ze gebruiken (art. 15 AVG).",
+        "Rectificatie: vraag ons gegevens die onjuist of onvolledig zijn te corrigeren (art. 16 AVG).",
+        "Verwijdering: vraag ons uw gegevens te verwijderen (art. 17 AVG).",
+        "Beperking: vraag ons het gebruik van uw gegevens te beperken zolang een kwestie wordt opgelost (art. 18 AVG).",
+        "Overdraagbaarheid: ontvang de gegevens die u ons hebt gegeven in een gangbaar, machineleesbaar formaat, of laat ze naar een ander sturen (art. 20 AVG).",
+        "Bezwaar: maak op elk moment, om redenen die verband houden met uw situatie, bezwaar tegen elk gebruik dat op ons gerechtvaardigd belang is gebaseerd. We stoppen dan, tenzij we dwingende redenen hebben of het nodig hebben voor rechtsvorderingen (art. 21 AVG).",
+        "Toestemming: waar we ons op uw toestemming baseren, kunt u die op elk moment intrekken, zonder dat dit gevolgen heeft voor wat we eerder hebben gedaan (art. 7 lid 3 AVG).",
+        "Klacht: dien een klacht in bij een toezichthoudende autoriteit voor gegevensbescherming, met name waar u woont of werkt of waar het probleem volgens u is ontstaan (art. 77 AVG)."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Om een recht uit te oefenen, schrijft u naar {company.privacyEmail}. We kunnen u vragen uw identiteit te bevestigen, bijvoorbeeld door te schrijven vanaf het e-mailadres van uw account. We antwoorden binnen één maand. Bij complexe verzoeken kunnen we die termijn met nog twee maanden verlengen, en dan laten we u dat weten (art. 12 lid 3 AVG). Het uitoefenen van uw rechten is kosteloos."
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Verenigd Koninkrijk en Zwitserland",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Als u in het VK woont, zijn de UK GDPR en de Data Protection Act 2018 van toepassing. U kunt eerst bij ons een klacht indienen; we bevestigen de ontvangst van klachten binnen 30 dagen. U kunt ook een klacht indienen bij het Information Commissioner's Office ([ico.org.uk](https://ico.org.uk)). Voor gegevens die het VK verlaten, baseren we ons op de Britse regels over passende bescherming of op de Britse versies van de waarborgen in [Doorgifte buiten Europa](#transfers): de UK Extension van het DPF waar de ontvanger daaronder gecertificeerd is, of het UK Addendum bij de SCC's."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Als u in Zwitserland woont, is de federale wet inzake gegevensbescherming (FADP) van toepassing. U kunt een klacht indienen bij de federale functionaris voor gegevensbescherming en openbaarheid ([edoeb.admin.ch](https://www.edoeb.admin.ch)). Voor gegevens die Zwitserland verlaten, baseren we ons op de Zwitserse regels over passende bescherming of op de Zwitserse versies van deze waarborgen: het Zwitsers-Amerikaanse DPF waar de ontvanger daaronder gecertificeerd is, of de SCC's zoals erkend in Zwitserland."
+    },
+    {
+      "type": "h3",
+      "id": "eu-representative",
+      "text": "Onze vertegenwoordiger in de EU",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ],
+      "text": "Omdat we niet in de EU gevestigd zijn, hebben we daar een vertegenwoordiger aangewezen (art. 27 AVG): {company.euRepresentative}. U kunt over alles in dit beleid contact opnemen met deze vertegenwoordiger in plaats van met ons."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Uw rechten",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Verschillende Amerikaanse staten geven hun inwoners privacyrechten. Wij geven dezelfde rechten aan iedereen in de Verenigde Staten, in welke staat u ook woont:"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Weten en inzien: vraag welke persoonsgegevens we over u hebben, waar ze vandaan komen, waarom we ze gebruiken en aan wie we ze hebben verstrekt, en ontvang een kopie.",
+        "Verwijderen: vraag ons persoonsgegevens te verwijderen die we van u hebben verzameld.",
+        "Corrigeren: vraag ons onjuiste gegevens te corrigeren.",
+        "Overdraagbaarheid: ontvang uw gegevens in een formaat dat u elders kunt gebruiken.",
+        "Afmelden (opt-out): voor de verkoop of het delen van uw persoonsgegevens, voor gerichte advertenties en voor profilering met rechtsgevolgen of andere, vergelijkbaar ingrijpende gevolgen. We doen geen van deze dingen, dus er valt niets uit te schakelen.",
+        "Beroep: als we uw verzoek afwijzen, vraag ons het opnieuw te bekijken.",
+        "Gelijke behandeling: we behandelen u niet anders, bijvoorbeeld door dienstverlening te weigeren of de kwaliteit te wijzigen, omdat u een recht hebt uitgeoefend."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Om een recht uit te oefenen, schrijft u naar {company.privacyEmail}. We kunnen u vragen uw identiteit te bevestigen, bijvoorbeeld door te schrijven vanaf het e-mailadres van uw account. Iemand die u machtigt, kan namens u een verzoek indienen. We kunnen om bewijs vragen dat u die persoon toestemming hebt gegeven. Het uitoefenen van uw rechten is kosteloos. We antwoorden binnen één maand."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Om in beroep te gaan tegen een beslissing, beantwoordt u ons antwoord met het onderwerp “Appeal”. We laten u de uitkomst en onze redenen weten. Als u het er niet mee eens bent, kunt u contact opnemen met de Attorney General van uw staat."
+    },
+    {
+      "type": "h3",
+      "id": "no-sale",
+      "text": "Geen verkoop of delen",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "We verkopen geen persoonsgegevens, en we “delen” ze niet voor contextoverschrijdende gedragsgerichte advertenties, in de betekenis die de wet van Californië aan die woorden geeft. We gebruiken ze niet voor gerichte advertenties. We hebben geen daadwerkelijke kennis van het verkopen of delen van persoonsgegevens van iemand jonger dan 16. Omdat we niets hiervan doen, tonen we geen link “Do Not Sell or Share”. We verkopen ook geen “covered information” in de zin van de wet van Nevada. U kunt ons toch een verzoek tot afmelden sturen via {company.privacyEmail}."
+    },
+    {
+      "type": "h3",
+      "id": "privacy-signals",
+      "text": "Privacysignalen van de browser",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Als uw browser een Global Privacy Control-signaal (GPC) verstuurt, behandelen we dat als een verzoek om u af te melden voor de verkoop en het delen van uw persoonsgegevens. We doen geen van beide, dus er verandert niets voor u. We volgen u niet in de loop van de tijd over andere websites, en we staan andere bedrijven niet toe dat op onze site te doen. Daarom behandelen we Do Not Track-signalen op dezelfde manier: er is geen tracking om te stoppen."
+    },
+    {
+      "type": "h3",
+      "id": "california",
+      "text": "Californië",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Deze pagina is ons privacybeleid op grond van de California Online Privacy Protection Act (CalOPPA) en onze kennisgeving op grond van de California Consumer Privacy Act (CCPA). We verstrekken geen persoonsgegevens aan anderen voor hun eigen direct marketing, dus er valt niets aan te vragen op grond van de Californische “Shine the Light”-wet. We herzien dit beleid ten minste eenmaal per 12 maanden."
+    },
+    {
+      "type": "h3",
+      "id": "health-data",
+      "text": "Gezondheidsgegevens",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Washington, Nevada en Connecticut hebben speciale regels voor consumentengezondheidsgegevens. Ons [Privacybeleid voor consumentengezondheidsgegevens](/instant/legal/health-data) legt uit welke gezondheidsinformatie ons kan bereiken, hoe we die gebruiken en welke rechten u daarover hebt."
+    },
+    {
+      "type": "h3",
+      "id": "other-countries",
+      "text": "Buiten de VS en Europa",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Als u buiten de Verenigde Staten, de EER, het VK en Zwitserland woont, kunt u dezelfde rechten uitoefenen door te schrijven naar {company.privacyEmail}. De privacywet van uw land kan u meer rechten geven, en die zullen we respecteren. Uw gegevens worden verwerkt in de EU en op de andere plaatsen die worden beschreven in [Waar we het verwerken](#where-we-process)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "We werken dit beleid bij wanneer onze producten of de wet veranderen. De versie en datum bovenaan laten zien welke tekst van toepassing is. Als een wijziging van belang is voor hoe we uw gegevens gebruiken, laten we u dat in het product of per e-mail weten voordat de wijziging ingaat."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contact"
+    },
+    {
+      "type": "p",
+      "text": "Vragen, verzoeken of klachten over privacy: {company.privacyEmail}. Al het andere: {company.email}."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Per post: {company.legalName}, {company.address}."
+    }
+  ]
+}

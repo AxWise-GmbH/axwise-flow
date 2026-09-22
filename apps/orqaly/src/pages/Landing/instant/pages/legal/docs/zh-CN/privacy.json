@@ -1,0 +1,814 @@
+{
+  "meta": {
+    "slug": "privacy",
+    "title": "隐私政策",
+    "summary": "本政策说明 Orqanix 收集哪些个人数据、我们为何使用这些数据、谁会接收这些数据、我们保留多久以及您享有哪些权利。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'run by', controller and postal lines are hidden until filled. Hiding the controller breaks GDPR Art. 13(1)(a) in practice; fill before publishing the EU version (FACTS §14.1).",
+        "euRepresentative (GDPR Art. 27): the section is hidden until filled; needed only if the company is outside the EU. UK Art. 27 and Swiss Art. 14 representatives not addressed (FACTS §14.1).",
+        "geminiPaidTier: paid-tier sentences (Google not using data; Google's DPA covering transfers) stay hidden until confirmed. Without it, Google's own use of Gemini data is only described by linking Google's terms, and the transfer safeguard for Gemini is not named (FACTS §14.3).",
+        "Transfers: Clerk's UK Extension / Swiss-US DPF status, and Cloudflare's safeguards via Clerk, are not confirmed; the UK/Swiss wording is generic ('such as').",
+        "Retention: no periods exist in code for workspace data, API records, the artifact bucket or emails; written as 'as long as your account exists / business relationship lasts'. Server logs are 'a limited time under our cloud provider's standard settings' (30-day default not confirmed, FACTS §14.5, §14.6).",
+        "Deletion/export: no self-service deletion or export and no process that works with the immutable tables; text promises 'delete or anonymise, or tell you why' and an answer within one month (FACTS §3, §14.5).",
+        "Lawyer: legal basis for special-category data (GDPR Art. 9) that users choose to include (e.g. health) is not stated; text says we use it only to do what was asked.",
+        "Lawyer: roles for web searches and OpenRegister lookups (independent recipients vs processors), and for Assistant Bot contacts when used for business (processor under the DPA) (FACTS §7, §14.11).",
+        "Mobile App and Assistant Bot: written as usage rules from their product pages only; no code exists, so what the Mobile App stores on the phone or in our cloud (e.g. for notifications) is unknown (FACTS §5, §6, §14.13).",
+        "Desktop defaults disclosed as they are (auto-approve on, dictation on, provider keys in plain text); update if the owner changes them (FACTS §14.8).",
+        "Age 18+ and 'region at sign-up' need a sign-up self-declaration and an acceptance record (FACTS §14.9).",
+        "Email: privacy@ and hello@ must receive mail (no MX record today); our email provider is not named as a recipient because none is chosen (FACTS §14.2).",
+        "Describes the website AFTER this build (no cookies or third-party calls on marketing pages, self-hosted fonts). Publish only once that build is live.",
+        "US: 'we answer within one month' is used for US requests too; lawyer to confirm it fits CCPA (45 days) and other state deadlines. The US version assumes the CCPA may not apply yet but follows it anyway.",
+        "Lawyer/owner: Gemini tier and \"no sale\". If Google's unpaid Gemini terms apply, Google may use prompts to improve its products; that disclosure could count as a \"sale\" or \"sharing\" under CCPA and other state laws (and makes Google an independent recipient under GDPR), which would make \"we do not sell your data\" and the no-opt-out-link position wrong. Confirm the paid tier before publishing (FACTS §14.3; us.md §Recommendations 2).",
+        "Lawyer: transfer basis for independent recipients outside Europe (public search engines; OpenRegister if relevant) is not named; the text says only that some are outside Europe.",
+        "Lawyer/owner: data protection officer. No DPO is named; whether one is required (GDPR Art. 37, § 38 BDSG at 20+ staff) depends on the company. Add a DPO contact block if one is appointed.",
+        "Lawyer: DSA Art. 13 legal representative and UK Art. 27 / Swiss Art. 14 representatives if the company is not EU/UK/CH-established.",
+        "Desktop App built-in storage (theme, menu layout, pinned chats, recently typed messages, kept by the app on the Mac) is summarised, not listed item by item.",
+        "EU word count is about 3,670 (US about 3,510), above the 3,500 guide, because of the legal-basis table and the Art. 13(2)(e) sentence. The 2026-09-21 edit cut repetition but no content."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "我们是谁"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix（“我们”）提供 orqanix.com 网站和 Orqanix 产品：适用于您 Mac 的桌面应用、移动应用、助理机器人、API 以及我们的企业版服务。桌面应用和网页应用共用一个在线账户和一个云端工作区。本政策说明我们通过上述所有渠道收集哪些个人数据、收集的原因，以及您可以采取哪些措施。"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 由 {company.legalName}（{company.address}）运营。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "有关您隐私的任何事宜，请发送邮件至 {company.privacyEmail}。"
+    },
+    {
+      "type": "note",
+      "text": "简而言之：我们收集运营您的账户和完成您所要求的工作所需的数据。您向 AI 提出的问题会发送给模型提供商（默认为 Google Gemini）以获取回答。我们将云服务和数据库托管在欧盟（Google Cloud，荷兰）。我们不出售您的数据，不展示广告，不使用广告或分析跟踪器，也不使用您的内容训练我们自己的 AI 模型。"
+    },
+    {
+      "type": "h3",
+      "id": "controller",
+      "text": "控制者",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "对于本政策所述的大部分内容，我们是“控制者”：即决定为何以及如何使用您个人数据的一方（GDPR 第 4 条第 7 项）。当企业将我们的 API、企业版服务或助理机器人用于其自己的数据时，该企业是控制者。我们是其“处理者”：我们依据我们的[数据处理附录](/instant/legal/dpa)代表其处理数据。该企业自己的隐私声明会说明其如何使用这些数据。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "控制者为 {company.legalName}（{company.address}）。"
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "我们收集的内容"
+    },
+    {
+      "type": "p",
+      "text": "我们收集的内容取决于您使用 Orqanix 的哪些部分。创建账户时，您必须提供登录所要求的信息，例如您的电子邮件地址。没有这些信息，我们就无法为您提供账户。其他一切均由您自行选择，但某些功能需要特定数据才能运作。没有任何法律要求您向我们提供个人数据。"
+    },
+    {
+      "type": "h3",
+      "id": "website",
+      "text": "网站"
+    },
+    {
+      "type": "list",
+      "items": [
+        "我们的托管服务商 Google Cloud 会在您访问时保留常规服务器日志：您的 IP 地址、浏览器、时间以及您请求的页面。我们使用这些日志来保障网站安全并解决问题。",
+        "我们的营销页面和法律页面不设置任何 Cookie，也不向其他公司发出任何请求。其字体来自我们自己的服务器。",
+        "如果您在我们的法律页面上选择美国版或欧盟版，您的浏览器会记住该选择。该选择保存在您的浏览器中，不会发送给我们。",
+        "当您下载桌面应用时，文件来自 Google Cloud Storage，因此 Google 会看到您的 IP 地址。",
+        "登录页面和网页应用会使用其运作所需的 Cookie 和浏览器存储。[Cookie 与存储](/instant/legal/cookies)逐一列出了这些内容。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "account",
+      "text": "您的账户"
+    },
+    {
+      "type": "p",
+      "text": "您需要一个 Orqanix 账户才能使用桌面应用和网页应用。Clerk 为我们运行登录服务。它保存您的电子邮件地址、您的姓名（如果您提供），以及您的头像（如果您使用 Google 登录）。为保障您的账户安全，它还会保留您的登录和会话记录，包括您的 IP 地址和设备信息。在注册时，Cloudflare 会代表 Clerk 利用来自您浏览器和设备的信号，检查您是真人而非机器人。我们自己的数据库会保存将您的账户与您的工作区关联起来的 Clerk 用户 ID。"
+    },
+    {
+      "type": "h3",
+      "id": "cloud-workspace",
+      "text": "您的云端工作区"
+    },
+    {
+      "type": "p",
+      "text": "当您在线使用 Orqanix 时，我们会将您的工作保存在我们位于欧盟的数据库中，以便您随时返回继续。这包括："
+    },
+    {
+      "type": "list",
+      "items": [
+        "您与助手的对话：您所写内容和回答的完整文本。",
+        "您的目标、每次工作流运行，以及智能体制作的文件和报告，并附有每项内容如何制作的记录。",
+        "您给予的批准，以及智能体所执行步骤的日志。",
+        "您设置的自动化，例如计划任务和 Webhook。对于我们签发的应用密钥，我们仅保留其加扰形式（“哈希值”）。您为已连接服务添加的凭据保存在单独的加密存储中。",
+        "桌面应用发送到云端的调研问题（参见[桌面应用](#desktop-app)）。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "为了回答您，云端助手会将您的请求发送给 AI 模型（默认为 Google Gemini）。在进行调研时，我们自己的搜索服务会将根据您的请求生成的搜索查询发送给公共搜索引擎（Google、Bing、Brave 和 DuckDuckGo）。它还可以通过 OpenRegister 在公共登记册中查询公司。我们发送的是查询内容，而不是您的姓名或账户信息。"
+    },
+    {
+      "type": "p",
+      "text": "已完成的报告还会作为文件保存在位于欧盟的私有存储区域中。部分记录（例如消息和智能体操作日志）以固定日志的形式保存，之后不会被编辑。[我们保留多久](#retention)说明了当您要求我们删除这些记录时会发生什么。"
+    },
+    {
+      "type": "h3",
+      "id": "desktop-app",
+      "text": "桌面应用"
+    },
+    {
+      "type": "p",
+      "text": "桌面应用处理的大部分内容会保留在您的 Mac 上。其中一部分必须离开您的 Mac，应用才能运作。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "保留在您的 Mac 上",
+        "离开您的 Mac"
+      ],
+      "rows": [
+        [
+          "您的聊天记录，保存在本地数据库文件中。我们没有另外添加自己的加密。",
+          "每次 AI 模型作答时，截至当时的整个对话都会发送给它：您的消息、智能体所用工具的结果（例如它们读取的文件内容和命令的输出）、我们的产品指令以及任何目标上下文。"
+        ],
+        [
+          "智能体制作的文件，保存在您选择的项目文件夹中。",
+          "使用默认模型时，这些内容会经由我们位于欧盟的网关发送至 Google Gemini。我们的网关只转发请求，不会存储请求。"
+        ],
+        [
+          "设置、日志（旧日志会被自动清理）、您最近输入过的消息列表（以便您再次调用），以及一个只有您的 macOS 账户可以读取的应用文件夹。",
+          "当智能体请求进行云端调研时，它会发送一个问题，并在需要时发送您现有云端文件中最多五个文件的摘录。这些内容会保存在您的云端工作区中。"
+        ],
+        [
+          "您的 Orqanix 登录信息，保存在 macOS 钥匙串中。退出登录即会将其注销。",
+          "如果您使用语音听写，您的语音会发送给模型提供商。"
+        ],
+        [
+          "您自行连接的 AI 提供商（例如 OpenAI 或 Anthropic）的密钥，保存在应用文件夹中的一个纯文本设置文件里。",
+          "如果您切换到其他 AI 提供商，该提供商将依据其自己的条款和隐私政策接收对话。"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "本应用不发送使用统计数据，也没有崩溃报告程序。默认情况下，智能体无需事先询问您即可读写文件和运行命令。您可以更改此设置，让应用在每次操作之前都询问您，或仅在敏感操作之前询问您。计划配方仅在应用打开时运行。"
+    },
+    {
+      "type": "h3",
+      "id": "mobile-app",
+      "text": "移动应用"
+    },
+    {
+      "type": "p",
+      "text": "当您使用移动应用时，它充当您 Mac 上 Orqanix 的遥控器。工作在您的 Mac 上运行，因此本政策关于[桌面应用](#desktop-app)的说明同样适用于它：文件在您的 Mac 上制作并保留在您的项目文件夹中，手机则向您展示制作出的内容。来自手机的请求与在您 Mac 上发出的请求以相同方式处理。移动应用可以在任务完成时通知您。我们仅将其所需的数据用于将您的手机连接到您的 Mac、向您展示结果以及向您发送这些通知。"
+    },
+    {
+      "type": "h3",
+      "id": "assistant-bot",
+      "text": "助理机器人"
+    },
+    {
+      "type": "p",
+      "text": "当您使用助理机器人时，您会连接即时通讯应用和电子邮件账户，并为每个机器人分配一个角色。机器人会从这些账户中读取其工作所需的内容：消息、附件、联系人和文件。它会构建一张您业务的关系图（您的团队、客户、供应商和文件，以及它们之间的关联），将您电子邮件和手机中的联系人汇总到一个列表中，并将文件分类整理到文件夹中。它的文件会进入您的 Orqanix 工作空间，该工作空间是您云端工作区的一部分。当它使用 AI 模型或进行调研时，其运作方式如[您的云端工作区](#cloud-workspace)中所述。"
+    },
+    {
+      "type": "p",
+      "text": "请仅连接您有权连接的账户。这些账户中的人（例如您的客户和供应商）同样享有隐私权。当您将机器人用于您的业务时，您有责任具备处理其数据的合法理由。请参阅[助理机器人条款](/instant/legal/assistant-bot-terms)。"
+    },
+    {
+      "type": "h3",
+      "id": "api",
+      "text": "API"
+    },
+    {
+      "type": "p",
+      "text": "API 面向企业。企业向我们发送一项任务，附带其智能体、工具和预算，我们则返回一项决定：应由谁来完成这项工作，以及原因。我们将这些决定、企业反馈给我们的结果以及每项作业的范围记录存储在 API 自己位于欧盟的数据库中（Google Cloud，荷兰）。为作出决定，我们可能会使用 AI 模型、网络搜索和公司登记册查询，如[您的云端工作区](#cloud-workspace)中所述。登记册查询结果可能包含公司董事的姓名。我们还会保留与我们打交道的企业人员的联系方式。"
+    },
+    {
+      "type": "h3",
+      "id": "enterprise",
+      "text": "企业版"
+    },
+    {
+      "type": "p",
+      "text": "对于企业版项目，我们处理客户提供给我们的数据，以构建和运行其订购的内容。每个项目都托管在与客户商定的欧盟 Google Cloud 区域中。书面订单和我们的[数据处理附录](/instant/legal/dpa)规定了所涉及的数据以及我们可以如何使用这些数据。我们还会保留与我们合作的客户人员的联系方式。"
+    },
+    {
+      "type": "h3",
+      "id": "contact-us",
+      "text": "您发给我们的电子邮件"
+    },
+    {
+      "type": "p",
+      "text": "如果您给我们发送电子邮件，我们会获得您的电子邮件地址、您的姓名（如果您提供）以及您所写的任何内容。我们使用这些信息来回复您并处理您的请求。"
+    },
+    {
+      "type": "h3",
+      "id": "other-people",
+      "text": "其他人"
+    },
+    {
+      "type": "p",
+      "text": "我们可能会处理本身不使用 Orqanix 的人的数据：我们用户提供给我们的内容中提及的人、用户连接到助理机器人的账户中的联系人、我们的调研所找到的网页中提及的人，以及公共登记册中列出的公司董事。我们仅将这些数据用于完成我们用户所要求的工作。如果您是其中之一，您享有[您的权利](#your-rights)中所述的权利。"
+    },
+    {
+      "type": "h3",
+      "id": "sensitive-data",
+      "text": "敏感数据"
+    },
+    {
+      "type": "p",
+      "text": "我们不索取敏感数据，例如健康信息、政治观点或宗教信仰。如果您选择在您输入、上传或连接的内容中包含此类数据，我们仅将其用于完成您要求的事项。请仅在您的任务需要时分享此类数据。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "如果您居住在美国，我们的[消费者健康数据隐私政策](/instant/legal/health-data)也适用于到达我们这里的任何健康信息。"
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "我们如何使用这些数据"
+    },
+    {
+      "type": "list",
+      "items": [
+        "提供您的账户和您使用的产品，并完成您要求的工作。",
+        "将您的请求发送给 AI 模型并返回其回答，以及运行您设置的调研和自动化。",
+        "保障 Orqanix 的安全：阻止滥用、垃圾信息和攻击，并调查问题。",
+        "修复错误并保持服务正常运作。",
+        "回复您的消息和隐私请求。",
+        "履行我们的法律义务并就法律索赔进行抗辩。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们不使用您的内容训练我们自己的 AI 模型。我们通过在发送给模型的内容中添加指令和上下文来改进回答。我们不将您的数据用于广告。我们不会对您作出具有法律效力或类似重大影响的自动化决定。"
+    },
+    {
+      "type": "h2",
+      "id": "legal-bases",
+      "text": "我们的法律依据",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "数据保护法仅允许我们在具有法律理由（称为“法律依据”）时使用个人数据（GDPR 第 6 条）。下表列出了每项目的的法律依据。"
+    },
+    {
+      "type": "table",
+      "only": "eu",
+      "head": [
+        "目的",
+        "数据",
+        "法律依据"
+      ],
+      "rows": [
+        [
+          "运营网站并保障其安全",
+          "服务器日志：IP 地址、浏览器、时间、页面",
+          "我们在网站正常、安全运行方面的正当利益（GDPR 第 6 条第 1 款 (f) 项）"
+        ],
+        [
+          "创建您的账户并让您登录",
+          "电子邮件、姓名、头像（Google 登录）、登录和会话记录",
+          "与您订立的合同（GDPR 第 6 条第 1 款 (b) 项）"
+        ],
+        [
+          "保护登录免受机器人和滥用行为侵害",
+          "IP 地址、设备和浏览器信号（Clerk、Cloudflare）",
+          "我们在安全方面的正当利益（GDPR 第 6 条第 1 款 (f) 项）"
+        ],
+        [
+          "提供云端工作区、助手、调研和自动化",
+          "您的消息、目标、文件、工作流记录、调研问题",
+          "与您订立的合同（GDPR 第 6 条第 1 款 (b) 项）"
+        ],
+        [
+          "在桌面应用中从 AI 模型获取回答",
+          "对话、工具结果、产品指令；如果您使用听写，还包括您的语音",
+          "与您订立的合同（GDPR 第 6 条第 1 款 (b) 项）"
+        ],
+        [
+          "在您连接的账户上运行助理机器人",
+          "来自这些账户的消息、附件、联系人和文件",
+          "与您订立的合同（GDPR 第 6 条第 1 款 (b) 项）；对于这些账户中的其他人，为您和我们在完成您所要求的工作方面的正当利益（GDPR 第 6 条第 1 款 (f) 项），或者，如果您将机器人用于您的业务，则为我们代表您进行的处理（GDPR 第 28 条）"
+        ],
+        [
+          "为调研查询公开信息",
+          "搜索查询；公共登记册条目，其中可能包含董事姓名",
+          "与我们用户订立的合同（GDPR 第 6 条第 1 款 (b) 项）；对于所找到的人，为我们在回应请求方面的正当利益（GDPR 第 6 条第 1 款 (f) 项）"
+        ],
+        [
+          "与 API 和企业版的企业客户往来",
+          "与我们打交道的人员的姓名和联系方式",
+          "我们在维持业务关系方面的正当利益（GDPR 第 6 条第 1 款 (f) 项）"
+        ],
+        [
+          "在 API 或企业版服务中处理企业客户自己的数据",
+          "客户发送给我们的任何内容",
+          "客户的法律依据；我们作为其处理者行事（GDPR 第 28 条）"
+        ],
+        [
+          "可靠地记录智能体所做的操作，并处理法律索赔",
+          "工作流事件、批准、文件及其制作方式",
+          "我们在拥有可信历史记录以及就法律索赔进行抗辩或提起法律索赔方面的正当利益（GDPR 第 6 条第 1 款 (f) 项）"
+        ],
+        [
+          "回复您的消息和隐私请求",
+          "您的电子邮件地址和您所写的内容",
+          "合同或我们在回复您方面的正当利益（GDPR 第 6 条第 1 款 (b)、(f) 项）；隐私请求则基于法律义务（GDPR 第 6 条第 1 款 (c) 项）"
+        ],
+        [
+          "履行法律义务，例如税务记录或主管机关的合法要求",
+          "该义务所要求的数据",
+          "法律义务（GDPR 第 6 条第 1 款 (c) 项）"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "在我们依赖正当利益的情况下，我们已将其与您的利益和权利进行了权衡。您可以随时提出反对（参见[您的权利](#your-rights)）。"
+    },
+    {
+      "type": "h2",
+      "id": "notice-at-collection",
+      "text": "收集时的告知",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "下表使用美国各州隐私法律的术语，概述了我们收集的内容、其来源、收集原因以及保留期限。"
+    },
+    {
+      "type": "table",
+      "only": "us",
+      "head": [
+        "类别",
+        "示例",
+        "来源",
+        "我们为何使用",
+        "我们保留多久"
+      ],
+      "rows": [
+        [
+          "标识符",
+          "电子邮件地址、姓名、账户 ID、IP 地址",
+          "您；Clerk；如果您使用 Google 登录，则还包括 Google",
+          "您的账户、登录、安全",
+          "在您的账户存续期间，之后按法律义务的要求保留"
+        ],
+        [
+          "互联网或网络活动",
+          "服务器日志、登录和会话记录、浏览器和设备信息",
+          "您的浏览器和设备",
+          "安全、解决问题",
+          "服务器日志保留有限的时间（参见[我们保留多久](#retention)）；登录记录在您的账户存续期间保留"
+        ],
+        [
+          "您提供给我们的内容",
+          "消息、文件、目标、调研问题、发送给 AI 模型的桌面应用对话",
+          "您；您连接的账户",
+          "完成您要求的工作",
+          "在您的账户存续期间；经过我们 AI 网关的请求不会被存储"
+        ],
+        [
+          "音频",
+          "您的语音（如果您使用听写）",
+          "您",
+          "将您所说的话转换为请求",
+          "我们的网关不会存储；适用模型提供商自己的条款"
+        ],
+        [
+          "职业信息",
+          "企业客户人员的联系方式；公共登记册中的董事姓名",
+          "您；公共公司登记册",
+          "API 和企业版服务、调研",
+          "在业务关系存续期间，之后按法律义务的要求保留"
+        ],
+        [
+          "敏感个人信息",
+          "您的账户登录信息（由 Clerk 处理）；您选择提供的任何敏感信息，例如健康信息",
+          "您",
+          "让您登录；完成您要求的工作",
+          "按其所属类别的期限保留"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "我们仅将敏感个人信息用于提供您所要求的服务并保障其安全，绝不用于推断与您有关的情况。我们不建立您的用户画像。我们出于业务目的向[谁会获得这些数据](#who-gets-it)中列出的服务提供商披露个人信息。"
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "谁会获得这些数据"
+    },
+    {
+      "type": "p",
+      "text": "我们仅按照本政策所述共享个人数据。我们的[子处理方](/instant/legal/subprocessors)页面列出了代我们处理这些数据的提供商、它们的工作内容以及所在地点。主要接收方包括："
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud 托管我们的网站、服务器、数据库、文件和日志，以及桌面应用的下载文件。",
+        "Google Gemini 通过 Google 的 Gemini API 提供默认为您作答的 AI 模型。它会接收您提出的问题、对话和工具结果，如果您使用听写，还会接收您的语音。它还会为部分调研运行 Google 搜索。",
+        "Clerk 运行登录和账户服务。Cloudflare 代表 Clerk 保护登录免受机器人侵害。如果您选择“使用 Google 登录”，Google 也会参与其中。",
+        "公共搜索引擎（Google、Bing、Brave 和 DuckDuckGo）会接收我们的调研根据您的请求生成的搜索查询。OpenRegister 会接收用于登记册查询的公司名称。它们仅获得查询内容，并依据其自己的条款使用。",
+        "您在桌面应用中自行连接的 AI 提供商（例如 OpenAI 或 Anthropic）会依据您与其之间的协议接收您的对话。",
+        "您连接的应用、工具和账户（例如桌面应用扩展，或您连接到助理机器人的即时通讯应用和电子邮件账户）会依据其自己的条款接收智能体或机器人发送给它们的内容。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Google 的 Gemini API 条款](https://ai.google.dev/gemini-api/terms)规定了 Google 可以如何使用其通过 Gemini API 接收的数据，包括 Google 为监测滥用行为而保留这些数据的时长。"
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "我们使用 Google 的付费 Gemini API 服务。根据 Google 针对付费服务的条款，Google 不会使用您的提示或回答来改进其产品，并依据其数据处理条款处理这些内容。"
+    },
+    {
+      "type": "p",
+      "text": "在法律要求时、为保护人身安全或我们的权利时，或在我们的业务发生合并或出售时，我们也可能披露个人数据。在合并或出售的情况下，本政策将继续保护您的数据。"
+    },
+    {
+      "type": "h2",
+      "id": "where-we-process",
+      "text": "我们在何处处理数据"
+    },
+    {
+      "type": "p",
+      "text": "我们将云服务和数据库托管在欧盟（Google Cloud，荷兰）。企业版项目在与客户商定的欧盟 Google Cloud 区域中运行。我们使用的部分提供商（例如 Clerk 和 Google Gemini）可能会在美国或其他地方处理数据。"
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "向欧洲以外的传输",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "当个人数据被传输至欧盟委员会未认定其能提供充分保护的国家时，我们会采用一项法律保障措施。该保障措施为：如果接收方已获得欧盟-美国数据隐私框架（DPF）认证，则采用该框架；否则采用标准合同条款（SCC），即经欧盟委员会批准的合同条款（GDPR 第 45 条、第 46 条）。"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Clerk（美国）：依据 Clerk 的数据处理协议，采用 DPF，并以 SCC 作为备用。",
+        "Google Gemini：Google 可能依据 Google 的条款在欧盟以外处理请求。"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "对于付费 Gemini API，Google 的数据处理条款规定了数据离开欧盟时的保障措施。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "公共搜索引擎和 OpenRegister 仅接收搜索查询和公司名称，并依据其自己的条款使用。其中一些位于欧洲以外。如需获取我们所采用保障措施的副本，请发送邮件至 {company.privacyEmail}。"
+    },
+    {
+      "type": "h2",
+      "id": "retention",
+      "text": "我们保留多久"
+    },
+    {
+      "type": "p",
+      "text": "我们仅在实现本政策所述目的所需的期限内保留个人数据，之后将其删除或进行匿名化处理。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "数据",
+        "保留期限"
+      ],
+      "rows": [
+        [
+          "账户和登录数据",
+          "在您的账户存续期间，之后按履行法律义务的需要保留。"
+        ],
+        [
+          "您的云端工作区",
+          "在您的账户存续期间，之后按履行法律义务的需要保留。当您要求我们删除您的账户时，我们会删除您的数据或对其进行匿名化处理；如果我们必须保留某项记录，则会告知您原因。"
+        ],
+        [
+          "数据库备份",
+          "已删除的数据可能会在我们的备份中短期保留，最长约 7 天。"
+        ],
+        [
+          "服务器日志",
+          "按照我们云服务提供商的标准日志设置保留有限的时间，之后自动删除。我们不记录您的提示或消息的内容。"
+        ],
+        [
+          "经过我们 AI 网关的请求",
+          "我们不会存储。"
+        ],
+        [
+          "您 Mac 上的桌面应用数据",
+          "直到您将其删除。旧日志会被自动清理。"
+        ],
+        [
+          "API 记录",
+          "在业务关系存续期间，之后按履行法律义务的需要保留。"
+        ],
+        [
+          "企业版项目数据",
+          "按书面订单中的约定。"
+        ],
+        [
+          "您发给我们的电子邮件",
+          "在我们处理您的消息及任何后续事宜、以及履行法律义务所需的期限内保留。"
+        ],
+        [
+          "您在法律页面上的地区选择",
+          "保存在您的浏览器中，直到您将其清除。"
+        ],
+        [
+          "Google 通过 Gemini API 接收的数据",
+          "按 Google 的政策规定。"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "安全"
+    },
+    {
+      "type": "p",
+      "text": "我们采取与风险相适应的措施保护个人数据："
+    },
+    {
+      "type": "list",
+      "items": [
+        "数据在传输过程中经过加密（HTTPS），我们的云服务提供商会对静态数据进行加密。",
+        "我们的云服务和数据库在欧盟运行，每天进行备份，并设有防止意外删除的保护措施。",
+        "我们仅以加扰（哈希）形式存储应用密钥。",
+        "桌面应用将您的 Orqanix 登录信息保存在 macOS 钥匙串中，其应用文件夹只能由您的 macOS 账户读取。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "部分保护措施掌握在您自己手中。桌面应用的聊天记录本身没有额外加密，您连接的 AI 提供商的密钥保存在纯文本文件中。任何能够使用您 macOS 账户的人都可以读取这些内容，因此请锁定您的 Mac 并使用 FileVault。"
+    },
+    {
+      "type": "p",
+      "text": "没有任何系统是绝对安全的。如果数据泄露使您的个人数据面临风险，我们将在法律要求时通知您和相关主管机关。如需报告安全漏洞，请参阅[安全与漏洞披露](/instant/legal/security)。"
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "儿童"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 仅供年满 18 周岁的人士使用。我们不会在知情的情况下收集 18 周岁以下任何人的个人数据。如果您认为有儿童向我们提供了个人数据，请发送邮件至 {company.privacyEmail}，我们将予以删除。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Orqanix 并非面向 13 岁以下的儿童，我们不会在知情的情况下收集他们的个人信息（Children's Online Privacy Protection Act，COPPA）。"
+    },
+    {
+      "type": "h2",
+      "id": "your-choices",
+      "text": "您的选择"
+    },
+    {
+      "type": "list",
+      "items": [
+        "在桌面应用中，您可以选择让智能体自行操作还是先询问您、使用哪家 AI 提供商，以及是否使用听写。您可以随时删除您 Mac 上的聊天记录。",
+        "选择将哪些账户（如有）连接到助理机器人。",
+        "选择您输入、上传或要求智能体阅读的内容。",
+        "清除或阻止 Cookie 和浏览器存储（参见[Cookie 与存储](/instant/legal/cookies)）。没有其所需的 Cookie，登录将无法运作。",
+        "发送邮件至 {company.privacyEmail}，以行使[您的权利](#your-rights)中所述的权利。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "您的权利",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "根据 GDPR 以及英国和瑞士的数据保护法律，您享有以下权利："
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "访问：要求获取您个人数据的副本以及我们如何使用这些数据的说明（GDPR 第 15 条）。",
+        "更正：要求我们更正错误或不完整的数据（GDPR 第 16 条）。",
+        "删除：要求我们删除您的数据（GDPR 第 17 条）。",
+        "限制：在某一问题得到解决之前，要求我们限制对您数据的使用（GDPR 第 18 条）。",
+        "可携带：以常用的机器可读格式获取您提供给我们的数据，或将其发送给他人（GDPR 第 20 条）。",
+        "反对：出于与您的具体情况相关的理由，随时反对任何基于我们正当利益的使用。届时我们将停止使用，除非我们有令人信服的理由，或需要将其用于法律索赔（GDPR 第 21 条）。",
+        "同意：在我们依赖您的同意的情况下，随时撤回同意，且不影响此前已进行的处理（GDPR 第 7 条第 3 款）。",
+        "投诉：向数据保护监管机构投诉，尤其是您居住地或工作地的监管机构，或您认为问题发生地的监管机构（GDPR 第 77 条）。"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "如需行使某项权利，请发送邮件至 {company.privacyEmail}。我们可能会要求您确认身份，例如通过您账户中登记的电子邮件地址发送邮件。我们会在一个月内答复。对于复杂的请求，我们可以再延长两个月，如果延长，我们会通知您（GDPR 第 12 条第 3 款）。行使您的权利是免费的。"
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "英国和瑞士",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "如果您居住在英国，适用 UK GDPR 和 Data Protection Act 2018。您可以先向我们投诉；我们会在 30 天内确认收到投诉。您也可以向英国信息专员办公室（Information Commissioner's Office）投诉（[ico.org.uk](https://ico.org.uk)）。对于离开英国的数据，我们依赖英国的充分性规则，或[向欧洲以外的传输](#transfers)中所述保障措施的英国版本：接收方已获得认证时采用 DPF 英国扩展（UK Extension to the DPF），或采用 SCC 英国附录（UK Addendum to the SCCs）。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "如果您居住在瑞士，适用瑞士《联邦数据保护法》（FADP）。您可以向瑞士联邦数据保护和信息专员投诉（[edoeb.admin.ch](https://www.edoeb.admin.ch)）。对于离开瑞士的数据，我们依赖瑞士的充分性规则，或这些保障措施的瑞士版本：接收方已获得认证时采用瑞士-美国 DPF，或采用在瑞士获得认可的 SCC。"
+    },
+    {
+      "type": "h3",
+      "id": "eu-representative",
+      "text": "我们在欧盟的代表",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ],
+      "text": "由于我们未在欧盟设立机构，我们已在欧盟指定了一名代表（GDPR 第 27 条）：{company.euRepresentative}。关于本政策中的任何事项，您都可以联系该代表，而不必联系我们。"
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "您的权利",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "美国多个州为其居民赋予了隐私权利。无论您居住在哪个州，我们都向美国境内的每一个人提供相同的权利："
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "知情和访问：询问我们持有您的哪些个人信息、这些信息的来源、我们为何使用这些信息以及我们向谁披露了这些信息，并获取一份副本。",
+        "删除：要求我们删除我们从您处收集的个人信息。",
+        "更正：要求我们更正错误的信息。",
+        "可携带：以您可以转移至他处的格式获取您的信息。",
+        "选择退出：选择退出出售或共享您的个人信息、定向广告，以及具有法律效力或类似重大影响的画像分析。这些我们都不做，因此没有需要关闭的内容。",
+        "申诉：如果我们拒绝了您的请求，要求我们重新审查。",
+        "平等对待：我们不会因为您行使了某项权利而区别对待您，例如拒绝提供服务或改变服务质量。"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "如需行使某项权利，请发送邮件至 {company.privacyEmail}。我们可能会要求您确认身份，例如通过您账户中登记的电子邮件地址发送邮件。您授权的人可以代您提出请求。我们可能会要求其提供您已授予其许可的证明。行使您的权利是免费的。我们会在一个月内答复。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "如需对某项决定提出申诉，请回复我们的答复并以“Appeal”作为主题。我们会告知您结果及理由。如果您不同意，可以联系您所在州的总检察长。"
+    },
+    {
+      "type": "h3",
+      "id": "no-sale",
+      "text": "不出售或共享",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "我们不出售个人信息，也不为跨情境行为广告而“共享”个人信息（按加利福尼亚州法律对这些用语的定义）。我们不将个人信息用于定向广告。我们实际上并不知悉存在出售或共享 16 岁以下任何人个人信息的情况。由于我们不做上述任何事情，我们不显示“Do Not Sell or Share”（请勿出售或共享）链接。我们也不出售内华达州法律所定义的“受保护信息”。您仍然可以通过 {company.privacyEmail} 向我们发送选择退出请求。"
+    },
+    {
+      "type": "h3",
+      "id": "privacy-signals",
+      "text": "浏览器隐私信号",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "如果您的浏览器发送 Global Privacy Control（GPC）信号，我们会将其视为选择退出出售和共享您个人信息的请求。这两者我们都不做，因此对您来说不会有任何变化。我们不会长期跨其他网站跟踪您，也不允许其他公司在我们的网站上这样做。因此，我们以同样的方式对待 Do Not Track 信号：没有需要停止的跟踪。"
+    },
+    {
+      "type": "h3",
+      "id": "california",
+      "text": "加利福尼亚州",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "本页面是我们依据 California Online Privacy Protection Act（CalOPPA）制定的隐私政策，也是我们依据 California Consumer Privacy Act（CCPA）作出的告知。我们不会向他人披露个人信息供其自行开展直接营销，因此无需依据加利福尼亚州的“Shine the Light”法律提出任何请求。我们至少每 12 个月审查一次本政策。"
+    },
+    {
+      "type": "h3",
+      "id": "health-data",
+      "text": "健康数据",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "华盛顿州、内华达州和康涅狄格州对消费者健康数据有特别规定。我们的[消费者健康数据隐私政策](/instant/legal/health-data)说明了哪些健康信息可能到达我们这里、我们如何使用这些信息以及您对这些信息享有的权利。"
+    },
+    {
+      "type": "h3",
+      "id": "other-countries",
+      "text": "美国和欧洲以外",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "如果您居住在美国、欧洲经济区、英国和瑞士以外，您可以发送邮件至 {company.privacyEmail} 行使相同的权利。您所在国家的隐私法律可能赋予您更多权利，我们会尊重这些权利。您的数据在欧盟以及[我们在何处处理数据](#where-we-process)中所述的其他地点进行处理。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "变更"
+    },
+    {
+      "type": "p",
+      "text": "当我们的产品或法律发生变化时，我们将更新本政策。顶部的版本号和日期表明适用的是哪一版本。如果某项变更对我们如何使用您的数据有重要影响，我们会在变更生效前通过产品内通知或电子邮件告知您。"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "联系方式"
+    },
+    {
+      "type": "p",
+      "text": "隐私问题、请求或投诉：{company.privacyEmail}。其他事宜：{company.email}。"
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "邮寄地址：{company.legalName}，{company.address}。"
+    }
+  ]
+}

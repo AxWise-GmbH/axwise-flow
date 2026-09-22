@@ -1,0 +1,842 @@
+/*
+ * The Mobile App scene's page cuts, shipped with the page (MobilePage.jsx imports this file),
+ * never with the header. The parts, the menu and the hero live in mobile.css; every rule here
+ * names its cut, so it outranks the base rules whichever file loads first.
+ *
+ * - check: one job's live steps, the count rolling to "Step 3 of 5", results landing.
+ * - rerun: the list alone, one tap, the row flips back to done and the island says so.
+ * - start: a new ask types itself, is sent, and lands as a working row; the Mac mark lights.
+ * - online: the Mac sleeps, the phone greys and waits, the Mac wakes, the rows come back.
+ *
+ * Plain styles are the finished frame; every beat is a % of the kit's clock (--ps-loop).
+ * Each cut opens on its payoff and holds it while its card fades in: rerun at 75% (mobile.css),
+ * check and start at 70% (their payoffs last longer), online at 0%, on the awake Mac.
+ */
+
+/* The page cuts' own surfaces: the sheet the phone shows while the Mac is away, and the
+   composer's field (the same as --pmo-field in mobile.css), which covers untyped words. */
+[data-product='mobile'] {
+  --pmo-sheet: rgba(24, 24, 24, 0.94);
+  --pmo-field: #1a1a1a;
+}
+
+[data-product='mobile']:is([data-oi-theme='light'] *) {
+  --pmo-sheet: rgba(255, 255, 255, 0.94);
+  --pmo-field: #ffffff;
+}
+
+[data-product='mobile'][data-cut='online'] :is(.pmo-mac, .pmo-link, .pmo-go) {
+  display: block;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-note,
+[data-product='mobile'][data-cut='check'] .pmo-plan,
+[data-product='mobile'][data-cut='start'] .pmo-ask {
+  display: flex;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-off,
+[data-product='mobile'][data-cut='start'] .pmo-new {
+  display: grid;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-btn,
+[data-product='mobile'][data-cut='check'] :is(.pmo-list, .pmo-hd) {
+  display: none;
+}
+
+/* Check: one job, up close ----------------------------------------------------------------- */
+
+[data-product='mobile'][data-cut='check'] .pmo-plan {
+  flex-direction: column;
+  gap: calc(var(--k) * 1.05);
+  padding: calc(var(--k) * 0.6) calc(var(--k) * 0.4) 0;
+  color: var(--oi-app-soft);
+  font-size: max(9px, calc(var(--k) * 1.35));
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > b {
+  color: var(--pmo-ink);
+  font-size: calc(var(--k) * 2.3);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > span {
+  margin-top: calc(var(--k) * -0.6);
+  color: var(--oi-app-muted);
+  font-size: max(9px, calc(var(--k) * 1.2));
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > .pmo-prog {
+  height: calc(var(--k) * 0.5);
+  margin: calc(var(--k) * 0.2) 0 calc(var(--k) * 0.5);
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > .pmo-prog::after {
+  transform: scaleX(0.62);
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:not(.pmo-file) {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+}
+
+/* The count rolls: 1, 2, 3. */
+[data-product='mobile'][data-cut='check'] .pmo-n {
+  display: inline-block;
+  height: 1.25em;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  vertical-align: bottom;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-n i {
+  display: block;
+  font-style: normal;
+  translate: 0 -200%;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:nth-of-type(n + 3) > span {
+  opacity: 0.5;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:nth-of-type(3) .pmo-tk::before {
+  opacity: 1;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:nth-of-type(n + 3) .pmo-tk::after {
+  opacity: 0;
+}
+
+/* A result that landed: its name, and a lit dot for new. */
+[data-product='mobile'][data-cut='check'] .pmo-file {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--k) * 0.9);
+  padding: calc(var(--k) * 0.9) calc(var(--k) * 1.1);
+  border: 1px solid var(--pmo-rim);
+  border-radius: calc(var(--k) * 1.3);
+  background: var(--pmo-glass);
+  color: var(--pmo-ink);
+  font: max(9px, calc(var(--k) * 1.15)) / 1.2 var(--oi-mono);
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-file:first-of-type {
+  margin-top: calc(var(--k) * 0.6);
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-file span {
+  flex: 1;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-file::after {
+  content: '';
+  width: calc(var(--k) * 0.75);
+  aspect-ratio: 1;
+  margin-right: calc(var(--k) * 0.3);
+  border-radius: 50%;
+  background: var(--pmo-ink);
+  box-shadow: 0 0 calc(var(--k) * 0.9) rgba(var(--oi-fg-rgb), calc(0.6 * var(--oi-halo-k)));
+}
+
+/* Online: the phone waits for the Mac ------------------------------------------------------ */
+
+[data-product='mobile'][data-cut='online'] .pmo-off {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--k) * 15);
+  right: calc(var(--k) * 1.8);
+  left: calc(var(--k) * 1.8);
+  justify-items: center;
+  gap: calc(var(--k) * 1.2);
+  padding: calc(var(--k) * 2.2) calc(var(--k) * 1.6);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.16);
+  border-radius: calc(var(--k) * 2.4);
+  background: var(--pmo-sheet);
+  box-shadow: 0 calc(var(--k) * 2) calc(var(--k) * 5)
+    rgba(var(--oi-shadow-rgb), calc(0.8 * var(--oi-shadow-k)));
+  color: var(--pmo-ink);
+  font-size: max(9px, calc(var(--k) * 1.4));
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  opacity: 0;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-off .pmo-mg {
+  margin-bottom: calc(var(--k) * 0.4);
+  scale: 1.3;
+}
+
+/* Start: typing reveals the words by shrinking a cover off them in letter steps (a transform),
+   and the caret rides the cover's edge. */
+[data-product='mobile'][data-cut='start'] .pmo-tp::before,
+[data-product='mobile'][data-cut='start'] .pmo-tp::after {
+  content: '';
+  position: absolute;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-tp::after {
+  inset: -1px 0;
+  background: var(--pmo-field);
+  transform-origin: 100% 50%;
+  scale: 0 1;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-tp::before {
+  z-index: 1;
+  top: 8%;
+  bottom: 8%;
+  left: 0;
+  width: 100%;
+  border-left: max(1px, calc(var(--u) * 0.15)) solid var(--pmo-ink);
+  opacity: 0;
+  translate: 100% 0;
+}
+
+/* Layouts -------------------------------------------------------------------------------- */
+
+/* Phone-only cuts: the phone rises from the card's foot, the same in all three cards; start's
+   ask sits right under the list, where its new row lands. */
+[data-product='mobile']:is([data-cut='check'], [data-cut='rerun'], [data-cut='start']) .ps-scene {
+  --pk: calc(var(--u) * 2.3);
+  --px: calc(var(--u) * 15.5);
+  --py: calc(var(--u) * 11);
+  --gx: 50%;
+  --gy: 30%;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-ask {
+  margin-top: calc(var(--k) * 0.6);
+}
+
+[data-product='mobile']:is([data-cut='check'], [data-cut='start']) .ps-scene {
+  --pmo-at: calc(var(--ps-loop) * -0.7);
+}
+
+/* Online: a wide card, both devices at ease. */
+[data-product='mobile'][data-cut='online'] .ps-scene {
+  --pk: calc(var(--u) * 0.8);
+  --px: calc(var(--u) * 17);
+  --py: calc(var(--u) * 5);
+  --mk: calc(var(--u) * 0.78);
+  --mw: calc(var(--u) * 31);
+  --mx: calc(var(--u) * 55);
+  --my: calc(var(--u) * 7.5);
+  --lx: calc(var(--u) * 42);
+  --ly: calc(var(--u) * 15);
+  --lw: calc(var(--u) * 12);
+  --on: 1.25;
+  --gx: 70%;
+  --gy: 40%;
+  --pmo-at: 0s;
+}
+
+@container ps (max-width: 480px) {
+  [data-product='mobile'][data-cut='online'] .ps-scene {
+    --pk: calc(var(--u) * 2.05);
+    --px: calc(var(--u) * 3.5);
+    --py: calc(var(--u) * 5);
+    --mk: calc(var(--u) * 1.3);
+    --mw: calc(var(--u) * 24.5);
+    --mx: calc(var(--u) * 71.5);
+    --my: calc(var(--u) * 12);
+    --lx: calc(var(--u) * 64.6);
+    --ly: calc(var(--u) * 16.5);
+    --lw: calc(var(--u) * 7.6);
+    --on: 2;
+    --gx: 85%;
+  }
+}
+
+/* Motion ---------------------------------------------------------------------------------- */
+
+[data-product='mobile']:is([data-cut='check'], [data-cut='rerun'], [data-cut='start']) .pmo-phone {
+  animation-name: pmo-bob;
+}
+
+/* The page cuts' own parts keep the shared timing. */
+[data-product='mobile']
+  :is(.pmo-off, .pmo-plan, .pmo-n i, .pmo-file, .pmo-ask > span, .pmo-plan > .pmo-prog),
+[data-product='mobile'] :is(.pmo-ask, .pmo-plan > .pmo-prog)::after {
+  animation-duration: var(--ps-loop);
+  animation-timing-function: var(--oi-ease);
+  animation-delay: var(--pmo-at);
+  animation-iteration-count: infinite;
+}
+
+/* Progress moves at an even pace. */
+[data-product='mobile'] .pmo-plan > .pmo-prog::after {
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* Rerun: the menu's phone side, alone. */
+[data-product='mobile'][data-cut='rerun'] .pmo-btn::after {
+  animation-name: pmo-tap;
+  animation-timing-function: ease-out;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-btn {
+  animation-name: pmo-press;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-st span:nth-child(1) {
+  animation-name: pmo-was;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-st span:nth-child(2) {
+  animation-name: pmo-busy;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-st span:nth-child(3) {
+  animation-name: pmo-now;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-isl::after {
+  animation:
+    ps-spin 0.9s linear infinite,
+    pmo-busy var(--ps-loop) var(--oi-ease) var(--pmo-at) infinite;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-note::before {
+  animation-name: pmo-bubble;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-note > * {
+  animation-name: pmo-note-words;
+}
+
+[data-product='mobile'][data-cut='rerun'] .pmo-time,
+[data-product='mobile'][data-cut='rerun'] .pmo-scr::before {
+  animation-name: pmo-hush;
+}
+
+/* Check. */
+[data-product='mobile'][data-cut='check'] .pmo-plan {
+  animation-name: pmo-dip;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-n i {
+  animation-name: pmo-count;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > .pmo-prog::after {
+  animation-name: pmo-plan-fill;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:nth-of-type(1) {
+  --now: pmo-c-now1;
+  --done: pmo-c-done1;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:nth-of-type(2) {
+  --now: pmo-c-now2;
+  --done: pmo-c-done2;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-plan > p:nth-of-type(3) {
+  --now: pmo-c-now3;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-file {
+  animation-name: pmo-file1;
+}
+
+[data-product='mobile'][data-cut='check'] .pmo-file + .pmo-file {
+  animation-name: pmo-file2;
+}
+
+/* Start. */
+[data-product='mobile'][data-cut='start'] .pmo-ask > span:first-child {
+  animation-name: pmo-hint;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-tp {
+  animation-name: pmo-typed;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-tp::after {
+  animation: pmo-uncover var(--ps-loop) steps(18, end) var(--pmo-at) infinite;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-tp::before {
+  animation:
+    pmo-caret-go var(--ps-loop) steps(18, end) var(--pmo-at) infinite,
+    pmo-caret var(--ps-loop) linear var(--pmo-at) infinite;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-ask::after {
+  animation-name: pmo-send;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-new {
+  animation-name: pmo-land;
+}
+
+[data-product='mobile'][data-cut='start'] .pmo-new .pmo-mg {
+  animation-name: pmo-light;
+}
+
+/* Online. */
+[data-product='mobile'][data-cut='online'] .pmo-lid {
+  animation-name: pmo-lid;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-disp::after {
+  animation-name: pmo-sleep;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-disp::before {
+  animation-name: pmo-sheen-late;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-glow {
+  animation-name: pmo-glow-sleep;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-on span:first-of-type {
+  animation-name: pmo-away;
+}
+
+[data-product='mobile'][data-cut='online'] :is(.pmo-on .ps-dot, .pmo-link) {
+  animation-name: pmo-dim;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-on span + span {
+  animation-name: pmo-back-off;
+}
+
+[data-product='mobile'][data-cut='online'] :is(.pmo-hd, .pmo-list) {
+  animation-name: pmo-grey;
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-off {
+  animation-name: pmo-wait;
+}
+
+/* The pulse runs out as the story starts and comes home as the Mac wakes. */
+[data-product='mobile'][data-cut='online'] .pmo-go::before {
+  animation-name: pmo-out;
+  animation-delay: calc(var(--ps-loop) * -0.08);
+}
+
+[data-product='mobile'][data-cut='online'] .pmo-go::after {
+  animation-name: pmo-back;
+  animation-delay: calc(var(--ps-loop) * 0.25);
+}
+
+/* Keyframes (the page cuts' own) ------------------------------------------------------------ */
+
+@keyframes pmo-bob {
+  50% {
+    translate: 0 calc(var(--u) * -1.2);
+  }
+}
+
+/* Check: steps one and two finish, three starts; the count and the bar follow. */
+@keyframes pmo-dip {
+  0%,
+  96.5%,
+  100% {
+    opacity: 1;
+  }
+  98.5% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-count {
+  0%,
+  22% {
+    translate: 0 0;
+  }
+  25%,
+  52% {
+    translate: 0 -100%;
+  }
+  55%,
+  97% {
+    translate: 0 -200%;
+  }
+  98.5%,
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes pmo-plan-fill {
+  0%,
+  6% {
+    transform: scaleX(0.14);
+  }
+  24%,
+  30% {
+    transform: scaleX(0.34);
+  }
+  54%,
+  97% {
+    transform: scaleX(0.62);
+  }
+  98.5%,
+  100% {
+    transform: scaleX(0.14);
+  }
+}
+
+@keyframes pmo-c-now1 {
+  0%,
+  22% {
+    opacity: 1;
+  }
+  23.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-c-done1 {
+  0%,
+  22% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  24% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  26%,
+  97% {
+    opacity: 1;
+    scale: 1;
+  }
+  98.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-c-now2 {
+  0%,
+  23.5% {
+    opacity: 0;
+  }
+  24.5%,
+  52% {
+    opacity: 1;
+  }
+  53.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-c-done2 {
+  0%,
+  52% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  54% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  56%,
+  97% {
+    opacity: 1;
+    scale: 1;
+  }
+  98.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-c-now3 {
+  0%,
+  53.5% {
+    opacity: 0;
+  }
+  54.5%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pmo-file1 {
+  0%,
+  26% {
+    opacity: 0;
+    translate: 0 40%;
+  }
+  31%,
+  97% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  98.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-file2 {
+  0%,
+  56% {
+    opacity: 0;
+    translate: 0 40%;
+  }
+  61%,
+  97% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  98.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Start: type (6-34%), send (36%), the words go and the row lands (38-46%), the Mac lights. */
+@keyframes pmo-hint {
+  0%,
+  5% {
+    opacity: 1;
+  }
+  6%,
+  40% {
+    opacity: 0;
+  }
+  44%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pmo-uncover {
+  0%,
+  6% {
+    scale: 1 1;
+  }
+  34%,
+  100% {
+    scale: 0 1;
+  }
+}
+
+@keyframes pmo-caret-go {
+  0%,
+  6% {
+    translate: 0 0;
+  }
+  34%,
+  100% {
+    translate: 100% 0;
+  }
+}
+
+@keyframes pmo-typed {
+  0%,
+  37% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  40%,
+  100% {
+    opacity: 0;
+    translate: 0 -60%;
+  }
+}
+
+@keyframes pmo-caret {
+  0%,
+  37% {
+    opacity: 1;
+  }
+  37.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-send {
+  0%,
+  34.5%,
+  40%,
+  100% {
+    scale: 1;
+  }
+  36% {
+    scale: 0.82;
+  }
+  37.5% {
+    scale: 1.12;
+  }
+}
+
+@keyframes pmo-land {
+  0%,
+  38% {
+    opacity: 0;
+    translate: 0 70%;
+    scale: 0.96;
+  }
+  46%,
+  94% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  98%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+@keyframes pmo-light {
+  0%,
+  50% {
+    opacity: 0.25;
+    scale: 1;
+  }
+  53% {
+    opacity: 1;
+    scale: 1.25;
+  }
+  57%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* Online: asleep 26-32% to 68-74%; the phone greys and waits 32-38% to 74-80%. */
+@keyframes pmo-lid {
+  0%,
+  26%,
+  76%,
+  100% {
+    transform: perspective(calc(var(--m) * 80)) rotateX(0deg);
+  }
+  33%,
+  68% {
+    transform: perspective(calc(var(--m) * 80)) rotateX(-52deg);
+  }
+  73% {
+    transform: perspective(calc(var(--m) * 80)) rotateX(4deg);
+  }
+}
+
+@keyframes pmo-sleep {
+  0%,
+  25%,
+  74%,
+  100% {
+    opacity: 0;
+  }
+  30%,
+  69% {
+    opacity: 0.94;
+  }
+}
+
+@keyframes pmo-sheen-late {
+  0%,
+  72% {
+    opacity: 0;
+    translate: -100% 0;
+  }
+  74% {
+    opacity: 1;
+  }
+  80%,
+  100% {
+    opacity: 0;
+    translate: 100% 0;
+  }
+}
+
+@keyframes pmo-glow-sleep {
+  0%,
+  25%,
+  76%,
+  100% {
+    opacity: 1;
+  }
+  33%,
+  68% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes pmo-away {
+  0%,
+  27%,
+  73%,
+  100% {
+    opacity: 1;
+  }
+  30%,
+  70% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-dim {
+  0%,
+  27%,
+  73%,
+  100% {
+    opacity: var(--rest, 1);
+  }
+  30%,
+  70% {
+    opacity: 0.18;
+  }
+}
+
+@keyframes pmo-back-off {
+  0%,
+  27%,
+  73%,
+  100% {
+    opacity: 0;
+  }
+  30%,
+  70% {
+    opacity: 1;
+  }
+}
+
+@keyframes pmo-grey {
+  0%,
+  31%,
+  77%,
+  100% {
+    opacity: 1;
+  }
+  36%,
+  73% {
+    opacity: 0.22;
+  }
+}
+
+@keyframes pmo-wait {
+  0%,
+  33%,
+  79%,
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--k) * 1.5);
+    scale: 0.97;
+  }
+  38%,
+  74% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}

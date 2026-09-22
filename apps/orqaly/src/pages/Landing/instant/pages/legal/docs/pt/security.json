@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "slug": "security",
+    "title": "Segurança e Divulgação de Vulnerabilidades",
+    "summary": "Esta página explica como protegemos o Orqanix, como você pode manter os seus dados seguros e como relatar um problema de segurança.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "security@orqanix.com probably receives no mail today: orqanix.com has no MX record (open point #2). Reports cannot reach us until this is fixed.",
+        "CRA Art. 14 reporting has applied since 11 Sep 2026: we need an internal runbook (ENISA Single Reporting Platform; 24 h / 72 h / 14 days / 1 month) and to know which national CSIRT is ours, which depends on the company (open point #1).",
+        "Supported versions: the page says only the newest Desktop App version gets security fixes. The owner must confirm this policy, and set a CRA support period (with its end date shown at download) before 11 Dec 2027.",
+        "Desktop defaults disclosed here as they are: Auto-approve on, shell and file tools on, provider keys stored in a plain-text file, chat history not additionally encrypted, app not notarized (open points #8 and #14). Update this page if any of them change.",
+        "'We aim to acknowledge within 5 working days' is a target the owner must be able to meet.",
+        "Safe-harbour promise: lawyer to confirm the wording for the company's home country (no promise can bind third parties or authorities).",
+        "Incident notice to users: the page promises to tell affected users. A breach runbook (GDPR 72 h, US state breach laws) is needed as an internal document.",
+        "Safe harbour now says we do not report researchers to the authorities 'unless the law requires us to' (for example a GDPR breach report). Lawyer to confirm.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): failing to provide security updates can make software defective, and consumer liability cannot be excluded. Decide the update and support policy before then (see supported versions).",
+        "Dir. 2019/770 Art. 8(2): EU consumers are owed security updates for the period they can reasonably expect. 'Newest version only, by manual download' must be squared with this in the Desktop App Terms.",
+        "The page says the shell and file tools can reach anything the macOS account can (no sandbox found in the Desktop App code). Update if a sandbox is added.",
+        "US: if health data is processed (health marketing, open point #16), the FTC Health Breach Notification Rule (16 CFR 318) adds notice duties to the FTC. Not written here; covered in the Health Data policy if needed.",
+        "CRA Art. 13(17) single point of contact (from 11 Dec 2027): security@ serves it once the mailbox works."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "overview",
+      "text": "Visão geral"
+    },
+    {
+      "type": "p",
+      "text": "Esta página abrange o site, o app web, o Aplicativo para Computador, o Aplicativo para Celular, o Assistente Virtual, a API e o nosso trabalho Empresarial."
+    },
+    {
+      "type": "p",
+      "text": "Nenhum sistema é perfeitamente seguro, e não garantimos que o {company.name} esteja livre de vulnerabilidades. Abaixo descrevemos o que realmente fazemos hoje, incluindo os limites que você deve conhecer antes de confiar nele."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-protect",
+      "text": "Como protegemos o Orqanix"
+    },
+    {
+      "type": "h3",
+      "id": "cloud",
+      "text": "Serviços na nuvem"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hospedagem: os nossos serviços na nuvem e o nosso banco de dados rodam no Google Cloud na UE, nos Países Baixos (região europe-west4). As empresas que usamos estão listadas na página de [Suboperadores](/instant/legal/subprocessors).",
+        "Criptografia: os dados são criptografados em trânsito (HTTPS), e o nosso provedor de nuvem os criptografa em repouso.",
+        "Login: o Clerk, um provedor especializado em login, gerencia as contas e usa proteção contra bots na página de cadastro. Não armazenamos a sua senha.",
+        "Chaves e segredos: as chaves de serviço dos nossos sistemas ficam guardadas no cofre de segredos do Google Cloud. As chaves de aplicativo para automações são armazenadas apenas como hashes, de modo que a própria chave não pode ser lida de volta a partir do nosso banco de dados.",
+        "Solicitações ao modelo: quando o Aplicativo para Computador envia uma conversa ao modelo de IA pelo nosso serviço, o nosso serviço a repassa sem armazená-la. Não gravamos o conteúdo dos seus prompts ou mensagens nos registros (logs) dos nossos servidores.",
+        "Registros: alguns registros do que os agentes fizeram (mensagens, arquivos, aprovações e eventos) são mantidos como um log fixo. Os nossos sistemas não permitem que eles sejam alterados depois. Isso ajuda você a ver exatamente o que aconteceu.",
+        "Backups: é feito backup do banco de dados todos os dias, e a proteção contra exclusão está ativada."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "desktop",
+      "text": "Aplicativo para Computador"
+    },
+    {
+      "type": "list",
+      "items": [
+        "O seu token de login do {company.name} é armazenado nas Chaves do macOS. Sair da conta o revoga.",
+        "O aplicativo guarda os dados dele em uma pasta de perfil que só a sua conta de usuário do macOS pode ler.",
+        "O aplicativo não envia estatísticas de uso e não tem um relator de falhas.",
+        "Os agentes salvam os arquivos que criam na pasta de projeto que você escolher. Você também escolhe o quanto eles podem fazer sem perguntar (veja [A sua parte](#your-part))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Limites que você deve conhecer:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Por padrão, o aplicativo aprova automaticamente as ações dos agentes, e as ferramentas de shell e de edição de arquivos ficam ativadas. Assim, os agentes podem ler e alterar arquivos e executar comandos no seu Mac sem perguntar antes. Essas ferramentas não se limitam à sua pasta de projeto: elas podem acessar tudo o que a sua conta do macOS acessa.",
+        "As chaves dos provedores de IA que você mesmo conecta (como OpenAI ou Anthropic) e os segredos das extensões são armazenados em um arquivo de configurações em texto simples na pasta do aplicativo, e não nas Chaves.",
+        "O histórico de conversas é guardado em um arquivo de banco de dados local que o próprio aplicativo não criptografa. Ele é protegido pelas permissões de arquivo da sua conta do macOS e, se você ativá-la, pela criptografia de disco FileVault.",
+        "O aplicativo não é notarizado pela Apple. Na primeira vez que você o abrir, o macOS pedirá que você confirme com \"Abrir Mesmo Assim\".",
+        "O aplicativo não se atualiza sozinho. As correções de segurança chegam como uma nova versão que você baixa (veja [Atualizações de segurança](#updates))."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-part",
+      "text": "A sua parte"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Baixe o Aplicativo para Computador somente pelo link em orqanix.com.",
+        "Mantenha o macOS atualizado e ative a criptografia de disco FileVault e o bloqueio de tela.",
+        "Escolha o modo de aprovação adequado ao seu trabalho. O aplicativo pode perguntar antes de cada ação, perguntar só nas ações sensíveis ou apenas conversar. Use um modo mais rigoroso quando trabalhar com arquivos importantes.",
+        "Direcione os agentes para uma pasta de projeto que contenha apenas o que eles precisam e mantenha backups dos arquivos que importam para você. Lembre-se de que as ferramentas de shell e de arquivos podem acessar mais do que essa pasta.",
+        "Proteja as chaves que você adiciona para outros provedores de IA. Qualquer pessoa ou programa com acesso à sua conta do macOS pode lê-las. Se você achar que uma chave vazou, revogue-a no provedor.",
+        "Instale a versão mais recente do aplicativo quando a lançarmos.",
+        "Saia da conta em um Mac que outras pessoas usam e mantenha segura a conta com a qual você faz login.",
+        "Confira o que os agentes fazem. Trate o conteúdo que eles obtêm da web ou de arquivos como não confiável: ele pode conter instruções criadas para enganar o agente."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Como relatar uma vulnerabilidade"
+    },
+    {
+      "type": "p",
+      "text": "Se você encontrar um problema de segurança no {company.name}, avise-nos em {company.securityEmail}. Inclua:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Qual produto, página ou versão é afetado.",
+        "Qual é o problema e o que um invasor poderia fazer com ele.",
+        "As etapas para reproduzi-lo, com capturas de tela ou uma breve prova de conceito, se você tiver.",
+        "Como podemos entrar em contato com você e se você gostaria de ser mencionado quando o corrigirmos."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "O nosso objetivo é confirmar o recebimento do seu relato em até 5 dias úteis, manter você informado enquanto o analisamos e avisar quando ele for corrigido."
+    },
+    {
+      "type": "p",
+      "text": "O nosso contato de segurança também está publicado no formato padrão legível por máquina em [orqanix.com/.well-known/security.txt](https://orqanix.com/.well-known/security.txt)."
+    },
+    {
+      "type": "h3",
+      "id": "rules",
+      "text": "Regras para pesquisas"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Faça testes somente com contas e dados que sejam seus. Se você acessar dados que pertencem a outra pessoa, pare imediatamente, não os guarde e nos avise.",
+        "Não perturbe os nossos serviços nem outros usuários: nada de testes de negação de serviço, spam ou varreduras automatizadas em grande escala.",
+        "Não use engenharia social, phishing ou ataques físicos contra as nossas pessoas ou os nossos provedores.",
+        "Não teste os sistemas dos nossos provedores, como o Google ou o Clerk. Relate problemas nos serviços deles diretamente a eles.",
+        "Não torne um problema público até que ele seja corrigido ou até que tenhamos combinado uma data com você."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "safe-harbour",
+      "text": "Porto seguro"
+    },
+    {
+      "type": "p",
+      "text": "Se você agir de boa-fé e seguir estas regras, trataremos a sua pesquisa como autorizada. Não tomaremos medidas judiciais contra você por causa dela e não denunciaremos você às autoridades, a menos que a lei nos obrigue. Se outra pessoa tomar medidas contra você por uma pesquisa que seguiu estas regras, deixaremos claro que a autorizamos. Não mantemos um programa pago de recompensa por bugs."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Atualizações de segurança"
+    },
+    {
+      "type": "p",
+      "text": "Corrigimos problemas de segurança na versão mais recente do Aplicativo para Computador. Não corrigimos versões anteriores, por isso use sempre a mais recente. O aplicativo não se atualiza sozinho: quando lançarmos uma correção, baixe a nova versão em orqanix.com e instale-a sobre a anterior."
+    },
+    {
+      "type": "p",
+      "text": "As correções no nosso site, no app web, na API e em outros serviços na nuvem chegam até você sem que você precise fazer nada."
+    },
+    {
+      "type": "h2",
+      "id": "incidents",
+      "text": "Incidentes de segurança"
+    },
+    {
+      "type": "p",
+      "text": "Se um incidente de segurança afetar os seus dados pessoais, informamos as autoridades e as pessoas afetadas conforme exige a lei. Quando informamos você, dizemos o que aconteceu, quais dados estão envolvidos, o que estamos fazendo a respeito e o que você pode fazer."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Quando o RGPD o exigir, comunicamos uma violação de dados pessoais à autoridade de proteção de dados em até 72 horas e informamos as pessoas afetadas quando o risco para elas for elevado (RGPD, art. 33.º e 34.º)."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Nos termos do Regulamento de Ciber-Resiliência da UE, notificamos às autoridades, dentro dos prazos fixados pela lei, as vulnerabilidades ativamente exploradas e os incidentes de segurança graves que afetem os nossos aplicativos. Também informamos os usuários afetados sobre o problema e sobre as medidas que eles devem tomar (Regulamento (UE) 2024/2847, art. 14.º)."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Quando se aplicarem leis estaduais dos EUA sobre notificação de violações de dados, notificamos as pessoas afetadas e, quando exigido, as autoridades estaduais dentro do prazo fixado por essas leis."
+    }
+  ]
+}

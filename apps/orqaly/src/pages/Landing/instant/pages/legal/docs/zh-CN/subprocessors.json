@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "子处理方",
+    "summary": "本页面列出代表我们处理个人数据的公司、您的数据可能流向的其他地方，以及我们服务器的所在地。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "关于本页面"
+    },
+    {
+      "type": "p",
+      "text": "子处理方是我们付费委托、按照我们的指示代表我们处理个人数据的公司。本页面列出我们的子处理方、您使用 {company.name} 时您的数据可能流向的其他地方，以及我们服务器的所在地。本页面涵盖我们的网站和所有产品。在提供商开始代表我们处理个人数据之前，我们会将其添加到本页面。"
+    },
+    {
+      "type": "p",
+      "text": "我们的[隐私政策](/instant/legal/privacy)说明了我们如何使用个人数据。当 API、我们的企业版服务或助理机器人的企业客户向我们提供个人数据以供处理时，适用我们的[数据处理附录](/instant/legal/dpa)。"
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "我们的子处理方"
+    },
+    {
+      "type": "table",
+      "head": [
+        "公司",
+        "用途",
+        "数据",
+        "所在地",
+        "传输依据"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "托管网站、网页应用、桌面应用所连接的服务、API、我们的数据库、存储的文件和服务器日志",
+          "账户 ID、工作区内容（聊天、目标、文件、报告和自动化）、来自桌面应用的研究问题、API 任务和决策、IP 地址和请求日志",
+          "欧盟（荷兰）",
+          "数据托管在欧盟。适用 Google 的云数据处理条款。"
+        ],
+        [
+          "Google（Gemini API，包括 Google 搜索接地）",
+          "桌面应用、云端助理和 API 的默认 AI 模型",
+          "您的提示词、截至当时的对话、工具输出（例如文件内容和命令输出），以及您使用听写时的语音",
+          "并非由我们确定。Google 可能会在欧盟以外处理这些数据。",
+          "Google 的 Gemini API 条款。[我们的 AI 如何运作](/instant/legal/ai#data-models-see)说明了 Google 可以如何使用这些数据。"
+        ],
+        [
+          "Clerk, Inc.",
+          "登录和账户",
+          "电子邮件地址、姓名、头像（如果您使用 Google 登录）、登录和会话记录、IP 地址和设备数据",
+          "美国",
+          "欧盟-美国数据隐私框架，并以标准合同条款作为后备（Clerk 的数据处理条款）"
+        ],
+        [
+          "Cloudflare（由 Clerk 使用，以及注册时使用的 Turnstile）",
+          "登录和注册页面上的机器人防护",
+          "IP 地址、设备和浏览器信号",
+          "并非由我们确定。Cloudflare 的网络可能会在欧盟以外处理这些数据。",
+          "通过 Clerk 使用，作为 Clerk 服务的一部分"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "桌面应用的下载文件也由 Google Cloud Storage 提供。当您下载时，Google 会看到您的 IP 地址。"
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "其他接收方"
+    },
+    {
+      "type": "p",
+      "text": "这些公司不是我们的子处理方。它们在您使用某些功能时接收数据，并根据其自身条款决定如何使用这些数据。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "接收方",
+        "何时",
+        "数据",
+        "所在地",
+        "其角色"
+      ],
+      "rows": [
+        [
+          "公共搜索引擎：Google、Bing、Brave 和 DuckDuckGo",
+          "当云端助理、云端研究或 API 搜索网络时。查询通过我们自己的搜索服务发出。",
+          "根据您的请求生成的搜索查询。我们不会发送您的账户详情。",
+          "各搜索引擎自己的服务器，可能位于美国或其他地方",
+          "独立方。适用其自身的条款和隐私政策。"
+        ],
+        [
+          "OpenRegister",
+          "当 API 或云端研究在公开的公司登记信息中查询某家公司时",
+          "公司名称。结果可能包括董事的姓名。",
+          "由 OpenRegister 确定",
+          "独立方。适用其自身的条款。"
+        ],
+        [
+          "Google（使用 Google 登录）",
+          "仅当您选择使用 Google 账户登录时",
+          "您的 Google 个人资料：姓名、电子邮件地址和头像",
+          "Google 自己的服务器，可能位于美国",
+          "由您选择。适用 Google 的条款。"
+        ],
+        [
+          "您在桌面应用中连接的 AI 提供商，例如 OpenAI 或 Anthropic",
+          "仅当您将桌面应用切换到您自己的提供商时",
+          "对话和工具输出，与默认模型相同",
+          "由该提供商确定",
+          "由您选择，并由您与其另行订立协议。适用其条款，而非我们的条款。"
+        ],
+        [
+          "您连接的应用、工具和账户，例如桌面应用中的扩展，或您连接到助理机器人的即时通讯应用和电子邮件账户",
+          "仅当您连接它们时",
+          "智能体或机器人在执行您的任务时向其发送或从中读取的内容",
+          "由该服务确定",
+          "由您选择，并由您与其另行订立协议。适用其条款。"
+        ],
+        [
+          "Hostinger",
+          "orqanix.com 的域名服务（DNS）",
+          "对我们域名的技术查询。不涉及账户数据。",
+          "由 Hostinger 确定",
+          "技术服务"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如果您在 Mac 上使用本地 AI 模型，您的对话将发送给该模型，而不是 AI 提供商。智能体发送给 {company.name} 云端研究的问题仍会发送到我们的云端以及上述提供商。"
+    },
+    {
+      "type": "p",
+      "text": "我们没有支付服务提供商、分析服务或广告网络。我们不会出售个人数据。"
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "我们服务器的所在地"
+    },
+    {
+      "type": "p",
+      "text": "我们将云服务和数据库托管在位于欧盟荷兰的 Google Cloud 上（区域 europe-west4）。这包括网站、网页应用、桌面应用所连接的服务、API 及其自己的数据库，以及您的智能体存储在云端的文件和报告。每个企业版项目都托管在我们与客户约定的欧盟 Google Cloud 区域。"
+    },
+    {
+      "type": "p",
+      "text": "某些提供商（例如 Clerk 和 Google Gemini）可能会在美国或其他地方处理数据。数据在传输过程中加密（HTTPS），并由我们的云服务提供商进行静态加密。"
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "向欧盟以外的传输",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "当个人数据离开欧洲经济区、英国或瑞士时，法律要求采取保障措施。对于 Clerk，保障措施是欧盟-美国数据隐私框架，并以欧盟标准合同条款作为后备（GDPR 第 45 条和第 46 条）。使用 Google Cloud 时，您的数据托管在欧盟。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "对于 Google Gemini，我们使用 Google 的付费服务。Google 的付费服务条款及其数据处理条款适用于我们发送的数据。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "如需获取适用于您数据的保障措施副本，请发送电子邮件至 {company.privacyEmail}。"
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "外国政府的请求",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "欧盟法律要求云服务提供商说明其基础设施的所在地，以及它们如何应对来自欧盟以外政府的请求（欧盟《数据法》第 28 条）。这适用于所有数据，而不仅限于个人数据。"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "我们的基础设施：我们的云服务和数据库运行在荷兰的 Google Cloud 上，受欧盟法律管辖。登录服务运行在美国的 Clerk 上。",
+        "Google 和 Clerk 是美国公司或隶属于美国集团，因此美国法律也可能适用于它们。",
+        "如果欧盟以外的政府或法院向我们索取您的数据，我们会审查该请求是否合法，以及欧盟法律或成员国法律是否允许我们作出回应。",
+        "在可能的情况下，我们会对违法或范围过宽的请求提出异议。我们仅提供该请求依法要求的最低限度数据。",
+        "在作出回应之前，我们会告知相关客户，除非法律禁止。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "美国各州隐私法律",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "根据美国各州隐私法律，Google Cloud、Clerk 和 Cloudflare 作为服务提供商或处理者为我们工作。Google 的条款规定了 Google 可以如何使用我们发送到 Gemini API 的数据，详见[我们的 AI 如何运作](/instant/legal/ai#data-models-see)。我们不会出售个人数据，也不会为定向广告而共享个人数据。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "本清单的变更"
+    },
+    {
+      "type": "p",
+      "text": "当我们添加或更换子处理方时，我们会更新本页面及页面顶部的日期。"
+    },
+    {
+      "type": "p",
+      "text": "受我们[数据处理附录](/instant/legal/dpa)约束的企业客户会在新的子处理方开始处理其数据之前收到通知。他们可以按照该附录的规定提出异议。"
+    }
+  ]
+}

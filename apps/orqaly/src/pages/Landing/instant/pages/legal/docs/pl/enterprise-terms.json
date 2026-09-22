@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Warunki dla firm",
+    "summary": "Warunki dla firm, które zlecają Orqanix budowę, prowadzenie rozwiązań AI lub doradztwo w zakresie AI z udziałem naszych agentów i ekspertów.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Pierwsza wersja."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "O niniejszych warunkach"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsze Warunki dla firm mają zastosowanie, gdy Państwa firma zleca Orqanix budowę lub prowadzenie rozwiązań AI albo doradztwo w zakresie AI. Obejmują one prace takie jak audyty gotowości na AI, projekty pilotażowe, zautomatyzowane jednostki biznesowe, nowe role AI, niestandardowe konektory, zarządzaną obsługę agentów oraz szkolenia zespołów."
+    },
+    {
+      "type": "p",
+      "text": "Uzupełniają one nasz [Regulamin](/instant/legal/terms) i [Zasady dozwolonego użytku](/instant/legal/acceptable-use). Gdy przetwarzamy dane osobowe w Państwa imieniu, zastosowanie ma również [Umowa powierzenia przetwarzania danych](/instant/legal/dpa) („DPA”), która stanowi część niniejszych warunków. Gdy prace obejmują API Orqanix, na przykład API wnioskowania w modelu white-label, do tej części stosuje się także [Warunki korzystania z API](/instant/legal/api-terms)."
+    },
+    {
+      "type": "p",
+      "text": "„Państwo” oznacza firmę, która nas zatrudnia. Osoba, która akceptuje niniejsze warunki lub podpisuje zamówienie, potwierdza, że jest umocowana do zaciągania zobowiązań w imieniu tej firmy. „My” i „nas” oznacza Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix jest prowadzony przez {company.legalName}, {company.address}, który jest stroną niniejszych warunków i każdego zamówienia.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Prace w ramach oferty dla firm są przeznaczone wyłącznie dla przedsiębiorstw. Każda osoba, która współpracuje z nami w Państwa imieniu, musi mieć ukończone 18 lat."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Zamówienia"
+    },
+    {
+      "type": "p",
+      "text": "Każdy zakres prac uzgadniamy w pisemnym zamówieniu lub opisie prac („zamówienie”) przed rozpoczęciem prac. Każde zamówienie określa:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "zakres: co zrobimy, a co nie jest objęte zamówieniem;",
+        "produkty prac: co Państwo otrzymają;",
+        "harmonogram i ewentualne kamienie milowe;",
+        "cenę i sposób rozliczenia: stała cena za projekt, opłata miesięczna, opłata za rezultat lub ich połączenie;",
+        "kryteria odbioru oraz czas przeznaczony na testy;",
+        "miejsce hostowania prac, w tym region Google Cloud w UE;",
+        "oprogramowanie lub usługi podmiotów trzecich, na których opierają się prace, oraz ich warunki."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Zamówienie wiąże obie strony, gdy obie je podpiszemy lub potwierdzimy na piśmie. Wystarczy wiadomość e-mail. Kilka zamówień może być realizowanych jednocześnie, a każde z nich jest niezależne."
+    },
+    {
+      "type": "p",
+      "text": "Nasze prace zwykle przebiegają od rozpoznania i pisemnego planu („blueprint”), przez budowę z wykorzystaniem Państwa danych i wdrożenie, po prowadzenie i doskonalenie. Zamówienie określa, które etapy obejmuje."
+    },
+    {
+      "type": "p",
+      "text": "W razie sprzeczności między dokumentami obowiązuje następująca kolejność: zamówienie dotyczące prac, następnie DPA w zakresie danych osobowych, następnie niniejsze warunki, a na końcu Regulamin."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Jak pracujemy"
+    },
+    {
+      "type": "p",
+      "text": "Prace wykonujemy przy użyciu naszych agentów AI, naszych specjalistów (inżynierów i konsultantów) lub obu tych zasobów, zgodnie z zamówieniem. Możemy korzystać z podwykonawców. Pozostajemy odpowiedzialni za ich pracę i zobowiązujemy ich do przestrzegania tych samych obowiązków w zakresie poufności i ochrony danych, które ciążą na nas."
+    },
+    {
+      "type": "p",
+      "text": "Agenci, których budujemy i prowadzimy dla Państwa, działają w ramach ustalonych przez Państwa zasad: zatwierdzania każdej czynności (Zezwól raz, Zawsze zezwalaj lub Odmów), dostępu opartego na rolach oraz rejestru tego, co zrobił każdy agent. Ustawienia te uzgadniamy z Państwem w zamówieniu lub przed wdrożeniem."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "Państwa współdziałanie"
+    },
+    {
+      "type": "p",
+      "text": "Państwo zobowiązują się:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "zapewnić nam w odpowiednim czasie dostęp do osób, systemów, danych i decyzji, których wymagają prace;",
+        "upewnić się, że mają Państwo prawo przekazać nam te dane i ten dostęp, w tym dane osobowe oraz licencje na własne systemy i narzędzia;",
+        "wyznaczyć osobę kontaktową uprawnioną do podejmowania decyzji;",
+        "niezwłocznie przeglądać plany i produkty prac;",
+        "prowadzić własne kopie zapasowe systemów i danych, nad którymi pracujemy;",
+        "informować nas o przepisach wpływających na prace, takich jak przepisy właściwe dla Państwa branży."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli Państwo się spóźnią lub przekazane nam informacje okażą się błędne, a spowoduje to nasze opóźnienie, harmonogram przesuwa się o ten sam czas. Wszelki dodatkowy nakład pracy z tego wynikający jest traktowany jako [zmiana](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Odbiór"
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli zamówienie określa kryteria odbioru, informujemy Państwa, gdy produkt prac jest gotowy. Państwo testują go pod kątem tych kryteriów w terminie określonym w zamówieniu. Jeżeli je spełnia, Państwo go odbierają. Jeżeli nie, informują nas Państwo na piśmie, czego brakuje, a my to poprawiamy i ponownie przedstawiamy do odbioru."
+    },
+    {
+      "type": "p",
+      "text": "Produkt prac uważa się za odebrany, gdy Państwo to potwierdzą, gdy okres testów upłynie bez pisemnej odmowy odbioru wraz z uzasadnieniem lub gdy zaczną Państwo używać go w bieżącej działalności w innym celu niż testy. Drobne wady, które nie uniemożliwiają korzystania z produktu prac, nie blokują odbioru. Usuwamy je w ramach [naszych zobowiązań](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Zmiany"
+    },
+    {
+      "type": "p",
+      "text": "Każda ze stron może wystąpić o zmianę zakresu. Informujemy Państwa, jak zmiana wpływa na harmonogram i cenę. Zmiana obowiązuje, gdy obie strony uzgodnią ją na piśmie. Do tego czasu kontynuujemy prace na podstawie zamówienia w jego dotychczasowym brzmieniu."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Opłaty i płatności"
+    },
+    {
+      "type": "p",
+      "text": "Państwo płacą opłaty określone w zamówieniu. W przypadku opłaty za rezultat zamówienie określa, co uznaje się za rezultat i jak jest on mierzony."
+    },
+    {
+      "type": "p",
+      "text": "Wystawiamy faktury zgodnie z zamówieniem. Płacą Państwo w terminie wskazanym w zamówieniu lub na fakturze. Opłaty nie obejmują podatku VAT ani innych podatków, które Państwo płacą, jeżeli mają zastosowanie. Wydatki obciążamy tylko wtedy, gdy zamówienie na to pozwala."
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli kwestionują Państwo część faktury, prosimy poinformować nas o tym w dobrej wierze i zapłacić pozostałą część. Jeżeli kwota pozostaje niezapłacona po wezwaniu, możemy wstrzymać prace do czasu jej zapłaty. Od opóźnionych płatności naliczane są odsetki w zakresie dopuszczonym przez prawo."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Prawa własności"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Państwa materiały"
+    },
+    {
+      "type": "p",
+      "text": "Zachowują Państwo wszelkie prawa do danych, treści, systemów i innych materiałów, które nam Państwo przekazują. Pozwalają nam Państwo korzystać z nich wyłącznie w celu wykonania prac."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Produkty prac"
+    },
+    {
+      "type": "p",
+      "text": "Po zapłaceniu w całości za produkt prac stają się Państwo właścicielem tego, co wykonaliśmy specjalnie dla Państwa w ramach zamówienia, takiego jak konfiguracje agentów, przepływy pracy, konektory, dokumenty i kod. Przenosimy na Państwa przysługujące nam do niego prawa. Jeżeli prawo nie pozwala na przeniesienie danego prawa, udzielamy Państwu wyłącznej, ogólnoświatowej, bezterminowej licencji, którą mogą Państwo przenieść na inne podmioty. Do czasu zapłaty mogą Państwo korzystać z produktu prac w celu jego przeglądu i testowania."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Nasze materiały"
+    },
+    {
+      "type": "p",
+      "text": "Zachowujemy wszelkie prawa do naszych narzędzi, platformy, oprogramowania, agentów, szablonów, instrukcji, metod i know-how, a także do wszystkiego, co stworzyliśmy przed zamówieniem lub poza nim. Jeżeli nasze materiały stanowią część produktu prac, po zapłacie otrzymują Państwo niewyłączną, ogólnoświatową, bezterminową licencję na korzystanie z nich, ich kopiowanie i zmienianie jako części tego produktu prac na potrzeby własnej działalności. Nie mogą Państwo sprzedawać naszych materiałów ani udzielać na nie licencji samodzielnie, w oderwaniu od produktu prac."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Usługi, elementy podmiotów trzecich i wyniki AI"
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli coś prowadzimy dla Państwa, na przykład zarządzaną obsługę agentów lub hostowane API wnioskowania, jest to usługa, a nie produkt prac. Państwa dostęp do niej trwa tak długo jak zamówienie."
+    },
+    {
+      "type": "p",
+      "text": "Elementy produktu prac pochodzące od podmiotów trzecich oraz elementy open source podlegają własnym licencjom. Informujemy Państwa, które z nich zawiera dany produkt prac."
+    },
+    {
+      "type": "p",
+      "text": "Części produktu prac mogą być wytworzone przez AI. W niektórych krajach materiały wytworzone przez AI bez wystarczającego twórczego wkładu człowieka nie są chronione prawem autorskim. Przenosimy wszelkie istniejące prawa, ale nie gwarantujemy, że jakiekolwiek prawa istnieją."
+    },
+    {
+      "type": "p",
+      "text": "Każda ze stron może nadal korzystać z ogólnych umiejętności i doświadczenia zdobytych podczas prac, bez wykorzystywania informacji poufnych drugiej strony."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Poufność"
+    },
+    {
+      "type": "p",
+      "text": "Każda ze stron będzie mieć wgląd w informacje poufne drugiej strony, czyli informacje niepubliczne, które oznaczono jako poufne lub które w rozsądnym rozumieniu powinny być uznane za poufne."
+    },
+    {
+      "type": "p",
+      "text": "Strona, która je otrzymuje, wykorzystuje je wyłącznie na potrzeby prac, chroni je z należytą starannością i udostępnia je tylko osobom, które ich potrzebują i są zobowiązane do zachowania poufności. Obowiązek ten nie obejmuje informacji publicznych, znanych już odbiorcy, opracowanych przez niego samodzielnie lub zgodnie z prawem otrzymanych od kogoś innego. Jeżeli prawo wymaga ujawnienia, odbiorca może ujawnić to, co jest wymagane, i, o ile jest to dozwolone, najpierw informuje o tym drugą stronę. Wskazujemy Państwa jako naszego klienta wyłącznie za Państwa zgodą."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Dane i hosting"
+    },
+    {
+      "type": "p",
+      "text": "Gdy przetwarzamy dane osobowe w Państwa imieniu, jesteśmy Państwa podmiotem przetwarzającym: przetwarzamy je wyłącznie na Państwa polecenie i stosuje się DPA. W odniesieniu do naszej własnej dokumentacji dotyczącej Państwa, takiej jak dane Państwa osób kontaktowych i faktury, działamy we własnym imieniu i zastosowanie ma nasza [Polityka prywatności](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Hostujemy Państwa prace w regionie Google Cloud w UE uzgodnionym z Państwem i wskazanym w zamówieniu. Niektórzy dostawcy, z których korzystamy, na przykład Google Gemini jako model AI, mogą przetwarzać dane poza UE. Są oni wymienieni na stronie [Podmioty przetwarzające](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "p",
+      "text": "Nie trenujemy własnych modeli AI na Państwa danych i nie sprzedajemy ich."
+    },
+    {
+      "type": "p",
+      "text": "Prosimy nie przekazywać nam chronionych informacji o zdrowiu objętych ustawą HIPAA. Nie podpisujemy umów z partnerami biznesowymi (business associate agreements).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "Przepisy o AI i Państwa rola"
+    },
+    {
+      "type": "p",
+      "text": "To Państwo decydują, w jaki sposób systemy, które budujemy, są wykorzystywane w Państwa działalności. Zgodnie z unijnym aktem w sprawie sztucznej inteligencji (AI Act) są Państwo „podmiotem stosującym” tego, co dla Państwa budujemy, czyli organizacją, która korzysta z systemu AI, nad którym sprawuje kontrolę. Jeżeli oddadzą Państwo system do użytku pod własną nazwą, mogą Państwo stać się również jego „dostawcą”."
+    },
+    {
+      "type": "p",
+      "text": "Prosimy poinformować nas przed rozpoczęciem prac, jeżeli system może być wykorzystywany w obszarze wysokiego ryzyka, takim jak rekrutacja i zatrudnienie, edukacja, kredyty lub dostęp do usług podstawowych. Zamówienie określa wówczas podział obowiązków. W przypadku takich zastosowań Państwa obowiązki jako podmiotu stosującego obowiązują od 2 grudnia 2027 r. (AI Act art. 26 i załącznik III). Obejmują one nadzór ze strony człowieka, korzystanie z systemu zgodnie z instrukcją, monitorowanie jego działania i przechowywanie jego rejestrów zdarzeń."
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli wymaga tego prawo, zapewniają Państwo, że osoby mające kontakt z prowadzonym przez Państwa systemem wiedzą, że mają do czynienia z AI, oraz podejmują Państwo działania w celu budowania kompetencji w zakresie AI wśród swoich pracowników, którzy z niego korzystają (AI Act art. 4 i 50). Nasze szkolenia zespołów mogą w tym pomóc, ale obowiązki te pozostają Państwa obowiązkami."
+    },
+    {
+      "type": "p",
+      "text": "Stanowe przepisy USA dotyczące AI w decyzjach o istotnych skutkach mają zastosowanie do Państwa jako firmy, która podejmuje te decyzje. Na przykład ustawa stanu Kolorado wchodzi w życie 1 stycznia 2027 r.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Wyniki biznesowe"
+    },
+    {
+      "type": "p",
+      "text": "Pracujemy na rzecz osiągnięcia celów określonych w zamówieniu. Wyniki biznesowe zależą jednak od Państwa danych, ludzi, procesów i rynków, na które nie mamy wpływu. O ile zamówienie wyraźnie nie stanowi inaczej, nie gwarantujemy oszczędności, przychodów ani żadnego innego wyniku biznesowego. Opłata za rezultat jest sposobem wyceny prac, a nie obietnicą osiągnięcia rezultatu."
+    },
+    {
+      "type": "p",
+      "text": "Wyniki AI mogą być błędne, a agenci mogą popełniać błędy. Prosimy zachować weryfikację przez człowieka w przypadku ważnych decyzji i wybrać ustawienia zatwierdzania odpowiednie do ryzyka. Więcej informacji zawiera dokument [Jak działa nasza sztuczna inteligencja](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Nasze zobowiązania"
+    },
+    {
+      "type": "p",
+      "text": "Zobowiązujemy się wykonywać prace z należytą starannością i umiejętnościami, z udziałem osób o odpowiednich kwalifikacjach. Zobowiązujemy się również, że każdy produkt prac w chwili odbioru będzie zgodny z zamówieniem we wszystkich istotnych aspektach."
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli produkt prac nie spełnia tego zobowiązania, prosimy poinformować nas o tym na piśmie. Poprawimy go lub wykonamy prace ponownie. Jeżeli nie zdołamy tego zrobić w rozsądnym terminie, mogą Państwo rozwiązać zamówienie w tej części i otrzymać zwrot zapłaconych za nią opłat."
+    },
+    {
+      "type": "note",
+      "text": "Jest to Państwa jedyny środek prawny w przypadku produktu prac, który nie spełnia naszego zobowiązania. Poza zobowiązaniami zawartymi w niniejszych warunkach i w zamówieniu oraz w zakresie dopuszczonym przez prawo nie udzielamy żadnych innych gwarancji, wyraźnych ani dorozumianych, w tym gwarancji przydatności handlowej (merchantability), przydatności do określonego celu oraz nienaruszania praw osób trzecich.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Przysługujące Państwu ustawowe uprawnienia z tytułu wad pozostają w mocy, ale muszą Państwo najpierw dać nam rozsądną możliwość usunięcia wady.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Odpowiedzialność",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "W zakresie dopuszczonym przez prawo żadna ze stron nie ponosi odpowiedzialności za szkody pośrednie, przypadkowe, szczególne, następcze lub o charakterze represyjnym ani za utracone zyski, przychody, dane lub renomę.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Łączna odpowiedzialność każdej ze stron z tytułu zamówienia jest ograniczona do opłat zapłaconych i należnych na podstawie tego zamówienia w okresie 12 miesięcy przed zdarzeniem, które spowodowało roszczenie.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Ograniczenia te nie mają zastosowania do Państwa obowiązku zapłaty opłat, naruszenia poufności, oszustwa ani odpowiedzialności, której prawo nie pozwala ograniczyć.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Odpowiedzialność",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ponosimy pełną odpowiedzialność za szkody wyrządzone umyślnie lub wskutek rażącego niedbalstwa, za szkody na życiu, ciele lub zdrowiu oraz na podstawie bezwzględnie obowiązujących przepisów o odpowiedzialności za produkt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "W przypadku lekkiego niedbalstwa odpowiadamy wyłącznie wtedy, gdy naruszymy obowiązek zasadniczy, czyli obowiązek, którego wykonanie umożliwia prawidłową realizację zamówienia i na którego wykonanie mogą Państwo regularnie liczyć. Nawet wtedy odpowiadamy wyłącznie za szkody typowe i możliwe do przewidzenia dla tego rodzaju umowy, a łącznie do wysokości nieprzekraczającej opłat zapłaconych i należnych na podstawie tego zamówienia w okresie 12 miesięcy przed zdarzeniem. W pozostałym zakresie nasza odpowiedzialność za lekkie niedbalstwo jest wyłączona.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Zwolnią nas Państwo z odpowiedzialności z tytułu roszczeń osób trzecich wynikających z przekazanych nam przez Państwa materiałów lub z naruszenia przez Państwa niniejszych warunków oraz pokryją Państwo uzasadnione koszty ich obsługi. Niezwłocznie informujemy Państwa o każdym takim roszczeniu i umożliwiamy Państwu udział w jego obsłudze."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Okres obowiązywania i zakończenie"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsze warunki obowiązują od Państwa pierwszego zamówienia do zakończenia ostatniego zamówienia. Każde zamówienie obowiązuje przez okres w nim wskazany. Usługi miesięczne są kontynuowane z miesiąca na miesiąc, dopóki jedna ze stron ich nie wypowie z zachowaniem okresu wypowiedzenia określonego w zamówieniu."
+    },
+    {
+      "type": "p",
+      "text": "Każda ze stron może rozwiązać zamówienie ze skutkiem natychmiastowym w formie pisemnej, jeżeli druga strona w poważny sposób je narusza i nie usunie naruszenia w rozsądnym terminie po otrzymaniu informacji o nim lub jeżeli druga strona stanie się niewypłacalna. Mogą Państwo również rozwiązać zamówienie przed terminem, jeżeli zamówienie na to pozwala."
+    },
+    {
+      "type": "p",
+      "text": "Po zakończeniu zamówienia płacą Państwo za prace wykonane do tego dnia, a jeżeli rozwiązali je Państwo przed terminem, także za koszty, których nie możemy anulować. Przekazujemy Państwu Państwa dane oraz opłacone produkty prac, zaprzestajemy świadczenia usług, które prowadziliśmy dla Państwa, i postępujemy z danymi osobowymi zgodnie z DPA. Postanowienia niniejszych warunków, które ze swej natury powinny obowiązywać nadal, takie jak postanowienia dotyczące praw własności, poufności, odpowiedzialności i prawa właściwego, pozostają w mocy."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Zmiana dostawcy",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli świadczymy dla Państwa usługę przetwarzania danych, taką jak zarządzana obsługa agentów lub hosting, unijny akt w sprawie danych (Data Act) przyznaje Państwu prawo do zmiany dostawcy na innego lub na własne systemy (Data Act art. 23–31). W przypadku tych usług:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Mogą Państwo rozpocząć zmianę dostawcy albo zakończyć usługę i zabrać swoje dane, informując nas o tym na piśmie. Okres wypowiedzenia wynosi nie więcej niż dwa miesiące i mogą Państwo wybrać krótszy.",
+        "Przekazujemy Państwu Państwa dane oraz utworzone dla Państwa zasoby cyfrowe, do których mają Państwo prawo, w powszechnie używanym formacie nadającym się do odczytu maszynowego.",
+        "Okres przejściowy trwa do 30 dni. Jeżeli nie jest to technicznie możliwe, informujemy Państwa o przyczynach i o tym, ile czasu potrzebujemy, w granicach dopuszczonych przez Data Act.",
+        "W okresie przejściowym nadal świadczymy usługę zgodnie z ustaleniami i w dobrej wierze pomagamy Państwu oraz Państwa nowemu dostawcy.",
+        "Po zakończeniu okresu przejściowego mają Państwo co najmniej 30 dodatkowych dni na odzyskanie swoich danych.",
+        "Po zakończeniu zmiany dostawcy usuwamy Państwa dane zgodnie z DPA.",
+        "Do 12 stycznia 2027 r. możemy pobierać opłaty wyłącznie w wysokości naszych bezpośrednich kosztów zmiany dostawcy i tylko wtedy, gdy zamówienie je wymienia. Od 12 stycznia 2027 r. nie pobieramy żadnych opłat za zmianę dostawcy."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli usługa jest tworzona specjalnie dla Państwa, niektóre z tych zasad mogą mieć zastosowanie tylko częściowo (Data Act art. 31). W takim przypadku zamówienie wskazuje, które z nich, a my informujemy o tym Państwa przed jego podpisaniem.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Lokalizacja i dostęp organów publicznych",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hostujemy Państwa prace w regionie Google Cloud w UE wskazanym w zamówieniu. Strona [Podmioty przetwarzające](/instant/legal/subprocessors) wymienia każdego dostawcę oraz miejsce, w którym działa (Data Act art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeżeli organ publiczny spoza UE zwróci się do nas o Państwa dane nieosobowe, przekazujemy je wyłącznie wtedy, gdy pozwala na to prawo UE lub prawo państwa członkowskiego. Najpierw informujemy o tym Państwa, chyba że prawo tego zabrania (Data Act art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Prawo właściwe i spory"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsze warunki i każde zamówienie podlegają prawu {company.law} z wyłączeniem jego norm kolizyjnych. Spory rozstrzygają sądy {company.law}, chyba że prawo wymaga właściwości innego sądu.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Zanim którakolwiek ze stron wystąpi do sądu, nasze osoby kontaktowe podejmują w dobrej wierze próbę polubownego rozwiązania sprawy. Prosimy napisać na adres {company.email} i opisać problem."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Niniejsze warunki nie zawierają zapisu na sąd polubowny (arbitrażowy). Każda ze stron może wnieść powództwo do sądu właściwego dla drobnych roszczeń (small-claims court), jeżeli roszczenie spełnia odpowiednie kryteria."
+    },
+    {
+      "type": "p",
+      "text": "Potwierdzają Państwo, że nie znajdują się na liście sankcyjnej USA ani UE i nie mają siedziby w kraju objętym embargiem USA lub UE. Żadna ze stron nie będzie wykorzystywać prac z naruszeniem sankcji lub przepisów eksportowych USA bądź UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Postanowienia ogólne"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Możemy aktualizować niniejsze warunki. Zamówienie już uzgodnione podlega warunkom obowiązującym w chwili jego uzgodnienia, chyba że obie strony postanowią inaczej.",
+        "Żadna ze stron nie może przenieść niniejszych warunków ani zamówienia bez pisemnej zgody drugiej strony, z wyjątkiem przeniesienia na spółkę, która przejmuje daną działalność.",
+        "Żadna ze stron nie odpowiada za opóźnienia spowodowane zdarzeniami pozostającymi poza jej rozsądną kontrolą.",
+        "Jeżeli jedno z postanowień niniejszych warunków jest nieważne, pozostałe postanowienia nadal obowiązują.",
+        "Zawiadomienia do nas należy kierować na adres {company.email}. Zawiadomienia do Państwa kierujemy do osoby kontaktowej wskazanej w zamówieniu."
+      ]
+    }
+  ]
+}

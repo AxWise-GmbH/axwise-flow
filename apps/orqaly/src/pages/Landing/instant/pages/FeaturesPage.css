@@ -48,7 +48,7 @@
     90deg,
     transparent,
     var(--oi-hairline-strong) 22%,
-    rgba(255, 255, 255, 0.5) 50%,
+    rgba(var(--oi-fg-rgb), 0.5) 50%,
     var(--oi-hairline-strong) 78%,
     transparent
   );
@@ -187,7 +187,13 @@
   width: 3px;
   height: var(--oif-row);
   border-radius: 3px;
-  background: linear-gradient(180deg, transparent, #ffffff 35%, var(--oi-accent) 65%, transparent);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgb(var(--oi-fg-rgb)) 35%,
+    var(--oi-accent) 65%,
+    transparent
+  );
   box-shadow: 0 0 14px 1px var(--oi-glow);
   translate: 0 calc(var(--active, 0) * var(--oif-row));
   transition:
@@ -248,7 +254,12 @@
   bottom: -1px;
   left: 0;
   height: 1px;
-  background: linear-gradient(90deg, var(--oi-accent), rgba(255, 255, 255, 0.55) 35%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--oi-accent),
+    rgba(var(--oi-fg-rgb), 0.55) 35%,
+    transparent
+  );
   transform-origin: 0 50%;
   scale: 0 1;
   opacity: 0;
@@ -364,12 +375,11 @@
   box-sizing: border-box;
   min-height: inherit;
   padding: 36px 44px 44px;
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 28px;
-  background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012) 42%),
-    color-mix(in srgb, var(--oi-paper-strong) 72%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
   isolation: isolate;
 }
@@ -380,7 +390,10 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1.5px);
+  background-image: radial-gradient(
+    rgba(var(--oi-fg-rgb), calc(0.2 * var(--oi-halo-k))) 1px,
+    transparent 1.5px
+  );
   background-size: 22px 22px;
   mask-image: radial-gradient(ellipse 70% 60% at 100% 100%, #000, transparent 70%);
   pointer-events: none;
@@ -393,7 +406,13 @@
   left: 0;
   width: 46%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--oi-accent) 40%, #ffffff 70%, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--oi-accent) 40%,
+    rgb(var(--oi-fg-rgb)) 70%,
+    transparent
+  );
   filter: drop-shadow(0 0 6px var(--oi-glow));
   translate: -100% 0;
   animation: oif-streak 1300ms var(--oi-ease) both;
@@ -422,7 +441,12 @@
 .oif-progress i {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--oi-accent-deep), var(--oi-accent) 70%, #ffffff);
+  background: linear-gradient(
+    90deg,
+    var(--oi-accent-deep),
+    var(--oi-accent) 70%,
+    rgb(var(--oi-fg-rgb))
+  );
   transform-origin: 0 50%;
   scale: var(--p, 0) 1;
   transition: scale 900ms var(--oi-ease);
@@ -441,7 +465,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--oi-good);
-  box-shadow: 0 0 10px rgba(143, 227, 180, 0.9);
+  box-shadow: 0 0 10px rgba(var(--oi-fg-rgb), calc(0.9 * var(--oi-halo-k)));
   animation: oif-pulse 2600ms ease-in-out infinite alternate;
 }
 
@@ -532,7 +556,11 @@
   line-height: 1.2;
   letter-spacing: -0.07em;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 20%, rgba(255, 255, 255, 0) 84%);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--oi-fg-rgb), 0.32) 20%,
+    rgba(var(--oi-fg-rgb), 0) 84%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -622,9 +650,9 @@
   border: 1px solid var(--oi-hairline);
   border-radius: 24px;
   background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012) 42%),
+    linear-gradient(155deg, rgba(var(--oi-fg-rgb), 0.07), rgba(var(--oi-fg-rgb), 0.012) 42%),
     color-mix(in srgb, var(--oi-paper-strong) 72%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.08);
   overflow: hidden;
   isolation: isolate;
 }
@@ -661,7 +689,7 @@
   height: 52px;
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(var(--oi-shadow-rgb), calc(0.35 * var(--oi-shadow-k)));
   color: var(--oi-ink);
 }
 
@@ -743,12 +771,11 @@
   flex-direction: column;
   min-width: 0;
   padding: 24px 24px 28px;
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 22px;
-  background:
-    linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01) 42%),
-    var(--oi-paper);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
   isolation: isolate;
 }
@@ -761,7 +788,7 @@
   z-index: -1;
   background: radial-gradient(
     300px circle at var(--mx, 0%) var(--my, 0%),
-    rgba(var(--oi-accent-rgb), 0.22),
+    rgba(var(--oi-accent-rgb), calc(0.22 * var(--oi-halo-k))),
     transparent 65%
   );
   opacity: 0;
@@ -781,7 +808,7 @@
   margin-bottom: 40px;
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(var(--oi-shadow-rgb), calc(0.35 * var(--oi-shadow-k)));
   color: var(--oi-ink);
 }
 
@@ -816,6 +843,29 @@
   font-size: 0.95rem;
   line-height: 1.6;
   text-wrap: pretty;
+}
+
+/* Light ------------------------------------------------------------------------------ */
+
+/* On the light page a glow can only darken, so the lit icons, the rail light and the streak
+   keep a faint shadow, and the light behind the glass is a soft shade, not a grey cloud. */
+[data-oi-theme='light'] .oif-section {
+  --oi-glow: rgba(0, 0, 0, 0.1);
+}
+
+[data-oi-theme='light'] .oif-light {
+  opacity: 0.4;
+}
+
+/* The phone cards are raised white cards like the rest; their corner light is only a trace
+   (a dark sheen over the corner would read as a stain). */
+[data-oi-theme='light'] .oif-card {
+  border-color: var(--oi-app-edge);
+  background: var(--oi-app-surface);
+}
+
+[data-oi-theme='light'] .oif-card::before {
+  opacity: 0.15;
 }
 
 /* Keyframes ------------------------------------------------------------------------- */

@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookie e archiviazione",
+    "summary": "Questa pagina elenca i cookie e l'archiviazione del browser utilizzati dal sito web e dall'app web di Orqanix, il motivo per cui ciascuno è necessario, la sua durata e come cancellarlo.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Prima versione."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "In breve"
+    },
+    {
+      "type": "note",
+      "text": "Le nostre pagine di marketing e le nostre pagine legali non impostano cookie. Le uniche informazioni che possono memorizzare sono le Sue scelte: la lingua, l'aspetto chiaro o scuro e la versione USA o UE delle nostre pagine legali, ciascuna solo dopo un Suo clic. I cookie compaiono solo nelle pagine di accesso e nell'app web, perché l'accesso non può funzionare senza di essi. Non utilizziamo cookie pubblicitari, di analisi o di tracciamento."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookie e archiviazione"
+    },
+    {
+      "type": "p",
+      "text": "Un cookie è un piccolo file di testo che un sito web salva nel Suo browser. Il browser lo rinvia al sito nelle visite successive. L'archiviazione locale (local storage) e l'archiviazione di sessione (session storage) sono spazi analoghi nel Suo browser in cui un sito web può conservare piccole informazioni. L'archiviazione locale le conserva finché non vengono cancellate; l'archiviazione di sessione le conserva finché non chiude la scheda. Questa pagina riguarda tutti e tre, su orqanix.com e nell'app web di Orqanix."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "Cosa memorizziamo"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Nome",
+        "Dove",
+        "Impostato da",
+        "Perché",
+        "Durata"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Archiviazione locale, nelle nostre pagine legali. Scritto solo quando fa clic sul selettore della regione o sul suggerimento della regione.",
+          "Orqanix",
+          "Ricorda se ha scelto la versione USA o UE delle nostre pagine legali.",
+          "Fino alla cancellazione"
+        ],
+        [
+          "orqanix_lang",
+          "Archiviazione locale, nelle nostre pagine di marketing. Scritto solo quando sceglie una lingua nel piè di pagina.",
+          "Orqanix",
+          "Ricorda la lingua che ha scelto per le nostre pagine.",
+          "Fino alla cancellazione"
+        ],
+        [
+          "orqanix_theme",
+          "Archiviazione locale, nelle nostre pagine di marketing. Scritto solo quando preme il selettore chiaro/scuro nel piè di pagina.",
+          "Orqanix",
+          "Ricorda se ha scelto l'aspetto chiaro o scuro.",
+          "Fino alla cancellazione"
+        ],
+        [
+          "__client_uat (e una copia con un suffisso)",
+          "Cookie su orqanix.com e sui relativi sottodomini, nelle pagine di accesso e nell'app web",
+          "Clerk, il nostro fornitore del servizio di accesso",
+          "Registra se, e da quando, ha effettuato l'accesso.",
+          "Circa 1 anno"
+        ],
+        [
+          "__clerk_db_jwt (e una copia con un suffisso)",
+          "Cookie su orqanix.com, nelle pagine di accesso e nell'app web",
+          "Clerk",
+          "Collega il Suo browser alla Sua sessione di accesso nell'attuale configurazione di Clerk.",
+          "Circa 1 anno"
+        ],
+        [
+          "__session (e una copia con un suffisso)",
+          "Cookie su orqanix.com, dopo che ha effettuato l'accesso",
+          "Clerk",
+          "Contiene un token di accesso di breve durata che dimostra ai nostri server chi è Lei.",
+          "Breve durata, rinnovato finché resta connesso"
+        ],
+        [
+          "__cf_bm",
+          "Cookie sul dominio di Clerk, nelle pagine di accesso",
+          "Cloudflare, per conto di Clerk",
+          "Distingue le persone dai bot, per proteggere l'accesso da abusi.",
+          "Circa 30 minuti, secondo Cloudflare"
+        ],
+        [
+          "_cfuvid",
+          "Cookie sul dominio di Clerk, nelle pagine di accesso",
+          "Cloudflare, per conto di Clerk",
+          "Contribuisce ad applicare limiti equi alle richieste, per proteggere l'accesso da abusi.",
+          "Fino alla chiusura del browser, secondo Cloudflare"
+        ],
+        [
+          "__clerk_environment",
+          "Archiviazione locale su orqanix.com, nelle pagine di accesso e nell'app web",
+          "Clerk",
+          "Conserva una copia delle impostazioni di Clerk affinché l'accesso si carichi più rapidamente.",
+          "Fino alla cancellazione"
+        ],
+        [
+          "Layout del menu",
+          "Archiviazione locale nell'app web, una voce per account",
+          "Orqanix",
+          "Ricorda quali sezioni del menu ha nascosto, riordinato o fissato.",
+          "Fino alla cancellazione"
+        ],
+        [
+          "Menu compresso",
+          "Archiviazione locale nell'app web, una voce per account",
+          "Orqanix",
+          "Ricorda se ha compresso il menu laterale.",
+          "Fino alla cancellazione"
+        ],
+        [
+          "remix-router-transitions",
+          "Archiviazione di sessione nell'app web, solo se utilizzata",
+          "La libreria di instradamento delle pagine dell'app web",
+          "Ricorda lo stato dei cambi di pagina, affinché la navigazione avanti e indietro funzioni.",
+          "Fino alla chiusura della scheda"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Al momento della registrazione, Cloudflare Turnstile esegue inoltre un breve controllo nel Suo browser per confermare che Lei è una persona e non un bot. Fa parte della procedura di accesso e viene eseguito per conto di Clerk."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Dove si applica ciascuno"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Pagine di marketing e pagine legali"
+    },
+    {
+      "type": "p",
+      "text": "La home page, le pagine dei prodotti e le presenti pagine legali non caricano codice di accesso, non impostano cookie e non effettuano chiamate verso altre aziende. I loro caratteri tipografici provengono dal nostro server. Le uniche informazioni che possono memorizzare sono le Sue scelte di lingua, aspetto e regione, ciascuna solo dopo un Suo clic. Il nostro fornitore di hosting, Google Cloud, conserva i normali log del server relativi a ogni visita (indirizzo IP, browser, ora e pagina), come spiegato nella nostra [Informativa sulla privacy](/instant/legal/privacy#website). Tali log restano sul server; nulla viene memorizzato nel Suo browser a tal fine. Se fa clic su Scarica, l'App desktop viene fornita da Google Cloud Storage, pertanto Google vede il Suo indirizzo IP."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Pagine di accesso e app web"
+    },
+    {
+      "type": "p",
+      "text": "Le pagine di accesso e di registrazione e l'app web caricano Clerk, che gestisce il nostro servizio di accesso. Clerk, e Cloudflare che opera per conto di Clerk, impostano i cookie e l'archiviazione per l'accesso elencati in [Cosa memorizziamo](#what-we-store). Nell'app web memorizziamo inoltre il layout del Suo menu, affinché appaia come lo ha lasciato. Se sceglie Accedi con Google, si aprono le pagine di Google, e lì si applicano i cookie e i termini di Google."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Nessun banner dei cookie",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Il diritto dell'UE e del Regno Unito consente a un sito web di memorizzare informazioni sul Suo dispositivo, o di leggerle, senza chiedere prima il consenso solo quando ciò è strettamente necessario per fornire un servizio da Lei esplicitamente richiesto (Direttiva ePrivacy Art. 5(3); in Germania, § 25(2) n. 2 TDDDG; nel Regno Unito, le Privacy and Electronic Communications Regulations). Tutto ciò che memorizziamo soddisfa tale criterio. Le Sue scelte di lingua, aspetto e regione vengono memorizzate perché Lei ha fatto clic per effettuarle. L'accesso richiede i propri cookie e la protezione dai bot. L'app web ricorda il layout del menu da Lei impostato. Non utilizziamo nulla a fini pubblicitari, di analisi o di tracciamento, pertanto non vi è nulla per cui chiederLe il consenso, né alcun banner."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Qualora in futuro intendessimo utilizzare un'archiviazione non strettamente necessaria, Le chiederemo prima il consenso e aggiorneremo questa pagina."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Nessun banner dei cookie",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Tutto ciò che memorizziamo è necessario per qualcosa che Lei ha richiesto: la Sua scelta della regione, l'accesso, la protezione dell'accesso dai bot e la memorizzazione del layout del Suo menu. Non utilizziamo cookie pubblicitari, di analisi o di tracciamento, e non consentiamo ad alcun'altra azienda di tracciarLa sul nostro sito. Pertanto non vi è nulla da cui opporsi (opt-out), né alcun banner. Se il Suo browser invia un segnale Global Privacy Control, lo trattiamo come una richiesta di opposizione alla vendita e alla condivisione delle Sue informazioni personali. Non effettuiamo né l'una né l'altra, quindi nulla cambia."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Qualora in futuro intendessimo utilizzare l'archiviazione per un'altra finalità, aggiorneremo prima questa pagina e Le offriremo le scelte richieste dalla legge."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "Cosa non utilizziamo"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Nessun cookie pubblicitario né rete pubblicitaria.",
+        "Nessuno strumento di analisi o di tracciamento, e nessun pixel di tracciamento.",
+        "Nessun carattere tipografico o altro file caricato da altre aziende nelle nostre pagine di marketing e nelle nostre pagine legali.",
+        "Nessuna archiviazione che La segua su altri siti web."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Cancellazione e blocco"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Può visualizzare, eliminare e bloccare i cookie e i dati dei siti nelle impostazioni del Suo browser, di solito alla voce Privacy o Dati dei siti. L'eliminazione dei dati dei siti per orqanix.com e per il dominio di accesso di Clerk rimuove tutto quanto riportato nella tabella.",
+        "Per modificare la Sua scelta della regione, utilizzi il selettore USA / UE in qualsiasi pagina legale. Per rimuoverla, cancelli i dati dei siti del Suo browser per orqanix.com.",
+        "Disconnettendosi, la Sua sessione di accesso termina.",
+        "Se blocca i cookie di accesso o il controllo di Cloudflare, potrà comunque consultare il nostro sito web, ma l'accesso e l'app web non funzioneranno."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "L'App desktop"
+    },
+    {
+      "type": "p",
+      "text": "L'App desktop non è un sito web. Non utilizza cookie né archiviazione a fini pubblicitari, di analisi o di tracciamento. Conserva i propri dati sul Suo Mac: la cronologia delle chat, le impostazioni, i log, le Sue credenziali di accesso a Orqanix (nel Portachiavi di macOS) e piccoli elementi nell'archiviazione integrata dell'app, come il tema, il layout del menu, le chat fissate e un elenco dei messaggi digitati di recente. La nostra [Informativa sulla privacy](/instant/legal/privacy#desktop-app) spiega cosa resta sul Suo Mac e cosa ne esce."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Modifiche"
+    },
+    {
+      "type": "p",
+      "text": "Quando ciò che memorizziamo cambia, aggiorniamo questa pagina e la data riportata in alto. Domande: {company.privacyEmail}."
+    }
+  ]
+}

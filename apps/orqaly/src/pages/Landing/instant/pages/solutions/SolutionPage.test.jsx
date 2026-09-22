@@ -187,10 +187,11 @@ function renderPage(data = healthcare) {
 }
 
 describe('SolutionPage', () => {
-  it('opens with the title, the page tag and the two actions', () => {
-    renderPage();
+  it('opens with the title and the two actions, with no bracketed labels', () => {
+    const { container } = renderPage();
     expect(screen.getByRole('heading', { level: 1, name: healthcare.title })).toBeVisible();
-    expect(screen.getByText('Solutions · Healthcare')).toBeVisible();
+    expect(screen.queryByText('Solutions · Healthcare')).toBeNull();
+    expect(container.querySelector('.oi-tag-bracket')).toBeNull();
     expect(screen.getByText(healthcare.subtitle)).toBeVisible();
     const hero = screen.getByRole('heading', { level: 1 }).closest('section');
     expect(within(hero).getByRole('link', { name: 'Download for macOS' })).toHaveAttribute(

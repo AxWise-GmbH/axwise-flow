@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "slug": "health-data",
+    "title": "Tüketici Sağlık Verileri Gizlilik Politikası",
+    "summary": "Bu politika, Orqanix'in Washington, Nevada ve Connecticut hukuku kapsamında tüketici sağlık verilerini nasıl topladığını, kullandığını ve paylaştığını ve bu veriler üzerindeki haklarınızı nasıl kullanabileceğinizi açıklar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'Orqanix is run by' line is hidden until filled (FACTS §14.1).",
+        "geminiPaidTier: the paid-tier sentence stays hidden until the owner confirms Google's paid Gemini tier and DPA; until then Google's use is described only by linking Google's terms (FACTS §14.3).",
+        "Lawyer: under MHMDA, do search queries sent to public search engines (which may contain health terms) count as 'sharing' that needs separate consent? The policy discloses them and treats them as part of the service requested.",
+        "Lawyer: MHMDA deletion duty vs. the immutable workspace tables (messages, artifacts, events). The text promises 'delete or anonymise, or tell you why'; a working deletion process is still missing (FACTS §3, §14.5).",
+        "Lawyer: confirm the response-time wording meets WA/NV/CT rules: requests \"within one month\" (the laws allow 45 days), appeals \"within 45 days\" (MHMDA); Attorney General contact given.",
+        "Consent UX: the policy now relies on \"necessary to provide the requested service\" (MHMDA) for collection and sharing, and promises consent for anything else; no in-product consent screen exists. Decide whether one is needed (FACTS §14.16).",
+        "Email: privacy@orqanix.com must receive mail (no MX record today, FACTS §14.2).",
+        "Keep a prominent footer/home-page link to this policy (Washington), unless health marketing is removed and the AUP bans health data (FACTS §14.16).",
+        "Lawyer/owner: Gemini tier. On Google's unpaid Gemini terms Google may use prompts for its own purposes, so Google would be a third party, not a processor; sending health data there may be \"sharing\" beyond what is necessary, and a free-service-for-data exchange could be argued to be a \"sale\". Confirm the paid tier before publishing (FACTS §14.3).",
+        "Lawyer: FTC Health Breach Notification Rule (16 CFR 318) may apply given the healthcare marketing; the text only says we notify where the law requires (verify.md, missing requirement 2).",
+        "Lawyer: HIPAA. Healthcare solution pages imply clinic use; this policy covers consumers only. A BAA or a \"no PHI\" clause is needed before clinics use it (us.md row 9)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Bu politika hakkında"
+    },
+    {
+      "type": "p",
+      "text": "ABD'nin bazı eyaletleri \"tüketici sağlık verilerini\" korur: sizi tanımlayan veya makul ölçüde sizinle ilişkilendirilebilecek ve geçmiş, şimdiki ya da gelecekteki fiziksel veya zihinsel sağlığınız hakkında bir şey söyleyen kişisel bilgiler. Buna, örneğin sorduğunuz şeylerden hakkınızda çıkarılan bilgiler de dahildir. Başlıca yasalar Washington'ın My Health My Data Act'i, Nevada'nın tüketici sağlık verileri yasası ve Connecticut'ın tüketici sağlık verilerine ilişkin kurallarıdır."
+    },
+    {
+      "type": "p",
+      "text": "Bu politika, Orqanix'in (\"biz\") tüketici sağlık verilerini nasıl işlediğini açıklar. Amerika Birleşik Devletleri'ndeki kişiler için geçerlidir ve diğer tüm kişisel verileri kapsayan [Gizlilik Politikamıza](/instant/legal/privacy) ek niteliğindedir."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Orqanix, {company.legalName}, {company.address} tarafından işletilmektedir."
+    },
+    {
+      "type": "note",
+      "text": "Kısaca: Sağlık verilerinizi istemiyoruz. Bu veriler bize yalnızca siz yazarsanız, söylerseniz, yüklerseniz veya bağlarsanız ulaşır. Bunları yalnızca sizin istediğiniz şeyi yapmak için kullanırız. Asla satmayız ve reklam için kullanmayız."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Bize neler ulaşabilir"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix bir sağlık hizmeti değil, genel amaçlı bir yapay zekâ asistanıdır. Sağlık bilgisi istemiyoruz ve sensörlerden, cihazlardan veya sağlık uygulamalarından sağlık bilgisi toplamıyoruz. Tüketici sağlık verileri bize yalnızca siz bunları eklemeyi seçtiğinizde ulaşır, örneğin:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "bir talepte bahsettiğiniz belirtiler, rahatsızlıklar, teşhisler, ilaçlar veya tedaviler;",
+        "yüklediğiniz veya bir ajandan okumasını istediğiniz, test sonuçları, formlar ya da doktor mektupları gibi sağlık belgeleri;",
+        "bize verdiğiniz dosya veya mesajlardaki randevular, faturalar veya sigorta bilgileri;",
+        "Masaüstü Uygulaması'nda dikte özelliğini kullanırken sağlığınız hakkında konuşursanız sesiniz;",
+        "Asistan Botu'na bağladığınız hesapların mesajlarında, kişilerinde ve dosyalarında yer alan sağlık bilgileri;",
+        "yapay zekânın sorduklarınızdan sağlığınız hakkında çıkardığı ve yanıtına koyduğu her şey."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sağlığınız hakkında bilgi edinmek için hassas konum kullanmıyoruz ve sağlık hizmeti verilen yerlerin çevresinde sanal sınırlar (coğrafi çitler) oluşturmuyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "sources",
+      "text": "Nereden gelir"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sizden; bir şey yazdığınızda, söylediğinizde veya yüklediğinizde.",
+        "Asistan Botu'na bağladığınız mesajlaşma uygulamalarından ve e-posta hesaplarından ve ajanlardan okumasını istediğiniz dosyalardan.",
+        "Araştırma istediğinizde araştırmamızın bulduğu herkese açık web sayfalarından.",
+        "yapay zekâ modelinin taleplerinize verdiği yanıtlardan."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Nasıl kullanırız"
+    },
+    {
+      "type": "p",
+      "text": "Tüketici sağlık verilerini yalnızca istediğiniz hizmeti sunmak için gerektiği ölçüde toplar ve kullanırız. Bu şu anlama gelir:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "talebinizi yapay zekâ modeline göndermek ve yanıtı size iletmek;",
+        "araştırma, belgeleri düzenleme veya dosya oluşturma gibi istediğiniz işi yapmak;",
+        "[Gizlilik Politikamızda](/instant/legal/privacy#what-we-collect) açıklandığı gibi, işinize geri dönebilmeniz için onu bulut çalışma alanınızda veya Mac'inizde saklamak;",
+        "hizmeti güvende tutmak ve yasal yükümlülüklerimizi yerine getirmek."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Tüketici sağlık verilerini reklam için kullanmayız, bunlardan profil oluşturmayız ve kendi yapay zekâ modellerimizi bunlarla eğitmeyiz."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Kimlerle paylaşılır"
+    },
+    {
+      "type": "p",
+      "text": "Tüketici sağlık verilerini yalnızca hizmeti sunmamıza yardımcı olan sağlayıcılarla ve yalnızca bu amaçla paylaşırız. Talebinizde ve sohbette yer alan sağlık verilerini ([Bize neler ulaşabilir](#what-we-collect) bölümünde listelenen türler) şunlarla paylaşırız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sunucularımızı, veritabanımızı ve dosyalarımızı AB'de (Hollanda) barındıran Google Cloud.",
+        "Gemini API'si size varsayılan olarak yanıt veren yapay zekâ modelini sağlayan Google. Google talebinizi ve sohbeti alır ve bunları AB dışında işleyebilir.",
+        "Araştırma istediğinizde herkese açık arama motorları (Google, Bing, Brave ve DuckDuckGo). Arama hizmetimiz bu motorlara talebinizden oluşturulan sorgular gönderir; dolayısıyla bir sorgu, kullandığınız sağlıkla ilgili terimleri içerebilir. Yalnızca sorguyu göndeririz; adınızı veya hesap bilgilerinizi göndermeyiz."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Google'ın Gemini API koşulları](https://ai.google.dev/gemini-api/terms), Google'ın Gemini API aracılığıyla aldığı verileri nasıl kullanabileceğini belirler."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Google'ın ücretli Gemini API hizmetini kullanıyoruz. Google'ın ücretli hizmetlere ilişkin koşulları kapsamında Google, taleplerinizi bizim adımıza işler ve bunları kendi ürünlerini geliştirmek için kullanmaz."
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulaması'na OpenAI veya Anthropic gibi başka bir yapay zekâ sağlayıcısı bağlarsanız, bu sağlayıcı sohbetinizi sizin yönlendirmenizle ve onunla yaptığınız kendi sözleşmeniz kapsamında alır. Ayrıca yasanın gerektirdiği durumlarda verileri açıklayabiliriz. Sağlayıcılarımızın tam listesi [Alt İşleyenler](/instant/legal/subprocessors) sayfamızdadır."
+    },
+    {
+      "type": "h2",
+      "id": "no-sale",
+      "text": "Asla satmayız"
+    },
+    {
+      "type": "p",
+      "text": "Tüketici sağlık verilerini satmayız. Washington hukuku herhangi bir satıştan önce imzalı, yazılı izninizi gerektirir ve biz böyle bir izin istemeyiz."
+    },
+    {
+      "type": "h2",
+      "id": "consent",
+      "text": "Onay"
+    },
+    {
+      "type": "p",
+      "text": "Tüketici sağlık verilerini yalnızca istediğiniz hizmeti sunmak için gerektiği ölçüde toplar ve paylaşırız; yasa buna ayrı bir onay olmadan izin verir. Önce onayınızı istemeden bu verileri başka herhangi bir amaçla toplamayacak veya kullanmayacak ya da [Kimlerle paylaşılır](#who-gets-it) bölümündeki sağlayıcılar dışında kimseyle paylaşmayacağız. Onay verirseniz, {company.privacyEmail} adresine yazarak onayınızı istediğiniz zaman geri çekebilirsiniz. Ayrıca sağlık verilerini paylaşmayı istediğiniz zaman durdurabilirsiniz: bunları bize verdiklerinizin dışında tutun ve [Haklarınız](#your-rights) bölümünde açıklandığı şekilde silin."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Haklarınız"
+    },
+    {
+      "type": "p",
+      "text": "Hangi eyalette yaşarsanız yaşayın, bizden şunları isteyebilirsiniz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "tüketici sağlık verilerinizi toplayıp toplamadığımızı, paylaşıp paylaşmadığımızı veya satıp satmadığımızı teyit etmemizi;",
+        "bu verileri paylaştığımız üçüncü tarafların ve bağlı kuruluşların listesi ve onlarla nasıl iletişime geçileceği bilgisiyle birlikte bu verilere erişmenizi sağlamamızı;",
+        "bu verileri, kayıtlarımızdan ve bunları bizim adımıza tutan sağlayıcılardan da olmak üzere silmemizi;",
+        "bu verilerin toplanmasına veya paylaşılmasına ilişkin onayınızı geri çekmenizi."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Silmemizi istediğinizde, bu verileri bulut çalışma alanınızda siler veya anonim hale getirir ve bunları bizim adımıza tutan sağlayıcılardan da aynısını yapmalarını isteriz. Yedeklerimizdeki kopyalar, bu yedeklerin süresi dolduğunda, yaklaşık 7 gün içinde ortadan kalkar. Bir kaydı saklamak zorunda olduğumuz durumlarda size nedenini bildiririz. Masaüstü Uygulaması'nın Mac'inizde tuttuğu veriler sizin kontrolünüzdedir: bunları orada istediğiniz zaman silebilirsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Bir hakkınızı kullandığınız için size farklı davranmayız; örneğin hizmet vermeyi reddetmeyiz veya hizmetin kalitesini değiştirmeyiz."
+    },
+    {
+      "type": "h2",
+      "id": "how-to",
+      "text": "Haklarınızı kullanma"
+    },
+    {
+      "type": "p",
+      "text": "{company.privacyEmail} adresine yazın ve hangi hakkınızı kullanmak istediğinizi belirtin. Kimliğinizi doğrulamanızı isteyebiliriz; örneğin hesabınızda kayıtlı e-posta adresinden yazmanızı. Yetkilendirdiğiniz bir kişi sizin adınıza talepte bulunabilir. Bu kişiye izin verdiğinize dair kanıt isteyebiliriz. Haklarınızı kullanmak ücretsizdir. Bir ay içinde yanıt veririz."
+    },
+    {
+      "type": "h3",
+      "id": "appeal",
+      "text": "İtirazlar"
+    },
+    {
+      "type": "p",
+      "text": "Talebinizi reddedersek, yanıtımızı \"Appeal\" konu satırıyla cevaplayarak itiraz edebilirsiniz. Ne karar verdiğimizi ve nedenini size 45 gün içinde yazılı olarak bildiririz. Hâlâ aynı fikirde değilseniz eyaletinizin Başsavcılığına (Attorney General) başvurabilirsiniz. Washington için [Başsavcılığın sağlık verileri sayfasına](https://www.atg.wa.gov/protecting-washingtonians-personal-health-data-and-privacy) bakın."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Güvenlik"
+    },
+    {
+      "type": "p",
+      "text": "Tüketici sağlık verilerini [Gizlilik Politikamızda](/instant/legal/privacy#security) açıklandığı şekilde koruruz: veriler şifrelenmiş olarak iletilir, bulut sağlayıcımız bunları depolanırken şifreler ve veriler AB'de barındırılır. Masaüstü Uygulaması sohbet geçmişini Mac'inizde kendine ait ek bir şifreleme olmadan tutar; bu nedenle Mac'inizi kilitli tutun. Tüketici sağlık verilerine yetkisiz erişilir veya bu veriler yetkisiz olarak açıklanırsa, yasanın gerektirdiği durumlarda size ve yetkili makamlara bildiririz."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Bu politika değiştiğinde onu burada günceller ve en üstteki tarihi değiştiririz. Tüketici sağlık verilerini yeni bir şekilde kullanmadan önce onayınızı isteyeceğiz. Sorularınız için: {company.privacyEmail}."
+    }
+  ]
+}

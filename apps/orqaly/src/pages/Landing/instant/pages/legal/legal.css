@@ -1,0 +1,1021 @@
+/*
+ * The Legal Center (class prefix olg-): the hub, laid out like x.ai/legal (a group label on
+ * the left, rows of title, hairline and ↗), and one reading layout shared by every document.
+ * Cards use the shared graphite (--oi-app-surface / --oi-app-edge), never copied values.
+ */
+
+.olg.oi-section {
+  padding-block: 160px var(--oi-s5);
+}
+
+.olg a {
+  color: inherit;
+}
+
+/* A graphite panel, the same one every card on the site uses. */
+.olg-suggest,
+.olg-note,
+.olg-callout,
+.olg-table-wrap,
+.olg-pager-link,
+.olg-switch {
+  background: var(--oi-app-surface);
+  border: 1px solid var(--oi-app-edge);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+}
+
+.olg-mono,
+.olg-group-label,
+.olg-region-name,
+.olg-toc-label,
+.olg-for-label,
+.olg-pager-dir,
+.olg-row-only,
+.olg-doc-meta {
+  font-family: var(--oi-mono);
+  font-weight: 400;
+}
+
+/* Hub: title, switch --------------------------------------------------------- */
+
+.olg-hub-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--oi-s3) var(--oi-s4);
+}
+
+.olg-h1 {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(3rem, 8vw, 6.4rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.olg-lede {
+  margin: 20px 0 0;
+  color: var(--oi-muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.olg-region {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.olg-switch {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: var(--oi-radius-pill);
+}
+
+.olg-switch-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  inset-inline-start: 4px;
+  width: calc(50% - 4px);
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-accent);
+  box-shadow: 0 0 24px rgba(var(--oi-pale-rgb), calc(0.18 * var(--oi-halo-k)));
+  transition: transform 420ms var(--oi-ease);
+}
+
+.olg-switch[data-region='eu'] .olg-switch-thumb {
+  transform: translateX(100%);
+}
+
+.olg-switch-option {
+  position: relative;
+  z-index: 1;
+  min-width: 76px;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--oi-radius-pill);
+  background: transparent;
+  color: var(--oi-muted);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color var(--oi-fade) ease;
+}
+
+.olg-switch-option:hover {
+  color: var(--oi-ink);
+}
+
+.olg-switch-option[aria-checked='true'] {
+  color: rgb(var(--oi-bg-rgb));
+}
+
+.olg-switch-option:focus-visible,
+.olg-chip:focus-visible,
+.olg-row:focus-visible,
+.olg-print:focus-visible,
+.olg-note-link:focus-visible,
+.olg-suggest button:focus-visible,
+.olg-toc a:focus-visible,
+.olg-toc-toggle:focus-visible,
+.olg-pager-link:focus-visible,
+.olg-back:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 3px;
+}
+
+.olg-region-name {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+}
+
+/* The one-line suggestion (never a switch by itself) ------------------------- */
+
+.olg-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px var(--oi-s3);
+  margin-top: var(--oi-s4);
+  padding: 12px 12px 12px 22px;
+  border-radius: var(--oi-radius-card);
+  animation: olg-rise 520ms var(--oi-ease) both;
+}
+
+.olg-suggest-text {
+  margin: 0;
+  color: var(--oi-app-soft);
+}
+
+.olg-suggest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.olg-suggest button {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: var(--oi-radius-pill);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition:
+    background-color var(--oi-fade) ease,
+    color var(--oi-fade) ease;
+}
+
+.olg-suggest-go {
+  border: 1px solid var(--oi-accent);
+  background: var(--oi-accent);
+  color: rgb(var(--oi-bg-rgb));
+}
+
+.olg-suggest-go:hover {
+  background: rgb(var(--oi-fg-rgb));
+}
+
+.olg-suggest-keep {
+  border: 1px solid var(--oi-hairline-strong);
+  background: transparent;
+  color: var(--oi-ink);
+}
+
+.olg-suggest-keep:hover {
+  border-color: var(--oi-accent);
+}
+
+/* Hub: product chips ---------------------------------------------------------- */
+
+.olg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oi-s1);
+  margin: var(--oi-s4) 0 72px;
+}
+
+.olg-chip {
+  flex: none;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-pill);
+  background: transparent;
+  color: var(--oi-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    background-color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease,
+    color var(--oi-fade) ease;
+}
+
+.olg-chip:hover {
+  color: var(--oi-ink);
+}
+
+.olg-chip[aria-pressed='true'] {
+  border-color: var(--oi-accent);
+  background: var(--oi-accent);
+  color: rgb(var(--oi-bg-rgb));
+}
+
+/* Hub: groups and rows ---------------------------------------------------------- */
+
+.olg-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  gap: var(--oi-s2) var(--oi-s4);
+  padding-block: 36px;
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.olg-group-label {
+  margin: 0;
+  padding-top: 20px;
+  color: var(--oi-muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.olg-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.olg-rows li {
+  animation: olg-rise 560ms var(--oi-ease) both;
+  animation-delay: calc(var(--olg-i, 0) * 45ms);
+}
+
+.olg-row {
+  display: flex;
+  align-items: center;
+  gap: var(--oi-s2);
+  min-height: 60px;
+  color: var(--oi-ink) !important;
+  font-size: clamp(1.08rem, 1.5vw, 1.32rem);
+  letter-spacing: -0.015em;
+  text-decoration: none;
+}
+
+.olg-row-title {
+  flex: none;
+  max-width: 70%;
+}
+
+.olg-row-only {
+  flex: none;
+  padding: 3px 9px;
+  color: var(--oi-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: var(--oi-radius-pill);
+}
+
+/* The hairline draws itself in as the row arrives, and lights up under the pointer. */
+.olg-row-rule {
+  flex: 1;
+  min-width: 24px;
+  height: 1px;
+  background: var(--oi-hairline);
+  transform-origin: left center;
+  animation: olg-draw 900ms var(--oi-ease) both;
+  animation-delay: calc(var(--olg-i, 0) * 45ms + 140ms);
+  transition: background var(--oi-fade) ease;
+}
+
+.olg-row:hover .olg-row-rule,
+.olg-row:focus-visible .olg-row-rule {
+  background: linear-gradient(90deg, var(--oi-accent), var(--oi-hairline-strong));
+}
+
+.olg-arrow {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--oi-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition:
+    stroke var(--oi-fade) ease,
+    transform var(--oi-fade) ease;
+}
+
+.olg-row:hover .olg-arrow {
+  stroke: var(--oi-ink);
+  transform: translate(2px, -2px);
+}
+
+.olg-hub-foot {
+  margin: 0;
+  padding-top: var(--oi-s4);
+  border-top: 1px solid var(--oi-hairline);
+  color: var(--oi-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.olg-hub-foot a,
+.olg-ask a,
+.olg-body a {
+  color: var(--oi-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--oi-hairline-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--oi-fade) ease;
+}
+
+.olg-hub-foot a:hover,
+.olg-ask a:hover,
+.olg-body a:hover {
+  text-decoration-color: var(--oi-ink);
+}
+
+/* Document: top line and head ------------------------------------------------------ */
+
+.olg-doc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oi-s2);
+  margin-bottom: var(--oi-s4);
+}
+
+.olg-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--oi-muted) !important;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: color var(--oi-fade) ease;
+}
+
+.olg-back:hover {
+  color: var(--oi-ink) !important;
+}
+
+.olg-print {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-pill);
+  background: transparent;
+  color: var(--oi-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition:
+    color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease;
+}
+
+.olg-print:hover {
+  border-color: var(--oi-accent);
+  color: var(--oi-ink);
+}
+
+.olg-doc-head {
+  display: grid;
+  gap: 18px;
+  max-width: 920px;
+}
+
+.olg-doc-title {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.olg-doc-summary {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 1.15rem;
+  line-height: 1.55;
+  animation: olg-rise 520ms var(--oi-ease) both;
+}
+
+.olg-doc-meta {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.olg-doc-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--oi-s2) var(--oi-s4);
+  margin-top: 10px;
+}
+
+.olg-doc-controls .olg-region {
+  grid-auto-flow: column;
+  align-items: center;
+  justify-items: start;
+  gap: 14px;
+}
+
+.olg-for {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.92rem;
+}
+
+.olg-for-label {
+  margin-right: 8px;
+  color: var(--oi-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.olg-doc .olg-suggest {
+  margin-top: var(--oi-s3);
+}
+
+.olg-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px var(--oi-s3);
+  margin-top: var(--oi-s4);
+  padding: 16px 22px;
+  border-radius: var(--oi-radius-card);
+  color: var(--oi-app-soft);
+  line-height: 1.55;
+}
+
+.olg-note p {
+  max-width: 72ch;
+  margin: 0;
+}
+
+.olg-note-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--oi-ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--oi-hairline-strong);
+  text-underline-offset: 3px;
+}
+
+.olg-note-link:hover {
+  text-decoration-color: var(--oi-ink);
+}
+
+/* Document: contents and body ------------------------------------------------------- */
+
+.olg-doc-grid {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 96px;
+  padding-top: 72px;
+}
+
+.olg-toc {
+  position: sticky;
+  top: 112px;
+  align-self: start;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.olg-toc-toggle {
+  display: none;
+}
+
+.olg-toc-label {
+  margin: 0;
+  color: var(--oi-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.olg-toc ol {
+  display: grid;
+  margin: var(--oi-s2) 0 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--oi-hairline);
+}
+
+.olg-toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 34px;
+  margin-left: -1px;
+  padding: 6px 0 6px 18px;
+  color: var(--oi-muted) !important;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  text-decoration: none;
+  border-left: 1px solid transparent;
+  transition:
+    color var(--oi-fade) ease,
+    border-color var(--oi-fade) ease;
+}
+
+.olg-toc a:hover {
+  color: var(--oi-ink) !important;
+  border-color: var(--oi-accent);
+}
+
+.olg-toc-num {
+  flex: none;
+  min-width: 1.6em;
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+}
+
+.olg-body {
+  max-width: 72ch;
+  color: var(--oi-app-soft);
+  font-size: 1.02rem;
+  line-height: 1.72;
+}
+
+.olg-body p {
+  margin: 0 0 1.1em;
+}
+
+.olg-h2 {
+  margin: 64px 0 20px;
+  padding-top: 44px;
+  color: var(--oi-ink);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  border-top: 1px solid var(--oi-hairline);
+  scroll-margin-top: 100px;
+}
+
+.olg-body > .olg-h2:first-child,
+.olg-text > .olg-h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.olg-body .olg-num {
+  margin-right: 0.45em;
+  color: var(--oi-dim);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.olg-h3 {
+  margin: 36px 0 12px;
+  color: var(--oi-ink);
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 100px;
+}
+
+.olg-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 1.2em;
+  padding: 0;
+  list-style: none;
+}
+
+.olg-list li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.olg-list li::before {
+  content: '';
+  position: absolute;
+  top: 0.85em;
+  left: 0;
+  width: 10px;
+  height: 1px;
+  background: var(--oi-accent);
+}
+
+.olg-callout {
+  margin: 0 0 1.3em;
+  padding: 16px 20px;
+  border-radius: 14px;
+  color: var(--oi-app-text);
+}
+
+.olg-table-wrap {
+  margin: 8px 0 1.5em;
+  overflow-x: auto;
+  border-radius: 14px;
+}
+
+.olg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.olg-table th {
+  padding: 12px 16px;
+  color: var(--oi-ink);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  vertical-align: bottom;
+  border-bottom: 1px solid var(--oi-app-edge);
+}
+
+.olg-table td {
+  padding: 12px 16px;
+  vertical-align: top;
+  border-top: 1px solid rgba(var(--oi-fg-rgb), 0.06);
+}
+
+.olg-table tr:first-child td {
+  border-top: 0;
+}
+
+.olg-skeleton {
+  display: grid;
+  gap: 14px;
+}
+
+.olg-skeleton i {
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(var(--oi-fg-rgb), 0.06);
+}
+
+.olg-skeleton i:nth-child(2n) {
+  width: 82%;
+}
+
+.olg-failed p {
+  margin: 0;
+}
+
+.olg-ask {
+  margin: 64px 0 0;
+  padding-top: var(--oi-s3);
+  color: var(--oi-muted);
+  border-top: 1px solid var(--oi-hairline);
+}
+
+.olg-pager {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--oi-s2);
+  margin-top: var(--oi-s4);
+}
+
+.olg-pager-link {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 18px 20px;
+  border-radius: var(--oi-radius-card);
+  color: var(--oi-ink) !important;
+  text-decoration: none !important;
+  transition: border-color var(--oi-fade) ease;
+}
+
+.olg-pager-link:hover {
+  border-color: var(--oi-hairline-strong);
+}
+
+.olg-pager-next {
+  justify-items: end;
+  text-align: right;
+}
+
+.olg-pager-dir {
+  color: var(--oi-dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.olg-pager-arrow {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--oi-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* Motion ------------------------------------------------------------------------ */
+
+@keyframes olg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes olg-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .olg-rows li,
+  .olg-row-rule,
+  .olg-suggest,
+  .olg-doc-summary {
+    animation: none;
+  }
+
+  .olg-switch-thumb {
+    transition: none;
+  }
+}
+
+/* Tablet and phone ---------------------------------------------------------------- */
+
+@media (max-width: 960px) {
+  .olg-doc-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--oi-s3);
+    padding-top: var(--oi-s4);
+  }
+
+  /* The contents fold into a graphite card with its own toggle. */
+  .olg-toc {
+    position: static;
+    max-height: none;
+    padding: 2px 18px;
+    border-radius: var(--oi-radius-card);
+    background: var(--oi-app-surface);
+    border: 1px solid var(--oi-app-edge);
+  }
+
+  .olg-toc-label {
+    display: none;
+  }
+
+  .olg-toc-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 50px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--oi-ink);
+    font: inherit;
+    font-size: 0.98rem;
+    cursor: pointer;
+  }
+
+  .olg-toc-toggle::after {
+    content: '+';
+    color: var(--oi-muted);
+    font-size: 1.2rem;
+  }
+
+  .olg-toc[data-open='true'] .olg-toc-toggle::after {
+    content: '–';
+  }
+
+  .olg-toc:not([data-open='true']) ol {
+    display: none;
+  }
+
+  .olg-toc ol {
+    margin: 0 0 12px;
+    border-left: 0;
+  }
+
+  .olg-toc a {
+    min-height: 44px;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .olg.oi-section {
+    padding-top: 120px;
+  }
+
+  .olg-hub-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .olg-region {
+    justify-items: start;
+  }
+
+  /* One sideways row of chips; the page itself never scrolls sideways. */
+  .olg-chips {
+    flex-wrap: nowrap;
+    margin: var(--oi-s3) calc(-1 * var(--oi-s3)) var(--oi-s4);
+    padding-inline: var(--oi-s3);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .olg-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .olg-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    padding-block: 28px;
+  }
+
+  .olg-group-label {
+    padding-top: 0;
+  }
+
+  .olg-row {
+    min-height: 54px;
+    gap: 12px;
+    font-size: 1.05rem;
+  }
+
+  .olg-row-title {
+    flex: 0 1 auto;
+    max-width: none;
+  }
+
+  .olg-doc-controls .olg-region {
+    grid-auto-flow: row;
+  }
+
+  .olg-pager {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A table stacks: each row a block, each cell labelled with its column. */
+  .olg-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .olg-table,
+  .olg-table tbody,
+  .olg-table tr,
+  .olg-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .olg-table tr {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(var(--oi-fg-rgb), 0.06);
+  }
+
+  .olg-table tr:first-child {
+    border-top: 0;
+  }
+
+  .olg-table td {
+    padding: 3px 0;
+    border: 0;
+  }
+
+  .olg-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--oi-dim);
+    font-family: var(--oi-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+}
+
+/* Print or save as PDF: the text alone, black on white ------------------------------ */
+
+@media print {
+  [data-landing-root] {
+    background: rgb(var(--oi-fg-rgb)) !important;
+    color: rgb(var(--oi-bg-rgb)) !important;
+  }
+
+  .oi-bar,
+  .oi-footer,
+  .oi-ambient,
+  .oi-grain,
+  .oi-progress,
+  .olg-doc-top,
+  .olg-doc-controls,
+  .olg-suggest,
+  .olg-note-link,
+  .olg-toc,
+  .olg-pager {
+    display: none !important;
+  }
+
+  .olg.oi-section {
+    padding: 0;
+  }
+
+  .olg-doc-grid {
+    display: block;
+    padding-top: 16px;
+  }
+
+  .olg-doc-title,
+  .olg-doc-summary,
+  .olg-doc-meta,
+  .olg-body,
+  .olg-h2,
+  .olg-h3,
+  .olg-note,
+  .olg-callout,
+  .olg-table th,
+  .olg-ask {
+    color: rgb(var(--oi-bg-rgb)) !important;
+  }
+
+  .olg-note,
+  .olg-callout,
+  .olg-table-wrap {
+    background: none !important;
+    border: 1px solid #999999 !important;
+    box-shadow: none !important;
+  }
+
+  .olg-body a,
+  .olg-ask a {
+    color: rgb(var(--oi-bg-rgb)) !important;
+    text-decoration-color: rgb(var(--oi-bg-rgb)) !important;
+  }
+
+  /* Printed links keep their address; mail links already show it, section numbers need none. */
+  .olg-body a[href^='http']::after,
+  .olg-body a[href^='/']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+  }
+
+  .olg-h2 {
+    break-after: avoid;
+    border-top-color: #cccccc;
+  }
+}
+
+/* Right to left (Arabic): the thumb slides the reading way, and the row arrows point it too. */
+[dir='rtl'] .olg-switch[data-region='eu'] .olg-switch-thumb {
+  transform: translateX(-100%);
+}
+
+[dir='rtl'] .olg-arrow,
+[dir='rtl'] .olg-pager-arrow {
+  scale: -1 1;
+}
+
+[dir='rtl'] .olg-row:hover .olg-arrow {
+  transform: translate(-2px, -2px);
+}
