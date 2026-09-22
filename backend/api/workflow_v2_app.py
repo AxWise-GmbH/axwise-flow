@@ -50,7 +50,12 @@ async def capability_validation_error(request: Request, error: RequestValidation
     capability errors deliberately expose neither model input nor dynamic keys.
     """
     body = error.body
-    capability_types = {"AdmitTranscriptCorpusV1", "AnalyzeEvidenceV1", "SimulateV1"}
+    capability_types = {
+        "AdmitTranscriptCorpusV1",
+        "AnalyzeEvidenceV1",
+        "AssistantTurnV2",
+        "SimulateV1",
+    }
     operation_type = body.get("operationType") if type(body) is dict else None
     input_value = body.get("input") if type(body) is dict else None
     input_type = input_value.get("type") if type(input_value) is dict else None

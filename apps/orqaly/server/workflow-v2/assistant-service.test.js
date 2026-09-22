@@ -218,6 +218,78 @@ function completed(markdown = 'A grounded answer.', overrides = {}, metrics = un
   };
 }
 
+function completedImage(markdown = 'Here is the generated image.') {
+  return {
+    operationId: '66666666-6666-4666-8666-666666666666',
+    status: 'completed',
+    canonicalInputHash: 'a'.repeat(64),
+    result: {
+      resultType: 'assistant_turn_completed',
+      response: {
+        schemaVersion: 'axwise.assistant-turn.v2',
+        markdown,
+        sources: [],
+        facts: [],
+        recommendations: [],
+        presentations: [{
+          schemaVersion: 'axwise.presentation.generated-image.v1',
+          kind: 'generated_image',
+          mimeType: 'image/png',
+          data: 'iVBORw0KGgpmaXh0dXJl',
+          sha256: 'bd54b02fae14b6b9ed73887ded339b8ef846fbcba0d4e5f9d95470ac23ade242',
+          alt: 'A generated blue circle',
+          model: 'gemini-3.1-flash-image',
+        }],
+      },
+    },
+  };
+}
+
+function completedWidget(kind, overrides = {}) {
+  const source = {
+    title: kind === 'weather' ? 'German Weather Service' : 'European Central Bank',
+    url: kind === 'weather' ? 'https://www.dwd.de/' : 'https://www.ecb.europa.eu/',
+  };
+  const presentation = kind === 'weather'
+    ? {
+        schemaVersion: 'axwise.presentation.weather.v1',
+        kind: 'weather',
+        location: 'Berlin',
+        observedAt: '2026-09-22T10:00:00.000Z',
+        temperatureUnit: 'C',
+        temperature: '18',
+        condition: 'Cloudy',
+        forecast: [],
+        source,
+      }
+    : {
+        schemaVersion: 'axwise.presentation.currency.v1',
+        kind: 'currency',
+        base: 'EUR',
+        quote: 'USD',
+        amount: '10',
+        convertedAmount: '11.8',
+        rate: '1.18',
+        inverseRate: '0.847457627119',
+        asOf: '2026-09-22T10:00:00.000Z',
+        source,
+      };
+  const statement = kind === 'weather'
+    ? 'Weather in Berlin: 18°C, Cloudy.'
+    : '10 EUR is 11.8 USD at 1.18 USD per EUR.';
+  return completed(statement, {
+    schemaVersion: 'axwise.assistant-turn.v2',
+    sources: [{
+      title: source.title,
+      canonicalUrl: source.url,
+      sourceTypes: ['government'],
+    }],
+    facts: [{ statement, sourceUrls: [source.url] }],
+    presentations: [presentation],
+    ...overrides,
+  });
+}
+
 function failed({
   retryable = true,
   errorClass = 'AXWISE_HTTP_500',
@@ -392,6 +464,155 @@ describe('assistant service', () => {
       'submitted',
       'completed',
     ]);
+  });
+
+  it('persists an explicit image capability, dispatches V2, and projects its presentation', async () => {
+    const capability = { kind: 'image_generate', aspectRatio: '1:1', imageSize: '1K' };
+    const h = harness({ submitResult: completedImage() });
+    const result = await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'Render a blue circle.',
+      capability,
+    });
+    const envelope = h.axwiseClient.submit.mock.calls[0][0];
+    expect(envelope).toMatchObject({
+      operationType: 'AssistantTurnV2',
+      input: { type: 'AssistantTurnV2', responseMode: 'direct_answer', capability },
+    });
+    expect(h.repository.messages[0].parts).toEqual([
+      { type: 'text', markdown: 'Render a blue circle.' },
+      { type: 'capability_request', capability },
+    ]);
+    expect(result.message.parts.map((part) => part.type)).toEqual(['text', 'presentation']);
+    expect(result.message.parts[1].presentation).toMatchObject({
+      kind: 'generated_image',
+      model: 'gemini-3.1-flash-image',
+    });
+    await expect(h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'Render a blue circle.',
+      capability: { ...capability, aspectRatio: '16:9' },
+    })).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [
+      'weather',
+      { kind: 'weather', location: 'Berlin', tempUnit: 'C' },
+      completedWidget('weather'),
+    ],
+    [
+      'currency',
+      { kind: 'currency', base: 'EUR', quote: 'USD', amount: '10' },
+      completedWidget('currency'),
+    ],
+  ])('accepts one grounded %s presentation for its matching capability', async (
+    expectedKind,
+    capability,
+    submitResult
+  ) => {
+    const h = harness({ submitResult });
+    const result = await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: `Look up ${expectedKind}.`,
+      capability,
+    });
+
+    expect(result.message.parts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'presentation',
+        presentation: expect.objectContaining({ kind: expectedKind }),
+      }),
+      expect.objectContaining({ type: 'fact' }),
+      expect.objectContaining({ type: 'source' }),
+    ]));
+    expect(result.message.parts.filter((part) => part.type === 'presentation')).toHaveLength(1);
+  });
+
+  it('fails closed when an image capability returns a V1 text answer', async () => {
+    const h = harness({ submitResult: completed('I could not generate the image.') });
+    const result = await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'Render a blue circle.',
+      capability: { kind: 'image_generate', aspectRatio: '1:1', imageSize: '1K' },
+    });
+
+    expect(result.message.parts).toEqual([
+      expect.objectContaining({
+        type: 'operation_status',
+        status: 'failed',
+        retryMode: 'none',
+        errorClass: 'AXWISE_CAPABILITY_RESULT_MISMATCH',
+      }),
+    ]);
+    expect(result.message.parts[0]).not.toHaveProperty('message');
+  });
+
+  it('rejects a capability response containing the wrong or multiple presentations', async () => {
+    const wrongKind = harness({ submitResult: completedWidget('currency') });
+    const weatherCapability = { kind: 'weather', location: 'Berlin', tempUnit: 'C' };
+    const wrongKindResult = await wrongKind.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'What is the weather?',
+      capability: weatherCapability,
+    });
+    expect(wrongKindResult.message.parts[0]).toMatchObject({
+      status: 'failed',
+      retryMode: 'none',
+      errorClass: 'AXWISE_CAPABILITY_RESULT_MISMATCH',
+    });
+
+    const duplicated = completedImage();
+    duplicated.result.response.presentations.push(
+      structuredClone(duplicated.result.response.presentations[0])
+    );
+    const multiple = harness({ submitResult: duplicated });
+    const multipleResult = await multiple.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'Render a blue circle.',
+      capability: { kind: 'image_generate', aspectRatio: '1:1', imageSize: '1K' },
+    });
+    expect(multipleResult.message.parts[0]).toMatchObject({
+      status: 'failed',
+      retryMode: 'none',
+      errorClass: 'AXWISE_CAPABILITY_RESULT_MISMATCH',
+    });
+  });
+
+  it('requires a widget presentation source to bind to both a source and a fact', async () => {
+    const ungrounded = completedWidget('weather', {
+      facts: [{
+        statement: 'An unrelated fact.',
+        sourceUrls: ['https://www.ecb.europa.eu/'],
+      }],
+    });
+    const h = harness({ submitResult: ungrounded });
+    const result = await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'What is the weather?',
+      capability: { kind: 'weather', location: 'Berlin', tempUnit: 'C' },
+    });
+
+    expect(result.message.parts[0]).toMatchObject({
+      status: 'failed',
+      retryMode: 'new_attempt',
+      errorClass: 'AXWISE_UNGROUNDED_CAPABILITY_RESULT',
+    });
   });
 
   it('renders bounded work as an inline artifact', async () => {
@@ -1490,6 +1711,77 @@ describe('assistant service', () => {
         issuedAt: '2026-08-31T18:02:00.000Z',
       })
     ).rejects.toMatchObject({ code: 'ASSISTANT_RETRY_ALREADY_EXISTS' });
+  });
+
+  it('preserves the root capability request and V2 input across a retry', async () => {
+    const h = harness();
+    let dispatch = 0;
+    h.axwiseClient.submit.mockImplementation(async (envelope) => {
+      dispatch += 1;
+      return forEnvelope(dispatch === 1 ? failed() : completedImage('Retry image.'), envelope);
+    });
+    const capability = { kind: 'image_generate', aspectRatio: '16:9', imageSize: '1K' };
+    await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'Render a landscape.',
+      capability,
+    });
+    const retried = await h.service.retry(auth, threadId, turnId, {
+      turnId: secondTurnId,
+      issuedAt: '2026-08-31T18:01:00.000Z',
+    });
+    const [firstEnvelope, retryEnvelope] = h.axwiseClient.submit.mock.calls.map(([value]) => value);
+    expect(retryEnvelope.input).toEqual(firstEnvelope.input);
+    expect(retryEnvelope.canonicalInputHash).toBe(firstEnvelope.canonicalInputHash);
+    expect(retryEnvelope.input).toMatchObject({ type: 'AssistantTurnV2', capability });
+    expect(h.repository.messages.find(
+      (message) => message.turnId === secondTurnId && message.role === 'user'
+    ).parts).toEqual([
+      { type: 'text', markdown: 'Render a landscape.' },
+      { type: 'capability_request', capability },
+    ]);
+    expect(retried.message.parts.map((part) => part.type)).toEqual(['text', 'presentation']);
+  });
+
+  it('blocks a browser retry of a persisted capability request without disabling desktop retry', async () => {
+    const h = harness();
+    let dispatch = 0;
+    h.axwiseClient.submit.mockImplementation(async (envelope) => {
+      dispatch += 1;
+      return forEnvelope(dispatch === 1 ? failed() : completedImage('Retry image.'), envelope);
+    });
+    const capability = { kind: 'image_generate', aspectRatio: '16:9', imageSize: '1K' };
+    await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'assistant',
+      message: 'Render a landscape.',
+      capability,
+    });
+    const retryCommand = {
+      turnId: secondTurnId,
+      issuedAt: '2026-08-31T18:01:00.000Z',
+    };
+
+    await expect(
+      h.service.retryPublic(auth, threadId, turnId, retryCommand)
+    ).rejects.toMatchObject({
+      code: 'ASSISTANT_CAPABILITY_DESKTOP_ONLY',
+      status: 400,
+    });
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+    expect(h.repository.messages.some((message) => message.turnId === secondTurnId)).toBe(false);
+
+    const desktopRetry = await h.service.retry(auth, threadId, turnId, retryCommand);
+    expect(desktopRetry.message.parts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'presentation',
+        presentation: expect.objectContaining({ kind: 'generated_image' }),
+      }),
+    ]));
+    expect(h.axwiseClient.submit).toHaveBeenCalledTimes(2);
   });
 
   it('rejects explicit retry for a nonretryable terminal failure', async () => {

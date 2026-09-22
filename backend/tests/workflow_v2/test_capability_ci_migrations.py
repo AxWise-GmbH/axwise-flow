@@ -20,9 +20,10 @@ def test_ci_applies_the_exact_pinned_migration_chain_in_order():
     ]
     actual = re.findall(r"--file=(backend/database/workflow_v2/\S+\.sql)", workflow)
     assert actual == expected
-    assert actual[-2:] == [
+    assert actual[-3:] == [
         "backend/database/workflow_v2/008_capability_analysis.sql",
         "backend/database/workflow_v2/009_capability_simulation.sql",
+        "backend/database/workflow_v2/010_assistant_turn_v2.sql",
     ]
 
 
@@ -34,7 +35,7 @@ def test_ci_checks_bytes_then_migrates_with_fail_closed_role_before_database_tes
     assert checksum < migration < tests
     block = workflow[migration : workflow.index("- name:", migration + 1)]
     assert 'psql "${AXWISE_V2_MIGRATION_DATABASE_URL}" --set=ON_ERROR_STOP=1' in block
-    assert "--file=backend/database/workflow_v2/009_capability_simulation.sql" in block
+    assert "--file=backend/database/workflow_v2/010_assistant_turn_v2.sql" in block
     assert "|| true" not in block and "continue-on-error" not in block
     assert "image: postgres:16" in workflow
 

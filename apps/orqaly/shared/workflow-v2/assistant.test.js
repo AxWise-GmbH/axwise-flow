@@ -374,6 +374,65 @@ describe('assistant retry contracts', () => {
   });
 });
 
+describe('assistant capability and presentation parts', () => {
+  const base = {
+    id: '11111111-1111-4111-8111-111111111111',
+    threadId: '22222222-2222-4222-8222-222222222222',
+    turnId: '33333333-3333-4333-8333-333333333333',
+    route: 'DIRECT_ANSWER',
+    axwiseOperationId: '44444444-4444-4444-8444-444444444444',
+    workflowRunId: null,
+    createdAt: '2026-09-01T10:00:00.000Z',
+  };
+
+  it('accepts an explicit capability command and persists it only on the user turn', () => {
+    const capability = { kind: 'weather', location: 'Berlin', tempUnit: 'C' };
+    expect(AssistantTurnCommandSchema.parse({
+      turnId: base.turnId,
+      issuedAt: base.createdAt,
+      message: 'Show the weather.',
+      capability,
+    }).capability).toEqual(capability);
+    const user = AssistantMessageSchema.parse({
+      ...base,
+      role: 'user',
+      parts: [
+        { type: 'text', markdown: 'Show the weather.' },
+        { type: 'capability_request', capability },
+      ],
+    });
+    expect(user.parts[1]).toEqual({ type: 'capability_request', capability });
+    expect(() => AssistantMessageSchema.parse({ ...user, role: 'assistant' })).toThrow(
+      /capability request/
+    );
+  });
+
+  it('accepts validated rich presentations only on assistant turns', () => {
+    const presentation = {
+      schemaVersion: 'axwise.presentation.weather.v1',
+      kind: 'weather',
+      location: 'Berlin',
+      observedAt: '2026-09-01T10:00:00Z',
+      temperatureUnit: 'C',
+      temperature: '18.5',
+      condition: 'Partly cloudy',
+      high: '21',
+      low: '12',
+      forecast: [{ label: 'Tomorrow', condition: 'Sunny', high: '23', low: '13' }],
+      source: { title: 'Weather service', url: 'https://example.com/weather' },
+    };
+    const assistant = AssistantMessageSchema.parse({
+      ...base,
+      role: 'assistant',
+      parts: [{ type: 'presentation', presentation }],
+    });
+    expect(assistant.parts[0].presentation).toEqual(presentation);
+    expect(() => AssistantMessageSchema.parse({ ...assistant, role: 'user' })).toThrow(
+      /presentations/
+    );
+  });
+});
+
 describe('assistant message length boundary', () => {
   const base = {
     turnId: '11111111-1111-4111-8111-111111111111',
