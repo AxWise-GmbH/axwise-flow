@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 
 if (process.env.FAKE_OMP_ARGS_FILE) {
@@ -40,10 +40,18 @@ for await (const line of lines) {
           `${JSON.stringify({ type: 'agent_end', messages: [message], isTerminal: true })}\n`
         );
       } else if (!command.message.includes('timeout-fixture')) {
+        if (command.message.includes('edit-file-fixture')) {
+          writeFileSync('fixture-change.mjs', 'export const changed = true;\n');
+        }
+        if (command.message.includes('edit-ignored-fixture')) {
+          writeFileSync('private-state/state.txt', 'changed by fixture\n');
+        }
+        const completion = command.message.includes('secret-output-fixture')
+          ? 'AKIAABCDEFGHIJKLMNOP'
+          : 'Completed fixture task.';
         process.stdout.write(`${JSON.stringify({ type: 'agent_start' })}\n`);
         process.stdout.write(`${JSON.stringify({ type: 'tool_execution_start', toolName: 'read' })}\n`);
-        process.stdout.write(`${JSON.stringify({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'Completed ' } })}\n`);
-        process.stdout.write(`${JSON.stringify({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'fixture task.' } })}\n`);
+        process.stdout.write(`${JSON.stringify({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: completion } })}\n`);
         process.stdout.write(`${JSON.stringify({ type: 'agent_end', messages: [], isTerminal: true })}\n`);
       }
     }

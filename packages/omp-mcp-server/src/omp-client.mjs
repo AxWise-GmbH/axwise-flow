@@ -1,18 +1,25 @@
 import { execFile as nodeExecFile, spawn as nodeSpawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { createHash, randomUUID } from 'node:crypto';
-import { captureWorkspace, runVerification } from './evidence.mjs';
+import {
+  captureWorkspace,
+  compareWorkspaceCaptures,
+  containsSensitiveContent,
+  runVerification,
+} from './evidence.mjs';
 
 const MAX_RPC_FRAME_BYTES = 1_048_576;
 const SAFE_TOOLS = Object.freeze({
   inspect: 'read,grep,glob,lsp,todo',
   edit: 'read,grep,glob,lsp,edit,write,todo',
+  exec: 'read,grep,glob,lsp,bash,todo',
 });
 
-const BOUNDED_SYSTEM_PROMPT = [
+export const BOUNDED_SYSTEM_PROMPT = [
   'This is a bounded Orqanix engineering delegation.',
-  'Work only inside the supplied current workspace and only on the requested task.',
-  'Do not commit, push, deploy, install dependencies, open external applications, or access the network.',
+  'Work inside the supplied current workspace on the requested task.',
+  'Execute necessary terminal commands, tests, builds, and tools as required.',
+  'Do not use network access, install dependencies, commit or push Git changes, deploy, or cause other external side effects unless the approved task explicitly requests that exact action.',
   'Use discovered skills when they directly help, but do not broaden the task.',
   'End with a concise summary of work performed and verification actually observed.',
 ].join(' ');
@@ -397,6 +404,9 @@ const hash = (value) => createHash('sha256').update(JSON.stringify(value)).diges
 const notEvaluated = (reason) => ({ status: 'not_evaluated', advisory: true, reason });
 
 export async function evaluateWithJev({ config, request, signal, tokenProvider = getAccessToken, fetchImpl = fetch }) {
+  if (containsSensitiveContent(request)) {
+    return { review: notEvaluated('sensitive_evidence') };
+  }
   if (!config.conversationId || !config.apiBaseUrl) return { review: notEvaluated('conversation_not_bound') };
   const deadline = AbortSignal.timeout(12_000);
   const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
@@ -416,6 +426,9 @@ export async function evaluateWithJev({ config, request, signal, tokenProvider =
         !['passed', 'failed', 'not_evaluated'].includes(receipt.review?.status)) {
       return { review: notEvaluated('invalid_review_receipt') };
     }
+    if (containsSensitiveContent(receipt)) {
+      return { review: notEvaluated('sensitive_review_receipt') };
+    }
     return receipt;
   } catch {
     return { review: notEvaluated(signal?.aborted ? 'cancelled' : 'review_unavailable') };
@@ -429,7 +442,7 @@ export async function runEngineeringTask({
   const effectiveTimeout = Math.min(timeoutMs || config.timeoutMs, config.timeoutMs);
   const taskId = randomUUID();
   const inputHash = hash({ task, acceptanceCriteria, researchReferences });
-  const before = mode === 'edit' ? await captureWorkspace(config.workspace, signal) : { status: 'unavailable', text: '' };
+  const before = mode === 'edit' ? await captureWorkspace(config.workspace, signal) : { status: 'unavailable', text: '', fingerprints: [], repositoryIdentity: null };
   const exchange = await runRpc({
     config, mode, signal, spawnImpl, tokenProvider, timeoutMs: effectiveTimeout,
     request: {
@@ -437,19 +450,34 @@ export async function runEngineeringTask({
       message: `${BOUNDED_SYSTEM_PROMPT}${contextualSubdirectoryPrompt(task)}\n\nRequested task:\n${task}\n\nAcceptance criteria:\n${JSON.stringify(acceptanceCriteria)}\nResearch provenance (identifiers only):\n${JSON.stringify(researchReferences)}`,
     },
   });
-  const after = mode === 'edit' ? await captureWorkspace(config.workspace, signal) : before;
   const testEnv = childEnvironment(config, '');
   delete testEnv.ORQANIX_OMP_TOKEN;
   const tests = await runVerification({
     config, command: mode === 'edit' && exchange.kind === 'completed' ? testCommand : undefined,
     signal, timeoutMs: effectiveTimeout, env: testEnv,
   });
+  const after = mode === 'edit'
+    ? await captureWorkspace(
+        config.workspace,
+        signal,
+        before.fingerprints,
+        before.repositoryIdentity
+      )
+    : before;
+  const changed = compareWorkspaceCaptures(before, after);
   const evidence = {
     diff: { status: before.status === 'captured' && after.status === 'captured' ? 'captured' : 'unavailable', before: before.text, after: after.text, changed: before.text !== after.text },
     tests, toolsUsed: exchange.toolsUsed,
+    changedFilesStatus: changed.changedFilesStatus,
+    changedFiles: changed.changedFiles,
+    relevantIgnoredFilesChanged: changed.relevantIgnoredFilesChanged,
   };
   let receipt = { review: notEvaluated(exchange.kind === 'completed' ? 'inspection_only' : 'engineering_incomplete') };
-  if (exchange.kind === 'completed' && mode === 'edit') {
+  if (exchange.kind === 'completed' && mode === 'edit' && config.jevEnabled === false) {
+    receipt = { review: notEvaluated('disabled_by_user') };
+  } else if (exchange.kind === 'completed' && mode === 'edit' && changed.relevantIgnoredFilesChanged) {
+    receipt = { review: notEvaluated('ignored_files_changed') };
+  } else if (exchange.kind === 'completed' && mode === 'edit') {
     try {
       receipt = await jevEvaluator({ config, signal, tokenProvider, request: {
         taskId, conversationId: config.conversationId, task, inputHash, acceptanceCriteria, researchReferences, evidence,
@@ -457,14 +485,31 @@ export async function runEngineeringTask({
     } catch { receipt = { review: notEvaluated('review_unavailable') }; }
   }
   if (!receipt?.review) receipt = { review: notEvaluated('invalid_review_receipt') };
-  if (tests.status === 'failed') receipt.review = { ...receipt.review, status: 'failed', reason: 'tests_failed' };
-  const verified = mode === 'edit' && acceptanceCriteria.length > 0 && evidence.diff.status === 'captured' && evidence.diff.changed && tests.status === 'passed' && !tests.truncated && receipt.review.status === 'passed';
+  if (
+    tests.status === 'failed' &&
+    !['disabled_by_user', 'ignored_files_changed'].includes(receipt.review.reason)
+  ) {
+    receipt.review = {
+      ...receipt.review,
+      status: 'failed',
+      reason: tests.reason?.startsWith('sensitive_') ? 'sensitive_test_output' : 'tests_failed',
+    };
+  }
+  const verified = mode === 'edit' && acceptanceCriteria.length > 0 && evidence.diff.status === 'captured' && evidence.diff.changed && tests.status === 'passed' && !tests.truncated && !changed.relevantIgnoredFilesChanged && receipt.review.status === 'passed';
   return {
     status: exchange.kind === 'completed' && mode === 'edit' && !verified ? 'review_required' : exchange.kind,
     ...(exchange.code ? { code: exchange.code } : {}),
     taskId, conversationId: config.conversationId ?? null, inputHash, evidenceHash: hash(evidence), researchReferences,
-    mode, assistantText: exchange.text, outputTruncated: exchange.truncated,
+    mode,
+    assistantText: containsSensitiveContent(exchange.text)
+      ? '[REDACTED: sensitive assistant output]'
+      : exchange.text,
+    assistantOutputRedacted: containsSensitiveContent(exchange.text),
+    outputTruncated: exchange.truncated,
     toolsUsed: exchange.toolsUsed, evidence, review: receipt.review, verified,
+    changedFilesStatus: changed.changedFilesStatus,
+    changedFiles: changed.changedFiles,
+    relevantIgnoredFilesChanged: changed.relevantIgnoredFilesChanged,
     durationMs: exchange.durationMs,
   };
 }
