@@ -28,6 +28,7 @@ ORQALY_WORKER_DB_SECRET_VERSION="${ORQALY_WORKER_DB_SECRET_VERSION:?required}"
 CLERK_SECRET_KEY_VERSION="${CLERK_SECRET_KEY_VERSION:?required}"
 CLERK_PUBLISHABLE_KEY_VERSION="${CLERK_PUBLISHABLE_KEY_VERSION:?required}"
 GATEWAY_PUBLIC_KEYS_SECRET_VERSION="${GATEWAY_PUBLIC_KEYS_SECRET_VERSION:?required}"
+TYPESAFE_API_KEY_SECRET_VERSION="${TYPESAFE_API_KEY_SECRET_VERSION:?required}"
 AXWISE_API_DB_SECRET_VERSION="${AXWISE_API_DB_SECRET_VERSION:?required}"
 AXWISE_WORKER_DB_SECRET_VERSION="${AXWISE_WORKER_DB_SECRET_VERSION:?required}"
 AXWISE_GEMINI_SECRET_VERSION="${AXWISE_GEMINI_SECRET_VERSION:?required}"
@@ -320,10 +321,10 @@ assert_secret_ref() {
   document="$(service_document "${service}")"
   if ! jq -e --arg env "${environment_name}" --arg secret "${secret_name}" \
     --arg version "${version}" '
-      [.spec.template.spec.containers[0].env[]?
-        | select(.name == $env)
-        | select(.valueFrom.secretKeyRef.name == $secret and .valueFrom.secretKeyRef.key == $version)]
-      | length == 1
+      [.spec.template.spec.containers[0].env[]? | select(.name == $env)] as $bindings
+      | ($bindings | length) == 1
+        and $bindings[0].valueFrom.secretKeyRef.name == $secret
+        and $bindings[0].valueFrom.secretKeyRef.key == $version
     ' <<<"${document}" >/dev/null; then
     echo "${service}/${environment_name} does not bind the exact secret version." >&2
     exit 77
@@ -443,6 +444,7 @@ for pair in \
   "orqaly-v2-preview-001-clerk-secret-key:${CLERK_SECRET_KEY_VERSION}" \
   "orqaly-v2-preview-001-clerk-publishable-key:${CLERK_PUBLISHABLE_KEY_VERSION}" \
   "orqaly-v2-preview-001-gateway-public-keys-json:${GATEWAY_PUBLIC_KEYS_SECRET_VERSION}" \
+  "axwise-v2-preview-001-typesafe-api-key:${TYPESAFE_API_KEY_SECRET_VERSION}" \
   "axwise-v2-preview-001-db-api-url:${AXWISE_API_DB_SECRET_VERSION}" \
   "axwise-v2-preview-001-db-worker-url:${AXWISE_WORKER_DB_SECRET_VERSION}" \
   "axwise-v2-preview-001-gemini-api-key:${AXWISE_GEMINI_SECRET_VERSION}" \
@@ -513,9 +515,14 @@ assert_direct_secret_service_accounts orqaly-v2-preview-001-db-api-url "orqaly-v
 assert_direct_secret_service_accounts orqaly-v2-preview-001-db-worker-url "orqaly-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_direct_secret_service_accounts orqaly-v2-preview-001-clerk-secret-key "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_direct_secret_service_accounts orqaly-v2-preview-001-gateway-public-keys-json "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
+assert_direct_secret_service_accounts axwise-v2-preview-001-typesafe-api-key \
+  "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" \
+  "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_direct_secret_service_accounts axwise-v2-preview-001-db-api-url "axwise-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_direct_secret_service_accounts axwise-v2-preview-001-db-worker-url "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
-assert_direct_secret_service_accounts axwise-v2-preview-001-gemini-api-key "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
+assert_direct_secret_service_accounts axwise-v2-preview-001-gemini-api-key \
+  "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" \
+  "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_direct_secret_service_accounts axwise-v2-preview-001-authority-seal "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_direct_secret_service_accounts orqaly-v2-preview-001-clerk-publishable-key \
   "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com" \
@@ -559,7 +566,9 @@ done
 assert_secret_ref axwise-v2-preview AXWISE_OPERATION_DATABASE_URL axwise-v2-preview-001-db-api-url "${AXWISE_API_DB_SECRET_VERSION}"
 assert_plain_env axwise-v2-preview AXWISE_PROCESS_ROLE api
 assert_plain_env axwise-v2-preview AXWISE_SERVICE_URL "${AXWISE_API_ORIGIN}"
+assert_plain_env axwise-v2-preview AXWISE_CAPABILITY_GENERATORS_ENABLED false
 assert_absent_env axwise-v2-preview GEMINI_API_KEY
+assert_absent_env axwise-v2-preview TYPESAFE_API_KEY
 assert_absent_env axwise-v2-preview AXWISE_AUTHORITY_SEAL_KEY
 assert_absent_env axwise-v2-preview GEMINI_MODEL
 assert_absent_env axwise-v2-preview GEMINI_SEARCH_MODEL
@@ -570,9 +579,11 @@ assert_absent_env axwise-v2-preview SEARXNG_URL
 assert_absent_env axwise-v2-preview SEARXNG_AUTH_MODE
 assert_secret_ref axwise-v2-worker-preview AXWISE_OPERATION_DATABASE_URL axwise-v2-preview-001-db-worker-url "${AXWISE_WORKER_DB_SECRET_VERSION}"
 assert_secret_ref axwise-v2-worker-preview GEMINI_API_KEY axwise-v2-preview-001-gemini-api-key "${AXWISE_GEMINI_SECRET_VERSION}"
+assert_secret_ref axwise-v2-worker-preview TYPESAFE_API_KEY axwise-v2-preview-001-typesafe-api-key "${TYPESAFE_API_KEY_SECRET_VERSION}"
 assert_secret_ref axwise-v2-worker-preview AXWISE_AUTHORITY_SEAL_KEY axwise-v2-preview-001-authority-seal "${AXWISE_SEAL_SECRET_VERSION}"
 assert_plain_env axwise-v2-worker-preview AXWISE_PROCESS_ROLE worker
 assert_plain_env axwise-v2-worker-preview AXWISE_SERVICE_URL "${AXWISE_API_ORIGIN}"
+assert_plain_env axwise-v2-worker-preview AXWISE_CAPABILITY_GENERATORS_ENABLED true
 assert_plain_env axwise-v2-worker-preview GEMINI_MODEL models/gemini-3.8-flash
 assert_plain_env axwise-v2-worker-preview GEMINI_SEARCH_MODEL gemini-3.8-flash
 assert_plain_env axwise-v2-worker-preview GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS 750000
@@ -587,9 +598,14 @@ assert_secret_ref orqaly-v2-api-preview ORQALY_API_DATABASE_URL orqaly-v2-previe
 assert_secret_ref orqaly-v2-api-preview CLERK_SECRET_KEY orqaly-v2-preview-001-clerk-secret-key "${CLERK_SECRET_KEY_VERSION}"
 assert_secret_ref orqaly-v2-api-preview CLERK_PUBLISHABLE_KEY orqaly-v2-preview-001-clerk-publishable-key "${CLERK_PUBLISHABLE_KEY_VERSION}"
 assert_secret_ref orqaly-v2-api-preview ORQALY_GATEWAY_PUBLIC_KEYS_JSON orqaly-v2-preview-001-gateway-public-keys-json "${GATEWAY_PUBLIC_KEYS_SECRET_VERSION}"
+assert_secret_ref orqaly-v2-api-preview ORQALY_GOOSE_GEMINI_API_KEY axwise-v2-preview-001-gemini-api-key "${AXWISE_GEMINI_SECRET_VERSION}"
+assert_secret_ref orqaly-v2-api-preview TYPESAFE_API_KEY axwise-v2-preview-001-typesafe-api-key "${TYPESAFE_API_KEY_SECRET_VERSION}"
 assert_plain_env orqaly-v2-api-preview ORQALY_BROWSER_ORIGINS "${ORQALY_BROWSER_ORIGINS}"
 assert_plain_env orqaly-v2-api-preview CLERK_INSTANCE_ID "${CLERK_INSTANCE_ID}"
 assert_plain_env orqaly-v2-api-preview AXWISE_SERVICE_URL "${AXWISE_API_ORIGIN}"
+assert_plain_env orqaly-v2-api-preview ORQALY_GOOSE_ENABLED true
+assert_plain_env orqaly-v2-api-preview ORQALY_GOOSE_OAUTH_CLIENT_ID UNciLDGl5PPmF9M8
+assert_plain_env orqaly-v2-api-preview ORQALY_CAPABILITY_WORK_ENABLED true
 assert_plain_env orqaly-v2-api-preview ORQALY_N8N_BASE_URL "${ORQALY_N8N_BASE_URL}"
 assert_plain_env orqaly-v2-api-preview ORQALY_N8N_BINDING_MANIFEST_PATH /app/n8n/executor-bindings.json
 assert_plain_env orqaly-v2-api-preview ORQALY_N8N_BINDING_KEY tool_gateway_connector_v1
@@ -598,6 +614,11 @@ assert_plain_env orqaly-v2-api-preview ORQALY_N8N_TIMEOUT_MS 90000
 assert_secret_ref orqaly-v2-worker-preview ORQALY_WORKER_DATABASE_URL orqaly-v2-preview-001-db-worker-url "${ORQALY_WORKER_DB_SECRET_VERSION}"
 assert_plain_env orqaly-v2-worker-preview AXWISE_SERVICE_URL "${AXWISE_API_ORIGIN}"
 assert_plain_env orqaly-v2-worker-preview ORQALY_ARTIFACT_BUCKET "${ARTIFACT_BUCKET}"
+assert_plain_env orqaly-v2-worker-preview ORQALY_CAPABILITY_WORK_ENABLED true
+assert_absent_env orqaly-v2-worker-preview ORQALY_GOOSE_ENABLED
+assert_absent_env orqaly-v2-worker-preview ORQALY_GOOSE_OAUTH_CLIENT_ID
+assert_absent_env orqaly-v2-worker-preview ORQALY_GOOSE_GEMINI_API_KEY
+assert_absent_env orqaly-v2-worker-preview TYPESAFE_API_KEY
 
 for service in orqaly-v2-api-preview orqaly-v2-worker-preview; do
   orqaly_service_json="$(service_document "${service}")"

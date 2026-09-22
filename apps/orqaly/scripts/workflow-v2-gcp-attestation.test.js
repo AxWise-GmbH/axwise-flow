@@ -77,6 +77,10 @@ describe('workflow v2 GCP structured attestations', () => {
     expect(verifier).toContain('REQUIRE_LATEST_TRAFFIC="${REQUIRE_LATEST_TRAFFIC:-true}"');
     expect(generator).toContain("execFileSync('bash', [resolve(orqalyRepository, verifierPath)]");
     expect(generator).toContain("REQUIRE_LATEST_TRAFFIC: 'true'");
+    expect(generator).toContain(
+      "typesafeApiKey: requiredEnvironment('TYPESAFE_API_KEY_SECRET_VERSION')"
+    );
+    expect(generator).toContain("'axwise-v2-preview-001-typesafe-api-key'");
     expect(deploy).toContain('workflow-v2-gcp-attestation.mjs" runtime');
     expect(deploy).toContain('REQUIRE_LATEST_TRAFFIC=false');
     expect(deploy).not.toContain('RUNTIME_ATTESTATION_OUTPUT= REQUIRE_LATEST_TRAFFIC=false');
