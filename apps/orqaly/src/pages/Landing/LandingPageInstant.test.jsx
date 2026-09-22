@@ -27,7 +27,7 @@ async function renderPage() {
 }
 
 const RELEASE_FACTS = new RegExp(
-  `Apple Silicon.*${Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB.*Preview \\(not notarized\\).*Sign in`
+  `Orqanix ${DESKTOP_RELEASE.version}.*Apple Silicon.*${Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB.*Preview \\(not notarized\\).*Sign in`
 );
 
 describe('LandingPageInstant', () => {
