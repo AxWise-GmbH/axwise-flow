@@ -535,10 +535,10 @@ assert_service axwise-v2-preview "${AXWISE_SERVICE_IMAGE}" \
   1 512Mi "${AXWISE_API_ORIGIN}"
 assert_service axwise-v2-worker-preview "${AXWISE_SERVICE_IMAGE}" \
   "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" internal 1 1 1 false true \
-  2 2Gi \
+  1 1Gi \
   "$(gcloud run services describe axwise-v2-worker-preview --project="${PROJECT_ID}" --region="${REGION}" --format='value(status.url)')"
 assert_service orqaly-v2-api-preview "${ORQALY_SERVICE_IMAGE}" \
-  "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com" all 20 0 4 true true \
+  "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com" all 80 0 4 true true \
   1 512Mi "${ORQALY_API_ORIGIN}"
 assert_service orqaly-v2-worker-preview "${ORQALY_SERVICE_IMAGE}" \
   "orqaly-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" internal 1 1 1 false true \
