@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Voorwaarden mobiele app",
+    "summary": "Deze voorwaarden gaan over het gebruik van de Orqanix-telefoonapp als afstandsbediening voor Orqanix op uw Mac, inclusief de voorwaarden die appstores vereisen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Over deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "Deze voorwaarden vullen onze [Servicevoorwaarden](/instant/legal/terms) aan voor de Orqanix-app voor uw telefoon (de \"Mobiele app\"). Samen met de Servicevoorwaarden, de [Voorwaarden computerapp](/instant/legal/desktop-app-terms), ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) en ons [Privacybeleid](/instant/legal/privacy) vormen zij één overeenkomst. Als deze voorwaarden en de Servicevoorwaarden elkaar tegenspreken over de Mobiele app, gelden deze voorwaarden."
+    },
+    {
+      "type": "p",
+      "text": "De Mobiele app is gratis zolang onze producten in een vroeg stadium zijn. Voordat een betaald abonnement ingaat, publiceren wij de prijs en de regels voor betalen en opzeggen."
+    },
+    {
+      "type": "p",
+      "text": "Voor die tijd publiceren wij ook de regels voor het herroepen van een aankoop, zoals het EU-recht vereist.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Een afstandsbediening voor uw Mac"
+    },
+    {
+      "type": "p",
+      "text": "De Mobiele app is een afstandsbediening voor Orqanix op uw Mac. Wanneer u de app gebruikt:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "hebt u de Orqanix-app op uw Mac nodig (de Computerapp). Begin met de Mac-app en voeg daarna uw telefoon toe;",
+        "draait al het werk op uw Mac, met de bestanden, tools en instellingen daarvan. De telefoon laat zien wat er gebeurt en laat u de volgende taak geven;",
+        "worden bestanden op uw Mac gemaakt en blijven zij in de projectmap daarvan. De telefoon laat zien wat er is gemaakt; de Mac bewaart de originelen;",
+        "werkt de Mobiele app alleen zolang uw Mac online is en Orqanix geopend heeft. Wanneer de Mac in de sluimerstand gaat of offline raakt, toont de telefoon dat en wacht hij tot de Mac terug is."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wij beloven niet dat uw telefoon uw Mac altijd kan bereiken. Netwerken, sluimerinstellingen en uw apparaten vallen buiten onze macht."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Werken vanaf uw telefoon"
+    },
+    {
+      "type": "p",
+      "text": "U kunt een lopende taak controleren, resultaten lezen, opgeslagen taken (recepten) opnieuw uitvoeren en nieuw werk starten door te typen of te zeggen wat u nodig hebt. De Computerapp op uw Mac voert dat werk uit, onder de [Voorwaarden computerapp](/instant/legal/desktop-app-terms). Dat betekent:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "de agents op uw Mac kunnen echte handelingen uitvoeren, zoals bestanden wijzigen en opdrachten uitvoeren. Standaard doen zij dat zonder eerst te vragen, tenzij u [die instelling hebt gewijzigd](/instant/legal/desktop-app-terms#approval-modes) op uw Mac;",
+        "u bent verantwoordelijk voor werk dat u vanaf de telefoon start alsof u het achter uw Mac had gestart;",
+        "u zit niet achter uw Mac om mee te kijken, dus kies zorgvuldig wat u vraagt en controleer de resultaten voordat u erop vertrouwt."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AI maakt fouten. Resultaten kunnen onjuist, onvolledig of verouderd zijn. Zie [Hoe onze AI werkt](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Meldingen"
+    },
+    {
+      "type": "p",
+      "text": "De Mobiele app kan u laten weten wanneer een taak klaar is. U kunt meldingen uitschakelen in de instellingen van uw telefoon. Meldingen kunnen op uw vergrendelscherm verschijnen, dus stel de voorvertoning van meldingen in zoals het u uitkomt. Wij beloven niet dat elke melding aankomt, of op tijd aankomt."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "Uw account en telefoon"
+    },
+    {
+      "type": "list",
+      "items": [
+        "U moet 18 jaar of ouder zijn om de Mobiele app te gebruiken.",
+        "Iedereen die uw ontgrendelde telefoon kan gebruiken, kan mogelijk via de Mobiele app werk op uw Mac starten. Houd uw telefoon vergrendeld. Als u hem kwijtraakt of weggeeft, verwijder dan zo mogelijk de Mobiele app en laat het ons weten.",
+        "Laat het ons weten via {company.email} als u denkt dat iemand anders uw account heeft gebruikt."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Het [Privacybeleid](/instant/legal/privacy) legt uit wat wij verzamelen wanneer u de Mobiele app gebruikt, en waarom."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Uw licentie"
+    },
+    {
+      "type": "p",
+      "text": "Zolang u deze voorwaarden naleeft, geven wij u een persoonlijke, niet-exclusieve, niet-overdraagbare licentie om de Mobiele app te installeren en te gebruiken op telefoons die u bezit of beheert. U mag de app niet verkopen, verhuren, uitlenen of in sublicentie geven, de beveiligingsmaatregelen of limieten ervan omzeilen, of de app kopiëren om een concurrerend product te bouwen."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Updates en wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "Wij kunnen nieuwe versies van de Mobiele app uitbrengen en functies wijzigen of verwijderen. Als u de app via een appstore hebt verkregen, komen updates via die store onder de regels daarvan. De regels voor wijzigingen staan in [Wijzigingen in de Diensten en deze voorwaarden](/instant/legal/terms#changes)."
+    },
+    {
+      "type": "p",
+      "text": "Als u de Mobiele app gebruikt als consument (buiten uw handel, bedrijf of beroep), hebt u de rechten die het EU-recht consumenten geeft voor digitale inhoud. Die gelden ook al is de app gratis, omdat u ons persoonsgegevens verstrekt om de app te gebruiken (Richtlijn (EU) 2019/770). Zolang de wet dat vereist, stellen wij de updates beschikbaar, inclusief beveiligingsupdates, die nodig zijn om de app te laten werken zoals beschreven.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Daarnaast wijzigen wij de Mobiele app alleen om een geldige reden en zonder kosten voor u. Als een dergelijke wijziging uw gebruik van de app meer dan in geringe mate nadelig beïnvloedt, sturen wij u tijdig vóór de wijziging een e-mail. U kunt deze overeenkomst dan kosteloos beëindigen binnen 30 dagen na onze kennisgeving of na de wijziging, afhankelijk van wat later is, tenzij wij u de ongewijzigde versie zonder extra kosten laten behouden.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Aansprakelijkheid"
+    },
+    {
+      "type": "p",
+      "text": "Voor zover de wet dat toestaat, wordt de Mobiele app geleverd \"in de huidige staat\" (\"as is\") en \"zoals beschikbaar\" (\"as available\"), zonder enige garantie. [Uitsluiting van garanties](/instant/legal/terms#warranty) en [Aansprakelijkheid](/instant/legal/terms#liability) in de Servicevoorwaarden zijn erop van toepassing.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Wij zijn aansprakelijk voor de Mobiele app volgens het recht van uw land, zoals uiteengezet in [Aansprakelijkheid](/instant/legal/terms#liability) in de Servicevoorwaarden. Niets in deze voorwaarden of in de voorwaarden van een appstore beperkt uw wettelijke rechten als consument.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "Voorwaarden van appstores"
+    },
+    {
+      "type": "p",
+      "text": "Dit gedeelte is van toepassing als u de Mobiele app via een appstore hebt verkregen. Op uw download en gebruik zijn ook de eigen voorwaarden van de store van toepassing. U moet die naleven, evenals eventuele voorwaarden van uw mobiele netwerk, zoals uw databundel."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "Als u de Mobiele app via de App Store van Apple hebt verkregen, komen u en wij overeen dat:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "deze voorwaarden uitsluitend tussen u en ons gelden, niet met Apple. Wij, en niet Apple, zijn als enige verantwoordelijk voor de Mobiele app en de inhoud ervan;",
+        "uw licentie het gebruik dekt op producten van het merk Apple die u bezit of beheert, zoals toegestaan door de gebruiksregels (Usage Rules) in de [Media Services Terms and Conditions](https://www.apple.com/legal/internet-services/itunes/) van Apple. Andere personen die via Delen met gezin of volumeaankopen aan uw account zijn gekoppeld, mogen de app ook gebruiken voor zover die regels dat toestaan;",
+        "uitsluitend wij verantwoordelijk zijn voor onderhoud en ondersteuning van de Mobiele app. Apple is niet verplicht om die te bieden;",
+        "als de Mobiele app niet voldoet aan een garantie die erop van toepassing is, u dit aan Apple kunt melden, en Apple de prijs terugbetaalt die u voor de app hebt betaald, indien van toepassing. Voor zover de wet dat toestaat, heeft Apple geen andere garantieverplichting voor de Mobiele app. Alle andere vorderingen, verliezen, aansprakelijkheden, schade, kosten of uitgaven als gevolg van een dergelijk tekortschieten zijn onze verantwoordelijkheid, voor zover deze voorwaarden en de wet dat bepalen;",
+        "wij, en niet Apple, alle vorderingen van u of anderen met betrekking tot de Mobiele app of uw gebruik ervan afhandelen, waaronder vorderingen wegens productaansprakelijkheid, vorderingen dat de app niet voldoet aan een wettelijke of regelgevende vereiste, en vorderingen op grond van wetgeving inzake consumentenbescherming, privacy of vergelijkbare wetgeving;",
+        "als iemand stelt dat de Mobiele app of uw gebruik ervan inbreuk maakt op zijn intellectuele eigendom, wij, en niet Apple, verantwoordelijk zijn voor het onderzoeken, verweren, schikken en afhandelen van die vordering, voor zover deze voorwaarden ons verantwoordelijk maken;",
+        "u zich niet bevindt in een land waartegen de Amerikaanse overheid een embargo heeft ingesteld of dat de Amerikaanse overheid heeft aangemerkt als land dat terrorisme steunt (\"terrorist supporting\"), en u niet voorkomt op een lijst van de Amerikaanse overheid van verboden of beperkte partijen;",
+        "Apple en haar dochterondernemingen derde-begunstigden van deze voorwaarden zijn. Zodra u deze voorwaarden aanvaardt, heeft Apple het recht, en wordt Apple geacht dat recht te hebben aanvaard, om deze voorwaarden als derde-begunstigde tegenover u af te dwingen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Stuur vragen, klachten of vorderingen over de Mobiele app naar ons via {company.email}, niet naar Apple."
+    },
+    {
+      "type": "p",
+      "text": "De ontwikkelaar van de Mobiele app is {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "Als u de Mobiele app via Google Play hebt verkregen, komen u en wij overeen dat:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "deze voorwaarden uitsluitend tussen u en ons gelden, niet met Google. Google is niet verantwoordelijk voor de Mobiele app, de inhoud ervan, de ondersteuning ervan of enige vordering met betrekking tot de app;",
+        "de [Servicevoorwaarden van Google Play](https://play.google.com/about/play-terms/) ook van toepassing zijn op uw download en gebruik. Waar zij in strijd zijn met deze voorwaarden wat betreft uw relatie met Google, gelden de Servicevoorwaarden van Google Play;",
+        "terugbetalingen voor alles wat via Google Play is gekocht, de regels van Google Play volgen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sancties en export"
+    },
+    {
+      "type": "p",
+      "text": "U mag de Mobiele app niet downloaden of gebruiken waar sancties of exportregels van de VS of de EU dat verbieden, of als u op een sanctielijst van de VS of de EU staat. Zie [Sancties en export](/instant/legal/terms#sanctions) in de Servicevoorwaarden."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Gebruik beëindigen"
+    },
+    {
+      "type": "p",
+      "text": "U kunt op elk moment stoppen met het gebruik van de Mobiele app door deze van uw telefoon te verwijderen. Daarmee stopt de Computerapp niet, worden er geen bestanden op uw Mac verwijderd en wordt uw Orqanix-account niet opgeheven. Om uw account op te heffen of ons te vragen uw gegevens te verwijderen, raadpleegt u de [Servicevoorwaarden](/instant/legal/terms) en het [Privacybeleid](/instant/legal/privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contact"
+    },
+    {
+      "type": "p",
+      "text": "Vragen over deze voorwaarden: {company.email}. Privacyverzoeken: {company.privacyEmail}."
+    }
+  ]
+}

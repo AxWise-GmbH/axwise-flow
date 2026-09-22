@@ -1,0 +1,1319 @@
+/*
+ * Enterprise scene (class prefix pen-; EnterprisePage.css names the page's own blocks with other
+ * pen- names and never styles these). Blueprint → Build → Run. Every rule starts from a part only
+ * this scene draws: pen-s is its stage, and pen-m marks the story the menu and the page top play.
+ * Parts sit by --ps-u (card units: the card is 100 wide, 62.5 tall) and are sized by --u. Plain
+ * styles are the finished frame, which reduced motion shows.
+ *
+ * This file rides the header's scenes chunk: the parts, the story and the hero's depth. The
+ * page's own cuts (unit, pipeline, roles, replace) are in enterprise-page.css.
+ *
+ * The story, loop 11 s. Every story animation starts at var(--pen-t), a negative offset, so the
+ * story never opens on the plan: the menu opens 86 % in, on the finished frame, and holds it for
+ * 2.9 s; the page top opens 70 % in, on the running units while the new role lands, the pen taps
+ * today's role and it is handed to AI, then holds the whole frame to 4.6 s.
+ *   0-12 %   Run, held: four units at work, the pipeline flowing, a new role, one handed to AI.
+ *   12-16 %  Back to the plan: all but the units' dashed outlines and names fades.
+ *   17-38 %  Blueprint: the specialist's pen goes round each unit (5.2 % each); a bright line
+ *            follows it and gives way to the dashed plan.
+ *   38-52 %  Build: the units drop stems (38 %), then the pen runs the pipeline (39.5-46 %) and
+ *            Leads, Quotes, Invoices pop as it passes; today's role, a person's, rises (41 %).
+ *            Agent orbs drop in (46 %) and work flows (49 %).
+ *   54-83 %  Run: the units fill (54 %), Support is Automated (60 %), the new role slides in
+ *            (63 %) and turns solid (70 %), the pen taps the person's role (76 %), which turns
+ *            into an agent's (78 %), Handed to AI (80 %). Held from 85 % round to 12 %.
+ * Story motion is transform and opacity only, and no keyframe holds a var() but the pen's and
+ * the flow's paths.
+ */
+
+.ps[data-product='enterprise'] {
+  --ps-loop: 11s;
+  /* Surfaces: a running unit or role card, a pipeline chip, the ink on an agent's lit face. */
+  --pen-solid: linear-gradient(180deg, #2c2c2c, #191919);
+  --pen-chip: #1c1c1c;
+  --pen-face-ink: #111111;
+  /* Material, the same in both looks: the agents' glass orbs, the specialist's face and the
+     ink on it. The pen's nib is drawn in the page's ink. */
+  --pen-orb: radial-gradient(circle at 34% 28%, #ffffff, #b0b0b0 20%, #444444 56%, #151515 82%);
+  --pen-pen-face: radial-gradient(circle at 34% 28%, #ffffff, #d0d0d0 45%, #8c8c8c);
+  --pen-pen-ink: #111111;
+  --pen-nib: linear-gradient(45deg, #ffffff, #9a9a9a);
+}
+
+/* Light: the app's light theme. White cards and chips, a dark grid, a dark nib, and the lit
+   face mirrored (a dark disc with a white mark). */
+.ps[data-product='enterprise']:is([data-oi-theme='light'] *) {
+  --pen-solid: linear-gradient(180deg, #ffffff, #f6f6f6);
+  --pen-chip: #ffffff;
+  --pen-face-ink: #ffffff;
+  --pen-nib: linear-gradient(45deg, #1a1a1a, #8a8a8a);
+}
+
+.ps[data-product='enterprise']:is([data-oi-theme='light'] *) .pen-grid {
+  --pen-g: rgba(0, 0, 0, 0.05);
+  --pen-G: rgba(0, 0, 0, 0.09);
+}
+
+.pen-m {
+  --pen-t: calc(var(--ps-loop) * -0.86);
+}
+
+.pen-s .ps-scene {
+  --pen-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+
+  text-align: left;
+}
+
+.pen-board,
+.pen-board > * {
+  position: absolute;
+}
+
+.pen-board {
+  inset: 0;
+}
+
+.pen-board p,
+.pen-board ul {
+  margin: 0;
+  padding: 0;
+}
+
+.pen-board i {
+  font-style: normal;
+}
+
+/* The light: low over the finished work, up over the plan while it is drawn. */
+.pen-s .ps-scene::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--ps-u) * -12);
+  left: calc(var(--ps-u) * 14);
+  width: calc(var(--ps-u) * 72);
+  height: calc(var(--ps-u) * 72);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.11 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.035 * var(--oi-halo-k))) 55%,
+    transparent
+  );
+  translate: 0 calc(var(--ps-u) * 10);
+  pointer-events: none;
+}
+
+.pen-m .ps-scene::before {
+  animation: pen-lamp var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* The blueprint: a fine grid and a coarse one, strongest while the plan is drawn. */
+.pen-grid {
+  --pen-g: rgba(255, 255, 255, 0.04);
+  --pen-G: rgba(255, 255, 255, 0.075);
+  --pen-f: calc(var(--ps-u) * 2.75);
+  --pen-c: calc(var(--ps-u) * 11);
+
+  inset: 0;
+  background:
+    linear-gradient(var(--pen-G) var(--ps-line), transparent 0) calc(var(--ps-u) * 7)
+      calc(var(--ps-u) * 8) / var(--pen-c) var(--pen-c),
+    linear-gradient(90deg, var(--pen-G) var(--ps-line), transparent 0) calc(var(--ps-u) * 7)
+      calc(var(--ps-u) * 8) / var(--pen-c) var(--pen-c),
+    linear-gradient(var(--pen-g) var(--ps-line), transparent 0) calc(var(--ps-u) * 7)
+      calc(var(--ps-u) * 8) / var(--pen-f) var(--pen-f),
+    linear-gradient(90deg, var(--pen-g) var(--ps-line), transparent 0) calc(var(--ps-u) * 7)
+      calc(var(--ps-u) * 8) / var(--pen-f) var(--pen-f);
+  -webkit-mask: radial-gradient(ellipse 62% 64% at 50% 46%, #000 25%, transparent 100%);
+  mask: radial-gradient(ellipse 62% 64% at 50% 46%, #000 25%, transparent 100%);
+  opacity: 0.5;
+}
+
+.pen-m .pen-grid {
+  animation: pen-grid var(--ps-loop) ease-in-out var(--pen-t) infinite;
+}
+
+/* The bright line that follows the pen round each unit; it steps unit to unit (110 % = 22u). */
+.pen-trace {
+  top: calc(var(--ps-u) * 8);
+  left: calc(var(--ps-u) * 7);
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 18);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.9);
+  border-radius: calc(var(--u) * 1.6);
+  box-shadow:
+    0 0 calc(var(--u) * 1.6) rgba(var(--oi-fg-rgb), calc(0.28 * var(--oi-halo-k))),
+    inset 0 0 calc(var(--u) * 1.2) rgba(var(--oi-fg-rgb), calc(0.12 * var(--oi-halo-k)));
+  opacity: 0;
+  animation: pen-trace var(--ps-loop) linear var(--pen-t) infinite;
+}
+
+/* A business unit ------------------------------------------------------------------------ */
+
+.pen-unit,
+.pen-role {
+  color: var(--oi-app-muted);
+}
+
+.pen-unit {
+  top: calc(var(--ps-u) * 8);
+  left: calc(var(--ps-u) * (7 + 22 * var(--k, 0)));
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.3);
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 18);
+  padding: calc(var(--u) * 1.7) calc(var(--u) * 1.6);
+  border-radius: calc(var(--u) * 1.6);
+}
+
+.pen-unit > *,
+.pen-role > * {
+  position: relative;
+}
+
+/* ::before is the solid graphite of a running unit, ::after the dashed outline of the plan. */
+.pen-unit::before,
+.pen-unit::after,
+.pen-role::before,
+.pen-role::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.pen-unit::before,
+.pen-role::before {
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  background: var(--pen-solid);
+  box-shadow:
+    inset 0 var(--ps-line) 0 rgba(var(--oi-lift-rgb), 0.12),
+    0 calc(var(--u) * 1.2) calc(var(--u) * 3)
+      rgba(var(--oi-shadow-rgb), calc(0.55 * var(--oi-shadow-k)));
+}
+
+.pen-unit::after,
+.pen-role::after {
+  border: var(--ps-line) dashed rgba(var(--oi-fg-rgb), 0.45);
+  opacity: 0;
+}
+
+.pen-m .pen-unit::before,
+.pen-m .pen-made::before {
+  animation: pen-fill var(--ps-loop) ease calc(var(--pen-t) + var(--k, 0) * 0.15s) infinite;
+}
+
+.pen-m .pen-unit::after,
+.pen-m .pen-made::after {
+  animation: pen-dash var(--ps-loop) ease calc(var(--pen-t) + var(--k, 0) * 0.15s) infinite;
+}
+
+/* The new role turns solid at 70-73 %, 16 % after the units. */
+.pen-m .pen-made::before,
+.pen-m .pen-made::after {
+  animation-delay: calc(var(--pen-t) + 1.76s);
+}
+
+.pen-unit p {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+  color: var(--oi-app-text);
+  font-size: calc(var(--u) * 1.75);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.pen-unit p .ps-icon {
+  width: calc(var(--u) * 1.7);
+  height: calc(var(--u) * 1.7);
+  color: var(--oi-app-muted);
+}
+
+.pen-unit .ps-bars {
+  gap: calc(var(--u) * 0.7);
+}
+
+/* The agents: small lit glass orbs, the Assistant Bot's faces. */
+.pen-orbs {
+  display: flex;
+  gap: calc(var(--u) * 0.7);
+  margin-top: auto;
+}
+
+.pen-orbs i {
+  width: calc(var(--u) * 2.3);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--pen-orb);
+  box-shadow:
+    inset 0 0 0 var(--ps-line) rgba(var(--oi-fg-rgb), 0.16),
+    0 0 calc(var(--u) * 1.2) rgba(var(--oi-fg-rgb), calc(0.18 * var(--oi-halo-k)));
+}
+
+.pen-orbs i:nth-child(2) {
+  --n: 1;
+}
+
+.pen-orbs i:nth-child(3) {
+  --n: 2;
+}
+
+.pen-m .pen-orbs i {
+  animation:
+    pen-orb var(--ps-loop) var(--pen-spring) infinite,
+    pen-float var(--ps-loop) linear infinite;
+  animation-delay:
+    calc(var(--pen-t) + (var(--k, 0) * 3 + var(--n, 0)) * 40ms),
+    calc(var(--pen-t) - var(--n, 0) * 0.6s);
+}
+
+/* Support is on: its tag, and a quiet pulse around it. */
+.pen-live {
+  inset: 0;
+  border-radius: inherit;
+}
+
+.pen-live,
+.pen-live::before,
+.pen-live::after {
+  position: absolute;
+}
+
+.pen-live::before,
+.pen-live::after {
+  content: '';
+  inset: 0;
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.55);
+  border-radius: inherit;
+  opacity: 0;
+}
+
+.pen-live .ps-chip {
+  position: absolute;
+  top: calc(var(--u) * -1.1);
+  right: calc(var(--u) * 1.2);
+  font-size: calc(var(--u) * 1.6);
+}
+
+.pen-m .pen-live {
+  animation: pen-on var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+/* Two rings, half a pulse apart; every ambient loop keeps to the 11 s clock, so it costs one
+   style pass per loop instead of one per pulse. */
+.pen-m .pen-live::before,
+.pen-m .pen-live::after {
+  animation: pen-pulse var(--ps-loop) linear var(--pen-t) infinite;
+}
+
+.pen-m .pen-live::after {
+  animation-delay: calc(var(--pen-t) - 1.375s);
+}
+
+.pen-m .pen-live .ps-chip {
+  animation: pen-pop var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+/* The pipeline under the units ------------------------------------------------------------ */
+
+.pen-flow {
+  --pen-w: max(1px, calc(var(--ps-u) * 0.24));
+
+  top: calc(var(--ps-u) * 33);
+  left: calc(var(--ps-u) * 17);
+  width: calc(var(--ps-u) * 66);
+  height: 0;
+  animation: pen-flow var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-flow::before,
+.pen-flow::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--pen-w) / -2);
+}
+
+/* Its line, drawn from the left as the pen runs it. */
+.pen-flow::before {
+  top: calc(var(--pen-w) / -2);
+  width: calc(100% + var(--pen-w));
+  height: var(--pen-w);
+  background: rgba(var(--oi-fg-rgb), 0.42);
+  transform-origin: left;
+  animation: pen-line var(--ps-loop) linear var(--pen-t) infinite;
+}
+
+/* The four stems up to the units' centres (every 22u), dropped as the pen heads for the line. */
+.pen-flow::after {
+  bottom: 0;
+  width: calc(100% + var(--pen-w));
+  height: calc(var(--ps-u) * 7);
+  background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.42) var(--pen-w), transparent 0) 0 0 /
+    calc(var(--ps-u) * 22) 100%;
+  transform-origin: top;
+  animation: pen-stem var(--ps-loop) ease-out var(--pen-t) infinite;
+}
+
+.pen-flow .ps-chip {
+  position: absolute;
+  top: 0;
+  left: calc(var(--ps-u) * 11);
+  border-color: var(--oi-app-border-strong);
+  background: var(--pen-chip);
+  font-size: calc(var(--u) * 1.6);
+  translate: -50% -50%;
+  animation: pen-chip var(--ps-loop) var(--pen-spring)
+    calc(var(--pen-t) + 2.2s + var(--k, 0) * 0.2383s) infinite;
+}
+
+.pen-flow .ps-chip:nth-of-type(2) {
+  --k: 1;
+
+  left: calc(var(--ps-u) * 33);
+}
+
+.pen-flow .ps-chip:nth-of-type(3) {
+  --k: 2;
+
+  left: calc(var(--ps-u) * 55);
+}
+
+/* Each chip pops as the pen passes it (k × 2.167 % apart). Its own loop starts 20 % late, so
+   it resets while the whole flow is hidden (15-37.5 %). */
+
+/* Work on its way: dots that run the line (passing under the chips). */
+.pen-flow > i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 0.9);
+  margin: calc(var(--u) * -0.45) 0 0 calc(var(--u) * -0.45);
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 1.1) rgba(var(--oi-fg-rgb), calc(0.85 * var(--oi-halo-k)));
+  translate: calc(var(--ps-u) * 5.5) 0;
+  animation:
+    pen-go var(--ps-loop) linear var(--pen-t) infinite,
+    pen-flowon var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-flow > i:nth-child(2) {
+  translate: calc(var(--ps-u) * 22) 0;
+  animation-delay: calc(var(--pen-t) - 1.222s), var(--pen-t);
+}
+
+.pen-flow > i:nth-child(3) {
+  translate: calc(var(--ps-u) * 44) 0;
+  animation-delay: calc(var(--pen-t) - 2.444s), var(--pen-t);
+}
+
+/* Role cards ------------------------------------------------------------------------------ */
+
+.pen-role {
+  top: calc(var(--ps-u) * 38.5);
+  left: calc(var(--ps-u) * 7);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  align-items: center;
+  column-gap: calc(var(--u) * 1.5);
+  width: calc(var(--u) * 41);
+  height: calc(var(--u) * 18);
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 1.8);
+  border-radius: calc(var(--u) * 1.6);
+}
+
+/* An agent's face is lit; a person's is a dim ring. */
+.pen-face {
+  display: grid;
+  grid-row: span 3;
+  place-items: center;
+  width: calc(var(--u) * 5.6);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  color: var(--pen-face-ink);
+  box-shadow: 0 0 calc(var(--u) * 2.2) rgba(var(--oi-fg-rgb), calc(0.3 * var(--oi-halo-k)));
+}
+
+.pen-face .ps-icon {
+  grid-area: 1 / 1;
+  width: calc(var(--u) * 2.5);
+  height: calc(var(--u) * 2.5);
+}
+
+.pen-role b {
+  color: var(--oi-app-text);
+  font-size: calc(var(--u) * 1.85);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* "New role": a pill over the name. */
+.pen-m .pen-made small {
+  justify-self: start;
+  margin-bottom: calc(var(--u) * 0.5);
+  padding: calc(var(--u) * 0.2) calc(var(--u) * 0.9);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: 999px;
+  color: var(--oi-app-soft);
+  font-size: calc(var(--u) * 1.6);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Its duties: three small tiles here, rows with drawn lines in the roles cut. */
+.pen-made ul {
+  display: flex;
+  gap: calc(var(--u) * 0.6);
+  margin-top: calc(var(--u) * 0.6);
+  list-style: none;
+}
+
+.pen-made li {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 0.55);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 0.7);
+  background: var(--oi-app-fill);
+}
+
+.pen-made li .ps-icon {
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 1.5);
+}
+
+.pen-made li .ps-bars {
+  display: none;
+}
+
+.pen-m .pen-made {
+  animation: pen-made var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* Today's role, done by a person; it turns into an agent's, handed to AI. */
+.pen-hand {
+  left: calc(var(--ps-u) * 52);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  row-gap: calc(var(--u) * 0.9);
+}
+
+.pen-hand b {
+  grid-column: 2;
+  align-self: end;
+}
+
+.pen-hand .ps-bars {
+  grid-column: 2;
+  align-self: start;
+}
+
+.pen-hand::after {
+  content: none;
+}
+
+.pen-hand .pen-face {
+  grid-row: span 2;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  background: var(--oi-app-fill);
+  box-shadow: none;
+}
+
+.pen-hand .pen-face::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 2.2) rgba(var(--oi-fg-rgb), calc(0.32 * var(--oi-halo-k)));
+}
+
+.pen-hand .pen-face .ps-icon {
+  position: relative;
+}
+
+.pen-hand .pen-face .ps-icon:first-child {
+  color: var(--oi-app-soft);
+  opacity: 0;
+}
+
+.pen-hand .ps-chip {
+  grid-row: 1 / 3;
+  grid-column: 3;
+  font-size: calc(var(--u) * 1.6);
+}
+
+.pen-m .pen-hand {
+  animation: pen-hand var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* The role turns: the face narrows to an edge at 78 % and comes back as an agent's. */
+.pen-m .pen-hand .pen-face {
+  animation: pen-flip var(--ps-loop) ease-in-out var(--pen-t) infinite;
+}
+
+.pen-m .pen-hand .pen-face::before,
+.pen-m .pen-hand .pen-face .ps-icon {
+  animation: pen-now var(--ps-loop) linear var(--pen-t) infinite;
+}
+
+.pen-m .pen-hand .pen-face .ps-icon:first-child {
+  animation-name: pen-was;
+}
+
+.pen-m .pen-hand .ps-chip {
+  animation: pen-tag var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+/* The specialist: a face with a pen, its nib at the element's corner (where it draws). */
+.pen-pen {
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 3.4);
+  height: calc(var(--u) * 3.4);
+  margin: calc(var(--u) * -4.6) 0 0 calc(var(--u) * 1.2);
+  border-radius: 50%;
+  background: var(--pen-pen-face);
+  color: var(--pen-pen-ink);
+  box-shadow:
+    0 0 0 calc(var(--u) * 0.45) rgba(var(--oi-fg-rgb), 0.1),
+    0 calc(var(--u) * 0.8) calc(var(--u) * 2.4)
+      rgba(var(--oi-shadow-rgb), calc(0.6 * var(--oi-shadow-k)));
+  opacity: 0;
+  translate: calc(var(--ps-u) * 70) calc(var(--ps-u) * 58);
+  transform-origin: calc(var(--u) * -1.2) calc(var(--u) * 4.6);
+  animation: pen-pen var(--ps-loop) linear var(--pen-t) infinite;
+}
+
+.pen-pen .ps-icon {
+  width: 56%;
+  height: 56%;
+}
+
+.pen-pen::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--u) * 1.9);
+  left: calc(var(--u) * -1.2);
+  width: calc(var(--u) * 2.7);
+  height: calc(var(--u) * 2.7);
+  background: var(--pen-nib);
+  clip-path: polygon(0 100%, 42% 0, 100% 58%);
+}
+
+/* Hero: the same story, larger and deeper -------------------------------------------------- */
+
+.pen-s[data-cut='hero'] {
+  --pen-t: calc(var(--ps-loop) * -0.7);
+}
+
+.pen-s[data-cut='hero'] .ps-scene {
+  perspective: calc(var(--ps-u) * 150);
+}
+
+.pen-s[data-cut='hero'] .ps-scene::before {
+  top: calc(var(--ps-u) * -22);
+  left: calc(var(--ps-u) * 4);
+  width: calc(var(--ps-u) * 92);
+  height: calc(var(--ps-u) * 92);
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.15 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.045 * var(--oi-halo-k))) 55%,
+    transparent
+  );
+}
+
+.pen-s[data-cut='hero'] .pen-board {
+  transform: rotateX(14deg) scale(0.92);
+  transform-origin: 50% 62%;
+  transform-style: preserve-3d;
+  animation: pen-sway var(--ps-loop) ease-in-out var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='hero'] .pen-grid {
+  inset: calc(var(--ps-u) * -14) calc(var(--ps-u) * -10);
+  -webkit-mask-image: radial-gradient(ellipse 58% 60% at 50% 48%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 58% 60% at 50% 48%, #000 30%, transparent 100%);
+}
+
+.pen-s[data-cut='hero'] .pen-trace,
+.pen-s[data-cut='hero'] .pen-unit,
+.pen-s[data-cut='hero'] .pen-flow {
+  transform: translateZ(calc(var(--ps-u) * 3));
+}
+
+.pen-s[data-cut='hero'] .pen-role {
+  transform: translateZ(calc(var(--ps-u) * 5));
+}
+
+.pen-s[data-cut='hero'] .pen-pen {
+  transform: translateZ(calc(var(--ps-u) * 9));
+}
+
+.pen-s[data-cut='hero'] .pen-unit::before,
+.pen-s[data-cut='hero'] .pen-role::before {
+  box-shadow:
+    inset 0 var(--ps-line) 0 rgba(var(--oi-lift-rgb), 0.14),
+    0 calc(var(--u) * 2.4) calc(var(--u) * 5)
+      rgba(var(--oi-shadow-rgb), calc(0.7 * var(--oi-shadow-k)));
+}
+
+/* Narrow cards (the phone menu, the hero on a phone): fewer words, none under 9px ---------- */
+
+@container ps (max-width: 480px) {
+  .pen-m .pen-unit {
+    gap: calc(var(--u) * 1);
+    padding: calc(var(--u) * 3.3) calc(var(--u) * 1) calc(var(--u) * 1.7);
+  }
+
+  .pen-m .pen-unit p {
+    font-size: max(9px, calc(var(--u) * 3));
+    letter-spacing: -0.02em;
+  }
+
+  .pen-m .pen-unit p .ps-icon,
+  .pen-m .pen-unit .ps-bars,
+  .pen-m .pen-made ul,
+  .pen-m .pen-hand .ps-bars {
+    display: none;
+  }
+
+  .pen-m .pen-orbs i {
+    width: calc(var(--u) * 3.2);
+  }
+
+  .pen-m .pen-flow {
+    --pen-w: max(1px, calc(var(--ps-u) * 0.36));
+  }
+
+  /* The tag sits on the unit's top edge, over its name. */
+  .pen-m .pen-live .ps-chip {
+    top: 0;
+    right: 50%;
+    font-size: max(9px, calc(var(--u) * 2.1));
+    translate: 50% -50%;
+  }
+
+  .pen-m .pen-flow .ps-chip {
+    padding: calc(var(--u) * 0.5) calc(var(--u) * 1.3);
+    font-size: max(9px, calc(var(--u) * 2.3));
+  }
+
+  .pen-m .pen-flow > i {
+    width: calc(var(--u) * 1.5);
+    height: calc(var(--u) * 1.5);
+    margin: calc(var(--u) * -0.75) 0 0 calc(var(--u) * -0.75);
+  }
+
+  .pen-m .pen-role {
+    column-gap: calc(var(--u) * 1.2);
+    padding: calc(var(--u) * 1.2);
+  }
+
+  .pen-m .pen-face {
+    width: calc(var(--u) * 5.4);
+  }
+
+  .pen-m .pen-face .ps-icon {
+    width: calc(var(--u) * 2.8);
+    height: calc(var(--u) * 2.8);
+  }
+
+  .pen-m .pen-made small {
+    padding: calc(var(--u) * 0.3) calc(var(--u) * 1.1);
+    font-size: max(9px, calc(var(--u) * 2.1));
+  }
+
+  .pen-m .pen-role b {
+    font-size: max(9px, calc(var(--u) * 2.9));
+  }
+
+  .pen-m .pen-hand .ps-chip {
+    grid-row: 2;
+    grid-column: 2;
+    justify-self: start;
+    font-size: max(9px, calc(var(--u) * 2.1));
+  }
+
+  .pen-m .pen-pen {
+    --u: calc(var(--ps-u) * 1.5);
+  }
+}
+
+/* The clock -------------------------------------------------------------------------------- */
+
+@keyframes pen-lamp {
+  0%,
+  12% {
+    translate: 0 13.9%;
+  }
+  24%,
+  42% {
+    translate: 0 0;
+  }
+  60%,
+  100% {
+    translate: 0 13.9%;
+  }
+}
+
+@keyframes pen-grid {
+  0%,
+  13% {
+    opacity: 0.5;
+  }
+  18%,
+  48% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* Unit k is gone round over 17.5 + 5.2k to 21.9 + 5.2k %: its line is half lit after the first
+   side, full by the last, and fades as the pen moves on. */
+@keyframes pen-trace {
+  0%,
+  17.5% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  18.6% {
+    opacity: 0.5;
+    translate: 0 0;
+  }
+  21.9% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  22.7% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  22.71% {
+    opacity: 0;
+    translate: 110% 0;
+  }
+  23.8% {
+    opacity: 0.5;
+    translate: 110% 0;
+  }
+  27.1% {
+    opacity: 1;
+    translate: 110% 0;
+  }
+  27.9% {
+    opacity: 0;
+    translate: 110% 0;
+  }
+  27.91% {
+    opacity: 0;
+    translate: 220% 0;
+  }
+  29% {
+    opacity: 0.5;
+    translate: 220% 0;
+  }
+  32.3% {
+    opacity: 1;
+    translate: 220% 0;
+  }
+  33.1% {
+    opacity: 0;
+    translate: 220% 0;
+  }
+  33.11% {
+    opacity: 0;
+    translate: 330% 0;
+  }
+  34.2% {
+    opacity: 0.5;
+    translate: 330% 0;
+  }
+  37.5% {
+    opacity: 1;
+    translate: 330% 0;
+  }
+  38.5%,
+  100% {
+    opacity: 0;
+    translate: 330% 0;
+  }
+}
+
+@keyframes pen-fill {
+  0%,
+  12% {
+    opacity: 1;
+  }
+  15%,
+  54% {
+    opacity: 0;
+  }
+  57%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-dash {
+  0%,
+  12% {
+    opacity: 0;
+  }
+  15%,
+  54% {
+    opacity: 1;
+  }
+  57%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The whole flow fades as the story winds back and stays hidden while its parts reset. */
+@keyframes pen-flow {
+  0%,
+  12.5% {
+    opacity: 1;
+  }
+  15%,
+  37.5% {
+    opacity: 0;
+  }
+  37.7%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-stem {
+  0%,
+  15% {
+    scale: 1 1;
+  }
+  15.1%,
+  37.8% {
+    scale: 1 0;
+  }
+  39.2%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes pen-line {
+  0%,
+  15% {
+    scale: 1 1;
+  }
+  15.1%,
+  39.5% {
+    scale: 0 1;
+  }
+  46%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* On the chip's own loop (20 % late): hidden from its reset to 20.6 %, in by 22 %. */
+@keyframes pen-chip {
+  0%,
+  20.6% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  22%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-orb {
+  0%,
+  12% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+  14.5%,
+  46% {
+    opacity: 0;
+    scale: 0.2;
+    translate: 0 -130%;
+  }
+  50%,
+  100% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+/* Six slow bobs a loop. */
+@keyframes pen-float {
+  0%,
+  16.67%,
+  33.33%,
+  50%,
+  66.67%,
+  83.33%,
+  100% {
+    transform: none;
+    animation-timing-function: ease-in-out;
+  }
+  8.33%,
+  25%,
+  41.67%,
+  58.33%,
+  75%,
+  91.67% {
+    transform: translateY(-15.2%);
+    animation-timing-function: ease-in-out;
+  }
+}
+
+@keyframes pen-flowon {
+  0%,
+  12% {
+    opacity: 1;
+  }
+  14%,
+  49% {
+    opacity: 0;
+  }
+  52%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Three runs of the line a loop, each dot a third of a run apart. */
+@keyframes pen-go {
+  0% {
+    translate: 0 0;
+    scale: 0;
+  }
+  2.67%,
+  30.67% {
+    scale: 1;
+  }
+  33.32% {
+    translate: calc(var(--ps-u) * 66) 0;
+    scale: 0;
+  }
+  33.33% {
+    translate: 0 0;
+    scale: 0;
+  }
+  36%,
+  64% {
+    scale: 1;
+  }
+  66.66% {
+    translate: calc(var(--ps-u) * 66) 0;
+    scale: 0;
+  }
+  66.67% {
+    translate: 0 0;
+    scale: 0;
+  }
+  69.34%,
+  97.34% {
+    scale: 1;
+  }
+  100% {
+    translate: calc(var(--ps-u) * 66) 0;
+    scale: 0;
+  }
+}
+
+/* Four pulses a loop: each ring flares out and fades, then starts again. */
+@keyframes pen-pulse {
+  0%,
+  25%,
+  50%,
+  75% {
+    opacity: 0.7;
+    scale: 1;
+    animation-timing-function: ease-out;
+  }
+  24.99%,
+  49.99%,
+  74.99%,
+  100% {
+    opacity: 0;
+    scale: 1.1 1.14;
+  }
+}
+
+@keyframes pen-on {
+  0%,
+  12% {
+    opacity: 1;
+  }
+  14%,
+  60% {
+    opacity: 0;
+  }
+  62%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-pop {
+  0%,
+  12% {
+    scale: 1;
+  }
+  14%,
+  60% {
+    scale: 0.6;
+  }
+  63%,
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pen-made {
+  0%,
+  12.5% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  15.5%,
+  63% {
+    opacity: 0;
+    translate: -7% 0;
+  }
+  68%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes pen-hand {
+  0%,
+  12.5% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  15.5%,
+  41% {
+    opacity: 0;
+    translate: 0 11%;
+  }
+  45%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes pen-flip {
+  0%,
+  76% {
+    scale: 1 1;
+  }
+  78% {
+    scale: 0 1;
+  }
+  80%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* The role is a person's again while it is hidden (15.6 %), an agent's from 78 %. */
+@keyframes pen-was {
+  0%,
+  15.5% {
+    opacity: 0;
+  }
+  15.6%,
+  77.9% {
+    opacity: 1;
+  }
+  78%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pen-now {
+  0%,
+  15.5% {
+    opacity: 1;
+  }
+  15.6%,
+  77.9% {
+    opacity: 0;
+  }
+  78%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-tag {
+  0%,
+  12% {
+    opacity: 1;
+    scale: 1;
+  }
+  14.5%,
+  80% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  83%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* The pen: in at 16 %, round each unit (top, right, bottom, left), down the first stem and along
+   the pipeline, then to the person's role, which it taps at 76 %, and away by 84 %. */
+@keyframes pen-pen {
+  0%,
+  16% {
+    opacity: 0;
+    translate: calc(var(--ps-u) * 40) calc(var(--ps-u) * 50);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  17% {
+    opacity: 1;
+  }
+  17.5% {
+    translate: calc(var(--ps-u) * 7) calc(var(--ps-u) * 8);
+  }
+  18.6% {
+    translate: calc(var(--ps-u) * 27) calc(var(--ps-u) * 8);
+  }
+  19.7% {
+    translate: calc(var(--ps-u) * 27) calc(var(--ps-u) * 26);
+  }
+  20.8% {
+    translate: calc(var(--ps-u) * 7) calc(var(--ps-u) * 26);
+  }
+  21.9% {
+    translate: calc(var(--ps-u) * 7) calc(var(--ps-u) * 8);
+    animation-timing-function: ease-in-out;
+  }
+  22.7% {
+    translate: calc(var(--ps-u) * 29) calc(var(--ps-u) * 8);
+  }
+  23.8% {
+    translate: calc(var(--ps-u) * 49) calc(var(--ps-u) * 8);
+  }
+  24.9% {
+    translate: calc(var(--ps-u) * 49) calc(var(--ps-u) * 26);
+  }
+  26% {
+    translate: calc(var(--ps-u) * 29) calc(var(--ps-u) * 26);
+  }
+  27.1% {
+    translate: calc(var(--ps-u) * 29) calc(var(--ps-u) * 8);
+    animation-timing-function: ease-in-out;
+  }
+  27.9% {
+    translate: calc(var(--ps-u) * 51) calc(var(--ps-u) * 8);
+  }
+  29% {
+    translate: calc(var(--ps-u) * 71) calc(var(--ps-u) * 8);
+  }
+  30.1% {
+    translate: calc(var(--ps-u) * 71) calc(var(--ps-u) * 26);
+  }
+  31.2% {
+    translate: calc(var(--ps-u) * 51) calc(var(--ps-u) * 26);
+  }
+  32.3% {
+    translate: calc(var(--ps-u) * 51) calc(var(--ps-u) * 8);
+    animation-timing-function: ease-in-out;
+  }
+  33.1% {
+    translate: calc(var(--ps-u) * 73) calc(var(--ps-u) * 8);
+  }
+  34.2% {
+    translate: calc(var(--ps-u) * 93) calc(var(--ps-u) * 8);
+  }
+  35.3% {
+    translate: calc(var(--ps-u) * 93) calc(var(--ps-u) * 26);
+  }
+  36.4% {
+    translate: calc(var(--ps-u) * 73) calc(var(--ps-u) * 26);
+  }
+  37.5% {
+    translate: calc(var(--ps-u) * 73) calc(var(--ps-u) * 8);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  39% {
+    translate: calc(var(--ps-u) * 17) calc(var(--ps-u) * 26);
+  }
+  39.5% {
+    translate: calc(var(--ps-u) * 17) calc(var(--ps-u) * 33);
+  }
+  46% {
+    translate: calc(var(--ps-u) * 83) calc(var(--ps-u) * 33);
+  }
+  46.5% {
+    translate: calc(var(--ps-u) * 83) calc(var(--ps-u) * 26);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  52% {
+    translate: calc(var(--ps-u) * 48) calc(var(--ps-u) * 52);
+    animation-timing-function: ease-in-out;
+  }
+  62% {
+    translate: calc(var(--ps-u) * 47) calc(var(--ps-u) * 50);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  75% {
+    scale: 1;
+    translate: calc(var(--ps-u) * 56.8) calc(var(--ps-u) * 47.5);
+  }
+  76% {
+    scale: 0.8;
+  }
+  77.5% {
+    scale: 1;
+    opacity: 1;
+    translate: calc(var(--ps-u) * 56.8) calc(var(--ps-u) * 47.5);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  84%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--ps-u) * 70) calc(var(--ps-u) * 58);
+  }
+}
+
+@keyframes pen-sway {
+  0%,
+  100% {
+    transform: rotateX(15deg) rotateY(-3deg) scale(0.92);
+  }
+  50% {
+    transform: rotateX(12deg) rotateY(3deg) scale(0.92);
+  }
+}

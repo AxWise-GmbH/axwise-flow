@@ -1,0 +1,1231 @@
+/*
+ * The window banner: Orqanix for Mac, one app window. The story, in % of the shared loop:
+ *   0-6    New Chat lights, the Apple silicon chip catches the light
+ *   4-19   the ask is typed into a draft bubble
+ *   20-25  sent: the bubble fills, the send button flashes, the chat joins Recent
+ *   24-32  two reply lines rise
+ *   30-75  the roadmap ticks off five steps (36, 45, 54, 63, 72) and the bar fills with them
+ *   40-71  a file lands after each of the first four steps
+ *   76-87  all done: a light passes over the Workspace
+ *   92-97  what landed fades out; 97-100 the empty window, ready to start again
+ * The plain styles are the finished frame.
+ */
+
+.nb-window-app {
+  /* Restated where --u exists: on .nb it cannot resolve, and the shared borders and the
+     caret need it. */
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+  --nb-window-row: calc(var(--u) * 3.5);
+  --nb-window-file: calc(var(--u) * 4.3);
+  /* The send button at rest (disc, arrow) and its arrow when it flashes; a file's tile; the
+     draft bubble (the sent bubble's colour, still clear); the live dot's glow. */
+  --nb-window-send-bg: #3d3d3d;
+  --nb-window-send-ink: #d0d0d0;
+  --nb-window-send-on: #111111;
+  --nb-window-tile: #303030;
+  --nb-window-draft: rgba(50, 50, 50, 0);
+  --nb-window-glow: rgba(var(--oi-fg-rgb), 0.6);
+
+  top: calc(var(--u) * 4.6);
+  left: calc(var(--u) * 8);
+  display: grid;
+  grid-template-columns: calc(var(--u) * 13.5) minmax(0, 1fr) calc(var(--u) * 39);
+  grid-template-rows: calc(var(--u) * 2.6) minmax(0, 1fr);
+  width: calc(var(--u) * 84);
+  height: calc(var(--u) * 34.5);
+  transform: perspective(calc(var(--u) * 160)) rotateX(0.8deg) rotateY(-0.6deg) translateY(0);
+  animation: nb-window-drift var(--nb-loop) linear infinite;
+}
+
+/* Light: the app's light theme; the live dot keeps a faint glow, not a dark smudge. */
+[data-oi-theme='light'] .nb-window-app {
+  --nb-window-send-bg: #e4e4e4;
+  --nb-window-send-ink: #5c5c5c;
+  --nb-window-send-on: #ffffff;
+  --nb-window-tile: #f0f0f0;
+  --nb-window-draft: rgba(235, 235, 235, 0);
+  --nb-window-glow: rgba(var(--oi-fg-rgb), 0.18);
+}
+
+.nb-window-app ol,
+.nb-window-app ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nb-window-app .nb-icon {
+  flex: none;
+  width: calc(var(--u) * 1.15);
+  height: calc(var(--u) * 1.15);
+}
+
+/* Title bar ------------------------------------------------------------------------------ */
+
+.nb-window-top {
+  grid-column: 1 / -1;
+}
+
+.nb-window-chip {
+  position: relative;
+  overflow: hidden;
+  margin-left: auto;
+  padding-block: calc(var(--u) * 0.25);
+  font-size: calc(var(--u) * 0.85);
+}
+
+.nb-window-chip .nb-icon {
+  width: calc(var(--u) * 1.05);
+  height: calc(var(--u) * 1.05);
+  color: var(--nb-muted);
+}
+
+.nb-window-chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(var(--oi-fg-rgb), 0.3),
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: nb-window-shine var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Light: the band is a soft sheen on white, not a grey smear. */
+[data-oi-theme='light'] .nb-window-chip::after {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(var(--oi-fg-rgb), 0.1),
+    transparent 70%
+  );
+}
+
+/* Sidebar: scenery, with the new chat joining Recent ---------------------------------- */
+
+.nb-window-side {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.2);
+  min-width: 0;
+  margin: calc(var(--u) * 0.8) 0 calc(var(--u) * 0.8) calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 0.7);
+  border: 1px solid var(--nb-line);
+  border-radius: calc(var(--u) * 1);
+  background: rgba(var(--oi-shadow-rgb), calc(0.2 * var(--oi-shadow-k)));
+  font-size: calc(var(--u) * 1);
+  white-space: nowrap;
+}
+
+.nb-window-side-new,
+.nb-window-side-row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--u) * 0.6);
+  height: calc(var(--u) * 2.2);
+  padding: 0 calc(var(--u) * 0.6);
+  border-radius: calc(var(--u) * 0.6);
+}
+
+.nb-window-side-new {
+  color: var(--nb-ink);
+  animation: nb-window-press var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-side-label {
+  margin-top: calc(var(--u) * 1);
+  padding: 0 calc(var(--u) * 0.6) calc(var(--u) * 0.2);
+  color: var(--nb-muted);
+  font-size: calc(var(--u) * 0.8);
+  letter-spacing: 0.06em;
+}
+
+.nb-window-side-row > i {
+  height: calc(var(--u) * 0.5);
+  border-radius: calc(var(--u) * 5);
+  background: rgba(var(--oi-fg-rgb), 0.13);
+}
+
+.nb-window-side-active {
+  background: rgba(var(--oi-fg-rgb), 0.1);
+  animation: nb-window-join var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-side-active > i {
+  background: rgba(var(--oi-fg-rgb), 0.45);
+}
+
+/* Chat ---------------------------------------------------------------------------------- */
+
+.nb-window-chat {
+  grid-row: 2;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: calc(var(--u) * 1.4) calc(var(--u) * 2.2);
+}
+
+/* The ask: a draft outline while it is typed, a filled bubble once sent. A hidden copy of
+   the words holds the bubble's size, so only the colours change. */
+.nb-window-ask {
+  display: inline-grid;
+  align-self: flex-end;
+  margin-top: auto;
+  padding: calc(var(--u) * 0.85) calc(var(--u) * 1.3);
+  border-color: rgba(var(--oi-fg-rgb), 0.08);
+  border-radius: calc(var(--u) * 1.2) calc(var(--u) * 1.2) calc(var(--u) * 0.35)
+    calc(var(--u) * 1.2);
+  background: var(--nb-bubble);
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.4);
+  transform-origin: right bottom;
+  animation: nb-window-ask var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-ghost,
+.nb-window-typed {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.nb-window-ghost {
+  visibility: hidden;
+}
+
+.nb-window-typed .nb-type {
+  animation: nb-window-type var(--nb-loop) linear infinite;
+}
+
+.nb-window-caret {
+  display: inline-block;
+  opacity: 0;
+  animation: nb-window-caret var(--nb-loop) linear infinite;
+}
+
+.nb-window-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--u) * 1.1);
+  width: 88%;
+  margin: calc(var(--u) * 2.2) 0 auto;
+}
+
+.nb-window-avatar {
+  --nb-window-from: 0.6;
+
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--u) * 2.5);
+  height: calc(var(--u) * 2.5);
+  border: 1px solid var(--nb-line-strong);
+  border-radius: 50%;
+  color: var(--nb-ink);
+  animation: nb-window-rise-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-app .nb-window-avatar .nb-icon {
+  width: 60%;
+  height: 60%;
+}
+
+.nb-window-lines {
+  display: grid;
+  flex: 1;
+  gap: calc(var(--u) * 1);
+  padding-top: calc(var(--u) * 0.6);
+}
+
+.nb-window-lines > i {
+  --nb-window-from: 0.3 1;
+
+  height: calc(var(--u) * 0.7);
+  border-radius: calc(var(--u) * 5);
+  background: rgba(var(--oi-fg-rgb), 0.32);
+  transform-origin: left center;
+  animation: nb-window-rise-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-lines > i:last-child {
+  width: 62%;
+  animation-name: nb-window-rise-2;
+}
+
+.nb-window-composer {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  justify-content: space-between;
+  flex: none;
+  height: calc(var(--u) * 4.2);
+  padding: 0 calc(var(--u) * 0.8) 0 calc(var(--u) * 1.3);
+  border: 1px solid var(--nb-line);
+  border-radius: calc(var(--u) * 1.4);
+  background: var(--nb-panel-2);
+}
+
+.nb-window-composer > i {
+  width: 38%;
+  height: calc(var(--u) * 0.55);
+  border-radius: calc(var(--u) * 5);
+  background: rgba(var(--oi-fg-rgb), 0.12);
+}
+
+.nb-window-send {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 2.4);
+  height: calc(var(--u) * 2.4);
+  border-radius: 50%;
+  background: var(--nb-window-send-bg);
+  color: var(--nb-window-send-ink);
+  animation: nb-window-send var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Workspace ------------------------------------------------------------------------------ */
+
+.nb-window-ws {
+  grid-row: 2;
+  grid-column: 3;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  margin: calc(var(--u) * 0.8) calc(var(--u) * 0.8) calc(var(--u) * 0.8) 0;
+  border: 1px solid var(--nb-line);
+  border-radius: calc(var(--u) * 1);
+  background: rgba(var(--oi-shadow-rgb), calc(0.2 * var(--oi-shadow-k)));
+}
+
+.nb-window-ws-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(var(--u) * 2.8);
+  padding: 0 calc(var(--u) * 1.1) 0 calc(var(--u) * 1.3);
+  border-bottom: 1px solid var(--nb-line);
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.05);
+  font-weight: 500;
+}
+
+.nb-window-ws-head .nb-icon {
+  color: var(--nb-muted);
+}
+
+.nb-window-ws-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  min-height: 0;
+  padding: calc(var(--u) * 1.1);
+}
+
+/* The live dot and the bar that fills as the steps are done. */
+.nb-window-status {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1);
+  border-radius: calc(var(--u) * 0.8);
+  background: rgba(var(--oi-fg-rgb), 0.055);
+}
+
+.nb-window-live {
+  position: relative;
+  flex: none;
+  width: calc(var(--u) * 0.7);
+  height: calc(var(--u) * 0.7);
+  border-radius: 50%;
+  background: var(--nb-accent);
+  box-shadow: 0 0 calc(var(--u) * 0.8) var(--nb-window-glow);
+  animation: nb-window-live var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* A ring leaves the dot each time a step is done. */
+.nb-window-live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--nb-accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: nb-window-ping var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-track {
+  position: relative;
+  flex: 1;
+  height: calc(var(--u) * 0.45);
+  overflow: hidden;
+  border-radius: calc(var(--u) * 5);
+  background: rgba(var(--oi-fg-rgb), 0.13);
+}
+
+.nb-window-track > i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--nb-accent);
+  transform-origin: left center;
+  animation: nb-window-fill var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-cards {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--u) * 0.9);
+  min-height: 0;
+}
+
+.nb-window-card {
+  min-width: 0;
+  padding: calc(var(--u) * 1) calc(var(--u) * 1) calc(var(--u) * 0.6);
+  border: 1px solid var(--nb-line);
+  border-radius: calc(var(--u) * 0.8);
+  background: var(--nb-panel-2);
+}
+
+.nb-window-label {
+  display: block;
+  margin-bottom: calc(var(--u) * 0.5);
+  color: var(--nb-muted);
+  font-size: calc(var(--u) * 0.8);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Roadmap: a hollow ring per step; a highlight walks down the list, and each step it leaves
+   gets a tick and a brighter line. */
+.nb-window-roadmap {
+  position: relative;
+}
+
+.nb-window-cursor {
+  position: absolute;
+  top: 0;
+  right: calc(var(--u) * -0.5);
+  left: calc(var(--u) * -0.5);
+  height: var(--nb-window-row);
+  border-radius: calc(var(--u) * 0.6);
+  background: rgba(var(--oi-fg-rgb), 0.07);
+  opacity: 0;
+  animation: nb-window-cursor var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The ring of the step in progress, carried by the highlight. */
+.nb-window-cursor::before {
+  content: '';
+  position: absolute;
+  top: calc((var(--nb-window-row) - var(--u) * 1.3) / 2);
+  left: calc(var(--u) * 0.5);
+  width: calc(var(--u) * 1.3);
+  height: calc(var(--u) * 1.3);
+  box-sizing: border-box;
+  border: calc(var(--u) * 0.2) solid var(--nb-ink);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--nb-ink) 0 28%, transparent 32%);
+}
+
+.nb-window-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: calc(var(--u) * 1.3) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+  height: var(--nb-window-row);
+}
+
+/* The line between two rings. */
+.nb-window-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(50% + var(--u) * 0.85);
+  bottom: calc(var(--u) * 0.85 - 50%);
+  left: calc(var(--u) * 0.65);
+  width: 1px;
+  background: var(--nb-line);
+}
+
+.nb-window-ring,
+.nb-window-done {
+  grid-area: 1 / 1;
+}
+
+.nb-window-ring {
+  width: calc(var(--u) * 1.3);
+  height: calc(var(--u) * 1.3);
+  box-sizing: border-box;
+  border: 1px solid var(--nb-line-strong);
+  border-radius: 50%;
+}
+
+.nb-window-step-bar {
+  grid-area: 1 / 2;
+  height: calc(var(--u) * 0.55);
+  border-radius: calc(var(--u) * 5);
+  background: rgba(var(--oi-fg-rgb), 0.12);
+}
+
+.nb-window-done {
+  --nb-window-from: 0.2;
+
+  animation: nb-window-step-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-step-lit {
+  --nb-window-from: 0 1;
+
+  background: rgba(var(--oi-fg-rgb), 0.5);
+  transform-origin: left center;
+  animation: nb-window-step-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-step:nth-child(2) > :is(.nb-window-done, .nb-window-step-lit) {
+  animation-name: nb-window-step-2;
+}
+
+.nb-window-step:nth-child(3) > :is(.nb-window-done, .nb-window-step-lit) {
+  animation-name: nb-window-step-3;
+}
+
+.nb-window-step:nth-child(4) > :is(.nb-window-done, .nb-window-step-lit) {
+  animation-name: nb-window-step-4;
+}
+
+.nb-window-step:nth-child(5) > :is(.nb-window-done, .nb-window-step-lit) {
+  animation-name: nb-window-step-5;
+}
+
+/* Files: dashed slots wait; each file slides into its slot when its step is done. */
+.nb-window-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--nb-window-file);
+}
+
+.nb-window-slot::before {
+  content: '';
+  position: absolute;
+  top: calc(50% - var(--u) * 1);
+  left: calc(var(--u) * 0.4);
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 2);
+  box-sizing: border-box;
+  border: 1px dashed rgba(var(--oi-fg-rgb), 0.22);
+  border-radius: calc(var(--u) * 0.5);
+}
+
+.nb-window-slot .nb-file {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  padding: calc(var(--u) * 0.35) calc(var(--u) * 0.4);
+  border-radius: calc(var(--u) * 0.6);
+  font-size: calc(var(--u) * 1.1);
+  white-space: nowrap;
+  animation: nb-window-file-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-window-slot:nth-child(2) .nb-file {
+  animation-name: nb-window-file-2;
+}
+
+.nb-window-slot:nth-child(3) .nb-file {
+  animation-name: nb-window-file-3;
+}
+
+.nb-window-slot:nth-child(4) .nb-file {
+  animation-name: nb-window-file-4;
+}
+
+.nb-window-slot .nb-file-icon {
+  box-sizing: border-box;
+  background: var(--nb-window-tile);
+  color: var(--nb-ink);
+}
+
+/* The light that passes once everything is done. */
+.nb-window-glint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(var(--oi-fg-rgb), 0.11),
+      transparent 60%
+    )
+    100% 0 / 300% 100% no-repeat;
+  pointer-events: none;
+  animation: nb-window-glint var(--nb-loop) linear infinite;
+}
+
+[data-oi-theme='light'] .nb-window-glint {
+  background-image: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(var(--oi-fg-rgb), 0.05),
+    transparent 60%
+  );
+}
+
+/* Phone: no sidebar; the chat on top and the Workspace under it, full width. -------------- */
+
+@container nb (max-width: 600px) {
+  .nb-window-app {
+    --nb-window-row: calc(var(--u) * 3.8);
+    --nb-window-file: calc(var(--u) * 4.6);
+
+    top: calc(var(--u) * 2.4);
+    left: calc(var(--u) * 2.2);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: calc(var(--u) * 2.6) auto minmax(0, 1fr);
+    width: calc(100% - var(--u) * 4.4);
+    height: calc(100% - var(--u) * 4.8);
+  }
+
+  .nb-window-side,
+  .nb-window-composer {
+    display: none;
+  }
+
+  .nb-window-chat {
+    grid-column: 1;
+    padding: calc(var(--u) * 1.6) calc(var(--u) * 1.6) calc(var(--u) * 0.6);
+  }
+
+  .nb-window-ask {
+    font-size: calc(var(--u) * 1.3);
+  }
+
+  .nb-window-reply {
+    width: 86%;
+    margin-top: calc(var(--u) * 1.4);
+  }
+
+  .nb-window-ws {
+    grid-row: 3;
+    grid-column: 1;
+    margin: calc(var(--u) * 0.8);
+  }
+}
+
+/* Keyframes -------------------------------------------------------------------------------- */
+
+/* One slow breath of drift and tilt per loop (a sine in eight steps). */
+@keyframes nb-window-drift {
+  0%,
+  100% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(0.8deg) rotateY(-1.6deg) translateY(0);
+  }
+  12.5% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(1.15deg) rotateY(-1.3deg)
+      translateY(calc(var(--u) * -0.28));
+  }
+  25% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(1.3deg) rotateY(-0.6deg)
+      translateY(calc(var(--u) * -0.4));
+  }
+  37.5% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(1.15deg) rotateY(0.1deg)
+      translateY(calc(var(--u) * -0.28));
+  }
+  50% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(0.8deg) rotateY(0.4deg) translateY(0);
+  }
+  62.5% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(0.45deg) rotateY(0.1deg)
+      translateY(calc(var(--u) * 0.28));
+  }
+  75% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(0.3deg) rotateY(-0.6deg)
+      translateY(calc(var(--u) * 0.4));
+  }
+  87.5% {
+    transform: perspective(calc(var(--u) * 160)) rotateX(0.45deg) rotateY(-1.3deg)
+      translateY(calc(var(--u) * 0.28));
+  }
+}
+
+@keyframes nb-window-shine {
+  0%,
+  1% {
+    transform: translateX(-120%);
+  }
+  8%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes nb-window-press {
+  0%,
+  6%,
+  100% {
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  2% {
+    background-color: rgba(var(--oi-fg-rgb), 0.12);
+  }
+}
+
+@keyframes nb-window-join {
+  0%,
+  21% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * -0.8);
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  25%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    background-color: rgba(var(--oi-fg-rgb), 0.1);
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+    background-color: rgba(var(--oi-fg-rgb), 0.1);
+  }
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * -0.8);
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+@keyframes nb-window-ask {
+  0% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 0.6);
+    scale: 1;
+    border-color: var(--nb-line-strong);
+    background-color: var(--nb-window-draft);
+  }
+  3% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  20.5% {
+    scale: 1;
+    border-color: var(--nb-line-strong);
+    background-color: var(--nb-window-draft);
+  }
+  22% {
+    scale: 0.97;
+  }
+  25% {
+    scale: 1;
+    border-color: rgba(var(--oi-fg-rgb), 0.08);
+    background-color: var(--nb-bubble);
+  }
+  92% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+    border-color: rgba(var(--oi-fg-rgb), 0.08);
+    background-color: var(--nb-bubble);
+  }
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 0.6);
+    border-color: var(--nb-line-strong);
+    background-color: var(--nb-window-draft);
+  }
+}
+
+/* 28 characters, one step each. */
+@keyframes nb-window-type {
+  0%,
+  4% {
+    max-width: 0;
+    animation-timing-function: steps(28, end);
+  }
+  19%,
+  96% {
+    max-width: calc(var(--n) * var(--nb-ch));
+  }
+  97%,
+  100% {
+    max-width: 0;
+  }
+}
+
+@keyframes nb-window-caret {
+  0%,
+  21%,
+  100% {
+    opacity: 0;
+  }
+  2%,
+  20% {
+    opacity: 1;
+  }
+}
+
+@keyframes nb-window-send {
+  0%,
+  19.5%,
+  26%,
+  100% {
+    scale: 1;
+    background-color: var(--nb-window-send-bg);
+    color: var(--nb-window-send-ink);
+  }
+  21% {
+    scale: 1.12;
+    background-color: var(--nb-accent);
+    color: var(--nb-window-send-on);
+  }
+}
+
+@keyframes nb-window-rise-1 {
+  0%,
+  24% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+    scale: var(--nb-window-from, 1);
+  }
+  29%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+    scale: var(--nb-window-from, 1);
+  }
+}
+
+@keyframes nb-window-rise-2 {
+  0%,
+  27% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+    scale: var(--nb-window-from, 1);
+  }
+  32%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1.2);
+    scale: var(--nb-window-from, 1);
+  }
+}
+
+@keyframes nb-window-live {
+  0%,
+  25%,
+  100% {
+    background-color: var(--nb-faint);
+    box-shadow: 0 0 0 rgba(var(--oi-fg-rgb), 0);
+  }
+  28%,
+  92% {
+    background-color: var(--nb-accent);
+    box-shadow: 0 0 calc(var(--u) * 0.8) var(--nb-window-glow);
+  }
+}
+
+/* A ring at 39, 48, 57, 66 and 75: each time a step is done. */
+@keyframes nb-window-ping {
+  0%,
+  38.9%,
+  44.1%,
+  47.9%,
+  53.1%,
+  56.9%,
+  62.1%,
+  65.9%,
+  71.1%,
+  74.9%,
+  80.1%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+  39%,
+  48%,
+  57%,
+  66%,
+  75% {
+    opacity: 0.7;
+    scale: 1;
+  }
+  44%,
+  53%,
+  62%,
+  71%,
+  80% {
+    opacity: 0;
+    scale: 3;
+  }
+}
+
+/* The bar creeps while a step runs and jumps a fifth when it is done. */
+@keyframes nb-window-fill {
+  0% {
+    opacity: 0;
+    scale: 0 1;
+  }
+  2%,
+  30% {
+    opacity: 1;
+    scale: 0 1;
+  }
+  36% {
+    scale: 0.07 1;
+  }
+  39% {
+    scale: 0.2 1;
+  }
+  45% {
+    scale: 0.27 1;
+  }
+  48% {
+    scale: 0.4 1;
+  }
+  54% {
+    scale: 0.47 1;
+  }
+  57% {
+    scale: 0.6 1;
+  }
+  63% {
+    scale: 0.67 1;
+  }
+  66% {
+    scale: 0.8 1;
+  }
+  72% {
+    scale: 0.87 1;
+  }
+  75%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0 1;
+  }
+}
+
+@keyframes nb-window-cursor {
+  0%,
+  29% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  31%,
+  37% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  39.5%,
+  46% {
+    translate: 0 var(--nb-window-row);
+  }
+  48.5%,
+  55% {
+    translate: 0 calc(var(--nb-window-row) * 2);
+  }
+  57.5%,
+  64% {
+    translate: 0 calc(var(--nb-window-row) * 3);
+  }
+  66.5%,
+  73% {
+    opacity: 1;
+    translate: 0 calc(var(--nb-window-row) * 4);
+  }
+  76% {
+    opacity: 0;
+    translate: 0 calc(var(--nb-window-row) * 4);
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+/* Step n is done at 36 + 9(n - 1): the tick pops, the line brightens from the left. */
+@keyframes nb-window-step-1 {
+  0%,
+  36% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+  39%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+}
+
+@keyframes nb-window-step-2 {
+  0%,
+  45% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+  48%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+}
+
+@keyframes nb-window-step-3 {
+  0%,
+  54% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+  57%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+}
+
+@keyframes nb-window-step-4 {
+  0%,
+  63% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+  66%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+}
+
+@keyframes nb-window-step-5 {
+  0%,
+  72% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+  75%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  96% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: var(--nb-window-from);
+  }
+}
+
+/* File n lands at 40 + 9(n - 1), sliding into its slot with a brief light behind it. */
+@keyframes nb-window-file-1 {
+  0%,
+  40% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  43% {
+    background-color: rgba(var(--oi-fg-rgb), 0.1);
+  }
+  44% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  52%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+@keyframes nb-window-file-2 {
+  0%,
+  49% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  52% {
+    background-color: rgba(var(--oi-fg-rgb), 0.1);
+  }
+  53% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  61%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+@keyframes nb-window-file-3 {
+  0%,
+  58% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  61% {
+    background-color: rgba(var(--oi-fg-rgb), 0.1);
+  }
+  62% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  70%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+@keyframes nb-window-file-4 {
+  0%,
+  67% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  70% {
+    background-color: rgba(var(--oi-fg-rgb), 0.1);
+  }
+  71% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  79%,
+  92% {
+    opacity: 1;
+    translate: 0 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+  96% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * 2) 0;
+    background-color: rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+/* The band waits off the left edge, crosses once and stays off the right edge until the
+   loop starts over, so it never runs back. */
+@keyframes nb-window-glint {
+  0%,
+  76% {
+    background-position: 100% 0;
+  }
+  88%,
+  100% {
+    background-position: 0% 0;
+  }
+}

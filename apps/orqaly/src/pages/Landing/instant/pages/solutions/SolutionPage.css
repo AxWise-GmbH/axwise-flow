@@ -53,7 +53,7 @@
 }
 
 .osl-cta:hover {
-  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), 0.55);
+  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k)));
   transform: translate3d(0, -1px, 0);
 }
 
@@ -347,7 +347,7 @@
   gap: 1px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--oi-hairline);
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
   overflow: hidden;
   background: var(--oi-hairline);
@@ -363,7 +363,9 @@
 .osl-related-grid > li {
   position: relative;
   display: grid;
-  background: var(--oi-page);
+  /* The shared card graphite (--oi-app-* in instant.css), over the page colour so the
+     hairline behind shows only in the gaps. */
+  background: var(--oi-app-surface), var(--oi-page);
 }
 
 /* Light that rests on the cell you point at. */
@@ -375,8 +377,8 @@
   inset: 0;
   background: radial-gradient(
     ellipse 90% 70% at 50% 0,
-    rgba(var(--oi-glow-rgb), 0.5),
-    rgba(var(--oi-deep-rgb), 0.16) 55%,
+    rgba(var(--oi-glow-rgb), calc(0.5 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.16 * var(--oi-halo-k))) 55%,
     transparent 80%
   );
   opacity: 0;
@@ -473,7 +475,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--oi-accent);
-  box-shadow: 0 0 12px rgba(var(--oi-accent-rgb), 0.9);
+  box-shadow: 0 0 12px rgba(var(--oi-accent-rgb), calc(0.9 * var(--oi-halo-k)));
 }
 
 /* Spotlights --------------------------------------------------------------------- */
@@ -585,8 +587,8 @@
   inset: -12% -8%;
   background: radial-gradient(
     closest-side,
-    rgba(var(--oi-glow-rgb), 0.36),
-    rgba(var(--oi-deep-rgb), 0.1) 60%,
+    rgba(var(--oi-glow-rgb), calc(0.36 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.1 * var(--oi-halo-k))) 60%,
     transparent
   );
   pointer-events: none;

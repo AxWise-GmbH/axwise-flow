@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "Ketentuan Layanan",
+    "summary": "Ketentuan ini adalah kontrak utama untuk setiap produk Orqanix dan mencakup akun Anda, konten Anda, agen, tanggung jawab hukum, dan sengketa.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Siapa kami"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix adalah rangkaian produk AI: Aplikasi Desktop, Aplikasi Seluler, Bot Asisten, API, dan layanan Korporat kami. Bersama dengan situs web ini dan akun Orqanix Anda, kami menyebut semuanya sebagai \"Layanan\"."
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan Layanan ini adalah kontrak antara Anda dan perusahaan yang menjalankan Orqanix (\"Orqanix\" atau \"kami\")."
+    },
+    {
+      "type": "p",
+      "text": "Perusahaan tersebut adalah {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Perusahaan tersebut terdaftar di {company.register}. Nomor PPN-nya adalah {company.vatId}.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat menghubungi kami di {company.email}. [Kebijakan Privasi](/instant/legal/privacy) kami menjelaskan cara kami menangani data pribadi. Kebijakan tersebut bukan bagian dari kontrak ini, tetapi mohon dibaca."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "Menerima ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Anda menerima ketentuan ini saat Anda membuat akun, atau saat Anda mengunduh atau menggunakan salah satu Layanan. Jika Anda tidak setuju, jangan gunakan Layanan."
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menerima ketentuan ini atas nama perusahaan atau organisasi lain, Anda menegaskan bahwa Anda berwenang untuk mengikatnya. \"Anda\" kemudian berarti organisasi tersebut, dan Anda, sebagai orang yang menggunakan Layanan, juga wajib mematuhi ketentuan ini."
+    },
+    {
+      "type": "p",
+      "text": "Dalam ketentuan ini, \"konsumen\" adalah orang yang menggunakan Layanan terutama untuk tujuan di luar perdagangan, usaha, kerajinan, atau profesinya. \"Pengguna bisnis\" adalah setiap orang lainnya. Beberapa aturan di bawah ini berbeda bagi konsumen, karena hukum memberi mereka perlindungan yang lebih besar.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Beberapa aturan di bawah ini bergantung pada apakah Anda menggunakan Layanan untuk diri sendiri atau untuk bisnis. \"Pengguna bisnis\" adalah setiap orang yang menggunakan Layanan untuk perdagangan, usaha, atau profesi, atau atas nama suatu organisasi.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Siapa yang dapat menggunakan Orqanix"
+    },
+    {
+      "type": "p",
+      "text": "Anda harus berusia 18 tahun atau lebih untuk menggunakan Layanan, di mana pun Anda tinggal. Layanan tidak ditujukan untuk anak-anak, dan Anda tidak boleh menggunakannya untuk membuat apa pun yang ditujukan kepada orang berusia di bawah 18 tahun."
+    },
+    {
+      "type": "p",
+      "text": "Anda juga tidak boleh menggunakan Layanan jika hukum melarangnya, termasuk berdasarkan aturan dalam [Sanksi dan ekspor](#sanctions), atau jika kami telah menutup akun Anda sebelumnya karena pelanggaran serius terhadap ketentuan ini."
+    },
+    {
+      "type": "p",
+      "text": "API dan layanan Korporat hanya untuk pengguna bisnis."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "Akun Anda"
+    },
+    {
+      "type": "p",
+      "text": "Sebagian besar Layanan memerlukan akun Orqanix. Sebuah penyedia layanan masuk menjalankan proses masuk untuk kami, dan Anda juga dapat masuk dengan Google. Berikan data yang akurat kepada kami dan selalu perbarui data tersebut."
+    },
+    {
+      "type": "p",
+      "text": "Jaga keamanan data masuk Anda dan jangan membagikan akun Anda. Anda bertanggung jawab atas apa yang terjadi melalui akun Anda, kecuali jika hal itu terjadi karena kesalahan kami. Jika Anda menduga orang lain telah menggunakan akun Anda, segera beri tahu kami di {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Untuk menutup akun Anda atau memperoleh salinan data Anda, kirimkan surel ke {company.privacyEmail}. [Kebijakan Privasi](/instant/legal/privacy) kami menjelaskan apa yang kami simpan dan alasannya."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "Produk kami"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini berlaku untuk semua Layanan. Setiap produk juga memiliki ketentuannya sendiri, yang menambahkan aturan untuk produk tersebut:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[Ketentuan Aplikasi Desktop](/instant/legal/desktop-app-terms): aplikasi macOS, tempat agen AI melakukan riset, membuat rencana, dan membuat file nyata di Mac Anda.",
+        "[Ketentuan Aplikasi Seluler](/instant/legal/mobile-app-terms): aplikasi ponsel yang berfungsi sebagai pengendali jarak jauh untuk Aplikasi Desktop.",
+        "[Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms): asisten bisnis yang Anda akses dari aplikasi perpesanan dan akun surel yang Anda hubungkan.",
+        "[Ketentuan API](/instant/legal/api-terms): lapisan penalaran untuk produk lain (khusus pengguna bisnis).",
+        "[Ketentuan Korporat](/instant/legal/enterprise-terms): layanan di mana agen dan pakar kami membangun solusi untuk Anda (khusus pengguna bisnis)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Saat Anda menggunakan suatu produk, ketentuan produk tersebut dan ketentuan ini sama-sama berlaku. Jika keduanya bertentangan, ketentuan produk yang berlaku untuk produk tersebut. Perjanjian tertulis yang Anda tanda tangani dengan kami, seperti pesanan Korporat, berlaku di atas keduanya untuk hal-hal yang dicakupnya."
+    },
+    {
+      "type": "p",
+      "text": "Saat pengguna bisnis API, layanan Korporat kami, atau Bot Asisten memberikan data pribadi kepada kami untuk diproses atas nama mereka, [Adendum Pemrosesan Data](/instant/legal/dpa) kami juga berlaku."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "Harga"
+    },
+    {
+      "type": "p",
+      "text": "Layanan gratis selama tahap awal ini. Kami tidak akan menagih biaya apa pun kepada Anda kecuali Anda menyetujui paket berbayar."
+    },
+    {
+      "type": "p",
+      "text": "Sebelum paket berbayar apa pun dimulai, kami akan memublikasikan harganya serta aturan pembayaran dan pembatalannya. Anda kemudian dapat memutuskan apakah Anda menginginkannya.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sebelum paket berbayar apa pun dimulai, kami akan memublikasikan harganya, termasuk pajak, serta aturan pembayaran, pembatalan, dan penarikan diri. Pada saat itu kami akan menjelaskan hak Anda sebagai konsumen untuk menarik diri. Anda kemudian dapat memutuskan apakah Anda menginginkannya.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Karena Layanan gratis, Anda dapat mengakhiri kontrak ini kapan saja, tanpa biaya dan tanpa memberikan alasan. Hal ini melampaui hak penarikan diri selama 14 hari yang diberikan hukum UE kepada konsumen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "Konten Anda"
+    },
+    {
+      "type": "p",
+      "text": "\"Input\" berarti apa yang Anda berikan kepada Layanan: prompt, pesan, file, suara, instruksi, dan apa pun yang dibaca oleh agen dengan izin Anda. \"Output\" berarti apa yang diberikan kembali oleh Layanan: jawaban, laporan, file, dan hasil lainnya. Keduanya bersama-sama disebut \"konten Anda\"."
+    },
+    {
+      "type": "p",
+      "text": "Antara Anda dan kami, konten Anda adalah milik Anda. Kami tidak mengklaim kepemilikan atasnya. Jika kami memiliki hak apa pun atas output Anda, kami memberikannya kepada Anda."
+    },
+    {
+      "type": "p",
+      "text": "Untuk menjalankan Layanan, kami memerlukan izin Anda untuk menggunakan konten Anda. Anda memberi kami lisensi yang berlaku di seluruh dunia, noneksklusif, dan bebas royalti untuk menghosting, menyimpan, menyalin, memproses, mengirim, dan menampilkannya. Kami menggunakan lisensi ini hanya untuk menyediakan, mengamankan, dan mendukung Layanan bagi Anda, untuk menjaganya tetap sesuai hukum, dan untuk menegakkan ketentuan ini. Lisensi ini berakhir saat konten Anda dihapus dari sistem kami, kecuali untuk salinan yang wajib kami simpan menurut hukum atau sebagaimana dijelaskan dalam [Kebijakan Privasi](/instant/legal/privacy) kami."
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak melatih model AI kami sendiri dengan konten Anda. Kami tidak menjual data pribadi Anda, dan kami tidak menampilkan iklan."
+    },
+    {
+      "type": "p",
+      "text": "Anda bertanggung jawab atas input Anda. Anda menegaskan bahwa Anda memiliki hak dan izin untuk memberikannya kepada kami, termasuk dari orang-orang yang data pribadinya ada di dalamnya, dan bahwa penggunaannya dengan Layanan tidak melanggar hukum atau ketentuan ini."
+    },
+    {
+      "type": "p",
+      "text": "Model AI dapat memberikan output yang serupa kepada orang yang berbeda. Output yang diterima orang lain bukan konten Anda, meskipun terlihat mirip dengan milik Anda."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "AI bisa keliru"
+    },
+    {
+      "type": "p",
+      "text": "Layanan menggunakan kecerdasan buatan. Output AI dapat keliru, tidak lengkap, usang, atau menyinggung, bahkan ketika terdengar meyakinkan. Output tersebut juga dapat berbeda setiap kali Anda bertanya."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Periksa output sebelum Anda mengandalkannya atau membagikannya, terutama untuk hal-hal yang penting.",
+        "Output bukan nasihat hukum, medis, keuangan, perpajakan, atau nasihat profesional lainnya, dan tidak menggantikan orang yang berkualifikasi.",
+        "Jangan menggunakan output sebagai satu-satunya dasar untuk keputusan yang memengaruhi hak, kesehatan, keuangan, atau pekerjaan orang lain."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Cara Kerja AI Kami](/instant/legal/ai) menjelaskan model mana yang kami gunakan dan bagaimana kami menggunakannya."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "Agen"
+    },
+    {
+      "type": "p",
+      "text": "Beberapa Layanan menggunakan agen AI. Agen tidak hanya menjawab. Agen juga mengambil tindakan. Bergantung pada produk dan pengaturan Anda, agen dapat membaca dan mengubah file, menjalankan perintah di komputer Anda, menelusuri web, dan menggunakan alat yang Anda hubungkan, yang dapat mencakup mengirim pesan atau surel untuk Anda."
+    },
+    {
+      "type": "p",
+      "text": "Agen bertindak berdasarkan instruksi Anda dan dalam batas izin yang Anda berikan. Secara bawaan, Aplikasi Desktop menyetujui tindakan agen secara otomatis. Anda dapat mengubahnya agar aplikasi bertanya kepada Anda terlebih dahulu, bertanya hanya untuk tindakan yang sensitif, atau hanya mengobrol. [Ketentuan Aplikasi Desktop](/instant/legal/desktop-app-terms) menjelaskan pengaturan tersebut."
+    },
+    {
+      "type": "p",
+      "text": "Anda bertanggung jawab atas tindakan yang Anda izinkan, baik Anda menyetujuinya satu per satu maupun sebelumnya. Khususnya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Izinkan agen menggunakan hanya komputer, akun, file, dan sistem yang boleh Anda gunakan.",
+        "Tinjau apa yang akan dilakukan agen jika hal itu penting, dan awasi pekerjaannya saat Anda membiarkannya berjalan sendiri.",
+        "Simpan cadangan untuk apa pun yang penting. Agen dapat mengubah atau menghapus file secara tidak sengaja.",
+        "Agen yang mengirim pesan kepada orang lain melakukannya atas nama Anda. Anda bertanggung jawab atas pesan-pesan tersebut, dan untuk memberi tahu orang-orang bahwa pesan tersebut berasal dari AI apabila [Kebijakan Penggunaan yang Dapat Diterima](/instant/legal/acceptable-use) kami atau hukum mewajibkannya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Hal ini tidak menghapus tanggung jawab kami apabila Layanan itu sendiri yang bermasalah. Lihat [Tanggung jawab hukum](#liability)."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "Layanan yang terhubung"
+    },
+    {
+      "type": "p",
+      "text": "Model AI bawaan kami adalah Google Gemini. Saat konten Anda dikirim ke model tersebut, ketentuan Google untuk layanan tersebut juga berlaku atas cara Google menanganinya. [Cara Kerja AI Kami](/instant/legal/ai) dan [Kebijakan Privasi](/instant/legal/privacy) kami menjelaskan apa yang dikirim. Anda juga wajib mematuhi aturan Google, yang tercantum dalam [Kebijakan Penggunaan yang Dapat Diterima](/instant/legal/acceptable-use) kami."
+    },
+    {
+      "type": "p",
+      "text": "Pada beberapa produk, Anda dapat menghubungkan sendiri layanan lain, seperti model AI dari OpenAI, Anthropic, atau pihak lain, aplikasi perpesanan, akun surel, atau alat lainnya. Jika Anda melakukannya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "hubungan Anda dengan layanan tersebut adalah antara Anda dan penyedianya, serta ketentuan dan harganya yang berlaku;",
+        "layanan tersebut menerima konten yang dibutuhkannya untuk menjalankan tugas, seperti percakapan Anda;",
+        "Anda bertanggung jawab atas kunci dan akun Anda di layanan tersebut serta atas biaya apa pun yang dikenakannya;",
+        "kami tidak mengendalikannya dan tidak bertanggung jawab atas apa yang dilakukannya, kecuali jika hukum menetapkan kami bertanggung jawab."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "Penggunaan yang dapat diterima"
+    },
+    {
+      "type": "p",
+      "text": "Anda wajib mematuhi [Kebijakan Penggunaan yang Dapat Diterima](/instant/legal/acceptable-use) kami, yang merupakan bagian dari ketentuan ini. Singkatnya: tidak ada yang ilegal, tidak ada yang merugikan orang lain, tidak ada serangan terhadap kami atau pihak lain, tidak ada penipuan, dan tidak ada penggunaan yang hanya diizinkan oleh kebijakan tersebut berdasarkan perjanjian khusus."
+    },
+    {
+      "type": "p",
+      "text": "Anda juga tidak boleh menyalin, menjual, atau menjual kembali Layanan tanpa perjanjian tertulis dengan kami, mengakali batasan atau langkah keselamatan kami, atau menggunakan Layanan dengan cara yang membahayakan keamanannya atau pengguna lain."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Masukan"
+    },
+    {
+      "type": "p",
+      "text": "Kami menyambut ide dan saran. Jika Anda mengirimkan masukan kepada kami, kami dapat menggunakannya secara bebas untuk meningkatkan Layanan, tanpa membayar Anda dan tanpa kewajiban apa pun kepada Anda. Kami tidak akan memublikasikan nama Anda bersama masukan tersebut tanpa izin Anda."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "Hak kami"
+    },
+    {
+      "type": "p",
+      "text": "Layanan, termasuk perangkat lunak, desain, nama, dan logo kami, adalah milik kami atau pemberi lisensi kami dan dilindungi oleh hukum. Ketentuan ini memberi Anda hak untuk menggunakan Layanan sebagaimana dijelaskan di dalamnya, selama Anda boleh menggunakannya. Ketentuan ini tidak memberi Anda hak lain apa pun."
+    },
+    {
+      "type": "p",
+      "text": "Beberapa bagian Layanan merupakan perangkat lunak sumber terbuka. Bagian-bagian tersebut tunduk pada lisensinya sendiri, yang berlaku di atas ketentuan ini untuk bagian-bagian tersebut. Lihat [Pemberitahuan Sumber Terbuka](/instant/legal/open-source)."
+    },
+    {
+      "type": "p",
+      "text": "Anda tidak boleh membongkar, mendekompilasi, atau melakukan rekayasa balik terhadap Layanan, kecuali jika hukum atau lisensi sumber terbuka mengizinkannya."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Penangguhan dan pengakhiran"
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat berhenti menggunakan Layanan kapan saja dan meminta kami menutup akun Anda, sebagaimana dijelaskan dalam [Akun Anda](#your-account)."
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat menangguhkan atau membatasi akses Anda, menghapus konten, atau menutup akun Anda jika:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda secara serius atau berulang kali melanggar ketentuan ini atau [Kebijakan Penggunaan yang Dapat Diterima](/instant/legal/acceptable-use);",
+        "hukum atau otoritas mewajibkannya;",
+        "penggunaan Anda menempatkan orang lain, Layanan, atau kami pada risiko kerugian atau tanggung jawab hukum; atau",
+        "akun Anda sudah lama tidak digunakan dan kami telah memberi tahu Anda sebelumnya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jika memungkinkan, kami akan memperingatkan Anda terlebih dahulu dan memberi Anda kesempatan untuk memperbaiki masalahnya. Kami bertindak secara proporsional dengan apa yang terjadi. Saat kami bertindak, kami memberi tahu Anda apa yang kami lakukan dan alasannya, kecuali jika hukum melarangnya atau pemberitahuan tersebut akan menimbulkan kerugian."
+    },
+    {
+      "type": "p",
+      "text": "Kami juga dapat berhenti menawarkan suatu Layanan, atau semua Layanan. Jika demikian, kami akan memberi tahu Anda dengan jangka waktu pemberitahuan yang wajar, dan memberi Anda waktu untuk meminta salinan data Anda, kecuali jika kami harus berhenti lebih cepat karena alasan hukum atau keamanan."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Untuk memindahkan data Anda ke penyedia lain atau ke sistem Anda sendiri, kirimkan surel ke {company.privacyEmail}. Kami memberikan salinan konten dan data Anda dalam format yang terstruktur, umum digunakan, dan dapat dibaca mesin, serta membantu Anda dalam proses pemindahan, tanpa biaya. Anda dapat mengakhiri kontrak kapan saja. (EU Data Act, Pasal 23 dan 25)"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda tidak setuju dengan keputusan mengenai akun Anda, balas pesan kami atau kirimkan surel ke {company.email}. Seseorang akan meninjaunya kembali."
+    },
+    {
+      "type": "p",
+      "text": "Bagian-bagian ketentuan ini yang menurut sifatnya harus tetap berlaku, seperti bagian tentang konten, tanggung jawab hukum, ganti rugi, dan sengketa, tetap berlaku setelah kontrak berakhir."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan pada Layanan dan ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Layanan masih dalam tahap awal dan akan berubah. Kami menambahkan, meningkatkan, dan menghapus fitur, serta mengganti model AI yang kami gunakan."
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat mengubah ketentuan ini, misalnya ketika Layanan, hukum, atau bisnis kami berubah. Tanggal di bagian atas menunjukkan kapan versi saat ini mulai berlaku. Perubahan tidak berlaku untuk penggunaan di masa lalu atau untuk sengketa yang sudah ada."
+    },
+    {
+      "type": "p",
+      "text": "Untuk perubahan yang penting bagi Anda, kami akan memberi tahu Anda sebelumnya, melalui surel atau di dalam Layanan. Jika Anda terus menggunakan Layanan setelah suatu perubahan berlaku, ketentuan yang baru berlaku. Jika Anda tidak setuju, berhentilah menggunakan Layanan dan tutup akun Anda.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "Hak Anda saat kami melakukan perubahan",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami mengubah Layanan dengan cara yang memengaruhi Anda hanya karena alasan yang sah: untuk menyesuaikan dengan teknologi baru atau dengan perubahan pada penyedia model yang kami andalkan, untuk menjaga keamanannya, untuk memenuhi kewajiban hukum, atau untuk meningkatkan atau menata ulang Layanan. Setiap perubahan tidak menimbulkan biaya tambahan bagi Anda. (Directive (EU) 2019/770, Pasal 19)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika suatu perubahan merugikan akses Anda ke Layanan, atau penggunaan Anda atasnya, lebih dari sekadar dalam hal kecil, kami memberi tahu Anda dengan jelas sebelumnya melalui media yang tahan lama seperti surel. Anda kemudian dapat mengakhiri kontrak tanpa biaya dalam waktu 30 hari sejak pemberitahuan atau sejak perubahan, mana pun yang lebih akhir.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Untuk perubahan pada ketentuan ini yang memengaruhi Anda, kami memberi tahu Anda melalui surel paling lambat 30 hari sebelum perubahan tersebut berlaku dan menjelaskan apa yang berubah. Apabila hukum mewajibkan persetujuan Anda, kami memintanya. Kami tidak menganggap diamnya Anda sebagai persetujuan. Jika Anda tidak setuju, Anda dapat menutup akun Anda tanpa biaya sebelum perubahan berlaku. Kami tidak pernah menggunakan perubahan untuk mencabut hak yang diberikan hukum kepada Anda.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami menyediakan pembaruan, termasuk pembaruan keamanan, yang diwajibkan oleh hukum agar Layanan tetap berfungsi sebagaimana dijelaskan, selama jangka waktu yang diwajibkan oleh hukum. Untuk Aplikasi Desktop, versi baru tersedia sebagai unduhan baru, sebagaimana dijelaskan dalam [Ketentuan Aplikasi Desktop](/instant/legal/desktop-app-terms). Jika kami telah memberi tahu Anda tentang suatu pembaruan dan apa yang terjadi jika Anda tidak menginstalnya, kami tidak bertanggung jawab atas masalah yang sebenarnya dapat diatasi dengan menginstalnya.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Penafian",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Layanan berada pada tahap awal dan disediakan secara gratis. Layanan dapat berubah, rusak, atau berhenti, dan output dapat keliru.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "SEJAUH DIIZINKAN OLEH HUKUM, LAYANAN DAN SEMUA OUTPUT DISEDIAKAN \"SEBAGAIMANA ADANYA\" DAN \"SEBAGAIMANA TERSEDIA\". KAMI TIDAK MEMBERIKAN JAMINAN APA PUN, BAIK TERSURAT, TERSIRAT, MAUPUN BERDASARKAN HUKUM, TERMASUK JAMINAN KELAYAKAN UNTUK DIPERDAGANGKAN, KESESUAIAN UNTUK TUJUAN TERTENTU, KEPEMILIKAN, TIDAK ADANYA PELANGGARAN, DAN KEAKURATAN. KAMI TIDAK MENJAMIN BAHWA LAYANAN AKAN BERJALAN TANPA GANGGUAN, AMAN, ATAU BEBAS DARI KESALAHAN, BAHWA KONTEN TIDAK AKAN HILANG, ATAU BAHWA OUTPUT ATAU TINDAKAN AGEN APA PUN AKAN BENAR ATAU AMAN.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Di beberapa tempat, pengecualian jaminan tertentu tidak diizinkan. Di tempat tersebut, pengecualian di atas hanya berlaku sejauh diizinkan oleh hukum.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Jaminan menurut hukum",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah konsumen, hukum UE memberi Anda jaminan menurut hukum untuk konten digital dan layanan digital. Layanan harus sesuai dengan apa yang dijelaskan dalam ketentuan ini dan ketentuan produk, dan kami bertanggung jawab jika tidak sesuai. Tidak ada satu pun dalam ketentuan ini yang membatasi jaminan tersebut. (Directive (EU) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Layanan berada pada tahap awal, dan fitur dapat berubah sebagaimana dijelaskan dalam [Perubahan pada Layanan dan ketentuan ini](#changes). Sebelum Anda mendaftar, kami memberi tahu Anda bahwa output AI dapat keliru (lihat [AI bisa keliru](#ai-limits)). Output keliru semacam itu merupakan bagian dari cara kerja layanan AI saat ini. Cacat pada Layanan itu sendiri tetap menjadi tanggung jawab kami.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah pengguna bisnis, kami menyediakan Layanan sebagaimana adanya, tanpa jaminan kecuali yang diwajibkan oleh hukum dan tidak boleh kami kecualikan.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab hukum",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "SEJAUH DIIZINKAN OLEH HUKUM: (A) KAMI TIDAK BERTANGGUNG JAWAB ATAS KERUGIAN TIDAK LANGSUNG, INSIDENTAL, KHUSUS, KONSEKUENSIAL, YANG BERSIFAT CONTOH, ATAU YANG BERSIFAT HUKUMAN, ATAU ATAS HILANGNYA LABA, PENDAPATAN, DATA, ATAU NAMA BAIK, BAHKAN JIKA KAMI TELAH DIBERI TAHU BAHWA KERUGIAN TERSEBUT MUNGKIN TERJADI; DAN (B) TOTAL TANGGUNG JAWAB KAMI UNTUK SEMUA KLAIM TERKAIT LAYANAN ATAU KETENTUAN INI TERBATAS PADA JUMLAH YANG LEBIH BESAR ANTARA JUMLAH YANG ANDA BAYARKAN KEPADA KAMI UNTUK LAYANAN DALAM 12 BULAN SEBELUM PERISTIWA YANG MENIMBULKAN KLAIM, ATAU 100 DOLAR AS.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Hal ini berlaku apa pun dasar hukumnya, baik kontrak, jaminan, perbuatan melawan hukum (termasuk kelalaian), maupun dasar lainnya. Hal ini tidak membatasi tanggung jawab yang menurut hukum tidak boleh kami batasi, seperti tanggung jawab atas penipuan, atau atas kematian atau cedera pribadi yang disebabkan oleh kelalaian kami. Di beberapa tempat, batasan ini tidak diizinkan. Di tempat tersebut, batasan ini hanya berlaku sejauh diizinkan oleh hukum.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Anda bertanggung jawab atas tindakan yang Anda izinkan dilakukan oleh agen dan atas cara Anda menggunakan output, sebagaimana dijelaskan dalam [Agen](#agents).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab hukum",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami bertanggung jawab tanpa batas:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "atas kerugian yang kami timbulkan dengan sengaja atau karena kelalaian berat;",
+        "atas cedera terhadap nyawa, tubuh, atau kesehatan;",
+        "berdasarkan hukum tanggung jawab produk, dan berdasarkan jaminan apa pun yang telah kami berikan;",
+        "dalam setiap kasus lain di mana hukum tidak mengizinkan pembatasan tanggung jawab."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Selain itu, jika kami hanya lalai ringan, kami bertanggung jawab hanya jika kami melanggar kewajiban pokok. Kewajiban pokok adalah kewajiban yang memungkinkan kontrak terlaksana sejak awal dan yang biasanya dapat Anda andalkan. Tanggung jawab kami dalam hal ini terbatas pada kerugian yang lazim untuk jenis kontrak ini dan yang dapat diperkirakan saat Anda menerimanya.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak bertanggung jawab atas kerugian yang sebenarnya dapat Anda hindari dengan langkah wajar Anda sendiri, seperti menyimpan cadangan, memeriksa output, atau meninjau tindakan sebelum Anda menyetujuinya (lihat [Agen](#agents)). Hal ini tidak berlaku apabila hukum melindungi Anda dari aturan semacam itu.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Aturan ini juga melindungi staf kami dan orang-orang yang bekerja untuk kami.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "Ganti rugi"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah pengguna bisnis, Anda akan membela dan mengganti rugi kami terhadap klaim pihak ketiga yang timbul dari konten Anda, penggunaan Layanan oleh Anda yang melanggar ketentuan ini atau hukum, atau tindakan yang Anda izinkan dilakukan oleh agen. \"Mengganti rugi\" berarti Anda menanggung biaya, kerugian, dan biaya hukum kami yang wajar. Kami akan segera memberi tahu Anda tentang klaim semacam itu, membiarkan Anda mengendalikan pembelaan, dan membantu Anda secara wajar atas biaya Anda. Anda tidak boleh menyelesaikan klaim dengan cara yang mengakui kesalahan atas nama kami atau mengikat kami tanpa persetujuan kami."
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah konsumen, bagian ini tidak berlaku bagi Anda. Anda tetap bertanggung jawab menurut hukum atas kerugian yang Anda timbulkan.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan Layanan hanya untuk diri sendiri, bukan untuk bisnis, bagian ini tidak berlaku bagi Anda. Anda tetap bertanggung jawab menurut hukum atas kerugian yang Anda timbulkan.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanksi dan ekspor"
+    },
+    {
+      "type": "p",
+      "text": "Kami mematuhi aturan sanksi dan ekspor Amerika Serikat dan Uni Eropa, dan Anda juga wajib mematuhinya. Anda tidak boleh menggunakan Layanan jika:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Anda berada di, atau biasanya tinggal di, negara atau wilayah yang dikenai sanksi menyeluruh oleh AS atau UE;",
+        "Anda tercantum dalam daftar sanksi AS atau UE, atau dimiliki atau dikendalikan oleh pihak yang tercantum di dalamnya; atau",
+        "penggunaan Anda akan melanggar aturan sanksi atau ekspor AS atau UE, misalnya dengan menyediakan Layanan kepada pihak tersebut atau untuk tujuan yang dilarang."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat memblokir akses, menutup akun, atau menolak memberikan layanan untuk memenuhi aturan ini."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Sengketa dan hukum yang berlaku",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda mengalami masalah dengan Layanan, silakan kirimkan surel ke {company.email} terlebih dahulu. Sebagian besar masalah dapat diselesaikan dengan cepat melalui cara itu, dan kami akan berupaya dengan iktikad baik untuk menyelesaikannya.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini, dan setiap sengketa mengenai ketentuan ini atau Layanan, diatur oleh hukum {company.law}, tanpa memperhatikan aturan hukumnya tentang pertentangan hukum.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sengketa diajukan ke pengadilan, bukan ke arbitrase. Anda tidak melepaskan hak untuk bergabung dalam gugatan perwakilan kelompok atau gugatan kolektif apabila hukum mengizinkannya. Klaim diajukan ke pengadilan yang berwenang berdasarkan hukum yang berlaku, termasuk pengadilan di tempat tinggal Anda jika hukum setempat memberi Anda hak tersebut.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sebagai gantinya, masing-masing pihak dapat mengajukan klaim perorangan ke pengadilan klaim kecil, jika klaim tersebut memenuhi syarat, di tempat tinggal Anda atau di tempat kedudukan kami.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Tidak ada satu pun dalam ketentuan ini yang mencabut hak yang Anda miliki berdasarkan hukum perlindungan konsumen di tempat tinggal Anda, jika hukum tersebut tidak mengizinkan hak itu dihapuskan.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Sengketa dan hukum yang berlaku",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda mengalami masalah dengan Layanan, silakan kirimkan surel ke {company.email} terlebih dahulu. Sebagian besar masalah dapat diselesaikan dengan cepat melalui cara itu, dan kami akan berupaya dengan iktikad baik untuk menyelesaikannya.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini diatur oleh hukum {company.law}. Konvensi PBB tentang Kontrak Jual Beli Barang Internasional tidak berlaku.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah konsumen, Anda tetap memperoleh perlindungan dari hukum memaksa di negara tempat Anda tinggal, apa pun hukum yang dipilih dalam ketentuan ini. Anda dapat mengajukan klaim terhadap kami di pengadilan tempat Anda tinggal. Kami hanya dapat mengajukan klaim terhadap Anda di pengadilan tempat Anda tinggal.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda adalah pengguna bisnis, pengadilan di tempat kedudukan terdaftar kami yang berwenang, sejauh diizinkan oleh hukum. Kami juga dapat mengajukan klaim di tempat kedudukan Anda.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Tidak ada arbitrase, dan tidak ada satu pun dalam ketentuan ini yang membatasi hak Anda untuk ikut serta dalam gugatan perwakilan atau gugatan kolektif apabila hukum mengizinkannya.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak berpartisipasi, dan tidak bersedia berpartisipasi, dalam prosedur penyelesaian sengketa di hadapan badan arbitrase konsumen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "Titik kontak dan moderasi",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Digital Services Act (DSA) UE mewajibkan kami memberi tahu Anda cara menghubungi kami dan cara kami menangani konten.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "Titik kontak",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Titik kontak tunggal kami untuk pengguna dan untuk otoritas Negara Anggota UE, Komisi Eropa, dan Dewan Eropa untuk Layanan Digital adalah {company.email}. Anda dapat menulis kepada kami dalam bahasa Inggris, dan Anda selalu dapat menghubungi manusia, tidak hanya sistem otomatis. (DSA Pasal 11 dan 12)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Perwakilan hukum kami di UE adalah {company.euRepresentative}. Anda dapat menghubungi mereka mengenai hal apa pun berdasarkan DSA. (DSA Pasal 13)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "Apa yang kami hosting dan cara kami melakukan moderasi",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Saat Anda menggunakan ruang kerja cloud kami, riset cloud Aplikasi Desktop, Bot Asisten, atau API, kami menyimpan konten atas permintaan Anda, seperti obrolan, pertanyaan riset, tujuan, file, dan laporan Anda. Kami tidak memublikasikannya atau membagikannya kepada pengguna lain. Kami tidak memantaunya secara umum, dan kami tidak memeringkat atau merekomendasikan konten.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Aturan konten kami tercantum dalam ketentuan ini dan [Kebijakan Penggunaan yang Dapat Diterima](/instant/legal/acceptable-use). Kami bertindak saat kami mengetahui adanya konten ilegal atau pelanggaran terhadap aturan tersebut, terutama melalui laporan.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Siapa pun dapat melaporkan konten yang diyakininya ilegal atau melanggar aturan kami, sebagaimana dijelaskan dalam [Laporkan pelanggaran](/instant/legal/acceptable-use#report).",
+        "Seseorang meninjau setiap laporan dan mengambil keputusan. Kami bertindak secara tepat waktu, cermat, dan objektif serta menghormati hak semua pihak yang terlibat, termasuk kebebasan berekspresi.",
+        "Tindakan dapat mencakup penghapusan atau penonaktifan konten, pembatasan fitur, serta penangguhan atau penutupan akun. Kami memilih tindakan paling ringan yang efektif.",
+        "Kami memberikan kepada pengguna yang terdampak pernyataan alasan: apa yang kami lakukan, faktanya, apakah ada sarana otomatis yang digunakan, aturan atau hukum yang menjadi dasar kami, dan cara menggugat keputusan tersebut. (DSA Pasal 17)",
+        "Jika kami mengetahui adanya tindak pidana yang mengancam nyawa atau keselamatan seseorang, kami memberi tahu pihak berwenang. (DSA Pasal 18)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda tidak setuju dengan suatu keputusan, balas pesan kami atau kirimkan surel ke {company.email}, dan seseorang akan meninjaunya kembali. Anda juga dapat menempuh jalur pengadilan, atau mengajukan keluhan kepada Koordinator Layanan Digital di negara tempat Anda tinggal.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "Pemberitahuan"
+    },
+    {
+      "type": "p",
+      "text": "Kami mengirimkan pemberitahuan ke alamat surel di akun Anda, atau menampilkannya di dalam Layanan. Selalu perbarui alamat surel Anda. Anda dapat mengirimkan pemberitahuan kepada kami di {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Pemberitahuan hukum resmi juga dapat dikirim melalui pos ke {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Umum"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ketentuan ini, ketentuan produk, dan kebijakan yang ditautkan di dalamnya merupakan keseluruhan perjanjian antara Anda dan kami mengenai Layanan. Perjanjian tertulis terpisah yang Anda tanda tangani dengan kami berlaku di atasnya untuk hal-hal yang dicakupnya.",
+        "Jika pengadilan menyatakan sebagian dari ketentuan ini tidak sah, bagian selebihnya tetap berlaku. Bagian yang tidak sah digantikan oleh aturan yang ditetapkan oleh hukum.",
+        "Jika kami tidak segera menegakkan suatu hak, kami tidak melepaskan hak tersebut.",
+        "Anda tidak boleh mengalihkan hak atau kewajiban Anda berdasarkan ketentuan ini tanpa persetujuan tertulis kami. Kami dapat mengalihkan kontrak kepada perusahaan yang mengambil alih Layanan, jika hak Anda tidak berkurang. Kami akan memberi tahu Anda sebelumnya, dan Anda kemudian dapat mengakhiri kontrak kapan saja.",
+        "Kami tidak bertanggung jawab atas keterlambatan atau kegagalan yang disebabkan oleh peristiwa di luar kendali wajar kami, seperti gangguan pada penyedia yang kami andalkan, bencana alam, atau tindakan pemerintah. Hal ini tidak mengurangi hak Anda sebagai konsumen.",
+        "Tidak ada pihak selain Anda dan kami yang memiliki hak berdasarkan ketentuan ini.",
+        "Ketentuan ini ditulis dalam bahasa Inggris. Jika kami menyediakan terjemahan, versi bahasa Inggris yang berlaku apabila terdapat perbedaan, kecuali jika hukum menentukan lain."
+      ]
+    }
+  ]
+}

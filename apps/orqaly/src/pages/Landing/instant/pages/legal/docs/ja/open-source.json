@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "オープンソースに関する通知",
+    "summary": "このページでは、Orqanix のデスクトップアプリおよび当社のウェブサイトに含まれるオープンソースソフトウェア、そのライセンス、およびライセンス文の入手方法を記載しています。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "このページについて"
+    },
+    {
+      "type": "p",
+      "text": "当社の製品の一部はオープンソースソフトウェア、すなわち公開されたライセンスに基づいて、誰でも利用、変更および共有できるよう作者が許可しているソフトウェアです。このページでは、主なオープンソースの構成要素と、そのライセンス文の入手方法を記載しています。"
+    },
+    {
+      "type": "p",
+      "text": "各構成要素は、それぞれ自身のライセンスに従います。当社の[利用規約](/instant/legal/terms)または[デスクトップアプリ利用規約](/instant/legal/desktop-app-terms)のいかなる規定も、それらのライセンスがお客様に与える権利を制限するものではありません。ライセンスにおいてその作者が保証を行わない旨を定めている場合、それは作者の成果物に適用されます。当社の製品に関する当社自身の約束は、当社の規約に記載されています。"
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "デスクトップアプリ"
+    },
+    {
+      "type": "p",
+      "text": "Mac 向けの Orqanix アプリには、次のようなオープンソースソフトウェアが含まれています。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "ソフトウェア",
+        "アプリ内での役割",
+        "ライセンス"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "アプリのエージェントが動作するエージェントフレームワーク",
+          "Apache License 2.0"
+        ],
+        [
+          "アプリに同梱されたオプションのエンジニアリングランタイム",
+          "アプリのエンジニアリングツールを実行します",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "アプリのウィンドウとデスクトップシェル",
+          "MIT License"
+        ],
+        [
+          "Chromium（Electron に含まれます）",
+          "アプリの画面を表示します",
+          "BSD スタイルのライセンスおよびその他のライセンス"
+        ],
+        [
+          "Node.js",
+          "アプリの一部を実行します",
+          "MIT License（一部の同梱部分はその他のライセンス）"
+        ],
+        [
+          "多数の小規模な npm および Rust パッケージ",
+          "アプリ全体で使用される構成部品",
+          "MIT、Apache 2.0、BSD などのさまざまなオープンソースライセンス"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "アプリには、Goose、エンジニアリングランタイム、Electron、Chromium および Node.js のライセンス文と通知が含まれています。これらを確認するには、Finder でアプリを Control キーを押しながらクリックし、「パッケージの内容を表示」を選択してから、「Contents」、次に「Resources」を開いてください。それらのファイルが正式な文面であり、この表は概要にすぎません。小規模なパッケージについては、[ライセンス文とソースコード](#get-the-texts)に記載の方法で当社にお問い合わせください。"
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "当社のウェブサイト"
+    },
+    {
+      "type": "p",
+      "text": "当社のウェブサイトは、Geist、Geist Mono および Inter の書体を使用しており、いずれも [SIL Open Font License 1.1](https://openfontlicense.org) に基づいてライセンスされています。"
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "名称と商標"
+    },
+    {
+      "type": "p",
+      "text": "オープンソースプロジェクトの名称は、それぞれの所有者に帰属します。当社がそのソフトウェアを利用していることは、それらのプロジェクトまたはその所有者が Orqanix を推奨していることを意味するものではなく、ライセンスはいかなる者にもそれらの名称やロゴに関する権利を与えるものではありません。"
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "ライセンス文とソースコード"
+    },
+    {
+      "type": "p",
+      "text": "ライセンス文の写し、またはライセンスによりお客様に権利が与えられている場合のソースコードをご希望の場合は、件名を「Open source」として {company.email} までご連絡ください。お使いのデスクトップアプリのバージョンをお知らせください。"
+    },
+    {
+      "type": "p",
+      "text": "当社が通知を漏らしている、またはオープンソースソフトウェアをそのライセンスで認められていない方法で使用しているとお考えの場合は、同じアドレスまでお知らせください。当社が調査します。"
+    }
+  ]
+}

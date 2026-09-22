@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Histoire",
+    "goal": "Objectif",
+    "mission": "Mission",
+    "founders": "Fondateurs"
+  },
+  "story": {
+    "tag": "Notre histoire",
+    "title": "Deux chemins qui se sont croisés.",
+    "lede": "Deux product managers, deux produits, une idée. Voici comment Orqanix est né.",
+    "steps": [
+      {
+        "when": "Nov 2024",
+        "who": "Vitaly · AxWise",
+        "title": "La couche de réflexion",
+        "text": "Vitaly a commencé à cartographier la nouvelle industrie de l'IA en pleine construction : ses modèles, ses fournisseurs et ses services. Son idée était une couche cognitive, une IA qui réfléchit à fond avant de répondre, pour que le résultat final arrive prêt à l'emploi."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "De 40 minutes à quelques secondes",
+        "text": "Les premières exécutions prenaient de 30 à 40 minutes. Puis les modèles se sont améliorés, et la couche avec eux. Chaque itération revenait plus vite et plus précise, jusqu'à ce que le même travail ne prenne plus que quelques secondes."
+      },
+      {
+        "when": "Fév 2026",
+        "who": "Viktor · Orqaly",
+        "title": "Une personne, le travail de toute une équipe",
+        "text": "Viktor suivait l'IA depuis des années. Quand un nouveau modèle de pointe est arrivé, il a vu qu'il pouvait construire un vrai produit seul, sans équipe front-end, back-end, DevOps ou design. Il a donc lancé une plateforme où des agents IA se partagent le travail, sans transmissions qui le ralentissent."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "La pièce manquante",
+        "text": "De nombreuses expériences ont échoué, et chacune a appris quelque chose. La plateforme a fini par fonctionner, mais une pièce manquait encore : des agents assez fiables pour en être la couche finale."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "L'appel",
+        "text": "Puis Viktor a appelé Vitaly, un ami de fac. Pendant cet appel, ils ont découvert qu'ils construisaient la même chose à partir de deux bouts opposés : la couche de réflexion, et l'orchestration autour d'elle."
+      },
+      {
+        "when": "Sep 2026",
+        "who": "AxWise + Orqaly",
+        "title": "Un seul produit",
+        "text": "Des mois à réunir un produit dans l'autre, avec de la recherche et des benchmarks en chemin, sont devenus une seule plateforme : Orqanix. Elle aide à planifier une activité, à explorer des questions simples ou approfondies, et à construire de vraies choses plus vite."
+      }
+    ],
+    "close": "Chercher, planifier et construire. En quelques minutes."
+  },
+  "goal": {
+    "tag": "Notre objectif",
+    "title": "Votre IA. Votre machine. Votre choix.",
+    "lede": "L'IA devrait tourner là où vous le voulez, avec les modèles que vous choisissez, et vos connaissances devraient rester les vôtres quand vous changez.",
+    "core": "Vos connaissances",
+    "orbit": [
+      "Modèle local",
+      "Modèle cloud",
+      "Votre agent"
+    ],
+    "caption": "Les modèles changent. Vos connaissances restent.",
+    "points": [
+      {
+        "title": "Exécutez des modèles en local",
+        "text": "Exécutez des modèles de langage locaux, ou d'autres types d'IA, directement sur votre ordinateur."
+      },
+      {
+        "title": "Utilisez n'importe quel fournisseur",
+        "text": "Choisissez n'importe quel service compatible IA. Aucune dépendance à un seul cloud ou fournisseur."
+      },
+      {
+        "title": "Apportez ou créez des agents",
+        "text": "Importez l'agent que vous utilisez déjà, ou créez le vôtre pour la tâche."
+      },
+      {
+        "title": "Une seule base de connaissances",
+        "text": "Gardez tout au même endroit, pour ne rien perdre en changeant de modèle."
+      }
+    ],
+    "close": "Choisissez ce qui convient à la tâche du jour et à votre matériel. C'est ça, la liberté d'utiliser l'IA à votre façon."
+  },
+  "mission": {
+    "tag": "Notre mission",
+    "statement": [
+      "Un espace IA qui grandit avec vous.",
+      "Construit autour de qui vous êtes et de ce que vous voulez créer."
+    ],
+    "stages": [
+      {
+        "title": "Vous découvre",
+        "text": "Elle lit ce que vous lui dites, vos fichiers et votre activité, et comprend ce dont vous avez besoin."
+      },
+      {
+        "title": "Façonne votre espace",
+        "text": "Elle construit un espace de travail personnel autour de vos objectifs, pas un chat unique pour tous."
+      },
+      {
+        "title": "S'améliore elle-même",
+        "text": "Comme un être vivant, elle continue de s'améliorer : plus fiable, plus sûre, plus simple à utiliser."
+      }
+    ],
+    "loopLabel": "La boucle",
+    "loop": [
+      "Payer les factures",
+      "Aller travailler",
+      "Être payé",
+      "Recommencer"
+    ],
+    "pathLabel": "Votre voie",
+    "path": "Voyez grand. Trouvez ce en quoi vous excellez. Construisez la vie que vous voulez.",
+    "text": "Nous voulons que toute personne qui veut prendre part à la course ait sa propre voie, au-delà des façons habituelles de travailler avec l'IA. Une nouvelle façon de créer, d'apprendre et de conserver ce que vous savez."
+  },
+  "founders": {
+    "tag": "Fondateurs",
+    "title": "Les personnes derrière Orqanix.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "Plus de 10 ans d'expérience",
+        "since": "Construit AxWise depuis novembre 2024",
+        "place": "Berlin",
+        "text": "Dirige la couche cognitive : comment Orqanix réfléchit à une tâche avant d'y répondre.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "Plus de 10 ans d'expérience",
+        "since": "Construit Orqaly depuis février 2026",
+        "place": "",
+        "text": "Dirige l'orchestration : comment les agents IA se partagent le travail et le transforment en vrais fichiers.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

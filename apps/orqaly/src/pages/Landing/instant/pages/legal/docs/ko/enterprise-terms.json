@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "엔터프라이즈 약관",
+    "summary": "Orqanix의 에이전트와 전문가를 통해 AI를 구축, 운영하거나 AI에 관한 자문을 받기 위해 Orqanix에 업무를 맡기는 기업에 적용되는 약관입니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "본 약관에 관하여"
+    },
+    {
+      "type": "p",
+      "text": "본 엔터프라이즈 약관은 귀사가 AI의 구축, 운영 또는 자문을 위해 Orqanix에 업무를 맡기는 경우에 적용됩니다. 본 약관은 AI 준비도 진단, 파일럿, 자동화된 사업 단위, 새로운 AI 직무, 맞춤형 커넥터, 관리형 에이전트 운영, 팀 교육 등의 업무를 대상으로 합니다."
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 당사의 [서비스 약관](/instant/legal/terms) 및 [허용 가능한 사용 정책](/instant/legal/acceptable-use)에 추가하여 적용됩니다. 당사가 귀사를 위해 개인정보를 처리하는 경우 [데이터 처리 부속서](/instant/legal/dpa)(이하 “DPA”)도 적용되며 본 약관의 일부를 구성합니다. 업무에 Orqanix API(예: 화이트 라벨 추론 API)가 포함되는 경우 해당 부분에는 [API 약관](/instant/legal/api-terms)도 적용됩니다."
+    },
+    {
+      "type": "p",
+      "text": "“귀사”란 당사에 업무를 맡기는 기업을 말합니다. 본 약관에 동의하거나 주문서에 서명하는 사람은 자신이 해당 기업을 구속할 권한이 있음을 확인합니다. “당사”란 Orqanix를 말합니다."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 {company.legalName}({company.address})이 운영하며, 동사가 본 약관 및 모든 주문서의 당사자입니다.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "엔터프라이즈 업무는 기업만을 대상으로 합니다. 귀사를 위해 당사와 함께 일하는 모든 사람은 만 18세 이상이어야 합니다."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "주문서"
+    },
+    {
+      "type": "p",
+      "text": "당사와 귀사는 각 업무를 시작하기 전에 서면 주문서 또는 작업 명세서(이하 “주문서”)로 해당 업무에 합의합니다. 각 주문서에는 다음 사항이 기재됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "범위: 당사가 수행할 업무와 포함되지 않는 사항",
+        "산출물: 귀사가 받게 될 결과물",
+        "일정 및 마일스톤(있는 경우)",
+        "가격 및 청구 방식: 프로젝트별 고정 가격, 월 요금, 성과별 요금 또는 이들의 조합",
+        "인수 기준 및 귀사의 테스트 기간",
+        "업무가 호스팅되는 위치(EU 내 Google Cloud 리전 포함)",
+        "업무가 의존하는 제3자 소프트웨어 또는 서비스와 그 약관"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "주문서는 양 당사자가 서명하거나 서면으로 확인한 때부터 양 당사자를 구속합니다. 이메일로도 충분합니다. 여러 주문서가 동시에 진행될 수 있으며, 각 주문서는 서로 독립적입니다."
+    },
+    {
+      "type": "p",
+      "text": "당사의 업무는 일반적으로 현황 파악과 서면 계획(이하 “설계도”)에서 시작하여 귀사 데이터를 활용한 구축과 출시를 거쳐 운영 및 개선으로 이어집니다. 주문서에는 그중 어느 단계가 포함되는지 기재됩니다."
+    },
+    {
+      "type": "p",
+      "text": "문서 간에 내용이 상충하는 경우 다음 순서로 우선합니다. 해당 업무의 주문서, 개인정보에 관하여는 DPA, 본 약관, 서비스 약관 순입니다."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "업무 수행 방식"
+    },
+    {
+      "type": "p",
+      "text": "당사는 주문서에 따라 당사의 AI 에이전트, 당사의 전문가(엔지니어 및 컨설턴트) 또는 양자 모두를 통해 업무를 수행합니다. 당사는 하도급업체를 이용할 수 있습니다. 당사는 하도급업체의 업무에 대해 계속 책임을 지며, 당사가 부담하는 것과 동일한 비밀유지 및 데이터 보호 의무를 하도급업체에 부과합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사가 귀사를 위해 구축하고 운영하는 에이전트는 귀사가 정한 규칙 안에서 작동합니다. 그 규칙에는 각 작업에 대한 승인(한 번 허용, 항상 허용 또는 거부), 역할 기반 접근 권한, 각 에이전트가 수행한 작업의 기록이 포함됩니다. 당사는 이러한 설정을 주문서에서 또는 출시 전에 귀사와 합의합니다."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "귀사의 협력"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 다음을 이행합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "업무에 필요한 인력, 시스템, 데이터 및 의사결정에 대한 접근을 적시에 당사에 제공합니다.",
+        "개인정보와 귀사 자체 시스템 및 도구의 라이선스를 포함하여, 해당 데이터와 접근 권한을 당사에 제공할 권리가 귀사에 있음을 보장합니다.",
+        "의사결정 권한이 있는 담당자를 지정합니다.",
+        "계획과 산출물을 신속하게 검토합니다.",
+        "당사가 작업하는 시스템과 데이터를 귀사가 직접 백업합니다.",
+        "귀사 업종에 적용되는 규정 등 업무에 영향을 미치는 규정을 당사에 알립니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀사의 지연이나 귀사가 제공한 정보의 오류로 인해 당사의 업무가 지연되는 경우, 일정은 그만큼 연장됩니다. 이로 인해 추가로 발생하는 작업은 [변경](#changes)으로 처리합니다."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "인수"
+    },
+    {
+      "type": "p",
+      "text": "주문서에 인수 기준이 정해져 있는 경우, 당사는 산출물이 준비되면 귀사에 알립니다. 귀사는 주문서에 정한 기간 내에 해당 기준에 따라 산출물을 테스트합니다. 산출물이 기준을 충족하면 귀사는 이를 인수합니다. 충족하지 못하는 경우 귀사는 미흡한 점을 서면으로 당사에 알리고, 당사는 이를 수정하여 다시 제공합니다."
+    },
+    {
+      "type": "p",
+      "text": "산출물은 귀사가 이를 확인한 때, 테스트 기간이 사유를 밝힌 서면 거부 없이 종료된 때, 또는 귀사가 테스트 외의 목적으로 실제 사업에 이를 사용하기 시작한 때에 인수된 것으로 봅니다. 사용을 방해하지 않는 경미한 결함은 인수를 막지 않습니다. 당사는 이러한 결함을 [당사의 보증](#warranties)에 따라 수정합니다."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "변경"
+    },
+    {
+      "type": "p",
+      "text": "각 당사자는 범위의 변경을 요청할 수 있습니다. 당사는 변경이 일정과 가격에 어떤 영향을 미치는지 귀사에 알립니다. 변경은 양 당사자가 서면으로 합의한 때부터 적용됩니다. 그때까지 당사는 기존 주문서에 따라 업무를 계속합니다."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "요금 및 지급"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 주문서에 정한 요금을 지급합니다. 성과별 요금의 경우, 무엇을 성과로 보며 이를 어떻게 측정하는지 주문서에서 정합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 주문서에 따라 청구서를 발행합니다. 귀사는 주문서 또는 청구서에 기재된 기간 내에 지급합니다. 요금에는 부가가치세나 기타 세금이 포함되어 있지 않으며, 해당하는 경우 귀사가 이를 부담합니다. 당사는 주문서가 허용하는 경우에만 경비를 청구합니다."
+    },
+    {
+      "type": "p",
+      "text": "청구서의 일부에 이의가 있는 경우 선의로 당사에 알리고 나머지 금액을 지급하십시오. 독촉 후에도 금액이 미지급 상태인 경우, 당사는 지급될 때까지 업무를 중단할 수 있습니다. 지급 지연에는 법이 허용하는 범위에서 이자가 부과됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "권리의 귀속"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "귀사의 자료"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 당사에 제공한 데이터, 콘텐츠, 시스템 및 기타 자료에 대한 모든 권리를 보유합니다. 귀사는 당사가 업무 수행 목적으로만 이를 사용하도록 허락합니다."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "산출물"
+    },
+    {
+      "type": "p",
+      "text": "귀사가 산출물의 대금을 전액 지급하면, 에이전트 설정, 워크플로, 커넥터, 문서, 코드 등 당사가 주문서에 따라 귀사만을 위해 제작한 것은 귀사의 소유가 됩니다. 당사는 그에 대해 당사가 보유한 권리를 귀사에 이전합니다. 법에 따라 권리를 이전할 수 없는 경우, 당사는 귀사가 제3자에게 넘길 수 있는 독점적이고 전 세계적이며 영구적인 라이선스를 귀사에 부여합니다. 대금을 지급하기 전까지 귀사는 산출물을 검토하고 테스트하기 위해 사용할 수 있습니다."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "당사의 자료"
+    },
+    {
+      "type": "p",
+      "text": "당사는 당사의 도구, 플랫폼, 소프트웨어, 에이전트, 템플릿, 지침, 방법론 및 노하우와, 당사가 주문서 이전에 또는 주문서와 무관하게 제작한 모든 것에 대한 모든 권리를 보유합니다. 당사의 자료가 산출물의 일부인 경우, 귀사는 대금 지급 후 귀사 자체 사업을 위해 해당 산출물의 일부로서 이를 사용, 복제 및 변경할 수 있는 비독점적이고 전 세계적이며 영구적인 라이선스를 받습니다. 귀사는 당사의 자료를 단독으로 판매하거나 라이선스할 수 없습니다."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "서비스, 제3자 구성요소 및 AI 산출물"
+    },
+    {
+      "type": "p",
+      "text": "관리형 에이전트 운영이나 호스팅형 추론 API처럼 당사가 귀사를 위해 운영하는 것은 산출물이 아니라 서비스입니다. 이에 대한 귀사의 접근은 주문서의 기간 동안 유지됩니다."
+    },
+    {
+      "type": "p",
+      "text": "산출물에 포함된 제3자 구성요소 및 오픈 소스 구성요소는 각각의 라이선스를 따릅니다. 당사는 산출물에 어떤 구성요소가 포함되어 있는지 귀사에 알립니다."
+    },
+    {
+      "type": "p",
+      "text": "산출물의 일부는 AI로 제작될 수 있습니다. 일부 국가에서는 인간의 창작적 기여가 충분하지 않은 상태에서 AI가 만든 결과물이 저작권으로 보호되지 않습니다. 당사는 존재하는 권리를 모두 이전하지만, 권리가 존재한다고 보증하지는 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "각 당사자는 상대방의 기밀정보를 사용하지 않는 한, 업무를 통해 얻은 일반적인 기술과 경험을 계속 활용할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "비밀유지"
+    },
+    {
+      "type": "p",
+      "text": "각 당사자는 상대방의 기밀정보, 즉 기밀로 표시되었거나 기밀로 이해되는 것이 합리적인 비공개 정보를 접하게 됩니다."
+    },
+    {
+      "type": "p",
+      "text": "기밀정보를 받은 당사자는 이를 업무 목적으로만 사용하고, 합리적인 주의로 보호하며, 이를 알아야 하고 비밀유지 의무를 지는 사람에게만 공유합니다. 이 의무는 공개된 정보, 수령자가 이미 알고 있던 정보, 독자적으로 개발한 정보 또는 제3자로부터 적법하게 받은 정보에는 적용되지 않습니다. 법에 따라 공개가 요구되는 경우 수령자는 요구되는 범위에서 공개할 수 있으며, 허용되는 경우 사전에 상대방에게 알립니다. 당사는 귀사의 허락을 받은 경우에만 귀사를 고객으로 언급합니다."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "데이터 및 호스팅"
+    },
+    {
+      "type": "p",
+      "text": "당사가 귀사를 위해 개인정보를 처리하는 경우 당사는 귀사의 처리자입니다. 즉, 당사는 귀사의 지시에 따라서만 이를 처리하며 DPA가 적용됩니다. 귀사의 담당자 및 청구서 등 귀사에 관한 당사 자체 기록의 경우 당사는 당사 자신을 위해 행위하며, 당사의 [개인정보 처리방침](/instant/legal/privacy)이 적용됩니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀사와 합의하고 주문서에 기재한 EU 내 Google Cloud 리전에서 귀사의 업무를 호스팅합니다. AI 모델로 사용하는 Google Gemini 등 당사가 이용하는 일부 제공업체는 EU 밖에서 데이터를 처리할 수 있습니다. 해당 업체는 [하위 처리자](/instant/legal/subprocessors) 페이지에 기재되어 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀사의 데이터로 당사의 AI 모델을 학습시키지 않으며, 귀사의 데이터를 판매하지 않습니다."
+    },
+    {
+      "type": "p",
+      "text": "HIPAA의 적용을 받는 보호 대상 건강정보를 당사에 제공하지 마십시오. 당사는 business associate agreement(업무 제휴 계약)를 체결하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "AI 관련 법률과 귀사의 역할"
+    },
+    {
+      "type": "p",
+      "text": "당사가 구축한 시스템을 귀사의 사업에서 어떻게 사용할지는 귀사가 결정합니다. EU AI법(AI Act)에 따라 귀사는 당사가 귀사를 위해 구축한 것의 “배포자”, 즉 자신의 권한 아래 AI 시스템을 사용하는 조직입니다. 귀사가 자신의 명의로 시스템을 가동하는 경우, 귀사는 해당 시스템의 “제공자”가 될 수도 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "시스템이 채용 및 근로, 교육, 신용, 필수 서비스에 대한 접근 등 고위험 분야에서 사용될 가능성이 있다면 업무 시작 전에 당사에 알려 주십시오. 이 경우 주문서에서 각 당사자의 역할을 정합니다. 이러한 용도에 대한 귀사의 배포자 의무는 2027년 12월 2일부터 적용됩니다(AI Act Art. 26 및 Annex III). 이 의무에는 인간에 의한 감독, 지침에 따른 시스템 사용, 시스템 작동의 모니터링 및 로그 보관이 포함됩니다."
+    },
+    {
+      "type": "p",
+      "text": "법이 요구하는 경우, 귀사는 귀사가 운영하는 시스템을 대하는 사람들이 자신이 AI를 상대하고 있음을 알 수 있도록 하고, 해당 시스템을 사용하는 직원의 AI 리터러시를 높이기 위한 조치를 취합니다(AI Act Art. 4 및 50). 당사의 팀 교육이 도움이 될 수 있지만, 이 의무는 여전히 귀사에 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "중대한 결정에서의 AI 사용에 관한 미국 주 법률은 해당 결정을 내리는 기업인 귀사에 적용됩니다. 예를 들어 콜로라도주 법률은 2027년 1월 1일부터 시행됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "사업 성과"
+    },
+    {
+      "type": "p",
+      "text": "당사는 주문서에 정한 목표를 향해 업무를 수행합니다. 그러나 사업 성과는 당사가 통제할 수 없는 귀사의 데이터, 인력, 프로세스 및 시장에 달려 있습니다. 주문서에 명시적으로 정하지 않는 한, 당사는 비용 절감, 매출 또는 기타 어떠한 사업 성과도 보증하지 않습니다. 성과별 요금은 업무의 가격을 정하는 방식일 뿐, 성과가 달성된다는 약속이 아닙니다."
+    },
+    {
+      "type": "p",
+      "text": "AI 산출물은 틀릴 수 있으며, 에이전트는 실수를 할 수 있습니다. 중요한 결정에는 인간의 검토를 유지하고, 위험에 맞는 승인 설정을 선택하십시오. 자세한 내용은 [AI 작동 방식](/instant/legal/ai)에서 확인할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "당사의 보증"
+    },
+    {
+      "type": "p",
+      "text": "당사는 적절한 자격을 갖춘 인력을 투입하여 합리적인 기술과 주의로 업무를 수행할 것을 보증합니다. 또한 각 산출물이 인수 시점에 모든 중요한 측면에서 주문서와 일치할 것을 보증합니다."
+    },
+    {
+      "type": "p",
+      "text": "산출물이 이 보증에 미치지 못하는 경우 서면으로 당사에 알려 주십시오. 당사는 이를 수정하거나 업무를 다시 수행합니다. 당사가 합리적인 기간 내에 이를 하지 못하는 경우, 귀사는 주문서의 해당 부분을 종료하고 그 부분에 대해 지급한 요금을 돌려받을 수 있습니다."
+    },
+    {
+      "type": "note",
+      "text": "이는 당사의 보증에 미치지 못하는 산출물에 대한 귀사의 유일한 구제수단입니다. 본 약관과 주문서에 정한 보증 외에는, 법이 허용하는 범위에서 당사는 상품성, 특정 목적에의 적합성 및 비침해에 대한 보증을 포함하여 명시적이든 묵시적이든 어떠한 보증도 하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "하자에 관한 귀사의 법적 권리는 그대로 적용되지만, 귀사는 먼저 당사에 하자를 수정할 합리적인 기회를 주어야 합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "책임",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "법이 허용하는 범위에서 어느 당사자도 간접적, 부수적, 특별, 결과적 또는 징벌적 손해나 이익, 매출, 데이터 또는 영업권의 상실에 대해 책임을 지지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "주문서에 따른 각 당사자의 총 책임은 청구의 원인이 된 사건 발생 전 12개월 동안 해당 주문서에 따라 지급되었거나 지급되어야 할 요금으로 제한됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "이러한 제한은 귀사의 요금 지급 의무, 비밀유지 위반, 사기 또는 법에 따라 제한할 수 없는 책임에는 적용되지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "책임",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 고의 또는 중과실로 인한 손해, 생명, 신체 또는 건강의 침해, 그리고 강행적인 제조물 책임법에 따른 책임에 대해 전적으로 책임을 집니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "경과실의 경우, 당사는 본질적 의무, 즉 주문서의 적절한 이행을 가능하게 하고 귀사가 통상적으로 신뢰할 수 있는 의무를 위반한 경우에만 책임을 집니다. 이 경우에도 당사는 이러한 유형의 계약에서 전형적이고 예견 가능한 손해에 대해서만, 그리고 총액으로는 사건 발생 전 12개월 동안 해당 주문서에 따라 지급되었거나 지급되어야 할 요금을 한도로 책임을 집니다. 그 밖의 경우 경과실에 대한 당사의 책임은 배제됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 귀사가 제공한 자료 또는 귀사의 본 약관 위반으로 인해 발생하는 제3자의 청구와 그 처리에 드는 합리적인 비용에 대해 당사를 보호합니다. 당사는 그러한 청구가 있으면 즉시 귀사에 알리고, 귀사가 그 처리에 참여할 수 있도록 합니다."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "기간 및 종료"
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 귀사의 첫 주문서부터 마지막 주문서가 종료될 때까지 적용됩니다. 각 주문서는 그에 기재된 기간 동안 유효합니다. 월 단위 서비스는 어느 한 당사자가 주문서에 정한 통지 기간을 두고 종료할 때까지 매월 계속됩니다."
+    },
+    {
+      "type": "p",
+      "text": "상대방이 주문서를 중대하게 위반하고 통지를 받은 후 합리적인 기간 내에 이를 시정하지 않거나, 상대방이 지급불능 상태가 된 경우, 각 당사자는 서면으로 즉시 주문서를 종료할 수 있습니다. 주문서가 허용하는 경우 귀사는 주문서를 조기에 종료할 수도 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "주문서가 종료되면 귀사는 종료일까지 수행된 업무에 대한 대금과, 귀사가 조기에 종료한 경우 당사가 취소할 수 없는 비용을 지급합니다. 당사는 귀사의 데이터와 귀사가 대금을 지급한 산출물을 인도하고, 귀사를 위해 운영하던 서비스를 중지하며, 개인정보는 DPA에 정한 바에 따라 처리합니다. 권리의 귀속, 비밀유지, 책임, 준거법 등 그 성질상 존속해야 하는 본 약관의 조항은 계속 적용됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "제공업체 전환",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "관리형 에이전트 운영이나 호스팅 등 당사가 귀사를 위해 데이터 처리 서비스를 운영하는 경우, EU 데이터법(Data Act)은 귀사에 다른 제공업체 또는 귀사 자체 시스템으로 전환할 권리를 부여합니다(Data Act Art. 23-31). 이러한 서비스에 대해서는 다음이 적용됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "귀사는 서면으로 당사에 알림으로써 전환을 시작하거나, 서비스를 종료하고 데이터를 가져갈 수 있습니다. 통지 기간은 최대 2개월이며, 귀사는 더 짧은 기간을 선택할 수 있습니다.",
+        "당사는 귀사의 데이터와, 당사가 귀사를 위해 제작한 디지털 자산 중 귀사가 받을 권리가 있는 것을 일반적으로 사용되는 기계 판독 가능한 형식으로 제공합니다.",
+        "전환 기간은 최대 30일입니다. 이것이 기술적으로 불가능한 경우, 당사는 데이터법이 허용하는 한도 내에서 그 이유와 필요한 기간을 귀사에 알립니다.",
+        "전환 기간 동안 당사는 합의한 대로 서비스를 계속 운영하며, 귀사와 귀사의 새 제공업체를 선의로 지원합니다.",
+        "전환 기간이 끝난 후에도 귀사는 최소 30일 동안 추가로 데이터를 회수할 수 있습니다.",
+        "전환이 완료되면 당사는 DPA에 정한 바에 따라 귀사의 데이터를 삭제합니다.",
+        "2027년 1월 12일까지 당사는 전환에 드는 직접 비용만을, 그리고 주문서에 기재된 경우에만 청구할 수 있습니다. 2027년 1월 12일부터 당사는 전환에 대해 어떠한 비용도 청구하지 않습니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "서비스가 귀사를 위해 맞춤 제작된 경우, 이러한 규칙 중 일부는 부분적으로만 적용될 수 있습니다(Data Act Art. 31). 그러한 경우 주문서에 어떤 규칙이 해당하는지 기재하며, 당사는 귀사가 서명하기 전에 이를 알립니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "위치 및 정부의 접근",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 주문서에 기재된 EU 내 Google Cloud 리전에서 귀사의 업무를 호스팅합니다. [하위 처리자](/instant/legal/subprocessors) 페이지에는 각 제공업체와 그 업무 수행 장소가 기재되어 있습니다(Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU 밖의 정부가 당사에 귀사의 비개인 데이터를 요구하는 경우, 당사는 EU 또는 회원국 법률이 허용하는 경우에만 이를 제공합니다. 법이 금지하지 않는 한, 당사는 사전에 귀사에 알립니다(Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "준거법 및 분쟁"
+    },
+    {
+      "type": "p",
+      "text": "본 약관과 모든 주문서는 저촉법 규칙을 제외한 {company.law}의 법률을 따릅니다. 법이 다른 법원을 요구하지 않는 한, 분쟁은 {company.law}의 법원이 판단합니다.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "어느 당사자든 법원에 가기 전에, 양측 담당자는 선의로 문제의 해결을 시도합니다. {company.email}(으)로 문제를 설명하여 연락해 주십시오."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "본 약관에는 중재 조항이 없습니다. 청구가 요건을 충족하는 경우 각 당사자는 소액 사건 법원에 청구를 제기할 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀사는 미국 또는 EU의 제재 명단에 올라 있지 않으며, 미국 또는 EU의 금수 조치 대상 국가에 소재하지 않음을 확인합니다. 어느 당사자도 미국 또는 EU의 제재나 수출 규정을 위반하여 업무 결과를 사용하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "일반 조항"
+    },
+    {
+      "type": "list",
+      "items": [
+        "당사는 본 약관을 개정할 수 있습니다. 이미 합의된 주문서에는 양 당사자가 달리 합의하지 않는 한 합의 당시 적용되던 약관이 계속 적용됩니다.",
+        "어느 당사자도 상대방의 서면 동의 없이 본 약관이나 주문서를 양도할 수 없습니다. 다만, 해당 사업을 인수하는 회사에 양도하는 경우는 예외로 합니다.",
+        "어느 당사자도 자신의 합리적인 통제를 벗어난 사건으로 인한 지연에 대해 책임을 지지 않습니다.",
+        "본 약관의 일부가 무효인 경우에도 나머지 부분은 계속 적용됩니다.",
+        "당사에 대한 통지는 {company.email}(으)로 보냅니다. 귀사에 대한 통지는 주문서에 지정된 담당자에게 보냅니다."
+      ]
+    }
+  ]
+}

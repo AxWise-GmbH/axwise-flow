@@ -234,3 +234,19 @@ export const STRIP_NOTES = {
   'Business details vault': 'Your key details, kept safe in one place.',
   'Project folders': 'Chats, files and tasks, grouped by project.',
 };
+
+// A stable id per strip card, for its words in other languages (cap.strip.<id>.name/.note).
+export const STRIP_IDS = {
+  'App lock (PIN, YubiKey)': 'lock',
+  'Password vault': 'passwords',
+  'Spoken replies': 'spoken',
+  'Built-in browser': 'browser',
+  'Mind map': 'mindmap',
+  'Business details vault': 'business',
+  'Project folders': 'folders',
+};
+
+/** The translation key of a strip card's `name` or `note`. */
+export function stripKey(item, field) {
+  return `cap.strip.${STRIP_IDS[item] ?? item}.${field}`;
+}

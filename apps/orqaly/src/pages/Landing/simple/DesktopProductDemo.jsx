@@ -720,7 +720,7 @@ export default function DesktopProductDemo({ example, variant = 'classic' }) {
             viewBox="0 0 28 32"
             aria-hidden="true"
           >
-            <path d="M3 2v24l6-7 5 11 5-2-5-10h10Z" fill="#25282e" stroke="white" strokeWidth="2" />
+            <path d="M3 2v24l6-7 5 11 5-2-5-10h10Z" fill="#282828" stroke="white" strokeWidth="2" />
           </svg>
         )}
       </div>

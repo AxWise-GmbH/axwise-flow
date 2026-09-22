@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "API 条款",
+    "summary": "适用于将 Orqanix API 集成到自有产品或系统中的企业的附加规则。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "关于本条款"
+    },
+    {
+      "type": "p",
+      "text": "当企业使用 Orqanix API 时，适用本 API 条款。本条款是对我们的[服务条款](/instant/legal/terms)和[可接受使用政策](/instant/legal/acceptable-use)的补充。对于个人数据，[数据处理附录](/instant/legal/dpa)（“DPA”）同样适用，并构成本条款的一部分。如本条款与服务条款在 API 相关事项上存在冲突，以本条款为准。经双方签署的单独书面协议优先于上述两者。"
+    },
+    {
+      "type": "p",
+      "text": "“您”指使用 API 的企业。接受本条款的人士确认其有权代表该企业并使其受约束。“我们”指 Orqanix。"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 由 {company.legalName}（地址：{company.address}）运营，该主体是本条款的合同方。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "谁可以使用 API"
+    },
+    {
+      "type": "p",
+      "text": "API 仅面向企业。请勿以消费者身份（即出于您的贸易、业务或职业以外的目的）使用 API。代表您使用 API 的所有人员均须年满 18 周岁。"
+    },
+    {
+      "type": "p",
+      "text": "在 API 的早期阶段，需申请才能获得访问权限。请写信至 {company.email}，邮件主题注明“API access”，并向我们介绍您的业务以及您想构建的内容。我们决定向谁提供访问权限，并可能拒绝或附加条件。"
+    },
+    {
+      "type": "p",
+      "text": "在早期阶段，API 免费提供。在任何付费方案开始之前，我们将与您以书面形式商定价格和付款条款。未经该约定，我们不收取任何费用。"
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "API 的功能"
+    },
+    {
+      "type": "p",
+      "text": "API 是为您自己的产品提供的推理层。您向其发送一项任务，以及您拥有的智能体、工具和预算。API 的回答包括：应由谁来完成工作（一个智能体、一个团队或一个人）、其所权衡的每个因素的评分、背景信息、防护措施、备选方案，以及针对较大工作的团队计划。"
+    },
+    {
+      "type": "p",
+      "text": "API 只做决策，不执行工作。由您的系统决定是否以及如何根据每个回答采取行动，您对您的系统随后所做的事情负责。"
+    },
+    {
+      "type": "p",
+      "text": "对于耗时较长的工作，您可以稍后获取结果，或通过签名的 webhook 接收结果。获得访问权限的客户可获得 API 的技术文档。"
+    },
+    {
+      "type": "p",
+      "text": "回答由 AI 生成。回答可能有误、不完整或已过时。请在依赖回答之前进行核实，尤其是在错误可能伤害他人的情况下。[我们的 AI 如何运作](/instant/legal/ai)对此有更多说明。"
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "访问密钥"
+    },
+    {
+      "type": "p",
+      "text": "您通过我们提供给您的密钥访问 API。请像对待密码一样对待它："
+    },
+    {
+      "type": "list",
+      "items": [
+        "妥善保密，并仅将其存储在您自己的服务器上。切勿将其放在应用程序、网页或他人可见的代码中。",
+        "仅与集成所需的人员和系统共享。",
+        "如您认为密钥已泄露或未经您许可被使用，请立即通过 {company.securityEmail} 告知我们。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "在您告知我们密钥可能已泄露之前，您对使用我们提供给您的密钥进行的一切使用负责。我们可随时更改、限制或撤回密钥，例如在发现滥用或安全风险时。在可能的情况下，我们会通知您。"
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "您的产品与用户"
+    },
+    {
+      "type": "p",
+      "text": "当您将 API 集成到您自己的产品中时，该产品仍归您所有。您对该产品以及该产品如何对待其用户（您的“最终用户”）负责。您必须："
+    },
+    {
+      "type": "list",
+      "items": [
+        "告知您的最终用户他们正在与 AI 交互，除非从情境中已显而易见（欧盟《人工智能法》第 50(1) 条；美国部分州的法律）。",
+        "不得在面向 18 周岁以下人士或可能被其使用的任何产品中使用 API。",
+        "向您的最终用户提供您自己的隐私声明。该声明必须说明您的产品如何使用他们的数据，包括您会将数据发送给我们。我们的[隐私政策](/instant/legal/privacy)不涵盖您的产品。",
+        "在向我们发送任何人的个人数据之前，具备法律依据并取得所需的任何同意。",
+        "要求您的最终用户遵守至少与我们的[可接受使用政策](/instant/legal/acceptable-use)同样严格的规则，并制止任何违反规则的人。",
+        "将您的产品作为您自己的产品呈现，而不是呈现为由 Orqanix 制作或认可，除非我们另有书面约定。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "根据欧盟《人工智能法》，您是您使用 API 构建的 AI 系统的提供者或部署者，并承担该角色的义务。我们仅提供您系统中的一个组成部分；我们不是该系统的提供者。"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "高风险用途"
+    },
+    {
+      "type": "p",
+      "text": "有些决策会对人产生法律上或类似的重大影响，例如有关招聘与工作、教育、信贷、保险、住房、医疗、公共服务获取、执法、移民和司法的决策。在您完成自己的法律审查并落实法律要求的保障措施之前，请勿使用 API 的回答来作出或支持此类决策。这些保障措施包括在决策生效前进行真正的人工审核。"
+    },
+    {
+      "type": "p",
+      "text": "这些义务是您根据适用于您的法律而承担的。其中包括欧盟《人工智能法》关于高风险 AI 系统的规则（自 2027 年 12 月 2 日起适用，《人工智能法》附件三），以及 GDPR 关于自动化决策的规则（GDPR 第 22 条）。"
+    },
+    {
+      "type": "p",
+      "text": "这些义务还包括美国各州关于自动化决策的法律。例如，科罗拉多州关于在重大决策中使用 AI 的法律将于 2027 年 1 月 1 日生效。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "您的数据"
+    },
+    {
+      "type": "p",
+      "text": "您的数据是指您发送给 API 的内容（任务、对您的智能体和工具的描述、预算以及背景信息）以及 API 给出的回答。我们将决策、决策结果以及每项任务范围的记录存储在 API 自己的数据库中，该数据库运行在位于欧盟（荷兰）的 Google Cloud 上。在您使用 API 期间，我们会保存这些数据；此后按照 DPA 的规定处理。"
+    },
+    {
+      "type": "p",
+      "text": "为回答一项任务，我们会将其发送给我们使用的 AI 模型 Google Gemini。Gemini 还可能使用 Google 搜索在网络上进行搜索。Google 可能在欧盟境外处理该任务。[子处理方](/instant/legal/subprocessors)页面列出了所有协助我们运行 API 的服务商。"
+    },
+    {
+      "type": "p",
+      "text": "我们使用 Google 的付费 Gemini API。在此情况下，Google 根据其数据处理条款作为我们的处理者，不会使用您的任务来改进其产品。",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "我们代表您行事的情形"
+    },
+    {
+      "type": "p",
+      "text": "对于您发送给我们的个人数据，我们是您的处理者。这意味着我们仅按您的指示、仅为向您提供 API 服务而依据 DPA 处理这些数据。"
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "我们以自身名义行事的情形"
+    },
+    {
+      "type": "p",
+      "text": "API 的部分工作属于我们自己的工作，而非您的工作。为针对任务进行网络搜索，我们自己的搜索服务会将根据您的任务生成的查询发送给搜索引擎（Google、Bing、Brave 和 DuckDuckGo）。为查询某家公司，API 会向公司登记信息服务 OpenRegister 发出请求，其结果可能包含董事姓名。这些搜索和查询如何进行由我们决定。就此而言，我们以自身名义（作为“控制者”）行事，适用我们的[隐私政策](/instant/legal/privacy)，而非 DPA。"
+    },
+    {
+      "type": "p",
+      "text": "由于任务的部分内容可能出现在搜索查询中，除非任务需要，请勿在任务文本中包含个人数据。"
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "我们不做的事"
+    },
+    {
+      "type": "list",
+      "items": [
+        "我们不会使用您的数据训练我们自己的 AI 模型。",
+        "我们不会出售您的数据，也不会将其用于广告。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "请勿发送的内容"
+    },
+    {
+      "type": "p",
+      "text": "除非我们已书面同意，请勿向我们发送特殊类别的个人数据（例如健康、宗教、性取向或生物特征数据）或有关刑事定罪的数据。"
+    },
+    {
+      "type": "p",
+      "text": "请勿向我们发送受 HIPAA 保护的健康信息。我们不签署业务伙伴协议（business associate agreement）。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "权利归属"
+    },
+    {
+      "type": "p",
+      "text": "您保留对您发送给我们的内容的全部权利。在双方之间，API 给您的回答归您所有，但以其中存在任何权利为限。您授予我们为向您提供 API 服务而使用您的输入所需的权利。我们保留对 API、我们的软件、我们的指令和我们的方法的全部权利。如您向我们提出想法或反馈，我们可以自由使用。"
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "限制与约束"
+    },
+    {
+      "type": "p",
+      "text": "我们可以设定和更改对您的请求数量、大小和总量的限制。对于超出这些限制的请求，我们可以降低处理速度或予以拒绝。请勿试图规避限制，例如使用多个密钥或账户。"
+    },
+    {
+      "type": "p",
+      "text": "您不得："
+    },
+    {
+      "type": "list",
+      "items": [
+        "复制、拆解 API 或对其进行逆向工程，法律允许的情况除外；",
+        "使用 API 构建与之竞争的推理服务；",
+        "未经我们许可测试 API 的安全性（我们的[安全与漏洞披露](/instant/legal/security)页面说明了如何报告问题）；",
+        "发送恶意软件，或旨在使 API 过载或对其造成损害的流量。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "可用性与变更"
+    },
+    {
+      "type": "p",
+      "text": "API 没有服务等级协议。我们不承诺任何水平的可用性、正常运行时间或响应速度。API 可能因维护、变更或我们无法控制的原因而中断。请将您的产品构建为在 API 缓慢或不可用时仍能安全运行，例如设置您自己的备选方案。"
+    },
+    {
+      "type": "p",
+      "text": "API 将随着我们的开发而变化。对于会导致正常运行的集成失效的变更，我们力求提前通知您。但我们无法始终做到这一点，例如当我们必须迅速修复安全问题时。"
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "保密"
+    },
+    {
+      "type": "p",
+      "text": "双方都可能接触到对方的保密信息，即标注为保密或按合理理解应视为保密的非公开信息。对您而言，这包括您的输入。对我们而言，这包括 API 的文档和密钥。"
+    },
+    {
+      "type": "p",
+      "text": "接收方仅为履行本条款而使用该信息，以合理的谨慎加以保护，并仅与有需要且负有保密义务的人员共享。该义务不适用于已公开的信息、接收方已知悉的信息、接收方独立开发的信息，或从他人处合法获得的信息。如法律要求披露，接收方可披露所要求的内容，并在允许的情况下事先通知另一方。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "暂停与终止"
+    },
+    {
+      "type": "p",
+      "text": "您可以随时停止使用 API。在 API 免费期间，任何一方均可随时通过电子邮件终止本条款。"
+    },
+    {
+      "type": "p",
+      "text": "如您违反本条款或可接受使用政策，如您的使用给 API、其他客户或任何其他人带来风险，或法律有此要求，我们可以立即暂停或终止您的访问权限。在可能的情况下，我们会事先通知您，并给您纠正问题的机会。"
+    },
+    {
+      "type": "p",
+      "text": "本条款终止时，您使用 API 的权利随之终止，我们将终止您的访问权限。之后我们按照 DPA 的规定处理您的数据。本条款中按其性质应继续有效的部分（例如保密、责任和适用法律）继续适用。"
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "更换服务商",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "欧盟《数据法》允许云服务及其他数据处理服务的企业客户更换至其他服务商或其自有系统，而不被锁定（《数据法》第 23-31 条）。对于 API：",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "您可以书面通知我们，发起更换，或终止 API 服务并取回您的数据。通知期最长为两个月，您也可以选择更短的通知期。",
+        "我们以通用的机器可读格式向您提供您的数据，即您的输入以及我们为您存储的决策、决策结果和范围记录。",
+        "过渡期最长为 30 天。如技术上无法做到，我们会在《数据法》允许的限度内告知您原因以及所需时间。",
+        "在过渡期内，我们按约定为您持续运行 API，并本着诚信协助您。",
+        "过渡期结束后，您至少还有 30 天时间取回您的数据。",
+        "更换完成后，我们按照 DPA 的规定删除您的数据。",
+        "在 2027 年 1 月 12 日之前，我们仅可收取更换所产生的直接成本。自 2027 年 1 月 12 日起，我们不再收取任何更换费用。在 API 免费期间，我们不收取任何费用。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "所在地与政府访问",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "API 及其数据库运行在位于欧盟（荷兰）的 Google Cloud 上。Google Gemini 可能在欧盟境外处理任务，搜索引擎和 OpenRegister 在其自行选择的地点处理查询。[子处理方](/instant/legal/subprocessors)页面列出了每个服务商及其运营地点（《数据法》第 28 条）。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如欧盟以外的政府要求我们提供您的非个人数据，我们仅在欧盟或成员国法律允许的情况下提供。除非法律禁止，我们会事先告知您（《数据法》第 32 条）。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "保证与责任",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "API 按“现状”和“现有可用状态”提供。在法律允许的范围内，我们不作任何形式的明示或默示保证，包括关于适销性、特定用途适用性、所有权和不侵权的保证。我们不保证回答准确、完整或适合您的用途。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "在法律允许的范围内，任何一方均不对间接的、附带的、特殊的、后果性的或惩罚性的损害赔偿，或利润、收入、数据或商誉的损失承担责任。我们在本条款项下的总责任以下列两者中较高者为限：100 美元，或导致索赔的事件发生前 12 个月内您就 API 向我们支付的金额。上述限制不适用于法律不允许限制的责任。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于我们故意或因重大过失造成的损害、对生命、身体或健康的伤害，以及依据强制性产品责任法，我们承担全部责任。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于轻微过失，我们仅在违反根本义务时承担责任；根本义务是指使本条款得以适当履行、且您通常可以信赖的义务。即便如此，我们也仅对此类合同中典型且可预见的损害承担责任。除此之外，我们对轻微过失的责任予以排除。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于他人（包括您的最终用户）因您的产品、您发送给我们的数据或您违反本条款而提出的索赔，以及处理这些索赔所产生的合理费用，您应使我们免受损失。我们会及时告知您任何此类索赔，并让您参与处理。"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "法律与争议"
+    },
+    {
+      "type": "p",
+      "text": "本条款受 {company.law} 法律管辖，但不适用其冲突法规则。争议由 {company.law} 的法院裁决，除非法律要求由其他法院管辖。",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "在任何一方诉诸法院之前，我们会本着诚信尝试解决争议。请写信至 {company.email} 并描述问题。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "本条款不含仲裁条款。如索赔符合条件，任何一方均可向小额诉讼法院提起诉讼。"
+    },
+    {
+      "type": "p",
+      "text": "您确认您未被列入美国或欧盟的制裁名单，也不位于受美国或欧盟禁运的国家/地区，并且据您所知，您的最终用户也是如此。您不得以违反美国或欧盟制裁或出口规则的方式使用 API。"
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "一般条款"
+    },
+    {
+      "type": "list",
+      "items": [
+        "我们可能会更新本条款。对于不利于您的变更，我们会提前通知您。如您在变更生效后继续使用 API，则适用新条款。如您不同意，请停止使用 API。",
+        "未经我们书面同意，您不得转让本条款。我们可以将本条款转让给接管 API 的公司。",
+        "如本条款的某一部分无效，其余部分仍然适用。",
+        "致我们的通知请发送至 {company.email}。致您的通知将发送至您提供给我们的电子邮件地址。"
+      ]
+    }
+  ]
+}

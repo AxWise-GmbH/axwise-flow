@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Opensourcevermeldingen",
+    "summary": "Deze pagina noemt de opensourcesoftware in de Orqanix Computerapp en op onze website, de licenties daarvan en hoe u de licentieteksten kunt krijgen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "Over deze pagina"
+    },
+    {
+      "type": "p",
+      "text": "Delen van onze producten zijn opensourcesoftware: software waarvan de makers iedereen toestaan die te gebruiken, te wijzigen en te delen onder een gepubliceerde licentie. Deze pagina noemt de belangrijkste opensourceonderdelen en hoe u hun licentieteksten kunt krijgen."
+    },
+    {
+      "type": "p",
+      "text": "Elk onderdeel blijft onder zijn eigen licentie vallen. Niets in onze [Servicevoorwaarden](/instant/legal/terms) of [Voorwaarden computerapp](/instant/legal/desktop-app-terms) beperkt de rechten die die licenties u geven. Waar een licentie bepaalt dat de makers geen garantie geven, geldt dat voor hun werk. Onze eigen toezeggingen over onze producten staan in onze voorwaarden."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "De Computerapp"
+    },
+    {
+      "type": "p",
+      "text": "De Orqanix-app voor Mac bevat opensourcesoftware zoals:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Software",
+        "Wat het doet in de app",
+        "Licentie"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "Het agentframework waarop de agents van de app draaien",
+          "Apache License 2.0"
+        ],
+        [
+          "Een optionele engineering-runtime die met de app wordt meegeleverd",
+          "Voert de engineeringtools van de app uit",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "Het venster en de desktopschil van de app",
+          "MIT License"
+        ],
+        [
+          "Chromium (onderdeel van Electron)",
+          "Toont de schermen van de app",
+          "Een licentie in BSD-stijl en andere"
+        ],
+        [
+          "Node.js",
+          "Voert delen van de app uit",
+          "MIT License, met enkele meegeleverde onderdelen onder andere licenties"
+        ],
+        [
+          "Veel kleinere npm- en Rust-pakketten",
+          "Bouwstenen die overal in de app worden gebruikt",
+          "Diverse opensourcelicenties, zoals MIT, Apache 2.0 en BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "De app bevat de licentieteksten en vermeldingen voor Goose, de engineering-runtime, Electron, Chromium en Node.js. Om ze te bekijken, klikt u met Control ingedrukt op de app in de Finder, kiest u Toon pakketinhoud en opent u daarna Contents en vervolgens Resources. Die bestanden zijn de gezaghebbende teksten; deze tabel is slechts een samenvatting. Voor de kleinere pakketten kunt u het ons vragen zoals beschreven in [Licentieteksten en broncode](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Onze website"
+    },
+    {
+      "type": "p",
+      "text": "Onze website gebruikt de lettertypen Geist, Geist Mono en Inter, alle drie gelicentieerd onder de [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Namen en handelsmerken"
+    },
+    {
+      "type": "p",
+      "text": "De namen van opensourceprojecten behoren toe aan hun eigenaars. Dat wij hun software gebruiken, betekent niet dat die projecten of hun eigenaars Orqanix onderschrijven, en de licenties geven niemand rechten op hun namen of logo's."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Licentieteksten en broncode"
+    },
+    {
+      "type": "p",
+      "text": "Om een kopie van een licentietekst te vragen, of van broncode waar een licentie u daar recht op geeft, schrijft u naar {company.email} met het onderwerp “Open source”. Vermeld welke versie van de Computerapp u hebt."
+    },
+    {
+      "type": "p",
+      "text": "Als u denkt dat we een vermelding hebben gemist of opensourcesoftware hebben gebruikt op een manier die de licentie niet toestaat, laat het ons dan weten via hetzelfde adres en we zoeken het uit."
+    }
+  ]
+}

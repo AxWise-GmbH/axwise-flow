@@ -54,7 +54,7 @@
     90deg,
     transparent,
     var(--oi-hairline-strong) 22%,
-    rgba(255, 255, 255, 0.5) 50%,
+    rgba(var(--oi-fg-rgb), 0.5) 50%,
     var(--oi-hairline-strong) 78%,
     transparent
   );
@@ -72,7 +72,7 @@
   height: 240px;
   background: radial-gradient(
     ellipse 50% 100% at 50% 0,
-    rgba(var(--oi-glow-rgb), 0.16),
+    rgba(var(--oi-glow-rgb), calc(0.16 * var(--oi-halo-k))),
     transparent 70%
   );
   opacity: 0;
@@ -141,7 +141,7 @@
 
 .ois-steps {
   margin: 0 0 var(--oi-s1);
-  padding-left: 1.3em;
+  padding-inline-start: 1.3em;
 }
 
 /* Centred blocks: the toggle sits in the middle, the opened text reads left-aligned. */
@@ -152,7 +152,7 @@
 .ois-centered .oi-more-region {
   max-width: 560px;
   margin-inline: auto;
-  text-align: left;
+  text-align: start;
 }
 
 /* Speed ----------------------------------------------------------------------- */
@@ -221,8 +221,8 @@
   height: 9px;
   background: radial-gradient(
     ellipse 120px 4.5px at 100% 50%,
-    #ffffff,
-    rgba(var(--oi-accent-rgb), 0.55) 35%,
+    rgb(var(--oi-fg-rgb)),
+    rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k))) 35%,
     transparent 72%
   );
   opacity: 0;
@@ -383,7 +383,7 @@
   background: radial-gradient(
     ellipse 150px 4.5px at 100% 50%,
     var(--oi-ink),
-    rgba(var(--oi-accent-rgb), 0.6) 32%,
+    rgba(var(--oi-accent-rgb), calc(0.6 * var(--oi-halo-k))) 32%,
     transparent 72%
   );
   opacity: 0;
@@ -495,11 +495,11 @@
   width: 100%;
   min-height: 172px;
   padding: 20px;
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
-  background:
-    linear-gradient(180deg, rgba(var(--oi-pale-rgb), 0.075), rgba(var(--oi-pale-rgb), 0.012) 66%),
-    var(--oi-paper);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   isolation: isolate;
   transition: transform 700ms var(--oi-ease);
 }
@@ -512,12 +512,12 @@
   z-index: -1;
   border: 1px solid rgba(var(--oi-pale-rgb), 0.5);
   border-radius: inherit;
-  background: radial-gradient(120% 90% at 50% 0, rgba(var(--oi-accent-rgb), 0.24), transparent 72%);
+  background: radial-gradient(120% 90% at 50% 0, rgba(var(--oi-accent-rgb), calc(0.24 * var(--oi-halo-k))), transparent 72%);
   opacity: 0;
   transition: opacity 500ms ease;
 }
 
-/* Green light pooling under the lifted card. The gradient is soft on its own: no blur. */
+/* Light pooling under the lifted card. The gradient is soft on its own: no blur. */
 .ois-strip-card::after {
   content: '';
   position: absolute;
@@ -528,8 +528,8 @@
   height: 60px;
   background: radial-gradient(
     ellipse 50% 50% at 50% 50%,
-    rgba(var(--oi-accent-rgb), 0.55),
-    rgba(var(--oi-accent-rgb), 0.16) 46%,
+    rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k))),
+    rgba(var(--oi-accent-rgb), calc(0.16 * var(--oi-halo-k))) 46%,
     transparent 72%
   );
   opacity: 0;
@@ -557,7 +557,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--oi-accent);
-  box-shadow: 0 0 10px 1px rgba(var(--oi-glow-rgb), 0.9);
+  box-shadow: 0 0 10px 1px rgba(var(--oi-glow-rgb), calc(0.9 * var(--oi-halo-k)));
 }
 
 /* The icon sits in its own small light, like the labels round the hero window. */
@@ -571,12 +571,12 @@
   border-radius: 50%;
   background: radial-gradient(
     circle at 35% 30%,
-    rgba(var(--oi-pale-rgb), 0.3),
-    rgba(var(--oi-deep-rgb), 0.18)
+    rgba(var(--oi-pale-rgb), calc(0.3 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.18 * var(--oi-halo-k)))
   );
   box-shadow:
     inset 0 0 0 1px rgba(var(--oi-pale-rgb), 0.3),
-    0 0 24px rgba(var(--oi-glow-rgb), 0.5);
+    0 0 24px rgba(var(--oi-glow-rgb), calc(0.5 * var(--oi-halo-k)));
   color: var(--oi-ink);
 }
 
@@ -606,7 +606,7 @@
 .ois-strip-tile::after {
   inset: -14px;
   z-index: -1;
-  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), 0.5), transparent 66%);
+  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), calc(0.5 * var(--oi-halo-k))), transparent 66%);
 }
 
 @keyframes ois-strip-orbit {
@@ -693,7 +693,7 @@
   }
 
   .ois-strip-list {
-    padding-right: 0;
+    padding-inline-end: 0;
   }
 
   .ois-strip-slot {
@@ -772,9 +772,11 @@
   flex-direction: column;
   min-height: 360px;
   padding: var(--oi-s3);
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012) 62%);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
   isolation: isolate;
 }
@@ -787,7 +789,7 @@
   z-index: -1;
   background: radial-gradient(
     460px circle at var(--mx, 50%) var(--my, 0%),
-    rgba(var(--oi-accent-rgb), 0.2),
+    rgba(var(--oi-accent-rgb), calc(0.2 * var(--oi-halo-k))),
     transparent 62%
   );
   opacity: 0.45;
@@ -804,7 +806,10 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1.5px);
+  background-image: radial-gradient(
+    rgba(var(--oi-fg-rgb), calc(0.16 * var(--oi-halo-k))) 1px,
+    transparent 1.5px
+  );
   background-size: 22px 22px;
   -webkit-mask-image: radial-gradient(ellipse 62% 62% at 50% 58%, #000, transparent 78%);
   mask-image: radial-gradient(ellipse 62% 62% at 50% 58%, #000, transparent 78%);
@@ -838,7 +843,7 @@
   stroke-width: 1.15;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 12px rgba(var(--oi-glow-rgb), 0.85));
+  filter: drop-shadow(0 0 12px rgba(var(--oi-glow-rgb), calc(0.85 * var(--oi-halo-k))));
 }
 
 .ois-draw {
@@ -903,7 +908,7 @@
   height: 60px;
   overflow: visible;
   fill: none;
-  filter: drop-shadow(0 0 5px rgba(var(--oi-accent-rgb), 0.95));
+  filter: drop-shadow(0 0 5px rgba(var(--oi-accent-rgb), calc(0.95 * var(--oi-halo-k))));
 }
 
 .ois-wire-v {
@@ -911,7 +916,7 @@
 }
 
 .ois-lane-rail {
-  stroke: rgba(255, 255, 255, 0.24);
+  stroke: rgba(var(--oi-fg-rgb), 0.24);
   stroke-width: 1;
 }
 
@@ -923,7 +928,7 @@
 }
 
 .ois-lane-head {
-  stroke: #ffffff;
+  stroke: rgb(var(--oi-fg-rgb));
   stroke-width: 2;
   stroke-dasharray: 3 97;
   animation: ois-lane-head 3.2s linear infinite;
@@ -967,54 +972,6 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-.ois-privacy .oi-sheet {
-  overflow-x: auto;
-}
-
-/*
- * The reused "how it works" diagram must look exactly as it does on "/". Inside a More
- * region it would inherit the region's muted type instead of the app's body type
- * (0.9375rem / 1.6), sit inside a second set of container gutters, and have every p and
- * ul re-spaced by instant.css. The rules below hand it its own values back; they mirror
- * SimpleHowItWorks.jsx and SimpleHowItWorks.css. It sits on the light .oi-sheet.
- */
-.ois-diagram {
-  color: var(--oi-sheet-ink);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-}
-
-.ois-diagram .MuiContainer-root {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.ois-diagram .MuiContainer-root > p {
-  margin: 0 0 32px;
-}
-
-.ois-diagram .oq-flow ~ p {
-  margin: 24px 0 0;
-}
-
-.ois-diagram .oq-flow p {
-  margin-bottom: 0;
-}
-
-.ois-diagram .oq-flow-desktop p,
-.ois-diagram .oq-flow-service p {
-  margin-top: 8px;
-}
-
-.ois-diagram .oq-flow-gateway p {
-  margin-top: 5px;
-}
-
-.ois-diagram .oq-flow-outputs ul {
-  margin: 0;
-  padding: 0;
 }
 
 /* More for developers ------------------------------------------------------------- */
@@ -1147,7 +1104,7 @@ section.ois-developers {
   bottom: -1px;
   left: 0;
   height: 1px;
-  background: linear-gradient(90deg, var(--oi-accent), #ffffff 55%, transparent);
+  background: linear-gradient(90deg, var(--oi-accent), rgb(var(--oi-fg-rgb)) 55%, transparent);
   transform: scaleX(0);
   transform-origin: 0 50%;
   transition: transform 900ms var(--oi-ease);
@@ -1160,12 +1117,12 @@ section.ois-developers {
 
 .ois-faq .oi-more-row .oi-more-toggle {
   min-height: 84px;
-  padding-left: 56px;
+  padding-inline-start: 56px;
   gap: var(--oi-s2);
 }
 
 .ois-faq .oi-more-row .oi-more-region {
-  padding-left: 56px;
+  padding-inline-start: 56px;
 }
 
 .ois-faq .oi-more-chevron {
@@ -1188,7 +1145,7 @@ section.ois-developers {
 .ois-faq .oi-more-toggle[aria-expanded='true'] .oi-more-chevron {
   border-color: var(--oi-ink);
   background-color: var(--oi-ink);
-  color: #060a08;
+  color: var(--oi-on-ink);
   transform: rotate(180deg);
 }
 
@@ -1221,8 +1178,8 @@ section.ois-developers {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(150, 215, 186, 0.42),
-    rgba(114, 197, 160, 0.16) 36%,
+    rgba(var(--oi-fg-rgb), calc(0.42 * var(--oi-halo-k))),
+    rgba(var(--oi-fg-rgb), calc(0.16 * var(--oi-halo-k))) 36%,
     transparent 66%
   );
   filter: blur(36px);
@@ -1298,7 +1255,7 @@ section.ois-developers {
   height: 100%;
   overflow: visible;
   fill: none;
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke: rgba(var(--oi-fg-rgb), 0.14);
   stroke-width: 1;
 }
 
@@ -1320,7 +1277,7 @@ section.ois-developers {
     from 0deg,
     transparent 0deg 262deg,
     rgba(var(--oi-accent-rgb), 0.55) 336deg,
-    #ffffff 359deg,
+    rgb(var(--oi-fg-rgb)) 359deg,
     transparent 360deg
   );
   -webkit-mask-image: radial-gradient(
@@ -1343,7 +1300,7 @@ section.ois-developers {
   font-weight: 400;
   line-height: 1.02;
   letter-spacing: -0.05em;
-  text-shadow: 0 0 36px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 0 36px rgba(var(--oi-shadow-rgb), calc(0.85 * var(--oi-shadow-k)));
 }
 
 .ois-finale-line {
@@ -1356,14 +1313,14 @@ section.ois-developers {
   margin: var(--oi-s4) 0 var(--oi-s3);
 }
 
-/* Green light pooled under the button; it brightens when the button is approached. */
+/* Light pooled under the button; it brightens when the button is approached. */
 .ois-download-action::before {
   content: '';
   position: absolute;
   inset: -28px -64px;
   z-index: -1;
   border-radius: 999px;
-  background: radial-gradient(closest-side, rgba(var(--oi-glow-rgb), 0.7), transparent);
+  background: radial-gradient(closest-side, rgba(var(--oi-glow-rgb), calc(0.7 * var(--oi-halo-k))), transparent);
   filter: blur(16px);
   opacity: 0.5;
   transition: opacity 700ms ease;
@@ -1393,7 +1350,7 @@ section.ois-developers {
   transform: translate3d(0, -2px, 0) scale(1.03);
 }
 
-/* The sheen is green because the pill is already white. */
+/* The sheen is grey because the pill is already white. */
 .ois-download-action .MuiButton-root::after {
   content: '';
   position: absolute;
@@ -1401,7 +1358,7 @@ section.ois-developers {
   background: linear-gradient(
     105deg,
     transparent 32%,
-    rgba(150, 215, 186, 0.5) 50%,
+    rgba(var(--oi-fg-rgb), 0.5) 50%,
     transparent 68%
   );
   transform: translate3d(-120%, 0, 0);
@@ -1428,13 +1385,14 @@ section.ois-developers {
   }
 }
 
-/* Opened over the orb, the details get their own dark glass to stay readable. */
+/* Opened over the orb, the details get the shared card graphite to stay readable. */
 .ois-download .oi-more-region {
   margin-top: var(--oi-s1);
   padding: 4px var(--oi-s3) var(--oi-s3);
-  border: 1px solid var(--oi-hairline);
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
-  background: rgba(6, 10, 8, 0.94);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
 }
 
 /* Responsive -------------------------------------------------------------------------- */
@@ -1531,19 +1489,15 @@ section.ois-developers {
   }
 
   .ois-faq .oi-more-row .oi-more-toggle {
-    padding-left: 40px;
+    padding-inline-start: 40px;
   }
 
   .ois-faq .oi-more-row .oi-more-region {
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 
   .ois-developers .oi-more {
     column-gap: var(--oi-s2);
-  }
-
-  .ois-privacy .oi-sheet {
-    padding: var(--oi-s2);
   }
 
   .oi-section.ois-download {
@@ -1645,7 +1599,7 @@ section.ois-developers {
 /* Each copy ends with one gap, so where the row repeats the spacing is the same as
    between any two cards. */
 .ois-strip-list {
-  padding-right: var(--ois-gap);
+  padding-inline-end: var(--ois-gap);
 }
 
 .ois-strip-slot {

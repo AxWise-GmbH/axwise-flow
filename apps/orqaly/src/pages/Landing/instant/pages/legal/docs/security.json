@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "slug": "security",
+    "title": "Security & Vulnerability Disclosure",
+    "summary": "This page explains how we protect Orqanix, how you can keep your data safe, and how to report a security problem.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "security@orqanix.com probably receives no mail today: orqanix.com has no MX record (open point #2). Reports cannot reach us until this is fixed.",
+        "CRA Art. 14 reporting has applied since 11 Sep 2026: we need an internal runbook (ENISA Single Reporting Platform; 24 h / 72 h / 14 days / 1 month) and to know which national CSIRT is ours, which depends on the company (open point #1).",
+        "Supported versions: the page says only the newest Desktop App version gets security fixes. The owner must confirm this policy, and set a CRA support period (with its end date shown at download) before 11 Dec 2027.",
+        "Desktop defaults disclosed here as they are: Auto-approve on, shell and file tools on, provider keys stored in a plain-text file, chat history not additionally encrypted, app not notarized (open points #8 and #14). Update this page if any of them change.",
+        "'We aim to acknowledge within 5 working days' is a target the owner must be able to meet.",
+        "Safe-harbour promise: lawyer to confirm the wording for the company's home country (no promise can bind third parties or authorities).",
+        "Incident notice to users: the page promises to tell affected users. A breach runbook (GDPR 72 h, US state breach laws) is needed as an internal document.",
+        "Safe harbour now says we do not report researchers to the authorities 'unless the law requires us to' (for example a GDPR breach report). Lawyer to confirm.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): failing to provide security updates can make software defective, and consumer liability cannot be excluded. Decide the update and support policy before then (see supported versions).",
+        "Dir. 2019/770 Art. 8(2): EU consumers are owed security updates for the period they can reasonably expect. 'Newest version only, by manual download' must be squared with this in the Desktop App Terms.",
+        "The page says the shell and file tools can reach anything the macOS account can (no sandbox found in the Desktop App code). Update if a sandbox is added.",
+        "US: if health data is processed (health marketing, open point #16), the FTC Health Breach Notification Rule (16 CFR 318) adds notice duties to the FTC. Not written here; covered in the Health Data policy if needed.",
+        "CRA Art. 13(17) single point of contact (from 11 Dec 2027): security@ serves it once the mailbox works."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "overview",
+      "text": "Overview"
+    },
+    {
+      "type": "p",
+      "text": "This page covers the website, the web app, the Desktop App, the Mobile App, the Assistant Bot, the API and our Enterprise work."
+    },
+    {
+      "type": "p",
+      "text": "No system is perfectly secure, and we do not guarantee that {company.name} is free of vulnerabilities. Below we describe what we actually do today, including the limits you should know about before you rely on it."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-protect",
+      "text": "How we protect Orqanix"
+    },
+    {
+      "type": "h3",
+      "id": "cloud",
+      "text": "Cloud services"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hosting: our cloud services and database run on Google Cloud in the EU, in the Netherlands (region europe-west4). The companies we use are listed on the [Sub-processors](/instant/legal/subprocessors) page.",
+        "Encryption: data is encrypted in transit (HTTPS), and our cloud provider encrypts it at rest.",
+        "Sign-in: Clerk, a specialist sign-in provider, handles accounts and uses bot protection on the sign-up page. We do not store your password.",
+        "Keys and secrets: our systems' service keys are kept in Google Cloud's secret store. Application keys for automations are stored only as hashes, so the key itself cannot be read back from our database.",
+        "Model requests: when the Desktop App sends a conversation to the AI model through our service, our service passes it on without storing it. We do not write the content of your prompts or messages to our server logs.",
+        "Records: some records of what agents did (messages, files, approvals and events) are kept as a fixed log. Our systems do not allow them to be changed afterwards. This helps you see exactly what happened.",
+        "Backups: the database is backed up every day, and deletion protection is on."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "desktop",
+      "text": "Desktop App"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Your {company.name} sign-in token is stored in the macOS Keychain. Signing out revokes it.",
+        "The app keeps its data in a profile folder that only your macOS user account can read.",
+        "The app sends no usage statistics and has no crash reporter.",
+        "Agents save the files they make to the project folder you choose. You also choose how much they may do without asking (see [Your part](#your-part))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Limits you should know about:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "By default, the app approves the agents' actions automatically, and the shell and file-editing tools are on. So agents can read and change files and run commands on your Mac without asking first. These tools are not limited to your project folder: they can reach anything your macOS account can.",
+        "Keys for AI providers you connect yourself (such as OpenAI or Anthropic) and secrets for extensions are stored in a plain-text settings file in the app's folder, not in the Keychain.",
+        "Chat history is kept in a local database file that the app itself does not encrypt. It is protected by your macOS account's file permissions and, if you turn it on, FileVault disk encryption.",
+        "The app is not notarized by Apple. The first time you open it, macOS asks you to confirm with \"Open Anyway\".",
+        "The app does not update itself. Security fixes come as a new version that you download (see [Security updates](#updates))."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-part",
+      "text": "Your part"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Download the Desktop App only through the link on orqanix.com.",
+        "Keep macOS up to date, and turn on FileVault disk encryption and a screen lock.",
+        "Choose the approval mode that fits your work. The app can ask before every action, ask only for sensitive actions, or only chat. Use a stricter mode when you work with important files.",
+        "Point agents at a project folder that holds only what they need, and keep backups of files you care about. Remember that the shell and file tools can reach more than that folder.",
+        "Protect the keys you add for other AI providers. Anyone, or any program, with access to your macOS account can read them. If you think a key has leaked, revoke it at the provider.",
+        "Install the newest version of the app when we release one.",
+        "Sign out on a Mac that other people use, and keep the account you sign in with secure.",
+        "Check what agents do. Treat content they fetch from the web or from files as untrusted: it can contain instructions meant to mislead the agent."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Reporting a vulnerability"
+    },
+    {
+      "type": "p",
+      "text": "If you find a security problem in {company.name}, please tell us at {company.securityEmail}. Please include:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Which product, page or version is affected.",
+        "What the problem is and what an attacker could do with it.",
+        "The steps to reproduce it, with screenshots or a short proof of concept if you have them.",
+        "How we can reach you, and whether you would like to be named when we fix it."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We aim to acknowledge your report within 5 working days, to keep you informed while we look into it, and to tell you when it is fixed."
+    },
+    {
+      "type": "p",
+      "text": "Our security contact is also published in the standard machine-readable form at [orqanix.com/.well-known/security.txt](https://orqanix.com/.well-known/security.txt)."
+    },
+    {
+      "type": "h3",
+      "id": "rules",
+      "text": "Rules for research"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Test only with accounts and data that are your own. If you reach data that belongs to someone else, stop at once, do not keep it, and tell us.",
+        "Do not disrupt our services or other users: no denial-of-service tests, no spam and no large automated scans.",
+        "Do not use social engineering, phishing or physical attacks against our people or our providers.",
+        "Do not test the systems of our providers, such as Google or Clerk. Report problems in their services to them.",
+        "Do not make a problem public until it is fixed, or until we have agreed a date with you."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "safe-harbour",
+      "text": "Safe harbour"
+    },
+    {
+      "type": "p",
+      "text": "If you act in good faith and follow these rules, we will treat your research as authorised. We will not take legal action against you for it, and we will not report you to the authorities unless the law requires us to. If someone else takes action against you over research that followed these rules, we will make clear that we authorised it. We do not run a paid bug bounty."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Security updates"
+    },
+    {
+      "type": "p",
+      "text": "We fix security problems in the newest version of the Desktop App. We do not patch older versions, so please always use the newest one. The app does not update itself: when we release a fix, download the new version from orqanix.com and install it over the old one."
+    },
+    {
+      "type": "p",
+      "text": "Fixes to our website, web app, API and other cloud services reach you without any action on your part."
+    },
+    {
+      "type": "h2",
+      "id": "incidents",
+      "text": "Security incidents"
+    },
+    {
+      "type": "p",
+      "text": "If a security incident affects your personal data, we tell the authorities and the people affected as the law requires. When we tell you, we say what happened, what data is involved, what we are doing about it and what you can do."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Where the GDPR requires it, we report a personal data breach to the data protection authority within 72 hours, and we tell the people affected when the risk to them is high (GDPR Art. 33 and 34)."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Under the EU Cyber Resilience Act, we report actively exploited vulnerabilities and severe security incidents affecting our apps to the authorities within the deadlines the law sets. We also tell affected users about the problem and any steps they should take (Regulation (EU) 2024/2847, Art. 14)."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Where US state breach notification laws apply, we notify affected people and, where required, state authorities within the time those laws set."
+    }
+  ]
+}

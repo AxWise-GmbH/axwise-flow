@@ -304,7 +304,7 @@ export default function Footer() {
                 '&:hover': { color: 'text.primary' },
               }}
             >
-              <CircleIcon sx={{ fontSize: 9, color: '#10B981' }} />
+              <CircleIcon sx={{ fontSize: 9, color: '#808080' }} />
               All systems normal
             </Box>
             <Stack

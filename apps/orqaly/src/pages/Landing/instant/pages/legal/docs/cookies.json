@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookies & Storage",
+    "summary": "This page lists the cookies and browser storage the Orqanix website and web app use, why each one is needed, how long it lasts and how to clear it.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "In short"
+    },
+    {
+      "type": "note",
+      "text": "Our marketing and legal pages set no cookies. The only things they may store are your choices: the language, the light or dark look, and the US or EU version of our legal pages, each only after you click. Cookies appear only on the sign-in pages and in the web app, because sign-in cannot work without them. We use no advertising, analytics or tracking cookies."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookies and storage"
+    },
+    {
+      "type": "p",
+      "text": "A cookie is a small text file a website saves in your browser. Your browser sends it back on later visits. Local storage and session storage are similar places in your browser where a website can keep small pieces of information. Local storage keeps them until they are cleared; session storage keeps them until you close the tab. This page covers all three, on orqanix.com and in the Orqanix web app."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "What we store"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Name",
+        "Where",
+        "Set by",
+        "Why",
+        "How long"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Local storage, on our legal pages. Written only when you click the region switch or the region suggestion.",
+          "Orqanix",
+          "Remembers whether you chose the US or the EU version of our legal pages.",
+          "Until you clear it"
+        ],
+        [
+          "orqanix_lang",
+          "Local storage, on our marketing pages. Written only when you pick a language in the footer.",
+          "Orqanix",
+          "Remembers the language you chose for our pages.",
+          "Until you clear it"
+        ],
+        [
+          "orqanix_theme",
+          "Local storage, on our marketing pages. Written only when you press the light/dark switch in the footer.",
+          "Orqanix",
+          "Remembers whether you chose the light or dark look.",
+          "Until you clear it"
+        ],
+        [
+          "__client_uat (and a copy with a suffix)",
+          "Cookie on orqanix.com and its subdomains, on the sign-in pages and in the web app",
+          "Clerk, our sign-in provider",
+          "Records whether, and since when, you are signed in.",
+          "About 1 year"
+        ],
+        [
+          "__clerk_db_jwt (and a copy with a suffix)",
+          "Cookie on orqanix.com, on the sign-in pages and in the web app",
+          "Clerk",
+          "Links your browser to your sign-in session in our current Clerk setup.",
+          "About 1 year"
+        ],
+        [
+          "__session (and a copy with a suffix)",
+          "Cookie on orqanix.com, once you are signed in",
+          "Clerk",
+          "Holds a short-lived sign-in token that proves who you are to our servers.",
+          "Short-lived, renewed while you stay signed in"
+        ],
+        [
+          "__cf_bm",
+          "Cookie on Clerk's domain, on the sign-in pages",
+          "Cloudflare, for Clerk",
+          "Tells people apart from bots, to protect sign-in from abuse.",
+          "About 30 minutes, according to Cloudflare"
+        ],
+        [
+          "_cfuvid",
+          "Cookie on Clerk's domain, on the sign-in pages",
+          "Cloudflare, for Clerk",
+          "Helps apply fair limits to requests, to protect sign-in from abuse.",
+          "Until you close your browser, according to Cloudflare"
+        ],
+        [
+          "__clerk_environment",
+          "Local storage on orqanix.com, on the sign-in pages and in the web app",
+          "Clerk",
+          "Keeps a copy of Clerk's settings so sign-in loads faster.",
+          "Until you clear it"
+        ],
+        [
+          "Menu layout",
+          "Local storage in the web app, one entry per account",
+          "Orqanix",
+          "Remembers which sections of the menu you hid, reordered or pinned.",
+          "Until you clear it"
+        ],
+        [
+          "Menu collapsed",
+          "Local storage in the web app, one entry per account",
+          "Orqanix",
+          "Remembers whether you collapsed the side menu.",
+          "Until you clear it"
+        ],
+        [
+          "remix-router-transitions",
+          "Session storage in the web app, only if used",
+          "The web app's page-routing library",
+          "Remembers the state of page changes, so going back and forward works.",
+          "Until you close the tab"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "When you sign up, Cloudflare Turnstile also runs a short check in your browser to confirm you are a person and not a bot. It is part of sign-in and runs for Clerk."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Where each applies"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Marketing and legal pages"
+    },
+    {
+      "type": "p",
+      "text": "The home page, the product pages and these legal pages load no sign-in code, set no cookies and make no calls to other companies. Their fonts come from our own server. The only items they may store are your language, look and region choices, each only after you click. Our host, Google Cloud, keeps normal server logs of each visit (IP address, browser, time and page), as our [Privacy Policy](/instant/legal/privacy#website) explains. These logs stay on the server; nothing is stored in your browser for them. If you click Download, the Desktop App comes from Google Cloud Storage, so Google sees your IP address."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Sign-in pages and the web app"
+    },
+    {
+      "type": "p",
+      "text": "The sign-in and sign-up pages and the web app load Clerk, which runs our sign-in. Clerk, and Cloudflare working for Clerk, set the sign-in cookies and storage listed in [What we store](#what-we-store). In the web app, we also store your menu layout so it looks the way you left it. If you choose Sign in with Google, Google's own pages open, and Google's cookies and terms apply there."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "No cookie banner",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU and UK law let a website store or read information on your device without asking first only when this is strictly necessary to provide a service you explicitly asked for (ePrivacy Directive Art. 5(3); in Germany, § 25(2) no. 2 TDDDG; in the UK, the Privacy and Electronic Communications Regulations). Everything we store meets that test. Your language, look and region choices are stored because you clicked for them. Sign-in needs its cookies and bot protection. The web app remembers the menu layout you set. We use nothing for advertising, analytics or tracking, so there is nothing to ask your consent for, and no banner."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "If we ever want to use storage that is not strictly necessary, we will ask for your consent first and update this page."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "No cookie banner",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Everything we store is needed for something you asked for: your region choice, signing in, protecting sign-in from bots and remembering your menu layout. We use no advertising, analytics or tracking cookies, and we let no other company track you on our site. So there is nothing to opt out of, and no banner. If your browser sends a Global Privacy Control signal, we treat it as a request to opt out of the sale and sharing of your personal information. We do neither, so nothing changes."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "If we ever want to use storage for another purpose, we will update this page first and give you the choices the law requires."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "What we do not use"
+    },
+    {
+      "type": "list",
+      "items": [
+        "No advertising cookies or ad networks.",
+        "No analytics or tracking tools, and no tracking pixels.",
+        "No fonts or other files loaded from other companies on our marketing and legal pages.",
+        "No storage that follows you across other websites."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Clearing and blocking"
+    },
+    {
+      "type": "list",
+      "items": [
+        "You can see, delete and block cookies and site data in your browser's settings, usually under Privacy or Site data. Deleting the site data for orqanix.com and for Clerk's sign-in domain removes everything in the table.",
+        "To change your region choice, use the US / EU switch on any legal page. To remove it, clear your browser's site data for orqanix.com.",
+        "Signing out ends your sign-in session.",
+        "If you block the sign-in cookies or Cloudflare's check, you can still read our website, but signing in and the web app will not work."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "The Desktop App"
+    },
+    {
+      "type": "p",
+      "text": "The Desktop App is not a website. It uses no cookies or storage for advertising, analytics or tracking. It keeps its data on your Mac: your chat history, settings, logs, your Orqanix sign-in (in the macOS Keychain) and small items in the app's own built-in storage, such as your theme, menu layout, pinned chats and a list of messages you recently typed. Our [Privacy Policy](/instant/legal/privacy#desktop-app) explains what stays on your Mac and what leaves it."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Changes"
+    },
+    {
+      "type": "p",
+      "text": "When what we store changes, we update this page and the date at the top. Questions: {company.privacyEmail}."
+    }
+  ]
+}

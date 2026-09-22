@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookie とストレージ",
+    "summary": "このページでは、Orqanix のウェブサイトとウェブアプリが使用する Cookie とブラウザストレージ、それぞれが必要な理由、保存期間、および消去方法を記載しています。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "要約"
+    },
+    {
+      "type": "note",
+      "text": "当社のマーケティングページおよび法務ページは Cookie を設定しません。これらのページが保存する可能性があるのはお客様の選択、すなわち言語、ライトまたはダークの表示、および当社の法務ページの米国版または EU 版のみであり、いずれもお客様がクリックした後に限られます。Cookie が使用されるのはサインインページとウェブアプリのみです。Cookie がなければサインインが機能しないためです。当社は、広告用、分析用またはトラッキング用の Cookie を使用しません。"
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookie とストレージについて"
+    },
+    {
+      "type": "p",
+      "text": "Cookie とは、ウェブサイトがお客様のブラウザに保存する小さなテキストファイルです。お客様のブラウザは、その後のアクセス時にそれを送り返します。ローカルストレージとセッションストレージは、ウェブサイトが小さな情報を保持できる、ブラウザ内の同様の保存場所です。ローカルストレージは消去されるまで情報を保持し、セッションストレージはタブを閉じるまで情報を保持します。このページは、orqanix.com および Orqanix ウェブアプリにおけるこれら 3 つすべてを対象としています。"
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "当社が保存するもの"
+    },
+    {
+      "type": "table",
+      "head": [
+        "名前",
+        "場所",
+        "設定者",
+        "目的",
+        "保存期間"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "ローカルストレージ（当社の法務ページ）。お客様が地域の切り替えまたは地域の提案をクリックした場合にのみ書き込まれます。",
+          "Orqanix",
+          "当社の法務ページの米国版と EU 版のどちらを選択したかを記憶します。",
+          "お客様が消去するまで"
+        ],
+        [
+          "orqanix_lang",
+          "ローカルストレージ（当社のマーケティングページ）。お客様がフッターで言語を選択した場合にのみ書き込まれます。",
+          "Orqanix",
+          "当社のページでお客様が選択した言語を記憶します。",
+          "お客様が消去するまで"
+        ],
+        [
+          "orqanix_theme",
+          "ローカルストレージ（当社のマーケティングページ）。お客様がフッターのライト/ダークの切り替えを押した場合にのみ書き込まれます。",
+          "Orqanix",
+          "ライトとダークのどちらの表示を選択したかを記憶します。",
+          "お客様が消去するまで"
+        ],
+        [
+          "__client_uat（および接尾辞付きの複製）",
+          "orqanix.com およびそのサブドメインの Cookie（サインインページおよびウェブアプリ）",
+          "Clerk（当社のサインインプロバイダー）",
+          "お客様がサインインしているかどうか、およびいつからサインインしているかを記録します。",
+          "約 1 年"
+        ],
+        [
+          "__clerk_db_jwt（および接尾辞付きの複製）",
+          "orqanix.com の Cookie（サインインページおよびウェブアプリ）",
+          "Clerk",
+          "当社の現在の Clerk の設定において、お客様のブラウザとサインインセッションを結び付けます。",
+          "約 1 年"
+        ],
+        [
+          "__session（および接尾辞付きの複製）",
+          "orqanix.com の Cookie（サインイン後）",
+          "Clerk",
+          "当社のサーバーに対してお客様の本人性を証明する、短期間有効なサインイントークンを保持します。",
+          "短期間。サインインしている間は更新されます"
+        ],
+        [
+          "__cf_bm",
+          "Clerk のドメインの Cookie（サインインページ）",
+          "Cloudflare（Clerk のため）",
+          "サインインを不正利用から守るため、人間とボットを区別します。",
+          "Cloudflare によると約 30 分"
+        ],
+        [
+          "_cfuvid",
+          "Clerk のドメインの Cookie（サインインページ）",
+          "Cloudflare（Clerk のため）",
+          "サインインを不正利用から守るため、リクエストに公正な制限を適用するのに役立ちます。",
+          "Cloudflare によるとブラウザを閉じるまで"
+        ],
+        [
+          "__clerk_environment",
+          "orqanix.com のローカルストレージ（サインインページおよびウェブアプリ）",
+          "Clerk",
+          "サインインを速く読み込めるよう、Clerk の設定の複製を保持します。",
+          "お客様が消去するまで"
+        ],
+        [
+          "メニューのレイアウト",
+          "ウェブアプリのローカルストレージ（アカウントごとに 1 件）",
+          "Orqanix",
+          "メニューのどのセクションを非表示にし、並べ替え、または固定したかを記憶します。",
+          "お客様が消去するまで"
+        ],
+        [
+          "メニューの折りたたみ",
+          "ウェブアプリのローカルストレージ（アカウントごとに 1 件）",
+          "Orqanix",
+          "サイドメニューを折りたたんだかどうかを記憶します。",
+          "お客様が消去するまで"
+        ],
+        [
+          "remix-router-transitions",
+          "ウェブアプリのセッションストレージ（使用された場合のみ）",
+          "ウェブアプリのページルーティング用ライブラリ",
+          "「戻る」と「進む」が正しく機能するよう、ページ遷移の状態を記憶します。",
+          "タブを閉じるまで"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "お客様がサインアップする際には、Cloudflare Turnstile もお客様のブラウザで短いチェックを実行し、お客様がボットではなく人間であることを確認します。これはサインインの一部であり、Clerk のために実行されます。"
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "適用される場所"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "マーケティングページおよび法務ページ"
+    },
+    {
+      "type": "p",
+      "text": "ホームページ、製品ページおよびこれらの法務ページは、サインイン用のコードを読み込まず、Cookie を設定せず、他社への通信も行いません。フォントは当社自身のサーバーから配信されます。これらのページが保存する可能性があるのは、言語、表示および地域についてのお客様の選択のみであり、いずれもお客様がクリックした後に限られます。当社の[プライバシーポリシー](/instant/legal/privacy#website)で説明しているとおり、当社のホスティング事業者である Google Cloud は、各アクセスについて通常のサーバーログ（IP アドレス、ブラウザ、日時およびページ）を記録します。これらのログはサーバー上にとどまり、そのためにお客様のブラウザに何かが保存されることはありません。お客様が「ダウンロード」をクリックした場合、デスクトップアプリは Google Cloud Storage から配信されるため、Google はお客様の IP アドレスを知ることになります。"
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "サインインページおよびウェブアプリ"
+    },
+    {
+      "type": "p",
+      "text": "サインインページ、サインアップページおよびウェブアプリは、当社のサインインを運用する Clerk を読み込みます。Clerk、および Clerk のために動作する Cloudflare は、[当社が保存するもの](#what-we-store)に記載のサインイン用の Cookie とストレージを設定します。ウェブアプリでは、お客様が離れたときと同じ見た目になるよう、メニューのレイアウトも保存します。お客様が Google でサインインすることを選択した場合、Google 自身のページが開き、そこでは Google の Cookie と規約が適用されます。"
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Cookie バナーを表示しない理由",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU および英国の法律では、ウェブサイトが事前に確認することなくお客様のデバイスに情報を保存し、またはデバイスから情報を読み取ることができるのは、お客様が明示的に求めたサービスを提供するために厳密に必要な場合に限られます（eプライバシー指令第5条(3)、ドイツでは TDDDG 第25条(2)第2号、英国では Privacy and Electronic Communications Regulations）。当社が保存するものはすべて、この基準を満たしています。言語、表示および地域についてのお客様の選択は、お客様がそのためにクリックしたので保存されます。サインインには、その Cookie とボット対策が必要です。ウェブアプリは、お客様が設定したメニューのレイアウトを記憶します。当社は広告、分析またはトラッキングのために何も使用していないため、お客様の同意を求めるべきものはなく、バナーもありません。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "当社が厳密に必要ではないストレージを使用したいと考える場合は、事前にお客様の同意を求め、このページを更新します。"
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Cookie バナーを表示しない理由",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "当社が保存するものはすべて、お客様が求めたこと、すなわち地域の選択、サインイン、サインインのボットからの保護、およびメニューのレイアウトの記憶のために必要なものです。当社は広告用、分析用またはトラッキング用の Cookie を使用せず、当社サイト上で他社にお客様を追跡させることもありません。したがって、オプトアウトすべきものはなく、バナーもありません。お客様のブラウザが Global Privacy Control シグナルを送信する場合、当社はそれをお客様の個人情報の販売および共有を拒否するご請求として扱います。当社はそのいずれも行っていないため、何も変わりません。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "当社が別の目的でストレージを使用したいと考える場合は、事前にこのページを更新し、法律が求める選択肢をお客様に提供します。"
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "当社が使用しないもの"
+    },
+    {
+      "type": "list",
+      "items": [
+        "広告用 Cookie や広告ネットワークは使用しません。",
+        "分析ツールやトラッキングツール、トラッキングピクセルは使用しません。",
+        "当社のマーケティングページおよび法務ページでは、他社から読み込むフォントやその他のファイルは使用しません。",
+        "他のウェブサイトをまたいでお客様を追跡するストレージは使用しません。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "消去とブロック"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cookie とサイトデータは、ブラウザの設定（通常は「プライバシー」または「サイトデータ」の項目）で確認、削除およびブロックできます。orqanix.com と Clerk のサインイン用ドメインのサイトデータを削除すると、表に記載のものはすべて削除されます。",
+        "地域の選択を変更するには、いずれかの法務ページにある米国 / EU の切り替えを使用してください。選択を削除するには、orqanix.com のブラウザのサイトデータを消去してください。",
+        "サインアウトすると、サインインセッションは終了します。",
+        "サインイン用の Cookie または Cloudflare のチェックをブロックした場合でも、当社のウェブサイトは閲覧できますが、サインインとウェブアプリは機能しません。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "デスクトップアプリ"
+    },
+    {
+      "type": "p",
+      "text": "デスクトップアプリはウェブサイトではありません。広告、分析またはトラッキングのための Cookie やストレージは使用しません。デスクトップアプリはデータをお客様の Mac 上に保持します。これには、チャット履歴、設定、ログ、お客様の Orqanix のサインイン情報（macOS のキーチェーン内）、およびアプリ独自の内蔵ストレージ内の小さな項目（テーマ、メニューのレイアウト、固定したチャット、最近入力したメッセージの一覧など）が含まれます。何がお客様の Mac 内にとどまり、何が Mac の外に送られるかは、当社の[プライバシーポリシー](/instant/legal/privacy#desktop-app)で説明しています。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "変更"
+    },
+    {
+      "type": "p",
+      "text": "当社が保存するものが変わった場合、当社はこのページと冒頭の日付を更新します。ご質問：{company.privacyEmail}。"
+    }
+  ]
+}

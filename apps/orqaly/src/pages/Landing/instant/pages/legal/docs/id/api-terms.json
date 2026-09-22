@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "Ketentuan API",
+    "summary": "Aturan tambahan bagi bisnis yang menanamkan API Orqanix ke dalam produk atau sistem mereka sendiri.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Tentang ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan API ini berlaku apabila suatu bisnis menggunakan API Orqanix. Ketentuan ini melengkapi [Ketentuan Layanan](/instant/legal/terms) dan [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami. Untuk data pribadi, [Adendum Pemrosesan Data](/instant/legal/dpa) (“DPA”) juga berlaku dan merupakan bagian dari ketentuan ini. Apabila ketentuan ini dan Ketentuan Layanan bertentangan mengenai API, ketentuan ini yang berlaku. Perjanjian tertulis terpisah yang ditandatangani oleh kita berdua berlaku di atas keduanya."
+    },
+    {
+      "type": "p",
+      "text": "“Anda” berarti bisnis yang menggunakan API. Orang yang menerima ketentuan ini menegaskan bahwa ia berwenang mengikat bisnis tersebut. “Kami” berarti Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix dijalankan oleh {company.legalName}, {company.address}, yang merupakan pihak dalam ketentuan ini.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "Siapa yang boleh menggunakan API"
+    },
+    {
+      "type": "p",
+      "text": "API hanya untuk bisnis. Jangan menggunakannya sebagai konsumen, yaitu untuk tujuan di luar perdagangan, usaha, atau profesi Anda. Setiap orang yang menggunakannya atas nama Anda harus berusia 18 tahun atau lebih."
+    },
+    {
+      "type": "p",
+      "text": "Selama API masih dalam tahap awal, akses diberikan berdasarkan permintaan. Tulis ke {company.email} dengan subjek “API access”, dan ceritakan kepada kami tentang bisnis Anda dan apa yang ingin Anda bangun. Kami yang memutuskan siapa yang mendapat akses, dan kami dapat menolak atau menetapkan syarat."
+    },
+    {
+      "type": "p",
+      "text": "API gratis selama masih dalam tahap awal. Sebelum paket berbayar apa pun dimulai, kami akan menyepakati harga dan syarat pembayaran dengan Anda secara tertulis. Kami tidak menagih apa pun tanpa kesepakatan tersebut."
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "Apa yang dilakukan API"
+    },
+    {
+      "type": "p",
+      "text": "API adalah lapisan penalaran untuk produk Anda sendiri. Anda mengirimkan tugas kepadanya, beserta agen, alat, dan anggaran yang Anda miliki. API menjawab dengan siapa yang sebaiknya mengerjakan tugas itu (agen, tim, atau orang), skor untuk setiap faktor yang dipertimbangkannya, konteks, batasan pengaman (guardrail), rencana cadangan, dan, untuk pekerjaan yang lebih besar, rencana tim."
+    },
+    {
+      "type": "p",
+      "text": "API hanya memutuskan; API tidak mengerjakan tugasnya. Sistem Anda yang memilih apakah dan bagaimana menindaklanjuti setiap jawaban, dan Anda bertanggung jawab atas apa yang kemudian dilakukan sistem Anda."
+    },
+    {
+      "type": "p",
+      "text": "Untuk pekerjaan yang panjang, Anda dapat mengambil hasilnya nanti atau menerimanya melalui webhook bertanda tangan. Pelanggan yang memiliki akses mendapatkan dokumentasi teknis API."
+    },
+    {
+      "type": "p",
+      "text": "Jawaban dibuat dengan AI. Jawaban bisa keliru, tidak lengkap, atau usang. Periksalah sebelum Anda mengandalkannya, terutama apabila kesalahan dapat merugikan seseorang. [Cara Kerja AI Kami](/instant/legal/ai) menjelaskan lebih lanjut."
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "Kunci akses"
+    },
+    {
+      "type": "p",
+      "text": "Anda mengakses API dengan kunci rahasia yang kami berikan kepada Anda. Perlakukan kunci itu seperti kata sandi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Jaga kerahasiaannya, dan simpan hanya di server Anda sendiri. Jangan pernah memasukkannya ke dalam aplikasi, halaman web, atau kode yang dapat dilihat orang lain.",
+        "Bagikan hanya kepada orang dan sistem yang membutuhkannya untuk integrasi Anda.",
+        "Segera beri tahu kami di {company.securityEmail} jika Anda menduga kunci itu bocor atau digunakan tanpa izin Anda."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Anda bertanggung jawab atas semua penggunaan kunci yang kami berikan kepada Anda sampai Anda memberi tahu kami bahwa kunci itu mungkin telah disusupi. Kami dapat mengubah, membatasi, atau mencabut kunci kapan saja, misalnya jika kami melihat penyalahgunaan atau risiko keamanan. Apabila memungkinkan, kami memberi tahu Anda."
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "Produk dan pengguna Anda"
+    },
+    {
+      "type": "p",
+      "text": "Apabila Anda menanamkan API ke dalam produk Anda sendiri, produk itu tetap milik Anda. Anda bertanggung jawab atas produk itu dan atas cara produk itu memperlakukan orang yang menggunakannya (“pengguna akhir” Anda). Anda wajib:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Memberi tahu pengguna akhir Anda ketika mereka berurusan dengan AI, kecuali hal itu sudah jelas dari konteksnya (EU AI Act Art. 50(1); sejumlah undang-undang negara bagian AS).",
+        "Tidak menggunakan API dalam produk apa pun yang ditujukan untuk, atau kemungkinan besar digunakan oleh, orang di bawah 18 tahun.",
+        "Memberikan pemberitahuan privasi Anda sendiri kepada pengguna akhir Anda. Pemberitahuan itu harus menjelaskan bagaimana produk Anda menggunakan data mereka, termasuk bahwa Anda mengirimkannya kepada kami. [Kebijakan Privasi](/instant/legal/privacy) kami tidak mencakup produk Anda.",
+        "Memiliki dasar hukum, dan setiap persetujuan yang Anda perlukan, sebelum Anda mengirimkan data pribadi siapa pun kepada kami.",
+        "Mewajibkan pengguna akhir Anda mematuhi aturan yang setidaknya seketat [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami, dan menghentikan siapa pun yang melanggarnya.",
+        "Menampilkan produk Anda sebagai milik Anda sendiri, bukan sebagai buatan atau didukung oleh Orqanix, kecuali kami menyepakati lain secara tertulis."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Berdasarkan AI Act UE, Anda adalah provider (penyedia) atau deployer (penerap) sistem AI yang Anda bangun dengan API, dan Anda memikul kewajiban peran tersebut. Kami memasok satu bagian dari sistem Anda; kami bukan penyedianya."
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Penggunaan berisiko tinggi"
+    },
+    {
+      "type": "p",
+      "text": "Sebagian keputusan memiliki akibat hukum atau akibat serius serupa bagi orang, seperti keputusan tentang perekrutan dan pekerjaan, pendidikan, kredit, asuransi, perumahan, layanan kesehatan, akses ke layanan publik, penegakan hukum, migrasi, dan peradilan. Jangan menggunakan jawaban API untuk mengambil atau mendukung keputusan tersebut sebelum Anda melakukan tinjauan hukum sendiri dan menerapkan pengamanan yang diwajibkan oleh hukum. Pengamanan tersebut mencakup tinjauan manusia yang sungguh-sungguh sebelum suatu keputusan berlaku."
+    },
+    {
+      "type": "p",
+      "text": "Kewajiban ini adalah kewajiban Anda berdasarkan hukum yang berlaku bagi Anda. Kewajiban tersebut mencakup aturan AI Act UE untuk sistem AI berisiko tinggi, yang berlaku mulai 2 Desember 2027 (AI Act Annex III), dan aturan GDPR tentang keputusan otomatis (GDPR Art. 22)."
+    },
+    {
+      "type": "p",
+      "text": "Kewajiban tersebut juga mencakup undang-undang negara bagian AS tentang keputusan otomatis. Misalnya, undang-undang Colorado tentang AI yang digunakan dalam keputusan yang berdampak penting (consequential decisions) mulai berlaku pada 1 Januari 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Data Anda"
+    },
+    {
+      "type": "p",
+      "text": "Data Anda adalah apa yang Anda kirimkan ke API (tugas, deskripsi agen dan alat Anda, anggaran, dan konteks) serta jawaban yang diberikan API kepada Anda. Kami menyimpan keputusan, hasilnya, dan catatan lingkup setiap tugas dalam basis data milik API sendiri, yang berjalan di Google Cloud di UE (Belanda). Kami menyimpannya selama Anda menggunakan API, dan setelah itu sebagaimana diatur dalam DPA."
+    },
+    {
+      "type": "p",
+      "text": "Untuk menjawab suatu tugas, kami mengirimkannya ke Google Gemini, model AI yang kami gunakan. Gemini juga dapat menelusuri web dengan Google Search. Google dapat memproses tugas di luar UE. Halaman [Subpemroses](/instant/legal/subprocessors) mencantumkan semua pihak yang membantu kami menjalankan API."
+    },
+    {
+      "type": "p",
+      "text": "Kami menggunakan Gemini API berbayar dari Google. Di sana, Google bertindak sebagai prosesor kami berdasarkan ketentuan pemrosesan datanya dan tidak menggunakan tugas Anda untuk menyempurnakan produknya.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "Saat kami bertindak untuk Anda"
+    },
+    {
+      "type": "p",
+      "text": "Untuk data pribadi yang Anda kirimkan kepada kami, kami adalah prosesor Anda. Artinya, kami menanganinya hanya berdasarkan instruksi Anda dan hanya untuk menjalankan API bagi Anda, berdasarkan DPA."
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "Saat kami bertindak untuk diri sendiri"
+    },
+    {
+      "type": "p",
+      "text": "Sebagian pekerjaan API adalah milik kami sendiri, bukan milik Anda. Untuk menelusuri web bagi suatu tugas, layanan pencarian kami sendiri mengirimkan kueri yang disusun dari tugas Anda ke mesin pencari (Google, Bing, Brave, dan DuckDuckGo). Untuk mencari informasi tentang suatu perusahaan, API meminta data dari layanan daftar perusahaan OpenRegister, yang hasilnya dapat mencakup nama direktur. Kami yang menentukan cara kerja pencarian dan penelusuran ini. Untuk kegiatan tersebut, kami bertindak untuk diri kami sendiri (sebagai “pengendali”), dan [Kebijakan Privasi](/instant/legal/privacy) kami yang berlaku, bukan DPA."
+    },
+    {
+      "type": "p",
+      "text": "Karena sebagian isi tugas dapat masuk ke dalam kueri pencarian, jangan cantumkan data pribadi dalam teks tugas kecuali tugas itu membutuhkannya."
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "Apa yang tidak kami lakukan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kami tidak melatih model AI kami sendiri dengan data Anda.",
+        "Kami tidak menjual data Anda, dan kami tidak menggunakannya untuk iklan."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "Apa yang tidak boleh dikirim"
+    },
+    {
+      "type": "p",
+      "text": "Jangan kirimkan kepada kami kategori khusus data pribadi (seperti data kesehatan, agama, orientasi seksual, atau data biometrik) atau data tentang putusan pidana, kecuali kami telah menyetujuinya secara tertulis."
+    },
+    {
+      "type": "p",
+      "text": "Jangan kirimkan kepada kami informasi kesehatan yang dilindungi (protected health information) yang tercakup dalam HIPAA. Kami tidak menandatangani perjanjian rekanan bisnis (business associate agreement).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "Siapa memiliki apa"
+    },
+    {
+      "type": "p",
+      "text": "Anda tetap memegang semua hak atas apa yang Anda kirimkan kepada kami. Di antara kita, jawaban yang diberikan API kepada Anda adalah milik Anda, sejauh ada hak apa pun atasnya. Anda memberi kami hak yang kami perlukan untuk menggunakan masukan Anda guna menjalankan API bagi Anda. Kami tetap memegang semua hak atas API, perangkat lunak, instruksi, dan metode kami. Jika Anda mengirimkan ide atau masukan kepada kami, kami boleh menggunakannya secara bebas."
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "Batasan dan larangan"
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat menetapkan dan mengubah batas jumlah, ukuran, dan total volume permintaan Anda. Kami dapat memperlambat atau menolak permintaan yang melebihi batas tersebut. Jangan mencoba mengakali suatu batas, misalnya dengan menggunakan beberapa kunci atau akun."
+    },
+    {
+      "type": "p",
+      "text": "Anda tidak boleh:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "menyalin, membongkar, atau merekayasa balik API, kecuali apabila diizinkan oleh hukum;",
+        "menggunakan API untuk membangun layanan penalaran pesaing;",
+        "menguji keamanan API tanpa izin kami (halaman [Keamanan & Pengungkapan Kerentanan](/instant/legal/security) kami menjelaskan cara melaporkan masalah);",
+        "mengirimkan malware, atau lalu lintas yang dimaksudkan untuk membebani secara berlebihan atau merusak API."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "Ketersediaan dan perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Tidak ada perjanjian tingkat layanan (SLA) untuk API. Kami tidak menjanjikan tingkat ketersediaan, waktu aktif (uptime), atau kecepatan jawaban apa pun. API dapat terganggu karena pemeliharaan, perubahan, atau alasan di luar kendali kami. Bangun produk Anda agar tetap berfungsi dengan aman ketika API lambat atau tidak tersedia, misalnya dengan rencana cadangan Anda sendiri."
+    },
+    {
+      "type": "p",
+      "text": "API akan berubah seiring kami mengembangkannya. Kami berupaya memberi tahu Anda terlebih dahulu tentang perubahan yang akan merusak integrasi yang sedang berjalan. Kami tidak selalu dapat melakukannya, misalnya ketika kami harus segera memperbaiki masalah keamanan."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Kerahasiaan"
+    },
+    {
+      "type": "p",
+      "text": "Masing-masing pihak dapat melihat informasi rahasia pihak lainnya: informasi nonpublik yang ditandai sebagai rahasia atau yang sepatutnya dapat dipahami sebagai rahasia. Bagi Anda, hal ini mencakup masukan Anda. Bagi kami, hal ini mencakup dokumentasi dan kunci API."
+    },
+    {
+      "type": "p",
+      "text": "Pihak yang menerimanya hanya menggunakannya untuk keperluan ketentuan ini, melindunginya dengan kehati-hatian yang wajar, dan hanya membagikannya kepada orang yang membutuhkannya dan terikat untuk menjaga kerahasiaannya. Kewajiban ini tidak mencakup informasi yang bersifat publik, sudah diketahui oleh penerima, dikembangkan sendiri, atau diterima secara sah dari pihak lain. Jika hukum mewajibkan pengungkapan, penerima boleh mengungkapkan apa yang diwajibkan dan, apabila diperbolehkan, memberi tahu pihak lainnya terlebih dahulu."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Penangguhan dan pengakhiran"
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat berhenti menggunakan API kapan saja. Selama API gratis, masing-masing pihak dapat mengakhiri ketentuan ini kapan saja melalui email."
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat segera menangguhkan atau mengakhiri akses Anda jika Anda melanggar ketentuan ini atau Kebijakan Penggunaan Wajar, jika penggunaan Anda membahayakan API, pelanggan lain, atau siapa pun, atau jika hukum mewajibkannya. Apabila memungkinkan, kami memberi tahu Anda terlebih dahulu dan memberi Anda kesempatan untuk memperbaiki masalahnya."
+    },
+    {
+      "type": "p",
+      "text": "Apabila ketentuan ini berakhir, hak Anda untuk menggunakan API berakhir dan kami mengakhiri akses Anda. Kami kemudian menangani data Anda sebagaimana diatur dalam DPA. Bagian ketentuan ini yang menurut sifatnya harus tetap berlaku, seperti kerahasiaan, tanggung jawab, dan hukum yang berlaku, tetap berlaku."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Berpindah penyedia",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Data Act UE memungkinkan pelanggan bisnis layanan cloud dan layanan pemrosesan data lainnya untuk berpindah ke penyedia lain, atau ke sistem mereka sendiri, tanpa terkunci (Data Act Art. 23-31). Untuk API:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Anda dapat memulai perpindahan, atau mengakhiri API dan mengambil data Anda, dengan memberi tahu kami secara tertulis. Jangka waktu pemberitahuan paling lama dua bulan, dan Anda dapat memilih jangka waktu yang lebih singkat.",
+        "Kami memberikan kepada Anda data Anda, yaitu masukan Anda serta keputusan, hasil, dan catatan lingkup yang kami simpan untuk Anda, dalam format umum yang dapat dibaca mesin.",
+        "Masa transisi berlangsung paling lama 30 hari. Jika hal itu tidak dimungkinkan secara teknis, kami memberi tahu Anda alasannya dan berapa lama waktu yang kami butuhkan, dalam batas yang diizinkan oleh Data Act.",
+        "Selama masa transisi, kami tetap menjalankan API untuk Anda sebagaimana disepakati dan membantu Anda dengan iktikad baik.",
+        "Setelah masa transisi berakhir, Anda memiliki setidaknya 30 hari lagi untuk mengambil data Anda.",
+        "Setelah perpindahan selesai, kami menghapus data Anda sebagaimana diatur dalam DPA.",
+        "Hingga 12 Januari 2027, kami hanya boleh menagih biaya langsung kami atas suatu perpindahan. Mulai 12 Januari 2027, kami tidak menagih biaya apa pun untuk perpindahan. Selama API gratis, kami tidak menagih apa pun sama sekali."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Lokasi dan akses pemerintah",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "API dan basis datanya berjalan di Google Cloud di UE (Belanda). Google Gemini dapat memproses tugas di luar UE, dan mesin pencari serta OpenRegister memproses kueri di lokasi yang mereka pilih. Halaman [Subpemroses](/instant/legal/subprocessors) mencantumkan setiap penyedia beserta lokasi kerjanya (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika pemerintah di luar UE meminta data nonpribadi Anda kepada kami, kami menyerahkannya hanya apabila hukum UE atau hukum negara anggota mengizinkannya. Kami memberi tahu Anda terlebih dahulu, kecuali hukum melarangnya (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Jaminan dan tanggung jawab",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "API disediakan “sebagaimana adanya” dan “sebagaimana tersedia”. Sejauh diizinkan oleh hukum, kami tidak memberikan jaminan dalam bentuk apa pun, baik tersurat maupun tersirat, termasuk jaminan kelayakan untuk diperdagangkan, kesesuaian untuk tujuan tertentu, kepemilikan, dan tidak adanya pelanggaran hak. Kami tidak menjamin bahwa jawaban akurat, lengkap, atau sesuai untuk penggunaan Anda.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sejauh diizinkan oleh hukum, tidak ada pihak yang bertanggung jawab atas kerugian tidak langsung, insidental, khusus, konsekuensial, atau yang bersifat hukuman (punitive), atau atas hilangnya laba, pendapatan, data, atau reputasi (goodwill). Total tanggung jawab kami berdasarkan ketentuan ini dibatasi sebesar jumlah yang lebih besar antara US$100 dan jumlah yang Anda bayarkan kepada kami untuk API dalam 12 bulan sebelum peristiwa yang menimbulkan klaim. Batasan ini tidak berlaku untuk tanggung jawab yang menurut hukum tidak boleh dibatasi.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami bertanggung jawab penuh atas kerugian yang kami timbulkan dengan sengaja atau karena kelalaian berat, atas cedera terhadap nyawa, tubuh, atau kesehatan, dan berdasarkan hukum tanggung jawab produk yang bersifat memaksa.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Untuk kelalaian ringan, kami hanya bertanggung jawab apabila kami melanggar kewajiban esensial: kewajiban yang memungkinkan pelaksanaan ketentuan ini secara layak dan yang biasanya dapat Anda andalkan. Bahkan dalam hal itu, kami hanya bertanggung jawab atas kerugian yang lazim dan dapat diperkirakan untuk jenis kontrak ini. Selain itu, tanggung jawab kami atas kelalaian ringan dikecualikan.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Anda akan melindungi kami dari klaim pihak lain, termasuk pengguna akhir Anda, yang timbul dari produk Anda, dari data yang Anda kirimkan kepada kami, atau dari pelanggaran Anda terhadap ketentuan ini, serta menanggung biaya wajar untuk menanganinya. Kami memberi tahu Anda tentang klaim semacam itu dengan segera dan mengizinkan Anda ikut serta dalam penanganannya."
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Hukum dan sengketa"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini tunduk pada hukum {company.law}, tanpa memberlakukan kaidah hukum perdata internasionalnya (aturan pilihan hukum). Pengadilan {company.law} memutus sengketa, kecuali hukum mewajibkan pengadilan lain.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sebelum salah satu pihak menempuh jalur pengadilan, kita berupaya menyelesaikan masalah dengan iktikad baik. Tulis ke {company.email} dan jelaskan masalahnya."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Ketentuan ini tidak memuat klausul arbitrase. Masing-masing pihak dapat mengajukan gugatan di pengadilan gugatan sederhana (small claims court) apabila gugatan tersebut memenuhi syarat."
+    },
+    {
+      "type": "p",
+      "text": "Anda menegaskan bahwa Anda tidak tercantum dalam daftar sanksi AS atau UE dan tidak berada di negara yang dikenai embargo AS atau UE, dan bahwa, sepanjang pengetahuan Anda, hal yang sama berlaku bagi pengguna akhir Anda. Anda tidak boleh menggunakan API dengan melanggar aturan sanksi atau ekspor AS atau UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Ketentuan umum"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kami dapat memperbarui ketentuan ini. Kami memberi tahu Anda terlebih dahulu tentang perubahan yang tidak menguntungkan Anda. Jika Anda tetap menggunakan API setelah suatu perubahan berlaku, ketentuan baru yang berlaku. Jika Anda tidak setuju, berhentilah menggunakannya.",
+        "Anda tidak boleh mengalihkan ketentuan ini tanpa persetujuan tertulis dari kami. Kami dapat mengalihkannya kepada perusahaan yang mengambil alih API.",
+        "Jika salah satu bagian ketentuan ini tidak sah, bagian lainnya tetap berlaku.",
+        "Pemberitahuan kepada kami dikirim ke {company.email}. Pemberitahuan kepada Anda dikirim ke alamat email yang Anda berikan kepada kami."
+      ]
+    }
+  ]
+}

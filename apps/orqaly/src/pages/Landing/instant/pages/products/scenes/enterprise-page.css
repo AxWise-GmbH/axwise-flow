@@ -1,0 +1,844 @@
+/*
+ * Enterprise scene, the page's own cuts: unit, pipeline, roles and replace. EnterprisePage.jsx
+ * loads this file, so the header's scenes chunk never carries it (enterprise.css holds the
+ * parts, the story that the menu and the page top play, and the hero).
+ *
+ * Every rule starts from .pen-s and its cut (.pen-s:not(.pen-m) is all four), so it outranks
+ * the base rule it changes whichever file loads first, or from a part only these cuts draw
+ * (pen-boss, pen-rail, pen-st, pen-done). Same clock as the story; each cut tells one beat and
+ * fades in at 0-3 % and out at 96-100 % (pen-in), so its parts need no exit. Like the story, a
+ * cut first opens part-way in (--pen-t), on a frame with its words and parts already there, and
+ * plays the rest of its beat; later loops start from the empty card.
+ */
+
+.pen-s[data-cut='unit'],
+.pen-s[data-cut='replace'] {
+  --pen-t: calc(var(--ps-loop) * -0.3);
+}
+
+.pen-s[data-cut='pipeline'] {
+  --pen-t: calc(var(--ps-loop) * -0.1);
+}
+
+.pen-s[data-cut='roles'] {
+  --pen-t: calc(var(--ps-loop) * -0.2);
+}
+
+/* The page cuts' surfaces: the person's disc and the stations (the same card as the units in
+   enterprise.css), and the ring that cuts a tick out of what is under it. */
+.pen-s:not(.pen-m) {
+  --pen-solid: linear-gradient(180deg, #2c2c2c, #191919);
+  --pen-cut: #141414;
+}
+
+.pen-s:not(.pen-m):is([data-oi-theme='light'] *) {
+  --pen-solid: linear-gradient(180deg, #ffffff, #f6f6f6);
+  --pen-cut: #ffffff;
+}
+
+.pen-s:not(.pen-m) .ps-scene {
+  animation: pen-in var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-s:not(.pen-m) .ps-scene::before {
+  animation: pen-light var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* The person who checks: unit and replace cuts --------------------------------------------- */
+
+.pen-boss {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 6);
+  height: calc(var(--u) * 6);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: 50%;
+  background: var(--pen-solid);
+  color: var(--oi-app-text);
+  box-shadow: 0 calc(var(--u) * 1) calc(var(--u) * 3)
+    rgba(var(--oi-shadow-rgb), calc(0.55 * var(--oi-shadow-k)));
+  animation: pen-boss var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+.pen-boss .ps-icon {
+  width: 44%;
+  height: 44%;
+}
+
+.pen-boss .ps-tick {
+  position: absolute;
+  right: calc(var(--u) * -0.5);
+  bottom: calc(var(--u) * -0.3);
+  width: calc(var(--u) * 2.3);
+  height: calc(var(--u) * 2.3);
+  box-shadow: 0 0 0 calc(var(--u) * 0.4) var(--pen-cut);
+  animation: pen-tick var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+/* The line from the person to the work they check. */
+.pen-boss::before {
+  content: '';
+  position: absolute;
+  border: 0 dashed rgba(var(--oi-fg-rgb), 0.5);
+  animation: pen-link var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* Unit cut: one unit at work, checked by a person ------------------------------------------ */
+
+.pen-s[data-cut='unit'] .pen-unit {
+  --u: calc(var(--ps-u) * 2);
+
+  top: calc(var(--ps-u) * 13.25);
+  left: calc(var(--ps-u) * 18);
+}
+
+.pen-s[data-cut='unit'] .pen-unit::before {
+  animation: pen-fill-a var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='unit'] .pen-unit::after {
+  animation: pen-dash-a var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='unit'] .pen-orbs i {
+  animation:
+    pen-orb-a var(--ps-loop) var(--pen-spring) infinite,
+    pen-bob 1.8s ease-in-out infinite;
+  animation-delay: calc(var(--pen-t) + var(--n, 0) * 90ms), calc(var(--n, 0) * -0.6s);
+}
+
+.pen-s[data-cut='unit'] .pen-live::before,
+.pen-s[data-cut='unit'] .pen-live::after {
+  animation: pen-ring 2.6s ease-out infinite;
+}
+
+.pen-s[data-cut='unit'] .pen-live::after {
+  animation-delay: 1.3s;
+}
+
+.pen-s[data-cut='unit'] .ps-bar {
+  transform-origin: left;
+  animation: pen-bar var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='unit'] .pen-live {
+  animation: pen-on-a var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='unit'] .pen-live .ps-chip {
+  font-size: max(9px, calc(var(--u) * 1.3));
+  animation: pen-pop-a var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='unit'] .pen-boss {
+  --u: calc(var(--ps-u) * 1.9);
+
+  top: calc(var(--ps-u) * 25.55);
+  left: calc(var(--ps-u) * 71);
+}
+
+.pen-s[data-cut='unit'] .pen-boss::before {
+  top: 50%;
+  right: 100%;
+  width: calc(var(--ps-u) * 13);
+  border-top-width: var(--ps-line);
+  transform-origin: left;
+}
+
+/* Pipeline cut: four stations, one piece of work through them, then a steady flow --------- */
+
+.pen-rail {
+  top: calc(var(--ps-u) * 31.25);
+  left: calc(var(--ps-u) * 16);
+  width: calc(var(--ps-u) * 68);
+  height: 0;
+}
+
+.pen-rail::before,
+.pen-rail::after {
+  content: '';
+  position: absolute;
+}
+
+.pen-rail::before {
+  top: calc(var(--ps-line) * -0.5);
+  left: 0;
+  width: 100%;
+  height: var(--ps-line);
+  background: linear-gradient(
+    90deg,
+    rgba(var(--oi-fg-rgb), 0.25),
+    rgba(var(--oi-fg-rgb), 0.6) 50%,
+    rgba(var(--oi-fg-rgb), 0.25)
+  );
+  transform-origin: left;
+  animation: pen-draw var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* The one piece of work, station to station. */
+.pen-rail::after {
+  top: calc(var(--u) * -0.9);
+  left: calc(var(--u) * -0.9);
+  width: calc(var(--u) * 1.8);
+  height: calc(var(--u) * 1.8);
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 2) rgba(var(--oi-fg-rgb), calc(0.9 * var(--oi-halo-k)));
+  opacity: 0;
+  animation: pen-packet var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+/* Then a steady flow: dots that run the line, passing under the stations. */
+.pen-rail > i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--u) * 1.1);
+  height: calc(var(--u) * 1.1);
+  margin: calc(var(--u) * -0.55) 0 0 calc(var(--u) * -0.55);
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 1.1) rgba(var(--oi-fg-rgb), calc(0.85 * var(--oi-halo-k)));
+  translate: calc(var(--ps-u) * 11.3) 0;
+  animation:
+    pen-go2 3.3s linear infinite,
+    pen-flowon2 var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-rail > i:nth-child(2) {
+  translate: calc(var(--ps-u) * 34) 0;
+  animation-delay: -1.1s, var(--pen-t);
+}
+
+.pen-rail > i:nth-child(3) {
+  translate: calc(var(--ps-u) * 56.7) 0;
+  animation-delay: -2.2s, var(--pen-t);
+}
+
+.pen-st {
+  top: calc(var(--ps-u) * 25.25);
+  left: calc(var(--ps-u) * 10);
+  display: grid;
+  place-items: center;
+  width: calc(var(--ps-u) * 12);
+  height: calc(var(--ps-u) * 12);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--ps-u) * 3);
+  background: var(--pen-solid);
+  color: var(--oi-app-soft);
+  box-shadow:
+    inset 0 var(--ps-line) 0 rgba(var(--oi-lift-rgb), 0.12),
+    0 calc(var(--ps-u) * 1.2) calc(var(--ps-u) * 3)
+      rgba(var(--oi-shadow-rgb), calc(0.55 * var(--oi-shadow-k)));
+}
+
+.pen-st:nth-of-type(2) {
+  left: calc(var(--ps-u) * 32.67);
+}
+
+.pen-st:nth-of-type(3) {
+  left: calc(var(--ps-u) * 55.33);
+}
+
+.pen-st:nth-of-type(4) {
+  left: calc(var(--ps-u) * 78);
+}
+
+.pen-st .ps-icon {
+  width: calc(var(--ps-u) * 4.4);
+  height: calc(var(--ps-u) * 4.4);
+}
+
+/* A station lights when the work reaches it. */
+.pen-st::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.85);
+  border-radius: inherit;
+  box-shadow:
+    0 0 calc(var(--ps-u) * 3) rgba(var(--oi-fg-rgb), calc(0.22 * var(--oi-halo-k))),
+    inset 0 0 calc(var(--ps-u) * 2) rgba(var(--oi-fg-rgb), calc(0.1 * var(--oi-halo-k)));
+  animation: pen-s1 var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+.pen-st:nth-of-type(2)::before {
+  animation-name: pen-s2;
+}
+
+.pen-st:nth-of-type(3)::before {
+  animation-name: pen-s3;
+}
+
+.pen-st:nth-of-type(4)::before {
+  animation-name: pen-s4;
+}
+
+.pen-done {
+  top: calc(var(--ps-u) * 23.5);
+  left: calc(var(--ps-u) * 87.5);
+  width: calc(var(--ps-u) * 3.6);
+  height: calc(var(--ps-u) * 3.6);
+  box-shadow: 0 0 0 calc(var(--ps-u) * 0.6) var(--pen-cut);
+  animation: pen-tick var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+/* Roles cut: a new role is made, dashed to solid, duty by duty ----------------------------- */
+
+.pen-s[data-cut='roles'] .pen-made {
+  --u: calc(var(--ps-u) * 1.55);
+
+  top: calc(var(--ps-u) * 9);
+  left: calc(var(--ps-u) * 21);
+  grid-template-rows: auto auto 1fr;
+  align-content: stretch;
+  row-gap: calc(var(--u) * 0.3);
+  width: calc(var(--ps-u) * 58);
+  height: calc(var(--ps-u) * 44.5);
+  padding: calc(var(--u) * 2.3);
+}
+
+.pen-s[data-cut='roles'] .pen-made::before {
+  animation: pen-fill-m var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='roles'] .pen-made::after {
+  animation: pen-dash-m var(--ps-loop) ease var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='roles'] .pen-made .pen-face {
+  grid-row: span 2;
+  animation: pen-face var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+/* "New role": a small mono label over the name. */
+.pen-s[data-cut='roles'] .pen-made small {
+  align-self: end;
+  font: 500 calc(var(--u) * 1.1) / 1.2 var(--oi-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pen-s[data-cut='roles'] .pen-made b {
+  align-self: start;
+}
+
+.pen-s[data-cut='roles'] .pen-made small,
+.pen-s[data-cut='roles'] .pen-made b {
+  animation: pen-text var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='roles'] .pen-made ul {
+  flex-direction: column;
+  grid-column: 1 / -1;
+  align-self: end;
+  gap: calc(var(--u) * 1);
+  margin-top: calc(var(--u) * 2);
+}
+
+.pen-s[data-cut='roles'] .pen-made li {
+  gap: calc(var(--u) * 1.2);
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1.1);
+  animation: pen-d1 var(--ps-loop) var(--oi-ease) var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='roles'] .pen-made li:nth-child(2) {
+  animation-name: pen-d2;
+}
+
+.pen-s[data-cut='roles'] .pen-made li:nth-child(3) {
+  animation-name: pen-d3;
+}
+
+.pen-s[data-cut='roles'] .pen-made li .ps-bars {
+  display: flex;
+}
+
+.pen-s[data-cut='roles'] .pen-made li:nth-child(2) .ps-bar {
+  width: 52%;
+}
+
+.pen-s[data-cut='roles'] .pen-made li:nth-child(3) .ps-bar {
+  width: 62%;
+}
+
+/* Replace cut: the person above approves; the role turns into an agent's ------------------ */
+
+.pen-s[data-cut='replace'] .pen-hand {
+  --u: calc(var(--ps-u) * 1.4);
+
+  top: calc(var(--ps-u) * 31);
+  left: calc(var(--ps-u) * 21.3);
+}
+
+.pen-s[data-cut='replace'] .pen-hand .pen-face {
+  animation: pen-flip-r var(--ps-loop) ease-in-out var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='replace'] .pen-hand .pen-face::before,
+.pen-s[data-cut='replace'] .pen-hand .pen-face .ps-icon {
+  animation: pen-now-r var(--ps-loop) linear var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='replace'] .pen-hand .pen-face .ps-icon:first-child {
+  animation-name: pen-was-r;
+}
+
+.pen-s[data-cut='replace'] .pen-hand .ps-chip {
+  font-size: calc(var(--u) * 1.25);
+  animation: pen-tag-r var(--ps-loop) var(--pen-spring) var(--pen-t) infinite;
+}
+
+.pen-s[data-cut='replace'] .pen-boss {
+  --u: calc(var(--ps-u) * 1.6);
+
+  top: calc(var(--ps-u) * 7.5);
+  left: calc(var(--ps-u) * 45.2);
+}
+
+.pen-s[data-cut='replace'] .pen-boss::before {
+  top: 100%;
+  left: 50%;
+  height: calc(var(--ps-u) * 13.9);
+  border-left-width: var(--ps-line);
+  transform-origin: top;
+}
+
+/* Narrow cards (the page on a phone): no word under 9px ------------------------------------ */
+
+@container ps (max-width: 480px) {
+  .pen-s[data-cut='roles'] .pen-made small {
+    font-size: max(9px, calc(var(--u) * 1.6));
+  }
+
+  .pen-s[data-cut='replace'] .pen-hand .ps-chip {
+    font-size: max(9px, calc(var(--u) * 1.9));
+  }
+}
+
+/* The smallest phones: the names keep 9px, and the tag moves under the name to make room. */
+@container ps (max-width: 340px) {
+  .pen-s:is([data-cut='roles'], [data-cut='replace']) .pen-role b {
+    font-size: max(9px, calc(var(--u) * 1.85));
+  }
+
+  .pen-s[data-cut='replace'] .pen-hand .ps-bars {
+    display: none;
+  }
+
+  .pen-s[data-cut='replace'] .pen-hand .ps-chip {
+    grid-row: 2;
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* The clock -------------------------------------------------------------------------------- */
+
+@keyframes pen-in {
+  0% {
+    opacity: 0;
+  }
+  3%,
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pen-light {
+  0%,
+  30% {
+    translate: 0 0;
+  }
+  52%,
+  100% {
+    translate: 0 calc(var(--ps-u) * 10);
+  }
+}
+
+@keyframes pen-fill-a {
+  0%,
+  8% {
+    opacity: 0;
+  }
+  12%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-dash-a {
+  0%,
+  8% {
+    opacity: 1;
+  }
+  12%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pen-orb-a {
+  0%,
+  12% {
+    opacity: 0;
+    scale: 0.2;
+    translate: 0 calc(var(--u) * -3);
+  }
+  18%,
+  97% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pen-bob {
+  50% {
+    transform: translateY(-15.2%);
+  }
+}
+
+@keyframes pen-ring {
+  0% {
+    opacity: 0.7;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.1 1.14;
+  }
+}
+
+@keyframes pen-bar {
+  0%,
+  16% {
+    scale: 0 1;
+  }
+  46%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes pen-on-a {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  52%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-pop-a {
+  0%,
+  50% {
+    scale: 0.6;
+  }
+  53%,
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pen-boss {
+  0%,
+  18% {
+    opacity: 0;
+    scale: 0.8;
+  }
+  24%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-link {
+  0%,
+  22% {
+    scale: 0;
+  }
+  30%,
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pen-tick {
+  0%,
+  60% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  64%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-draw {
+  0%,
+  3% {
+    scale: 0 1;
+  }
+  10%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* The piece of work: at station 1 by 9 %, 2 by 22 %, 3 by 38 %, 4 by 54 %. */
+@keyframes pen-packet {
+  0%,
+  7% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  9%,
+  12% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  22%,
+  28% {
+    translate: calc(var(--ps-u) * 22.67) 0;
+  }
+  38%,
+  44% {
+    translate: calc(var(--ps-u) * 45.33) 0;
+  }
+  54%,
+  56% {
+    opacity: 1;
+    translate: calc(var(--ps-u) * 68) 0;
+  }
+  59%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--ps-u) * 68) 0;
+  }
+}
+
+@keyframes pen-s1 {
+  0%,
+  8% {
+    opacity: 0;
+    scale: 1.25;
+  }
+  10%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-s2 {
+  0%,
+  21% {
+    opacity: 0;
+    scale: 1.25;
+  }
+  23%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-s3 {
+  0%,
+  37% {
+    opacity: 0;
+    scale: 1.25;
+  }
+  39%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-s4 {
+  0%,
+  53% {
+    opacity: 0;
+    scale: 1.25;
+  }
+  55%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-flowon2 {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  66%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-go2 {
+  from {
+    translate: 0 0;
+    scale: 0;
+  }
+  8%,
+  92% {
+    scale: 1;
+  }
+  to {
+    translate: calc(var(--ps-u) * 68) 0;
+    scale: 0;
+  }
+}
+
+@keyframes pen-face {
+  0%,
+  6% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  10%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pen-text {
+  0%,
+  10% {
+    opacity: 0;
+    translate: 0 calc(var(--u) * 1);
+  }
+  15%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes pen-d1 {
+  0%,
+  20% {
+    opacity: 0;
+    translate: calc(var(--u) * -1.5) 0;
+  }
+  25%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes pen-d2 {
+  0%,
+  28% {
+    opacity: 0;
+    translate: calc(var(--u) * -1.5) 0;
+  }
+  33%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes pen-d3 {
+  0%,
+  36% {
+    opacity: 0;
+    translate: calc(var(--u) * -1.5) 0;
+  }
+  41%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes pen-fill-m {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  55%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-dash-m {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pen-flip-r {
+  0%,
+  40% {
+    scale: 1 1;
+  }
+  42% {
+    scale: 0 1;
+  }
+  44%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes pen-was-r {
+  0%,
+  41.9% {
+    opacity: 1;
+  }
+  42%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pen-now-r {
+  0%,
+  41.9% {
+    opacity: 0;
+  }
+  42%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pen-tag-r {
+  0%,
+  48% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  51%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}

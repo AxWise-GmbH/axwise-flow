@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookies y almacenamiento",
+    "summary": "Esta página enumera las cookies y el almacenamiento del navegador que utilizan el sitio web y la aplicación web de Orqanix, por qué es necesario cada uno, cuánto tiempo duran y cómo borrarlos.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primera versión."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "En resumen"
+    },
+    {
+      "type": "note",
+      "text": "Nuestras páginas de marketing y legales no instalan cookies. Lo único que pueden almacenar son sus elecciones: el idioma, el aspecto claro u oscuro y la versión de EE. UU. o de la UE de nuestras páginas legales, cada una solo después de que usted haga clic. Las cookies aparecen únicamente en las páginas de inicio de sesión y en la aplicación web, porque el inicio de sesión no puede funcionar sin ellas. No utilizamos cookies publicitarias, analíticas ni de seguimiento."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookies y almacenamiento"
+    },
+    {
+      "type": "p",
+      "text": "Una cookie es un pequeño archivo de texto que un sitio web guarda en su navegador. Su navegador la reenvía en visitas posteriores. El almacenamiento local y el almacenamiento de sesión son espacios similares de su navegador en los que un sitio web puede guardar pequeños fragmentos de información. El almacenamiento local los conserva hasta que se borran; el almacenamiento de sesión los conserva hasta que usted cierra la pestaña. Esta página abarca los tres, en orqanix.com y en la aplicación web de Orqanix."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "Qué almacenamos"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Nombre",
+        "Dónde",
+        "Quién la instala",
+        "Para qué",
+        "Duración"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Almacenamiento local, en nuestras páginas legales. Solo se escribe cuando usted hace clic en el selector de región o en la región sugerida.",
+          "Orqanix",
+          "Recuerda si eligió la versión de EE. UU. o la de la UE de nuestras páginas legales.",
+          "Hasta que usted lo borre"
+        ],
+        [
+          "orqanix_lang",
+          "Almacenamiento local, en nuestras páginas de marketing. Solo se escribe cuando usted elige un idioma en el pie de página.",
+          "Orqanix",
+          "Recuerda el idioma que eligió para nuestras páginas.",
+          "Hasta que usted lo borre"
+        ],
+        [
+          "orqanix_theme",
+          "Almacenamiento local, en nuestras páginas de marketing. Solo se escribe cuando usted pulsa el selector claro/oscuro del pie de página.",
+          "Orqanix",
+          "Recuerda si eligió el aspecto claro u oscuro.",
+          "Hasta que usted lo borre"
+        ],
+        [
+          "__client_uat (y una copia con un sufijo)",
+          "Cookie en orqanix.com y sus subdominios, en las páginas de inicio de sesión y en la aplicación web",
+          "Clerk, nuestro proveedor de inicio de sesión",
+          "Registra si ha iniciado sesión y desde cuándo.",
+          "Aproximadamente 1 año"
+        ],
+        [
+          "__clerk_db_jwt (y una copia con un sufijo)",
+          "Cookie en orqanix.com, en las páginas de inicio de sesión y en la aplicación web",
+          "Clerk",
+          "Vincula su navegador con su sesión iniciada en nuestra configuración actual de Clerk.",
+          "Aproximadamente 1 año"
+        ],
+        [
+          "__session (y una copia con un sufijo)",
+          "Cookie en orqanix.com, una vez que ha iniciado sesión",
+          "Clerk",
+          "Contiene un token de inicio de sesión de corta duración que acredita su identidad ante nuestros servidores.",
+          "Corta duración; se renueva mientras mantenga la sesión iniciada"
+        ],
+        [
+          "__cf_bm",
+          "Cookie en el dominio de Clerk, en las páginas de inicio de sesión",
+          "Cloudflare, por cuenta de Clerk",
+          "Distingue a las personas de los bots, para proteger el inicio de sesión frente a abusos.",
+          "Aproximadamente 30 minutos, según Cloudflare"
+        ],
+        [
+          "_cfuvid",
+          "Cookie en el dominio de Clerk, en las páginas de inicio de sesión",
+          "Cloudflare, por cuenta de Clerk",
+          "Ayuda a aplicar límites razonables a las solicitudes, para proteger el inicio de sesión frente a abusos.",
+          "Hasta que cierre el navegador, según Cloudflare"
+        ],
+        [
+          "__clerk_environment",
+          "Almacenamiento local en orqanix.com, en las páginas de inicio de sesión y en la aplicación web",
+          "Clerk",
+          "Guarda una copia de la configuración de Clerk para que el inicio de sesión se cargue más rápido.",
+          "Hasta que usted lo borre"
+        ],
+        [
+          "Disposición del menú",
+          "Almacenamiento local en la aplicación web, una entrada por cuenta",
+          "Orqanix",
+          "Recuerda qué secciones del menú ha ocultado, reordenado o fijado.",
+          "Hasta que usted lo borre"
+        ],
+        [
+          "Menú contraído",
+          "Almacenamiento local en la aplicación web, una entrada por cuenta",
+          "Orqanix",
+          "Recuerda si ha contraído el menú lateral.",
+          "Hasta que usted lo borre"
+        ],
+        [
+          "remix-router-transitions",
+          "Almacenamiento de sesión en la aplicación web, solo si se utiliza",
+          "La biblioteca de enrutamiento de páginas de la aplicación web",
+          "Recuerda el estado de los cambios de página, para que funcionen los botones de retroceder y avanzar.",
+          "Hasta que cierre la pestaña"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Cuando usted se registra, Cloudflare Turnstile también realiza una breve comprobación en su navegador para confirmar que es una persona y no un bot. Forma parte del inicio de sesión y se ejecuta por cuenta de Clerk."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Dónde se aplica cada uno"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Páginas de marketing y legales"
+    },
+    {
+      "type": "p",
+      "text": "La página de inicio, las páginas de producto y estas páginas legales no cargan código de inicio de sesión, no instalan cookies y no realizan llamadas a otras empresas. Sus tipos de letra proceden de nuestro propio servidor. Lo único que pueden almacenar son sus elecciones de idioma, aspecto y región, cada una solo después de que usted haga clic. Nuestro proveedor de alojamiento, Google Cloud, conserva registros de servidor habituales de cada visita (dirección IP, navegador, hora y página), tal como explica nuestra [Política de privacidad](/instant/legal/privacy#website). Estos registros permanecen en el servidor; no se almacena nada en su navegador para ellos. Si hace clic en Descargar, la App de escritorio se obtiene de Google Cloud Storage, por lo que Google ve su dirección IP."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Páginas de inicio de sesión y la aplicación web"
+    },
+    {
+      "type": "p",
+      "text": "Las páginas de inicio de sesión y de registro y la aplicación web cargan Clerk, que gestiona nuestro inicio de sesión. Clerk, y Cloudflare por cuenta de Clerk, instalan las cookies y el almacenamiento de inicio de sesión que se enumeran en [Qué almacenamos](#what-we-store). En la aplicación web también almacenamos la disposición de su menú para que tenga el aspecto en que usted lo dejó. Si elige Iniciar sesión con Google, se abren las propias páginas de Google, y allí se aplican las cookies y las condiciones de Google."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Sin banner de cookies",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "La legislación de la UE y del Reino Unido permite que un sitio web almacene información en su dispositivo o acceda a ella sin preguntar antes únicamente cuando ello sea estrictamente necesario para prestar un servicio que usted haya solicitado expresamente (Directiva sobre la privacidad y las comunicaciones electrónicas, art. 5, apartado 3; en Alemania, § 25(2) n.º 2 TDDDG; en el Reino Unido, las Privacy and Electronic Communications Regulations). Todo lo que almacenamos cumple ese criterio. Sus elecciones de idioma, aspecto y región se almacenan porque usted hizo clic para ello. El inicio de sesión necesita sus cookies y su protección contra bots. La aplicación web recuerda la disposición del menú que usted configuró. No utilizamos nada con fines publicitarios, analíticos o de seguimiento, por lo que no hay nada para lo que pedir su consentimiento, ni banner."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Si en algún momento queremos utilizar un almacenamiento que no sea estrictamente necesario, le pediremos antes su consentimiento y actualizaremos esta página."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Sin banner de cookies",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Todo lo que almacenamos es necesario para algo que usted ha solicitado: su elección de región, el inicio de sesión, la protección del inicio de sesión frente a bots y el recuerdo de la disposición de su menú. No utilizamos cookies publicitarias, analíticas ni de seguimiento, y no permitimos que ninguna otra empresa le rastree en nuestro sitio. Por tanto, no hay nada de lo que excluirse, ni banner. Si su navegador envía una señal Global Privacy Control, la tratamos como una solicitud de exclusión de la venta y de la compartición de su información personal. No hacemos ninguna de las dos cosas, así que nada cambia."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Si en algún momento queremos utilizar el almacenamiento para otro fin, actualizaremos antes esta página y le ofreceremos las opciones que exija la ley."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "Qué no utilizamos"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ninguna cookie publicitaria ni red publicitaria.",
+        "Ninguna herramienta analítica ni de seguimiento, ni píxeles de seguimiento.",
+        "Ningún tipo de letra ni otro archivo cargado desde otras empresas en nuestras páginas de marketing y legales.",
+        "Ningún almacenamiento que le siga a través de otros sitios web."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Borrado y bloqueo"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Puede ver, eliminar y bloquear las cookies y los datos de sitios en la configuración de su navegador, normalmente en Privacidad o en Datos de sitios. Al eliminar los datos de sitio de orqanix.com y del dominio de inicio de sesión de Clerk se borra todo lo que figura en la tabla.",
+        "Para cambiar su elección de región, utilice el selector EE. UU. / UE de cualquier página legal. Para eliminarla, borre los datos de sitio de orqanix.com en su navegador.",
+        "Al cerrar sesión finaliza su sesión iniciada.",
+        "Si bloquea las cookies de inicio de sesión o la comprobación de Cloudflare, podrá seguir leyendo nuestro sitio web, pero el inicio de sesión y la aplicación web no funcionarán."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "La App de escritorio"
+    },
+    {
+      "type": "p",
+      "text": "La App de escritorio no es un sitio web. No utiliza cookies ni almacenamiento con fines publicitarios, analíticos o de seguimiento. Conserva sus datos en su Mac: su historial de chat, la configuración, los registros, su inicio de sesión en Orqanix (en el llavero de macOS) y pequeños elementos en el almacenamiento integrado propio de la aplicación, como su tema, la disposición del menú, los chats fijados y una lista de los mensajes que ha escrito recientemente. Nuestra [Política de privacidad](/instant/legal/privacy#desktop-app) explica qué permanece en su Mac y qué sale de él."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Cambios"
+    },
+    {
+      "type": "p",
+      "text": "Cuando cambia lo que almacenamos, actualizamos esta página y la fecha que figura al principio. Preguntas: {company.privacyEmail}."
+    }
+  ]
+}

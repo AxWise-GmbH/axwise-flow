@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Avisos de Código Aberto",
+    "summary": "Esta página lista o software de código aberto presente no Aplicativo para computador do Orqanix e no nosso site, suas licenças e como obter os textos dessas licenças.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "Sobre esta página"
+    },
+    {
+      "type": "p",
+      "text": "Partes dos nossos produtos são software de código aberto: software cujos autores permitem que qualquer pessoa o use, altere e compartilhe nos termos de uma licença publicada. Esta página lista as principais partes de código aberto e como obter os textos de suas licenças."
+    },
+    {
+      "type": "p",
+      "text": "Cada parte continua sujeita à sua própria licença. Nada nos nossos [Termos de Serviço](/instant/legal/terms) ou nos [Termos do Aplicativo para Computador](/instant/legal/desktop-app-terms) limita os direitos que essas licenças conferem a você. Quando uma licença diz que seus autores não oferecem nenhuma garantia, isso se aplica ao trabalho deles. As nossas próprias garantias sobre os nossos produtos estão nos nossos termos."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "O Aplicativo para computador"
+    },
+    {
+      "type": "p",
+      "text": "O app do Orqanix para Mac inclui software de código aberto como:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Software",
+        "O que faz no app",
+        "Licença"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "O framework de agentes sobre o qual os agentes do app funcionam",
+          "Apache License 2.0"
+        ],
+        [
+          "Um runtime de engenharia opcional incluído no app",
+          "Executa as ferramentas de engenharia do app",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "A janela e o ambiente de desktop do app",
+          "MIT License"
+        ],
+        [
+          "Chromium (incluído no Electron)",
+          "Exibe as telas do app",
+          "Uma licença do tipo BSD e outras"
+        ],
+        [
+          "Node.js",
+          "Executa partes do app",
+          "MIT License, com algumas partes incluídas sob outras licenças"
+        ],
+        [
+          "Muitos pacotes npm e Rust menores",
+          "Componentes usados em todo o app",
+          "Diversas licenças de código aberto, como MIT, Apache 2.0 e BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "O app inclui os textos das licenças e os avisos do Goose, do runtime de engenharia, do Electron, do Chromium e do Node.js. Para vê-los, clique no app com a tecla Control pressionada no Finder, escolha Mostrar Conteúdo do Pacote e depois abra Contents e, em seguida, Resources. Esses arquivos são os textos oficiais; esta tabela é apenas um resumo. Para os pacotes menores, solicite-os a nós conforme descrito em [Textos das licenças e código-fonte](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "O nosso site"
+    },
+    {
+      "type": "p",
+      "text": "O nosso site usa as fontes Geist, Geist Mono e Inter, todas licenciadas sob a [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Nomes e marcas registradas"
+    },
+    {
+      "type": "p",
+      "text": "Os nomes dos projetos de código aberto pertencem aos seus titulares. O uso que fazemos do software deles não significa que esses projetos ou seus titulares endossem o Orqanix, e as licenças não conferem a ninguém direitos sobre seus nomes ou logotipos."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Textos das licenças e código-fonte"
+    },
+    {
+      "type": "p",
+      "text": "Para solicitar uma cópia do texto de uma licença, ou o código-fonte quando uma licença lhe der direito a ele, escreva para {company.email} com o assunto “Código aberto”. Informe qual versão do Aplicativo para computador você tem."
+    },
+    {
+      "type": "p",
+      "text": "Se você achar que deixamos de incluir algum aviso ou que usamos software de código aberto de uma forma que a licença dele não permite, avise-nos no mesmo endereço e analisaremos o caso."
+    }
+  ]
+}

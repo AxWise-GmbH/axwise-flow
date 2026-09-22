@@ -1,18 +1,18 @@
 /*
  * Scene panels for the Solutions pages (class prefix osc-): small replicas of the desktop
- * app in its dark theme. The graphite values are the app's own, the same ones HeroWindow.css
- * uses; everything else comes from the page tokens.
+ * app in its dark theme, and in its light theme on the light page. The graphite values are
+ * the app's own, the same ones HeroWindow.css uses; everything else comes from the page tokens.
  *
  * Entrance: a panel waits with data-play="false", then each .osc-step arrives in turn by
  * its --i. Only transform and opacity move. Loops rest off screen (see .ois-section rules).
  */
 
 .osc {
-  --hw-bg: #22252a;
+  --hw-bg: #222222;
   --hw-text: #f4f5f7;
-  --hw-soft: #cbd1d6;
-  --hw-muted: #9a9fa8;
-  --hw-border: #3f434b;
+  --hw-soft: #d0d0d0;
+  --hw-muted: #9e9e9e;
+  --hw-border: #424242;
   --hw-fill: rgba(255, 255, 255, 0.055);
   --osc-start: 350ms;
   --osc-gap: 420ms;
@@ -22,17 +22,30 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works,
+     over the page colour so nothing behind shows through. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 16px;
-  background: var(--hw-bg);
+  background: var(--oi-app-surface), var(--oi-page);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 50px 100px -30px rgba(0, 0, 0, 0.9),
-    0 0 80px -18px rgba(var(--oi-pale-rgb), 0.34);
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16),
+    0 50px 100px -30px rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k))),
+    0 0 80px -18px rgba(var(--oi-pale-rgb), calc(0.34 * var(--oi-halo-k)));
   color: var(--hw-text);
   font-size: 13px;
   line-height: 1.5;
   text-align: left;
+}
+
+/* Light: the desktop app's light theme. --hw-bg is the panel's own ground (chips and labels
+   sit on it, and it is the ink on a filled accent disc), so it turns white. */
+[data-oi-theme='light'] .osc {
+  --hw-bg: #ffffff;
+  --hw-text: var(--oi-app-text);
+  --hw-soft: var(--oi-app-soft);
+  --hw-muted: var(--oi-app-muted);
+  --hw-border: var(--oi-app-border);
+  --hw-fill: var(--oi-app-fill);
 }
 
 .osc *,
@@ -326,7 +339,7 @@
   grid-template-columns: 26px minmax(0, 1fr);
   gap: 10px;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--oi-fg-rgb), 0.06);
   color: var(--hw-soft);
   counter-increment: osc-line;
 }
@@ -365,7 +378,7 @@
   grid-template-columns: minmax(0, 1.5fr) repeat(calc(var(--cols) - 1), minmax(0, 1fr));
   gap: 10px;
   padding: 9px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--oi-fg-rgb), 0.06);
 }
 
 .osc-table th {
@@ -406,9 +419,9 @@
 .osc-lane {
   min-width: 0;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.06);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(var(--oi-shadow-rgb), calc(0.16 * var(--oi-shadow-k)));
 }
 
 .osc-lane-title {
@@ -651,16 +664,16 @@
 
 .osc .osc-cal-col {
   position: relative;
-  border-left: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 1px solid rgba(var(--oi-fg-rgb), 0.07);
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.07) 0 1px,
+    rgba(var(--oi-fg-rgb), 0.07) 0 1px,
     transparent 1px var(--row)
   );
 }
 
 .osc .osc-cal-col:last-child {
-  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  border-right: 1px solid rgba(var(--oi-fg-rgb), 0.07);
 }
 
 .osc-slot {
@@ -674,7 +687,7 @@
   border: 1px solid var(--hw-border);
   border-left: 2px solid rgba(var(--oi-accent-rgb), 0.75);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--oi-fg-rgb), 0.07);
   color: var(--hw-soft);
   font-size: 10.5px;
   line-height: 1.25;
@@ -694,7 +707,7 @@
 .osc-slot[data-state='held'] {
   border-color: var(--oi-accent);
   background: rgba(var(--oi-accent-rgb), 0.24);
-  box-shadow: 0 0 22px rgba(var(--oi-accent-rgb), 0.5);
+  box-shadow: 0 0 22px rgba(var(--oi-accent-rgb), calc(0.5 * var(--oi-halo-k)));
   color: var(--hw-text);
 }
 
@@ -731,9 +744,9 @@
   position: relative;
   aspect-ratio: 100 / 56;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.07);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(var(--oi-shadow-rgb), calc(0.2 * var(--oi-shadow-k)));
 }
 
 .osc-map svg {
@@ -745,11 +758,11 @@
 }
 
 .osc-map-blocks {
-  fill: rgba(255, 255, 255, 0.035);
+  fill: rgba(var(--oi-fg-rgb), 0.035);
 }
 
 .osc-map-streets {
-  stroke: rgba(255, 255, 255, 0.09);
+  stroke: rgba(var(--oi-fg-rgb), 0.09);
   stroke-width: 0.25;
 }
 
@@ -878,12 +891,12 @@
 }
 
 .osc-chart-grid {
-  stroke: rgba(255, 255, 255, 0.08);
+  stroke: rgba(var(--oi-fg-rgb), 0.08);
   stroke-width: 0.2;
 }
 
 .osc-chart-bar {
-  fill: rgba(255, 255, 255, 0.07);
+  fill: rgba(var(--oi-fg-rgb), 0.07);
 }
 
 .osc-chart-area {
@@ -961,9 +974,9 @@
   column-gap: 10px;
   row-gap: 1px;
   padding: 9px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.07);
   border-radius: 11px;
-  background: rgba(0, 0, 0, 0.14);
+  background: rgba(var(--oi-shadow-rgb), calc(0.14 * var(--oi-shadow-k)));
 }
 
 .osc-mail[data-open='true'] {
@@ -1040,7 +1053,7 @@
   align-items: center;
   gap: 7px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(var(--oi-fg-rgb), 0.07);
   color: var(--hw-muted);
   font-family: var(--oi-mono);
   font-size: 10px;
@@ -1102,7 +1115,11 @@
   position: relative;
   flex: 1;
   aspect-ratio: 100 / 58;
-  background: radial-gradient(closest-side, rgba(var(--oi-accent-rgb), 0.1), transparent);
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-accent-rgb), calc(0.1 * var(--oi-halo-k))),
+    transparent
+  );
 }
 
 .osc-graph svg {
@@ -1113,7 +1130,7 @@
 }
 
 .osc-link {
-  stroke: rgba(255, 255, 255, 0.2);
+  stroke: rgba(var(--oi-fg-rgb), 0.2);
   stroke-width: 0.3;
 }
 
@@ -1142,7 +1159,7 @@
 
 .osc-gnode[data-lit='true'] {
   border-color: var(--oi-accent);
-  box-shadow: 0 0 18px rgba(var(--oi-accent-rgb), 0.35);
+  box-shadow: 0 0 18px rgba(var(--oi-accent-rgb), calc(0.35 * var(--oi-halo-k)));
   color: var(--hw-text);
 }
 
@@ -1175,9 +1192,9 @@
   gap: 3px;
   min-height: 74px;
   padding: 9px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.08);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(var(--oi-shadow-rgb), calc(0.16 * var(--oi-shadow-k)));
 }
 
 .osc-tile .osc-mark {
@@ -1190,10 +1207,10 @@
 }
 
 .osc-tile[data-state='alert'] {
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(var(--oi-fg-rgb), 0.4);
   background: repeating-linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.07) 0 1px,
+    rgba(var(--oi-fg-rgb), 0.07) 0 1px,
     transparent 1px 7px
   );
 }
@@ -1254,7 +1271,7 @@
   background: var(--oi-sheet);
   box-shadow:
     9px 9px 0 -3px rgba(var(--oi-pale-rgb), 0.2),
-    0 24px 50px -18px rgba(0, 0, 0, 0.9);
+    0 24px 50px -18px rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
   color: var(--oi-sheet-ink);
   rotate: -1.4deg;
 }
@@ -1358,9 +1375,9 @@
   position: relative;
   height: 84px;
   margin-top: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.08);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(var(--oi-shadow-rgb), calc(0.2 * var(--oi-shadow-k)));
 }
 
 .osc-clips-track svg {
@@ -1368,7 +1385,7 @@
   inset: 12px 0;
   width: 100%;
   height: calc(100% - 24px);
-  fill: rgba(255, 255, 255, 0.22);
+  fill: rgba(var(--oi-fg-rgb), 0.22);
 }
 
 .osc-cut {
@@ -1378,7 +1395,7 @@
   border: 1px solid var(--oi-accent);
   border-radius: 8px;
   background: rgba(var(--oi-accent-rgb), 0.2);
-  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 10px 24px -8px rgba(var(--oi-shadow-rgb), calc(0.8 * var(--oi-shadow-k)));
 }
 
 /* The grips of a trimmed region. */
@@ -1497,7 +1514,7 @@
   background: repeating-radial-gradient(
     circle,
     transparent 0 46px,
-    rgba(var(--oi-pale-rgb), 0.1) 46px 47px
+    rgba(var(--oi-pale-rgb), calc(0.1 * var(--oi-halo-k))) 46px 47px
   );
   translate: -50% -50%;
   mask-image: radial-gradient(circle, #000 30%, transparent 70%);
@@ -1510,10 +1527,11 @@
   padding: 12px 12px 14px;
   border: 1.5px solid var(--hw-border);
   border-radius: 30px;
-  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), var(--hw-bg);
+  background:
+    linear-gradient(rgba(var(--oi-bg-rgb), 0.3), rgba(var(--oi-bg-rgb), 0.3)), var(--hw-bg);
   box-shadow:
-    inset 0 0 0 3px rgba(255, 255, 255, 0.03),
-    0 30px 60px -24px rgba(0, 0, 0, 0.9);
+    inset 0 0 0 3px rgba(var(--oi-fg-rgb), 0.03),
+    0 30px 60px -24px rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
 }
 
 .osc-phone-notch {
@@ -1526,7 +1544,7 @@
 
 .osc-phone-title {
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(var(--oi-fg-rgb), 0.07);
   color: var(--hw-muted);
   font-family: var(--oi-mono);
   font-size: 9.5px;

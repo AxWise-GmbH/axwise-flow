@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "アシスタントボット利用規約",
+    "summary": "お客様のファイル内や、お客様が連携したメッセージアプリおよびメールアカウント内でお客様に代わって行動できる、Orqanix アシスタントボットに適用される追加の規定です。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "本規約について"
+    },
+    {
+      "type": "p",
+      "text": "本規約は、当社の[利用規約](/instant/legal/terms)に追加して適用されます。本規約は、お客様がアシスタントボット（これを用いて作成するすべてのアシスタント（以下「ボット」）を含みます）を利用する場合に適用されます。ボットとは、営業、経理、サポート、事務、またはお客様自身が記述した役割など、役割を持つ AI アシスタントです。ボットは、お客様が連携したメッセージアプリおよびメールアカウント内、ならびにお客様の Orqanix ワークスペース内で、お客様のために作業することができます。"
+    },
+    {
+      "type": "p",
+      "text": "当社の[利用ポリシー](/instant/legal/acceptable-use)、[プライバシーポリシー](/instant/legal/privacy)および[AI の仕組み](/instant/legal/ai)も適用されます。ボットに関する事項について本規約と利用規約とが矛盾する場合は、本規約が優先します。"
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "アクセスと利用"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様は 18 歳以上であり、Orqanix アカウントを保有していなければなりません。",
+        "お客様は必要な数だけボットを作成でき、いつでもボットの役割を変更できます。ボットは次のタスクから新しい役割に従います。",
+        "ボットは、Orqanix アプリでできること、すなわちチャット、リサーチ、レシピ、スケジュール、連携ツールおよびファイルを利用できます。ボットのファイルは、お客様の Orqanix ワークスペースに保存されます。",
+        "製品が初期段階にある間、ボットは無料です。有料プランを開始する前に、当社は価格ならびに支払いおよび解約に関する規定を公表します。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "有料プランを開始する前に、当社は購入の撤回に関する規定もあわせて公表します。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "エージェントによる操作"
+    },
+    {
+      "type": "p",
+      "text": "ボットは回答するだけではありません。お客様が連携し許可した内容に応じて、ボットはお客様に代わって操作を行うことができます（以下「エージェントによる操作」）。たとえば、ボットは次のことができます。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "請求書、契約書、写真、メモなどの文書を読み取り、分類し、整理すること",
+        "お客様が連携したメールアカウントおよび電話から連絡先を 1 つのリストに集約し、重複を統合すること",
+        "お客様のメール、ファイルおよびツールから数値や詳細情報を収集すること",
+        "お客様が許可した方法で、メッセージに返信し、返信文、概要および報告書の下書きを作成すること",
+        "毎日または毎週繰り返されるレシピおよび定期ジョブを実行すること"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "お客様による権限付与"
+    },
+    {
+      "type": "p",
+      "text": "お客様がボットに役割を与え、アカウントを連携し、またはタスクを依頼した場合、お客様はボットがその範囲内でお客様に代わって行動する権限を付与したことになります。ボットがやり取りする人やサービスに対しては、お客様が付与したアクセスの範囲内でのボットの操作は、お客様の操作とみなされます。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様が使用を許されているアカウント、デバイスおよびデータのみを連携し、ボットには必要なアクセスのみを付与してください。",
+        "役割と指示は明確に設定してください。ボットに依頼する内容については、お客様が責任を負います。",
+        "お客様の Orqanix アカウントおよび連携アカウントを安全に保ってください。他の誰かがそれらを使用していると思われる場合は、{company.email} 宛てに当社にお知らせください。",
+        "お客様は、いつでもボットの利用をやめ、連携アカウントへのボットのアクセスを（たとえば当該アカウント自体の設定で）削除することができます。既に行われた操作は元に戻せない場合があります。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "人間による確認"
+    },
+    {
+      "type": "p",
+      "text": "ボットは誤っていたり、不完全であったり、古くなっていたりすることがあります。状況を読み違えたり、誤ったファイルや連絡先を選んだり、事実でないことを書いたりすることがあります。"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、各ボットが行ったことを確認できます。ボットの作業に依拠する前にその内容を確認し、下書きは送信される前に確認してください。元に戻すことが難しいもの、または他の人に影響するものについては特に注意してください。たとえば、次のものです。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "顧客、取引先または大人数のグループへのメッセージ",
+        "金銭、請求書、契約または法的期限に関わるもの",
+        "ファイルの削除、移動または共有",
+        "他人に関する個人情報または機微な情報"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "ボットが操作の前にお客様に確認するかどうかを Orqanix で選択できる場合、その選択はお客様に委ねられます。確認なしにボットが操作することを許可した場合、お客様は、ボットがお客様の確認を経ずに操作することを受け入れたことになります。ボットの出力は、法律、医療、税務または財務に関する助言ではありません。"
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "責任"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、ボットに権限を付与した操作およびその結果について責任を負います。これには、ボットが送信するメッセージ、およびボットがお客様のファイルや連携アカウントに加える変更が含まれます。当社の[利用規約](/instant/legal/terms)または法律に別段の定めがある場合を除き、当社は、お客様が許可した操作またはお客様が与えた指示によって生じた損失について責任を負いません。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "法律で認められる範囲において、利用規約の免責事項および責任の制限は、ボットとその操作にも適用されます。ボットは「現状有姿」で提供されます。当社は、ボットが正確に、完全に、または期限どおりに動作することを保証しません。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "お客様の指示に基づくボットの操作を理由として第三者が当社に請求を行った場合、お客様は、その請求により当社に生じた合理的な損失を補償するものとします。これは、法律で認められる範囲において、かつ当該請求がお客様による本規約または法律の違反に起因する場合に適用されます。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、お客様が与える指示、選択する設定および付与するアクセスについて責任を負います。当社のサービスの欠陥によりボットが損害を生じさせた場合は、当社が引き続き責任を負います。その場合の当社の責任は、[利用規約](/instant/legal/terms#liability)および法律に従います。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "本規約のいかなる規定も、法律上責任の制限が認められない場合（たとえば故意、重大な過失、生命・身体・健康の侵害、または製造物責任法に基づく場合）における当社の責任を制限するものではありません。お客様が消費者である場合、お客様は居住国の法律が認める権利を引き続き有します。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "お客様が事業のためにボットを利用し、お客様の指示に基づくボットの操作を理由として第三者が当社に請求を行った場合、お客様は、当該請求がお客様による本規約または法律の違反に起因する範囲で、その請求により当社に生じた合理的な損失を補償するものとします。これは消費者には適用されません。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "連携サービス"
+    },
+    {
+      "type": "p",
+      "text": "ボットは、お客様が連携したメッセージアプリ、メールアカウントおよびツールを通じて、またお客様が提供したファイルを用いて動作します。これらのサービスは他社が運営しています。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様によるこれらのサービスの利用には、自動メッセージ、ボットおよび AI に関する規定を含め、各社独自の規約およびポリシーが適用されます。それらを遵守する責任はお客様にあります。",
+        "サービスを連携することにより、お客様は、当社がボットを動作させるために必要な範囲で、お客様に代わって当該サービスにアクセスすることを許可します。お客様はいつでもそのアクセスを削除できます。",
+        "一部のサービスは、国によっては AI アシスタントを制限し、禁止し、または有料としています。サービスがボットまたはお客様のアカウントをブロック、制限または停止した場合、当社はそれを復旧できないことがあります。",
+        "当社はこれらのサービスを管理しておらず、それらの動作やお客様のデータの取扱いについて責任を負いません。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "ボットがやり取りする相手"
+    },
+    {
+      "type": "p",
+      "text": "ボットは、顧客、取引先または同僚など、お客様以外の人にメッセージを送ることがあります。その場合、次の規定が適用されます。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ボットは、自らが人間ではなく AI であることを明示しなければなりません。その表示を削除したり隠したりせず、ボットに人間のふりをするよう指示しないでください。",
+        "相手から AI と話しているのかと尋ねられた場合、ボットはそうであると答えなければなりません。",
+        "ボットがお客様のために送信するメッセージはお客様の名義で送信され、お客様がその送信者となります。",
+        "お客様は、たとえば相手がお客様の顧客である、またはお客様からの連絡に同意しているなど、各人に連絡する権利を有していなければなりません。お客様および相手に適用される、電子メール、テキストメッセージおよびマーケティングに関する法律を遵守してください。",
+        "一方的な一斉送信、スパム、嫌がらせまたは欺瞞のためにボットを使用しないでください。",
+        "ボットは仕事と日常のタスクのために作られています。ボットを話し相手、恋愛上または感情面のパートナーとして設定したり、セラピー、診断その他の規制対象となる専門的助言を提供するよう設定したりしないでください。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "ボットが連絡先を収集し、またはメッセージを読み取る場合、ボットは他の人に関する個人データを取り扱います。これについて適法な理由を有すること、および法律で求められる場合にその人々に通知することは、お客様の責任です。事業のためにボットを利用する場合は、[事業者の利用者](#business-users)をご覧ください。"
+    },
+    {
+      "type": "p",
+      "text": "米国の医療プライバシー法である HIPAA によって保護される健康情報の取扱いにボットを使用しないでください。当社は事業提携契約（BAA）を締結しません。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "お客様のビジネスマップ"
+    },
+    {
+      "type": "p",
+      "text": "作業を行うため、ボットはお客様のビジネスのマップ、すなわちお客様のチーム、顧客、取引先およびファイルと、それらの相互のつながりを作成し、保持します。ボットは作業を進めながらマップに情報を追加します。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "マップはお客様のコンテンツの一部です。当社は、当社の[プライバシーポリシー](/instant/legal/privacy)に記載のとおり、お客様のボットを動作させ、お客様に当社のサービスを提供するためにマップを使用します。AI モデルが何を参照するかは、[AI の仕組み](/instant/legal/ai#data-models-see)で説明しています。",
+        "当社は、マップを当社独自の AI モデルの学習に使用せず、販売もしません。",
+        "マップには他の人に関する詳細情報が含まれることがあります。[ボットがやり取りする相手](#people-the-bot-talks-to)の規定はマップにも適用されます。",
+        "マップその他のボットのデータの写しを入手したい場合、またはその訂正もしくは削除を求める場合は、{company.privacyEmail} 宛てにご連絡ください。エージェントが行ったことの一部の記録は、変更できないログとして保管されます。お客様からデータの削除を求められた場合、当社はそのデータを削除もしくは匿名化し、または記録を保持しなければならない場合はその理由をお知らせします。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "ボットの共有"
+    },
+    {
+      "type": "p",
+      "text": "お客様がボットまたはワークスペースを共有した場合、共有相手は、ボットが把握していることや行ったことを閲覧し、ボットにタスクを与えることができます。そのようなアクセスを持つべき人とのみ共有してください。"
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "コンテンツの削除"
+    },
+    {
+      "type": "p",
+      "text": "当社は、コンテンツ、ボットの操作、ボットまたは連携サービスが、本規約、[利用ポリシー](/instant/legal/acceptable-use)もしくは法律に違反し、または人、システムもしくは連携サービスを危険にさらすと合理的に判断した場合、コンテンツを削除もしくはブロックし、ボットの操作を停止し、ボットを一時停止し、またはサービスの連携を解除することができます。可能な場合は、当社が行ったこととその理由をお客様にお知らせします。"
+    },
+    {
+      "type": "p",
+      "text": "違法なコンテンツまたはボットによる不正使用を報告するには、件名を「Report」として {company.email} 宛てに電子メールをお送りください。記載すべき内容は[違反の報告](/instant/legal/acceptable-use#report)に記載しています。当社は各報告を審査して判断し、報告者および影響を受ける利用者にその理由を伝えます。"
+    },
+    {
+      "type": "p",
+      "text": "当社がお客様のコンテンツ、ボットまたはアカウントを制限する場合、当社はその理由を記載した説明をお客様に提供します（EU Digital Services Act Art. 17）。お客様は {company.email} 宛てに連絡することにより当社に決定の再審査を求めることができ、また裁判所に訴えることもできます。当局および利用者のための当社の単一連絡窓口は {company.email} です（英語で対応します）。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "事業者の利用者"
+    },
+    {
+      "type": "p",
+      "text": "お客様が事業のためにボットを利用する場合、ボットはお客様の従業員、顧客および取引先に関する個人データを取り扱うことが多くなります。そのデータについては、お客様がその利用の目的と方法を決定し、当社はお客様の指示に従ってお客様のためにそれを処理します。"
+    },
+    {
+      "type": "p",
+      "text": "当社がお客様の事業のために個人データを処理する場合、当社の[データ処理補遺](/instant/legal/dpa)（DPA）は、お客様と当社との契約の一部を構成します。DPA は、セキュリティ、当社の[サブプロセッサ](/instant/legal/subprocessors)、および本人からの請求に対する当社の支援について定めています。[プライバシーポリシー](/instant/legal/privacy)に記載のとおり当社が自らの目的でデータを使用する場合は、その使用について当社自身が責任を負います。"
+    },
+    {
+      "type": "p",
+      "text": "データ保護の観点では、これにより、そのデータについてお客様が管理者、当社がお客様の処理者となります（GDPR Art. 28）。法的根拠を有すること、関係する人々に情報を提供すること（GDPR Art. 13 および 14）、およびその人々からの請求に対応することは、お客様の責任です。当社は DPA に記載のとおり支援します。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "米国の州のプライバシー法が適用される場合、当社はそのデータについてお客様のサービスプロバイダーまたは処理者として行動し、お客様にサービスを提供する目的にのみそれを使用します。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "変更"
+    },
+    {
+      "type": "p",
+      "text": "当社はボットを継続的に改善しており、機能、連携または役割を追加、変更または削除することがあります。本ページ上部の日付は、本規約の現行版を示しています。"
+    },
+    {
+      "type": "p",
+      "text": "本規約の変更がお客様にとって重要である場合、当社はその発効前にお客様にお知らせします。その日以降もお客様がボットの利用を継続した場合は、新しい規約が適用されます。同意されない場合は、ボットの利用を中止し、お客様のアカウントへのボットのアクセスを削除してください。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "お客様が消費者である場合、[変更時のお客様の権利](/instant/legal/terms#changes-eu)の規定がボットおよび本規約に適用されます。要約すると、当社は正当な理由がある場合に限り、追加費用なしでボットを変更し、お客様に影響する変更については事前にお知らせし、お客様は同意されない場合は無料で契約を終了することができます。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "お客様が事業のためにボットを利用する場合、お客様にとって重要な本規約の変更については、その発効前にお知らせします。その日以降もお客様がボットの利用を継続した場合は、新しい規約が適用されます。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "お問い合わせ"
+    },
+    {
+      "type": "p",
+      "text": "本規約に関するご質問：{company.email}。データに関するご請求：{company.privacyEmail}。セキュリティ上の問題：{company.securityEmail}。"
+    }
+  ]
+}

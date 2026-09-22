@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Verhaal",
+    "goal": "Doel",
+    "mission": "Missie",
+    "founders": "Oprichters"
+  },
+  "story": {
+    "tag": "Ons verhaal",
+    "title": "Twee paden die samenkwamen.",
+    "lede": "Twee product managers, twee producten, één idee. Zo ontstond Orqanix.",
+    "steps": [
+      {
+        "when": "Nov 2024",
+        "who": "Vitaly · AxWise",
+        "title": "De denklaag",
+        "text": "Vitaly begon de nieuwe AI-industrie in kaart te brengen die zichzelf aan het bouwen was: de modellen, aanbieders en diensten. Zijn idee was een cognitieve laag, een AI die een probleem eerst goed doordenkt voordat ze antwoordt, zodat het eindresultaat meteen klaar voor gebruik is."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Van 40 minuten naar seconden",
+        "text": "De eerste runs duurden 30 tot 40 minuten. Daarna werden de modellen beter, en de laag werd met ze mee beter. Elke ronde kwam sneller en scherper terug, tot hetzelfde werk nog maar seconden kostte."
+      },
+      {
+        "when": "Feb 2026",
+        "who": "Viktor · Orqaly",
+        "title": "Eén persoon, het werk van een heel team",
+        "text": "Viktor volgde AI al jaren. Toen er een nieuw topmodel verscheen, zag hij dat hij in zijn eentje een echt product kon bouwen, zonder front-end-, back-end-, DevOps- of designteam. Dus begon hij een platform waarop AI-agenten het werk samen doen, zonder overdrachten die het vertragen."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Het ontbrekende stukje",
+        "text": "Veel experimenten mislukten, en elk leerde iets. Uiteindelijk werkte het platform, maar er ontbrak nog één stuk: agenten betrouwbaar genoeg om de laatste laag te zijn."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Het telefoontje",
+        "text": "Toen belde Viktor Vitaly, een vriend van de universiteit. Tijdens dat gesprek ontdekten ze dat ze hetzelfde bouwden vanuit twee tegenovergestelde kanten: de denklaag en de orkestratie eromheen."
+      },
+      {
+        "when": "Sep 2026",
+        "who": "AxWise + Orqaly",
+        "title": "Eén product",
+        "text": "Maanden van het samenvoegen van het ene product met het andere, met onderzoek en benchmarks onderweg, werden één platform: Orqanix. Het helpt mensen een bedrijf te plannen, simpele of diepgaande vragen te onderzoeken, en echte dingen sneller te bouwen."
+      }
+    ],
+    "close": "Onderzoek, plan en bouw. In minuten."
+  },
+  "goal": {
+    "tag": "Ons doel",
+    "title": "Jouw AI. Jouw machine. Jouw keuze.",
+    "lede": "AI moet draaien waar jij wilt, op de modellen die jij kiest, en jouw kennis moet van jou blijven als je overstapt.",
+    "core": "Jouw kennis",
+    "orbit": [
+      "Lokaal model",
+      "Cloudmodel",
+      "Jouw agent"
+    ],
+    "caption": "Modellen veranderen. Jouw kennis blijft.",
+    "points": [
+      {
+        "title": "Draai modellen lokaal",
+        "text": "Draai lokale taalmodellen, of andere soorten AI, rechtstreeks op je eigen computer."
+      },
+      {
+        "title": "Gebruik elke aanbieder",
+        "text": "Kies elke dienst die met AI werkt. Geen verplichting aan één cloud of leverancier."
+      },
+      {
+        "title": "Breng of bouw agenten",
+        "text": "Importeer de agent die je al gebruikt, of maak er zelf een voor de taak."
+      },
+      {
+        "title": "Eén kennisbasis",
+        "text": "Bewaar alles op één plek, zodat niets verloren gaat als je naar een ander model overstapt."
+      }
+    ],
+    "close": "Kies wat past bij de taak van vandaag en je hardware. Dat is de vrijheid van AI op jouw manier."
+  },
+  "mission": {
+    "tag": "Onze missie",
+    "statement": [
+      "Een AI-ruimte die met je meegroeit.",
+      "Gebouwd rond wie je bent en wat je wilt maken."
+    ],
+    "stages": [
+      {
+        "title": "Leert je kennen",
+        "text": "Ze leest wat je haar vertelt, je bestanden en je bedrijf, en begrijpt wat je nodig hebt."
+      },
+      {
+        "title": "Vormt jouw ruimte",
+        "text": "Ze bouwt een persoonlijke werkruimte rond jouw doelen, geen chat die voor iedereen hetzelfde is."
+      },
+      {
+        "title": "Verbetert zichzelf",
+        "text": "Als een levend wezen wordt ze steeds beter: betrouwbaarder, veiliger, makkelijker in gebruik."
+      }
+    ],
+    "loopLabel": "De cirkel",
+    "loop": [
+      "Rekeningen betalen",
+      "Naar werk gaan",
+      "Betaald krijgen",
+      "Herhalen"
+    ],
+    "pathLabel": "Jouw pad",
+    "path": "Denk groot. Ontdek waar je goed in bent. Bouw het leven dat je wilt.",
+    "text": "We willen dat iedereen die wil meedoen aan de race een eigen pad heeft, voorbij de gangbare manieren om met AI te werken. Een nieuwe manier om te creëren, te leren en te bewaren wat je weet."
+  },
+  "founders": {
+    "tag": "Oprichters",
+    "title": "De mensen achter Orqanix.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "10+ jaar ervaring",
+        "since": "Bouwt AxWise sinds november 2024",
+        "place": "Berlijn",
+        "text": "Leidt de cognitieve laag: hoe Orqanix een taak doordenkt voordat het antwoordt.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "10+ jaar ervaring",
+        "since": "Bouwt Orqaly sinds februari 2026",
+        "place": "",
+        "text": "Leidt de orkestratie: hoe AI-agenten het werk verdelen en er echte bestanden van maken.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "어시스턴트 봇 약관",
+    "summary": "귀하의 파일과 귀하가 연결한 메시징 앱 및 이메일 계정에서 귀하를 대신해 작업할 수 있는 Orqanix 어시스턴트 봇에 적용되는 추가 규칙입니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "본 약관에 관하여"
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 당사의 [서비스 약관](/instant/legal/terms)에 추가하여 적용됩니다. 본 약관은 귀하가 어시스턴트 봇을 사용하는 경우에 적용되며, 이를 통해 귀하가 만드는 모든 어시스턴트(이하 \"봇\")에도 적용됩니다. 봇은 영업, 재무, 고객 지원, 사무 또는 귀하가 직접 작성한 역할 등 하나의 역할을 가진 AI 어시스턴트입니다. 봇은 귀하가 연결한 메시징 앱과 이메일 계정, 그리고 귀하의 Orqanix 워크스페이스에서 귀하를 위해 작업할 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "당사의 [허용 가능한 사용 정책](/instant/legal/acceptable-use), [개인정보 처리방침](/instant/legal/privacy) 및 [AI 작동 방식](/instant/legal/ai)도 적용됩니다. 봇에 관한 사항에서 본 약관과 서비스 약관이 상충하는 경우 본 약관이 우선합니다."
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "이용 및 사용"
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하는 만 18세 이상이어야 하며 Orqanix 계정이 있어야 합니다.",
+        "귀하는 필요한 만큼 봇을 만들 수 있으며 언제든지 봇의 역할을 변경할 수 있습니다. 봇은 다음 작업부터 새 역할을 따릅니다.",
+        "봇은 채팅, 리서치, 레시피, 일정, 연결된 도구 및 파일 등 Orqanix 앱이 할 수 있는 기능을 사용할 수 있습니다. 봇이 만든 파일은 귀하의 Orqanix 워크스페이스에 저장됩니다.",
+        "제품이 초기 단계인 동안 봇은 무료입니다. 유료 요금제를 시작하기 전에 당사는 가격과 결제 및 해지 규칙을 게시합니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "유료 요금제를 시작하기 전에 당사는 구매 철회에 관한 규칙도 게시합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "에이전트 작업"
+    },
+    {
+      "type": "p",
+      "text": "봇은 답변 이상의 일을 합니다. 귀하가 연결하고 허용하는 범위에 따라 봇은 귀하를 대신하여 작업(이하 \"에이전트 작업\")을 수행할 수 있습니다. 예를 들어 봇은 다음을 할 수 있습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "청구서, 계약서, 사진, 메모 등의 문서를 읽고, 분류하고, 정리하여 보관합니다.",
+        "귀하가 연결한 이메일 계정과 휴대폰의 연락처를 하나의 목록으로 모으고 중복 항목을 병합합니다.",
+        "귀하의 메일, 파일 및 도구에서 수치와 세부 정보를 수집합니다.",
+        "귀하가 허용하는 방식으로 메시지에 답하고 답장, 브리핑 및 보고서의 초안을 작성합니다.",
+        "매일 또는 매주 반복되는 레시피와 예약 작업을 실행합니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "귀하의 권한 부여"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 봇에 역할을 부여하거나, 계정을 연결하거나, 작업을 요청하면, 귀하는 그 범위 내에서 봇이 귀하를 대신하여 행동하도록 권한을 부여하는 것입니다. 봇이 상대하는 사람과 서비스에 대해, 귀하가 부여한 접근 권한 내에서 이루어진 봇의 행동은 귀하의 행동으로 간주됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하가 사용할 수 있도록 허락된 계정, 기기 및 데이터만 연결하고, 봇에는 필요한 접근 권한만 부여하십시오.",
+        "역할과 지시를 명확하게 설정하십시오. 봇에게 요청하는 일에 대해서는 귀하가 책임을 집니다.",
+        "귀하의 Orqanix 계정과 연결된 계정을 안전하게 유지하십시오. 다른 사람이 이를 사용하고 있다고 생각되면 {company.email}(으)로 알려 주십시오.",
+        "귀하는 언제든지 봇 사용을 중단하고, 예를 들어 해당 계정 자체의 설정에서 연결된 계정에 대한 봇의 접근 권한을 제거할 수 있습니다. 이미 수행된 작업은 되돌릴 수 없을 수 있습니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "인간의 검토"
+    },
+    {
+      "type": "p",
+      "text": "봇은 틀리거나 불완전하거나 최신이 아닐 수 있습니다. 봇은 상황을 잘못 이해하거나, 잘못된 파일이나 연락처를 선택하거나, 사실이 아닌 내용을 작성할 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀하는 각 봇이 무엇을 했는지 확인할 수 있습니다. 봇의 작업에 의존하기 전에 이를 확인하고, 초안은 발송 전에 검토하십시오. 되돌리기 어렵거나 다른 사람에게 영향을 미치는 일에는 특히 주의하십시오. 예를 들면 다음과 같습니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "고객, 공급업체 또는 대규모 그룹에 보내는 메시지",
+        "금전, 청구서, 계약 또는 법적 기한과 관련된 모든 일",
+        "파일의 삭제, 이동 또는 공유",
+        "다른 사람에 관한 개인적이거나 민감한 정보"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Orqanix에서 봇이 행동하기 전에 귀하에게 확인을 받을지 선택할 수 있는 경우, 그 선택은 귀하에게 달려 있습니다. 봇이 확인 없이 행동하도록 허용하면, 귀하는 봇이 귀하의 검토 없이 행동한다는 것을 받아들이는 것입니다. 봇의 출력은 법률, 의료, 세무 또는 재무 자문이 아닙니다."
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "책임"
+    },
+    {
+      "type": "p",
+      "text": "귀하는 봇에게 수행하도록 허락한 행동과 그 결과에 대해 책임을 집니다. 여기에는 봇이 보내는 메시지와 봇이 귀하의 파일 및 연결된 계정에 가하는 변경이 포함됩니다. 당사의 [서비스 약관](/instant/legal/terms) 또는 법률에서 달리 정하는 경우를 제외하고, 당사는 귀하가 허락한 행동이나 귀하가 내린 지시로 인해 발생한 손실에 대해 책임을 지지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "법이 허용하는 범위에서 서비스 약관의 면책 조항과 책임 제한은 봇과 봇의 행동에 적용됩니다. 봇은 \"있는 그대로\" 제공됩니다. 당사는 봇이 정확하게, 완전하게 또는 제때 행동할 것을 보증하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "귀하의 지시에 따른 봇의 행동으로 인해 다른 사람이 당사에 청구를 제기하는 경우, 귀하는 그 청구로 인한 당사의 합리적인 손실을 보상합니다. 이는 법이 허용하는 범위에서, 그리고 그 청구가 귀하의 본 약관 또는 법률 위반으로 인해 발생한 경우에 적용됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "귀하는 귀하가 내리는 지시, 선택하는 설정 및 부여하는 접근 권한에 대해 책임을 집니다. 당사 서비스의 결함으로 인해 봇이 손해를 끼친 경우에는 당사가 계속 책임을 집니다. 이 경우 당사의 책임은 [서비스 약관](/instant/legal/terms#liability)과 법률에 따릅니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "본 약관의 어떠한 내용도 법이 허용하지 않는 경우, 예를 들어 고의, 중과실, 생명, 신체 또는 건강의 침해에 대한 책임이나 제조물 책임법에 따른 책임을 제한하지 않습니다. 귀하가 소비자인 경우, 귀하는 거주 국가의 법률이 부여하는 권리를 그대로 보유합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업 목적으로 봇을 사용하고, 귀하의 지시에 따른 봇의 행동으로 인해 다른 사람이 당사에 청구를 제기하는 경우, 그 청구가 귀하의 본 약관 또는 법률 위반으로 인해 발생한 범위에서 귀하는 그 청구로 인한 당사의 합리적인 손실을 보상합니다. 이는 소비자에게는 적용되지 않습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "연결된 서비스"
+    },
+    {
+      "type": "p",
+      "text": "봇은 귀하가 연결한 메시징 앱, 이메일 계정 및 도구를 통해, 그리고 귀하가 제공한 파일을 가지고 작업합니다. 이러한 서비스는 다른 회사가 운영합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하의 해당 서비스 사용에는 자동 메시지, 봇 및 AI에 관한 규칙을 포함하여 해당 회사 자체의 약관과 정책이 적용됩니다. 이를 준수할 책임은 귀하에게 있습니다.",
+        "서비스를 연결하면, 귀하는 봇 운영에 필요한 범위에서 당사가 귀하를 대신하여 그 서비스에 접근하도록 허락하는 것입니다. 귀하는 언제든지 그 접근 권한을 제거할 수 있습니다.",
+        "일부 서비스는 일부 국가에서 AI 어시스턴트를 제한 또는 금지하거나 유료로 제공합니다. 서비스가 봇이나 귀하의 계정을 차단, 제한 또는 정지하는 경우, 당사는 이를 복구하지 못할 수 있습니다.",
+        "당사는 이러한 서비스를 통제하지 않으며, 그 작동 방식이나 귀하의 데이터 처리 방식에 대해 책임을 지지 않습니다."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "봇이 대화하는 사람들"
+    },
+    {
+      "type": "p",
+      "text": "봇은 고객, 공급업체 또는 동료 등 귀하 이외의 사람들에게 메시지를 보낼 수 있습니다. 이 경우 다음 규칙이 적용됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "봇은 자신이 사람이 아니라 AI라는 점을 분명히 밝혀야 합니다. 이를 제거하거나 숨기지 말고, 봇에게 사람인 척하도록 지시하지 마십시오.",
+        "누군가 자신이 AI와 대화하고 있는지 물으면, 봇은 그렇다고 답해야 합니다.",
+        "봇이 귀하를 위해 보내는 메시지는 귀하의 이름으로 발송되며, 그 발신자는 귀하입니다.",
+        "귀하는 각 사람에게 연락할 권리가 있어야 합니다. 예를 들어 그 사람이 귀하의 고객이거나 귀하로부터 연락받는 데 동의한 경우입니다. 귀하와 그 사람에게 적용되는 이메일, 문자 메시지 및 마케팅에 관한 법률을 준수하십시오.",
+        "원치 않는 대량 메시지, 스팸, 괴롭힘 또는 기만에 봇을 사용하지 마십시오.",
+        "봇은 업무와 일상적인 작업을 위해 만들어졌습니다. 봇을 동반자, 연인이나 정서적 파트너로 설정하거나, 치료, 진단 또는 기타 규제 대상 전문 자문을 제공하도록 설정하지 마십시오."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "봇이 연락처를 수집하거나 메시지를 읽을 때, 봇은 다른 사람에 관한 개인정보를 처리합니다. 이에 대한 적법한 근거를 갖추고, 법이 요구하는 경우 해당 사람들에게 알릴 책임은 귀하에게 있습니다. 사업 목적으로 봇을 사용하는 경우 [사업자 사용자](#business-users)를 참조하십시오."
+    },
+    {
+      "type": "p",
+      "text": "미국 건강정보 보호법인 HIPAA의 보호를 받는 건강정보를 처리하는 데 봇을 사용하지 마십시오. 당사는 business associate agreement(업무 제휴 계약)를 체결하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "귀하의 비즈니스 맵"
+    },
+    {
+      "type": "p",
+      "text": "작업을 수행하기 위해 봇은 귀하의 사업에 관한 맵, 즉 귀하의 팀, 고객, 공급업체 및 파일과 그 연결 관계를 구축하고 유지합니다. 봇은 작업하면서 맵에 내용을 추가합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "맵은 귀하 콘텐츠의 일부입니다. 당사는 당사의 [개인정보 처리방침](/instant/legal/privacy)에 설명된 대로 귀하의 봇을 운영하고 귀하에게 서비스를 제공하기 위해 맵을 사용합니다. AI 모델이 무엇을 보는지는 [AI 작동 방식](/instant/legal/ai#data-models-see)에서 설명합니다.",
+        "당사는 맵으로 당사의 AI 모델을 학습시키지 않으며, 맵을 판매하지 않습니다.",
+        "맵에는 다른 사람에 관한 세부 정보가 포함될 수 있습니다. [봇이 대화하는 사람들](#people-the-bot-talks-to)의 규칙이 맵에도 적용됩니다.",
+        "맵이나 기타 봇 데이터의 사본을 받거나, 이를 정정 또는 삭제하려면 {company.privacyEmail}(으)로 연락해 주십시오. 에이전트가 수행한 작업의 일부 기록은 변경할 수 없는 로그로 보관됩니다. 귀하가 데이터 삭제를 요청하면, 당사는 이를 삭제하거나 익명화하며, 기록을 보관해야 하는 경우에는 그 이유를 알려 드립니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "봇 공유"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 봇이나 워크스페이스를 공유하면, 공유받은 사람들은 봇이 알고 있는 것과 봇이 한 일을 볼 수 있고 봇에게 작업을 맡길 수 있습니다. 그러한 접근 권한을 가져야 할 사람에게만 공유하십시오."
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "콘텐츠 삭제"
+    },
+    {
+      "type": "p",
+      "text": "당사는 콘텐츠, 봇의 행동 또는 연결된 서비스가 본 약관, [허용 가능한 사용 정책](/instant/legal/acceptable-use) 또는 법률을 위반하거나, 사람, 시스템 또는 연결된 서비스를 위험에 빠뜨린다고 합리적으로 판단하는 경우, 콘텐츠를 삭제 또는 차단하거나, 봇의 행동을 중지하거나, 봇을 일시 중지하거나, 서비스 연결을 해제할 수 있습니다. 가능한 경우 당사는 무엇을 왜 했는지 귀하에게 알립니다."
+    },
+    {
+      "type": "p",
+      "text": "불법 콘텐츠나 봇에 의한 오용을 신고하려면 제목을 \"Report\"로 하여 {company.email}(으)로 이메일을 보내 주십시오. 포함해야 할 내용은 [위반 신고](/instant/legal/acceptable-use#report)에 안내되어 있습니다. 당사는 각 신고를 검토하고 결정을 내린 후, 신고자와 영향을 받는 사용자에게 그 이유를 알립니다."
+    },
+    {
+      "type": "p",
+      "text": "당사가 귀하의 콘텐츠, 봇 또는 계정을 제한하는 경우, 당사는 그 이유를 기재한 설명서를 귀하에게 제공합니다(EU Digital Services Act Art. 17). 귀하는 {company.email}(으)로 연락하여 결정의 재검토를 요청할 수 있으며, 법원에 제소할 수도 있습니다. 당국과 사용자를 위한 당사의 단일 연락창구는 {company.email}이며, 영어로 응대합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "사업자 사용자"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업 목적으로 봇을 사용하는 경우, 봇은 귀하의 직원, 고객 및 공급업체에 관한 개인정보를 처리하는 경우가 많습니다. 그러한 데이터에 대해서는 귀하가 사용 목적과 방법을 결정하며, 당사는 귀하의 지시에 따라 귀하를 위해 이를 처리합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사가 귀하의 사업을 위해 개인정보를 처리하는 경우, 당사의 [데이터 처리 부속서](/instant/legal/dpa)(DPA)는 귀하와 당사 간 계약의 일부를 구성합니다. DPA는 보안, 당사의 [하위 처리자](/instant/legal/subprocessors), 그리고 당사가 정보주체의 요청 처리를 지원하는 방법을 다룹니다. [개인정보 처리방침](/instant/legal/privacy)에 설명된 대로 당사가 당사 자체의 목적을 위해 데이터를 사용하는 경우, 그 사용에 대해서는 당사가 직접 책임을 집니다."
+    },
+    {
+      "type": "p",
+      "text": "데이터 보호 측면에서 이는 해당 데이터에 관하여 귀하가 컨트롤러이고 당사가 귀하의 처리자임을 의미합니다(GDPR Art. 28). 귀하는 법적 근거를 갖추고, 관련 정보주체에게 정보를 제공하며(GDPR Art. 13 및 14), 그들의 요청을 처리할 책임이 있습니다. 당사는 DPA에 설명된 대로 이를 지원합니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "미국 주 개인정보 보호법이 적용되는 경우, 당사는 해당 데이터에 관하여 귀하의 서비스 제공자 또는 처리자로서 행위하며, 귀하에게 서비스를 제공하기 위해서만 이를 사용합니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "변경"
+    },
+    {
+      "type": "p",
+      "text": "당사는 봇을 지속적으로 개선하며 기능, 연결 또는 역할을 추가, 변경 또는 제거할 수 있습니다. 본 페이지 상단의 날짜는 본 약관의 현재 버전을 나타냅니다."
+    },
+    {
+      "type": "p",
+      "text": "본 약관의 변경이 귀하에게 중요한 경우, 당사는 변경이 효력을 발생하기 전에 귀하에게 알립니다. 그 날짜 이후에도 귀하가 봇을 계속 사용하면 새 약관이 적용됩니다. 동의하지 않는 경우 봇 사용을 중단하고 귀하 계정에 대한 봇의 접근 권한을 제거하십시오.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 소비자인 경우, [변경 시 귀하의 권리](/instant/legal/terms#changes-eu)의 규칙이 봇과 본 약관에 적용됩니다. 요약하면, 당사는 정당한 사유가 있는 경우에만 추가 비용 없이 봇을 변경하고, 귀하에게 영향을 미치는 변경은 사전에 알리며, 귀하가 동의하지 않는 경우 무료로 계약을 해지할 수 있습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 사업 목적으로 봇을 사용하는 경우, 당사는 귀하에게 중요한 본 약관의 변경이 효력을 발생하기 전에 귀하에게 알립니다. 그 날짜 이후에도 귀하가 봇을 계속 사용하면 새 약관이 적용됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "문의"
+    },
+    {
+      "type": "p",
+      "text": "본 약관에 관한 문의: {company.email}. 데이터 관련 요청: {company.privacyEmail}. 보안 문제: {company.securityEmail}."
+    }
+  ]
+}

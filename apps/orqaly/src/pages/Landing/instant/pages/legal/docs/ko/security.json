@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "slug": "security",
+    "title": "보안 및 취약점 공개",
+    "summary": "이 페이지는 당사가 Orqanix를 보호하는 방법, 귀하가 데이터를 안전하게 지키는 방법, 그리고 보안 문제를 신고하는 방법을 설명합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "security@orqanix.com probably receives no mail today: orqanix.com has no MX record (open point #2). Reports cannot reach us until this is fixed.",
+        "CRA Art. 14 reporting has applied since 11 Sep 2026: we need an internal runbook (ENISA Single Reporting Platform; 24 h / 72 h / 14 days / 1 month) and to know which national CSIRT is ours, which depends on the company (open point #1).",
+        "Supported versions: the page says only the newest Desktop App version gets security fixes. The owner must confirm this policy, and set a CRA support period (with its end date shown at download) before 11 Dec 2027.",
+        "Desktop defaults disclosed here as they are: Auto-approve on, shell and file tools on, provider keys stored in a plain-text file, chat history not additionally encrypted, app not notarized (open points #8 and #14). Update this page if any of them change.",
+        "'We aim to acknowledge within 5 working days' is a target the owner must be able to meet.",
+        "Safe-harbour promise: lawyer to confirm the wording for the company's home country (no promise can bind third parties or authorities).",
+        "Incident notice to users: the page promises to tell affected users. A breach runbook (GDPR 72 h, US state breach laws) is needed as an internal document.",
+        "Safe harbour now says we do not report researchers to the authorities 'unless the law requires us to' (for example a GDPR breach report). Lawyer to confirm.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): failing to provide security updates can make software defective, and consumer liability cannot be excluded. Decide the update and support policy before then (see supported versions).",
+        "Dir. 2019/770 Art. 8(2): EU consumers are owed security updates for the period they can reasonably expect. 'Newest version only, by manual download' must be squared with this in the Desktop App Terms.",
+        "The page says the shell and file tools can reach anything the macOS account can (no sandbox found in the Desktop App code). Update if a sandbox is added.",
+        "US: if health data is processed (health marketing, open point #16), the FTC Health Breach Notification Rule (16 CFR 318) adds notice duties to the FTC. Not written here; covered in the Health Data policy if needed.",
+        "CRA Art. 13(17) single point of contact (from 11 Dec 2027): security@ serves it once the mailbox works."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "overview",
+      "text": "개요"
+    },
+    {
+      "type": "p",
+      "text": "이 페이지는 웹사이트, 웹 앱, 데스크톱 앱, 모바일 앱, 어시스턴트 봇, API 및 당사의 엔터프라이즈 업무에 적용됩니다."
+    },
+    {
+      "type": "p",
+      "text": "완벽하게 안전한 시스템은 없으며, 당사는 {company.name}에 취약점이 없다고 보장하지 않습니다. 아래에서는 당사가 현재 실제로 하고 있는 일을, 귀하가 이를 신뢰하기 전에 알아야 할 한계와 함께 설명합니다."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-protect",
+      "text": "당사가 Orqanix를 보호하는 방법"
+    },
+    {
+      "type": "h3",
+      "id": "cloud",
+      "text": "클라우드 서비스"
+    },
+    {
+      "type": "list",
+      "items": [
+        "호스팅: 당사의 클라우드 서비스와 데이터베이스는 EU의 네덜란드(리전 europe-west4)에 있는 Google Cloud에서 운영됩니다. 당사가 이용하는 회사들은 [하위 처리자](/instant/legal/subprocessors) 페이지에 나열되어 있습니다.",
+        "암호화: 데이터는 전송 중에 암호화되며(HTTPS), 당사의 클라우드 제공업체가 저장 시에도 암호화합니다.",
+        "로그인: 로그인 전문 제공업체인 Clerk이 계정을 관리하며, 회원가입 페이지에서 봇 차단 기능을 사용합니다. 당사는 귀하의 비밀번호를 저장하지 않습니다.",
+        "키 및 비밀 정보: 당사 시스템의 서비스 키는 Google Cloud의 비밀 저장소에 보관됩니다. 자동화용 애플리케이션 키는 해시로만 저장되므로, 당사 데이터베이스에서 키 자체를 다시 읽어 낼 수 없습니다.",
+        "모델 요청: 데스크톱 앱이 당사 서비스를 통해 AI 모델로 대화를 보낼 때, 당사 서비스는 이를 저장하지 않고 전달합니다. 당사는 귀하의 프롬프트나 메시지 내용을 서버 로그에 기록하지 않습니다.",
+        "기록: 에이전트가 수행한 작업에 관한 일부 기록(메시지, 파일, 승인 및 이벤트)은 변경할 수 없는 로그로 보관됩니다. 당사 시스템은 사후에 이를 변경하는 것을 허용하지 않습니다. 이를 통해 귀하는 정확히 무슨 일이 있었는지 확인할 수 있습니다.",
+        "백업: 데이터베이스는 매일 백업되며, 삭제 방지 기능이 켜져 있습니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "desktop",
+      "text": "데스크톱 앱"
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하의 {company.name} 로그인 토큰은 macOS 키체인에 저장됩니다. 로그아웃하면 토큰이 폐기됩니다.",
+        "앱은 귀하의 macOS 사용자 계정만 읽을 수 있는 프로필 폴더에 데이터를 보관합니다.",
+        "앱은 사용 통계를 보내지 않으며 충돌 보고 기능이 없습니다.",
+        "에이전트는 자신이 만든 파일을 귀하가 선택한 프로젝트 폴더에 저장합니다. 또한 에이전트가 묻지 않고 얼마나 많은 일을 할 수 있는지도 귀하가 선택합니다([귀하의 역할](#your-part) 참조)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "알아 두어야 할 한계:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "기본적으로 앱은 에이전트의 작업을 자동으로 승인하며, 셸 및 파일 편집 도구가 켜져 있습니다. 따라서 에이전트는 먼저 묻지 않고 귀하의 Mac에서 파일을 읽고 변경하며 명령을 실행할 수 있습니다. 이러한 도구는 프로젝트 폴더로 제한되지 않으며, 귀하의 macOS 계정이 접근할 수 있는 모든 것에 접근할 수 있습니다.",
+        "귀하가 직접 연결한 AI 제공업체(OpenAI 또는 Anthropic 등)의 키와 확장 프로그램의 비밀 정보는 키체인이 아닌 앱 폴더 내의 일반 텍스트 설정 파일에 저장됩니다.",
+        "채팅 기록은 앱 자체가 암호화하지 않는 로컬 데이터베이스 파일에 보관됩니다. 이 파일은 귀하의 macOS 계정의 파일 권한과, 귀하가 켠 경우 FileVault 디스크 암호화로 보호됩니다.",
+        "앱은 Apple의 공증(notarization)을 받지 않았습니다. 처음 앱을 열 때 macOS는 '그래도 열기'로 확인하도록 요청합니다.",
+        "앱은 자동으로 업데이트되지 않습니다. 보안 수정 사항은 귀하가 다운로드하는 새 버전으로 제공됩니다([보안 업데이트](#updates) 참조)."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-part",
+      "text": "귀하의 역할"
+    },
+    {
+      "type": "list",
+      "items": [
+        "데스크톱 앱은 orqanix.com의 링크를 통해서만 다운로드하십시오.",
+        "macOS를 최신 상태로 유지하고, FileVault 디스크 암호화와 화면 잠금을 켜십시오.",
+        "귀하의 작업에 맞는 승인 모드를 선택하십시오. 앱은 모든 작업 전에 묻거나, 민감한 작업에 대해서만 묻거나, 채팅만 할 수 있습니다. 중요한 파일로 작업할 때는 더 엄격한 모드를 사용하십시오.",
+        "에이전트에게는 필요한 것만 들어 있는 프로젝트 폴더를 지정하고, 중요한 파일은 백업해 두십시오. 셸 및 파일 도구는 그 폴더 밖에도 접근할 수 있다는 점을 기억하십시오.",
+        "다른 AI 제공업체용으로 추가한 키를 보호하십시오. 귀하의 macOS 계정에 접근할 수 있는 사람이나 프로그램은 누구든지 이를 읽을 수 있습니다. 키가 유출되었다고 생각되면 해당 제공업체에서 키를 폐기하십시오.",
+        "당사가 새 버전을 출시하면 최신 버전의 앱을 설치하십시오.",
+        "다른 사람도 사용하는 Mac에서는 로그아웃하고, 로그인에 사용하는 계정을 안전하게 유지하십시오.",
+        "에이전트가 하는 일을 확인하십시오. 에이전트가 웹이나 파일에서 가져온 콘텐츠는 신뢰할 수 없는 것으로 취급하십시오. 그러한 콘텐츠에는 에이전트를 오도하려는 지시가 포함되어 있을 수 있습니다."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "취약점 신고"
+    },
+    {
+      "type": "p",
+      "text": "{company.name}에서 보안 문제를 발견한 경우 {company.securityEmail}로 알려 주십시오. 다음 내용을 포함해 주십시오."
+    },
+    {
+      "type": "list",
+      "items": [
+        "영향을 받는 제품, 페이지 또는 버전.",
+        "문제의 내용과 공격자가 이를 이용해 할 수 있는 일.",
+        "문제를 재현하는 단계(가능하면 스크린샷이나 간단한 개념 증명 포함).",
+        "당사가 귀하에게 연락할 수 있는 방법과, 문제를 수정할 때 귀하의 이름이 공개되기를 원하는지 여부."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사는 영업일 기준 5일 이내에 신고 접수를 확인하고, 조사하는 동안 진행 상황을 알려 드리며, 문제가 수정되면 알려 드리는 것을 목표로 합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사의 보안 연락처는 표준 기계 판독 가능 형식으로 [orqanix.com/.well-known/security.txt](https://orqanix.com/.well-known/security.txt)에도 게시되어 있습니다."
+    },
+    {
+      "type": "h3",
+      "id": "rules",
+      "text": "연구 규칙"
+    },
+    {
+      "type": "list",
+      "items": [
+        "귀하 소유의 계정과 데이터로만 테스트하십시오. 다른 사람의 데이터에 접근하게 된 경우 즉시 중단하고, 그 데이터를 보관하지 말고, 당사에 알려 주십시오.",
+        "당사 서비스나 다른 사용자를 방해하지 마십시오. 서비스 거부 테스트, 스팸 및 대규모 자동 스캔은 금지됩니다.",
+        "당사 직원이나 당사 제공업체에 대해 사회공학, 피싱 또는 물리적 공격을 하지 마십시오.",
+        "Google이나 Clerk 등 당사 제공업체의 시스템을 테스트하지 마십시오. 그들 서비스의 문제는 해당 업체에 신고하십시오.",
+        "문제가 수정되거나 당사가 귀하와 날짜를 합의할 때까지 문제를 공개하지 마십시오."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "safe-harbour",
+      "text": "세이프 하버"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 선의로 행동하고 이 규칙을 따르는 경우, 당사는 귀하의 연구를 승인된 것으로 취급합니다. 당사는 이를 이유로 귀하에게 법적 조치를 취하지 않으며, 법률이 요구하지 않는 한 귀하를 당국에 신고하지 않습니다. 이 규칙을 따른 연구와 관련하여 다른 사람이 귀하에게 조치를 취하는 경우, 당사는 당사가 그 연구를 승인했음을 분명히 밝힙니다. 당사는 유료 버그 바운티를 운영하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "보안 업데이트"
+    },
+    {
+      "type": "p",
+      "text": "당사는 데스크톱 앱의 최신 버전에서 보안 문제를 수정합니다. 이전 버전에는 패치를 제공하지 않으므로 항상 최신 버전을 사용하십시오. 앱은 자동으로 업데이트되지 않습니다. 당사가 수정 사항을 출시하면 orqanix.com에서 새 버전을 다운로드하여 기존 버전 위에 설치하십시오."
+    },
+    {
+      "type": "p",
+      "text": "당사 웹사이트, 웹 앱, API 및 기타 클라우드 서비스에 대한 수정 사항은 귀하가 아무런 조치를 하지 않아도 적용됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "incidents",
+      "text": "보안 사고"
+    },
+    {
+      "type": "p",
+      "text": "보안 사고가 귀하의 개인정보에 영향을 미치는 경우, 당사는 법률이 요구하는 바에 따라 당국과 영향을 받는 사람들에게 알립니다. 귀하에게 알릴 때 당사는 무슨 일이 일어났는지, 어떤 데이터가 관련되어 있는지, 당사가 어떤 조치를 취하고 있는지, 그리고 귀하가 무엇을 할 수 있는지 설명합니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "GDPR이 요구하는 경우, 당사는 개인정보 침해를 72시간 이내에 데이터 보호 감독기관에 신고하고, 영향을 받는 사람들에 대한 위험이 높은 경우 그들에게 알립니다(GDPR 제33조 및 제34조)."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU 사이버 복원력법(Cyber Resilience Act)에 따라, 당사는 당사 앱에 영향을 미치는 실제로 악용되고 있는 취약점과 심각한 보안 사고를 법률이 정한 기한 내에 당국에 신고합니다. 또한 영향을 받는 사용자에게 문제와 그들이 취해야 할 조치를 알립니다(규정 (EU) 2024/2847 제14조)."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "미국 주(州)의 개인정보 침해 통지법이 적용되는 경우, 당사는 해당 법률이 정한 기간 내에 영향을 받는 사람들과, 요구되는 경우 주 당국에 통지합니다."
+    }
+  ]
+}

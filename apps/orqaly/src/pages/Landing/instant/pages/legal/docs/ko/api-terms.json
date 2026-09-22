@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "API 약관",
+    "summary": "Orqanix API를 자사 제품이나 시스템에 통합하는 기업에 적용되는 추가 규칙입니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "본 약관에 관하여"
+    },
+    {
+      "type": "p",
+      "text": "본 API 약관은 기업이 Orqanix API를 사용하는 경우에 적용됩니다. 본 약관은 당사의 [서비스 약관](/instant/legal/terms) 및 [허용 가능한 사용 정책](/instant/legal/acceptable-use)에 추가하여 적용됩니다. 개인정보에 관하여는 [데이터 처리 부속서](/instant/legal/dpa)(이하 “DPA”)도 적용되며 본 약관의 일부를 구성합니다. API에 관하여 본 약관과 서비스 약관이 상충하는 경우 본 약관이 우선합니다. 양 당사자가 서명한 별도의 서면 계약은 이 둘보다 우선합니다."
+    },
+    {
+      "type": "p",
+      "text": "“귀사”란 API를 사용하는 기업을 말합니다. 본 약관에 동의하는 사람은 자신이 해당 기업을 구속할 권한이 있음을 확인합니다. “당사”란 Orqanix를 말합니다."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 {company.legalName}({company.address})이 운영하며, 동사가 본 약관의 당사자입니다.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "API를 사용할 수 있는 자"
+    },
+    {
+      "type": "p",
+      "text": "API는 기업만을 대상으로 합니다. 소비자로서, 즉 귀하의 영업, 사업 또는 직업과 무관한 목적으로 API를 사용하지 마십시오. 귀사를 위해 API를 사용하는 모든 사람은 만 18세 이상이어야 합니다."
+    },
+    {
+      "type": "p",
+      "text": "API가 초기 단계인 동안에는 신청을 통해 이용할 수 있습니다. 제목을 “API access”로 하여 {company.email}(으)로 연락하고, 귀사의 사업과 구축하려는 내용을 알려 주십시오. 누구에게 이용 권한을 줄지는 당사가 결정하며, 당사는 신청을 거절하거나 조건을 붙일 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "API는 초기 단계인 동안 무료입니다. 유료 요금제를 시작하기 전에 당사는 가격과 지급 조건을 귀사와 서면으로 합의합니다. 그러한 합의 없이는 어떠한 요금도 청구하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "API의 기능"
+    },
+    {
+      "type": "p",
+      "text": "API는 귀사 제품을 위한 추론 계층입니다. 귀사는 보유한 에이전트, 도구 및 예산과 함께 작업을 API에 보냅니다. API는 누가 그 작업을 수행해야 하는지(에이전트, 팀 또는 사람), 고려한 각 요소의 점수, 맥락, 안전장치, 대체 방안, 그리고 규모가 큰 작업의 경우 팀 계획으로 응답합니다."
+    },
+    {
+      "type": "p",
+      "text": "API는 결정만 할 뿐, 작업을 수행하지 않습니다. 각 응답에 따라 조치를 취할지, 어떻게 취할지는 귀사 시스템이 선택하며, 그 후 귀사 시스템이 하는 일에 대해서는 귀사가 책임을 집니다."
+    },
+    {
+      "type": "p",
+      "text": "오래 걸리는 작업의 경우, 결과를 나중에 가져오거나 서명된 웹훅으로 받을 수 있습니다. 이용 권한이 있는 고객에게는 API 기술 문서가 제공됩니다."
+    },
+    {
+      "type": "p",
+      "text": "응답은 AI로 생성됩니다. 응답은 틀리거나 불완전하거나 최신이 아닐 수 있습니다. 특히 실수가 누군가에게 해를 끼칠 수 있는 경우에는 응답에 의존하기 전에 확인하십시오. 자세한 내용은 [AI 작동 방식](/instant/legal/ai)에서 확인할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "액세스 키"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 당사가 제공하는 비밀 키로 API에 접근합니다. 키는 비밀번호처럼 취급하십시오."
+    },
+    {
+      "type": "list",
+      "items": [
+        "키를 비밀로 유지하고 귀사 자체 서버에만 저장하십시오. 앱, 웹 페이지 또는 다른 사람이 볼 수 있는 코드에 절대 넣지 마십시오.",
+        "귀사의 통합에 키가 필요한 사람과 시스템에만 공유하십시오.",
+        "키가 유출되었거나 귀사의 허락 없이 사용되었다고 생각되면 즉시 {company.securityEmail}(으)로 알려 주십시오."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀사는 키가 유출되었을 수 있다고 당사에 알리기 전까지 당사가 제공한 키의 모든 사용에 대해 책임을 집니다. 당사는 예를 들어 오용이나 보안 위험을 발견한 경우 언제든지 키를 변경, 제한 또는 회수할 수 있습니다. 가능한 경우 당사는 귀사에 알립니다."
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "귀사의 제품과 사용자"
+    },
+    {
+      "type": "p",
+      "text": "귀사가 API를 자사 제품에 통합하더라도 그 제품은 귀사의 것입니다. 귀사는 그 제품과, 그 제품이 사용자(이하 “최종 사용자”)를 대하는 방식에 대해 책임을 집니다. 귀사는 다음을 이행해야 합니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "맥락상 명백한 경우가 아니라면, 최종 사용자가 AI를 상대하고 있을 때 이를 알려야 합니다(EU AI Act Art. 50(1); 일부 미국 주 법률).",
+        "18세 미만을 대상으로 하거나 18세 미만이 사용할 가능성이 높은 제품에는 API를 사용하지 않아야 합니다.",
+        "최종 사용자에게 귀사 자체의 개인정보 처리방침을 제공해야 합니다. 그 방침에는 귀사 제품이 사용자의 데이터를 어떻게 사용하는지, 그리고 그 데이터를 당사에 보낸다는 사실이 설명되어 있어야 합니다. 당사의 [개인정보 처리방침](/instant/legal/privacy)은 귀사 제품에는 적용되지 않습니다.",
+        "누군가의 개인정보를 당사에 보내기 전에 법적 근거와 필요한 동의를 갖추어야 합니다.",
+        "최종 사용자가 적어도 당사의 [허용 가능한 사용 정책](/instant/legal/acceptable-use)만큼 엄격한 규칙을 따르도록 하고, 이를 위반하는 사람을 막아야 합니다.",
+        "당사가 서면으로 달리 합의하지 않는 한, 귀사 제품을 Orqanix가 만들었거나 보증하는 것이 아니라 귀사 자체의 제품으로 제시해야 합니다."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EU AI법(AI Act)에 따라 귀사는 API로 구축한 AI 시스템의 제공자 또는 배포자이며, 그 역할에 따른 의무를 부담합니다. 당사는 귀사 시스템의 한 구성요소를 공급할 뿐, 그 시스템의 제공자가 아닙니다."
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "고위험 용도"
+    },
+    {
+      "type": "p",
+      "text": "일부 결정은 사람들에게 법적 효과 또는 그에 준하는 중대한 효과를 미칩니다. 채용 및 근로, 교육, 신용, 보험, 주거, 의료, 공공 서비스 이용, 법 집행, 이민 및 사법에 관한 결정 등이 그 예입니다. 귀사 자체의 법적 검토를 거치고 법이 요구하는 안전장치를 마련하기 전까지는 API 응답을 이러한 결정을 내리거나 뒷받침하는 데 사용하지 마십시오. 그러한 안전장치에는 결정이 효력을 발생하기 전에 이루어지는 실질적인 인간의 검토가 포함됩니다."
+    },
+    {
+      "type": "p",
+      "text": "이러한 의무는 귀사에 적용되는 법률에 따라 귀사가 부담합니다. 여기에는 2027년 12월 2일부터 적용되는 EU AI법의 고위험 AI 시스템에 관한 규칙(AI Act Annex III)과 자동화된 결정에 관한 GDPR의 규칙(GDPR Art. 22)이 포함됩니다."
+    },
+    {
+      "type": "p",
+      "text": "자동화된 결정에 관한 미국 주 법률도 포함됩니다. 예를 들어 중대한 결정에 사용되는 AI에 관한 콜로라도주 법률은 2027년 1월 1일부터 시행됩니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "귀사의 데이터"
+    },
+    {
+      "type": "p",
+      "text": "귀사의 데이터란 귀사가 API에 보내는 것(작업, 에이전트와 도구에 대한 설명, 예산 및 맥락)과 API가 귀사에 제공하는 응답을 말합니다. 당사는 결정, 그 결과 및 각 작업 범위의 기록을 API 자체 데이터베이스에 저장하며, 이 데이터베이스는 EU(네덜란드) 내 Google Cloud에서 운영됩니다. 당사는 귀사가 API를 사용하는 동안, 그리고 그 이후에는 DPA에 정한 바에 따라 이를 보관합니다."
+    },
+    {
+      "type": "p",
+      "text": "작업에 응답하기 위해 당사는 작업을 당사가 사용하는 AI 모델인 Google Gemini에 보냅니다. Gemini는 Google 검색으로 웹을 검색할 수도 있습니다. Google은 작업을 EU 밖에서 처리할 수 있습니다. API 운영을 돕는 모든 업체는 [하위 처리자](/instant/legal/subprocessors) 페이지에 기재되어 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 Google의 유료 Gemini API를 사용합니다. 여기서 Google은 자사의 데이터 처리 약관에 따라 당사의 처리자로서 행위하며, 귀사의 작업을 자사 제품 개선에 사용하지 않습니다.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "당사가 귀사를 위해 행위하는 경우"
+    },
+    {
+      "type": "p",
+      "text": "귀사가 보내는 개인정보에 관하여 당사는 귀사의 처리자입니다. 즉, 당사는 DPA에 따라 귀사의 지시에 따라서만, 그리고 귀사를 위해 API를 운영하기 위해서만 이를 처리합니다."
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "당사가 당사 자신을 위해 행위하는 경우"
+    },
+    {
+      "type": "p",
+      "text": "API가 하는 일의 일부는 귀사가 아닌 당사 자신의 업무입니다. 작업을 위해 웹을 검색할 때, 당사 자체 검색 서비스는 귀사의 작업을 바탕으로 만든 검색어를 검색 엔진(Google, Bing, Brave 및 DuckDuckGo)에 보냅니다. 회사를 조회할 때, API는 회사 등기 서비스인 OpenRegister에 조회를 요청하며, 그 결과에는 이사의 이름이 포함될 수 있습니다. 이러한 검색과 조회가 어떻게 작동할지는 당사가 결정합니다. 이에 관하여 당사는 당사 자신을 위해(“컨트롤러”로서) 행위하며, DPA가 아닌 당사의 [개인정보 처리방침](/instant/legal/privacy)이 적용됩니다."
+    },
+    {
+      "type": "p",
+      "text": "작업의 일부가 검색어에 포함될 수 있으므로, 작업에 필요하지 않다면 작업 텍스트에 개인정보를 넣지 마십시오."
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "당사가 하지 않는 일"
+    },
+    {
+      "type": "list",
+      "items": [
+        "당사는 귀사의 데이터로 당사의 AI 모델을 학습시키지 않습니다.",
+        "당사는 귀사의 데이터를 판매하지 않으며, 광고에 사용하지 않습니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "보내지 말아야 할 데이터"
+    },
+    {
+      "type": "p",
+      "text": "당사가 서면으로 동의하지 않는 한, 민감한 범주의 개인정보(건강, 종교, 성적 지향 또는 생체 정보 등)나 범죄 경력에 관한 데이터를 당사에 보내지 마십시오."
+    },
+    {
+      "type": "p",
+      "text": "HIPAA의 적용을 받는 보호 대상 건강정보를 당사에 보내지 마십시오. 당사는 business associate agreement(업무 제휴 계약)를 체결하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "권리의 귀속"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 당사에 보내는 것에 대한 모든 권리를 보유합니다. 당사와 귀사 사이에서, API가 귀사에 제공하는 응답은 그에 대한 권리가 존재하는 범위에서 귀사의 것입니다. 귀사는 당사가 귀사를 위해 API를 운영하는 데 귀사의 입력을 사용하는 데 필요한 권리를 당사에 부여합니다. 당사는 API, 당사의 소프트웨어, 지침 및 방법론에 대한 모든 권리를 보유합니다. 귀사가 당사에 아이디어나 피드백을 보내는 경우, 당사는 이를 자유롭게 사용할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "한도 및 제한"
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀사 요청의 건수, 크기 및 총량에 대한 한도를 정하고 변경할 수 있습니다. 당사는 한도를 초과하는 요청의 처리 속도를 늦추거나 이를 거부할 수 있습니다. 여러 개의 키나 계정을 사용하는 등의 방법으로 한도를 우회하려고 하지 마십시오."
+    },
+    {
+      "type": "p",
+      "text": "귀사는 다음 행위를 해서는 안 됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "법이 허용하는 경우를 제외하고 API를 복제, 분해 또는 리버스 엔지니어링하는 행위",
+        "API를 사용하여 경쟁 추론 서비스를 구축하는 행위",
+        "당사의 허락 없이 API의 보안을 테스트하는 행위(문제 신고 방법은 [보안 및 취약점 공개](/instant/legal/security) 페이지에 안내되어 있습니다)",
+        "악성코드나 API에 과부하를 주거나 해를 끼치기 위한 트래픽을 보내는 행위"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "가용성 및 변경"
+    },
+    {
+      "type": "p",
+      "text": "API에는 서비스 수준 계약이 없습니다. 당사는 어떠한 수준의 가용성, 가동 시간 또는 응답 속도도 약속하지 않습니다. API는 유지보수, 변경 또는 당사가 통제할 수 없는 사유로 중단될 수 있습니다. API가 느리거나 사용할 수 없을 때에도 귀사 제품이 안전하게 계속 작동하도록, 예를 들어 귀사 자체의 대체 방안을 마련하여 제품을 구축하십시오."
+    },
+    {
+      "type": "p",
+      "text": "API는 당사가 개발을 진행함에 따라 변경됩니다. 당사는 정상 작동 중인 통합을 중단시킬 수 있는 변경에 대해 사전에 알리는 것을 목표로 합니다. 다만, 보안 문제를 신속히 해결해야 하는 경우 등 항상 그렇게 할 수 있는 것은 아닙니다."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "비밀유지"
+    },
+    {
+      "type": "p",
+      "text": "각 당사자는 상대방의 기밀정보, 즉 기밀로 표시되었거나 기밀로 이해되는 것이 합리적인 비공개 정보를 접할 수 있습니다. 귀사의 경우 여기에는 귀사의 입력이 포함됩니다. 당사의 경우 여기에는 API 문서와 키가 포함됩니다."
+    },
+    {
+      "type": "p",
+      "text": "기밀정보를 받은 당사자는 이를 본 약관의 목적으로만 사용하고, 합리적인 주의로 보호하며, 이를 알아야 하고 비밀유지 의무를 지는 사람에게만 공유합니다. 이 의무는 공개된 정보, 수령자가 이미 알고 있던 정보, 독자적으로 개발한 정보 또는 제3자로부터 적법하게 받은 정보에는 적용되지 않습니다. 법에 따라 공개가 요구되는 경우 수령자는 요구되는 범위에서 공개할 수 있으며, 허용되는 경우 사전에 상대방에게 알립니다."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "이용 정지 및 종료"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 언제든지 API 사용을 중단할 수 있습니다. API가 무료인 동안에는 각 당사자가 언제든지 이메일로 본 약관을 종료할 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀사가 본 약관이나 허용 가능한 사용 정책을 위반하는 경우, 귀사의 사용이 API, 다른 고객 또는 그 밖의 누군가를 위험에 빠뜨리는 경우, 또는 법이 요구하는 경우, 당사는 즉시 귀사의 이용을 정지하거나 종료할 수 있습니다. 가능한 경우 당사는 먼저 귀사에 알리고 문제를 시정할 기회를 줍니다."
+    },
+    {
+      "type": "p",
+      "text": "본 약관이 종료되면 API를 사용할 귀사의 권리는 소멸하며, 당사는 귀사의 이용을 종료합니다. 그 후 당사는 DPA에 정한 바에 따라 귀사의 데이터를 처리합니다. 비밀유지, 책임, 준거법 등 그 성질상 존속해야 하는 본 약관의 조항은 계속 적용됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "제공업체 전환",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU 데이터법(Data Act)은 클라우드 및 기타 데이터 처리 서비스의 기업 고객이 종속되지 않고 다른 제공업체 또는 자체 시스템으로 전환할 수 있도록 합니다(Data Act Art. 23-31). API에 대해서는 다음이 적용됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "귀사는 서면으로 당사에 알림으로써 전환을 시작하거나, API 이용을 종료하고 데이터를 가져갈 수 있습니다. 통지 기간은 최대 2개월이며, 귀사는 더 짧은 기간을 선택할 수 있습니다.",
+        "당사는 귀사의 데이터, 즉 귀사의 입력과 당사가 귀사를 위해 저장하는 결정, 결과 및 범위 기록을 일반적으로 사용되는 기계 판독 가능한 형식으로 제공합니다.",
+        "전환 기간은 최대 30일입니다. 이것이 기술적으로 불가능한 경우, 당사는 데이터법이 허용하는 한도 내에서 그 이유와 필요한 기간을 귀사에 알립니다.",
+        "전환 기간 동안 당사는 합의한 대로 귀사를 위해 API를 계속 운영하며, 귀사를 선의로 지원합니다.",
+        "전환 기간이 끝난 후에도 귀사는 최소 30일 동안 추가로 데이터를 회수할 수 있습니다.",
+        "전환이 완료되면 당사는 DPA에 정한 바에 따라 귀사의 데이터를 삭제합니다.",
+        "2027년 1월 12일까지 당사는 전환에 드는 직접 비용만을 청구할 수 있습니다. 2027년 1월 12일부터 당사는 전환에 대해 어떠한 비용도 청구하지 않습니다. API가 무료인 동안에는 어떠한 비용도 청구하지 않습니다."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "위치 및 정부의 접근",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "API와 그 데이터베이스는 EU(네덜란드) 내 Google Cloud에서 운영됩니다. Google Gemini는 작업을 EU 밖에서 처리할 수 있으며, 검색 엔진과 OpenRegister는 각자가 선택한 장소에서 검색어를 처리합니다. [하위 처리자](/instant/legal/subprocessors) 페이지에는 각 제공업체와 그 업무 수행 장소가 기재되어 있습니다(Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU 밖의 정부가 당사에 귀사의 비개인 데이터를 요구하는 경우, 당사는 EU 또는 회원국 법률이 허용하는 경우에만 이를 제공합니다. 법이 금지하지 않는 한, 당사는 사전에 귀사에 알립니다(Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "보증 및 책임",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "API는 “있는 그대로” 및 “이용 가능한 상태로” 제공됩니다. 법이 허용하는 범위에서 당사는 상품성, 특정 목적에의 적합성, 권원 및 비침해에 대한 보증을 포함하여 명시적이든 묵시적이든 어떠한 종류의 보증도 하지 않습니다. 당사는 응답이 정확하거나 완전하거나 귀사의 용도에 적합하다고 보증하지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "법이 허용하는 범위에서 어느 당사자도 간접적, 부수적, 특별, 결과적 또는 징벌적 손해나 이익, 매출, 데이터 또는 영업권의 상실에 대해 책임을 지지 않습니다. 본 약관에 따른 당사의 총 책임은 100미국달러와 청구의 원인이 된 사건 발생 전 12개월 동안 귀사가 API에 대해 당사에 지급한 금액 중 큰 금액으로 제한됩니다. 이러한 제한은 법에 따라 제한할 수 없는 책임에는 적용되지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "책임",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사는 고의 또는 중과실로 인한 손해, 생명, 신체 또는 건강의 침해, 그리고 강행적인 제조물 책임법에 따른 책임에 대해 전적으로 책임을 집니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "경과실의 경우, 당사는 본질적 의무, 즉 본 약관의 적절한 이행을 가능하게 하고 귀사가 통상적으로 신뢰할 수 있는 의무를 위반한 경우에만 책임을 집니다. 이 경우에도 당사는 이러한 유형의 계약에서 전형적이고 예견 가능한 손해에 대해서만 책임을 집니다. 그 밖의 경우 경과실에 대한 당사의 책임은 배제됩니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "귀사는 귀사의 제품, 귀사가 당사에 보내는 데이터 또는 귀사의 본 약관 위반으로 인해 발생하는 제3자(귀사의 최종 사용자 포함)의 청구와 그 처리에 드는 합리적인 비용에 대해 당사를 보호합니다. 당사는 그러한 청구가 있으면 즉시 귀사에 알리고, 귀사가 그 처리에 참여할 수 있도록 합니다."
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "준거법 및 분쟁"
+    },
+    {
+      "type": "p",
+      "text": "본 약관은 저촉법 규칙을 제외한 {company.law}의 법률을 따릅니다. 법이 다른 법원을 요구하지 않는 한, 분쟁은 {company.law}의 법원이 판단합니다.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "어느 당사자든 법원에 가기 전에, 양 당사자는 선의로 문제의 해결을 시도합니다. {company.email}(으)로 문제를 설명하여 연락해 주십시오."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "본 약관에는 중재 조항이 없습니다. 청구가 요건을 충족하는 경우 각 당사자는 소액 사건 법원에 청구를 제기할 수 있습니다."
+    },
+    {
+      "type": "p",
+      "text": "귀사는 미국 또는 EU의 제재 명단에 올라 있지 않고 미국 또는 EU의 금수 조치 대상 국가에 소재하지 않으며, 귀사가 아는 한 귀사의 최종 사용자도 마찬가지임을 확인합니다. 귀사는 미국 또는 EU의 제재나 수출 규정을 위반하여 API를 사용해서는 안 됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "일반 조항"
+    },
+    {
+      "type": "list",
+      "items": [
+        "당사는 본 약관을 개정할 수 있습니다. 귀사에 불리한 변경은 사전에 알립니다. 변경이 효력을 발생한 후에도 귀사가 API를 계속 사용하면 새 약관이 적용됩니다. 동의하지 않는 경우 API 사용을 중단하십시오.",
+        "귀사는 당사의 서면 동의 없이 본 약관을 양도할 수 없습니다. 당사는 API를 인수하는 회사에 본 약관을 양도할 수 있습니다.",
+        "본 약관의 일부가 무효인 경우에도 나머지 부분은 계속 적용됩니다.",
+        "당사에 대한 통지는 {company.email}(으)로 보냅니다. 귀사에 대한 통지는 귀사가 당사에 제공한 이메일 주소로 보냅니다."
+      ]
+    }
+  ]
+}

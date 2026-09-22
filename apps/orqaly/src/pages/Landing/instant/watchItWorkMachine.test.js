@@ -12,12 +12,16 @@ import {
   TICK_MS,
   activeStep,
   answeredCount,
+  fileStatus,
+  filmOption,
+  finishedState,
   initialState,
   introBeat,
   reducer,
   typedCount,
   workspaceStatus,
 } from './watchItWorkMachine';
+import { SCENES } from './watchItWork.scenes';
 
 const run = (state, ...actions) => actions.reduce(reducer, state);
 const tick = (node, elapsed, requestLength = 80) => ({
@@ -160,6 +164,37 @@ describe('watchItWorkMachine', () => {
     expect(state.node).toBe('build');
   });
 
+  it('fills each Workspace file in with the roadmap step that writes it', () => {
+    const statuses = (state) => [0, 1, 2, 3, 4].map((step) => fileStatus(step, state));
+    const waiting = Array(STEP_COUNT).fill('waiting');
+    // Before the build nothing is written, not even step 1's file on the gate.
+    expect(statuses(first)).toEqual(waiting);
+    expect(statuses(run(first, { type: 'PLAY_INTRO' }, tick('intro', INTRO_ASK_MS)))).toEqual(
+      waiting
+    );
+    expect(statuses(awaitingAnswers)).toEqual(waiting);
+
+    const build = reducer(first, start('proceed'));
+    expect(statuses(build)).toEqual(['writing', 'waiting', 'waiting', 'waiting', 'waiting']);
+    expect(statuses(reducer(build, tick('build', BUILD_MS / 2)))).toEqual([
+      'done',
+      'done',
+      'writing',
+      'waiting',
+      'waiting',
+    ]);
+    // A pause keeps the file being written as it was.
+    const paused = run(build, tick('build', BUILD_MS / 2), { type: 'PAUSE' });
+    expect(fileStatus(2, paused)).toBe('writing');
+
+    const results = run(build, tick('build', BUILD_MS));
+    expect(statuses(results)).toEqual(Array(STEP_COUNT).fill('done'));
+    expect(statuses(run(results, tick('results', RESULTS_MS)))).toEqual(
+      Array(STEP_COUNT).fill('done')
+    );
+    expect(statuses(reducer(results, { type: 'REPLAY' }))).toEqual(waiting);
+  });
+
   it('ignores a tick left over from the previous node', () => {
     const results = run(first, start('proceed'), tick('build', BUILD_MS));
     expect(reducer(results, tick('build', BUILD_MS + TICK_MS))).toBe(results);
@@ -274,5 +309,32 @@ describe('watchItWorkMachine', () => {
 
   it('returns the same state for an unknown action', () => {
     expect(reducer(first, { type: 'NOPE' })).toBe(first);
+  });
+});
+
+describe('the film on the landing', () => {
+  it('answers each question with a chip that exists, and not always the first one', () => {
+    for (const scene of SCENES) {
+      const chosen = scene.questions.map((question, index) => filmOption(scene, index));
+      scene.questions.forEach((question, index) => {
+        expect(question.options[chosen[index]]).toBeDefined();
+      });
+      expect(chosen.some((option) => option !== 0)).toBe(true);
+    }
+  });
+
+  it('ends a scene the way the film does: asked, every question answered, the pack shown', () => {
+    for (const scene of SCENES) {
+      const state = finishedState(scene);
+      expect(state).toMatchObject({
+        sceneId: scene.id,
+        node: 'complete',
+        playback: 'complete',
+        choice: 'ask',
+        assumptions: false,
+      });
+      expect(state.answers).toEqual(scene.questions.map((_, index) => filmOption(scene, index)));
+      expect(answeredCount(state)).toBe(scene.questions.length);
+    }
   });
 });

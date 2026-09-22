@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Termos do Aplicativo para Celular",
+    "summary": "Estes termos tratam do uso do aplicativo Orqanix para celular como controle remoto do Orqanix no seu Mac, incluindo os termos exigidos pelas lojas de aplicativos.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Sobre estes termos"
+    },
+    {
+      "type": "p",
+      "text": "Estes termos complementam os nossos [Termos de Serviço](/instant/legal/terms) para o aplicativo Orqanix para o seu celular (o \"Aplicativo para Celular\"). Junto com os Termos de Serviço, os [Termos do Aplicativo para Computador](/instant/legal/desktop-app-terms), a nossa [Política de Uso Aceitável](/instant/legal/acceptable-use) e a nossa [Política de Privacidade](/instant/legal/privacy), eles formam um único contrato. Se estes termos e os Termos de Serviço divergirem sobre o Aplicativo para Celular, prevalecem estes termos."
+    },
+    {
+      "type": "p",
+      "text": "O Aplicativo para Celular é gratuito enquanto os nossos produtos estão em fase inicial. Antes do início de qualquer plano pago, publicaremos o preço e as regras de pagamento e cancelamento."
+    },
+    {
+      "type": "p",
+      "text": "Antes disso, publicaremos também as regras para o direito de arrependimento de uma compra, conforme exige a legislação da UE.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Um controle remoto para o seu Mac"
+    },
+    {
+      "type": "p",
+      "text": "O Aplicativo para Celular é um controle remoto do Orqanix no seu Mac. Quando você o usa:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "você precisa do aplicativo Orqanix no seu Mac (o Aplicativo para Computador). Comece pelo aplicativo para Mac e depois adicione o seu celular;",
+        "todo o trabalho é executado no seu Mac, com os arquivos, as ferramentas e as configurações dele. O celular mostra o que está acontecendo e permite que você passe a próxima tarefa;",
+        "os arquivos são criados no seu Mac e ficam na pasta de projeto dele. O celular mostra o que foi criado; o Mac guarda os originais;",
+        "o Aplicativo para Celular só funciona enquanto o seu Mac estiver on-line e com o Orqanix aberto. Quando o Mac entra em repouso ou fica off-line, o celular mostra isso e aguarda até que ele volte."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Não prometemos que o seu celular sempre conseguirá acessar o seu Mac. As redes, as configurações de repouso e os seus dispositivos estão fora do nosso controle."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Trabalhe pelo celular"
+    },
+    {
+      "type": "p",
+      "text": "Você pode acompanhar uma tarefa em andamento, ler resultados, executar novamente tarefas salvas (receitas) e iniciar novos trabalhos digitando ou dizendo o que precisa. O Aplicativo para Computador no seu Mac executa esse trabalho, nos termos dos [Termos do Aplicativo para Computador](/instant/legal/desktop-app-terms). Isso significa que:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "os agentes no seu Mac podem executar ações reais, como alterar arquivos e executar comandos. Por padrão, eles fazem isso sem perguntar antes, a menos que você tenha [alterado essa configuração](/instant/legal/desktop-app-terms#approval-modes) no seu Mac;",
+        "você é responsável pelo trabalho que inicia pelo celular como se o tivesse iniciado no seu Mac;",
+        "você não está no seu Mac para acompanhar, então escolha com cuidado o que pede e confira os resultados antes de confiar neles."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "A IA comete erros. Os resultados podem estar errados, incompletos ou desatualizados. Veja [Como Nossa IA Funciona](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Notificações"
+    },
+    {
+      "type": "p",
+      "text": "O Aplicativo para Celular pode avisar quando uma tarefa for concluída. Você pode desativar as notificações nos ajustes do seu celular. Elas podem aparecer na tela bloqueada, então ajuste as pré-visualizações das notificações como preferir. Não prometemos que todas as notificações cheguem, nem que cheguem a tempo."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "A sua conta e o seu celular"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Você deve ter 18 anos ou mais para usar o Aplicativo para Celular.",
+        "Qualquer pessoa que consiga usar o seu celular desbloqueado pode conseguir iniciar trabalhos no seu Mac pelo Aplicativo para Celular. Mantenha o seu celular bloqueado. Se você o perder ou o der a alguém, remova o Aplicativo para Celular, se puder, e nos avise.",
+        "Avise-nos em {company.email} se você achar que outra pessoa usou a sua conta."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "A [Política de Privacidade](/instant/legal/privacy) explica o que coletamos quando você usa o Aplicativo para Celular e por quê."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "A sua licença"
+    },
+    {
+      "type": "p",
+      "text": "Enquanto você cumprir estes termos, concedemos a você uma licença pessoal, não exclusiva e intransferível para instalar e usar o Aplicativo para Celular em celulares que você possua ou controle. Você não pode vendê-lo, alugá-lo, emprestá-lo ou sublicenciá-lo, contornar as medidas de segurança ou os limites dele, nem copiá-lo para criar um produto concorrente."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Atualizações e alterações"
+    },
+    {
+      "type": "p",
+      "text": "Podemos lançar novas versões do Aplicativo para Celular e alterar ou remover funcionalidades. Se você o obteve em uma loja de aplicativos, as atualizações chegam por essa loja, de acordo com as regras dela. As regras sobre alterações estão em [Alterações nos Serviços e nestes termos](/instant/legal/terms#changes)."
+    },
+    {
+      "type": "p",
+      "text": "Se você usa o Aplicativo para Celular como consumidor (fora da sua atividade comercial ou profissional), você tem os direitos que a legislação da UE confere aos consumidores de conteúdo digital. Eles se aplicam mesmo que o aplicativo seja gratuito, porque você nos fornece dados pessoais para usá-lo (Dir. (UE) 2019/770). Pelo tempo que a lei exigir, disponibilizaremos as atualizações, incluindo as de segurança, necessárias para que ele continue funcionando conforme descrito.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Além disso, só alteraremos o Aplicativo para Celular por um motivo válido e sem custo para você. Se uma alteração desse tipo prejudicar mais do que minimamente o seu uso do aplicativo, enviaremos um e-mail a você com antecedência razoável. Você poderá então encerrar este contrato sem custo dentro de 30 dias a partir do nosso aviso ou da alteração, o que ocorrer por último, a menos que permitamos que você mantenha a versão inalterada sem custo adicional.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilidade"
+    },
+    {
+      "type": "p",
+      "text": "Na medida máxima permitida por lei, o Aplicativo para Celular é fornecido \"no estado em que se encontra\" e \"conforme disponível\", sem garantias de qualquer tipo. [Isenções de garantia](/instant/legal/terms#warranty) e [Responsabilidade](/instant/legal/terms#liability) nos Termos de Serviço se aplicam a ele.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Somos responsáveis pelo Aplicativo para Celular de acordo com a lei do seu país, conforme estabelecido em [Responsabilidade](/instant/legal/terms#liability) nos Termos de Serviço. Nada nestes termos ou nos termos de uma loja de aplicativos limita os seus direitos legais como consumidor.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "Termos das lojas de aplicativos"
+    },
+    {
+      "type": "p",
+      "text": "Esta seção se aplica se você obteve o Aplicativo para Celular em uma loja de aplicativos. Os próprios termos da loja também se aplicam ao seu download e uso. Você deve cumpri-los, bem como quaisquer termos da sua operadora de telefonia móvel, como o seu plano de dados."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "Se você obteve o Aplicativo para Celular na App Store da Apple, você e nós concordamos que:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "estes termos são celebrados somente entre você e nós, e não com a Apple. Nós, e não a Apple, somos os únicos responsáveis pelo Aplicativo para Celular e pelo conteúdo dele;",
+        "a sua licença abrange o uso em produtos da marca Apple que você possua ou controle, conforme permitido pelas Regras de Uso dos [Termos e Condições dos Serviços de Mídia da Apple](https://www.apple.com/legal/internet-services/itunes/). Outras pessoas vinculadas à sua conta pelo Compartilhamento Familiar ou por compras por volume também podem usá-lo conforme essas regras permitirem;",
+        "somos os únicos responsáveis pela manutenção e pelo suporte do Aplicativo para Celular. A Apple não tem nenhuma obrigação de fornecê-los;",
+        "se o Aplicativo para Celular não cumprir uma garantia aplicável a ele, você pode notificar a Apple, e a Apple reembolsará o preço que você pagou pelo aplicativo, se houver. Na medida máxima permitida por lei, a Apple não tem nenhuma outra obrigação de garantia em relação ao Aplicativo para Celular. Quaisquer outras reclamações, perdas, responsabilidades, danos, custos ou despesas causados por esse descumprimento são de nossa responsabilidade, na medida em que estes termos e a lei assim determinarem;",
+        "nós, e não a Apple, trataremos de quaisquer reclamações suas ou de terceiros sobre o Aplicativo para Celular ou sobre o seu uso dele, incluindo reclamações de responsabilidade pelo produto, reclamações de que ele não cumpre um requisito legal ou regulatório e reclamações com base em leis de proteção ao consumidor, de privacidade ou semelhantes;",
+        "se alguém alegar que o Aplicativo para Celular ou o seu uso dele viola a propriedade intelectual dessa pessoa, nós, e não a Apple, somos responsáveis por investigar, defender, fazer acordo e resolver essa reclamação, na medida em que estes termos nos atribuam essa responsabilidade;",
+        "você não está localizado em um país sujeito a embargo do governo dos EUA ou que o governo dos EUA tenha designado como país \"apoiador do terrorismo\", e não consta de nenhuma lista do governo dos EUA de partes proibidas ou restritas;",
+        "a Apple e as subsidiárias dela são terceiras beneficiárias destes termos. Depois que você aceitar estes termos, a Apple terá o direito, e será considerada como tendo aceitado o direito, de fazê-los valer contra você como terceira beneficiária."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Envie dúvidas, reclamações ou pedidos sobre o Aplicativo para Celular para nós em {company.email}, e não para a Apple."
+    },
+    {
+      "type": "p",
+      "text": "O desenvolvedor do Aplicativo para Celular é {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "Se você obteve o Aplicativo para Celular no Google Play, você e nós concordamos que:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "estes termos são celebrados somente entre você e nós, e não com o Google. O Google não é responsável pelo Aplicativo para Celular, pelo conteúdo dele, pelo suporte dele nem por quaisquer reclamações sobre ele;",
+        "os [Termos de Serviço do Google Play](https://play.google.com/about/play-terms/) também se aplicam ao seu download e uso. Quando eles entrarem em conflito com estes termos no que diz respeito à sua relação com o Google, prevalecem os Termos de Serviço do Google Play;",
+        "os reembolsos de qualquer compra feita pelo Google Play seguem as regras do Google Play."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanções e exportação"
+    },
+    {
+      "type": "p",
+      "text": "Você não pode baixar nem usar o Aplicativo para Celular onde sanções ou regras de exportação dos EUA ou da UE o proíbam, nem se o seu nome constar de uma lista de sanções dos EUA ou da UE. Veja [Sanções e exportação](/instant/legal/terms#sanctions) nos Termos de Serviço."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Encerramento do uso"
+    },
+    {
+      "type": "p",
+      "text": "Você pode parar de usar o Aplicativo para Celular a qualquer momento, apagando-o do seu celular. Isso não interrompe o Aplicativo para Computador, não apaga arquivos no seu Mac e não encerra a sua conta Orqanix. Para encerrar a sua conta ou nos pedir que apaguemos os seus dados, veja os [Termos de Serviço](/instant/legal/terms) e a [Política de Privacidade](/instant/legal/privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contato"
+    },
+    {
+      "type": "p",
+      "text": "Dúvidas sobre estes termos: {company.email}. Solicitações de privacidade: {company.privacyEmail}."
+    }
+  ]
+}

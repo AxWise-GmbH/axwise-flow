@@ -1,0 +1,814 @@
+{
+  "meta": {
+    "slug": "privacy",
+    "title": "Gizlilik Politikası",
+    "summary": "Bu politika, Orqanix'in hangi kişisel verileri topladığını, bunları neden kullandığımızı, kimlerin aldığını, ne kadar süre sakladığımızı ve hangi haklara sahip olduğunuzu açıklar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'run by', controller and postal lines are hidden until filled. Hiding the controller breaks GDPR Art. 13(1)(a) in practice; fill before publishing the EU version (FACTS §14.1).",
+        "euRepresentative (GDPR Art. 27): the section is hidden until filled; needed only if the company is outside the EU. UK Art. 27 and Swiss Art. 14 representatives not addressed (FACTS §14.1).",
+        "geminiPaidTier: paid-tier sentences (Google not using data; Google's DPA covering transfers) stay hidden until confirmed. Without it, Google's own use of Gemini data is only described by linking Google's terms, and the transfer safeguard for Gemini is not named (FACTS §14.3).",
+        "Transfers: Clerk's UK Extension / Swiss-US DPF status, and Cloudflare's safeguards via Clerk, are not confirmed; the UK/Swiss wording is generic ('such as').",
+        "Retention: no periods exist in code for workspace data, API records, the artifact bucket or emails; written as 'as long as your account exists / business relationship lasts'. Server logs are 'a limited time under our cloud provider's standard settings' (30-day default not confirmed, FACTS §14.5, §14.6).",
+        "Deletion/export: no self-service deletion or export and no process that works with the immutable tables; text promises 'delete or anonymise, or tell you why' and an answer within one month (FACTS §3, §14.5).",
+        "Lawyer: legal basis for special-category data (GDPR Art. 9) that users choose to include (e.g. health) is not stated; text says we use it only to do what was asked.",
+        "Lawyer: roles for web searches and OpenRegister lookups (independent recipients vs processors), and for Assistant Bot contacts when used for business (processor under the DPA) (FACTS §7, §14.11).",
+        "Mobile App and Assistant Bot: written as usage rules from their product pages only; no code exists, so what the Mobile App stores on the phone or in our cloud (e.g. for notifications) is unknown (FACTS §5, §6, §14.13).",
+        "Desktop defaults disclosed as they are (auto-approve on, dictation on, provider keys in plain text); update if the owner changes them (FACTS §14.8).",
+        "Age 18+ and 'region at sign-up' need a sign-up self-declaration and an acceptance record (FACTS §14.9).",
+        "Email: privacy@ and hello@ must receive mail (no MX record today); our email provider is not named as a recipient because none is chosen (FACTS §14.2).",
+        "Describes the website AFTER this build (no cookies or third-party calls on marketing pages, self-hosted fonts). Publish only once that build is live.",
+        "US: 'we answer within one month' is used for US requests too; lawyer to confirm it fits CCPA (45 days) and other state deadlines. The US version assumes the CCPA may not apply yet but follows it anyway.",
+        "Lawyer/owner: Gemini tier and \"no sale\". If Google's unpaid Gemini terms apply, Google may use prompts to improve its products; that disclosure could count as a \"sale\" or \"sharing\" under CCPA and other state laws (and makes Google an independent recipient under GDPR), which would make \"we do not sell your data\" and the no-opt-out-link position wrong. Confirm the paid tier before publishing (FACTS §14.3; us.md §Recommendations 2).",
+        "Lawyer: transfer basis for independent recipients outside Europe (public search engines; OpenRegister if relevant) is not named; the text says only that some are outside Europe.",
+        "Lawyer/owner: data protection officer. No DPO is named; whether one is required (GDPR Art. 37, § 38 BDSG at 20+ staff) depends on the company. Add a DPO contact block if one is appointed.",
+        "Lawyer: DSA Art. 13 legal representative and UK Art. 27 / Swiss Art. 14 representatives if the company is not EU/UK/CH-established.",
+        "Desktop App built-in storage (theme, menu layout, pinned chats, recently typed messages, kept by the app on the Mac) is summarised, not listed item by item.",
+        "EU word count is about 3,670 (US about 3,510), above the 3,500 guide, because of the legal-basis table and the Art. 13(2)(e) sentence. The 2026-09-21 edit cut repetition but no content."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Biz kimiz"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix (\"biz\"), orqanix.com web sitesini ve Orqanix ürünlerini sunar: Mac'iniz için Masaüstü Uygulaması, Mobil Uygulama, Asistan Botu, API ve Kurumsal hizmetlerimiz. Masaüstü Uygulaması ve web uygulaması tek bir çevrimiçi hesabı ve tek bir bulut çalışma alanını paylaşır. Bu politika, bunların tümü aracılığıyla hangi kişisel verileri topladığımızı, neden topladığımızı ve bu konuda neler yapabileceğinizi açıklar."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix, {company.legalName}, {company.address} tarafından işletilmektedir.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Gizliliğinizle ilgili her konuda {company.privacyEmail} adresine yazın."
+    },
+    {
+      "type": "note",
+      "text": "Kısaca: Hesabınızı yürütmek ve istediğiniz işi yapmak için gerekenleri toplarız. Yapay zekâya sorduklarınız, yanıt alınması için model sağlayıcısına (varsayılan olarak Google Gemini) gider. Bulut hizmetlerimizi ve veritabanımızı AB'de barındırırız (Google Cloud, Hollanda). Verilerinizi satmayız, reklam göstermeyiz, reklam veya analiz izleyicileri kullanmayız ve kendi yapay zekâ modellerimizi içeriğinizle eğitmeyiz."
+    },
+    {
+      "type": "h3",
+      "id": "controller",
+      "text": "Veri sorumlusu",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Bu politikada açıklananların çoğu için \"veri sorumlusu\" biziz: kişisel verilerinizin neden ve nasıl kullanılacağına karar veren taraf (GDPR Md. 4(7)). Bir işletme API'mizi, Kurumsal hizmetlerimizi veya Asistan Botu'nu kendi verileriyle kullandığında, veri sorumlusu o işletmedir. Biz ise onun \"veri işleyeni\"yiz: verileri onun adına, [Veri İşleme Ekimiz](/instant/legal/dpa) kapsamında işleriz. İşletmenin verileri nasıl kullandığını kendi gizlilik bildirimi açıklar."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Veri sorumlusu: {company.legalName}, {company.address}."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Neleri topluyoruz"
+    },
+    {
+      "type": "p",
+      "text": "Neleri topladığımız, Orqanix'in hangi bölümlerini kullandığınıza bağlıdır. Hesap oluşturmak için oturum açma işleminin istediği, e-posta adresiniz gibi bilgileri vermeniz gerekir. Bunlar olmadan size hesap veremeyiz. Diğer her şey sizin tercihinizdir; ancak bazı özelliklerin çalışması için belirli veriler gerekir. Hiçbir yasa bize kişisel veri vermenizi zorunlu kılmaz."
+    },
+    {
+      "type": "h3",
+      "id": "website",
+      "text": "Web sitesi"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Barındırma sağlayıcımız Google Cloud, siteyi ziyaret ettiğinizde olağan sunucu kayıtlarını tutar: IP adresiniz, tarayıcınız, saat ve istediğiniz sayfa. Bunları siteyi güvende tutmak ve sorunları gidermek için kullanırız.",
+        "Pazarlama ve hukuki sayfalarımız hiçbir çerez yerleştirmez ve başka şirketlere çağrı yapmaz. Yazı tipleri kendi sunucumuzdan gelir.",
+        "Hukuki sayfalarımızda ABD veya AB sürümünü seçerseniz, tarayıcınız bu seçimi hatırlar. Seçim tarayıcınızda kalır ve bize gönderilmez.",
+        "Masaüstü Uygulaması'nı indirdiğinizde dosya Google Cloud Storage'dan gelir; dolayısıyla Google IP adresinizi görür.",
+        "Oturum açma sayfaları ve web uygulaması, çalışmak için ihtiyaç duydukları çerezleri ve tarayıcı depolamasını kullanır. [Çerezler ve Depolama](/instant/legal/cookies) sayfası bunların her birini listeler."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "account",
+      "text": "Hesabınız"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulaması'nı ve web uygulamasını kullanmak için bir Orqanix hesabına ihtiyacınız vardır. Oturum açma işlemini bizim adımıza Clerk yürütür. Clerk; e-posta adresinizi, verirseniz adınızı ve Google ile oturum açarsanız profil resminizi tutar. Hesabınızı güvende tutmak için ayrıca IP adresiniz ve cihaz bilgileriniz dahil olmak üzere oturum açma ve oturum kayıtlarınızı da saklar. Kaydolma sırasında Cloudflare, Clerk adına, tarayıcınızdan ve cihazınızdan gelen sinyalleri kullanarak bot değil bir insan olduğunuzu kontrol eder. Kendi veritabanımız, hesabınızı çalışma alanınıza bağlayan Clerk kullanıcı kimliğini saklar."
+    },
+    {
+      "type": "h3",
+      "id": "cloud-workspace",
+      "text": "Bulut çalışma alanınız"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix'i çevrimiçi kullandığınızda, işinize geri dönebilmeniz için onu AB'deki veritabanımızda saklarız. Bu şunları kapsar:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Asistan sohbetleriniz: yazdıklarınızın ve yanıtların tam metni.",
+        "Hedefleriniz, her iş akışı çalıştırması ve ajanların oluşturduğu dosyalar ve raporlar ile her birinin nasıl oluşturulduğuna dair kayıt.",
+        "Verdiğiniz onaylar ve ajanların attığı adımların kaydı.",
+        "Zamanlamalar ve webhook'lar gibi kurduğunuz otomasyonlar. Verdiğimiz uygulama anahtarlarının yalnızca karıştırılmış bir biçimini (bir \"hash\") saklarız. Bağlı hizmetler için eklediğiniz kimlik bilgileri ayrı, şifrelenmiş bir depoda tutulur.",
+        "Masaüstü Uygulaması'nın buluta gönderdiği araştırma soruları (bkz. [Masaüstü Uygulaması](#desktop-app))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Size yanıt vermek için bulut asistanı talebinizi yapay zekâ modeline (varsayılan olarak Google Gemini) gönderir. Araştırma için kendi arama hizmetimiz, talebinizden oluşturulan arama sorgularını herkese açık arama motorlarına (Google, Bing, Brave ve DuckDuckGo) gönderir. Ayrıca OpenRegister aracılığıyla herkese açık sicillerde şirket araması da yapabilir. Adınızı veya hesap bilgilerinizi değil, sorguyu göndeririz."
+    },
+    {
+      "type": "p",
+      "text": "Tamamlanan raporlar ayrıca AB'deki özel bir depolama alanında dosya olarak kaydedilir. Mesajlar ve ajanların yaptıklarının kaydı gibi bazı kayıtlar, sonradan düzenlenmeyen sabit bir kayıt olarak tutulur. [Ne kadar süre saklıyoruz](#retention) bölümü, bunları silmemizi istediğinizde ne olacağını açıklar."
+    },
+    {
+      "type": "h3",
+      "id": "desktop-app",
+      "text": "Masaüstü Uygulaması"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulaması'nın işlediği verilerin büyük kısmı Mac'inizde kalır. Uygulamanın çalışabilmesi için bir kısmının Mac'inizden çıkması gerekir."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Mac'inizde kalanlar",
+        "Mac'inizden çıkanlar"
+      ],
+      "rows": [
+        [
+          "Sohbet geçmişiniz, yerel bir veritabanı dosyasında. Kendimize ait bir şifreleme eklemeyiz.",
+          "Yapay zekâ modeli her yanıt verdiğinde, o ana kadarki sohbetin tamamı modele gider: mesajlarınız, ajanların kullandığı araçların sonuçları (okudukları dosyaların içeriği ve komutların çıktısı gibi), ürün talimatlarımız ve varsa Hedef bağlamı."
+        ],
+        [
+          "Ajanların oluşturduğu dosyalar, seçtiğiniz proje klasöründe.",
+          "Varsayılan modelde bu içerik, AB'deki ağ geçidimiz üzerinden Google Gemini'ye gider. Ağ geçidimiz talebi iletir ve saklamaz."
+        ],
+        [
+          "Ayarlar, kayıtlar (eski kayıtlar otomatik olarak temizlenir), tekrar çağırabilmeniz için son yazdığınız mesajların bir listesi ve yalnızca macOS hesabınızın okuyabildiği bir uygulama klasörü.",
+          "Bir ajan bulut araştırması istediğinde, bir soru ve gerekirse mevcut bulut dosyalarınızdan en fazla beşinden alıntılar gönderir. Bu, bulut çalışma alanınızda saklanır."
+        ],
+        [
+          "Orqanix oturum açma bilgileriniz, macOS Anahtar Zinciri'nde. Oturumu kapatmak bunu iptal eder.",
+          "Sesli dikte kullanırsanız sesiniz model sağlayıcısına gönderilir."
+        ],
+        [
+          "Kendiniz bağladığınız yapay zekâ sağlayıcılarının (OpenAI veya Anthropic gibi) anahtarları, uygulama klasöründeki düz metin bir ayarlar dosyasında saklanır.",
+          "Başka bir yapay zekâ sağlayıcısına geçerseniz, bu sağlayıcı sohbeti kendi koşulları ve gizlilik politikası kapsamında alır."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Uygulama hiçbir kullanım istatistiği göndermez ve çökme raporlayıcısı yoktur. Varsayılan olarak ajanlar, önce size sormadan dosya okuyabilir, yazabilir ve komut çalıştırabilir. Bunu, uygulamanın her işlemden önce veya yalnızca hassas işlemlerden önce size soracağı şekilde değiştirebilirsiniz. Zamanlanmış tarifler yalnızca uygulama açıkken çalışır."
+    },
+    {
+      "type": "h3",
+      "id": "mobile-app",
+      "text": "Mobil Uygulama"
+    },
+    {
+      "type": "p",
+      "text": "Mobil Uygulama'yı kullandığınızda, Mac'inizdeki Orqanix için bir uzaktan kumanda gibi çalışır. İş Mac'inizde yürütülür; bu nedenle bu politikanın [Masaüstü Uygulaması](#desktop-app) hakkında söyledikleri bu durumu da kapsar: dosyalar Mac'inizde oluşturulur ve proje klasörünüzde kalır, telefon ise size neyin oluşturulduğunu gösterir. Telefondan gelen bir talep, Mac'inizde yapılmış bir talep gibi işlenir. Mobil Uygulama bir iş bittiğinde size haber verebilir. İhtiyaç duyduğu verileri yalnızca telefonunuzu Mac'inize bağlamak, size sonuçları göstermek ve bu bildirimleri göndermek için kullanırız."
+    },
+    {
+      "type": "h3",
+      "id": "assistant-bot",
+      "text": "Asistan Botu"
+    },
+    {
+      "type": "p",
+      "text": "Asistan Botu'nu kullandığınızda mesajlaşma uygulamalarını ve e-posta hesaplarını bağlar ve her bota bir rol verirsiniz. Bot, işini yapmak için bu hesaplardan ihtiyaç duyduklarını okur: mesajlar, ekler, kişiler ve dosyalar. İşletmenizin bir haritasını çıkarır (ekibiniz, müşterileriniz, tedarikçileriniz ve dosyalarınız ile bunların birbirine nasıl bağlandığı), e-postanızdaki ve telefonunuzdaki kişileri tek bir listede toplar ve belgeleri klasörlere ayırır. Oluşturduğu dosyalar, bulut çalışma alanınızın bir parçası olan Orqanix Çalışma Alanınıza gider. Yapay zekâ modelini veya araştırmayı kullandığında bu, [Bulut çalışma alanınız](#cloud-workspace) bölümünde açıklandığı şekilde işler."
+    },
+    {
+      "type": "p",
+      "text": "Yalnızca bağlama hakkına sahip olduğunuz hesapları bağlayın. Bu hesaplarda yer alan müşterileriniz ve tedarikçileriniz gibi kişilerin de gizlilik hakları vardır. Botu işletmeniz için kullandığınızda, onların verilerini işlemek için hukuka uygun bir gerekçeye sahip olmaktan siz sorumlusunuz. Bkz. [Asistan Botu Koşulları](/instant/legal/assistant-bot-terms)."
+    },
+    {
+      "type": "h3",
+      "id": "api",
+      "text": "API"
+    },
+    {
+      "type": "p",
+      "text": "API işletmeler içindir. Bir işletme bize ajanları, araçları ve bir bütçeyle birlikte bir görev gönderir; biz de bir karar geri göndeririz: işi kimin yapması gerektiği ve neden. Kararları, işletmenin bize geri bildirdiği sonuçları ve her işin kapsamına ilişkin kayıtları API'nin AB'deki kendi veritabanında (Google Cloud, Hollanda) saklarız. Bir karara varmak için, [Bulut çalışma alanınız](#cloud-workspace) bölümünde açıklandığı gibi yapay zekâ modelini, web aramasını ve şirket sicili sorgularını kullanabiliriz. Sicil sonuçları şirket yöneticilerinin adlarını içerebilir. Ayrıca işletmede muhatap olduğumuz kişilerin iletişim bilgilerini de saklarız."
+    },
+    {
+      "type": "h3",
+      "id": "enterprise",
+      "text": "Kurumsal"
+    },
+    {
+      "type": "p",
+      "text": "Kurumsal projelerde, müşterinin sipariş ettiği şeyi kurmak ve çalıştırmak için bize verdiği verileri işleriz. Her proje, müşteriyle kararlaştırılan bir AB Google Cloud bölgesinde barındırılır. Yazılı sipariş ve [Veri İşleme Ekimiz](/instant/legal/dpa), hangi verilerin söz konusu olduğunu ve bunlarla neler yapabileceğimizi belirler. Ayrıca müşteride birlikte çalıştığımız kişilerin iletişim bilgilerini de saklarız."
+    },
+    {
+      "type": "h3",
+      "id": "contact-us",
+      "text": "Bize gönderilen e-postalar"
+    },
+    {
+      "type": "p",
+      "text": "Bize e-posta gönderirseniz e-posta adresinizi, verirseniz adınızı ve yazdığınız her şeyi alırız. Bunları size yanıt vermek ve talebinizi ele almak için kullanırız."
+    },
+    {
+      "type": "h3",
+      "id": "other-people",
+      "text": "Diğer kişiler"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix'i kendileri kullanmayan kişilere ilişkin verileri işleyebiliriz: kullanıcılarımızın bize verdiği içerikte adı geçen kişiler, bir kullanıcının Asistan Botu'na bağladığı hesaplardaki kişiler, araştırmamızın bulduğu web sayfalarında adı geçen kişiler ve herkese açık sicillerde listelenen şirket yöneticileri. Bu verileri yalnızca kullanıcımızın istediği işi yapmak için kullanırız. Bu kişilerden biriyseniz [Haklarınız](#your-rights) bölümünde açıklanan haklara sahipsiniz."
+    },
+    {
+      "type": "h3",
+      "id": "sensitive-data",
+      "text": "Hassas veriler"
+    },
+    {
+      "type": "p",
+      "text": "Sağlık bilgileri, siyasi görüşler veya dini inançlar gibi hassas verileri istemeyiz. Bunları yazdığınız, yüklediğiniz veya bağladığınız içeriğe eklemeyi seçerseniz, yalnızca istediğiniz şeyi yapmak için kullanırız. Lütfen bunları yalnızca göreviniz gerektirdiğinde paylaşın."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "ABD'de yaşıyorsanız, bize ulaşan tüm sağlık bilgileri [Tüketici Sağlık Verileri Gizlilik Politikamız](/instant/legal/health-data) kapsamına da girer."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Nasıl kullanırız"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hesabınızı ve kullandığınız ürünleri sunmak ve istediğiniz işi yapmak için.",
+        "Taleplerinizi yapay zekâ modeline göndermek ve yanıtlarını size iletmek, ayrıca kurduğunuz araştırma ve otomasyonları çalıştırmak için.",
+        "Orqanix'i güvende tutmak için: kötüye kullanımı, istenmeyen iletileri (spam) ve saldırıları durdurmak ve sorunları incelemek için.",
+        "Hataları gidermek ve hizmetin çalışmasını sürdürmek için.",
+        "Mesajlarınızı ve gizlilik taleplerinizi yanıtlamak için.",
+        "Yasal yükümlülüklerimizi yerine getirmek ve hukuki taleplere karşı savunma yapmak için."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Kendi yapay zekâ modellerimizi içeriğinizle eğitmeyiz. Yanıtları, modele gönderdiklerimize talimat ve bağlam ekleyerek iyileştiririz. Verilerinizi reklam için kullanmayız. Hakkınızda hukuki veya benzer ölçüde ciddi sonuçlar doğuran otomatik kararlar almayız."
+    },
+    {
+      "type": "h2",
+      "id": "legal-bases",
+      "text": "Hukuki dayanaklarımız",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Veri koruma hukuku, kişisel verileri yalnızca \"hukuki dayanak\" adı verilen yasal bir gerekçemiz olduğunda kullanmamıza izin verir (GDPR Md. 6). Tablo, her amaç için dayanağı göstermektedir."
+    },
+    {
+      "type": "table",
+      "only": "eu",
+      "head": [
+        "Amaç",
+        "Veriler",
+        "Hukuki dayanak"
+      ],
+      "rows": [
+        [
+          "Web sitesini çalıştırmak ve güvende tutmak",
+          "Sunucu kayıtları: IP adresi, tarayıcı, saat, sayfa",
+          "Çalışan ve güvenli bir web sitesine ilişkin meşru menfaatimiz (GDPR Md. 6(1)(f))"
+        ],
+        [
+          "Hesabınızı oluşturmak ve oturumunuzu açmak",
+          "E-posta, ad, profil resmi (Google ile oturum açma), oturum açma ve oturum kayıtları",
+          "Sizinle yapılan sözleşme (GDPR Md. 6(1)(b))"
+        ],
+        [
+          "Oturum açmayı botlara ve kötüye kullanıma karşı korumak",
+          "IP adresi, cihaz ve tarayıcı sinyalleri (Clerk, Cloudflare)",
+          "Güvenliğe ilişkin meşru menfaatimiz (GDPR Md. 6(1)(f))"
+        ],
+        [
+          "Bulut çalışma alanını, asistanı, araştırmayı ve otomasyonları sunmak",
+          "Mesajlarınız, hedefleriniz, dosyalarınız, iş akışı kayıtlarınız, araştırma sorularınız",
+          "Sizinle yapılan sözleşme (GDPR Md. 6(1)(b))"
+        ],
+        [
+          "Masaüstü Uygulaması'nda yapay zekâ modelinden yanıt almak",
+          "Sohbet, araç sonuçları, ürün talimatları; dikte kullanırsanız sesiniz",
+          "Sizinle yapılan sözleşme (GDPR Md. 6(1)(b))"
+        ],
+        [
+          "Asistan Botu'nu bağladığınız hesaplar üzerinde çalıştırmak",
+          "Bu hesaplardaki mesajlar, ekler, kişiler ve dosyalar",
+          "Sizinle yapılan sözleşme (GDPR Md. 6(1)(b)); bu hesaplardaki diğer kişiler için, istediğiniz işi yapmaya ilişkin sizin ve bizim meşru menfaatimiz (GDPR Md. 6(1)(f)) veya botu işletmeniz için kullanıyorsanız verilerin sizin adınıza tarafımızca işlenmesi (GDPR Md. 28)"
+        ],
+        [
+          "Araştırma için herkese açık bilgileri sorgulamak",
+          "Arama sorguları; yöneticilerin adlarını içerebilen herkese açık sicil kayıtları",
+          "Kullanıcımızla yapılan sözleşme (GDPR Md. 6(1)(b)); bulunan kişiler için, talebi yanıtlamaya ilişkin meşru menfaatimiz (GDPR Md. 6(1)(f))"
+        ],
+        [
+          "API ve Kurumsal hizmetlerin iş müşterileriyle ilişkileri yürütmek",
+          "Muhatap olduğumuz kişilerin adları ve iletişim bilgileri",
+          "İş ilişkisini yürütmeye ilişkin meşru menfaatimiz (GDPR Md. 6(1)(f))"
+        ],
+        [
+          "Bir iş müşterisinin kendi verilerini API veya Kurumsal hizmetlerde işlemek",
+          "Müşterinin bize gönderdiği her şey",
+          "Müşterinin hukuki dayanağı; biz onun veri işleyeni olarak hareket ederiz (GDPR Md. 28)"
+        ],
+        [
+          "Ajanların yaptıklarının güvenilir bir kaydını tutmak ve hukuki talepleri ele almak",
+          "İş akışı olayları, onaylar, dosyalar ve bunların nasıl oluşturulduğu",
+          "Güvenilir bir geçmişe ve hukuki taleplere karşı savunma yapmaya veya hukuki talepte bulunmaya ilişkin meşru menfaatimiz (GDPR Md. 6(1)(f))"
+        ],
+        [
+          "Mesajlarınızı ve gizlilik taleplerinizi yanıtlamak",
+          "E-posta adresiniz ve yazdıklarınız",
+          "Sözleşme veya size yanıt vermeye ilişkin meşru menfaatimiz (GDPR Md. 6(1)(b), (f)); gizlilik talepleri için yasal yükümlülük (GDPR Md. 6(1)(c))"
+        ],
+        [
+          "Vergi kayıtları veya yetkili makamların hukuka uygun talepleri gibi yasal yükümlülükleri yerine getirmek",
+          "Yükümlülüğün gerektirdiği veriler",
+          "Yasal yükümlülük (GDPR Md. 6(1)(c))"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Meşru menfaatimize dayandığımız durumlarda, bu menfaati sizin menfaatleriniz ve haklarınızla tarttık. İstediğiniz zaman itiraz edebilirsiniz (bkz. [Haklarınız](#your-rights))."
+    },
+    {
+      "type": "h2",
+      "id": "notice-at-collection",
+      "text": "Toplama sırasında bildirim",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Bu tablo, ABD eyalet gizlilik yasalarının kullandığı terimlerle, neleri topladığımızı, bunların nereden geldiğini, neden ve ne kadar süreyle topladığımızı özetlemektedir."
+    },
+    {
+      "type": "table",
+      "only": "us",
+      "head": [
+        "Kategori",
+        "Örnekler",
+        "Kaynak",
+        "Neden kullanırız",
+        "Ne kadar süre saklarız"
+      ],
+      "rows": [
+        [
+          "Tanımlayıcılar",
+          "E-posta adresi, ad, hesap kimliği, IP adresi",
+          "Siz; Clerk; Google ile oturum açarsanız Google",
+          "Hesabınız, oturum açma, güvenlik",
+          "Hesabınız var olduğu sürece, sonrasında yasal yükümlülüklerin gerektirdiği süre boyunca"
+        ],
+        [
+          "İnternet veya ağ etkinliği",
+          "Sunucu kayıtları, oturum açma ve oturum kayıtları, tarayıcı ve cihaz bilgileri",
+          "Tarayıcınız ve cihazınız",
+          "Güvenlik, sorunları giderme",
+          "Sunucu kayıtları sınırlı bir süre (bkz. [Ne kadar süre saklıyoruz](#retention)); oturum açma kayıtları hesabınız var olduğu sürece"
+        ],
+        [
+          "Bize verdiğiniz içerik",
+          "Mesajlar, dosyalar, hedefler, araştırma soruları, yapay zekâ modeline gönderilen Masaüstü Uygulaması sohbeti",
+          "Siz; bağladığınız hesaplar",
+          "İstediğiniz işi yapmak",
+          "Hesabınız var olduğu sürece; yapay zekâ ağ geçidimizden geçen talepler saklanmaz"
+        ],
+        [
+          "Ses",
+          "Dikte kullanırsanız sesiniz",
+          "Siz",
+          "Söylediklerinizi bir talebe dönüştürmek",
+          "Ağ geçidimiz tarafından saklanmaz; model sağlayıcısının kendi koşulları geçerlidir"
+        ],
+        [
+          "Mesleki bilgiler",
+          "İş müşterilerindeki kişilerin iletişim bilgileri; herkese açık sicillerdeki yöneticilerin adları",
+          "Siz; herkese açık şirket sicilleri",
+          "API ve Kurumsal hizmetler, araştırma",
+          "İş ilişkisi sürdüğü müddetçe, sonrasında yasal yükümlülüklerin gerektirdiği süre boyunca"
+        ],
+        [
+          "Hassas kişisel bilgiler",
+          "Hesap giriş bilgileriniz (Clerk tarafından işlenir); sağlık bilgileri gibi eklemeyi seçtiğiniz her türlü hassas bilgi",
+          "Siz",
+          "Oturumunuzu açmak; istediğiniz işi yapmak",
+          "Ait olduğu kategori için geçerli süre"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Hassas kişisel bilgileri yalnızca istediğiniz hizmeti sunmak ve güvende tutmak için kullanırız; hakkınızda çıkarım yapmak için asla kullanmayız. Hakkınızda profil oluşturmayız. Kişisel bilgileri iş amaçlarıyla [Kimlerle paylaşılır](#who-gets-it) bölümünde listelenen hizmet sağlayıcılara açıklarız."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Kimlerle paylaşılır"
+    },
+    {
+      "type": "p",
+      "text": "Kişisel verileri yalnızca bu politikada açıklandığı şekilde paylaşırız. [Alt İşleyenler](/instant/legal/subprocessors) sayfamız, bu verileri bizim adımıza işleyen sağlayıcıları, ne yaptıklarını ve nerede olduklarını listeler. Başlıca alıcılar şunlardır:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud; web sitemizi, sunucularımızı, veritabanımızı, dosyalarımızı ve kayıtlarımızı ve Masaüstü Uygulaması indirmesini barındırır.",
+        "Google Gemini, Google'ın Gemini API'si aracılığıyla size varsayılan olarak yanıt veren yapay zekâ modelidir. Sorduklarınızı, sohbeti ve araç sonuçlarını ve dikte kullanırsanız sesinizi alır. Ayrıca bazı araştırmalar için Google Arama'yı çalıştırır.",
+        "Clerk, oturum açma işlemini ve hesapları yürütür. Cloudflare, Clerk adına oturum açmayı botlara karşı korur. Google ile oturum aç'ı seçerseniz Google da sürece dahil olur.",
+        "Herkese açık arama motorları (Google, Bing, Brave ve DuckDuckGo), araştırmamızın taleplerinizden oluşturduğu arama sorgularını alır. OpenRegister, sicil sorguları için şirket adlarını alır. Bunlar yalnızca sorguyu alır ve onu kendi koşulları kapsamında kullanır.",
+        "Masaüstü Uygulaması'nda kendiniz bağladığınız OpenAI veya Anthropic gibi yapay zekâ sağlayıcıları, sohbetinizi onlarla yaptığınız kendi sözleşmeniz kapsamında alır.",
+        "Masaüstü Uygulaması uzantıları veya Asistan Botu'na bağladığınız mesajlaşma uygulamaları ve e-posta hesapları gibi bağladığınız uygulamalar, araçlar ve hesaplar, bir ajanın veya botun kendilerine gönderdiklerini kendi koşulları kapsamında alır."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Google'ın Gemini API koşulları](https://ai.google.dev/gemini-api/terms), Google'ın Gemini API aracılığıyla aldığı verileri nasıl kullanabileceğini, kötüye kullanımı izlemek amacıyla bunları ne kadar süre sakladığı da dahil olmak üzere belirler."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Google'ın ücretli Gemini API hizmetini kullanıyoruz. Google'ın ücretli hizmetlere ilişkin koşulları kapsamında Google, istemlerinizi veya yanıtları kendi ürünlerini geliştirmek için kullanmaz ve bunları kendi veri işleme koşulları kapsamında işler."
+    },
+    {
+      "type": "p",
+      "text": "Ayrıca kişisel verileri yasanın gerektirdiği durumlarda, insanların güvenliğini veya haklarımızı korumak için ya da işletmemizin birleşmesi veya satışı kapsamında açıklayabiliriz. Bir birleşme veya satışta bu politika verilerinizi korumaya devam eder."
+    },
+    {
+      "type": "h2",
+      "id": "where-we-process",
+      "text": "Nerede işleriz"
+    },
+    {
+      "type": "p",
+      "text": "Bulut hizmetlerimizi ve veritabanımızı AB'de barındırırız (Google Cloud, Hollanda). Kurumsal projeler, müşteriyle kararlaştırılan bir AB Google Cloud bölgesinde çalışır. Kullandığımız Clerk ve Google Gemini gibi bazı sağlayıcılar verileri ABD'de veya başka yerlerde işleyebilir."
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Avrupa dışına aktarımlar",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Kişisel veriler, Avrupa Komisyonu'nun yeterli koruma sağladığına karar vermediği bir ülkeye gittiğinde, hukuki bir güvence kullanırız. Bu güvence, alıcı bu çerçeve kapsamında sertifikalıysa AB-ABD Veri Gizliliği Çerçevesi (DPF) ya da Komisyon tarafından onaylanmış sözleşme hükümleri olan Standart Sözleşme Hükümleri'dir (SCC'ler) (GDPR Md. 45, 46)."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Clerk (ABD): Clerk'in veri işleme sözleşmesi kapsamında DPF; yedek olarak SCC'ler.",
+        "Google Gemini: Google, talepleri Google'ın koşulları kapsamında AB dışında işleyebilir."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Ücretli Gemini API için, AB dışına çıkan verilere ilişkin güvenceleri Google'ın veri işleme koşulları belirler."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Herkese açık arama motorları ve OpenRegister yalnızca arama sorgularını ve şirket adlarını alır ve bunları kendi koşulları kapsamında kullanır. Bunların bazıları Avrupa dışındadır. Kullandığımız güvencelerin bir kopyasını almak için {company.privacyEmail} adresine yazın."
+    },
+    {
+      "type": "h2",
+      "id": "retention",
+      "text": "Ne kadar süre saklıyoruz"
+    },
+    {
+      "type": "p",
+      "text": "Kişisel verileri yalnızca bu politikadaki amaçlar için ihtiyaç duyduğumuz sürece saklarız; ardından siler veya anonim hale getiririz."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Veriler",
+        "Ne kadar süre"
+      ],
+      "rows": [
+        [
+          "Hesap ve oturum açma verileri",
+          "Hesabınız var olduğu sürece ve sonrasında yasal yükümlülükleri yerine getirmek için gerektiği kadar."
+        ],
+        [
+          "Bulut çalışma alanınız",
+          "Hesabınız var olduğu sürece ve sonrasında yasal yükümlülükleri yerine getirmek için gerektiği kadar. Hesabınızı silmemizi istediğinizde verilerinizi siler veya anonim hale getiririz ya da bir kaydı saklamak zorunda olduğumuz durumlarda size nedenini bildiririz."
+        ],
+        [
+          "Veritabanı yedekleri",
+          "Silinen veriler, kısa bir süre, yaklaşık 7 güne kadar yedeklerimizde kalabilir."
+        ],
+        [
+          "Sunucu kayıtları",
+          "Bulut sağlayıcımızın standart kayıt ayarları kapsamında sınırlı bir süre; ardından otomatik olarak silinir. İstemlerinizin veya mesajlarınızın içeriğini kaydetmeyiz."
+        ],
+        [
+          "Yapay zekâ ağ geçidimizden geçen talepler",
+          "Tarafımızca saklanmaz."
+        ],
+        [
+          "Mac'inizdeki Masaüstü Uygulaması verileri",
+          "Siz silene kadar. Eski kayıtlar otomatik olarak temizlenir."
+        ],
+        [
+          "API kayıtları",
+          "İş ilişkisi sürdüğü müddetçe ve sonrasında yasal yükümlülükleri yerine getirmek için gerektiği kadar."
+        ],
+        [
+          "Kurumsal proje verileri",
+          "Yazılı siparişte kararlaştırıldığı şekilde."
+        ],
+        [
+          "Bize gönderdiğiniz e-postalar",
+          "Mesajınızı ve olası takip işlemlerini ele almak ve yasal yükümlülükleri yerine getirmek için ihtiyaç duyduğumuz sürece."
+        ],
+        [
+          "Hukuki sayfalardaki bölge tercihiniz",
+          "Siz temizleyene kadar tarayıcınızda."
+        ],
+        [
+          "Google'ın Gemini API aracılığıyla aldığı veriler",
+          "Google'ın politikalarında belirlendiği şekilde."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Güvenlik"
+    },
+    {
+      "type": "p",
+      "text": "Kişisel verileri riske uygun önlemlerle koruruz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Veriler şifrelenmiş olarak (HTTPS) iletilir ve bulut sağlayıcımız bunları depolanırken şifreler.",
+        "Bulut hizmetlerimiz ve veritabanımız AB'de, günlük yedeklerle ve yanlışlıkla silinmeye karşı korumayla çalışır.",
+        "Uygulama anahtarlarını yalnızca karıştırılmış (hash'lenmiş) biçimde saklarız.",
+        "Masaüstü Uygulaması, Orqanix oturum açma bilgilerinizi macOS Anahtar Zinciri'nde tutar ve uygulama klasörü yalnızca macOS hesabınız tarafından okunabilir."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Korumanın bir kısmı sizin elinizdedir. Masaüstü Uygulaması'nın sohbet geçmişinin kendine ait ek bir şifrelemesi yoktur ve bağladığınız yapay zekâ sağlayıcılarının anahtarları düz metin bir dosyada tutulur. macOS hesabınızı kullanabilen herkes bunları okuyabilir; bu nedenle Mac'inizi kilitli tutun ve FileVault kullanın."
+    },
+    {
+      "type": "p",
+      "text": "Hiçbir sistem tam olarak güvenli değildir. Bir ihlal kişisel verilerinizi riske atarsa, yasanın gerektirdiği durumlarda size ve yetkili makamlara bildiririz. Bir güvenlik açığını bildirmek için [Güvenlik ve Güvenlik Açığı Bildirimi](/instant/legal/security) sayfasına bakın."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Çocuklar"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix yalnızca 18 yaş ve üzerindeki kişiler içindir. 18 yaşından küçük hiç kimseden bilerek kişisel veri toplamayız. Bir çocuğun bize kişisel veri verdiğini düşünüyorsanız {company.privacyEmail} adresine yazın; bu verileri sileriz."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Orqanix 13 yaşından küçük çocuklara yönelik değildir ve onların kişisel bilgilerini bilerek toplamayız (Children's Online Privacy Protection Act, COPPA)."
+    },
+    {
+      "type": "h2",
+      "id": "your-choices",
+      "text": "Tercihleriniz"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Masaüstü Uygulaması'nda ajanların kendi başlarına mı hareket edeceğini yoksa önce size mi soracağını, hangi yapay zekâ sağlayıcısının kullanılacağını ve dikte kullanıp kullanmayacağınızı seçin. Mac'inizdeki sohbet geçmişinizi istediğiniz zaman silebilirsiniz.",
+        "Asistan Botu'na hangi hesapları bağlayacağınızı veya hiç bağlamayacağınızı seçin.",
+        "Neleri yazacağınızı, yükleyeceğinizi veya ajanlardan okumalarını isteyeceğinizi seçin.",
+        "Çerezleri ve tarayıcı depolamasını temizleyin veya engelleyin (bkz. [Çerezler ve Depolama](/instant/legal/cookies)). Oturum açma, ihtiyaç duyduğu çerezler olmadan çalışmaz.",
+        "[Haklarınız](#your-rights) bölümündeki hakları kullanmak için {company.privacyEmail} adresine yazın."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Haklarınız",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "GDPR ile Birleşik Krallık ve İsviçre veri koruma yasaları kapsamında şu haklara sahipsiniz:"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Erişim: kişisel verilerinizin bir kopyasını ve bunları nasıl kullandığımızı talep etme (GDPR Md. 15).",
+        "Düzeltme: yanlış veya eksik verileri düzeltmemizi talep etme (GDPR Md. 16).",
+        "Silme: verilerinizi silmemizi talep etme (GDPR Md. 17).",
+        "Kısıtlama: bir sorun çözülene kadar verilerinizi nasıl kullandığımızı sınırlamamızı talep etme (GDPR Md. 18).",
+        "Taşınabilirlik: bize verdiğiniz verileri yaygın kullanılan, makine tarafından okunabilir bir biçimde alma veya başka birine gönderilmesini sağlama (GDPR Md. 20).",
+        "İtiraz: meşru menfaatimize dayanan her türlü kullanıma, özel durumunuzla ilgili nedenlerle istediğiniz zaman itiraz etme. Bu durumda, zorlayıcı gerekçelerimiz olmadıkça veya verilere hukuki talepler için ihtiyaç duymadıkça kullanımı durdururuz (GDPR Md. 21).",
+        "Onay: onayınıza dayandığımız durumlarda, daha önce yaptıklarımızı etkilemeksizin onayınızı istediğiniz zaman geri çekme (GDPR Md. 7(3)).",
+        "Şikâyet: özellikle yaşadığınız veya çalıştığınız yerde ya da sorunun meydana geldiğini düşündüğünüz yerde bir veri koruma denetim makamına şikâyette bulunma (GDPR Md. 77)."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Bir hakkınızı kullanmak için {company.privacyEmail} adresine yazın. Kimliğinizi doğrulamanızı isteyebiliriz; örneğin hesabınızda kayıtlı e-posta adresinden yazmanızı. Bir ay içinde yanıt veririz. Karmaşık taleplerde bu süreyi iki ay daha uzatabiliriz ve uzatırsak size bildiririz (GDPR Md. 12(3)). Haklarınızı kullanmak ücretsizdir."
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Birleşik Krallık ve İsviçre",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Birleşik Krallık'ta yaşıyorsanız UK GDPR ve Data Protection Act 2018 geçerlidir. Önce bize şikâyette bulunabilirsiniz; şikâyetlerin alındığını 30 gün içinde teyit ederiz. Ayrıca Information Commissioner's Office'e ([ico.org.uk](https://ico.org.uk)) şikâyette bulunabilirsiniz. Birleşik Krallık dışına çıkan veriler için Birleşik Krallık yeterlilik kurallarına veya [Avrupa dışına aktarımlar](#transfers) bölümündeki güvencelerin Birleşik Krallık sürümlerine dayanırız: alıcı bu kapsamda sertifikalıysa DPF'nin Birleşik Krallık Uzantısı (UK Extension) ya da SCC'lere ilişkin Birleşik Krallık Eki (UK Addendum)."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "İsviçre'de yaşıyorsanız Federal Veri Koruma Yasası (FADP) geçerlidir. Federal Veri Koruma ve Bilgi Komiserliği'ne ([edoeb.admin.ch](https://www.edoeb.admin.ch)) şikâyette bulunabilirsiniz. İsviçre dışına çıkan veriler için İsviçre yeterlilik kurallarına veya bu güvencelerin İsviçre sürümlerine dayanırız: alıcı bu kapsamda sertifikalıysa İsviçre-ABD DPF ya da İsviçre'de tanındığı şekliyle SCC'ler."
+    },
+    {
+      "type": "h3",
+      "id": "eu-representative",
+      "text": "AB'deki temsilcimiz",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ],
+      "text": "AB'de yerleşik olmadığımız için orada bir temsilci atadık (GDPR Md. 27): {company.euRepresentative}. Bu politikadaki herhangi bir konuda bizim yerimize temsilcimizle iletişime geçebilirsiniz."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Haklarınız",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "ABD'nin birçok eyaleti sakinlerine gizlilik hakları tanır. Hangi eyalette yaşarsanız yaşayın, aynı hakları Amerika Birleşik Devletleri'ndeki herkese tanırız:"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Bilme ve erişim: hakkınızda hangi kişisel bilgilere sahip olduğumuzu, bunların nereden geldiğini, neden kullandığımızı ve kimlere açıkladığımızı sorma ve bir kopyasını alma.",
+        "Silme: sizden topladığımız kişisel bilgileri silmemizi talep etme.",
+        "Düzeltme: yanlış olan bilgileri düzeltmemizi talep etme.",
+        "Taşınabilirlik: bilgilerinizi başka bir yere götürebileceğiniz bir biçimde alma.",
+        "Devre dışı bırakma (opt out): kişisel bilgilerinizin satışını veya paylaşılmasını, hedefli reklamcılığı ve hukuki ya da benzer ölçüde ciddi sonuçlar doğuran profillemeyi devre dışı bırakma. Bunların hiçbirini yapmadığımız için kapatılacak bir şey yoktur.",
+        "İtiraz: talebinizi reddedersek, talebinizi yeniden incelememizi isteme.",
+        "Eşit muamele: bir hakkınızı kullandığınız için size farklı davranmayız; örneğin hizmet vermeyi reddetmeyiz veya kaliteyi değiştirmeyiz."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Bir hakkınızı kullanmak için {company.privacyEmail} adresine yazın. Kimliğinizi doğrulamanızı isteyebiliriz; örneğin hesabınızda kayıtlı e-posta adresinden yazmanızı. Yetkilendirdiğiniz bir kişi sizin adınıza talepte bulunabilir. Bu kişiye izin verdiğinize dair kanıt isteyebiliriz. Haklarınızı kullanmak ücretsizdir. Bir ay içinde yanıt veririz."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Bir karara itiraz etmek için yanıtımızı \"Appeal\" konu satırıyla cevaplayın. Size sonucu ve gerekçelerimizi bildiririz. Katılmıyorsanız eyaletinizin Başsavcılığına (Attorney General) başvurabilirsiniz."
+    },
+    {
+      "type": "h3",
+      "id": "no-sale",
+      "text": "Satış veya paylaşım yok",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Kişisel bilgileri satmayız ve California hukukunun bu kelimeleri kullandığı anlamda, bağlamlar arası davranışsal reklamcılık için \"paylaşmayız\". Bunları hedefli reklamcılık için kullanmayız. 16 yaşından küçük herhangi birinin kişisel bilgilerini sattığımıza veya paylaştığımıza dair fiili bir bilgimiz yoktur. Bunların hiçbirini yapmadığımız için \"Satmayın veya Paylaşmayın\" (Do Not Sell or Share) bağlantısı göstermeyiz. Ayrıca Nevada hukuku kapsamındaki \"kapsanan bilgileri\" (covered information) de satmayız. Yine de {company.privacyEmail} adresine devre dışı bırakma talebi gönderebilirsiniz."
+    },
+    {
+      "type": "h3",
+      "id": "privacy-signals",
+      "text": "Tarayıcı gizlilik sinyalleri",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Tarayıcınız bir Global Privacy Control (GPC) sinyali gönderirse bunu, kişisel bilgilerinizin satışını ve paylaşımını devre dışı bırakma talebi olarak kabul ederiz. Bunların hiçbirini yapmadığımız için sizin açınızdan hiçbir şey değişmez. Sizi zaman içinde başka web sitelerinde izlemeyiz ve başka şirketlerin sitemizde bunu yapmasına izin vermeyiz. Bu nedenle Do Not Track sinyallerini de aynı şekilde ele alırız: durdurulacak bir izleme yoktur."
+    },
+    {
+      "type": "h3",
+      "id": "california",
+      "text": "California",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Bu sayfa, California Online Privacy Protection Act (CalOPPA) kapsamındaki gizlilik politikamız ve California Consumer Privacy Act (CCPA) kapsamındaki bildirimimizdir. Kişisel bilgileri başkalarına kendi doğrudan pazarlama faaliyetleri için açıklamayız; bu nedenle California'nın \"Shine the Light\" yasası kapsamında talep edilecek bir şey yoktur. Bu politikayı en az 12 ayda bir gözden geçiririz."
+    },
+    {
+      "type": "h3",
+      "id": "health-data",
+      "text": "Sağlık verileri",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Washington, Nevada ve Connecticut'ta tüketici sağlık verilerine ilişkin özel kurallar vardır. [Tüketici Sağlık Verileri Gizlilik Politikamız](/instant/legal/health-data), bize hangi sağlık bilgilerinin ulaşabileceğini, bunları nasıl kullandığımızı ve bunlar üzerindeki haklarınızı açıklar."
+    },
+    {
+      "type": "h3",
+      "id": "other-countries",
+      "text": "ABD ve Avrupa dışı",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Amerika Birleşik Devletleri, AEA, Birleşik Krallık ve İsviçre dışında yaşıyorsanız, {company.privacyEmail} adresine yazarak aynı hakları kullanabilirsiniz. Ülkenizin gizlilik hukuku size daha fazla hak tanıyabilir ve bu haklara saygı gösteririz. Verileriniz AB'de ve [Nerede işleriz](#where-we-process) bölümünde açıklanan diğer yerlerde işlenir."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Ürünlerimiz veya hukuk değiştiğinde bu politikayı güncelleyeceğiz. En üstteki sürüm ve tarih, hangi metnin geçerli olduğunu gösterir. Bir değişiklik verilerinizi nasıl kullandığımız açısından önemliyse, yürürlüğe girmeden önce bunu size ürün içinde veya e-postayla bildireceğiz."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "İletişim"
+    },
+    {
+      "type": "p",
+      "text": "Gizlilikle ilgili sorular, talepler veya şikâyetler: {company.privacyEmail}. Diğer her şey: {company.email}."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Posta yoluyla: {company.legalName}, {company.address}."
+    }
+  ]
+}

@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "Hizmet Koşulları",
+    "summary": "Bu koşullar, tüm Orqanix ürünleri için ana sözleşmedir ve hesabınızı, içeriğinizi, ajanları, sorumluluğu ve uyuşmazlıkları kapsar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Biz kimiz"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix bir yapay zekâ ürünleri ailesidir: Masaüstü Uygulaması, Mobil Uygulama, Asistan Botu, API ve Kurumsal hizmetlerimiz. Bu web sitesi ve Orqanix hesabınızla birlikte bunlara “Hizmetler” diyoruz."
+    },
+    {
+      "type": "p",
+      "text": "Bu Hizmet Koşulları, siz ile Orqanix’i işleten şirket (“Orqanix” veya “biz”) arasında yapılmış bir sözleşmedir."
+    },
+    {
+      "type": "p",
+      "text": "Bu şirket {company.legalName}, {company.address} şeklindedir.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Şirket {company.register} nezdinde kayıtlıdır. KDV numarası {company.vatId} şeklindedir.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bize {company.email} adresinden ulaşabilirsiniz. [Gizlilik Politikamız](/instant/legal/privacy), kişisel verileri nasıl işlediğimizi açıklar. Bu politika bu sözleşmenin bir parçası değildir, ancak lütfen okuyun."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "Bu koşulların kabulü"
+    },
+    {
+      "type": "p",
+      "text": "Bir hesap oluşturduğunuzda ya da Hizmetlerden herhangi birini indirdiğinizde veya kullandığınızda bu koşulları kabul etmiş olursunuz. Kabul etmiyorsanız Hizmetleri kullanmayın."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşulları bir şirket veya başka bir kuruluş adına kabul ediyorsanız, o kuruluşu bağlama yetkiniz olduğunu onaylarsınız. Bu durumda “siz”, o kuruluş anlamına gelir; Hizmetleri kullanan kişi olarak siz de bu koşullara uymak zorundasınız."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullarda “tüketici”, Hizmetleri esas olarak ticari, mesleki, zanaat veya serbest meslek faaliyetleri dışındaki amaçlarla kullanan kişidir. “İşletme kullanıcısı” ise bunun dışındaki herkestir. Yasa tüketicilere daha fazla koruma sağladığından, aşağıdaki bazı kurallar tüketiciler için farklıdır.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Aşağıdaki bazı kurallar, Hizmetleri kendiniz için mi yoksa bir işletme için mi kullandığınıza bağlıdır. “İşletme kullanıcısı”, Hizmetleri ticari, işletme veya mesleki bir faaliyet için ya da bir kuruluş adına kullanan herkestir.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Orqanix’i kimler kullanabilir"
+    },
+    {
+      "type": "p",
+      "text": "Nerede yaşarsanız yaşayın, Hizmetleri kullanmak için 18 yaşında veya daha büyük olmalısınız. Hizmetler çocuklara yönelik değildir ve bunları 18 yaşından küçüklere yönelik herhangi bir şey geliştirmek için kullanmamalısınız."
+    },
+    {
+      "type": "p",
+      "text": "Ayrıca yasa yasaklıyorsa ([Yaptırımlar ve ihracat](#sanctions) bölümündeki kurallar dahil) veya daha önceki bir hesabınızı bu koşulların ciddi şekilde ihlali nedeniyle kapattıysak Hizmetleri kullanamazsınız."
+    },
+    {
+      "type": "p",
+      "text": "API ve Kurumsal hizmetler yalnızca işletme kullanıcılarına yöneliktir."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "Hesabınız"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerin çoğu bir Orqanix hesabı gerektirir. Oturum açma işlemini bizim adımıza bir oturum açma sağlayıcısı yürütür; Google ile de oturum açabilirsiniz. Bize doğru bilgiler verin ve bu bilgileri güncel tutun."
+    },
+    {
+      "type": "p",
+      "text": "Oturum açma bilgilerinizi güvende tutun ve hesabınızı paylaşmayın. Bizim kusurumuzdan kaynaklanmadığı sürece hesabınız altında gerçekleşenlerden siz sorumlusunuz. Hesabınızı başka birinin kullandığını düşünüyorsanız derhal {company.email} adresinden bize bildirin."
+    },
+    {
+      "type": "p",
+      "text": "Hesabınızı kapatmak veya verilerinizin bir kopyasını almak için {company.privacyEmail} adresine yazın. [Gizlilik Politikamız](/instant/legal/privacy), neleri neden sakladığımızı açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "Ürünlerimiz"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar tüm Hizmetler için geçerlidir. Her ürünün ayrıca o ürüne özgü kurallar ekleyen kendi koşulları vardır:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[Masaüstü Uygulaması Koşulları](/instant/legal/desktop-app-terms): yapay zekâ ajanlarının Mac’inizde araştırma yaptığı, plan hazırladığı ve gerçek dosyalar oluşturduğu macOS uygulaması.",
+        "[Mobil Uygulama Koşulları](/instant/legal/mobile-app-terms): Masaüstü Uygulaması için uzaktan kumanda işlevi gören telefon uygulaması.",
+        "[Asistan Botu Koşulları](/instant/legal/assistant-bot-terms): bağladığınız mesajlaşma uygulamaları ve e-posta hesapları üzerinden ulaştığınız iş asistanı.",
+        "[API Koşulları](/instant/legal/api-terms): diğer ürünler için akıl yürütme katmanı (yalnızca işletme kullanıcıları).",
+        "[Kurumsal Koşullar](/instant/legal/enterprise-terms): ajanlarımızın ve uzmanlarımızın sizin için çözümler geliştirdiği hizmetler (yalnızca işletme kullanıcıları)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bir ürünü kullandığınızda hem o ürünün koşulları hem de bu koşullar geçerlidir. Çelişki olması hâlinde, o ürün için ürün koşulları geçerli olur. Bizimle imzaladığınız yazılı bir sözleşme (örneğin bir Kurumsal sipariş), kapsadığı konularda her ikisine de üstün gelir."
+    },
+    {
+      "type": "p",
+      "text": "API, Kurumsal hizmetlerimiz veya Asistan Botunun işletme kullanıcıları, kendi adlarına işlememiz için bize kişisel veri verdiğinde [Veri İşleme Ekimiz](/instant/legal/dpa) de uygulanır."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "Ücret"
+    },
+    {
+      "type": "p",
+      "text": "Bu erken aşamada Hizmetler ücretsizdir. Ücretli bir planı kabul etmediğiniz sürece sizden herhangi bir ücret almayacağız."
+    },
+    {
+      "type": "p",
+      "text": "Herhangi bir ücretli plan başlamadan önce, planın ücretini ve ödeme ile iptal kurallarını yayımlayacağız. Ardından bu planı isteyip istemediğinize karar verebilirsiniz.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Herhangi bir ücretli plan başlamadan önce, vergiler dahil planın ücretini ve ödeme, iptal ve cayma kurallarını yayımlayacağız. Tüketici olarak cayma hakkınızı o aşamada açıklayacağız. Ardından bu planı isteyip istemediğinize karar verebilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetler ücretsiz olduğundan bu sözleşmeyi istediğiniz zaman, hiçbir maliyet olmadan ve gerekçe göstermeden sona erdirebilirsiniz. Bu, AB hukukunun tüketicilere tanıdığı 14 günlük cayma hakkının da ötesine geçer.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "İçeriğiniz"
+    },
+    {
+      "type": "p",
+      "text": "“Girdi”, Hizmetlere verdiğiniz her şey anlamına gelir: istemler, mesajlar, dosyalar, ses, talimatlar ve ajanların izninizle okuduğu her şey. “Çıktı”, Hizmetlerin size geri verdiği her şey anlamına gelir: yanıtlar, raporlar, dosyalar ve diğer sonuçlar. Bunların tümü birlikte “içeriğiniz”dir."
+    },
+    {
+      "type": "p",
+      "text": "Sizinle bizim aramızda içeriğiniz size aittir. İçeriğiniz üzerinde mülkiyet iddia etmiyoruz. Çıktınız üzerinde herhangi bir hakkımız varsa bu hakları size veriyoruz."
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri çalıştırmak için içeriğinizi kullanma izninize ihtiyacımız var. İçeriğinizi barındırmak, saklamak, kopyalamak, işlemek, göndermek ve göstermek için bize dünya çapında, münhasır olmayan, telif ücretsiz bir lisans verirsiniz. Bu lisansı yalnızca Hizmetleri size sunmak, güvenliğini sağlamak ve desteklemek, Hizmetlerin hukuka uygunluğunu korumak ve bu koşulları uygulamak için kullanırız. Lisans, yasa gereği saklamak zorunda olduğumuz veya [Gizlilik Politikamızda](/instant/legal/privacy) açıklandığı şekilde sakladığımız kopyalar hariç, içeriğiniz sistemlerimizden silindiğinde sona erer."
+    },
+    {
+      "type": "p",
+      "text": "Kendi yapay zekâ modellerimizi içeriğinizle eğitmiyoruz. Kişisel verilerinizi satmıyoruz ve reklam göstermiyoruz."
+    },
+    {
+      "type": "p",
+      "text": "Girdinizden siz sorumlusunuz. Girdinizi bize vermek için, kişisel verileri girdinizde yer alan kişilerden alınanlar dahil gerekli haklara ve izinlere sahip olduğunuzu ve girdinin Hizmetlerle kullanılmasının yasayı veya bu koşulları ihlal etmediğini onaylarsınız."
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ modelleri farklı kişilere benzer çıktılar verebilir. Başkalarının aldığı çıktı, sizinkine benzese bile sizin içeriğiniz değildir."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "Yapay zekâ yanılabilir"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetler yapay zekâ kullanır. Yapay zekâ çıktısı, kendinden emin görünse bile yanlış, eksik, güncelliğini yitirmiş veya rahatsız edici olabilir. Ayrıca her sorduğunuzda farklı olabilir."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Çıktıya güvenmeden veya onu paylaşmadan önce, özellikle önemli konularda, kontrol edin.",
+        "Çıktı hukuki, tıbbi, finansal, vergisel veya başka bir mesleki tavsiye değildir ve yetkin bir uzmanın yerini tutmaz.",
+        "İnsanların haklarını, sağlığını, parasını veya işini etkileyen kararlarda çıktıyı tek dayanak olarak kullanmayın."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai) sayfası, hangi modelleri nasıl kullandığımızı açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "Ajanlar"
+    },
+    {
+      "type": "p",
+      "text": "Bazı Hizmetler yapay zekâ ajanları kullanır. Bir ajan yalnızca yanıt vermez, eylemde de bulunur. Ürüne ve ayarlarınıza bağlı olarak ajanlar dosyaları okuyup değiştirebilir, bilgisayarınızda komut çalıştırabilir, web’de arama yapabilir ve bağladığınız araçları kullanabilir; bu, sizin adınıza mesaj veya e-posta göndermeyi de içerebilir."
+    },
+    {
+      "type": "p",
+      "text": "Ajanlar sizin talimatlarınız doğrultusunda ve onlara verdiğiniz izinler dahilinde hareket eder. Varsayılan olarak Masaüstü Uygulaması ajanların eylemlerini otomatik olarak onaylar. Bunu, önce size soracak, yalnızca hassas eylemler için soracak veya yalnızca sohbet edecek şekilde değiştirebilirsiniz. [Masaüstü Uygulaması Koşulları](/instant/legal/desktop-app-terms) bu ayarları açıklar."
+    },
+    {
+      "type": "p",
+      "text": "İzin verdiğiniz eylemlerden, bunları tek tek veya önceden onaylamanızdan bağımsız olarak siz sorumlusunuz. Özellikle:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ajanların yalnızca kullanma izniniz olan bilgisayarları, hesapları, dosyaları ve sistemleri kullanmasına izin verin.",
+        "Önemli olduğunda bir ajanın yapmak üzere olduğu işi gözden geçirin ve kendi başına çalışmasına izin verdiğinizde işini takip edin.",
+        "Önemli her şeyin yedeğini alın. Ajanlar dosyaları yanlışlıkla değiştirebilir veya silebilir.",
+        "Başka kişilere mesaj gönderen bir ajan bunu sizin adınıza yapar. Bu mesajlardan ve [Kabul Edilebilir Kullanım Politikamızın](/instant/legal/acceptable-use) veya yasanın gerektirdiği durumlarda insanlara bu mesajların bir yapay zekâdan geldiğini bildirmekten siz sorumlusunuz."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bu, Hizmetlerin kendisinin kusurlu olduğu durumlarda sorumluluğumuzu ortadan kaldırmaz. Bkz. [Sorumluluk](#liability)."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "Bağlı hizmetler"
+    },
+    {
+      "type": "p",
+      "text": "Varsayılan yapay zekâ modelimiz Google Gemini’dir. İçeriğiniz bu modele gittiğinde, Google’ın içeriği nasıl işlediğine Google’ın o hizmete ilişkin koşulları da uygulanır. [Yapay Zekâmız Nasıl Çalışır](/instant/legal/ai) sayfası ve [Gizlilik Politikamız](/instant/legal/privacy) nelerin gönderildiğini açıklar. Ayrıca [Kabul Edilebilir Kullanım Politikamızda](/instant/legal/acceptable-use) listelenen Google kurallarına da uymalısınız."
+    },
+    {
+      "type": "p",
+      "text": "Bazı ürünlerde OpenAI, Anthropic veya başka sağlayıcıların yapay zekâ modelleri, mesajlaşma uygulamaları, e-posta hesapları veya diğer araçlar gibi başka hizmetleri kendiniz bağlayabilirsiniz. Bunu yaptığınızda:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "o hizmetle ilişkiniz sizinle sağlayıcısı arasındadır ve o hizmetin koşulları ve ücretleri geçerlidir;",
+        "o hizmet, konuşmanız gibi, işi yapmak için ihtiyaç duyduğu içeriği alır;",
+        "o hizmetteki anahtarlarınızdan ve hesaplarınızdan ve hizmetin talep ettiği her türlü maliyetten siz sorumlusunuz;",
+        "yasanın bizi sorumlu tuttuğu durumlar dışında, o hizmeti kontrol etmiyoruz ve yaptıklarından sorumlu değiliz."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "Kabul edilebilir kullanım"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşulların bir parçası olan [Kabul Edilebilir Kullanım Politikamıza](/instant/legal/acceptable-use) uymalısınız. Kısacası: yasa dışı hiçbir şey, insanlara zarar veren hiçbir şey, bize veya başkalarına saldırı, aldatma ve politikanın yalnızca özel bir anlaşmayla izin verdiği kullanımlar yok."
+    },
+    {
+      "type": "p",
+      "text": "Ayrıca yazılı onayımız olmadan Hizmetleri kopyalayamaz, satamaz veya yeniden satamaz, sınırlarımızı veya güvenlik önlemlerimizi aşamaz ya da Hizmetleri güvenliklerini veya diğer kullanıcıları riske atacak şekilde kullanamazsınız."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Geri bildirim"
+    },
+    {
+      "type": "p",
+      "text": "Fikir ve önerilerinizi memnuniyetle karşılarız. Bize geri bildirim gönderirseniz, bunu Hizmetleri geliştirmek için size herhangi bir ödeme yapmadan ve size karşı herhangi bir yükümlülük altına girmeden serbestçe kullanabiliriz. İzniniz olmadan adınızı geri bildirimle birlikte yayımlamayız."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "Haklarımız"
+    },
+    {
+      "type": "p",
+      "text": "Yazılımlarımız, tasarımlarımız, adlarımız ve logolarımız dahil Hizmetler bize veya lisans verenlerimize aittir ve yasalarla korunmaktadır. Bu koşullar, Hizmetleri kullanma hakkınız devam ettiği sürece, bu koşullarda tarif edildiği şekilde kullanma hakkı verir. Size başka hiçbir hak vermez."
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerin bazı bölümleri açık kaynaklı yazılımdır. Bu bölümler kendi lisanslarına tabidir ve söz konusu bölümler için bu lisanslar bu koşullara üstün gelir. Bkz. [Açık Kaynak Bildirimleri](/instant/legal/open-source)."
+    },
+    {
+      "type": "p",
+      "text": "Yasanın veya bir açık kaynak lisansının izin verdiği durumlar dışında Hizmetleri parçalarına ayıramaz, kaynak koda dönüştüremez (decompile) veya tersine mühendislik uygulayamazsınız."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Askıya alma ve sona erme"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri kullanmayı istediğiniz zaman bırakabilir ve [Hesabınız](#your-account) bölümünde açıklandığı şekilde hesabınızın kapatılmasını isteyebilirsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Aşağıdaki durumlarda erişiminizi askıya alabilir veya sınırlayabilir, içeriği kaldırabilir ya da hesabınızı kapatabiliriz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "bu koşulları veya [Kabul Edilebilir Kullanım Politikasını](/instant/legal/acceptable-use) ciddi şekilde veya tekrar tekrar ihlal etmeniz;",
+        "yasanın veya bir makamın bunu gerektirmesi;",
+        "kullanımınızın başka kişileri, Hizmetleri veya bizi zarar ya da hukuki sorumluluk riskine maruz bırakması; veya",
+        "hesabınızın uzun süredir kullanılmamış olması ve bunu size önceden bildirmiş olmamız."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Mümkün olduğunda sizi önce uyarır ve sorunu düzeltmeniz için size fırsat veririz. Olanla orantılı şekilde hareket ederiz. Bir işlem yaptığımızda, yasa yasaklamadıkça veya size bildirmek zarara yol açmayacaksa, size ne yaptığımızı ve nedenini bildiririz."
+    },
+    {
+      "type": "p",
+      "text": "Bir Hizmeti veya tüm Hizmetleri sunmayı da bırakabiliriz. Bu durumda, hukuki veya güvenlik nedenleriyle daha erken durdurmamız gerekmedikçe, size makul bir süre önceden bildirir ve verilerinizin bir kopyasını talep etmeniz için size zaman tanırız."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Verilerinizi başka bir sağlayıcıya veya kendi sistemlerinize taşımak için {company.privacyEmail} adresine yazın. İçeriğinizin ve verilerinizin bir kopyasını yapılandırılmış, yaygın olarak kullanılan ve makine tarafından okunabilir bir formatta size verir ve taşıma işleminde ücretsiz olarak yardımcı oluruz. Sözleşmeyi istediğiniz zaman sona erdirebilirsiniz. (AB Veri Yasası (EU Data Act), Art. 23 ve 25)"
+    },
+    {
+      "type": "p",
+      "text": "Hesabınızla ilgili bir karara katılmıyorsanız mesajımıza yanıt verin veya {company.email} adresine yazın. Konu bir kişi tarafından yeniden incelenir."
+    },
+    {
+      "type": "p",
+      "text": "Bu koşulların içerik, sorumluluk, tazmin ve uyuşmazlıklara ilişkin olanlar gibi, doğası gereği devam etmesi gereken bölümleri sözleşme sona erdikten sonra da geçerliliğini korur."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Hizmetlerde ve bu koşullarda yapılan değişiklikler"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetler erken aşamadadır ve değişecektir. Özellikler ekler, geliştirir ve kaldırırız; kullandığımız yapay zekâ modellerini de değiştiririz."
+    },
+    {
+      "type": "p",
+      "text": "Örneğin Hizmetler, mevzuat veya işimiz değiştiğinde bu koşulları değiştirebiliriz. En üstteki tarih, geçerli sürümün ne zaman yürürlüğe girdiğini gösterir. Değişiklikler geçmişteki kullanıma veya hâlihazırda mevcut olan uyuşmazlıklara uygulanmaz."
+    },
+    {
+      "type": "p",
+      "text": "Sizin için önemli olan değişiklikleri size önceden e-posta ile veya Hizmetler içinde bildiririz. Bir değişiklik yürürlüğe girdikten sonra Hizmetleri kullanmaya devam ederseniz yeni koşullar geçerli olur. Kabul etmiyorsanız Hizmetleri kullanmayı bırakın ve hesabınızı kapatın.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "Değişiklik yaptığımızda haklarınız",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerde sizi etkileyen değişiklikleri yalnızca geçerli bir nedenle yaparız: yeni teknolojiye veya dayandığımız model sağlayıcılarındaki değişikliklere uyum sağlamak, Hizmetlerin güvenliğini korumak, yasal yükümlülükleri yerine getirmek ya da Hizmetleri geliştirmek veya yeniden düzenlemek. Hiçbir değişiklik size ek maliyet getirmez. (Directive (EU) 2019/770, Art. 19)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bir değişiklik Hizmetlere erişiminizi veya Hizmetleri kullanımınızı önemsiz olmayan bir ölçüde olumsuz etkilerse, bunu size önceden ve açıkça, e-posta gibi kalıcı bir veri saklayıcısı aracılığıyla bildiririz. Bu durumda bildirimden veya değişiklikten (hangisi daha sonraysa) itibaren 30 gün içinde sözleşmeyi ücretsiz olarak sona erdirebilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullarda sizi etkileyen değişiklikleri, yürürlüğe girmelerinden en az 30 gün önce size e-posta ile bildirir ve neyin değiştiğini açıklarız. Yasanın onayınızı gerektirdiği durumlarda onayınızı isteriz. Sessiz kalmanızı onay olarak kabul etmeyiz. Kabul etmiyorsanız değişiklik yürürlüğe girmeden önce hesabınızı ücretsiz olarak kapatabilirsiniz. Yasanın size tanıdığı hakları elinizden almak için değişiklikleri asla kullanmayız.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerin tarif edildiği şekilde çalışmaya devam etmesi için yasanın gerektirdiği güvenlik güncellemeleri dahil güncellemeleri, yasanın gerektirdiği süre boyunca sağlarız. Masaüstü Uygulaması için yeni sürümler, [Masaüstü Uygulaması Koşullarında](/instant/legal/desktop-app-terms) açıklandığı gibi yeni bir indirme olarak gelir. Size bir güncellemeyi ve yüklemediğiniz takdirde ne olacağını bildirmişsek, güncellemeyi yüklemenin çözeceği sorunlardan sorumlu değiliz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Sorumluluk reddi",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetler erken bir aşamadadır ve ücretsiz olarak sunulmaktadır. Değişebilir, bozulabilir veya durabilirler; çıktılar yanlış olabilir.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "YASANIN İZİN VERDİĞİ ÖLÇÜDE, HİZMETLER VE TÜM ÇIKTILAR “OLDUĞU GİBİ” VE “MEVCUT OLDUĞU ŞEKİLDE” SUNULMAKTADIR. TİCARETE ELVERİŞLİLİK, BELİRLİ BİR AMACA UYGUNLUK, MÜLKİYET, HAK İHLALİ OLMAMASI VE DOĞRULUK GARANTİLERİ DAHİL OLMAK ÜZERE, AÇIK, ZIMNİ VEYA YASADAN DOĞAN HİÇBİR TÜRDE GARANTİ VERMİYORUZ. HİZMETLERİN KESİNTİSİZ, GÜVENLİ VEYA HATASIZ OLACAĞINI, İÇERİĞİN KAYBOLMAYACAĞINI YA DA HERHANGİ BİR ÇIKTININ VEYA AJAN EYLEMİNİN DOĞRU VEYA GÜVENLİ OLACAĞINI GARANTİ ETMİYORUZ.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Bazı yerlerde belirli garantilerin hariç tutulmasına izin verilmez. Bu yerlerde yukarıdaki istisnalar yalnızca yasanın izin verdiği ölçüde uygulanır.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Yasal garanti",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Tüketiciyseniz AB hukuku size dijital içerik ve dijital hizmetler için yasal bir garanti tanır. Hizmetler, bu koşullarda ve ürün koşullarında tarif edilene uygun olmalıdır; uygun değilse sorumlu biziz. Bu koşullardaki hiçbir hüküm bu garantiyi sınırlamaz. (Directive (EU) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetler erken bir aşamadadır ve özellikler [Hizmetlerde ve bu koşullarda yapılan değişiklikler](#changes) bölümünde açıklandığı şekilde değişebilir. Kaydolmadan önce size yapay zekâ çıktısının yanlış olabileceğini bildiririz (bkz. [Yapay zekâ yanılabilir](#ai-limits)). Bu türden yanlış çıktılar, yapay zekâ hizmetlerinin bugünkü işleyişinin bir parçasıdır. Hizmetlerin kendisindeki kusurlar ise bizim sorumluluğumuzda kalır.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "İşletme kullanıcısıysanız Hizmetleri, yasanın gerektirdiği ve hariç tutmamıza izin vermediği garantiler dışında hiçbir garanti vermeksizin, olduğu gibi sunarız.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "YASANIN İZİN VERDİĞİ ÖLÇÜDE: (A) OLASILIKLARI BİZE BİLDİRİLMİŞ OLSA BİLE, HERHANGİ BİR DOLAYLI, ARIZİ, ÖZEL, SONUÇSAL, İBRETLİK VEYA CEZAİ TAZMİNATTAN YA DA KÂR, GELİR, VERİ VEYA İTİBAR KAYBINDAN SORUMLU DEĞİLİZ; VE (B) HİZMETLER VEYA BU KOŞULLARLA İLGİLİ TÜM TALEPLERE İLİŞKİN TOPLAM SORUMLULUĞUMUZ, TALEBE YOL AÇAN OLAYDAN ÖNCEKİ 12 AY İÇİNDE HİZMETLER İÇİN BİZE ÖDEDİĞİNİZ TUTAR İLE 100 ABD DOLARINDAN HANGİSİ DAHA YÜKSEKSE ONUNLA SINIRLIDIR.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Bu, sözleşme, garanti, haksız fiil (ihmal dahil) veya başka herhangi bir hukuki dayanaktan hangisine dayanılırsa dayanılsın geçerlidir. Yasanın sınırlamamıza izin vermediği sorumlulukları, örneğin dolandırıcılıktan veya ihmalimizin neden olduğu ölüm ya da kişisel yaralanmadan doğan sorumluluğu sınırlamaz. Bazı yerlerde bu sınırlamalara izin verilmez. Bu yerlerde sınırlamalar yalnızca yasanın izin verdiği ölçüde uygulanır.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "[Ajanlar](#agents) bölümünde açıklandığı gibi, ajanların gerçekleştirmesine izin verdiğiniz eylemlerden ve çıktıyı nasıl kullandığınızdan siz sorumlusunuz.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Aşağıdaki durumlarda sınırsız olarak sorumluyuz:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "kasten veya ağır ihmalle neden olduğumuz zararlar için;",
+        "hayata, vücut bütünlüğüne veya sağlığa verilen zararlar için;",
+        "ürün sorumluluğu mevzuatı kapsamında ve verdiğimiz herhangi bir garanti kapsamında;",
+        "yasanın sorumluluğun sınırlandırılmasına izin vermediği diğer tüm durumlarda."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bunların dışında, yalnızca hafif ihmalimiz söz konusuysa, ancak temel bir yükümlülüğü ihlal etmemiz hâlinde sorumlu oluruz. Temel yükümlülük, sözleşmenin ifasını en başta mümkün kılan ve normalde güvenebileceğiniz bir yükümlülüktür. Bu durumda sorumluluğumuz, bu tür bir sözleşme için tipik olan ve koşulları kabul ettiğiniz sırada öngörülebilir olan zararla sınırlıdır.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Yedek almak, çıktıyı kontrol etmek veya eylemleri onaylamadan önce gözden geçirmek gibi kendi alacağınız makul önlemlerle önleyebileceğiniz zararlardan sorumlu değiliz (bkz. [Ajanlar](#agents)). Yasanın sizi böyle bir kurala karşı koruduğu durumlarda bu hüküm uygulanmaz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bu kurallar çalışanlarımızı ve bizim için çalışan kişileri de korur.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "Tazmin"
+    },
+    {
+      "type": "p",
+      "text": "İşletme kullanıcısıysanız, içeriğinizden, Hizmetleri bu koşulları veya yasayı ihlal ederek kullanmanızdan ya da ajanların gerçekleştirmesine izin verdiğiniz eylemlerden kaynaklanan üçüncü kişi taleplerine karşı bizi savunur ve tazmin edersiniz. “Tazmin etmek”, makul masraflarımızı, kayıplarımızı ve avukatlık ücretlerimizi karşılamanız anlamına gelir. Böyle bir talebi size derhal bildirir, savunmanın kontrolünü size bırakır ve masrafı size ait olmak üzere makul ölçüde yardımcı oluruz. Bir talebi, onayımız olmadan bizim adımıza kusur kabul edecek veya bizi bağlayacak şekilde sulh yoluyla çözemezsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Tüketiciyseniz bu bölüm size uygulanmaz. Neden olduğunuz zararlardan yasa uyarınca sorumlu olmaya devam edersiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetleri bir işletme için değil yalnızca kendiniz için kullanıyorsanız bu bölüm size uygulanmaz. Neden olduğunuz zararlardan yasa uyarınca sorumlu olmaya devam edersiniz.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Yaptırımlar ve ihracat"
+    },
+    {
+      "type": "p",
+      "text": "Amerika Birleşik Devletleri’nin ve Avrupa Birliği’nin yaptırım ve ihracat kurallarına uyarız; siz de bunlara uymak zorundasınız. Aşağıdaki durumlarda Hizmetleri kullanamazsınız:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "kapsamlı ABD veya AB yaptırımlarına tabi bir ülke ya da bölgede bulunuyorsanız veya olağan olarak orada yaşıyorsanız;",
+        "bir ABD veya AB yaptırım listesinde adınız geçiyorsa ya da listede adı geçen birinin sahipliğinde veya kontrolündeyseniz; veya",
+        "kullanımınız, örneğin Hizmetleri böyle bir kişiye veya yasaklanmış bir amaç için sağlamak suretiyle, ABD veya AB yaptırım ya da ihracat kurallarını ihlal edecekse."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bu kurallara uymak için erişimi engelleyebilir, hesapları kapatabilir veya hizmet vermeyi reddedebiliriz."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Uyuşmazlıklar ve uygulanacak hukuk",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerle ilgili bir sorununuz varsa lütfen önce {company.email} adresine yazın. Çoğu sorun bu şekilde hızla çözülebilir ve bunu iyi niyetle yapmaya çalışacağız.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar ve bunlarla veya Hizmetlerle ilgili her türlü uyuşmazlık, kanunlar ihtilafına ilişkin kuralları dikkate alınmaksızın {company.law} hukukuna tabidir.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Uyuşmazlıklar tahkime değil mahkemelere götürülür. Yasanın izin verdiği durumlarda toplu davaya veya grup davasına katılma hakkınızdan vazgeçmiş olmazsınız. Talepler, yerel hukukun size bu hakkı tanıdığı durumlarda yaşadığınız yerdeki mahkemeler dahil, uygulanacak hukuka göre yetkili olan mahkemelere götürülür.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Taraflardan her biri bunun yerine, talep uygun olduğu takdirde, sizin yaşadığınız veya bizim bulunduğumuz yerdeki bir küçük talepler mahkemesinde (small-claims court) bireysel bir talepte bulunabilir.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullardaki hiçbir hüküm, yaşadığınız yerin tüketiciyi koruma mevzuatının kaldırılmasına izin vermediği haklarınızı elinizden almaz.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Uyuşmazlıklar ve uygulanacak hukuk",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetlerle ilgili bir sorununuz varsa lütfen önce {company.email} adresine yazın. Çoğu sorun bu şekilde hızla çözülebilir ve bunu iyi niyetle yapmaya çalışacağız.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bu koşullar {company.law} hukukuna tabidir. Milletlerarası Mal Satımına İlişkin Sözleşmeler Hakkında Birleşmiş Milletler Antlaşması uygulanmaz.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Tüketiciyseniz, bu koşullar hangi hukuku seçmiş olursa olsun, yaşadığınız ülkenin emredici hukukunun sağladığı korumadan yararlanmaya devam edersiniz. Bize karşı yaşadığınız yerdeki mahkemelerde dava açabilirsiniz. Biz ise size karşı yalnızca yaşadığınız yerdeki mahkemelerde dava açabiliriz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "İşletme kullanıcısıysanız, yasanın izin verdiği ölçüde kayıtlı merkezimizin bulunduğu yerdeki mahkemeler yetkilidir. Biz de sizin merkezinizin bulunduğu yerde dava açabiliriz.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Tahkim yoktur ve bu koşullardaki hiçbir hüküm, yasanın izin verdiği durumlarda temsili bir davaya veya toplu davaya katılma hakkınızı sınırlamaz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bir tüketici hakem kurulu önündeki uyuşmazlık çözüm süreçlerine katılmıyoruz ve katılmaya da istekli değiliz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "İrtibat noktaları ve içerik denetimi",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "AB Dijital Hizmetler Yasası (DSA), bize nasıl ulaşabileceğinizi ve içeriği nasıl ele aldığımızı size bildirmemizi gerektirir.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "İrtibat noktaları",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kullanıcılar ve AB Üye Devletlerinin makamları, Avrupa Komisyonu ve Avrupa Dijital Hizmetler Kurulu için tek irtibat noktamız {company.email} adresidir. Bize İngilizce yazabilirsiniz ve yalnızca otomatik bir sisteme değil, her zaman bir insana ulaşabilirsiniz. (DSA Art. 11 ve 12)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "AB’deki yasal temsilcimiz {company.euRepresentative} şeklindedir. DSA kapsamındaki her konuda temsilcimizle iletişime geçebilirsiniz. (DSA Art. 13)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "Neleri barındırıyoruz ve içeriği nasıl denetliyoruz",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bulut çalışma alanımızı, Masaüstü Uygulamasının bulut araştırmasını, Asistan Botunu veya API’yi kullandığınızda sohbetleriniz, araştırma sorularınız, hedefleriniz, dosyalarınız ve raporlarınız gibi içerikleri talebiniz üzerine saklarız. Bu içerikleri yayımlamaz veya diğer kullanıcılarla paylaşmayız. İçerikleri genel olarak izlemeyiz ve içerikleri sıralamaz veya önermeyiz.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "İçerik kurallarımız bu koşullarda ve [Kabul Edilebilir Kullanım Politikasında](/instant/legal/acceptable-use) yer alır. Yasa dışı içerikten veya bu kuralların ihlalinden, esas olarak bildirimler yoluyla haberdar olduğumuzda harekete geçeriz.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Herkes, yasa dışı olduğuna veya kurallarımızı ihlal ettiğine inandığı içeriği [İhlal bildirin](/instant/legal/acceptable-use#report) bölümünde açıklandığı şekilde bildirebilir.",
+        "Her bildirimi bir kişi inceler ve karara bağlar. Zamanında, özenli ve tarafsız bir şekilde hareket eder, ifade özgürlüğü dahil ilgili herkesin haklarına saygı gösteririz.",
+        "Tedbirler; içeriğin kaldırılmasını veya erişime kapatılmasını, özelliklerin kısıtlanmasını ve bir hesabın askıya alınmasını veya kapatılmasını içerebilir. Etkili olan en hafif tedbiri seçeriz.",
+        "Etkilenen kullanıcıya bir gerekçe beyanı veririz: ne yaptığımız, olgular, herhangi bir otomatik araç kullanılıp kullanılmadığı, dayandığımız kural veya yasa ve karara nasıl itiraz edilebileceği. (DSA Art. 17)",
+        "Birinin hayatını veya güvenliğini tehdit eden bir suçtan haberdar olursak yetkili makamları bilgilendiririz. (DSA Art. 18)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bir karara katılmıyorsanız mesajımıza yanıt verin veya {company.email} adresine yazın; karar bir kişi tarafından yeniden incelenir. Ayrıca mahkemeye başvurabilir veya yaşadığınız ülkedeki Dijital Hizmetler Koordinatörüne şikâyette bulunabilirsiniz.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "Bildirimler"
+    },
+    {
+      "type": "p",
+      "text": "Bildirimleri hesabınızdaki e-posta adresine göndeririz veya Hizmetler içinde gösteririz. E-posta adresinizi güncel tutun. Bize bildirimlerinizi {company.email} adresine gönderebilirsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Resmî hukuki bildirimler posta yoluyla {company.legalName}, {company.address} adresine de gönderilebilir.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Genel hükümler"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bu koşullar, ürün koşulları ve bağlantı verdikleri politikalar, Hizmetlerle ilgili olarak sizinle bizim aramızdaki anlaşmanın tamamını oluşturur. Bizimle imzaladığınız ayrı bir yazılı sözleşme, kapsadığı konularda üstün gelir.",
+        "Bir mahkeme bu koşulların bir bölümünü geçersiz bulursa geri kalanı geçerliliğini korur. Geçersiz bölümün yerini yasanın öngördüğü kural alır.",
+        "Bir hakkımızı hemen kullanmamamız, o haktan vazgeçtiğimiz anlamına gelmez.",
+        "Bu koşullardan doğan haklarınızı veya yükümlülüklerinizi yazılı onayımız olmadan devredemezsiniz. Haklarınız azalmadığı sürece sözleşmeyi Hizmetleri devralan bir şirkete devredebiliriz. Bunu size önceden bildiririz; bu durumda sözleşmeyi istediğiniz zaman sona erdirebilirsiniz.",
+        "Dayandığımız sağlayıcılardaki kesintiler, doğal afetler veya devlet işlemleri gibi makul kontrolümüz dışındaki olayların neden olduğu gecikme veya aksaklıklardan sorumlu değiliz. Bu, tüketici olarak haklarınızı azaltmaz.",
+        "Siz ve biz dışında hiç kimsenin bu koşullardan doğan bir hakkı yoktur.",
+        "Bu koşullar İngilizce yazılmıştır. Bir çeviri sunmamız hâlinde, yasa aksini öngörmedikçe, metinler arasında farklılık olduğu durumlarda İngilizce sürüm geçerli olur."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1504 @@
+/*
+ * The phone banner: a task is typed and sent on a phone, three steps tick there, a dot
+ * carries it along a dotted arc, and the files land one by one in the Mac's Workspace.
+ * Plain styles are the finished frame; keyframes bring each part in on the shared clock.
+ *
+ * Loop (12s): 3-19% type, 21-24% send, 23-28% the ask rises, 30-45% steps tick,
+ * 45-55% the dot travels, 55-60% the Mac lights, 57-78% files land, 91-97% all fade.
+ */
+
+.nb-phone {
+  --nb-phone-glow-dx: calc(var(--u) * -47);
+  --nb-phone-glow-dy: 0;
+  /* The phone is hardware: its dark metal (three shades) and side buttons stay the same in
+     both looks, and so does the glossy avatar orb. */
+  --nb-phone-bezel-a: #2c2c2c;
+  --nb-phone-bezel-b: #0c0c0c;
+  --nb-phone-bezel-c: #161616;
+  --nb-phone-button: #2a2a2a;
+  --nb-phone-orb-a: #e0e0e0;
+  --nb-phone-orb-b: #3c3c3c;
+  /* What sits under the screen's glass; a file row's edge at rest and as it flashes; the
+     face of an arc's end ring (the stage shows through it). */
+  --nb-phone-under: #111;
+  --nb-phone-file-edge: #3a3a3a;
+  --nb-phone-file-flash: #8a8a8a;
+  --nb-phone-hole: #0a0a0a;
+}
+
+/* Light: the screen shows the app's light theme; the phone around it stays dark. */
+[data-oi-theme='light'] .nb-phone {
+  --nb-phone-under: #ffffff;
+  --nb-phone-file-edge: #e0e0e0;
+  --nb-phone-file-flash: #6b6b6b;
+  --nb-phone-hole: #ffffff;
+}
+
+/* --nb-stroke is declared on .nb, above the --u it needs; declared again here it resolves. */
+.nb-phone .nb-scene {
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+}
+
+.nb-phone-glow,
+.nb-phone-device,
+.nb-phone-arc {
+  position: absolute;
+}
+
+/* A soft light that follows the work from the phone to the Mac. */
+.nb-phone-glow {
+  top: calc(var(--u) * 3);
+  left: calc(var(--u) * 47);
+  width: calc(var(--u) * 42);
+  height: calc(var(--u) * 38);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.09 * var(--oi-halo-k))),
+    transparent
+  );
+  pointer-events: none;
+  animation: nb-phone-glow var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Light: the light that follows the work is white, not a grey shade. */
+[data-oi-theme='light'] .nb-phone-glow {
+  background: radial-gradient(closest-side, rgba(var(--oi-lift-rgb), 0.9), transparent);
+}
+
+/* The phone ------------------------------------------------------------------------------ */
+
+.nb-phone-device {
+  top: calc(var(--u) * 3.9);
+  left: calc(var(--u) * 12);
+  width: calc(var(--u) * 18);
+  height: calc(var(--u) * 36);
+  padding: calc(var(--u) * 0.55);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: calc(var(--u) * 3.2);
+  background: linear-gradient(
+    160deg,
+    var(--nb-phone-bezel-a),
+    var(--nb-phone-bezel-b) 38%,
+    var(--nb-phone-bezel-c)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.22),
+    0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1.5)
+      rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
+}
+
+/* Light: the metal keeps its bright rim, as it has on dark. */
+[data-oi-theme='light'] .nb-phone-device {
+  border-color: rgba(var(--oi-lift-rgb), 0.3);
+}
+
+/* Side buttons. */
+.nb-phone-device::before,
+.nb-phone-device::after {
+  content: '';
+  position: absolute;
+  width: calc(var(--u) * 0.3);
+  border-radius: calc(var(--u) * 0.2);
+  background: var(--nb-phone-button);
+}
+
+.nb-phone-device::before {
+  top: calc(var(--u) * 7);
+  left: calc(var(--u) * -0.4);
+  height: calc(var(--u) * 4);
+}
+
+.nb-phone-device::after {
+  top: calc(var(--u) * 9);
+  right: calc(var(--u) * -0.4);
+  height: calc(var(--u) * 5.5);
+}
+
+.nb-phone-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.2);
+  height: 100%;
+  padding: calc(var(--u) * 2.7) calc(var(--u) * 1.1) calc(var(--u) * 1.6);
+  overflow: hidden;
+  border-radius: calc(var(--u) * 2.65);
+  background: var(--oi-app-surface), var(--nb-phone-under);
+}
+
+.nb-phone-island,
+.nb-phone-home {
+  position: absolute;
+  left: 50%;
+  border-radius: calc(var(--u) * 20);
+  transform: translateX(-50%);
+}
+
+.nb-phone-island {
+  top: calc(var(--u) * 0.75);
+  width: calc(var(--u) * 5);
+  height: calc(var(--u) * 1.35);
+  background: var(--oi-page);
+}
+
+/* Light: the island is part of the hardware and stays black on the light screen. */
+[data-oi-theme='light'] .nb-phone-island {
+  background: rgb(var(--oi-shadow-rgb));
+}
+
+.nb-phone-home {
+  bottom: calc(var(--u) * 0.55);
+  width: calc(var(--u) * 5.5);
+  height: calc(var(--u) * 0.3);
+  background: rgba(var(--oi-fg-rgb), 0.45);
+}
+
+.nb-phone-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--nb-muted);
+}
+
+.nb-phone-head .nb-icon {
+  width: calc(var(--u) * 1.4);
+  height: calc(var(--u) * 1.4);
+  stroke-width: 1.8;
+}
+
+.nb-phone-orb {
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 1.5);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--nb-phone-orb-a), var(--nb-phone-orb-b) 70%);
+}
+
+.nb-phone-chat {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.2);
+  min-height: 0;
+}
+
+.nb-phone .nb-phone-ask {
+  align-self: flex-end;
+  max-width: 88%;
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 1.15);
+  border-color: var(--nb-line);
+  border-bottom-right-radius: calc(var(--u) * 0.35);
+  background: var(--nb-bubble);
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.1);
+  transform-origin: 100% 100%;
+  animation: nb-phone-ask var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The three steps, each: waiting ring, then a spinner, then a tick. */
+.nb-phone-steps {
+  display: grid;
+  gap: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 1.1);
+  border: 1px solid var(--nb-line);
+  border-radius: calc(var(--u) * 1);
+  background: rgba(var(--oi-fg-rgb), 0.035);
+  animation: nb-phone-card var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-step {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.75);
+  color: var(--nb-text);
+  font-size: calc(var(--u) * 1.05);
+  animation: var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-mark {
+  position: relative;
+  flex: none;
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 1.5);
+  border: 1px solid var(--nb-line-strong);
+  border-radius: 50%;
+}
+
+.nb-phone-mark > * {
+  position: absolute;
+  inset: -1px;
+}
+
+.nb-phone .nb-phone-mark .nb-tick {
+  width: auto;
+  height: auto;
+}
+
+.nb-phone-mark .nb-tick,
+.nb-phone-state .nb-tick {
+  animation: var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-spin {
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 1.5);
+  opacity: 0;
+  fill: none;
+  stroke: var(--nb-accent);
+  stroke-width: 2.2;
+  stroke-dasharray: 28 72;
+  stroke-linecap: round;
+  animation:
+    nb-phone-spin var(--nb-loop) linear infinite,
+    var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The input: the ask types on two lines, then Send. */
+.nb-phone-compose {
+  flex: none;
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 0.8) calc(var(--u) * 0.7) calc(var(--u) * 1);
+  border: 1px solid var(--nb-line-strong);
+  border-radius: calc(var(--u) * 1.3);
+  background: rgba(var(--oi-fg-rgb), 0.05);
+}
+
+.nb-phone-typed {
+  display: flex;
+  flex-direction: column;
+  height: calc(var(--u) * 3);
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.1);
+  opacity: 0;
+  animation: nb-phone-typed var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-line {
+  display: flex;
+  align-items: center;
+  height: calc(var(--u) * 1.5);
+  white-space: nowrap;
+}
+
+.nb-phone-line .nb-type {
+  animation: var(--nb-loop) linear infinite;
+}
+
+.nb-phone-caret {
+  display: inline-flex;
+  opacity: 0;
+  animation: var(--nb-loop) linear infinite;
+}
+
+.nb-phone-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: calc(var(--u) * 0.5);
+}
+
+.nb-phone-plus {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 2);
+  border: 1px solid var(--nb-line-strong);
+  border-radius: 50%;
+  color: var(--nb-muted);
+}
+
+.nb-phone-plus .nb-icon {
+  width: 70%;
+  height: 70%;
+}
+
+.nb-phone-send {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: calc(var(--u) * 2);
+  padding: 0 calc(var(--u) * 1.05);
+  border-radius: calc(var(--u) * 20);
+  background: var(--nb-bubble);
+  color: var(--nb-muted);
+  font-size: calc(var(--u) * 0.95);
+  font-weight: 600;
+  animation: nb-phone-send var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-send .nb-icon {
+  width: calc(var(--u) * 1.1);
+  height: calc(var(--u) * 1.1);
+}
+
+/* The press sends out one ring. */
+.nb-phone-send::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.75);
+  border-radius: inherit;
+  opacity: 0;
+  animation: nb-phone-ripple var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The Mac ------------------------------------------------------------------------------- */
+
+.nb-phone .nb-phone-mac {
+  top: calc(var(--u) * 10.4);
+  left: calc(var(--u) * 47);
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--u) * 42);
+  height: calc(var(--u) * 23);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.14),
+    0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1.5)
+      rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k))),
+    0 0 calc(var(--u) * 4) rgba(var(--oi-fg-rgb), 0);
+  animation: nb-phone-mac var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-mac-body {
+  display: flex;
+  flex: 1 1 auto;
+  gap: calc(var(--u) * 1.2);
+  min-height: 0;
+  padding: calc(var(--u) * 1.2);
+}
+
+/* The app's sidebar, as scenery. */
+.nb-phone-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  width: calc(var(--u) * 9);
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 0.9);
+  border: 1px solid var(--nb-line);
+  border-radius: calc(var(--u) * 0.9);
+  background: rgba(var(--oi-shadow-rgb), calc(0.2 * var(--oi-shadow-k)));
+}
+
+.nb-phone-side i {
+  height: calc(var(--u) * 0.5);
+  border-radius: calc(var(--u) * 20);
+  background: rgba(var(--oi-fg-rgb), 0.1);
+}
+
+.nb-phone-side i:nth-child(1) {
+  width: 55%;
+  margin-bottom: calc(var(--u) * 0.6);
+  background: rgba(var(--oi-fg-rgb), 0.22);
+}
+
+.nb-phone-side i:nth-child(2) {
+  width: 80%;
+}
+
+.nb-phone-side i:nth-child(3) {
+  width: 65%;
+}
+
+.nb-phone-side i:nth-child(4) {
+  width: 72%;
+}
+
+.nb-phone-side i:nth-child(5) {
+  width: 48%;
+}
+
+.nb-phone-ws {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  min-width: 0;
+}
+
+.nb-phone-ws-head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.6);
+  height: calc(var(--u) * 1.8);
+  color: var(--nb-muted);
+  font-size: calc(var(--u) * 0.95);
+}
+
+.nb-phone-ws-head .nb-icon {
+  width: calc(var(--u) * 1.3);
+  height: calc(var(--u) * 1.3);
+}
+
+/* Marks the Workspace as fed from the phone. */
+.nb-phone-from {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 1.8);
+  height: calc(var(--u) * 1.8);
+  margin-left: auto;
+  border: 1px solid var(--nb-line-strong);
+  border-radius: 50%;
+  background: var(--nb-panel-2);
+  color: var(--nb-ink);
+  animation: nb-phone-from var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-ws-head .nb-phone-from .nb-icon {
+  width: 62%;
+  height: 62%;
+}
+
+.nb-phone-files {
+  display: grid;
+  gap: calc(var(--u) * 0.8);
+}
+
+/* An empty slot waits under each file, so the list never looks half built. */
+.nb-phone-slot {
+  position: relative;
+  height: calc(var(--u) * 3.6);
+  border: 1px dashed rgba(var(--oi-fg-rgb), 0.09);
+  border-radius: calc(var(--u) * 0.9);
+}
+
+.nb-phone .nb-phone-file {
+  position: absolute;
+  inset: -1px;
+  padding: 0 calc(var(--u) * 1) 0 calc(var(--u) * 0.7);
+  border: 1px solid var(--nb-phone-file-edge);
+  border-radius: calc(var(--u) * 0.9);
+  background: var(--nb-panel-2);
+  animation: var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone .nb-phone-file .nb-file-icon {
+  width: calc(var(--u) * 2.1);
+  height: calc(var(--u) * 2.1);
+  color: var(--nb-accent);
+}
+
+.nb-phone-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.05);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nb-phone-state {
+  position: relative;
+  flex: none;
+  width: calc(var(--u) * 7);
+  height: calc(var(--u) * 1.5);
+}
+
+.nb-phone-state > * {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  translate: 0 -50%;
+}
+
+.nb-phone .nb-phone-state .nb-tick {
+  width: calc(var(--u) * 1.4);
+  height: calc(var(--u) * 1.4);
+}
+
+.nb-phone-writing {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.5);
+  color: var(--nb-muted);
+  font-size: calc(var(--u) * 0.85);
+  opacity: 0;
+  animation: var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The writing bar: a light runs along it. */
+.nb-phone-writing i {
+  width: calc(var(--u) * 3);
+  height: calc(var(--u) * 0.35);
+  border-radius: calc(var(--u) * 20);
+  background:
+    linear-gradient(90deg, transparent, rgba(var(--oi-fg-rgb), 0.85), transparent) 0 0 /
+      calc(var(--u) * 3) 100% repeat-x,
+    rgba(var(--oi-fg-rgb), 0.14);
+  animation: nb-phone-stripes var(--nb-loop) linear infinite;
+}
+
+/* The arc -------------------------------------------------------------------------------- */
+
+.nb-phone-arc {
+  top: calc(var(--u) * 8);
+  left: calc(var(--u) * 29);
+  width: calc(var(--u) * 19);
+  height: calc(var(--u) * 13);
+  overflow: visible;
+  fill: none;
+}
+
+.nb-phone-arc-tall {
+  display: none;
+}
+
+.nb-phone-arc * {
+  animation: var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-phone-arc-dots {
+  stroke: rgba(var(--oi-fg-rgb), 0.55);
+  stroke-width: 0.26;
+  stroke-dasharray: 0 0.9;
+  stroke-linecap: round;
+  animation-name: nb-phone-arc;
+}
+
+.nb-phone-arc-trail,
+.nb-phone-arc-dot {
+  stroke: rgb(var(--oi-fg-rgb));
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.nb-phone-arc-trail {
+  stroke-width: 0.3;
+  stroke-dasharray: 16 200;
+  stroke-dashoffset: -84;
+  animation-name: nb-phone-trail;
+}
+
+.nb-phone-arc-dot {
+  stroke-width: 0.95;
+  stroke-dasharray: 0 200;
+  stroke-dashoffset: -100;
+  animation-name: nb-phone-dot;
+}
+
+/* A soft halo that rides with the dot. */
+.nb-phone-arc-halo {
+  stroke-width: 2.4;
+  stroke-opacity: 0.16;
+}
+
+.nb-phone-end {
+  fill: var(--nb-phone-hole);
+  stroke: var(--nb-accent);
+  stroke-width: 0.22;
+  animation: none;
+}
+
+.nb-phone-ping {
+  fill: none;
+  stroke: rgb(var(--oi-fg-rgb));
+  stroke-width: 0.14;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.nb-phone-ping-from {
+  animation-name: nb-phone-ping-from;
+}
+
+.nb-phone-ping-to {
+  animation-name: nb-phone-ping-to;
+}
+
+/* Which step or file each keyframe set belongs to. */
+.nb-phone-line:nth-child(1) .nb-type {
+  animation-name: nb-phone-type-1;
+}
+
+.nb-phone-line:nth-child(2) .nb-type {
+  animation-name: nb-phone-type-2;
+}
+
+.nb-phone-line:nth-child(1) .nb-phone-caret {
+  animation-name: nb-phone-caret-1;
+}
+
+.nb-phone-line:nth-child(2) .nb-phone-caret {
+  animation-name: nb-phone-caret-2;
+}
+
+.nb-phone-step:nth-child(1) {
+  animation-name: nb-phone-step-1;
+}
+
+.nb-phone-step:nth-child(2) {
+  animation-name: nb-phone-step-2;
+}
+
+.nb-phone-step:nth-child(3) {
+  animation-name: nb-phone-step-3;
+}
+
+.nb-phone-step:nth-child(1) .nb-phone-spin {
+  animation-name: nb-phone-spin, nb-phone-work-1;
+}
+
+.nb-phone-step:nth-child(2) .nb-phone-spin {
+  animation-name: nb-phone-spin, nb-phone-work-2;
+}
+
+.nb-phone-step:nth-child(3) .nb-phone-spin {
+  animation-name: nb-phone-spin, nb-phone-work-3;
+}
+
+.nb-phone-step:nth-child(1) .nb-tick {
+  animation-name: nb-phone-tick-1;
+}
+
+.nb-phone-step:nth-child(2) .nb-tick {
+  animation-name: nb-phone-tick-2;
+}
+
+.nb-phone-step:nth-child(3) .nb-tick {
+  animation-name: nb-phone-tick-3;
+}
+
+.nb-phone-slot:nth-child(1) .nb-phone-file {
+  animation-name: nb-phone-file-1;
+}
+
+.nb-phone-slot:nth-child(2) .nb-phone-file {
+  animation-name: nb-phone-file-2;
+}
+
+.nb-phone-slot:nth-child(3) .nb-phone-file {
+  animation-name: nb-phone-file-3;
+}
+
+.nb-phone-slot:nth-child(1) .nb-phone-writing {
+  animation-name: nb-phone-write-1;
+}
+
+.nb-phone-slot:nth-child(2) .nb-phone-writing {
+  animation-name: nb-phone-write-2;
+}
+
+.nb-phone-slot:nth-child(3) .nb-phone-writing {
+  animation-name: nb-phone-write-3;
+}
+
+.nb-phone-slot:nth-child(1) .nb-tick {
+  animation-name: nb-phone-done-1;
+}
+
+.nb-phone-slot:nth-child(2) .nb-tick {
+  animation-name: nb-phone-done-2;
+}
+
+.nb-phone-slot:nth-child(3) .nb-tick {
+  animation-name: nb-phone-done-3;
+}
+
+/* Phones: the phone on top, the Mac below, the arc running down between them. ----------- */
+
+@container nb (max-width: 600px) {
+  .nb-phone-glow {
+    --nb-phone-glow-dx: calc(var(--u) * -6.3);
+    --nb-phone-glow-dy: calc(var(--u) * -25);
+
+    top: calc(var(--u) * 26);
+    left: calc(var(--u) * 6.8);
+    width: calc(var(--u) * 28);
+    height: calc(var(--u) * 26);
+  }
+
+  .nb-phone-device {
+    top: calc(var(--u) * 1.8);
+    left: calc(var(--u) * 7);
+    width: calc(var(--u) * 15);
+    height: calc(var(--u) * 28);
+    border-radius: calc(var(--u) * 2.8);
+  }
+
+  .nb-phone-device::before {
+    top: calc(var(--u) * 5.5);
+    height: calc(var(--u) * 3.2);
+  }
+
+  .nb-phone-device::after {
+    top: calc(var(--u) * 7);
+    height: calc(var(--u) * 4.4);
+  }
+
+  .nb-phone-screen {
+    gap: calc(var(--u) * 0.8);
+    padding: calc(var(--u) * 2.5) calc(var(--u) * 0.9) calc(var(--u) * 1.4);
+    border-radius: calc(var(--u) * 2.3);
+  }
+
+  .nb-phone-island {
+    top: calc(var(--u) * 0.65);
+    width: calc(var(--u) * 4.2);
+    height: calc(var(--u) * 1.2);
+  }
+
+  .nb-phone-home {
+    bottom: calc(var(--u) * 0.5);
+    width: calc(var(--u) * 4.6);
+  }
+
+  .nb-phone-head .nb-icon,
+  .nb-phone-orb {
+    width: calc(var(--u) * 1.15);
+    height: calc(var(--u) * 1.15);
+  }
+
+  .nb-phone-chat {
+    gap: calc(var(--u) * 0.8);
+  }
+
+  .nb-phone .nb-phone-ask {
+    padding: calc(var(--u) * 0.55) calc(var(--u) * 0.85);
+    font-size: calc(var(--u) * 0.95);
+  }
+
+  .nb-phone-steps {
+    gap: calc(var(--u) * 0.6);
+    padding: calc(var(--u) * 0.75) calc(var(--u) * 0.8);
+  }
+
+  .nb-phone-step {
+    gap: calc(var(--u) * 0.6);
+    font-size: calc(var(--u) * 0.95);
+  }
+
+  .nb-phone-mark,
+  .nb-phone-spin {
+    width: calc(var(--u) * 1.2);
+    height: calc(var(--u) * 1.2);
+  }
+
+  .nb-phone-compose {
+    padding: calc(var(--u) * 0.65) calc(var(--u) * 0.65) calc(var(--u) * 0.6) calc(var(--u) * 0.85);
+    border-radius: calc(var(--u) * 1.1);
+  }
+
+  .nb-phone-typed {
+    height: calc(var(--u) * 2.5);
+    font-size: calc(var(--u) * 0.95);
+  }
+
+  .nb-phone-line {
+    height: calc(var(--u) * 1.25);
+  }
+
+  .nb-phone-plus,
+  .nb-phone-send {
+    height: calc(var(--u) * 1.6);
+  }
+
+  .nb-phone-plus {
+    width: calc(var(--u) * 1.6);
+  }
+
+  .nb-phone-send {
+    padding: 0 calc(var(--u) * 0.8);
+    font-size: calc(var(--u) * 0.8);
+  }
+
+  .nb-phone .nb-phone-mac {
+    top: calc(var(--u) * 32);
+    left: calc(var(--u) * 3.5);
+    width: calc(var(--u) * 34.67);
+    height: calc(var(--u) * 17.5);
+  }
+
+  .nb-phone-mac-body {
+    padding: calc(var(--u) * 1) calc(var(--u) * 1.1);
+  }
+
+  .nb-phone-side {
+    display: none;
+  }
+
+  .nb-phone-ws {
+    gap: calc(var(--u) * 0.7);
+  }
+
+  .nb-phone-ws-head {
+    height: calc(var(--u) * 1.6);
+  }
+
+  .nb-phone-from {
+    width: calc(var(--u) * 1.6);
+    height: calc(var(--u) * 1.6);
+  }
+
+  .nb-phone-files {
+    gap: calc(var(--u) * 0.6);
+  }
+
+  .nb-phone-slot {
+    height: calc(var(--u) * 2.9);
+  }
+
+  .nb-phone-file-name {
+    font-size: calc(var(--u) * 1.1);
+  }
+
+  .nb-phone .nb-phone-file .nb-file-icon {
+    width: calc(var(--u) * 1.9);
+    height: calc(var(--u) * 1.9);
+  }
+
+  .nb-phone-arc-wide {
+    display: none;
+  }
+
+  .nb-phone-arc-tall {
+    display: block;
+    top: calc(var(--u) * 11.5);
+    left: calc(var(--u) * 21.8);
+    width: calc(var(--u) * 17);
+    height: calc(var(--u) * 21);
+  }
+}
+
+/* Keyframes -------------------------------------------------------------------------------- */
+
+@keyframes nb-phone-glow {
+  0% {
+    opacity: 0;
+    transform: translate(var(--nb-phone-glow-dx), var(--nb-phone-glow-dy));
+  }
+  5%,
+  45% {
+    opacity: 1;
+    transform: translate(var(--nb-phone-glow-dx), var(--nb-phone-glow-dy));
+  }
+  57%,
+  91% {
+    opacity: 1;
+    transform: none;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/*
+ * Typing: the width opens one letter (var(--nb-ch)) at a time.
+ */
+@keyframes nb-phone-type-1 {
+  0%,
+  3% {
+    max-width: 0;
+    animation-timing-function: steps(14, end);
+  }
+  10.5%,
+  100% {
+    max-width: calc(var(--n) * var(--nb-ch));
+  }
+}
+
+@keyframes nb-phone-type-2 {
+  0%,
+  11% {
+    max-width: 0;
+    animation-timing-function: steps(15, end);
+  }
+  18.5%,
+  100% {
+    max-width: calc(var(--n) * var(--nb-ch));
+  }
+}
+
+@keyframes nb-phone-caret-1 {
+  0%,
+  10.6% {
+    opacity: 1;
+  }
+  10.7%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-caret-2 {
+  0%,
+  10.6% {
+    opacity: 0;
+  }
+  10.7%,
+  22% {
+    opacity: 1;
+  }
+  22.1%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Once sent, the words leave the input. */
+@keyframes nb-phone-typed {
+  0%,
+  22.5% {
+    opacity: 1;
+    transform: none;
+  }
+  25%,
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * -0.8));
+  }
+}
+
+@keyframes nb-phone-send {
+  0%,
+  3% {
+    background-color: var(--nb-bubble);
+    color: var(--nb-muted);
+    transform: none;
+  }
+  5%,
+  21.5% {
+    background-color: var(--nb-accent);
+    color: rgb(var(--oi-bg-rgb));
+    transform: none;
+  }
+  22.5% {
+    background-color: rgb(var(--oi-fg-rgb));
+    color: rgb(var(--oi-bg-rgb));
+    transform: scale(0.84);
+  }
+  24% {
+    background-color: var(--nb-accent);
+    color: rgb(var(--oi-bg-rgb));
+    transform: none;
+  }
+  27%,
+  100% {
+    background-color: var(--nb-bubble);
+    color: var(--nb-muted);
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-ripple {
+  0%,
+  22.4% {
+    opacity: 0;
+    transform: none;
+  }
+  22.5% {
+    opacity: 0.85;
+    transform: none;
+  }
+  28%,
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+/* The ask rises from the input into the chat. */
+@keyframes nb-phone-ask {
+  0%,
+  23% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 7)) scale(0.92);
+  }
+  28%,
+  91% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-card {
+  0%,
+  26.5% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 1.2));
+  }
+  29.5%,
+  91% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* A step's label: waiting (faint), working (bright), done. */
+@keyframes nb-phone-step-1 {
+  0%,
+  29.5% {
+    color: var(--nb-faint);
+  }
+  30.5%,
+  34.5% {
+    color: var(--nb-ink);
+  }
+  36%,
+  100% {
+    color: var(--nb-text);
+  }
+}
+
+@keyframes nb-phone-step-2 {
+  0%,
+  34.5% {
+    color: var(--nb-faint);
+  }
+  35.5%,
+  39.5% {
+    color: var(--nb-ink);
+  }
+  41%,
+  100% {
+    color: var(--nb-text);
+  }
+}
+
+@keyframes nb-phone-step-3 {
+  0%,
+  39.5% {
+    color: var(--nb-faint);
+  }
+  40.5%,
+  44.5% {
+    color: var(--nb-ink);
+  }
+  46%,
+  100% {
+    color: var(--nb-text);
+  }
+}
+
+@keyframes nb-phone-spin {
+  to {
+    transform: rotate(4320deg);
+  }
+}
+
+@keyframes nb-phone-work-1 {
+  0%,
+  29.5% {
+    opacity: 0;
+  }
+  30.5%,
+  34% {
+    opacity: 1;
+  }
+  35%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-work-2 {
+  0%,
+  34.5% {
+    opacity: 0;
+  }
+  35.5%,
+  39% {
+    opacity: 1;
+  }
+  40%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-work-3 {
+  0%,
+  39.5% {
+    opacity: 0;
+  }
+  40.5%,
+  44% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-tick-1 {
+  0%,
+  34.5% {
+    transform: scale(0);
+  }
+  36% {
+    transform: scale(1.18);
+  }
+  37.5%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-tick-2 {
+  0%,
+  39.5% {
+    transform: scale(0);
+  }
+  41% {
+    transform: scale(1.18);
+  }
+  42.5%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-tick-3 {
+  0%,
+  44.5% {
+    transform: scale(0);
+  }
+  46% {
+    transform: scale(1.18);
+  }
+  47.5%,
+  100% {
+    transform: none;
+  }
+}
+
+/* The dotted arc wakes when the steps are done and dims again at the reset. */
+@keyframes nb-phone-arc {
+  0%,
+  44.5% {
+    opacity: 0.35;
+  }
+  46.5%,
+  91% {
+    opacity: 1;
+  }
+  97%,
+  100% {
+    opacity: 0.35;
+  }
+}
+
+/* The dot and its short trail travel together along the arc. */
+@keyframes nb-phone-dot {
+  0%,
+  45.5% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+  46% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  55% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  56.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-phone-trail {
+  0%,
+  45.5% {
+    opacity: 0;
+    stroke-dashoffset: 16;
+  }
+  46% {
+    opacity: 0.6;
+    stroke-dashoffset: 16;
+  }
+  55% {
+    opacity: 0.6;
+    stroke-dashoffset: -84;
+  }
+  57%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -84;
+  }
+}
+
+@keyframes nb-phone-ping-from {
+  0%,
+  45.5% {
+    opacity: 0;
+    transform: none;
+  }
+  46% {
+    opacity: 0.9;
+    transform: none;
+  }
+  51%,
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+@keyframes nb-phone-ping-to {
+  0%,
+  55% {
+    opacity: 0;
+    transform: none;
+  }
+  55.5% {
+    opacity: 0.9;
+    transform: none;
+  }
+  60.5%,
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+/* The Mac window lights up as the task arrives. */
+@keyframes nb-phone-mac {
+  0%,
+  55% {
+    border-color: var(--oi-app-edge);
+    box-shadow:
+      inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.14),
+      0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1.5)
+        rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k))),
+      0 0 calc(var(--u) * 4) rgba(var(--oi-fg-rgb), 0);
+  }
+  57% {
+    border-color: rgba(var(--oi-fg-rgb), 0.4);
+    box-shadow:
+      inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.22),
+      0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1.5)
+        rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k))),
+      0 0 calc(var(--u) * 4) rgba(var(--oi-fg-rgb), 0.12);
+  }
+  64%,
+  100% {
+    border-color: var(--oi-app-edge);
+    box-shadow:
+      inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.14),
+      0 calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * -1.5)
+        rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k))),
+      0 0 calc(var(--u) * 4) rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+@keyframes nb-phone-from {
+  0%,
+  55.5% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  57.5% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  59%,
+  91% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* A file lands, writes, and flashes once when it is done. */
+@keyframes nb-phone-file-1 {
+  0%,
+  57% {
+    opacity: 0;
+    border-color: var(--nb-phone-file-edge);
+    transform: translateY(calc(var(--u) * -0.8)) scale(0.97);
+  }
+  59.5%,
+  63% {
+    opacity: 1;
+    border-color: var(--nb-phone-file-edge);
+    transform: none;
+  }
+  64% {
+    border-color: var(--nb-phone-file-flash);
+  }
+  68%,
+  91% {
+    opacity: 1;
+    border-color: var(--nb-phone-file-edge);
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-file-2 {
+  0%,
+  64% {
+    opacity: 0;
+    border-color: var(--nb-phone-file-edge);
+    transform: translateY(calc(var(--u) * -0.8)) scale(0.97);
+  }
+  66.5%,
+  70% {
+    opacity: 1;
+    border-color: var(--nb-phone-file-edge);
+    transform: none;
+  }
+  71% {
+    border-color: var(--nb-phone-file-flash);
+  }
+  75%,
+  91% {
+    opacity: 1;
+    border-color: var(--nb-phone-file-edge);
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-file-3 {
+  0%,
+  71% {
+    opacity: 0;
+    border-color: var(--nb-phone-file-edge);
+    transform: translateY(calc(var(--u) * -0.8)) scale(0.97);
+  }
+  73.5%,
+  77.5% {
+    opacity: 1;
+    border-color: var(--nb-phone-file-edge);
+    transform: none;
+  }
+  78.5% {
+    border-color: var(--nb-phone-file-flash);
+  }
+  82.5%,
+  91% {
+    opacity: 1;
+    border-color: var(--nb-phone-file-edge);
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-write-1 {
+  0%,
+  57.5% {
+    opacity: 0;
+  }
+  59%,
+  62.5% {
+    opacity: 1;
+  }
+  63.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-write-2 {
+  0%,
+  64.5% {
+    opacity: 0;
+  }
+  66%,
+  69.5% {
+    opacity: 1;
+  }
+  70.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-write-3 {
+  0%,
+  71.5% {
+    opacity: 0;
+  }
+  73%,
+  77% {
+    opacity: 1;
+  }
+  78%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-phone-done-1 {
+  0%,
+  63% {
+    transform: scale(0);
+  }
+  64.5% {
+    transform: scale(1.18);
+  }
+  66%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-done-2 {
+  0%,
+  70% {
+    transform: scale(0);
+  }
+  71.5% {
+    transform: scale(1.18);
+  }
+  73%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes nb-phone-done-3 {
+  0%,
+  77.5% {
+    transform: scale(0);
+  }
+  79% {
+    transform: scale(1.18);
+  }
+  80.5%,
+  100% {
+    transform: none;
+  }
+}
+
+/* One tile of light per second along the writing bar (36u over the 12s loop). */
+@keyframes nb-phone-stripes {
+  to {
+    background-position-x: calc(var(--u) * 36);
+  }
+}

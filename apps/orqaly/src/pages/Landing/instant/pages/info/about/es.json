@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Historia",
+    "goal": "Objetivo",
+    "mission": "Misión",
+    "founders": "Fundadores"
+  },
+  "story": {
+    "tag": "Nuestra historia",
+    "title": "Dos caminos que se encontraron.",
+    "lede": "Dos product managers, dos productos, una idea. Así nació Orqanix.",
+    "steps": [
+      {
+        "when": "Nov 2024",
+        "who": "Vitaly · AxWise",
+        "title": "La capa de pensamiento",
+        "text": "Vitaly empezó a mapear la nueva industria de la IA que se estaba construyendo: sus modelos, proveedores y servicios. Su idea era una capa cognitiva, una IA que piensa a fondo un problema antes de responder, para que el resultado final llegue listo para usar."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "De 40 minutos a segundos",
+        "text": "Las primeras ejecuciones tardaban de 30 a 40 minutos. Luego los modelos mejoraron, y la capa mejoró con ellos. Cada ronda volvía más rápida y más precisa, hasta que el mismo trabajo tardaba segundos."
+      },
+      {
+        "when": "Feb 2026",
+        "who": "Viktor · Orqaly",
+        "title": "Una persona, el trabajo de todo un equipo",
+        "text": "Viktor había seguido la IA durante años. Cuando llegó un nuevo modelo de frontera, vio que podía construir un producto real él solo, sin equipo de front-end, back-end, DevOps ni diseño. Así que creó una plataforma donde los agentes de IA comparten el trabajo, sin traspasos que la frenen."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "La pieza que faltaba",
+        "text": "Muchos experimentos fallaron, y cada uno enseñó algo. Al final la plataforma funcionó, pero faltaba una pieza: agentes lo bastante fiables para ser su capa final."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "La llamada",
+        "text": "Entonces Viktor llamó a Vitaly, un amigo de la universidad. En esa llamada descubrieron que estaban construyendo lo mismo desde extremos opuestos: la capa de pensamiento y la orquestación a su alrededor."
+      },
+      {
+        "when": "Sep 2026",
+        "who": "AxWise + Orqaly",
+        "title": "Un solo producto",
+        "text": "Meses uniendo un producto con el otro, con investigación y pruebas de rendimiento en el camino, se convirtieron en una sola plataforma: Orqanix. Ayuda a las personas a planificar un negocio, investigar preguntas simples o profundas, y construir cosas reales más rápido."
+      }
+    ],
+    "close": "Investiga, planifica y construye. En minutos."
+  },
+  "goal": {
+    "tag": "Nuestro objetivo",
+    "title": "Tu IA. Tu máquina. Tu elección.",
+    "lede": "La IA debería funcionar donde tú quieras, con los modelos que elijas, y tu conocimiento debería seguir siendo tuyo cuando cambies.",
+    "core": "Tu conocimiento",
+    "orbit": [
+      "Modelo local",
+      "Modelo en la nube",
+      "Tu agente"
+    ],
+    "caption": "Los modelos cambian. Tu conocimiento permanece.",
+    "points": [
+      {
+        "title": "Ejecuta modelos localmente",
+        "text": "Ejecuta modelos de lenguaje locales, u otros tipos de IA, directamente en tu propio ordenador."
+      },
+      {
+        "title": "Usa cualquier proveedor",
+        "text": "Elige cualquier servicio que funcione con IA. Sin ataduras a una sola nube o proveedor."
+      },
+      {
+        "title": "Trae o crea agentes",
+        "text": "Importa el agente que ya usas, o crea el tuyo propio para la tarea."
+      },
+      {
+        "title": "Una sola base de conocimiento",
+        "text": "Guarda todo en un solo lugar, para que nada se pierda cuando cambies de modelo."
+      }
+    ],
+    "close": "Elige lo que se ajuste a la tarea de hoy y a tu hardware. Esa es la libertad de usar la IA a tu manera."
+  },
+  "mission": {
+    "tag": "Nuestra misión",
+    "statement": [
+      "Un espacio de IA que crece contigo.",
+      "Construido en torno a quién eres y qué quieres crear."
+    ],
+    "stages": [
+      {
+        "title": "Te conoce",
+        "text": "Lee lo que le cuentas, tus archivos y tu negocio, y entiende lo que necesitas."
+      },
+      {
+        "title": "Da forma a tu espacio",
+        "text": "Construye un espacio de trabajo personal alrededor de tus objetivos, no un chat genérico para todos."
+      },
+      {
+        "title": "Se mejora a sí misma",
+        "text": "Como un ser vivo, sigue mejorando: más fiable, más segura, más fácil de usar."
+      }
+    ],
+    "loopLabel": "El ciclo",
+    "loop": [
+      "Pagar las facturas",
+      "Ir a trabajar",
+      "Cobrar",
+      "Repetir"
+    ],
+    "pathLabel": "Tu camino",
+    "path": "Piensa a lo grande. Encuentra en qué eres bueno. Construye la vida que quieres.",
+    "text": "Queremos que cualquiera que quiera unirse a la carrera tenga un camino propio, más allá de las formas habituales de trabajar con IA. Una nueva forma de crear, aprender y conservar lo que sabes."
+  },
+  "founders": {
+    "tag": "Fundadores",
+    "title": "Las personas detrás de Orqanix.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "Más de 10 años de experiencia",
+        "since": "Construyendo AxWise desde noviembre de 2024",
+        "place": "Berlín",
+        "text": "Lidera la capa cognitiva: cómo Orqanix piensa a fondo una tarea antes de responder.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "Más de 10 años de experiencia",
+        "since": "Construyendo Orqaly desde febrero de 2026",
+        "place": "",
+        "text": "Lidera la orquestación: cómo los agentes de IA comparten el trabajo y lo convierten en archivos reales.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

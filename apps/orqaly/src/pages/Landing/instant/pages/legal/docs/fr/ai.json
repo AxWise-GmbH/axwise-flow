@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "slug": "ai",
+    "title": "Comment fonctionne notre IA",
+    "summary": "Un guide simple de l’IA dans Orqanix : quels modèles nous utilisons, ce que font les agents, quelles données voient les modèles et comment vous gardez le contrôle.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Première version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "EU AI Act Art. 50(2): outputs are not machine-marked today, and the page says so. The 2 Dec 2026 grace period applies only if the Desktop App was on the EU market before 2 Aug 2026; if not, marking of text and files applies now (FACTS.md open point 10; critique item 11). Owner to decide on marking and give the first EU market date.",
+        "geminiPaidTier is empty: the paid-tier statement about Google's use of data stays hidden until the owner confirms Google's paid Gemini tier and data processing terms (FACTS.md open point 3). Google's terms require the paid tier for users in the EEA, UK and Switzerland.",
+        "Google's processing location is not pinned in our code; the page says Google may process data outside the EU.",
+        "Desktop defaults (auto-approve on, shell and file tools on, dictation on) are disclosed as they are. Owner may change them (FACTS.md open point 8); update this page if so.",
+        "Whether dictation works end to end is uncertain; the page only says that, if you use it, your voice goes to the model provider.",
+        "The Assistant Bot has no code yet; its AI disclosure to other people is a rule in the Assistant Bot Terms and must be built before launch.",
+        "US state chatbot rules are summarised in plain words without listing each law. Colorado HB 26-1263 (from 2027-01-01) and California SB 243 / SB 1119 positioning need lawyer review.",
+        "Research questions sent from the Desktop App to the cloud research tool are stored in our cloud (FACTS.md §4). The page says so, and the Privacy Policy, Desktop App Terms and Sub-processors page say the same (cross-check 2026-09-21).",
+        "The claim 'No one at Orqanix reads along' was removed because FACTS.md does not cover staff access to cloud data (support, abuse, legal requests). Owner to define staff access and state it in the Privacy Policy.",
+        "Art. 50(1) disclosure for third parties: Desktop agents can message or email other people through tools the user connects. The page leaves that duty with the user and the bot rule; lawyer to confirm whether we, as provider, must add an AI label to agent-sent messages from the Desktop App too.",
+        "Art. 50(4) deployer duties are passed to users for non-personal use; lawyer to confirm the wording and whether the Code of Practice on marking should be signed.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): AI output errors are described as a known limit; lawyer to confirm this does not read as a liability exclusion for consumers (liability is in the Terms of Service).",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "working-with-ai",
+      "text": "Travailler avec l’IA"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix est un produit d’IA. Lorsque vous discutez avec Orqanix, lui fixez un objectif ou utilisez le Bot assistant, vous travaillez avec des agents d’IA, et non avec des personnes. Un agent d’IA est un logiciel qui utilise un modèle d’IA pour comprendre une tâche, planifier des étapes et les exécuter à l’aide d’outils, par exemple en lisant un fichier ou en effectuant une recherche sur le web."
+    },
+    {
+      "type": "p",
+      "text": "Les réponses et les actions des agents proviennent de l’IA, et non d’une personne d’Orqanix. Notre équipe n’intervient dans votre travail que si vous nous contactez, par exemple par e-mail, ou dans le cadre d’un projet Entreprise convenu avec vous par écrit."
+    },
+    {
+      "type": "h2",
+      "id": "models",
+      "text": "Nos modèles"
+    },
+    {
+      "type": "p",
+      "text": "Par défaut, nos agents utilisent Google Gemini, un modèle d’IA conçu par Google, via l’API Gemini. Dans l’assistant cloud et l’API, les agents peuvent aussi utiliser la recherche Google via Gemini pour trouver des informations à jour. Nous choisissons la version du modèle et pouvons la changer lorsque de meilleures versions sont disponibles."
+    },
+    {
+      "type": "p",
+      "text": "Dans l’Application de bureau, vous pouvez connecter à la place un autre fournisseur de modèles, comme OpenAI ou Anthropic, ou exécuter un modèle local sur votre Mac. Si vous connectez un fournisseur, votre conversation est envoyée à ce fournisseur dans le cadre de votre propre contrat avec lui, et ses conditions s’appliquent. Si vous exécutez un modèle local, la conversation reste avec ce modèle sur votre Mac."
+    },
+    {
+      "type": "p",
+      "text": "Ces entreprises conçoivent les modèles. Nous concevons les agents : les instructions, les outils et le contexte que nous fournissons au modèle pour qu’il puisse effectuer votre travail."
+    },
+    {
+      "type": "h2",
+      "id": "what-agents-do",
+      "text": "Ce que font les agents"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Produit",
+        "Ce que fait l’IA",
+        "Qui exécute le résultat"
+      ],
+      "rows": [
+        [
+          "Application de bureau",
+          "Effectue des recherches, planifie et crée de vrais fichiers sur votre Mac. Elle peut lire et écrire des fichiers et exécuter des commandes.",
+          "L’agent, sur votre Mac, dans le cadre des réglages que vous choisissez."
+        ],
+        [
+          "Application mobile",
+          "Vous permet de suivre les tâches, lire les résultats et lancer du travail sur votre Mac depuis votre téléphone.",
+          "L’Application de bureau sur votre Mac."
+        ],
+        [
+          "Bot assistant",
+          "Travaille dans le rôle que vous lui attribuez : rédige des messages, trie des fichiers, rassemble des contacts et exécute des tâches planifiées via les comptes que vous connectez.",
+          "Le bot, dans les limites de l’accès que vous lui donnez. Voir les [Conditions du Bot assistant](/instant/legal/assistant-bot-terms)."
+        ],
+        [
+          "API",
+          "Recommande qui doit effectuer une tâche (un agent, une équipe ou une personne), avec des justifications, des garde-fous et un plan.",
+          "Votre propre système. L’API ne fait que conseiller ; elle n’effectue pas le travail."
+        ],
+        [
+          "Entreprise",
+          "Des agents et des spécialistes conçoivent et exploitent des flux de travail d’IA pour votre entreprise.",
+          "Selon ce qui est convenu dans votre bon de commande écrit."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Les agents ne prennent pas de décisions vous concernant qui produisent des effets juridiques ou des effets similaires importants, comme une décision relative à un crédit, un emploi ou un contrat. Ils n’utilisent pas vos données pour cibler des publicités, et Orqanix ne diffuse aucune publicité."
+    },
+    {
+      "type": "h2",
+      "id": "ai-can-be-wrong",
+      "text": "L’IA peut se tromper"
+    },
+    {
+      "type": "p",
+      "text": "Les modèles d’IA prédisent des réponses probables. Ils peuvent se tromper, être incomplets ou dépassés, et affirmer des choses fausses avec assurance. Un agent peut mal comprendre une tâche, choisir le mauvais fichier ou effectuer une étape inattendue."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Vérifiez les résultats avant de vous y fier, de les partager ou d’agir en conséquence.",
+        "Vérifiez les faits, chiffres, noms, sources et citations dans tout ce que rédigent les agents.",
+        "Un résultat d’IA ne constitue pas un conseil professionnel, par exemple juridique, médical, fiscal ou financier. Pour cela, adressez-vous à une personne qualifiée.",
+        "Conservez des copies des fichiers importants avant de laisser un agent les modifier."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-control",
+      "text": "Contrôle humain"
+    },
+    {
+      "type": "p",
+      "text": "Dans l’Application de bureau, vous choisissez ce qu’un agent peut faire de lui-même :"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Mode",
+        "Ce qui se passe"
+      ],
+      "rows": [
+        [
+          "Approbation automatique (par défaut)",
+          "L’agent exécute ses étapes, comme modifier des fichiers ou exécuter des commandes, sans vous demander au préalable."
+        ],
+        [
+          "Demander uniquement pour les étapes sensibles",
+          "L’agent demande avant les étapes qu’il considère comme sensibles et exécute les autres. Vous choisissez « Autoriser une fois », « Toujours autoriser » ou « Refuser »."
+        ],
+        [
+          "Demander avant chaque étape",
+          "L’agent demande avant chaque action. Vous choisissez « Autoriser une fois », « Toujours autoriser » ou « Refuser »."
+        ],
+        [
+          "Discussion uniquement",
+          "L’agent répond mais n’effectue aucune action."
+        ]
+      ]
+    },
+    {
+      "type": "note",
+      "text": "Par défaut, l’agent agit sans demander. Si vous souhaitez approuver chaque étape, changez de mode avant de commencer."
+    },
+    {
+      "type": "p",
+      "text": "Vous pouvez arrêter un agent à tout moment et voir ce qu’il a fait. Les fichiers qu’il crée sont enregistrés dans le dossier de projet que vous choisissez. Pour les bots, les [Conditions du Bot assistant](/instant/legal/assistant-bot-terms) expliquent comment définir leur rôle et leur accès."
+    },
+    {
+      "type": "h2",
+      "id": "data-models-see",
+      "text": "Données que voient les modèles"
+    },
+    {
+      "type": "p",
+      "text": "Pour faire son travail, le modèle a besoin de contexte. À chaque étape, l’agent envoie au fournisseur du modèle la conversation jusque-là : ce que vous avez écrit, le contenu des fichiers lus par l’agent, les résultats des commandes qu’il a exécutées et nos instructions. Si vous utilisez la dictée, votre voix est envoyée au fournisseur du modèle."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Dans l’Application de bureau, les requêtes adressées au modèle par défaut transitent par notre cloud dans l’UE avant d’arriver chez Google. Nous n’y stockons pas leur contenu.",
+        "Lorsqu’un agent effectue une recherche sur le web, des requêtes de recherche construites à partir de votre tâche sont envoyées à des moteurs de recherche. Certaines recherches peuvent aussi consulter des registres des sociétés.",
+        "Si un agent de l’Application de bureau utilise la recherche cloud d’Orqanix, la question qu’il envoie et les extraits de fichiers cloud qu’il y joint sont stockés dans votre espace de travail cloud.",
+        "Notre cloud stocke vos discussions cloud, vos objectifs et les fichiers que les agents y créent. Il est hébergé dans l’UE (Google Cloud, Pays-Bas). L’Application de bureau conserve son historique de discussion dans un fichier sur votre Mac.",
+        "Google peut traiter les données qu’il reçoit en dehors de l’UE."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "La [Politique de confidentialité](/instant/legal/privacy) explique en détail ce que nous collectons, où cela va, combien de temps nous le conservons et quels sont vos droits. Notre liste des [Sous-traitants](/instant/legal/subprocessors) nomme les entreprises concernées."
+    },
+    {
+      "type": "h2",
+      "id": "training",
+      "text": "Entraînement des modèles"
+    },
+    {
+      "type": "p",
+      "text": "Nous n’entraînons pas nos propres modèles d’IA sur votre contenu. Nous ne vendons pas vos données personnelles."
+    },
+    {
+      "type": "p",
+      "text": "Ce que Google peut faire des données qu’il reçoit dépend des [conditions de l’API Gemini](https://ai.google.dev/gemini-api/terms) de Google. Google conserve certaines données pendant une durée limitée, par exemple pour détecter les abus, comme le décrivent ses propres règles."
+    },
+    {
+      "type": "p",
+      "text": "Nous utilisons le service payant de l’API Gemini de Google. Selon les conditions de Google applicables aux services payants, Google n’utilise pas vos prompts ni ses réponses pour améliorer ses produits. Il les traite conformément à ses conditions de traitement des données.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Si vous connectez OpenAI, Anthropic ou un autre fournisseur dans l’Application de bureau, les conditions de ce fournisseur déterminent la manière dont il utilise vos données."
+    },
+    {
+      "type": "h2",
+      "id": "ai-made-content",
+      "text": "Contenu généré par l’IA"
+    },
+    {
+      "type": "p",
+      "text": "Les fichiers, textes, rapports et messages créés par les agents sont générés par l’IA, même lorsqu’ils semblent rédigés par une personne. À ce jour, ils ne portent ni filigrane invisible ni marquage lisible par machine l’indiquant."
+    },
+    {
+      "type": "p",
+      "text": "Vous décidez de ce que vous faites du contenu généré par l’IA, et vous en êtes responsable. Si vous le publiez, assurez-vous qu’il est exact et licite, et indiquez qu’il a été généré par l’IA lorsque l’honnêteté ou la loi l’exige."
+    },
+    {
+      "type": "p",
+      "text": "Dans l’UE, vous pouvez être tenu d’étiqueter vous-même le contenu généré par l’IA si vous l’utilisez à des fins qui ne sont pas purement personnelles. Si vous publiez un texte généré par l’IA dans le but d’informer le public sur des questions d’intérêt public, vous devez indiquer qu’il a été généré par l’IA, sauf si une personne l’a relu et modifié et en assume la responsabilité éditoriale. Si vous créez ou partagez un hypertrucage (deepfake : une image, un son ou une vidéo qui semble réel mais a été créé ou modifié par l’IA), vous devez le signaler (règlement de l’UE sur l’IA, art. 50, par. 4).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Certaines lois et les règles de nombreuses plateformes vous demandent d’étiqueter le contenu généré par l’IA, par exemple dans les publicités politiques. Respectez-les lorsqu’elles vous sont applicables.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "N’utilisez pas Orqanix pour créer du contenu qui trompe les gens sur qui ou quoi l’a créé. Notre [Politique d’utilisation acceptable](/instant/legal/acceptable-use) précise ce qui n’est pas autorisé."
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "Lois sur l’IA",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Le règlement de l’UE sur l’IA fixe des règles pour l’IA. Pour des produits comme Orqanix, la règle principale est la transparence : les personnes doivent savoir lorsqu’elles interagissent avec une IA, et le contenu généré par l’IA doit être reconnaissable. Cette page contribue à notre respect de cette règle (règlement de l’UE sur l’IA, art. 50, applicable depuis le 2 août 2026).",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Nous vous indiquons que vous travaillez avec une IA, dans le produit et sur cette page.",
+        "Lorsque le Bot assistant écrit à d’autres personnes, il doit leur indiquer qu’il est une IA. Les [Conditions du Bot assistant](/instant/legal/assistant-bot-terms) l’exigent.",
+        "Si vous créez votre propre système d’IA avec notre API et le proposez à d’autres, vous êtes responsable des obligations du règlement sur l’IA applicables à votre système, y compris celle d’informer vos utilisateurs qu’ils interagissent avec une IA.",
+        "Nous n’utilisons pas l’IA pour des pratiques interdites par le règlement sur l’IA, et vous ne pouvez pas non plus utiliser Orqanix à ces fins."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "Lois sur l’IA",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Plusieurs États américains ont adopté des règles pour les chatbots d’IA. En bref, les personnes ne doivent pas être amenées à croire à tort qu’elles parlent à un humain, et une IA doit indiquer qu’elle est une IA lorsqu’on le lui demande. Certains États ajoutent des règles pour les chatbots destinés au public et pour les chatbots compagnons qui nouent des relations personnelles.",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Nous vous indiquons que vous travaillez avec une IA, dans le produit et sur cette page.",
+        "Lorsque le Bot assistant écrit à d’autres personnes, il doit leur indiquer qu’il est une IA, y compris lorsqu’elles le demandent. Les [Conditions du Bot assistant](/instant/legal/assistant-bot-terms) l’exigent.",
+        "Orqanix est conçu pour le travail. Ce n’est pas un chatbot compagnon, et vous ne pouvez pas le configurer comme tel.",
+        "Si vous créez votre propre système d’IA avec notre API et le proposez à d’autres, vous êtes responsable des obligations d’information et autres obligations applicables à votre système."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report-a-problem",
+      "text": "Signaler un problème"
+    },
+    {
+      "type": "p",
+      "text": "Si un agent a produit un résultat nuisible, illicite ou gravement erroné, ou a fait quelque chose qu’il n’aurait pas dû faire, dites-le-nous. Nous utilisons les signalements pour corriger les problèmes et améliorer nos instructions et nos garde-fous."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Contenu illégal ou utilisation abusive : écrivez à {company.email} avec l’objet « Report ». Indiquez ce qui s’est passé et quand, et joignez des copies ou des liens si possible. Nous l’examinons, prenons une décision et vous communiquons nos motifs, ainsi qu’à l’utilisateur concerné. La section [Signaler une infraction](/instant/legal/acceptable-use#report) donne tous les détails.",
+        "Résultats d’IA erronés ou nuisibles, et autres questions sur notre IA : {company.email}.",
+        "Questions sur vos données : {company.privacyEmail}.",
+        "Failles de sécurité : {company.securityEmail}."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Notre point de contact unique pour les autorités et les utilisateurs au titre du règlement sur les services numériques de l’UE est {company.email}, en anglais.",
+      "only": "eu"
+    }
+  ]
+}

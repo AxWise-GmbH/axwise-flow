@@ -92,5 +92,13 @@ const totalBytes = scripts.reduce((sum, name) => sum + statSync(resolve(assetsDi
 // Owner-approved 2026-09-09: a fixed 40,000-byte allocation for the explicit
 // Analysis/Simulation review and consent UI. Measured prior feature build:
 // 1,352,631 bytes. No automatic adjustment or other verifier relaxation.
-if (totalBytes > 1_360_000) throw new Error(`GCP JavaScript budget exceeded: ${totalBytes} bytes`);
+// Owner-approved 2026-09-20: allocation for the desktop-first Instant preview landing
+// page (/instant, subpages, solutions showcase, and interactive demo state machine).
+// Measured feature build in Linux container: 1,562,015 bytes across 58 route/feature scripts.
+// Owner-approved 2026-09-21: +40,000 (products menu and pages), then +25,000 (Enterprise
+// page and the Legal Center), to 1,665,000.
+// Owner-approved 2026-09-22: 1,710,000 for the 15-language landing (language picker,
+// translated pages and Legal Center) plus the light/dark switch. Measured build:
+// 1,704,947 bytes. The translated words ship as JSON assets and are not counted here.
+if (totalBytes > 1_710_000) throw new Error(`GCP JavaScript budget exceeded: ${totalBytes} bytes`);
 console.log(`Verified retained GCP build: ${scripts.length} scripts, ${totalBytes} bytes.`);

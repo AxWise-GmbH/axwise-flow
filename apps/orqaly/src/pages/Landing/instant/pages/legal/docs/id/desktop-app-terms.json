@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "Ketentuan Aplikasi Desktop",
+    "summary": "Ketentuan ini mengatur pemasangan dan penggunaan aplikasi Orqanix di Mac Anda, termasuk tindakan nyata yang dapat dilakukan oleh agen AI-nya.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Tentang ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini melengkapi [Ketentuan Layanan](/instant/legal/terms) kami untuk aplikasi Orqanix untuk Mac (“Aplikasi Desktop”). Bersama Ketentuan Layanan, [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami, dan [Kebijakan Privasi](/instant/legal/privacy) kami, ketentuan ini membentuk satu perjanjian. Jika ketentuan ini dan Ketentuan Layanan bertentangan mengenai Aplikasi Desktop, ketentuan inilah yang berlaku."
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Desktop gratis selama produk kami masih dalam tahap awal. Sebelum paket berbayar apa pun dimulai, kami akan memublikasikan harga serta aturan pembayaran dan pembatalan."
+    },
+    {
+      "type": "p",
+      "text": "Sebelum itu, kami juga akan memublikasikan aturan pengunduran diri dari pembelian, sebagaimana diwajibkan oleh hukum UE.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Lisensi Anda"
+    },
+    {
+      "type": "p",
+      "text": "Selama Anda mematuhi ketentuan ini, kami memberi Anda lisensi pribadi, noneksklusif, dan tidak dapat dialihkan untuk mengunduh, memasang, dan menggunakan Aplikasi Desktop di Mac yang Anda miliki atau kendalikan. Kami dapat mengakhirinya sebagaimana dijelaskan dalam [Penangguhan dan pengakhiran](/instant/legal/terms#ending) di Ketentuan Layanan."
+    },
+    {
+      "type": "p",
+      "text": "Anda tidak boleh:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "menjual, menyewakan, meminjamkan, atau mensublisensikan Aplikasi Desktop;",
+        "menghapus atau mengubah pemberitahuan kami atau pemberitahuan lisensi pihak lain;",
+        "mengakali proses masuk atau batasan apa pun yang kami tetapkan di aplikasi;",
+        "menggunakan Aplikasi Desktop untuk membangun produk pesaing, atau menyalin instruksi produk kami untuk tujuan tersebut."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Batasan ini tidak mencakup bagian sumber terbuka aplikasi, seperti Goose (Apache 2.0), yang tetap tunduk pada lisensinya sendiri (lihat [Pemberitahuan Sumber Terbuka](/instant/legal/open-source)). Batasan ini juga tidak menghilangkan apa pun yang diizinkan hukum untuk Anda lakukan dengan perangkat lunak yang Anda gunakan secara sah, seperti mempelajari cara kerjanya atau membuatnya dapat bekerja dengan program lain."
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "Yang Anda perlukan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Mac dengan Apple silicon (M1 atau yang lebih baru). Aplikasi ini tidak berjalan di Mac Intel atau sistem lain.",
+        "Koneksi internet dan akun Orqanix untuk masuk. Model bawaan tidak memerlukan kunci dari penyedia AI.",
+        "Anda harus berusia 18 tahun atau lebih."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Unduh Aplikasi Desktop hanya dari tautan di orqanix.com. Kami tidak bertanggung jawab atas salinan dari sumber lain."
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "Peluncuran pertama"
+    },
+    {
+      "type": "p",
+      "text": "Apple belum melakukan notarisasi atas Aplikasi Desktop (notarisasi adalah pemeriksaan otomatis Apple atas aplikasi yang ditawarkan di luar App Store-nya), sehingga macOS mungkin memblokirnya saat pertama kali Anda membukanya. Untuk mengizinkannya, pilih Open Anyway di System Settings > Privacy & Security. Lakukan ini hanya untuk salinan dari orqanix.com."
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Tindakan agen"
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Desktop menjalankan agen AI di Mac Anda. Agen adalah perangkat lunak yang menggunakan model AI untuk memilih langkah dan melaksanakannya. Saat Anda memberikan tugas kepada aplikasi, agennya dapat melakukan tindakan nyata di Mac Anda, misalnya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "membaca, membuat, mengubah, memindahkan, dan menghapus file;",
+        "menjalankan perintah di terminal Mac (shell), yang dapat memasang perangkat lunak, mengubah pengaturan, atau mengakses internet;",
+        "menggunakan alat, ekstensi, dan layanan terhubung yang Anda aktifkan, yang dapat bertindak di akun Anda di tempat lain;",
+        "menjalankan tugas tersimpan (resep) sesuai jadwal, tetapi hanya selama Aplikasi Desktop terbuka."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Alat shell dan file sudah aktif saat Anda pertama kali memasang aplikasi."
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "Kapan agen meminta izin terlebih dahulu"
+    },
+    {
+      "type": "p",
+      "text": "Secara bawaan, agen bertindak tanpa meminta izin Anda terlebih dahulu. Mode bawaan ini disebut “Automatically approve tool calls”. Anda dapat mengubahnya di pengaturan aplikasi menjadi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "meminta izin sebelum setiap tindakan;",
+        "meminta izin hanya sebelum tindakan yang dianggap sensitif oleh aplikasi;",
+        "hanya mengobrol, tanpa tindakan."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Saat aplikasi meminta izin, Anda dapat menjawab Allow Once, Always Allow, atau Deny. Setelah Always Allow, agen tidak akan meminta izin lagi untuk jenis tindakan tersebut."
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "Tanggung jawab Anda"
+    },
+    {
+      "type": "p",
+      "text": "Anda yang menentukan apa yang boleh dilakukan agen: tugasnya, mode persetujuannya, serta folder, alat, dan akun yang boleh mereka gunakan. Anda mengizinkan tindakan yang mereka lakukan dalam batasan tersebut, dan Anda bertanggung jawab atasnya seolah-olah Anda sendiri yang melakukannya."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Arahkan agen hanya ke file, sistem, dan akun yang boleh Anda gunakan dan yang boleh Anda serahkan penggunaannya kepada perangkat lunak atas nama Anda.",
+        "Patuhi ketentuan setiap layanan tempat agen bertindak, serta [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami.",
+        "Jangan gunakan agen untuk mengakses sistem atau data pihak lain tanpa izin mereka.",
+        "Jika Anda bekerja untuk suatu bisnis, pastikan bisnis tersebut mengizinkan Anda menggunakan Aplikasi Desktop pada file dan sistemnya."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "Tinjauan manusia"
+    },
+    {
+      "type": "p",
+      "text": "AI dapat membuat kesalahan. Agen dapat salah memahami tugas, memilih file yang salah, menjalankan perintah yang merugikan, atau melaporkan keberhasilan padahal gagal. Hasilnya dapat salah, tidak lengkap, atau usang, dan bukan merupakan nasihat hukum, medis, keuangan, atau nasihat profesional lainnya. Lihat [Cara Kerja AI Kami](/instant/legal/ai)."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Cadangkan semua hal penting sebelum Anda membiarkan agen mengerjakannya. Kami tidak dapat memulihkan file yang dihapus atau diubah oleh agen.",
+        "Gunakan [mode persetujuan](#approval-modes) yang meminta izin terlebih dahulu untuk pekerjaan yang menyangkut file penting, uang, orang lain, atau sistem yang sedang berjalan.",
+        "Periksa apa yang dibuat oleh agen sebelum Anda mengandalkannya, mengirimkannya, atau memublikasikannya."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "Tanggung jawab hukum"
+    },
+    {
+      "type": "p",
+      "text": "Tindakan agen di Mac Anda atau di akun Anda yang terhubung dapat menimbulkan akibat nyata yang sulit atau tidak mungkin dibatalkan, seperti hilangnya data, berubahnya pengaturan, terkirimnya pesan, atau tagihan dari penyedia lain."
+    },
+    {
+      "type": "p",
+      "text": "Sejauh diizinkan oleh hukum, kami tidak bertanggung jawab atas kerugian atau kerusakan yang timbul dari tindakan yang Anda izinkan dilakukan oleh agen, pilihan mode persetujuan Anda, atau tidak adanya cadangan. Aplikasi Desktop disediakan “sebagaimana adanya” dan “sebagaimana tersedia”, tanpa jaminan apa pun, sebagaimana diatur dalam [Penafian](/instant/legal/terms#warranty) dan [Tanggung Jawab Hukum](/instant/legal/terms#liability) di Ketentuan Layanan. Tidak ada dalam ketentuan ini yang membatasi tanggung jawab yang menurut hukum tidak boleh kami batasi.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Berdasarkan hukum negara Anda, kami bertanggung jawab jika Aplikasi Desktop tidak sesuai dengan kontrak kami, dan atas kerusakan yang kami timbulkan. Kami tidak bertanggung jawab atas kerusakan yang semata-mata timbul dari tindakan yang Anda izinkan dilakukan oleh agen, pilihan mode persetujuan Anda, atau tidak adanya cadangan, kecuali kami menyebabkannya karena melanggar kewajiban kami. Tidak ada dalam ketentuan ini yang membatasi hak hukum Anda sebagai konsumen, atau tanggung jawab atas kesengajaan, kelalaian berat, cedera terhadap jiwa, tubuh, atau kesehatan, atau berdasarkan hukum tanggung jawab produk. [Tanggung Jawab Hukum](/instant/legal/terms#liability) di Ketentuan Layanan mengatur selebihnya.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Ke mana data Anda pergi"
+    },
+    {
+      "type": "p",
+      "text": "Ini adalah ringkasan. [Kebijakan Privasi](/instant/legal/privacy) memuat detail lengkapnya."
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "Di Mac Anda"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Aplikasi menyimpan datanya di folder dalam Library Mac Anda yang hanya dapat dibaca oleh akun pengguna macOS Anda.",
+        "Riwayat obrolan Anda disimpan dalam file basis data lokal, tanpa enkripsi selain perlindungan yang diberikan oleh Mac Anda.",
+        "Kunci untuk penyedia AI yang Anda hubungkan dan rahasia untuk ekstensi yang Anda tambahkan disimpan dalam file teks biasa di folder aplikasi, bukan di macOS Keychain. Siapa pun atau apa pun yang dapat membaca file Anda dapat membacanya.",
+        "Data masuk Orqanix Anda disimpan di macOS Keychain. Keluar dari akun akan membatalkannya.",
+        "File yang dibuat oleh agen masuk ke folder proyek yang Anda pilih.",
+        "Aplikasi menyimpan log di Mac Anda dan membersihkan log lama secara otomatis. Aplikasi tidak mengirimkan statistik penggunaan kepada kami dan tidak memiliki pelapor kerusakan (crash reporter)."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "Dikirim dari Mac Anda"
+    },
+    {
+      "type": "p",
+      "text": "Dengan model bawaan, setiap langkah tugas mengirimkan seluruh percakapan sejauh ini ke model AI: apa yang Anda tulis, isi file yang dibaca oleh agen, keluaran perintah, dan instruksi produk kami. Data ini melewati server kami di UE (Google Cloud, Belanda) menuju Google Gemini. Server kami meneruskannya dan tidak menyimpannya. Google dapat memprosesnya di luar UE berdasarkan [ketentuan Gemini API](https://ai.google.dev/gemini-api/terms)-nya."
+    },
+    {
+      "type": "p",
+      "text": "Dikte suara aktif secara bawaan. Jika Anda menggunakannya, suara Anda dikirim ke penyedia model."
+    },
+    {
+      "type": "p",
+      "text": "Saat agen menggunakan alat riset kami, agen mengirimkan pertanyaan ke ruang kerja cloud Orqanix Anda, beserta kutipan dari paling banyak lima dokumen cloud Anda jika agen memilihnya. Pertanyaan, kutipan, dan hasilnya beserta sumbernya disimpan di sana sebagai catatan tetap. Riset tersebut dapat menelusuri web dan mencari di daftar perusahaan publik. [Kebijakan Privasi](/instant/legal/privacy) menjelaskan cara meminta salinan atau penghapusan."
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "Penyedia AI dan alat lain"
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat menghubungkan penyedia AI lain, seperti OpenAI, Anthropic, atau model yang berjalan di Mac Anda, dan menambahkan alat serta ekstensi buatan pihak lain. Jika Anda melakukannya:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "penyedia tersebut menerima percakapan dan hasil alat Anda secara langsung, berdasarkan ketentuan dan kebijakan privasinya sendiri;",
+        "perjanjian Anda dengan penyedia tersebut, termasuk biaya apa pun yang dikenakannya, adalah antara Anda dan penyedia tersebut;",
+        "kami tidak mengendalikan, memeriksa, atau bertanggung jawab atas penyedia, alat, atau ekstensi lain, maupun atas apa yang mereka lakukan dengan data Anda."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Pembaruan dan perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Aplikasi Desktop tidak memperbarui dirinya sendiri. Setiap versi baru adalah unduhan baru dari orqanix.com yang Anda pasang di atas versi lama. Perbaikan keamanan tersedia di versi yang lebih baru, jadi gunakan versi terbaru. Kami tidak menetapkan jangka waktu tertentu selama versi lama tetap menerima perbaikan."
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat mengubah atau menghapus fitur di versi baru. Aturan tentang perubahan terdapat dalam [Perubahan pada Layanan dan ketentuan ini](/instant/legal/terms#changes).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menggunakan Aplikasi Desktop sebagai konsumen (di luar perdagangan atau bisnis Anda), Anda memiliki hak yang diberikan hukum UE kepada konsumen atas konten digital. Hak ini berlaku meskipun aplikasi gratis, karena Anda memberikan data pribadi kepada kami untuk menggunakannya (Dir. (EU) 2019/770). Aplikasi harus berfungsi sebagaimana dijelaskan dalam ketentuan ini dan di situs web kami. Selama diwajibkan oleh hukum, kami akan menyediakan pembaruan, termasuk pembaruan keamanan, yang diperlukan agar tetap demikian, dan memberitahukan di orqanix.com kapan pembaruan tersedia dan apa yang diperbaikinya. Jika Anda tidak memasang pembaruan yang telah kami beritahukan dalam waktu yang wajar, kami tidak bertanggung jawab atas kesalahan yang seharusnya diperbaiki oleh pembaruan tersebut, kecuali petunjuk pemasangan kami yang keliru.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Di luar apa yang diperlukan agar tetap berfungsi, kami hanya akan mengubah Aplikasi Desktop karena alasan yang sah, seperti undang-undang baru, keamanan, atau peningkatan, dan tanpa biaya bagi Anda. Jika suatu perubahan merugikan akses atau penggunaan aplikasi oleh Anda lebih dari sekadar sedikit, kami akan mengirimkan email kepada Anda dalam waktu yang cukup sebelum perubahan itu terjadi. Anda kemudian dapat mengakhiri perjanjian ini tanpa biaya dalam waktu 30 hari sejak pemberitahuan kami atau sejak perubahan, mana yang lebih akhir, kecuali kami mengizinkan Anda tetap menggunakan versi yang tidak diubah tanpa biaya tambahan.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanksi dan ekspor"
+    },
+    {
+      "type": "p",
+      "text": "Anda tidak boleh mengunduh atau menggunakan Aplikasi Desktop di tempat yang dilarang oleh sanksi atau aturan ekspor AS atau UE, atau jika nama Anda tercantum dalam daftar sanksi AS atau UE. Lihat [Sanksi dan ekspor](/instant/legal/terms#sanctions) di Ketentuan Layanan."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Mengakhiri penggunaan"
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat berhenti menggunakan Aplikasi Desktop kapan saja. Pertama, keluar dari akun, yang akan membatalkan data masuk Orqanix Anda. Lalu hapus aplikasi dari folder Applications Anda. Untuk menghapus riwayat obrolan lokal, pengaturan, log, dan kunci tersimpan, hapus juga foldernya di Library Mac Anda (di bawah Application Support). File yang dibuat oleh agen di folder proyek Anda tetap ada sampai Anda menghapusnya."
+    },
+    {
+      "type": "p",
+      "text": "Menghapus aplikasi tidak menghapus akun Orqanix atau ruang kerja cloud Anda. Untuk menutup akun atau meminta kami menghapus data Anda, lihat [Ketentuan Layanan](/instant/legal/terms) dan [Kebijakan Privasi](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Jika lisensi Anda berakhir, Anda harus berhenti menggunakan Aplikasi Desktop dan menghapusnya. [Penangguhan dan pengakhiran](/instant/legal/terms#ending) di Ketentuan Layanan menjelaskan apa yang terjadi pada akun Anda."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontak"
+    },
+    {
+      "type": "p",
+      "text": "Pertanyaan tentang ketentuan ini: {company.email}. Masalah keamanan: {company.securityEmail}. Permintaan privasi: {company.privacyEmail}."
+    }
+  ]
+}

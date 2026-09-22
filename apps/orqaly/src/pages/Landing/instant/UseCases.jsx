@@ -5,11 +5,12 @@ import { OrqanixMark } from './ui/Glyphs';
 import { Seen } from './SpeedStrip';
 import { SOLUTIONS_MENU, solutionPath } from './pages/solutions/solutionsMenu';
 import { industryPaths } from './pages/solutions/solutionIconPaths';
+import { useT } from './i18n/useT';
 import './UseCases.css';
 
 // One card per Solutions page, in the menu's order. The title is that page's own headline
 // (a test keeps the two in step), so the card and the page it opens say the same thing.
-const CARD_COPY = {
+export const CARD_COPY = {
   healthcare: {
     title: 'Front desk work that never piles up.',
     line: 'After-hours calls, reminders, coverage checks and intake summaries, ready for staff to review.',
@@ -62,6 +63,13 @@ const CARD_COPY = {
   },
 };
 
+// The words key of one card's title, line or request: `uses.<slug>.<field>`. Shared with
+// i18n/words/usecases.js so the word list holds exactly what the cards ask for.
+export const CARD_FIELDS = ['title', 'line', 'ask'];
+export function caseKey(slug, field) {
+  return `uses.${slug}.${field}`;
+}
+
 const CASES = SOLUTIONS_MENU.map(({ slug, label }) => ({
   slug,
   label,
@@ -76,11 +84,25 @@ const clamp = (n) => Math.max(0, Math.min(COUNT - 1, n));
 const loop = (n) => ((n % COUNT) + COUNT) % COUNT;
 const two = (n) => String(n).padStart(2, '0');
 
+// The row turns by itself: one card on every AUTOPLAY_MS, back to the first after the last.
+// The owner asked for twice the pace (2026-09-21): 2.5 s a card, with the typing and every
+// change-of-card effect in UseCases.css running twice as fast to match.
+const AUTOPLAY_MS = 2500;
+
 let motionQuery = null;
 
 function prefersReducedMotion() {
   motionQuery ??= globalThis.window?.matchMedia?.('(prefers-reduced-motion: reduce)') ?? null;
   return motionQuery?.matches ?? false;
+}
+
+// Keyboard focus, not the focus a click leaves on a dot.
+function keyboardFocus(element) {
+  try {
+    return element.matches(':focus-visible');
+  } catch {
+    return true;
+  }
 }
 
 function Glyph({ paths, className }) {
@@ -129,6 +151,7 @@ function Request({ text, state, current }) {
 }
 
 export default function UseCases() {
+  const { t } = useT();
   const trackRef = useRef(null);
   const railRef = useRef(null);
   const indexRef = useRef(0);
@@ -151,6 +174,11 @@ export default function UseCases() {
   const [index, setIndex] = useState(0);
   // Cards that were current and then left: their request stays typed.
   const [visited, setVisited] = useState(() => new Set());
+  // The turning waits while the row is off screen, while a pointer rests on a card (a finger
+  // counts until it lifts) and while keyboard focus is inside the carousel.
+  const [inView, setInView] = useState(false);
+  const [pointed, setPointed] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const select = useCallback((next) => {
     const from = indexRef.current;
@@ -269,6 +297,23 @@ export default function UseCases() {
     };
   }, [measure]);
 
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
+      threshold: 0.35,
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, []);
+
+  // One timer per card: every move, by hand or by itself, starts the wait again.
+  useEffect(() => {
+    if (!inView || pointed || focused || prefersReducedMotion()) return undefined;
+    const timer = setTimeout(() => goTo(indexRef.current + 1), AUTOPLAY_MS);
+    return () => clearTimeout(timer);
+  }, [index, inView, pointed, focused, goTo]);
+
   // Pointer work, once a frame: a mouse drag moves the track, otherwise the card under the
   // pointer leans toward it and its highlight follows.
   const paintPointer = () => {
@@ -370,7 +415,13 @@ export default function UseCases() {
     goTo(land);
   };
 
+  // Resting on a card holds the turning; the gaps and the page around the cards do not.
+  const onPointerOver = (event) => {
+    setPointed(Boolean(event.target.closest?.('.ouc-card')));
+  };
+
   const onPointerLeave = () => {
+    setPointed(false);
     tiltRef.current.card = null;
     queuePointer();
   };
@@ -408,24 +459,21 @@ export default function UseCases() {
       <div className="oi-container">
         <Seen className="ouc-gate ouc-head">
           <div className="ouc-head-main">
-            <Reveal as="p" className="oi-tag oi-tag-bracket">
-              How it's used
+            <Reveal as="h2" id="cases-heading" className="oi-h2">
+              {t('uses.title', 'One app. Many jobs.')}
             </Reveal>
-            <Reveal as="h2" id="cases-heading" className="oi-h2" delay={90}>
-              One app. Many jobs.
-            </Reveal>
-            <Reveal as="p" className="oi-line" delay={180}>
-              Pick yours. Every result is a first draft for you to review.
+            <Reveal as="p" className="oi-line" delay={90}>
+              {t('uses.lede', 'Pick yours. Every result is a first draft for you to review.')}
             </Reveal>
           </div>
-          <Reveal className="ouc-controls" delay={270}>
+          <Reveal className="ouc-controls" delay={180}>
             <p className="ouc-count" aria-hidden="true">
               <b key={index}>{two(index + 1)}</b> / {two(COUNT)}
             </p>
             <button
               type="button"
               className="ouc-nav ouc-nav-prev"
-              aria-label="Previous case"
+              aria-label={t('uses.prev', 'Previous case')}
               onClick={() => goTo(index - 1)}
             >
               <Arrow back />
@@ -433,7 +481,7 @@ export default function UseCases() {
             <button
               type="button"
               className="ouc-nav ouc-nav-next"
-              aria-label="Next case"
+              aria-label={t('uses.next', 'Next case')}
               onClick={() => goTo(index + 1)}
             >
               <Arrow />
@@ -442,7 +490,15 @@ export default function UseCases() {
         </Seen>
       </div>
 
-      <Seen className="ouc-stage" threshold={0.3} data-fresh={fresh}>
+      <Seen
+        className="ouc-stage"
+        threshold={0.3}
+        data-fresh={fresh}
+        onFocus={(event) => setFocused(keyboardFocus(event.target))}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+        }}
+      >
         <div className="ouc-row">
           <i className="ouc-glow" aria-hidden="true" />
           <i className="ouc-floor" aria-hidden="true">
@@ -454,90 +510,102 @@ export default function UseCases() {
               className="ouc-track"
               role="region"
               aria-roledescription="carousel"
-              aria-label="Use cases"
+              aria-label={t('uses.carousel', 'Use cases')}
               tabIndex={0}
               onScroll={queueMeasure}
               onScrollEnd={onScrollEnd}
               onWheel={takeOver}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
+              onPointerOver={onPointerOver}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
               onPointerLeave={onPointerLeave}
               onClick={onClick}
               onKeyDown={onKeyDown}
             >
-              {CASES.map((item, i) => (
-                <div
-                  key={item.tag}
-                  className="ouc-slide"
-                  role="group"
-                  aria-roledescription="slide"
-                  aria-label={`${i + 1} of ${COUNT}`}
-                  data-slide={i}
-                  data-current={i === index}
-                  style={{ '--enter': `${Math.abs(i - index) * 90}ms` }}
-                >
-                  <div className="ouc-lift">
-                    <div className="ouc-card">
-                      <i className="ouc-streak" aria-hidden="true" />
-                      <Glyph paths={item.glyph} className="ouc-ghost" />
-                      <div className="ouc-top">
-                        <span className="ouc-tile">
-                          <Glyph paths={item.glyph} className="ouc-icon" />
-                        </span>
-                        <p className="ouc-pill">{item.tag}</p>
-                      </div>
-                      <h3 className="ouc-title">{item.title}</h3>
-                      <p className="ouc-line">{item.line}</p>
-                      <div className="ouc-ask">
-                        <p className="ouc-ask-label">
-                          <OrqanixMark className="ouc-ask-mark" />
-                          Ask
-                        </p>
-                        <p className="ouc-ask-text">
-                          <Request text={item.ask} current={i === index} state={stateOf(i)} />
-                        </p>
-                      </div>
-                      {/* Only the card in front is a way out: a side card's first job is to
+              {CASES.map((item, i) => {
+                const label = t(`solutions.${item.slug}.label`, item.label);
+                return (
+                  <div
+                    key={item.tag}
+                    className="ouc-slide"
+                    role="group"
+                    aria-roledescription="slide"
+                    aria-label={t('uses.slide', '{n} of {count}', { n: i + 1, count: COUNT })}
+                    data-slide={i}
+                    data-current={i === index}
+                    style={{ '--enter': `${Math.abs(i - index) * 90}ms` }}
+                  >
+                    <div className="ouc-lift">
+                      <div className="ouc-card">
+                        <i className="ouc-streak" aria-hidden="true" />
+                        <Glyph paths={item.glyph} className="ouc-ghost" />
+                        <div className="ouc-top">
+                          <span className="ouc-tile">
+                            <Glyph paths={item.glyph} className="ouc-icon" />
+                          </span>
+                          <p className="ouc-pill">{label.toUpperCase()}</p>
+                        </div>
+                        <h3 className="ouc-title">{t(caseKey(item.slug, 'title'), item.title)}</h3>
+                        <p className="ouc-line">{t(caseKey(item.slug, 'line'), item.line)}</p>
+                        <div className="ouc-ask">
+                          <p className="ouc-ask-label">
+                            <OrqanixMark className="ouc-ask-mark" />
+                            {t('uses.ask', 'Ask')}
+                          </p>
+                          <p className="ouc-ask-text">
+                            <Request
+                              text={t(caseKey(item.slug, 'ask'), item.ask)}
+                              current={i === index}
+                              state={stateOf(i)}
+                            />
+                          </p>
+                        </div>
+                        {/* Only the card in front is a way out: a side card's first job is to
                           come forward, and a drag must never end as a page change. */}
-                      <Link
-                        className="ouc-more"
-                        to={solutionPath(item.slug)}
-                        tabIndex={i === index ? undefined : -1}
-                        aria-label={`${item.label}: see the page`}
-                        onClick={(event) => {
-                          if (swallowClick.current || i !== index) event.preventDefault();
-                        }}
-                      >
-                        See the page
-                        <Arrow />
-                      </Link>
+                        <Link
+                          className="ouc-more"
+                          to={solutionPath(item.slug)}
+                          tabIndex={i === index ? undefined : -1}
+                          aria-label={t('uses.more.aria', '{label}: see the page', { label })}
+                          onClick={(event) => {
+                            if (swallowClick.current || i !== index) event.preventDefault();
+                          }}
+                        >
+                          {t('uses.more', 'See the page')}
+                          <Arrow />
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
         <div className="oi-container ouc-foot">
-          <div ref={railRef} className="ouc-dots">
+          <div ref={railRef} className="ouc-dots" style={{ '--ouc-count': COUNT }}>
             {CASES.map((item, i) => (
               <button
                 key={item.tag}
                 type="button"
                 className="ouc-dot"
-                aria-label={`Go to case ${i + 1}`}
+                aria-label={t('uses.dot', 'Go to case {n}', { n: i + 1 })}
                 aria-current={i === index ? 'true' : undefined}
                 onClick={() => goTo(i)}
               />
             ))}
             <i className="ouc-bead" aria-hidden="true" />
           </div>
-          <p className="oi-small ouc-note">Example requests. Results are drafts, not advice.</p>
+          <p className="oi-small ouc-note">
+            {t('uses.note', 'Example requests. Results are drafts, not advice.')}
+          </p>
           <p className="oi-sr-only" aria-live="polite">
-            {fresh ? '' : `Showing case ${index + 1} of ${COUNT}`}
+            {fresh
+              ? ''
+              : t('uses.live', 'Showing case {n} of {count}', { n: index + 1, count: COUNT })}
           </p>
         </div>
       </Seen>

@@ -3,12 +3,14 @@ import More from './ui/More';
 import Reveal from './ui/Reveal';
 import CountUp from './ui/CountUp';
 import { Stat } from './ui/Card';
+import { useT } from './i18n/useT';
 import './sections.css';
 
+// The same three runs as the Speed page, so the labels share its words (pg.speed.run.<id>.label).
 const STATS = [
-  { value: 1.9, decimals: 1, label: 'a direct answer' },
-  { value: 19, decimals: 0, label: 'a short summary' },
-  { value: 84, decimals: 0, label: 'an 8-page document' },
+  { id: 'answer', value: 1.9, decimals: 1, label: 'a direct answer' },
+  { id: 'summary', value: 19, decimals: 0, label: 'a short summary' },
+  { id: 'document', value: 84, decimals: 0, label: 'an 8-page document' },
 ];
 
 const UNIT = ' s';
@@ -55,6 +57,7 @@ export function Seen({ as: Tag = 'div', threshold = 0.15, children, ...rest }) {
 }
 
 export default function SpeedStrip() {
+  const { t } = useT('pg');
   return (
     <Seen
       as="section"
@@ -65,10 +68,10 @@ export default function SpeedStrip() {
       <div className="oi-container">
         <Seen className="ois-gate ois-head">
           <Reveal as="p" className="oi-tag oi-tag-bracket">
-            The cloud side, measured
+            {t('pg.strip.tag', 'The cloud side, measured')}
           </Reveal>
           <Reveal as="h2" id="speed-heading" className="oi-h2" delay={90}>
-            Speed
+            {t('pages.speed.label', 'Speed')}
           </Reveal>
         </Seen>
         <Seen as="dl" className="oi-stat-row ois-stat-row" threshold={0.35}>
@@ -76,7 +79,7 @@ export default function SpeedStrip() {
             STATS.map((stat) => (
               <Stat
                 key={stat.label}
-                label={stat.label}
+                label={t(`pg.speed.run.${stat.id}.label`, stat.label)}
                 // The count starts when the row arrives, not when the page loads.
                 value={
                   seen ? (
@@ -91,19 +94,19 @@ export default function SpeedStrip() {
         </Seen>
         <Seen className="ois-gate ois-under-stats">
           <Reveal as="p" className="oi-tag ois-quiet">
-            Single runs · Sept 2026
+            {t('pg.strip.when', 'Single runs · Sept 2026')}
           </Reveal>
           <Reveal delay={90}>
             <More>
               <p className="ois-measure">
-                Measured once each on 18 Sep 2026 in the Orqanix cloud preview, not in the desktop
-                app, one test scenario. Exact: 1.86 s · 19.08 s (767 words) · 84.04 s (3,951 words).
-                Not averages; yours will differ. A full starter pack is many pieces and takes
-                longer.
+                {t(
+                  'pg.strip.measure',
+                  'Measured once each on 18 Sep 2026 in the Orqanix cloud preview, not in the desktop app, one test scenario. Exact: 1.86 s · 19.08 s (767 words) · 84.04 s (3,951 words). Not averages; yours will differ. A full starter pack is many pieces and takes longer.'
+                )}
               </p>
               <p>
                 <a className="oi-link ois-link-target" href="/benchmark">
-                  How we measured
+                  {t('pg.speed.method.title', 'How we measured')}
                 </a>
               </p>
             </More>

@@ -1,11 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
-import More from './ui/More';
 import Reveal from './ui/Reveal';
 import { OrqanixMark } from './ui/Glyphs';
 import { Seen } from './SpeedStrip';
-import SimpleHowItWorks from '../simple/SimpleHowItWorks';
-import { landingTheme } from '../simple/landingTheme';
+import { useT } from './i18n/useT';
 import './sections.css';
 
 function LaptopGlyph() {
@@ -60,6 +57,7 @@ function Wire({ vertical = false }) {
 }
 
 export default function PrivacyPreface() {
+  const { t } = useT('pg');
   const sceneRef = useRef(null);
 
   // The scene is decoration and takes no pointer events itself, so the section listens
@@ -100,16 +98,19 @@ export default function PrivacyPreface() {
       <div className="oi-container">
         <Seen className="ois-gate ois-head">
           <Reveal as="h2" id="what-stays-heading" className="oi-h2">
-            What stays on your Mac
+            {t('pg.privacy.title', 'What stays on your Mac')}
           </Reveal>
           <Reveal as="p" className="oi-line" delay={90}>
-            On your Mac: files, commands, chat history. In the cloud: the AI's thinking.
+            {t(
+              'pg.privacy.line',
+              "On your Mac: files, commands, chat history. In the cloud: the AI's thinking."
+            )}
           </Reveal>
         </Seen>
-        <Seen className="ois-gate ois-scene-gate" threshold={0.3} aria-hidden="true">
+        <Seen className="ois-gate ois-scene-gate" threshold={0.3} aria-hidden="true" dir="ltr">
           <div ref={sceneRef} className="ois-scene">
             <Reveal className="ois-panel ois-panel-mac">
-              <p className="oi-tag oi-tag-bracket">On your Mac</p>
+              <p className="oi-tag oi-tag-bracket">{t('pg.privacy.mac', 'On your Mac')}</p>
               <div className="ois-glyph-stage">
                 <div className="ois-glyph-box">
                   <LaptopGlyph />
@@ -121,7 +122,7 @@ export default function PrivacyPreface() {
               <Wire vertical />
             </Reveal>
             <Reveal className="ois-panel ois-panel-cloud" delay={130}>
-              <p className="oi-tag oi-tag-bracket">In the cloud</p>
+              <p className="oi-tag oi-tag-bracket">{t('pg.privacy.cloud', 'In the cloud')}</p>
               <div className="ois-glyph-stage">
                 <div className="ois-glyph-box">
                   <CloudGlyph />
@@ -130,27 +131,6 @@ export default function PrivacyPreface() {
               </div>
             </Reveal>
           </div>
-        </Seen>
-        <Seen className="ois-gate ois-under-scene">
-          <Reveal>
-            <More label="More, with the diagram" openLabel="Less">
-              <p className="ois-measure">
-                Your conversation and the results the AI needs are sent to the cloud to get an
-                answer.
-              </p>
-              <p className="ois-measure">
-                AI model keys stay on our servers. They never reach your Mac.
-              </p>
-              <div className="oi-sheet">
-                {/* The diagram was drawn for the light site; its own theme keeps its ink dark. */}
-                <ThemeProvider theme={landingTheme}>
-                  <div className="ois-diagram">
-                    <SimpleHowItWorks />
-                  </div>
-                </ThemeProvider>
-              </div>
-            </More>
-          </Reveal>
         </Seen>
       </div>
     </Seen>

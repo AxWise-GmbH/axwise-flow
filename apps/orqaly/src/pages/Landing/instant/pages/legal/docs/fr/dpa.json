@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Avenant sur le traitement des données",
+    "summary": "Comment nous traitons les données personnelles en tant que votre sous-traitant lorsque votre entreprise utilise l’API, les services Entreprise ou le Bot assistant.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Première version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "À propos de cet avenant"
+    },
+    {
+      "type": "p",
+      "text": "Le présent avenant sur le traitement des données (l’« Avenant ») fixe les règles applicables aux données personnelles que nous traitons pour les clients professionnels. Il fait partie des [Conditions de l’API](/instant/legal/api-terms), des [Conditions Entreprise](/instant/legal/enterprise-terms) et, lorsque vous utilisez le Bot assistant pour votre entreprise, des [Conditions du Bot assistant](/instant/legal/assistant-bot-terms). Nous appelons celles de ces conditions qui s’appliquent à vous le « contrat principal »."
+    },
+    {
+      "type": "p",
+      "text": "L’Avenant s’applique automatiquement lorsque vous acceptez le contrat principal. Aucune signature n’est nécessaire. Si vous avez besoin d’un exemplaire signé pour vos archives, écrivez à {company.privacyEmail}."
+    },
+    {
+      "type": "p",
+      "text": "Si le présent Avenant et le contrat principal divergent au sujet des données personnelles, le présent Avenant prévaut. Lorsque les clauses contractuelles types s’appliquent (voir [Transferts internationaux](#transfers)), elles prévalent sur les deux."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "Les parties"
+    },
+    {
+      "type": "p",
+      "text": "Le présent Avenant est conclu entre vous, le client professionnel (« vous »), et Orqanix (« nous »)."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix est exploitée par {company.legalName}, {company.address}, qui est partie au présent Avenant.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Notre représentant dans l’UE est {company.euRepresentative}.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Notre contact en matière de protection des données est {company.privacyEmail}. Indiquez-nous qui est votre contact, afin que nous puissions vous joindre au sujet du présent Avenant."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Définitions"
+    },
+    {
+      "type": "list",
+      "items": [
+        "« Données personnelles » désigne toute information se rapportant à une personne identifiée ou identifiable.",
+        "« Traitement » désigne toute opération effectuée sur des données personnelles, comme leur conservation, leur consultation, leur envoi ou leur suppression.",
+        "Un « responsable du traitement » détermine les finalités et les moyens du traitement des données personnelles. Un « sous-traitant » les traite pour le compte d’un responsable du traitement et sur ses instructions. Un « sous-traitant ultérieur » est un sous-traitant auquel nous faisons appel.",
+        "« Données personnelles du client » désigne les données personnelles que nous traitons pour vous au titre du contrat principal.",
+        "« Droit de la protection des données » désigne toute loi relative à la vie privée applicable au traitement, comme le règlement général sur la protection des données de l’UE (RGPD), le RGPD britannique (UK GDPR), la loi fédérale suisse sur la protection des données (LPD) et les lois des États américains sur la protection de la vie privée."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Nos rôles"
+    },
+    {
+      "type": "p",
+      "text": "Vous êtes le responsable du traitement des données personnelles du client, ou un sous-traitant agissant pour vos propres clients. Nous sommes votre sous-traitant ou votre sous-traitant ultérieur. Nous traitons certaines données pour nos propres finalités, et pour ces données nous sommes le responsable du traitement :"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Données",
+        "Notre rôle",
+        "Ce qui s’applique"
+      ],
+      "rows": [
+        [
+          "Données personnelles contenues dans ce que vous ou vos utilisateurs envoyez à l’API, dans les travaux Entreprise, ou dans l’espace de travail et les comptes connectés d’un Bot assistant professionnel",
+          "Sous-traitant pour votre compte",
+          "Le présent Avenant"
+        ],
+        [
+          "Données de compte et de connexion de votre personnel, vos personnes de contact, et nos registres de contrats et de factures",
+          "Responsable du traitement",
+          "Notre [Politique de confidentialité](/instant/legal/privacy)"
+        ],
+        [
+          "Journaux de service et de sécurité (adresse IP, navigateur, heure, adresse demandée)",
+          "Responsable du traitement",
+          "Notre Politique de confidentialité"
+        ],
+        [
+          "Requêtes de recherche que notre propre service de recherche envoie aux moteurs de recherche web pour accomplir une tâche",
+          "Responsable du traitement",
+          "Notre Politique de confidentialité"
+        ],
+        [
+          "Consultations de registres du commerce via OpenRegister, dont les résultats peuvent inclure les noms de dirigeants",
+          "Responsable du traitement",
+          "Notre Politique de confidentialité"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nous déterminons le fonctionnement de nos recherches et de nos consultations de registres ; pour celles-ci, nous agissons donc pour notre propre compte (RGPD, art. 4, point 7). Les requêtes de recherche sont construites à partir de votre tâche ; n’incluez donc pas de données personnelles dans le texte de la tâche, sauf si la tâche l’exige."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "Détails du traitement"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Élément",
+        "Détails"
+      ],
+      "rows": [
+        [
+          "Objet",
+          "La fourniture du service prévu au contrat principal : l’API, les travaux Entreprise ou le Bot assistant utilisé pour votre entreprise."
+        ],
+        [
+          "Durée",
+          "Pendant toute la durée du contrat principal, puis jusqu’à ce que nous ayons supprimé ou restitué les données personnelles du client comme le prévoit le présent Avenant."
+        ],
+        [
+          "Nature",
+          "Réception, conservation, organisation, consultation, analyse au moyen de modèles d’IA, production de réponses et de fichiers, envoi vers vous et vos systèmes, et suppression."
+        ],
+        [
+          "Finalité",
+          "Uniquement la fourniture du service, sa sécurité et le respect de nos obligations légales."
+        ],
+        [
+          "Catégories de données personnelles",
+          "Tout ce que vous choisissez de nous envoyer ou de connecter. Généralement des noms, des coordonnées, des fonctions, des relations d’affaires, ainsi que le contenu de tâches, de messages, de documents et de fichiers."
+        ],
+        [
+          "Personnes concernées",
+          "Votre personnel, vos clients et utilisateurs finaux, vos fournisseurs et contacts professionnels, et toute autre personne nommée dans les données que vous envoyez ou connectez, y compris les contacts figurant dans les comptes de messagerie et d’e-mail que vous connectez à un Bot assistant professionnel."
+        ],
+        [
+          "Catégories particulières",
+          "Aucune, sauf accord contraire écrit. Sans cet accord, ne nous envoyez pas de données de santé, de données biométriques ou d’autres catégories particulières de données, ni de données relatives à des condamnations pénales."
+        ],
+        [
+          "Fréquence",
+          "Continue, chaque fois que vous ou vos utilisateurs utilisez le service."
+        ],
+        [
+          "Lieu",
+          "Notre espace de travail cloud et l’API stockent les données sur Google Cloud dans l’UE (aux Pays-Bas). Les travaux Entreprise sont hébergés dans la région Google Cloud de l’UE indiquée dans la commande. Les sous-traitants ultérieurs peuvent traiter des données ailleurs, comme l’indique la page [Sous-traitants](/instant/legal/subprocessors)."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "Nos engagements"
+    },
+    {
+      "type": "p",
+      "text": "Ces engagements formulent en termes simples les obligations d’un sous-traitant (RGPD, art. 28, paragraphe 3 ; UK GDPR, art. 28(3) ; LPD, art. 9)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Vos instructions"
+    },
+    {
+      "type": "p",
+      "text": "Nous ne traitons les données personnelles du client que sur vos instructions documentées, y compris en ce qui concerne leur envoi vers d’autres pays. Vos instructions sont le contrat principal, le présent Avenant et la manière dont vous configurez et utilisez le service. Vous pouvez donner d’autres instructions écrites si elles sont compatibles avec le service. Nous ne pouvons traiter des données sans votre instruction que lorsque la loi l’exige. Nous vous en informons alors au préalable, sauf si cette loi l’interdit. Si nous estimons qu’une instruction enfreint le droit de la protection des données, nous vous en informons immédiatement."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Confidentialité"
+    },
+    {
+      "type": "p",
+      "text": "Seules les personnes qui ont besoin des données personnelles du client pour leur travail peuvent y accéder, et chacune d’elles est tenue d’en préserver la confidentialité."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Sécurité"
+    },
+    {
+      "type": "p",
+      "text": "Nous prenons des mesures techniques et organisationnelles adaptées au risque afin de protéger les données personnelles du client contre la perte, l’altération, la divulgation ou l’accès accidentels ou illicites (RGPD, art. 32). L’[annexe sur la sécurité](#security-measures) figurant à la fin du présent Avenant les décrit. Nous pouvons les modifier au fil du temps, mais sans réduire le niveau global de protection."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Sous-traitants ultérieurs"
+    },
+    {
+      "type": "p",
+      "text": "Vous nous autorisez à faire appel à des sous-traitants ultérieurs. La page [Sous-traitants](/instant/legal/subprocessors) indique ceux auxquels nous faisons appel aujourd’hui, ce qu’ils font et où. Pour les travaux Entreprise, la commande peut en désigner d’autres."
+    },
+    {
+      "type": "p",
+      "text": "Avant d’ajouter ou de remplacer un sous-traitant ultérieur, nous mettons cette page à jour et vous en informons, afin que vous puissiez vous y opposer avant que le changement ne prenne effet. Si vous vous y opposez pour des motifs raisonnables liés à la protection des données, nous recherchons une solution avec vous. Si nous n’en trouvons aucune, vous pouvez mettre fin à la partie du service concernée."
+    },
+    {
+      "type": "p",
+      "text": "Nous imposons par écrit à chaque sous-traitant ultérieur des obligations de protection des données au moins aussi protectrices que celles du présent Avenant. Nous restons responsables envers vous de leur travail."
+    },
+    {
+      "type": "p",
+      "text": "Les applications de messagerie, les comptes e-mail et les autres services que vous connectez sont vos propres prestataires, choisis par vous. Ce ne sont pas nos sous-traitants ultérieurs, et leurs propres conditions s’appliquent à ce qu’ils font des données."
+    },
+    {
+      "type": "p",
+      "text": "Nous utilisons Google Gemini comme modèle d’IA ; le contenu des tâches et des conversations est donc envoyé à Google. Google peut le traiter en dehors de l’UE."
+    },
+    {
+      "type": "p",
+      "text": "Nous utilisons l’API Gemini payante de Google. Dans ce cadre, Google agit en tant que notre sous-traitant conformément à ses conditions de traitement des données et n’utilise pas le contenu pour améliorer ses produits.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "Droits des personnes"
+    },
+    {
+      "type": "p",
+      "text": "Les personnes peuvent demander à consulter, rectifier, supprimer ou transférer leurs données, ou s’opposer à leur utilisation. Si nous recevons une telle demande concernant des données personnelles du client, nous vous la transmettons et n’y répondons pas nous-mêmes, sauf si vous nous le demandez. Nous vous aidons à répondre aux demandes, dans la mesure où la nature du service le permet (RGPD, art. 12 à 23)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Violations de données"
+    },
+    {
+      "type": "p",
+      "text": "Si nous prenons connaissance d’une violation de la sécurité affectant des données personnelles du client, nous vous en informons dans les meilleurs délais. Nous vous communiquons ce que nous savons, puis davantage à mesure que nous en apprenons (RGPD, art. 33, paragraphes 2 et 3) :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ce qui s’est passé ;",
+        "quelles catégories de données et de personnes sont concernées, et leur nombre approximatif ;",
+        "les conséquences probables ;",
+        "ce que nous avons fait et prévoyons de faire pour y remédier ;",
+        "à qui vous pouvez vous adresser."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Le fait de vous informer ne constitue pas une reconnaissance de faute."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Autre assistance"
+    },
+    {
+      "type": "p",
+      "text": "Dans la mesure où la nature du service et les informations dont nous disposons le permettent, nous vous aidons à respecter vos obligations de sécurité, à réaliser des analyses d’impact relatives à la protection des données et à consulter votre autorité de protection des données (RGPD, art. 32 à 36)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "Restitution et suppression"
+    },
+    {
+      "type": "p",
+      "text": "À la fin du contrat principal, nous supprimons les données personnelles du client. Si vous nous le demandez avant cette date, nous vous les restituons d’abord. Nous n’en conservons une copie que lorsque la loi l’exige, uniquement pendant la durée qu’elle exige, et protégée comme le prévoit le présent Avenant. Les copies figurant dans nos sauvegardes disparaissent à l’expiration de ces sauvegardes."
+    },
+    {
+      "type": "p",
+      "text": "Certains enregistrements de ce qu’ont fait les agents sont conservés dans un journal figé qui ne peut pas être modifié. Lorsqu’un tel enregistrement contient des données personnelles du client, nous le supprimons ou l’anonymisons ou, lorsque nous devons le conserver, nous vous en expliquons la raison."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Audits"
+    },
+    {
+      "type": "p",
+      "text": "Nous vous fournissons les informations dont vous avez raisonnablement besoin pour démontrer que nous respectons ces obligations. Si cela ne suffit pas, vous-même, ou un auditeur indépendant tenu à la confidentialité, pouvez nous auditer. Vous nous en avertissez dans un délai raisonnable, et l’audit ne doit pas perturber notre service ni mettre en danger les données d’autres clients. Vous supportez vos propres frais d’audit. Une autorité de protection des données peut toujours nous auditer dans la mesure permise par la loi."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "Vos engagements"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Vous disposez d’une base juridique pour le traitement, et vous fournissez aux personnes les informations sur la protection des données exigées par la loi, y compris le fait que vous faites appel à nous.",
+        "Vos instructions sont conformes au droit de la protection des données.",
+        "Vous ne nous envoyez que les données personnelles dont le service a besoin, et aucune catégorie particulière de données, sauf si nous l’avons accepté par écrit.",
+        "Vous configurez le service de manière sécurisée de votre côté, notamment en protégeant les clés d’accès et les identifiants de connexion et en choisissant des paramètres d’approbation adaptés pour les agents."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Transferts internationaux"
+    },
+    {
+      "type": "p",
+      "text": "Notre espace de travail cloud, l’API et l’hébergement Entreprise stockent les données personnelles du client dans l’UE. Certains sous-traitants ultérieurs peuvent les traiter dans d’autres pays, comme l’indique la page [Sous-traitants](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "p",
+      "text": "Nous ne transférons des données personnelles hors de l’EEE, du Royaume-Uni ou de la Suisse que lorsque le droit de la protection des données le permet. Par exemple, nous les transférons vers un pays dont l’UE a constaté qu’il assure une protection adéquate des données, vers une entreprise américaine certifiée au titre du cadre de protection des données UE-États-Unis (Data Privacy Framework), ou sur la base de clauses contractuelles types."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Clauses contractuelles types"
+    },
+    {
+      "type": "p",
+      "text": "Lorsqu’un transfert entre vous et nous les exige, les clauses contractuelles types approuvées par la Commission européenne (décision d’exécution (UE) 2021/914, les « CCT ») font partie du présent Avenant. La partie des CCT (le « module ») qui s’applique dépend du lieu d’établissement de chacun de nous :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Module deux (responsable du traitement à sous-traitant) lorsque vous êtes le responsable du traitement et nous envoyez des données hors de l’EEE.",
+        "Module trois (sous-traitant à sous-traitant) lorsque vous êtes sous-traitant pour vos propres clients et nous envoyez des données hors de l’EEE.",
+        "Module quatre (sous-traitant à responsable du traitement) lorsque nous sommes dans l’EEE et vous restituons des données hors de celui-ci."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Pour les CCT, nous faisons les choix suivants :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Clause 7 : la clause d’adhésion facultative s’applique.",
+        "Clause 9 : l’option 2 (autorisation générale des sous-traitants ultérieurs) s’applique, avec une information préalable comme le prévoit la section [Sous-traitants ultérieurs](#sub-processors).",
+        "Clause 11 : la formulation facultative ne s’applique pas.",
+        "Clause 13 : l’autorité de contrôle est celle qui est compétente à votre égard en tant qu’exportateur de données.",
+        "Annexes : les sections [Nos rôles](#roles) et [Détails du traitement](#details) complètent l’annexe I, l’[annexe sur la sécurité](#security-measures) complète l’annexe II, et la page Sous-traitants complète l’annexe III."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Conformément aux clauses 17 et 18, les CCT sont régies par le droit de l’État membre de l’UE dans lequel vous êtes établi, et les litiges sont portés devant les juridictions de cet État. Si vous n’êtes pas établi dans l’UE, elles sont régies par le droit et relèvent des juridictions de {company.law}, lorsqu’il s’agit d’un État membre de l’UE.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Le Royaume-Uni et la Suisse"
+    },
+    {
+      "type": "p",
+      "text": "Pour les transferts depuis le Royaume-Uni, l’avenant relatif aux transferts internationaux de données aux CCT publié par le commissaire à l’information du Royaume-Uni (l’« Avenant britannique ») s’applique, complété par les informations figurant dans le présent Avenant."
+    },
+    {
+      "type": "p",
+      "text": "Pour les transferts depuis la Suisse, les CCT s’appliquent avec les modifications suivantes : le Préposé fédéral à la protection des données et à la transparence est l’autorité de contrôle pour les transferts relevant de la LPD ; les références au RGPD visent également la LPD ; et la notion d’« État membre » inclut la Suisse, afin que les personnes qui s’y trouvent puissent faire valoir leurs droits là où elles résident."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Transferts par les sous-traitants ultérieurs"
+    },
+    {
+      "type": "p",
+      "text": "Lorsqu’un sous-traitant ultérieur transfère des données personnelles du client hors de l’EEE, du Royaume-Uni ou de la Suisse, nous veillons à ce qu’une base valable couvre ce transfert, comme le Data Privacy Framework ou les CCT figurant dans notre contrat avec ce sous-traitant ultérieur."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "Lois des États américains sur la protection de la vie privée",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Lorsque vous êtes une « business » au sens du California Consumer Privacy Act, ou un responsable du traitement au sens d’une autre loi d’un État américain sur la protection de la vie privée, nous sommes votre « service provider », « contractor » ou « processor » pour les données personnelles du client. Nous :",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "ne vendons ni ne partageons (« sell » ou « share ») les données personnelles du client, au sens que ces lois donnent à ces termes ;",
+        "ne les traitons qu’aux fins commerciales prévues par le contrat principal et le présent Avenant, et à aucune autre fin commerciale ;",
+        "ne les conservons, n’utilisons ni ne divulguons en dehors de notre relation d’affaires directe avec vous ;",
+        "ne les combinons pas avec des données personnelles que nous recevons de tiers ou que nous collectons nous-mêmes, sauf dans la mesure permise par ces lois ;",
+        "respectons ces lois et assurons le même niveau de protection de la vie privée que celui qu’elles exigent ;",
+        "vous informons si nous estimons ne plus pouvoir remplir ces obligations."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Vous pouvez prendre des mesures raisonnables et appropriées pour vous assurer que nous utilisons les données personnelles du client conformément à ces lois, et pour faire cesser et corriger toute utilisation non autorisée. Nous comprenons ces restrictions et les respecterons.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilité"
+    },
+    {
+      "type": "p",
+      "text": "La responsabilité de chaque partie au titre du présent Avenant est soumise aux limites prévues par le contrat principal, dans la mesure où le droit de la protection des données le permet. Ces limites ne restreignent pas les droits que les personnes tirent directement du droit de la protection des données."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Durée et mises à jour"
+    },
+    {
+      "type": "p",
+      "text": "Le présent Avenant s’applique aussi longtemps que nous traitons des données personnelles du client pour vous, même après la fin du contrat principal."
+    },
+    {
+      "type": "p",
+      "text": "Nous pouvons mettre à jour le présent Avenant pour tenir compte de changements dans la loi, parmi nos sous-traitants ultérieurs ou dans nos services. Sans votre accord, nous ne le modifierons pas d’une manière qui réduise la protection des données personnelles du client, sauf si la loi exige ce changement."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Annexe : mesures de sécurité"
+    },
+    {
+      "type": "p",
+      "text": "Voici les principales mesures techniques et organisationnelles que nous appliquons aujourd’hui. La page [Sécurité et divulgation des vulnérabilités](/instant/legal/security) explique comment signaler un problème de sécurité à {company.securityEmail}."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Domaine",
+        "Ce que nous faisons"
+      ],
+      "rows": [
+        [
+          "Hébergement",
+          "Nos services cloud et nos bases de données fonctionnent sur Google Cloud dans l’UE (aux Pays-Bas). Les travaux Entreprise sont hébergés dans la région Google Cloud de l’UE indiquée dans la commande."
+        ],
+        [
+          "Chiffrement",
+          "Les données sont chiffrées en transit (HTTPS) et au repos par notre fournisseur cloud."
+        ],
+        [
+          "Accès aux comptes",
+          "Les personnes se connectent à l’espace de travail Orqanix via notre prestataire de connexion, Clerk, avec une vérification anti-robot lors de l’inscription. L’API n’est accessible qu’avec une clé d’accès secrète que nous délivrons."
+        ],
+        [
+          "Clés et secrets stockés",
+          "Les clés d’application destinées aux automatisations ne sont stockées que sous forme d’empreintes (hachages), et non sous une forme lisible. Les secrets utilisés par nos services sont conservés dans Google Cloud Secret Manager, et non dans notre code."
+        ],
+        [
+          "Fichiers stockés",
+          "Les fichiers produits par l’espace de travail cloud sont conservés dans un bucket Google Cloud Storage privé situé dans l’UE."
+        ],
+        [
+          "Accès du personnel",
+          "Seules les personnes qui ont besoin d’un accès pour leur travail en disposent, et elles sont tenues à la confidentialité."
+        ],
+        [
+          "Enregistrements des actions des agents",
+          "Ce qu’ont fait les agents, ce qui a été approuvé et les fichiers qu’ils ont créés sont consignés dans un journal qui ne peut pas être modifié par la suite. Les clients Entreprise définissent les approbations (Autoriser une fois, Toujours autoriser, Refuser) et les accès fondés sur les rôles."
+        ],
+        [
+          "Journaux",
+          "Les journaux de requêtes contiennent l’adresse IP, le navigateur, l’heure, l’adresse demandée et le résultat. Nous n’enregistrons pas le contenu des instructions adressées à l’IA ni celui des messages."
+        ],
+        [
+          "Sauvegardes",
+          "La base de données de l’espace de travail cloud bénéficie de sauvegardes automatiques quotidiennes, d’une restauration à un instant donné et d’une protection contre la suppression accidentelle."
+        ],
+        [
+          "Modèles",
+          "Nous n’entraînons pas nos propres modèles d’IA sur les données des clients."
+        ],
+        [
+          "Incidents",
+          "Nous informons les clients concernés des violations de données personnelles dans les meilleurs délais, comme le prévoit la section [Violations de données](#breaches)."
+        ]
+      ]
+    }
+  ]
+}

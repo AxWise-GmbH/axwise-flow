@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "slug": "assistant-bot-terms",
+    "title": "助理机器人条款",
+    "summary": "适用于 Orqanix 助理机器人的附加规则。助理机器人可以在您的文件中，以及在您连接的即时通讯应用和电子邮件账户中代表您行事。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "No Assistant Bot code exists yet. These terms state rules for use only and make no claim about channels, storage location or retention. Check every section against the product once it exists (FACTS.md §6, open point 13). The product page presents the bot as available ('Try For Free'); that misleading-claims risk cannot be cured by these terms.",
+        "AI disclosure to other people (EU AI Act Art. 50(1), applies since 2 Aug 2026; Utah and Maine chatbot rules; Colorado HB 26-1263 from 2027-01-01): the terms require that the bot identifies itself as an AI. Under Art. 50(1) this is our duty as provider, not only the user's. The product must actually do this (greeting, signature or footer on messages and email it sends) before launch.",
+        "Stopping a bot and removing its access: the terms only say you can change a bot's role (product page) and remove its access in the connected service's own settings. Confirm an in-product stop and disconnect control before launch, then state it.",
+        "Where the bot's map, messages and connection tokens are stored, and for how long, is unknown. The Privacy Policy and the Sub-processors list must cover this before launch, including GDPR Art. 14 information for people whose contacts the bot gathers.",
+        "Which messaging channels the bot will use, and each channel's own rules on AI assistants (some restrict general AI assistants in some countries). Channel-specific terms may be needed; brand names are banned in documents today. If a channel is text messages or voice, US TCPA consent, opt-out and call-recording rules need their own section.",
+        "Whether bots can be shared with other people in a Workspace (the 'Sharing a bot' section is written as a conditional rule).",
+        "Role split for business users: we act as processor under the DPA for contacts and client data they connect, but as an independent controller for our own web searches and register lookups (FACTS.md §7). Lawyer to confirm, including for consumers who use the bot for personal matters.",
+        "US health information: the US version bars HIPAA-protected health information and says we do not sign business associate agreements, matching the API Terms, Enterprise Terms and Acceptable Use Policy (cross-check 2026-09-21). Owner to decide whether a business associate agreement will ever be offered (us.md rows 8-9).",
+        "DSA Art. 14(1): the Terms of Service states that a person reviews each report and no automated moderation is used. Owner to confirm this holds for bots.",
+        "EU changes: this document points to the Terms of Service rules (30-day email notice, free termination, no silent acceptance). Those need email that works and a record of which version each user accepted (FACTS.md open points 2 and 9).",
+        "EU Data Act switching (Arts. 23-31, applies since 12 Sept 2025): bot data in the Workspace is part of a cloud service; the Terms of Service or Privacy Policy should cover export and switching. Lawyer to confirm.",
+        "Company name, address and governing law are empty; the Terms of Service carries them.",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "关于本条款"
+    },
+    {
+      "type": "p",
+      "text": "本条款是对我们的[服务条款](/instant/legal/terms)的补充。当您使用助理机器人，包括您借助它创建的每一个助理（“机器人”）时，适用本条款。机器人是具有特定角色的 AI 助理，例如销售、财务、客户支持、办公室事务，或您自行编写的角色。它可以在您连接的即时通讯应用和电子邮件账户中，以及在您的 Orqanix 工作区中为您工作。"
+    },
+    {
+      "type": "p",
+      "text": "我们的[可接受使用政策](/instant/legal/acceptable-use)、[隐私政策](/instant/legal/privacy)和[我们的 AI 如何运作](/instant/legal/ai)同样适用。如本条款与服务条款在有关机器人的某一事项上存在冲突，以本条款为准。"
+    },
+    {
+      "type": "h2",
+      "id": "access-and-use",
+      "text": "访问与使用"
+    },
+    {
+      "type": "list",
+      "items": [
+        "您必须年满 18 周岁并拥有 Orqanix 账户。",
+        "您可以根据需要创建任意数量的机器人，并可随时更改机器人的角色。机器人从其下一项任务起遵循新角色。",
+        "机器人可以使用 Orqanix 应用的各项功能：对话、调研、配方、定时任务、已连接的工具和文件。其文件存放在您的 Orqanix 工作区中。",
+        "在产品处于早期阶段期间，机器人免费提供。在任何付费方案开始之前，我们将公布价格以及付款和取消的规则。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "在任何付费方案开始之前，我们还将公布撤回购买的规则。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "智能体操作"
+    },
+    {
+      "type": "p",
+      "text": "机器人不仅仅是回答问题。根据您连接和允许的内容，它可以代表您执行操作（“智能体操作”）。例如，它可以："
+    },
+    {
+      "type": "list",
+      "items": [
+        "阅读、分类和归档文件，例如发票、合同、照片和笔记；",
+        "从您连接的电子邮件账户和手机中收集联系人，汇总成一份列表并合并重复项；",
+        "从您的邮件、文件和工具中收集数字和详细信息；",
+        "按照您允许的方式回复消息，并起草回复、简报和报告；",
+        "运行每天或每周重复执行的配方和定时任务。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "authorization",
+      "text": "您的授权"
+    },
+    {
+      "type": "p",
+      "text": "当您为机器人设定角色、连接账户或要求其执行任务时，即授权其在该范围内代表您行事。对于与机器人打交道的人员和服务而言，机器人在您所授予访问权限范围内的操作视为您的操作。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "仅连接您有权使用的账户、设备和数据，并且仅向机器人授予其所需的访问权限。",
+        "清楚地设定角色和指令。您应对您要求机器人做的事情负责。",
+        "确保您的 Orqanix 账户和已连接账户的安全。如您认为他人正在使用这些账户，请通过 {company.email} 告知我们。",
+        "您可以随时停止使用机器人，并移除其对已连接账户的访问权限，例如在该账户自身的设置中操作。已经执行的操作可能无法撤销。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "human-review",
+      "text": "人工审核"
+    },
+    {
+      "type": "p",
+      "text": "机器人可能出错、不完整或信息过时。它可能误解情况、选错文件或联系人，或写出不真实的内容。"
+    },
+    {
+      "type": "p",
+      "text": "您可以查看每个机器人做了什么。在依赖机器人的工作成果之前，请先进行检查；在草稿发出之前，请先进行审阅。对于任何难以撤销或会影响他人的事项，请格外谨慎，例如："
+    },
+    {
+      "type": "list",
+      "items": [
+        "发给客户、供应商或大量人群的消息；",
+        "任何涉及资金、发票、合同或法律期限的事项；",
+        "删除、移动或共享文件；",
+        "有关他人的个人信息或敏感信息。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如 Orqanix 允许您选择机器人在行动前是否先询问您，则由您作出选择。如您允许机器人无需询问即可行动，即表示您接受其在未经您审核的情况下行动。机器人的输出不构成法律、医疗、税务或财务建议。"
+    },
+    {
+      "type": "h3",
+      "id": "liability",
+      "text": "责任"
+    },
+    {
+      "type": "p",
+      "text": "您应对您授权机器人执行的操作及其结果负责，包括其发送的消息以及其对您的文件和已连接账户所作的更改。对于您所允许的操作或您所给出的指令造成的损失，我们不承担责任，但我们的[服务条款](/instant/legal/terms)或法律另有规定的除外。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "在法律允许的范围内，服务条款中的免责声明和责任限制适用于机器人及其操作。机器人按“现状”提供。我们不保证机器人会正确、完整或及时地行事。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如第三方因机器人基于您的指令所执行的操作而向我们提出索赔，您应赔偿我们因该索赔而遭受的合理损失。本条款在法律允许的范围内适用，且以该索赔系因您违反本条款或法律而产生为限。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "您应对您给出的指令、您选择的设置以及您授予的访问权限负责。如机器人因我们的服务存在缺陷而造成损害，我们仍应承担责任。在此情况下，我们的责任依照[服务条款](/instant/legal/terms#liability)和法律确定。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "本条款中的任何内容均不限制法律不允许限制的我们的责任，例如因故意、重大过失、造成生命、身体或健康损害，或依据产品责任法而产生的责任。如您是消费者，您保留您所在国家法律赋予您的权利。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如您将机器人用于您的业务，且第三方因机器人基于您的指令所执行的操作而向我们提出索赔，则在该索赔系因您违反本条款或法律而产生的范围内，您应赔偿我们因该索赔而遭受的合理损失。本段不适用于消费者。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "connected-services",
+      "text": "连接的服务"
+    },
+    {
+      "type": "p",
+      "text": "机器人通过您连接的即时通讯应用、电子邮件账户和工具，并利用您提供给它的文件开展工作。这些服务由其他公司运营。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "您对这些服务的使用受其自身的条款和政策约束，包括其关于自动消息、机器人和 AI 的规则。您有责任遵守这些规则。",
+        "连接某项服务即表示您允许我们在运行您的机器人所需的范围内代表您访问该服务。您可以随时移除该访问权限。",
+        "某些服务在部分国家限制、禁止 AI 助理或对其收费。如某项服务屏蔽、限制或暂停机器人或您的账户，我们可能无法予以恢复。",
+        "我们不控制这些服务，也不对这些服务的运作方式或其处理您数据的方式负责。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "people-the-bot-talks-to",
+      "text": "机器人对话的人员"
+    },
+    {
+      "type": "p",
+      "text": "机器人可能会给您以外的人发送消息，例如客户、供应商或同事。在此情况下，适用以下规则："
+    },
+    {
+      "type": "list",
+      "items": [
+        "机器人必须明确表明其是 AI，而不是真人。请勿移除或隐藏该表明，也不得指示机器人假扮真人。",
+        "如有人询问其是否正在与 AI 对话，机器人必须如实回答“是”。",
+        "机器人代表您发送的消息以您的名义发出，您是这些消息的发送者。",
+        "您必须有权联系每一个人，例如因为对方是您的客户或已同意接收您的信息。请遵守适用于您和对方的有关电子邮件、短信和营销的法律。",
+        "不得使用机器人发送未经请求的群发消息、垃圾信息，或进行骚扰或欺骗。",
+        "机器人专为工作和日常事务而设计。不得将其设置为陪伴者、恋爱或情感伴侣，也不得将其用于提供心理治疗、诊断或其他受监管的专业建议。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当机器人收集联系人或阅读消息时，它会处理有关他人的个人数据。您有责任为此具备合法理由，并在法律要求时告知相关人员。如您将机器人用于您的业务，请参阅[企业用户](#business-users)。"
+    },
+    {
+      "type": "p",
+      "text": "请勿使用机器人处理受美国健康隐私法 HIPAA 保护的健康信息。我们不签署业务伙伴协议（business associate agreement）。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "business-map",
+      "text": "您的业务图谱"
+    },
+    {
+      "type": "p",
+      "text": "为完成工作，机器人会建立并保存一份您业务的图谱：您的团队、客户、供应商和文件，以及它们之间的关联。机器人在工作过程中会不断补充该图谱。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "该图谱属于您的内容。我们使用它来运行您的机器人并向您提供我们的服务，具体如我们的[隐私政策](/instant/legal/privacy)所述。[我们的 AI 如何运作](/instant/legal/ai#data-models-see)说明了 AI 模型能看到哪些内容。",
+        "我们不会用它来训练我们自己的 AI 模型，也不会出售它。",
+        "该图谱可能包含有关他人的详细信息。[机器人对话的人员](#people-the-bot-talks-to)中的规则同样适用于该图谱。",
+        "如需获取该图谱或其他机器人数据的副本，或要求更正或删除这些数据，请发送邮件至 {company.privacyEmail}。智能体操作的部分记录以固定日志的形式保存。当您要求我们删除数据时，我们会删除数据或对其进行匿名化处理；如我们必须保留某项记录，我们会告知您原因。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sharing-a-bot",
+      "text": "共享机器人"
+    },
+    {
+      "type": "p",
+      "text": "如您共享某个机器人或您的工作区，与您共享的人员可能会看到该机器人所知道的内容和所做的事情，并向其分配任务。请仅与应当拥有该访问权限的人员共享。"
+    },
+    {
+      "type": "h2",
+      "id": "content-removal",
+      "text": "内容移除"
+    },
+    {
+      "type": "p",
+      "text": "如我们合理地认为某项内容、机器人操作、机器人或已连接服务违反本条款、[可接受使用政策](/instant/legal/acceptable-use)或法律，或使人员、系统或已连接服务面临风险，我们可以移除或屏蔽内容、停止机器人的操作、暂停机器人或断开服务连接。在可能的情况下，我们会告知您我们采取了什么措施以及原因。"
+    },
+    {
+      "type": "p",
+      "text": "如需举报违法内容或机器人的滥用行为，请发送电子邮件至 {company.email}，并以“Report”作为邮件主题。[举报违规行为](/instant/legal/acceptable-use#report)说明了应包含哪些内容。我们会审查每一份举报，作出决定，并将我们的理由告知举报人和受影响的用户。"
+    },
+    {
+      "type": "p",
+      "text": "如我们限制您的内容、机器人或账户，我们将向您提供理由说明（欧盟《数字服务法》（DSA）第 17 条）。您可以写信至 {company.email} 要求我们复核该决定，也可以向法院提起诉讼。我们面向主管机关和用户的单一联络点为 {company.email}，使用英语沟通。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "business-users",
+      "text": "企业用户"
+    },
+    {
+      "type": "p",
+      "text": "如您将机器人用于您的业务，机器人通常会处理有关您的员工、客户和供应商的个人数据。对于此类数据，由您决定其使用目的和方式，我们按照您的指示代表您处理这些数据。"
+    },
+    {
+      "type": "p",
+      "text": "当我们为您的业务处理个人数据时，我们的[数据处理附录](/instant/legal/dpa)（DPA）构成您与我们之间协议的一部分。该附录涵盖安全、我们的[子处理方](/instant/legal/subprocessors)以及我们如何协助处理个人的请求。如我们按照[隐私政策](/instant/legal/privacy)所述将数据用于我们自己的目的，我们自行对该使用负责。"
+    },
+    {
+      "type": "p",
+      "text": "就数据保护而言，这意味着对于此类数据，您是控制者，我们是您的处理者（GDPR 第 28 条）。您有责任具备法律依据、告知相关人员（GDPR 第 13 条和第 14 条）并处理他们的请求。我们将按照 DPA 的规定提供协助。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "在适用美国各州隐私法的情况下，我们作为您的服务提供者（service provider）或处理者（processor）处理此类数据，并仅将其用于向您提供服务。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "变更"
+    },
+    {
+      "type": "p",
+      "text": "我们会不断改进机器人，并可能增加、更改或移除功能、连接或角色。本页顶部的日期显示本条款的当前版本。"
+    },
+    {
+      "type": "p",
+      "text": "如本条款的某项变更对您有重要影响，我们会在其生效前通知您。如您在该日期后继续使用机器人，则适用新条款。如您不同意，请停止使用机器人并移除其对您账户的访问权限。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如您是消费者，[我们进行变更时您的权利](/instant/legal/terms#changes-eu)中的规则适用于机器人和本条款。简而言之：我们仅在有正当理由时变更机器人，且不收取额外费用；对于影响您的变更，我们会提前告知您；如您不同意，您可以免费终止合同。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如您将机器人用于您的业务，对于本条款中对您有重要影响的变更，我们会在其生效前通知您。如您在该日期后继续使用机器人，则适用新条款。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "联系方式"
+    },
+    {
+      "type": "p",
+      "text": "有关本条款的问题：{company.email}。数据请求：{company.privacyEmail}。安全问题：{company.securityEmail}。"
+    }
+  ]
+}

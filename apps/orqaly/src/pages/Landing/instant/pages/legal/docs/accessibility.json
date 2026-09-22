@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Accessibility Statement",
+    "summary": "This statement explains how accessible the Orqanix website is, where it still falls short, and how to report a barrier.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Our aim"
+    },
+    {
+      "type": "p",
+      "text": "We want everyone to be able to use the {company.name} website, including people who use a keyboard, a screen reader, zoom or other assistive technology. Our target is level AA of the Web Content Accessibility Guidelines (WCAG) 2.1, the common international standard."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Scope"
+    },
+    {
+      "type": "p",
+      "text": "This statement covers the website at orqanix.com: the home page, the product and solution pages, the News page and the Legal Center. It does not cover the web app, the Desktop App, or the sign-in pages provided by Clerk, our sign-in provider."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Current status"
+    },
+    {
+      "type": "p",
+      "text": "The website partly meets WCAG 2.1 level AA. It has not yet had a full audit, and we do not claim full conformance. The gaps we know about are listed under [Known gaps](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "What we have done"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Keyboard: you can reach links, buttons and menus with the keyboard, and the Escape key closes open menus.",
+        "Visible focus: links and buttons show a visible focus style when you move to them with the keyboard.",
+        "Less motion: if your device is set to reduce motion, the animated scenes stop moving and content appears without animation.",
+        "Contrast: body text and headings are near-white on a black background.",
+        "Text alternatives: menus, controls and scenes that carry meaning have text labels for screen readers. Purely decorative graphics are hidden from them.",
+        "Structure: pages use headings, a main content area, a labelled main menu and a labelled footer menu, and the page language is set to English.",
+        "Small screens: the layout adapts to phones and narrow windows."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Known gaps"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Some illustrations contain small text, such as labels inside the animated product scenes. It can be hard to read, even when zoomed.",
+        "Some secondary labels use a dim grey with less contrast than WCAG asks for small text.",
+        "The animated scenes can be hard to follow for some people. They stop moving if your device is set to reduce motion."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We intend to fix these gaps. If one of them stops you from getting information you need, [tell us](#feedback) and we will try to give it to you another way."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Feedback"
+    },
+    {
+      "type": "p",
+      "text": "If you meet a barrier on our website, please tell us at {company.email}. Say which page it was on, what you tried to do and, if you like, which browser and assistive technology you use. We aim to reply quickly and to fix what we can."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "If you live in the EU and our answer does not solve the problem, you can contact the authority in your country that oversees accessibility."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "About this statement"
+    },
+    {
+      "type": "p",
+      "text": "We prepared this statement on 21 September 2026, based on our own review of the website. We will update it when we fix a gap or complete an audit."
+    }
+  ]
+}

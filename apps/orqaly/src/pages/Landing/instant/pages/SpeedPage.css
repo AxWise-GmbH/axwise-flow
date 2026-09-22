@@ -23,6 +23,30 @@
   --osp-light-pale: color-mix(in srgb, var(--oi-accent) 45%, #ffffff);
   --osp-shade-half: color-mix(in srgb, var(--oi-accent-dark) 55%, transparent);
   --osp-bloom: color-mix(in srgb, var(--oi-accent-deep) 55%, transparent);
+  /* The half-strength light where it only glows (around the trail and the head). */
+  --osp-halo: color-mix(in srgb, var(--oi-accent) 55%, transparent);
+}
+
+/*
+ * Light: the lights are ink, and ink cannot glow. Every halo (head, trail band, bloom, the
+ * gate and the paper) becomes a faint shade, so the tracks stay crisp instead of smudged.
+ */
+[data-oi-theme='light'] .osp-race,
+[data-oi-theme='light'] .osp-made,
+[data-oi-theme='light'] .osp-method {
+  --osp-light-pale: rgba(0, 0, 0, 0.14);
+  --osp-shade-half: rgba(0, 0, 0, 0.03);
+  --osp-bloom: rgba(0, 0, 0, 0.05);
+  --osp-halo: rgba(0, 0, 0, 0.08);
+  --oi-glow: rgba(0, 0, 0, 0.1);
+}
+
+[data-oi-theme='light'] .osp-stage::before {
+  opacity: 0.15;
+}
+
+[data-oi-theme='light'] .osp-stage:hover::before {
+  opacity: 0.4;
 }
 
 /* The race ------------------------------------------------------------------------------ */
@@ -33,10 +57,11 @@
   --osp-run-ease: cubic-bezier(0.3, 0.7, 0.25, 1);
   position: relative;
   padding: 10px clamp(20px, 3.6vw, 48px) 0;
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-* in instant.css), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01) 64%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
   isolation: isolate;
 }
@@ -66,7 +91,10 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1.5px);
+  background-image: radial-gradient(
+    rgba(var(--oi-fg-rgb), calc(0.13 * var(--oi-halo-k))) 1px,
+    transparent 1.5px
+  );
   background-size: 22px 22px;
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 40% 50%, #000, transparent 80%);
   mask-image: radial-gradient(ellipse 70% 70% at 40% 50%, #000, transparent 80%);
@@ -153,7 +181,7 @@
   bottom: 0;
   left: calc(var(--x) * 100%);
   width: 1px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--oi-fg-rgb), 0.07);
 }
 
 .osp-rail {
@@ -164,7 +192,7 @@
   height: 1px;
   background: repeating-linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.26) 0 2px,
+    rgba(var(--oi-fg-rgb), 0.26) 0 2px,
     transparent 2px 9px
   );
 }
@@ -203,8 +231,13 @@
   top: -1px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--osp-light-half), var(--osp-light-full) 60%, #ffffff);
-  box-shadow: 0 0 9px var(--osp-light-half);
+  background: linear-gradient(
+    90deg,
+    var(--osp-light-half),
+    var(--osp-light-full) 60%,
+    rgb(var(--oi-fg-rgb))
+  );
+  box-shadow: 0 0 9px var(--osp-halo);
 }
 
 /* The glow grows with the run, so a blur here would be re-run on every frame of it: a taller
@@ -212,7 +245,7 @@
 .osp-glow {
   top: -29px;
   height: 58px;
-  background: linear-gradient(90deg, var(--osp-shade-half), var(--osp-light-half));
+  background: linear-gradient(90deg, var(--osp-shade-half), var(--osp-halo));
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent,
@@ -239,7 +272,7 @@
   height: 10px;
   background: radial-gradient(
     ellipse 110px 4.5px at 100% 50%,
-    #ffffff,
+    rgb(var(--oi-fg-rgb)),
     var(--osp-light-half) 35%,
     transparent 72%
   );
@@ -254,7 +287,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ffffff;
+  background: rgb(var(--oi-fg-rgb));
   box-shadow:
     0 0 12px 3px var(--osp-light-pale),
     0 0 44px 14px var(--oi-glow);
@@ -269,13 +302,13 @@
 
 .osp-head::before {
   inset: -22px;
-  background: radial-gradient(circle, var(--osp-light-half), transparent 68%);
+  background: radial-gradient(circle, var(--osp-halo), transparent 68%);
 }
 
 /* The ring thrown off where a light comes to rest. */
 .osp-head::after {
   inset: -9px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.85);
   opacity: 0;
 }
 
@@ -481,7 +514,7 @@
   left: 50%;
   width: 1px;
   height: 15px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(var(--oi-fg-rgb), 0.22);
 }
 
 .osp-axis-unit {
@@ -516,7 +549,7 @@
   padding: 0 24px 0 18px;
   border: 1px solid var(--oi-hairline-strong);
   border-radius: var(--oi-radius-pill);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--oi-fg-rgb), 0.03);
   color: var(--oi-ink);
   font-family: var(--oi-mono);
   font-size: 0.74rem;
@@ -650,7 +683,10 @@
   position: absolute;
   inset: 0 -28px;
   z-index: -1;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1.5px);
+  background-image: radial-gradient(
+    rgba(var(--oi-fg-rgb), calc(0.15 * var(--oi-halo-k))) 1px,
+    transparent 1.5px
+  );
   background-size: 22px 22px;
   -webkit-mask-image: radial-gradient(ellipse 58% 60% at 50% 50%, #000, transparent 78%);
   mask-image: radial-gradient(ellipse 58% 60% at 50% 50%, #000, transparent 78%);
@@ -764,7 +800,7 @@
   bottom: -1px;
   left: 0;
   height: 1px;
-  background: linear-gradient(90deg, var(--osp-light), #ffffff 55%, transparent);
+  background: linear-gradient(90deg, var(--osp-light), rgb(var(--oi-fg-rgb)) 55%, transparent);
   transform: scaleX(0);
   transform-origin: 0 50%;
   transition: transform 900ms var(--oi-ease);

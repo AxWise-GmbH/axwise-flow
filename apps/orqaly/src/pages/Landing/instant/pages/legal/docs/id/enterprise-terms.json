@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Ketentuan Korporat",
+    "summary": "Ketentuan bagi bisnis yang menggunakan jasa Orqanix untuk membangun, menjalankan, atau memberikan nasihat tentang AI bersama agen dan pakar kami.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Tentang ketentuan ini"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan Korporat ini berlaku apabila bisnis Anda menggunakan jasa Orqanix untuk membangun, menjalankan, atau memberikan nasihat tentang AI. Ketentuan ini mencakup pekerjaan seperti audit kesiapan AI, uji coba, unit bisnis otomatis, peran AI baru, konektor khusus, pengoperasian agen terkelola, dan pelatihan tim."
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini melengkapi [Ketentuan Layanan](/instant/legal/terms) dan [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami. Apabila kami menangani data pribadi untuk Anda, [Adendum Pemrosesan Data](/instant/legal/dpa) (“DPA”) juga berlaku dan merupakan bagian dari ketentuan ini. Apabila pekerjaan mencakup API Orqanix, misalnya API penalaran berlabel putih (white-label), [Ketentuan API](/instant/legal/api-terms) juga berlaku untuk bagian tersebut."
+    },
+    {
+      "type": "p",
+      "text": "“Anda” berarti bisnis yang menggunakan jasa kami. Orang yang menerima ketentuan ini atau menandatangani pesanan menegaskan bahwa ia berwenang mengikat bisnis tersebut. “Kami” berarti Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix dijalankan oleh {company.legalName}, {company.address}, yang merupakan pihak dalam ketentuan ini dan dalam setiap pesanan.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Pekerjaan Korporat hanya untuk bisnis. Setiap orang yang bekerja dengan kami atas nama Anda harus berusia 18 tahun atau lebih."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Pesanan"
+    },
+    {
+      "type": "p",
+      "text": "Kami menyepakati setiap pekerjaan dalam pesanan tertulis atau pernyataan lingkup kerja (statement of work) (“pesanan”) sebelum pekerjaan dimulai. Setiap pesanan menjelaskan:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "lingkup: apa yang akan kami kerjakan, dan apa yang tidak termasuk;",
+        "hasil kerja: apa yang akan Anda terima;",
+        "jadwal dan setiap tahapan pencapaian (milestone);",
+        "harga dan cara kami menagih: harga tetap per proyek, biaya bulanan, biaya per hasil, atau gabungannya;",
+        "kriteria penerimaan dan berapa lama waktu yang Anda miliki untuk menguji;",
+        "tempat pekerjaan di-hosting, termasuk region Google Cloud di UE yang mana;",
+        "setiap perangkat lunak atau layanan pihak ketiga yang menjadi andalan pekerjaan, beserta ketentuannya."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Pesanan mengikat kedua belah pihak setelah kita berdua menandatanganinya atau mengonfirmasinya secara tertulis. Email sudah cukup. Beberapa pesanan dapat berjalan bersamaan, dan masing-masing berdiri sendiri."
+    },
+    {
+      "type": "p",
+      "text": "Pekerjaan kami biasanya berjalan mulai dari penggalian kebutuhan dan rencana tertulis (“cetak biru”), lalu pembangunan dengan data Anda dan peluncuran, hingga pengoperasian dan penyempurnaan. Pesanan menyebutkan langkah mana yang dicakupnya."
+    },
+    {
+      "type": "p",
+      "text": "Jika terdapat pertentangan antardokumen, urutan keberlakuannya adalah: pesanan untuk pekerjaan tersebut, lalu DPA untuk data pribadi, lalu ketentuan ini, lalu Ketentuan Layanan."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Cara kami bekerja"
+    },
+    {
+      "type": "p",
+      "text": "Kami melakukan pekerjaan dengan agen AI kami, spesialis kami (insinyur dan konsultan), atau keduanya, sesuai isi pesanan. Kami dapat menggunakan subkontraktor. Kami tetap bertanggung jawab atas pekerjaan mereka dan mengikat mereka pada kewajiban kerahasiaan dan pelindungan data yang sama dengan kewajiban kami."
+    },
+    {
+      "type": "p",
+      "text": "Agen yang kami bangun dan jalankan untuk Anda bekerja dalam aturan yang Anda tetapkan: persetujuan untuk setiap tindakan (Izinkan Sekali, Selalu Izinkan, atau Tolak), akses berbasis peran, serta catatan tentang apa yang dilakukan setiap agen. Kami menyepakati pengaturan ini dengan Anda dalam pesanan atau sebelum peluncuran."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "Kerja sama Anda"
+    },
+    {
+      "type": "p",
+      "text": "Anda akan:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "memberi kami, tepat waktu, akses ke orang, sistem, data, dan keputusan yang dibutuhkan pekerjaan;",
+        "memastikan bahwa Anda berhak memberi kami data dan akses tersebut, termasuk data pribadi dan lisensi untuk sistem dan alat Anda sendiri;",
+        "menunjuk narahubung yang dapat mengambil keputusan;",
+        "meninjau rencana dan hasil kerja dengan segera;",
+        "menyimpan cadangan (backup) Anda sendiri atas sistem dan data yang kami kerjakan;",
+        "memberi tahu kami tentang aturan yang memengaruhi pekerjaan, seperti aturan untuk industri Anda."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda terlambat, atau sesuatu yang Anda berikan kepada kami keliru, dan hal itu menunda pekerjaan kami, jadwal bergeser sebanyak waktu yang sama. Setiap upaya tambahan yang timbul karenanya ditangani sebagai [perubahan](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Penerimaan"
+    },
+    {
+      "type": "p",
+      "text": "Apabila pesanan menetapkan kriteria penerimaan, kami memberi tahu Anda ketika suatu hasil kerja sudah siap. Anda mengujinya terhadap kriteria tersebut dalam jangka waktu yang ditetapkan pesanan. Jika memenuhi kriteria, Anda menerimanya. Jika tidak, Anda memberi tahu kami secara tertulis apa yang kurang, lalu kami memperbaikinya dan menyerahkannya kembali."
+    },
+    {
+      "type": "p",
+      "text": "Suatu hasil kerja dianggap diterima apabila Anda mengonfirmasinya, apabila masa pengujian berakhir tanpa penolakan tertulis yang disertai alasan, atau apabila Anda mulai menggunakannya dalam kegiatan bisnis Anda yang sebenarnya selain untuk pengujian. Cacat kecil yang tidak menghalangi penggunaannya tidak menghalangi penerimaan. Kami memperbaikinya berdasarkan [janji kami](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Perubahan"
+    },
+    {
+      "type": "p",
+      "text": "Masing-masing pihak dapat meminta perubahan lingkup. Kami memberi tahu Anda bagaimana perubahan itu memengaruhi jadwal dan harga. Perubahan berlaku setelah kita berdua menyepakatinya secara tertulis. Sampai saat itu, kami tetap bekerja berdasarkan pesanan sebagaimana adanya."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Biaya dan pembayaran"
+    },
+    {
+      "type": "p",
+      "text": "Anda membayar biaya yang ditetapkan dalam pesanan. Untuk biaya per hasil, pesanan mendefinisikan apa yang dihitung sebagai hasil dan bagaimana hasil itu diukur."
+    },
+    {
+      "type": "p",
+      "text": "Kami menerbitkan faktur sesuai isi pesanan. Anda membayar dalam jangka waktu yang tercantum pada pesanan atau faktur. Biaya belum termasuk PPN atau pajak lain, yang Anda bayar apabila berlaku. Kami menagihkan pengeluaran hanya apabila pesanan mengizinkannya."
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menyengketakan sebagian faktur, beri tahu kami dengan iktikad baik dan bayar sisanya. Jika suatu jumlah masih belum dibayar setelah pengingat, kami dapat menghentikan sementara pekerjaan sampai jumlah itu dibayar. Pembayaran yang terlambat dikenai bunga sebagaimana diizinkan oleh hukum."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Siapa memiliki apa"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Materi Anda"
+    },
+    {
+      "type": "p",
+      "text": "Anda tetap memegang semua hak atas data, konten, sistem, dan materi lain yang Anda berikan kepada kami. Anda mengizinkan kami menggunakannya hanya untuk melakukan pekerjaan."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Hasil kerja"
+    },
+    {
+      "type": "p",
+      "text": "Setelah Anda melunasi suatu hasil kerja, Anda memiliki apa yang kami buat khusus untuk Anda berdasarkan pesanan, seperti pengaturan agen, alur kerja, konektor, dokumen, dan kode. Kami mengalihkan kepada Anda hak yang kami miliki atasnya. Apabila hukum tidak memungkinkan suatu hak dialihkan, kami memberi Anda lisensi eksklusif, berlaku di seluruh dunia, dan permanen yang dapat Anda alihkan kepada pihak lain. Sebelum Anda membayar, Anda boleh menggunakan hasil kerja untuk meninjau dan mengujinya."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Materi kami"
+    },
+    {
+      "type": "p",
+      "text": "Kami tetap memegang semua hak atas alat, platform, perangkat lunak, agen, templat, instruksi, metode, dan pengetahuan (know-how) kami, serta atas apa pun yang kami buat sebelum atau di luar pesanan. Apabila materi kami menjadi bagian dari suatu hasil kerja, setelah dibayar Anda memperoleh lisensi noneksklusif, berlaku di seluruh dunia, dan permanen untuk menggunakan, menyalin, dan mengubahnya sebagai bagian dari hasil kerja tersebut untuk bisnis Anda sendiri. Anda tidak boleh menjual atau melisensikan materi kami secara terpisah."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Layanan, komponen pihak ketiga, dan keluaran AI"
+    },
+    {
+      "type": "p",
+      "text": "Apabila kami menjalankan sesuatu untuk Anda, seperti pengoperasian agen terkelola atau API penalaran yang di-hosting, hal itu adalah layanan, bukan hasil kerja. Akses Anda ke layanan tersebut berlangsung selama pesanan berlaku."
+    },
+    {
+      "type": "p",
+      "text": "Komponen pihak ketiga dan sumber terbuka dalam suatu hasil kerja tetap tunduk pada lisensinya masing-masing. Kami memberi tahu Anda komponen mana saja yang termasuk dalam suatu hasil kerja."
+    },
+    {
+      "type": "p",
+      "text": "Sebagian hasil kerja dapat dibuat oleh AI. Di beberapa negara, materi yang dibuat oleh AI tanpa masukan kreatif manusia yang memadai tidak dilindungi hak cipta. Kami mengalihkan hak apa pun yang ada, tetapi kami tidak menjanjikan bahwa hak tersebut ada."
+    },
+    {
+      "type": "p",
+      "text": "Masing-masing pihak boleh terus menggunakan keterampilan dan pengalaman umum yang diperoleh dari pekerjaan, tanpa menggunakan informasi rahasia pihak lainnya."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Kerahasiaan"
+    },
+    {
+      "type": "p",
+      "text": "Masing-masing pihak akan melihat informasi rahasia pihak lainnya: informasi nonpublik yang ditandai sebagai rahasia atau yang sepatutnya dapat dipahami sebagai rahasia."
+    },
+    {
+      "type": "p",
+      "text": "Pihak yang menerimanya hanya menggunakannya untuk pekerjaan, melindunginya dengan kehati-hatian yang wajar, dan hanya membagikannya kepada orang yang membutuhkannya dan terikat untuk menjaga kerahasiaannya. Kewajiban ini tidak mencakup informasi yang bersifat publik, sudah diketahui oleh penerima, dikembangkan sendiri, atau diterima secara sah dari pihak lain. Jika hukum mewajibkan pengungkapan, penerima boleh mengungkapkan apa yang diwajibkan dan, apabila diperbolehkan, memberi tahu pihak lainnya terlebih dahulu. Kami menyebut Anda sebagai pelanggan hanya dengan izin Anda."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Data dan hosting"
+    },
+    {
+      "type": "p",
+      "text": "Apabila kami menangani data pribadi untuk Anda, kami adalah prosesor Anda: kami menanganinya hanya berdasarkan instruksi Anda, dan DPA berlaku. Untuk catatan kami sendiri tentang Anda, seperti narahubung dan faktur Anda, kami bertindak untuk diri kami sendiri, dan [Kebijakan Privasi](/instant/legal/privacy) kami berlaku."
+    },
+    {
+      "type": "p",
+      "text": "Kami meng-hosting pekerjaan Anda di region Google Cloud di UE yang disepakati dengan Anda dan disebutkan dalam pesanan. Beberapa penyedia yang kami gunakan, seperti Google Gemini untuk model AI, dapat memproses data di luar UE. Halaman [Subpemroses](/instant/legal/subprocessors) mencantumkan mereka."
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak melatih model AI kami sendiri dengan data Anda, dan kami tidak menjualnya."
+    },
+    {
+      "type": "p",
+      "text": "Jangan berikan kepada kami informasi kesehatan yang dilindungi (protected health information) yang tercakup dalam HIPAA. Kami tidak menandatangani perjanjian rekanan bisnis (business associate agreement).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "Hukum AI dan peran Anda"
+    },
+    {
+      "type": "p",
+      "text": "Anda menentukan bagaimana sistem yang kami bangun digunakan dalam bisnis Anda. Berdasarkan AI Act UE, Anda adalah “deployer” (penerap) atas apa yang kami bangun untuk Anda: organisasi yang menggunakan sistem AI di bawah kewenangannya sendiri. Jika Anda mengoperasikan suatu sistem atas nama Anda sendiri, Anda juga dapat menjadi “provider” (penyedia)-nya."
+    },
+    {
+      "type": "p",
+      "text": "Beri tahu kami sebelum pekerjaan dimulai jika suatu sistem mungkin digunakan di bidang berisiko tinggi, seperti perekrutan dan pekerjaan, pendidikan, kredit, atau akses ke layanan esensial. Pesanan kemudian menetapkan siapa melakukan apa. Untuk penggunaan tersebut, kewajiban Anda sebagai deployer berlaku mulai 2 Desember 2027 (AI Act Art. 26 dan Annex III). Kewajiban itu mencakup pengawasan manusia, penggunaan sistem sesuai instruksi, pemantauan cara kerjanya, dan penyimpanan lognya."
+    },
+    {
+      "type": "p",
+      "text": "Apabila diwajibkan oleh hukum, Anda memastikan bahwa orang yang berurusan dengan sistem yang Anda jalankan mengetahui bahwa mereka berurusan dengan AI, dan Anda mengambil langkah untuk membangun literasi AI di antara staf Anda yang menggunakannya (AI Act Art. 4 dan 50). Pelatihan tim kami dapat membantu, tetapi kewajiban ini tetap menjadi kewajiban Anda."
+    },
+    {
+      "type": "p",
+      "text": "Undang-undang negara bagian AS tentang AI dalam keputusan yang berdampak penting (consequential decisions) berlaku bagi Anda sebagai bisnis yang mengambil keputusan tersebut. Misalnya, undang-undang Colorado mulai berlaku pada 1 Januari 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Hasil bisnis"
+    },
+    {
+      "type": "p",
+      "text": "Kami bekerja untuk mencapai tujuan yang ditetapkan dalam pesanan. Namun, hasil bisnis bergantung pada data, orang, proses, dan pasar Anda, yang tidak kami kendalikan. Kecuali pesanan secara tegas menyatakannya, kami tidak menjamin penghematan, pendapatan, atau hasil bisnis lainnya. Biaya per hasil adalah cara menentukan harga pekerjaan, bukan janji bahwa suatu hasil akan tercapai."
+    },
+    {
+      "type": "p",
+      "text": "Keluaran AI bisa keliru, dan agen bisa melakukan kesalahan. Pertahankan tinjauan manusia untuk keputusan penting, dan pilih pengaturan persetujuan yang sesuai dengan risikonya. [Cara Kerja AI Kami](/instant/legal/ai) menjelaskan lebih lanjut."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Janji kami"
+    },
+    {
+      "type": "p",
+      "text": "Kami berjanji melakukan pekerjaan dengan keterampilan dan kehati-hatian yang wajar, menggunakan orang yang memiliki kualifikasi yang sesuai. Kami juga berjanji bahwa setiap hasil kerja, pada saat diterima, sesuai dengan pesanan dalam semua aspek penting."
+    },
+    {
+      "type": "p",
+      "text": "Jika suatu hasil kerja tidak memenuhi janji tersebut, beri tahu kami secara tertulis. Kami akan memperbaikinya atau mengerjakan ulang. Jika kami tidak dapat melakukannya dalam waktu yang wajar, Anda boleh mengakhiri bagian pesanan tersebut dan memperoleh kembali biaya yang telah Anda bayar untuknya."
+    },
+    {
+      "type": "note",
+      "text": "Itulah satu-satunya upaya hukum Anda atas hasil kerja yang tidak memenuhi janji kami. Selain janji dalam ketentuan ini dan dalam pesanan, dan sejauh diizinkan oleh hukum, kami tidak memberikan jaminan lain, baik tersurat maupun tersirat, termasuk jaminan kelayakan untuk diperdagangkan, kesesuaian untuk tujuan tertentu, dan tidak adanya pelanggaran hak.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Hak hukum Anda atas cacat tetap berlaku, tetapi Anda harus terlebih dahulu memberi kami kesempatan yang wajar untuk memperbaiki cacat tersebut.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sejauh diizinkan oleh hukum, tidak ada pihak yang bertanggung jawab atas kerugian tidak langsung, insidental, khusus, konsekuensial, atau yang bersifat hukuman (punitive), atau atas hilangnya laba, pendapatan, data, atau reputasi (goodwill).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Total tanggung jawab masing-masing pihak berdasarkan suatu pesanan dibatasi sebesar biaya yang telah dibayar dan yang wajib dibayar berdasarkan pesanan tersebut dalam 12 bulan sebelum peristiwa yang menimbulkan klaim.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Batasan ini tidak berlaku untuk kewajiban Anda membayar biaya, pelanggaran kerahasiaan, penipuan, atau tanggung jawab yang menurut hukum tidak boleh dibatasi.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Tanggung jawab",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami bertanggung jawab penuh atas kerugian yang kami timbulkan dengan sengaja atau karena kelalaian berat, atas cedera terhadap nyawa, tubuh, atau kesehatan, dan berdasarkan hukum tanggung jawab produk yang bersifat memaksa.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Untuk kelalaian ringan, kami hanya bertanggung jawab apabila kami melanggar kewajiban esensial: kewajiban yang memungkinkan pelaksanaan pesanan secara layak dan yang biasanya dapat Anda andalkan. Bahkan dalam hal itu, kami hanya bertanggung jawab atas kerugian yang lazim dan dapat diperkirakan untuk jenis kontrak ini, dan secara total tidak lebih dari biaya yang telah dibayar dan yang wajib dibayar berdasarkan pesanan tersebut dalam 12 bulan sebelum peristiwa itu. Selain itu, tanggung jawab kami atas kelalaian ringan dikecualikan.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Anda akan melindungi kami dari klaim pihak lain yang timbul dari materi yang Anda berikan kepada kami atau dari pelanggaran Anda terhadap ketentuan ini, serta menanggung biaya wajar untuk menanganinya. Kami memberi tahu Anda tentang klaim semacam itu dengan segera dan mengizinkan Anda ikut serta dalam penanganannya."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Jangka waktu dan pengakhiran"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini berlaku sejak pesanan pertama Anda sampai pesanan terakhir Anda berakhir. Setiap pesanan berlangsung selama jangka waktu yang dinyatakan di dalamnya. Layanan bulanan berlanjut dari bulan ke bulan sampai salah satu pihak mengakhirinya dengan pemberitahuan sesuai jangka waktu yang ditetapkan dalam pesanan."
+    },
+    {
+      "type": "p",
+      "text": "Masing-masing pihak dapat segera mengakhiri suatu pesanan secara tertulis jika pihak lainnya melakukan pelanggaran serius terhadapnya dan tidak memperbaiki pelanggaran itu dalam waktu yang wajar setelah diberi tahu, atau jika pihak lainnya jatuh pailit. Anda juga dapat mengakhiri pesanan lebih awal apabila pesanan mengizinkannya."
+    },
+    {
+      "type": "p",
+      "text": "Apabila suatu pesanan berakhir, Anda membayar pekerjaan yang telah dilakukan sampai tanggal tersebut dan, jika Anda mengakhirinya lebih awal, biaya yang tidak dapat kami batalkan. Kami menyerahkan data Anda dan hasil kerja yang telah Anda bayar, menghentikan layanan yang kami jalankan untuk Anda, dan menangani data pribadi sebagaimana diatur dalam DPA. Bagian ketentuan ini yang menurut sifatnya harus tetap berlaku, seperti kepemilikan, kerahasiaan, tanggung jawab, dan hukum yang berlaku, tetap berlaku."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Berpindah penyedia",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Apabila kami menjalankan layanan pemrosesan data untuk Anda, seperti pengoperasian agen terkelola atau hosting, Data Act UE memberi Anda hak untuk berpindah ke penyedia lain atau ke sistem Anda sendiri (Data Act Art. 23-31). Untuk layanan tersebut:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Anda dapat memulai perpindahan, atau mengakhiri layanan dan mengambil data Anda, dengan memberi tahu kami secara tertulis. Jangka waktu pemberitahuan paling lama dua bulan, dan Anda dapat memilih jangka waktu yang lebih singkat.",
+        "Kami memberikan kepada Anda data Anda, beserta aset digital yang kami buat untuk Anda dan yang menjadi hak Anda, dalam format umum yang dapat dibaca mesin.",
+        "Masa transisi berlangsung paling lama 30 hari. Jika hal itu tidak dimungkinkan secara teknis, kami memberi tahu Anda alasannya dan berapa lama waktu yang kami butuhkan, dalam batas yang diizinkan oleh Data Act.",
+        "Selama masa transisi, kami tetap menjalankan layanan sebagaimana disepakati dan membantu Anda serta penyedia baru Anda dengan iktikad baik.",
+        "Setelah masa transisi berakhir, Anda memiliki setidaknya 30 hari lagi untuk mengambil data Anda.",
+        "Setelah perpindahan selesai, kami menghapus data Anda sebagaimana diatur dalam DPA.",
+        "Hingga 12 Januari 2027, kami hanya boleh menagih biaya langsung kami atas suatu perpindahan, dan hanya apabila pesanan mencantumkannya. Mulai 12 Januari 2027, kami tidak menagih biaya apa pun untuk perpindahan."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Apabila suatu layanan dibuat khusus untuk Anda, sebagian aturan ini mungkin hanya berlaku sebagian (Data Act Art. 31). Dalam hal demikian, pesanan menyebutkan aturan mana saja, dan kami memberi tahu Anda sebelum Anda menandatanganinya.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Lokasi dan akses pemerintah",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami meng-hosting pekerjaan Anda di region Google Cloud di UE yang disebutkan dalam pesanan. Halaman [Subpemroses](/instant/legal/subprocessors) mencantumkan setiap penyedia beserta lokasi kerjanya (Data Act Art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika pemerintah di luar UE meminta data nonpribadi Anda kepada kami, kami menyerahkannya hanya apabila hukum UE atau hukum negara anggota mengizinkannya. Kami memberi tahu Anda terlebih dahulu, kecuali hukum melarangnya (Data Act Art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Hukum dan sengketa"
+    },
+    {
+      "type": "p",
+      "text": "Ketentuan ini dan setiap pesanan tunduk pada hukum {company.law}, tanpa memberlakukan kaidah hukum perdata internasionalnya (aturan pilihan hukum). Pengadilan {company.law} memutus sengketa, kecuali hukum mewajibkan pengadilan lain.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sebelum salah satu pihak menempuh jalur pengadilan, narahubung kita berupaya menyelesaikan masalah dengan iktikad baik. Tulis ke {company.email} dan jelaskan masalahnya."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Ketentuan ini tidak memuat klausul arbitrase. Masing-masing pihak dapat mengajukan gugatan di pengadilan gugatan sederhana (small claims court) apabila gugatan tersebut memenuhi syarat."
+    },
+    {
+      "type": "p",
+      "text": "Anda menegaskan bahwa Anda tidak tercantum dalam daftar sanksi AS atau UE, dan tidak berada di negara yang dikenai embargo AS atau UE. Tidak ada pihak yang akan menggunakan pekerjaan ini dengan melanggar aturan sanksi atau ekspor AS atau UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Ketentuan umum"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kami dapat memperbarui ketentuan ini. Pesanan yang sudah disepakati tetap tunduk pada ketentuan yang berlaku saat pesanan itu disepakati, kecuali kita berdua menyepakati lain.",
+        "Tidak ada pihak yang boleh mengalihkan ketentuan ini atau suatu pesanan tanpa persetujuan tertulis dari pihak lainnya, kecuali kepada perusahaan yang mengambil alih bisnis yang bersangkutan.",
+        "Tidak ada pihak yang bertanggung jawab atas keterlambatan yang disebabkan oleh peristiwa di luar kendali wajarnya.",
+        "Jika salah satu bagian ketentuan ini tidak sah, bagian lainnya tetap berlaku.",
+        "Pemberitahuan kepada kami dikirim ke {company.email}. Pemberitahuan kepada Anda dikirim ke narahubung yang disebutkan dalam pesanan."
+      ]
+    }
+  ]
+}

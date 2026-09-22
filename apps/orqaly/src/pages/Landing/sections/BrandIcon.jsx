@@ -73,7 +73,7 @@ export default function BrandIcon({
         flexShrink: 0,
         background: isDark
           ? `linear-gradient(160deg, ${alpha('#ffffff', 0.1)} 0%, ${alpha('#ffffff', 0.03)} 100%)`
-          : `linear-gradient(160deg, #ffffff 0%, ${alpha('#eef3ff', 0.85)} 100%)`,
+          : `linear-gradient(160deg, #ffffff 0%, ${alpha('#f3f3f3', 0.85)} 100%)`,
         border: '1px solid',
         borderColor: isDark ? alpha('#ffffff', 0.12) : alpha(theme.palette.primary.main, 0.14),
         boxShadow: isDark

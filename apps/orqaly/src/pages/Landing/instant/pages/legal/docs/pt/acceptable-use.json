@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "Política de Uso Aceitável",
+    "summary": "Esta política estabelece o que você não pode fazer com os produtos do Orqanix ou com os agentes deles, e como denunciar conteúdo ou atividade que viole as regras.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "O que esta política abrange"
+    },
+    {
+      "type": "p",
+      "text": "Esta política define as regras de uso de todos os produtos do Orqanix: o Aplicativo para Computador, o Aplicativo para Celular, o Assistente Virtual, a API, os nossos serviços Empresariais e o nosso site (em conjunto, os \"Serviços\"). Ela se aplica igualmente a pessoas e empresas e faz parte dos nossos [Termos de Serviço](/instant/legal/terms)."
+    },
+    {
+      "type": "p",
+      "text": "Ela abrange o que você pede, o que você faz com os resultados e o que os seus agentes fazem. Se você der acesso a outras pessoas, por exemplo pela API, certifique-se de que elas também a cumpram."
+    },
+    {
+      "type": "note",
+      "text": "Em resumo: não use o Orqanix para violar a lei, prejudicar pessoas, atacar sistemas ou enganar alguém sobre quem ou o que está do outro lado."
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "Uso ilegal e prejudicial"
+    },
+    {
+      "type": "p",
+      "text": "Não use os Serviços para:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "violar qualquer lei ou ajudar outra pessoa a violá-la;",
+        "ameaçar, assediar, intimidar ou perseguir alguém, ou promover violência ou ódio contra pessoas por causa de quem elas são;",
+        "planejar ou apoiar terrorismo, extremismo violento ou a fabricação de armas capazes de causar danos em massa;",
+        "cometer fraude, golpes ou roubo de identidade, ou enganar pessoas para obter dinheiro;",
+        "coletar dados, rastrear ou criar perfis de pessoas sem base legal, ou revelar informações privadas delas sem o consentimento delas;",
+        "discriminar pessoas de forma ilegal, por exemplo em moradia, trabalho, crédito ou serviços;",
+        "incentivar automutilação, suicídio ou transtornos alimentares."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "Práticas de IA proibidas"
+    },
+    {
+      "type": "p",
+      "text": "Não use os Serviços para práticas que a legislação da UE proíbe para sistemas de IA. Aplicamos esta lista no mundo todo. (Regulamento da UE sobre IA, art. 5.º)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "manipular pessoas por meio de técnicas das quais elas não têm consciência, ou por meio de engano, de uma forma que distorça as decisões delas e seja suscetível de lhes causar danos significativos;",
+        "explorar vulnerabilidades de pessoas devido à idade, deficiência ou situação social ou econômica delas;",
+        "pontuação social: classificar pessoas com base no comportamento social ou em características pessoais delas de uma forma que leve a um tratamento injusto ou sem relação com o contexto;",
+        "prever se alguém cometerá um crime com base apenas na criação de perfis ou nos traços de personalidade dessa pessoa;",
+        "criar ou ampliar bancos de dados de reconhecimento facial por meio da coleta não direcionada de imagens faciais da internet ou de imagens de câmeras;",
+        "reconhecer as emoções de pessoas no trabalho ou na educação, exceto por motivos médicos ou de segurança;",
+        "classificar pessoas com base nos dados biométricos delas para deduzir raça, opiniões políticas, filiação sindical, religião ou crenças, vida sexual ou orientação sexual;",
+        "identificar pessoas à distância e em tempo real por meio de dados biométricos em espaços públicos para fins de aplicação da lei."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nunca use os Serviços para criar, compartilhar ou buscar material de abuso sexual infantil, nem para criar ou compartilhar imagens íntimas ou sexuais de uma pessoa real sem o consentimento dela, incluindo imagens falsas."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Crianças"
+    },
+    {
+      "type": "p",
+      "text": "O Orqanix é para adultos (18 anos ou mais). Não deixe crianças usarem a sua conta. Não use os Serviços, incluindo a API, em nada que seja destinado a menores de 18 anos ou que possa ser usado por eles."
+    },
+    {
+      "type": "p",
+      "text": "Nunca use os Serviços para sexualizar, aliciar, explorar ou pôr crianças em perigo. Denunciamos material de abuso sexual infantil às autoridades conforme exige a lei e encerramos as contas envolvidas."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Segurança e abuso"
+    },
+    {
+      "type": "p",
+      "text": "Nem você nem os seus agentes podem usar os Serviços para:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "criar, espalhar ou executar malware, ransomware ou outro código nocivo;",
+        "invadir, sondar ou perturbar computadores, redes ou contas sem a permissão do proprietário;",
+        "executar agentes em computadores, contas ou sistemas que você não tem permissão para usar, ou dar a eles acessos que eles não têm permissão para ter;",
+        "contornar as nossas medidas de segurança, login, limites ou proteção, ou as dos serviços que você conecta;",
+        "sobrecarregar, atacar ou interferir nos Serviços ou no uso que outras pessoas fazem deles;",
+        "compartilhar, vender ou revender o acesso à sua conta ou aos Serviços sem o nosso acordo por escrito;",
+        "extrair o nosso código ou os nossos prompts, ou os modelos que usamos, exceto quando a lei ou uma licença de código aberto o permitir."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Pesquisas de segurança nos nossos próprios sistemas são bem-vindas se você seguir a nossa política de [Segurança e Divulgação de Vulnerabilidades](/instant/legal/security)."
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "Honestidade sobre a IA"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Não finja que uma IA é um ser humano, nem que um resultado de IA foi escrito ou feito por uma pessoa, quando isso puder enganar alguém.",
+        "Se um agente ou bot enviar mensagens ou e-mails ou falar com outras pessoas por você, ele deve dizer claramente que é uma IA, no máximo na primeira mensagem.",
+        "Não use os Serviços para se passar por uma pessoa ou organização real, nem para criar avaliações, registros ou identidades falsos.",
+        "Se você publicar imagens, áudios ou vídeos realistas feitos por IA de pessoas, lugares ou acontecimentos reais (deepfakes), diga claramente que foram criados ou alterados por IA.",
+        "Não use os Serviços para realizar campanhas de desinformação nem para interferir em eleições."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Se você publicar texto feito por IA com o objetivo de informar o público sobre assuntos de interesse público, diga que ele foi feito por IA, a menos que uma pessoa o tenha revisado e assuma a responsabilidade editorial por ele. (Regulamento da UE sobre IA, art. 50.º, n.º 4)",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "Usos que não aceitamos"
+    },
+    {
+      "type": "p",
+      "text": "O Orqanix foi criado para o trabalho. Não o use para:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "companhia, amizade, romance ou qualquer relacionamento emocional com uma IA;",
+        "terapia, aconselhamento psicológico ou tratamento de saúde mental. Se você estiver em crise, entre em contato com o serviço de emergência local ou com uma linha de apoio emocional;",
+        "dar a outras pessoas aconselhamento profissional médico, jurídico, tributário ou financeiro, a menos que um profissional qualificado o revise e assuma a responsabilidade por ele;",
+        "diagnosticar ou tratar pacientes, ou tomar decisões sobre eles."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Não forneça aos Serviços informações de saúde de pacientes protegidas por leis de privacidade de saúde, a menos que tenhamos concordado com isso com você por escrito."
+    },
+    {
+      "type": "p",
+      "text": "Nos termos da HIPAA, a lei de privacidade de saúde dos EUA, isso exigiria um business associate agreement (contrato de associado comercial), e nós não assinamos esses contratos. A nossa [Política de Privacidade de Dados de Saúde do Consumidor](/instant/legal/health-data) explica como tratamos outros dados de saúde.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Decisões de alto risco"
+    },
+    {
+      "type": "p",
+      "text": "Alguns usos podem afetar seriamente a vida das pessoas. Você só pode usar os Serviços para ajudar nesses usos se cumprir todas as leis aplicáveis a você, mantiver uma pessoa qualificada responsável por cada decisão e informar as pessoas afetadas quando a lei exigir. Esses usos incluem:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "contratar, promover, gerenciar ou demitir trabalhadores;",
+        "admitir, avaliar ou monitorar estudantes, ou detectar cola em provas;",
+        "decidir sobre crédito, seguros, moradia ou acesso a benefícios públicos ou serviços essenciais;",
+        "identificação ou categorização biométrica de pessoas;",
+        "gestão de infraestrutura crítica, como energia, água ou trânsito;",
+        "aplicação da lei, migração, asilo, controle de fronteiras, tribunais ou eleições."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Na UE, a maioria desses usos é considerada de \"risco elevado\" pelo Regulamento sobre IA, que impõe deveres adicionais a quem usa IA para eles. Você é responsável por cumprir esses deveres na medida em que se aplicam a você. (Regulamento da UE sobre IA, art. 26.º e anexo III)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Não use os resultados como única base para uma decisão com efeitos jurídicos ou efeitos igualmente graves sobre uma pessoa.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "Spam, direitos e extração de dados"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Não envie spam: mensagens em massa ou indesejadas, ou mensagens que violem leis antispam ou de marketing. Quando agentes ou bots enviam mensagens por você, você é o remetente.",
+        "Conecte apenas aplicativos de mensagens, contas de e-mail e listas de contatos que você tem o direito de usar, e só trate dados de outras pessoas quando a lei permitir.",
+        "Não viole direitos autorais, marcas, segredos comerciais ou outros direitos, e não use os Serviços para contornar paywalls ou proteções contra cópia.",
+        "Não deixe que agentes coletem dados de sites contrariando os termos, as regras de acesso ou as instruções do robots.txt deles, ou em um ritmo que os prejudique."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "As regras do Google"
+    },
+    {
+      "type": "p",
+      "text": "O nosso modelo de IA padrão é o Google Gemini. Quando você o usa pelo Orqanix, também deve seguir a [Política de Uso Proibido da IA Generativa](https://policies.google.com/terms/generative-ai/use-policy) do Google. Você não pode usar os Serviços para desenvolver modelos de IA que concorram com os do Google quando os [termos da API do Gemini do Google](https://ai.google.dev/gemini-api/terms) o proibirem. Se você conectar outro provedor de modelos no Aplicativo para Computador, as regras desse provedor se aplicam a esse uso. [Como Nossa IA Funciona](/instant/legal/ai) explica quais modelos usamos."
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Denunciar uma violação"
+    },
+    {
+      "type": "p",
+      "text": "Se você vir, nos Serviços, conteúdo ou atividade que considere ilegal ou que viole esta política, escreva para {company.email} com o assunto \"Report\". Qualquer pessoa pode denunciar, com ou sem conta. (Regulamento dos Serviços Digitais da UE, art. 16.º)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Se você vir, nos Serviços, conteúdo ou atividade que considere ilegal ou que viole esta política, escreva para {company.email} com o assunto \"Report\". Qualquer pessoa pode denunciar, com ou sem conta.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Se a vida ou a segurança de alguém estiver em perigo imediato, entre em contato primeiro com a polícia ou com os serviços de emergência."
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "O que incluir"
+    },
+    {
+      "type": "list",
+      "items": [
+        "onde está o conteúdo, com a maior precisão possível: um link, o nome de um bot ou de uma conta, uma mensagem, uma data e um horário;",
+        "por que você acredita que ele é ilegal ou viola esta política e, no caso de conteúdo ilegal, qual lei;",
+        "o seu nome e endereço de e-mail, para que possamos responder. Você pode omiti-los se a sua denúncia for sobre material de abuso sexual infantil;",
+        "uma declaração de que você acredita, de boa-fé, que a sua denúncia é exata e completa."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "Como decidimos"
+    },
+    {
+      "type": "p",
+      "text": "Confirmamos o recebimento da sua denúncia. Uma pessoa a analisa e decide de forma tempestiva, diligente e objetiva. Ela considera o conteúdo, o contexto e os direitos de todos os envolvidos, incluindo a liberdade de expressão. Em seguida, informamos a você o que decidimos e por quê."
+    },
+    {
+      "type": "p",
+      "text": "Se tomarmos medidas contra um conteúdo ou uma conta, fornecemos ao usuário afetado uma exposição de motivos: o que fizemos, os fatos que motivaram a decisão, se foram usados meios automatizados, a regra ou lei em que nos baseamos e como contestar a decisão. Não informamos a ele quem fez a denúncia, a menos que a lei o exija. (Regulamento dos Serviços Digitais da UE, art. 17.º)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Se tomarmos medidas contra um conteúdo ou uma conta, informamos ao usuário afetado o que fizemos e por quê, a menos que a lei o proíba ou que informá-lo possa causar danos. Não informamos a ele quem fez a denúncia, a menos que a lei o exija.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "Se você discordar"
+    },
+    {
+      "type": "p",
+      "text": "Tanto quem fez a denúncia quanto o usuário afetado podem contestar a nossa decisão. Responda à nossa mensagem ou escreva para {company.email} explicando o motivo. Sempre que possível, uma pessoa que não tomou a primeira decisão a revisa, e informamos o resultado a você."
+    },
+    {
+      "type": "p",
+      "text": "Você também pode recorrer à justiça ou apresentar uma reclamação ao Coordenador dos Serviços Digitais do país da UE onde você mora.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Podemos deixar de processar denúncias de alguém que envia com frequência denúncias manifestamente infundadas, após avisar essa pessoa."
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "Aplicação das regras"
+    },
+    {
+      "type": "p",
+      "text": "Se você violar esta política, podemos, dependendo da gravidade, advertir você, remover ou desativar conteúdo, interromper um agente ou bot, restringir funcionalidades, ou suspender ou encerrar a sua conta. Nos casos mais graves, como material de abuso sexual infantil, agimos imediatamente e sem aviso, e informamos as autoridades quando a lei o exige ou permite."
+    },
+    {
+      "type": "p",
+      "text": "Agimos de forma proporcional ao que aconteceu e explicamos a nossa decisão conforme descrito em [Como decidimos](#how-we-decide). Os nossos [Termos de Serviço](/instant/legal/terms#ending) explicam com mais detalhes a suspensão e o encerramento de contas."
+    }
+  ]
+}

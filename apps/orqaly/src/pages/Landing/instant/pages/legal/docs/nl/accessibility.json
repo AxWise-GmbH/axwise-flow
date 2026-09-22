@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Toegankelijkheidsverklaring",
+    "summary": "Deze verklaring legt uit hoe toegankelijk de website van Orqanix is, waar deze nog tekortschiet en hoe u een drempel kunt melden.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Ons doel"
+    },
+    {
+      "type": "p",
+      "text": "Wij willen dat iedereen de website van {company.name} kan gebruiken, ook mensen die een toetsenbord, een schermlezer, zoomfuncties of andere hulptechnologie gebruiken. Ons doel is niveau AA van de Web Content Accessibility Guidelines (WCAG) 2.1, de gangbare internationale norm."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Reikwijdte"
+    },
+    {
+      "type": "p",
+      "text": "Deze verklaring geldt voor de website op orqanix.com: de startpagina, de product- en oplossingspagina's, de pagina Nieuws en het Juridisch centrum. Zij geldt niet voor de webapp, de Computerapp of de aanmeldpagina's van Clerk, onze aanmeldprovider."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Huidige status"
+    },
+    {
+      "type": "p",
+      "text": "De website voldoet gedeeltelijk aan WCAG 2.1 niveau AA. Er is nog geen volledige audit uitgevoerd, en wij claimen geen volledige conformiteit. De tekortkomingen die wij kennen, staan vermeld onder [Bekende tekortkomingen](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "Wat wij hebben gedaan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Toetsenbord: u kunt links, knoppen en menu's met het toetsenbord bereiken, en de Escape-toets sluit geopende menu's.",
+        "Zichtbare focus: links en knoppen tonen een zichtbare focusstijl wanneer u er met het toetsenbord naartoe gaat.",
+        "Minder beweging: als uw apparaat is ingesteld om beweging te beperken, staan de geanimeerde scènes stil en verschijnt de inhoud zonder animatie.",
+        "Contrast: lopende tekst en koppen zijn bijna wit op een zwarte achtergrond.",
+        "Tekstalternatieven: menu's, bedieningselementen en scènes die betekenis overbrengen, hebben tekstlabels voor schermlezers. Puur decoratieve afbeeldingen zijn voor schermlezers verborgen.",
+        "Structuur: pagina's gebruiken koppen, een hoofdinhoudsgebied, een gelabeld hoofdmenu en een gelabeld voettekstmenu, en de paginataal is ingesteld op Engels.",
+        "Kleine schermen: de lay-out past zich aan telefoons en smalle vensters aan."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Bekende tekortkomingen"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sommige illustraties bevatten kleine tekst, zoals labels in de geanimeerde productscènes. Die kan moeilijk leesbaar zijn, ook bij inzoomen.",
+        "Sommige secundaire labels gebruiken een dof grijs met minder contrast dan WCAG voor kleine tekst vraagt.",
+        "De geanimeerde scènes kunnen voor sommige mensen moeilijk te volgen zijn. Ze staan stil als uw apparaat is ingesteld om beweging te beperken."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wij zijn van plan deze tekortkomingen te verhelpen. Als een ervan u belet informatie te krijgen die u nodig hebt, [laat het ons weten](#feedback) en wij proberen u die op een andere manier te geven."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Feedback"
+    },
+    {
+      "type": "p",
+      "text": "Als u op onze website een drempel tegenkomt, laat het ons dan weten via {company.email}. Vermeld op welke pagina het was, wat u probeerde te doen en, als u wilt, welke browser en hulptechnologie u gebruikt. Wij streven ernaar snel te antwoorden en op te lossen wat wij kunnen."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Als u in de EU woont en ons antwoord het probleem niet oplost, kunt u contact opnemen met de autoriteit in uw land die toezicht houdt op toegankelijkheid."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "Over deze verklaring"
+    },
+    {
+      "type": "p",
+      "text": "Wij hebben deze verklaring op 21 september 2026 opgesteld, op basis van onze eigen beoordeling van de website. Wij werken haar bij wanneer wij een tekortkoming verhelpen of een audit afronden."
+    }
+  ]
+}

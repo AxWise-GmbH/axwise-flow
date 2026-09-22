@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "하위 처리자",
+    "summary": "이 페이지는 당사를 대신하여 개인정보를 처리하는 회사, 귀하의 데이터가 전달될 수 있는 그 밖의 장소, 그리고 당사 서버의 위치를 안내합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "이 페이지에 대하여"
+    },
+    {
+      "type": "p",
+      "text": "하위 처리자란 당사의 지시에 따라 당사를 대신하여 개인정보를 처리하도록 당사가 비용을 지급하는 회사를 말합니다. 이 페이지는 당사의 하위 처리자, 귀하가 {company.name}을(를) 사용할 때 귀하의 데이터가 전달될 수 있는 그 밖의 장소, 그리고 당사 서버의 위치를 안내합니다. 이 페이지는 당사 웹사이트와 모든 제품에 적용됩니다. 당사는 제공업체가 당사를 위해 개인정보를 처리하기 시작하기 전에 해당 제공업체를 이 페이지에 추가합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사의 [개인정보 처리방침](/instant/legal/privacy)은 당사가 개인정보를 어떻게 이용하는지 설명합니다. API, 당사 엔터프라이즈 서비스 또는 어시스턴트 봇의 기업 고객이 처리를 위해 당사에 개인정보를 제공하는 경우에는 당사의 [데이터 처리 부속서](/instant/legal/dpa)가 적용됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "당사의 하위 처리자"
+    },
+    {
+      "type": "table",
+      "head": [
+        "회사",
+        "목적",
+        "데이터",
+        "위치",
+        "이전 근거"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "웹사이트, 웹 앱, 데스크톱 앱이 통신하는 서비스, API, 당사 데이터베이스, 저장된 파일 및 서버 로그의 호스팅",
+          "계정 ID, 워크스페이스 콘텐츠(채팅, 목표, 파일, 보고서 및 자동화), 데스크톱 앱에서 보낸 리서치 질문, API 작업 및 결정, IP 주소 및 요청 로그",
+          "EU(네덜란드)",
+          "데이터는 EU에서 호스팅됩니다. Google의 Cloud 데이터 처리 약관이 적용됩니다."
+        ],
+        [
+          "Google(Google 검색 그라운딩을 포함한 Gemini API)",
+          "데스크톱 앱, 클라우드 어시스턴트 및 API의 기본 AI 모델",
+          "귀하의 프롬프트, 그때까지의 대화, 파일 내용 및 명령 출력과 같은 도구 출력, 그리고 받아쓰기를 사용하는 경우 귀하의 음성",
+          "당사가 지정하지 않습니다. Google은 EU 외부에서 처리할 수 있습니다.",
+          "Google의 Gemini API 약관. [AI 작동 방식](/instant/legal/ai#data-models-see)에서 Google이 이 데이터를 어떻게 이용할 수 있는지 설명합니다."
+        ],
+        [
+          "Clerk, Inc.",
+          "로그인 및 계정",
+          "이메일 주소, 이름, 프로필 이미지(Google로 로그인하는 경우), 로그인 및 세션 기록, IP 주소 및 기기 데이터",
+          "미국",
+          "EU-미국 데이터 프라이버시 프레임워크 및 보완 수단으로서의 표준계약조항(Clerk의 데이터 처리 약관)"
+        ],
+        [
+          "Cloudflare(Clerk가 사용, 가입 시 Turnstile)",
+          "로그인 및 가입 페이지의 봇 차단",
+          "IP 주소, 기기 및 브라우저 신호",
+          "당사가 지정하지 않습니다. Cloudflare의 네트워크는 EU 외부에서 처리할 수 있습니다.",
+          "Clerk 서비스의 일부로서 Clerk를 통해 사용"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "데스크톱 앱 다운로드 파일도 Google Cloud Storage에서 제공됩니다. 귀하가 이를 다운로드하면 Google은 귀하의 IP 주소를 확인하게 됩니다."
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "그 밖의 수령인"
+    },
+    {
+      "type": "p",
+      "text": "다음 회사들은 당사의 하위 처리자가 아닙니다. 이들은 귀하가 특정 기능을 사용할 때 데이터를 수령하며, 자체 약관에 따라 해당 데이터의 이용 방법을 스스로 결정합니다."
+    },
+    {
+      "type": "table",
+      "head": [
+        "수령인",
+        "시점",
+        "데이터",
+        "위치",
+        "역할"
+      ],
+      "rows": [
+        [
+          "공개 검색 엔진: Google, Bing, Brave 및 DuckDuckGo",
+          "클라우드 어시스턴트, 클라우드 리서치 또는 API가 웹을 검색할 때. 검색어는 당사 자체 검색 서비스를 거쳐 전송됩니다.",
+          "귀하의 요청을 바탕으로 작성된 검색어. 당사는 귀하의 계정 정보를 전송하지 않습니다.",
+          "각 검색 엔진의 자체 서버(미국 또는 그 밖의 지역에 있을 수 있음)",
+          "독립적 수령인. 해당 회사의 자체 약관과 개인정보 처리방침이 적용됩니다."
+        ],
+        [
+          "OpenRegister",
+          "API 또는 클라우드 리서치가 공개 기업 등기부에서 회사를 조회할 때",
+          "회사명. 조회 결과에는 이사의 이름이 포함될 수 있습니다.",
+          "OpenRegister가 정함",
+          "독립적 수령인. 해당 회사의 자체 약관이 적용됩니다."
+        ],
+        [
+          "Google(Google로 로그인)",
+          "귀하가 Google 계정으로 로그인하기로 선택한 경우에만",
+          "귀하의 Google 프로필: 이름, 이메일 주소 및 프로필 이미지",
+          "Google의 자체 서버(미국에 있을 수 있음)",
+          "귀하의 선택. Google의 약관이 적용됩니다."
+        ],
+        [
+          "데스크톱 앱에서 귀하가 연결하는 AI 제공업체(예: OpenAI 또는 Anthropic)",
+          "귀하가 데스크톱 앱을 귀하 자신의 제공업체로 전환하는 경우에만",
+          "기본 모델과 마찬가지로 대화 및 도구 출력",
+          "해당 제공업체가 정함",
+          "귀하가 이들을 선택하며 이들과 별도의 계약을 맺습니다. 당사의 약관이 아닌 해당 제공업체의 약관이 적용됩니다."
+        ],
+        [
+          "귀하가 연결하는 앱, 도구 및 계정(예: 데스크톱 앱의 확장 프로그램, 또는 어시스턴트 봇에 연결하는 메시징 앱 및 이메일 계정)",
+          "귀하가 이들을 연결하는 경우에만",
+          "에이전트나 봇이 귀하의 작업을 수행하는 동안 이들에게 보내거나 이들로부터 읽는 내용",
+          "해당 서비스가 정함",
+          "귀하가 이들을 선택하며 이들과 별도의 계약을 맺습니다. 해당 서비스의 약관이 적용됩니다."
+        ],
+        [
+          "Hostinger",
+          "orqanix.com의 도메인 네임 서비스(DNS)",
+          "당사 도메인 이름에 대한 기술적 조회. 계정 데이터는 포함되지 않습니다.",
+          "Hostinger가 정함",
+          "기술 서비스"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "귀하가 Mac에서 로컬 AI 모델을 사용하는 경우, 귀하의 대화는 AI 제공업체가 아닌 해당 모델로 전송됩니다. 에이전트가 {company.name} 클라우드 리서치로 보내는 질문은 여전히 당사 클라우드와 위의 제공업체들로 전송됩니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 결제 제공업체, 분석 서비스 또는 광고 네트워크를 사용하지 않습니다. 당사는 개인정보를 판매하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "당사 서버의 위치"
+    },
+    {
+      "type": "p",
+      "text": "당사는 클라우드 서비스와 데이터베이스를 EU 내 네덜란드(리전 europe-west4)의 Google Cloud에서 호스팅합니다. 여기에는 웹사이트, 웹 앱, 데스크톱 앱이 통신하는 서비스, API 및 그 자체 데이터베이스, 그리고 귀하의 에이전트가 클라우드에 저장하는 파일과 보고서가 포함됩니다. 각 엔터프라이즈 프로젝트는 당사가 고객과 합의한 EU 내 Google Cloud 리전에서 호스팅됩니다."
+    },
+    {
+      "type": "p",
+      "text": "Clerk 및 Google Gemini와 같은 일부 제공업체는 미국 또는 그 밖의 지역에서 데이터를 처리할 수 있습니다. 데이터는 전송 중에 암호화되며(HTTPS), 당사의 클라우드 제공업체는 저장 시에도 데이터를 암호화합니다."
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "EU 외부로의 이전",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "개인정보가 EEA, 영국 또는 스위스를 벗어나는 경우, 법률은 보호 조치를 요구합니다. Clerk의 경우 보호 조치는 EU-미국 데이터 프라이버시 프레임워크이며, 보완 수단으로 EU 표준계약조항이 적용됩니다(GDPR Art. 45 및 46). Google Cloud의 경우 귀하의 데이터는 EU에서 호스팅됩니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Google Gemini의 경우 당사는 Google의 유료 서비스를 사용합니다. 당사가 전송하는 데이터에는 Google의 유료 서비스 약관과 데이터 처리 약관이 적용됩니다."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "귀하의 데이터에 적용되는 보호 조치의 사본을 받으시려면 {company.privacyEmail}(으)로 연락해 주십시오."
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "외국 정부의 요청",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU 법률은 클라우드 제공업체에 인프라의 위치와 EU 외부 정부의 요청에 대한 대응 방식을 밝히도록 요구합니다(EU Data Act, Art. 28). 이는 개인정보뿐만 아니라 모든 데이터에 적용됩니다."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "당사 인프라: 당사의 클라우드 서비스와 데이터베이스는 EU 법률에 따라 네덜란드의 Google Cloud에서 운영됩니다. 로그인은 미국의 Clerk에서 운영됩니다.",
+        "Google과 Clerk는 미국 회사이거나 미국 그룹의 일부이므로, 이들에게는 미국 법률도 적용될 수 있습니다.",
+        "EU 외부의 정부나 법원이 당사에 귀하의 데이터를 요청하는 경우, 당사는 해당 요청이 적법한지, 그리고 EU 법률 또는 국내법이 당사가 이에 응하는 것을 허용하는지 검토합니다.",
+        "가능한 경우 당사는 위법하거나 범위가 지나치게 넓은 요청에 이의를 제기합니다. 당사는 해당 요청이 적법하게 요구하는 최소한의 데이터만 제공합니다.",
+        "법률상 금지되지 않는 한, 당사는 요청에 응하기 전에 관련 고객에게 이를 알립니다."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "미국 주 개인정보 보호법",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "미국 주 개인정보 보호법상 Google Cloud, Clerk 및 Cloudflare는 당사를 위해 서비스 제공자 또는 처리자로서 업무를 수행합니다. 당사가 Gemini API로 보내는 데이터를 Google이 어떻게 이용할 수 있는지는 [AI 작동 방식](/instant/legal/ai#data-models-see)에서 설명하는 바와 같이 Google의 약관이 정합니다. 당사는 개인정보를 판매하거나 타깃 광고를 위해 공유하지 않습니다."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "이 목록의 변경"
+    },
+    {
+      "type": "p",
+      "text": "당사가 하위 처리자를 추가하거나 교체하는 경우, 이 페이지와 상단의 날짜를 업데이트합니다."
+    },
+    {
+      "type": "p",
+      "text": "당사의 [데이터 처리 부속서](/instant/legal/dpa)가 적용되는 기업 고객은 새로운 하위 처리자가 자신의 데이터를 처리하기 시작하기 전에 통지를 받습니다. 이들은 부속서에 정한 바에 따라 이의를 제기할 수 있습니다."
+    }
+  ]
+}

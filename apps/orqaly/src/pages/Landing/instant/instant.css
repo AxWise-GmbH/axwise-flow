@@ -12,57 +12,65 @@
  */
 
 [data-landing-variant='instant'] {
-  --oi-page: #030b07;
+  --oi-page: #000000;
   --oi-paper: rgba(255, 255, 255, 0.028);
-  --oi-paper-strong: #0c100e;
-  --oi-ink: #f4f6f5;
-  --oi-muted: #8d919c;
-  --oi-dim: #5d616b;
-  --oi-accent: #4a9f7a;
-  --oi-accent-dark: #1d5f42;
-  --oi-accent-deep: #004225;
+  --oi-paper-strong: #0e0e0e;
+  --oi-ink: #fafafa;
+  --oi-muted: #a1a1a1;
+  --oi-dim: #6b6b6b;
+  --oi-accent: #e6e6e6;
+  --oi-accent-dark: #8a8a8a;
+  --oi-accent-deep: #3a3a3a;
   --oi-glow: rgba(var(--oi-glow-rgb), 0.55);
   /* Colour channels, for rgba(var(--x-rgb), alpha). Change the palette here only. */
-  --oi-accent-rgb: 74, 159, 122;
-  --oi-glow-rgb: 22, 98, 64;
-  --oi-deep-rgb: 0, 66, 37;
-  --oi-pale-rgb: 120, 190, 155;
-  --oi-ambient-rgb: 0, 44, 26;
-  --oi-accent-soft: #3f7d62;
-  --oi-orb: #2b8a5e;
+  --oi-accent-rgb: 230, 230, 230;
+  --oi-glow-rgb: 140, 140, 140;
+  --oi-deep-rgb: 60, 60, 60;
+  --oi-pale-rgb: 255, 255, 255;
+  --oi-ambient-rgb: 38, 38, 38;
+  --oi-accent-soft: #b4b4b4;
+  /*
+   * The orb is a mid grey on purpose, not near-white: LineOrb stacks its strokes
+   * additively, so overlaps climb to white on their own. A light value here would
+   * blow the whole orb out flat.
+   */
+  --oi-orb: #7d7d7d;
 
   --oi-hairline: rgba(255, 255, 255, 0.1);
   --oi-hairline-strong: rgba(255, 255, 255, 0.22);
-  --oi-good: #4a9f7a;
+  --oi-good: #e6e6e6;
+  /* A filled round control, such as the phone menu button. */
+  --oi-control: #2f2f2f;
+  --oi-control-hover: #3a3a3a;
 
   /*
    * A piece of the app, wherever a mock shows one. The app's own chrome: graphite,
    * near-monochrome, with one pale highlight for whatever is live. Every page draws its
    * mocks from these, so the same piece of the app looks the same on all of them.
    */
-  --oi-app-surface: linear-gradient(180deg, rgba(40, 43, 50, 0.94), rgba(25, 27, 32, 0.94));
+  --oi-app-surface: linear-gradient(180deg, rgba(42, 42, 42, 0.94), rgba(26, 26, 26, 0.94));
   --oi-app-edge: rgba(255, 255, 255, 0.14);
-  --oi-app-text: #f4f5f7;
-  --oi-app-soft: #cbd1d6;
-  --oi-app-muted: #9a9fa8;
-  --oi-app-dim: #7f858f;
-  --oi-app-border: #3f434b;
-  --oi-app-border-strong: #525b68;
+  --oi-app-text: #f5f5f5;
+  --oi-app-soft: #d0d0d0;
+  --oi-app-muted: #9e9e9e;
+  --oi-app-dim: #858585;
+  --oi-app-border: #424242;
+  --oi-app-border-strong: #565656;
   --oi-app-fill: rgba(255, 255, 255, 0.055);
   --oi-app-light: color-mix(in srgb, var(--oi-accent) 48%, #ffffff);
   --oi-app-sunk: rgba(0, 0, 0, 0.32);
 
   /* The demo stage shares the page's black; these stay for its own panels. */
-  --oi-stage: #030b07;
-  --oi-stage-panel: #07140e;
+  --oi-stage: #000000;
+  --oi-stage-panel: #0c0c0c;
   --oi-stage-hairline: rgba(255, 255, 255, 0.1);
-  --oi-stage-text: #f4f6f5;
-  --oi-stage-muted: #8d919c;
-  --oi-stage-focus: #4a9f7a;
+  --oi-stage-text: #fafafa;
+  --oi-stage-muted: #a1a1a1;
+  --oi-stage-focus: #e6e6e6;
 
   /* A light sheet for the reused light-themed blocks (diagram). */
-  --oi-sheet: #f9fdfb;
-  --oi-sheet-ink: #1a3227;
+  --oi-sheet: #fafafa;
+  --oi-sheet-ink: #1a1a1a;
 
   --oi-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --oi-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
@@ -88,7 +96,7 @@
 
 [data-landing-variant='instant'] ::selection {
   background: var(--oi-accent);
-  color: #060a08;
+  color: rgb(var(--oi-bg-rgb));
 }
 
 /* Ambient light, grain, scroll progress ------------------------------------- */
@@ -113,7 +121,11 @@
   right: -12vw;
   width: 62vw;
   height: 62vw;
-  background: radial-gradient(circle, rgba(var(--oi-deep-rgb), 0.5), transparent 62%);
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-deep-rgb), calc(0.5 * var(--oi-halo-k))),
+    transparent 62%
+  );
   animation: oi-drift-a 38s ease-in-out infinite alternate;
 }
 
@@ -131,7 +143,11 @@
   left: 34vw;
   width: 34vw;
   height: 34vw;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 60%);
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-fg-rgb), calc(0.08 * var(--oi-halo-k))),
+    transparent 60%
+  );
   animation: oi-drift-a 52s ease-in-out infinite alternate-reverse;
 }
 
@@ -152,7 +168,12 @@
   z-index: 1200;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, var(--oi-accent-deep), var(--oi-accent), #ffffff);
+  background: linear-gradient(
+    90deg,
+    var(--oi-accent-deep),
+    var(--oi-accent),
+    rgb(var(--oi-fg-rgb))
+  );
   transform: scaleX(var(--oi-progress, 0));
   transform-origin: 0 50%;
   pointer-events: none;
@@ -322,7 +343,7 @@
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   transition: color var(--oi-fade) ease;
 }
@@ -376,7 +397,7 @@
 
 .oi-more-region ul,
 .oi-more-region ol {
-  padding-left: 1.2em;
+  padding-inline-start: 1.2em;
 }
 
 .oi-more-region li::marker {
@@ -440,9 +461,11 @@
   display: flex;
   flex-direction: column;
   padding: var(--oi-s3);
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-*), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: var(--oi-radius-card);
-  background: var(--oi-paper);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
   isolation: isolate;
   transition:
@@ -458,7 +481,7 @@
   z-index: -1;
   background: radial-gradient(
     420px circle at var(--mx, 50%) var(--my, -20%),
-    rgba(var(--oi-accent-rgb), 0.16),
+    rgba(var(--oi-accent-rgb), calc(0.16 * var(--oi-halo-k))),
     transparent 60%
   );
   opacity: 0;
@@ -567,7 +590,7 @@
   letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
   color: var(--oi-ink);
-  background: linear-gradient(180deg, #ffffff 20%, var(--oi-accent-soft) 120%);
+  background: linear-gradient(180deg, rgb(var(--oi-fg-rgb)) 20%, var(--oi-accent-soft) 120%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -604,18 +627,20 @@
   overflow: clip;
 }
 
-/* A framed panel with a green light in its corner: brand on the left, link columns on the right. */
+/* A framed panel with a soft light in its corner: brand on the left, link columns on the right,
+   the mail in the bottom-left corner (the columns span both rows). */
 .oi-footer-panel {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+  grid-template-rows: auto 1fr;
   gap: var(--oi-s4);
   padding: 56px;
-  border: 1px solid var(--oi-hairline);
+  /* The shared card graphite (--oi-app-*), as on the hero and How it works. */
+  border: 1px solid var(--oi-app-edge);
   border-radius: 28px;
-  background:
-    radial-gradient(60% 120% at 0% 0%, rgba(var(--oi-glow-rgb), 0.34), transparent 62%),
-    var(--oi-paper);
+  background: var(--oi-app-surface);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
 }
 
@@ -641,15 +666,23 @@
   justify-self: start;
 }
 
+/* A quiet tagline tucked under the wordmark: indented past the mark (26px + 9px gap),
+   pulled up into the brand link's spare height. */
 .oi-footer-line {
-  margin: 0;
-  color: var(--oi-ink);
-  font-size: clamp(1.35rem, 2vw, 1.75rem);
-  line-height: 1.15;
-  letter-spacing: -0.035em;
+  margin: -14px 0 var(--oi-s1);
+  padding-inline-start: 35px;
+  color: var(--oi-muted);
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
 }
 
 .oi-footer-mail {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: start;
+  align-self: end;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -679,6 +712,8 @@
 }
 
 .oi-footer-cols {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--oi-s3);
@@ -722,7 +757,7 @@
     transform var(--oi-fade) ease;
 }
 
-/* A short green dash slides in ahead of the link under the pointer. */
+/* A short pale dash slides in ahead of the link under the pointer. */
 .oi-footer-link::before {
   content: '';
   position: absolute;
@@ -759,9 +794,17 @@
 }
 
 @media (max-width: 1000px) {
+  /* One column: brand, then the link columns, then the mail, still bottom-left. */
   .oi-footer-panel {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     padding: 40px;
+  }
+
+  .oi-footer-cols,
+  .oi-footer-mail {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
 
@@ -794,7 +837,7 @@
   letter-spacing: -0.07em;
   text-align: center;
   white-space: nowrap;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 82%);
+  background: linear-gradient(180deg, rgba(var(--oi-fg-rgb), 0.2), rgba(var(--oi-fg-rgb), 0) 82%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -855,4 +898,82 @@
   .oi-card:focus-within {
     transform: none;
   }
+}
+
+/* The footer logo and its language button share a row; the row wraps on narrow screens. */
+.oi-footer-brand-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+/* The light/dark switch ends the row. Its 40px disc has a 2px touch margin round it; pulling
+   it in by that keeps the gap to the language button even. */
+.oi-footer-brand-row > .oi-theme-switch {
+  margin-inline-start: -2px;
+}
+
+/* Small phones: a tighter gap keeps logo, language and switch on one line down to 360px. */
+@media (max-width: 400px) {
+  .oi-footer-brand-row {
+    column-gap: 8px;
+  }
+}
+
+/*
+ * Languages Geist cannot set. Latin letters stay in Geist; the rest falls to the reader's
+ * own system fonts (nothing extra downloads). Tracking tuned for Latin capitals is dropped:
+ * it splits CJK spacing and breaks Arabic's joined letters.
+ */
+[data-landing-variant='instant']:lang(ja) {
+  --oi-sans:
+    'Geist', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+  --oi-mono: 'Geist Mono', ui-monospace, 'Hiragino Sans', 'Noto Sans JP', monospace;
+}
+
+[data-landing-variant='instant']:lang(zh) {
+  --oi-sans:
+    'Geist', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --oi-mono: 'Geist Mono', ui-monospace, 'PingFang SC', 'Noto Sans SC', monospace;
+}
+
+[data-landing-variant='instant']:lang(ko) {
+  --oi-sans: 'Geist', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --oi-mono: 'Geist Mono', ui-monospace, 'Apple SD Gothic Neo', 'Noto Sans KR', monospace;
+}
+
+[data-landing-variant='instant']:lang(ar) {
+  --oi-sans: 'Geist', 'SF Arabic', 'Geeza Pro', 'Segoe UI', 'Noto Sans Arabic', sans-serif;
+  --oi-mono: 'Geist Mono', ui-monospace, 'SF Arabic', 'Geeza Pro', 'Noto Sans Arabic', monospace;
+}
+
+[data-landing-variant='instant']:lang(hi) {
+  --oi-sans: 'Geist', 'Kohinoor Devanagari', 'Nirmala UI', 'Noto Sans Devanagari', sans-serif;
+  --oi-mono: 'Geist Mono', ui-monospace, 'Kohinoor Devanagari', 'Noto Sans Devanagari', monospace;
+}
+
+:is(:lang(ja), :lang(zh), :lang(ko), :lang(ar), :lang(hi)) [data-landing-variant='instant'] *,
+[data-landing-variant='instant']:is(:lang(ja), :lang(zh), :lang(ko), :lang(ar), :lang(hi)) * {
+  letter-spacing: normal !important;
+}
+
+/* Right to left (Arabic): the few text details placed by hand follow the reading side. */
+[dir='rtl'] .ois-faq-index {
+  right: 0;
+  left: auto;
+}
+
+[dir='rtl'] .oi-footer-link::before {
+  right: -14px;
+  left: auto;
+}
+
+[dir='rtl'] .ois-faq .oi-more-row::after {
+  transform-origin: 100% 50%;
+  background: linear-gradient(270deg, var(--oi-accent), rgb(var(--oi-fg-rgb)) 55%, transparent);
+}
+
+[dir='rtl'] .oi-footer-mail:hover span {
+  transform: translateX(-3px);
 }

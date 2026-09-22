@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookies & Speicher",
+    "summary": "Diese Seite listet die Cookies und den Browserspeicher auf, die die Orqanix-Website und die Orqanix-Web-App verwenden, und erklärt, wofür jeder Eintrag nötig ist, wie lange er bestehen bleibt und wie Sie ihn löschen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "Kurz gesagt"
+    },
+    {
+      "type": "note",
+      "text": "Unsere Marketing- und Rechtsseiten setzen keine Cookies. Sie speichern höchstens Ihre Auswahl: die Sprache, die helle oder dunkle Darstellung und die US- oder EU-Fassung unserer Rechtsseiten, jeweils erst nach Ihrem Klick. Cookies gibt es nur auf den Anmeldeseiten und in der Web-App, weil die Anmeldung ohne sie nicht funktioniert. Wir verwenden keine Werbe-, Analyse- oder Tracking-Cookies."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookies und Speicher"
+    },
+    {
+      "type": "p",
+      "text": "Ein Cookie ist eine kleine Textdatei, die eine Website in Ihrem Browser speichert. Ihr Browser sendet sie bei späteren Besuchen zurück. Der lokale Speicher (Local Storage) und der Sitzungsspeicher (Session Storage) sind ähnliche Bereiche in Ihrem Browser, in denen eine Website kleine Informationen ablegen kann. Der lokale Speicher behält sie, bis sie gelöscht werden; der Sitzungsspeicher behält sie, bis Sie den Tab schließen. Diese Seite gilt für alle drei, auf orqanix.com und in der Orqanix-Web-App."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "Was wir speichern"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Name",
+        "Ort",
+        "Gesetzt von",
+        "Zweck",
+        "Dauer"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Lokaler Speicher, auf unseren Rechtsseiten. Wird nur geschrieben, wenn Sie den Regionsschalter oder den Regionsvorschlag anklicken.",
+          "Orqanix",
+          "Speichert, ob Sie die US- oder die EU-Fassung unserer Rechtsseiten gewählt haben.",
+          "Bis Sie ihn löschen"
+        ],
+        [
+          "orqanix_lang",
+          "Lokaler Speicher, auf unseren Marketingseiten. Wird nur geschrieben, wenn Sie in der Fußzeile eine Sprache wählen.",
+          "Orqanix",
+          "Speichert die Sprache, die Sie für unsere Seiten gewählt haben.",
+          "Bis Sie ihn löschen"
+        ],
+        [
+          "orqanix_theme",
+          "Lokaler Speicher, auf unseren Marketingseiten. Wird nur geschrieben, wenn Sie in der Fußzeile den Hell/Dunkel-Schalter betätigen.",
+          "Orqanix",
+          "Speichert, ob Sie die helle oder die dunkle Darstellung gewählt haben.",
+          "Bis Sie ihn löschen"
+        ],
+        [
+          "__client_uat (und eine Kopie mit Suffix)",
+          "Cookie auf orqanix.com und seinen Subdomains, auf den Anmeldeseiten und in der Web-App",
+          "Clerk, unser Anmeldedienst",
+          "Hält fest, ob und seit wann Sie angemeldet sind.",
+          "Etwa 1 Jahr"
+        ],
+        [
+          "__clerk_db_jwt (und eine Kopie mit Suffix)",
+          "Cookie auf orqanix.com, auf den Anmeldeseiten und in der Web-App",
+          "Clerk",
+          "Verknüpft Ihren Browser in unserer derzeitigen Clerk-Einrichtung mit Ihrer Anmeldesitzung.",
+          "Etwa 1 Jahr"
+        ],
+        [
+          "__session (und eine Kopie mit Suffix)",
+          "Cookie auf orqanix.com, sobald Sie angemeldet sind",
+          "Clerk",
+          "Enthält ein kurzlebiges Anmelde-Token, das unseren Servern nachweist, wer Sie sind.",
+          "Kurzlebig, wird erneuert, solange Sie angemeldet bleiben"
+        ],
+        [
+          "__cf_bm",
+          "Cookie auf der Domain von Clerk, auf den Anmeldeseiten",
+          "Cloudflare, für Clerk",
+          "Unterscheidet Menschen von Bots, um die Anmeldung vor Missbrauch zu schützen.",
+          "Etwa 30 Minuten, laut Cloudflare"
+        ],
+        [
+          "_cfuvid",
+          "Cookie auf der Domain von Clerk, auf den Anmeldeseiten",
+          "Cloudflare, für Clerk",
+          "Hilft, faire Begrenzungen für Anfragen anzuwenden, um die Anmeldung vor Missbrauch zu schützen.",
+          "Bis Sie Ihren Browser schließen, laut Cloudflare"
+        ],
+        [
+          "__clerk_environment",
+          "Lokaler Speicher auf orqanix.com, auf den Anmeldeseiten und in der Web-App",
+          "Clerk",
+          "Bewahrt eine Kopie der Clerk-Einstellungen auf, damit die Anmeldung schneller lädt.",
+          "Bis Sie ihn löschen"
+        ],
+        [
+          "Menü-Anordnung",
+          "Lokaler Speicher in der Web-App, ein Eintrag pro Konto",
+          "Orqanix",
+          "Speichert, welche Menübereiche Sie ausgeblendet, umsortiert oder angeheftet haben.",
+          "Bis Sie ihn löschen"
+        ],
+        [
+          "Menü eingeklappt",
+          "Lokaler Speicher in der Web-App, ein Eintrag pro Konto",
+          "Orqanix",
+          "Speichert, ob Sie das Seitenmenü eingeklappt haben.",
+          "Bis Sie ihn löschen"
+        ],
+        [
+          "remix-router-transitions",
+          "Sitzungsspeicher in der Web-App, nur bei Bedarf",
+          "Die Seitennavigations-Bibliothek der Web-App",
+          "Speichert den Zustand von Seitenwechseln, damit Vor und Zurück funktionieren.",
+          "Bis Sie den Tab schließen"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie sich registrieren, führt Cloudflare Turnstile außerdem eine kurze Prüfung in Ihrem Browser durch, um zu bestätigen, dass Sie ein Mensch und kein Bot sind. Sie ist Teil der Anmeldung und läuft für Clerk."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Wo was gilt"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Marketing- und Rechtsseiten"
+    },
+    {
+      "type": "p",
+      "text": "Die Startseite, die Produktseiten und diese Rechtsseiten laden keinen Anmeldecode, setzen keine Cookies und stellen keine Verbindungen zu anderen Unternehmen her. Ihre Schriftarten kommen von unserem eigenen Server. Gespeichert werden höchstens Ihre Auswahl von Sprache, Darstellung und Region, jeweils erst nach Ihrem Klick. Unser Hoster, Google Cloud, führt bei jedem Besuch übliche Serverprotokolle (IP-Adresse, Browser, Uhrzeit und Seite), wie unsere [Datenschutzerklärung](/instant/legal/privacy#website) erklärt. Diese Protokolle bleiben auf dem Server; dafür wird nichts in Ihrem Browser gespeichert. Wenn Sie auf „Herunterladen“ klicken, kommt die Desktop-App aus Google Cloud Storage, sodass Google Ihre IP-Adresse sieht."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Anmeldeseiten und die Web-App"
+    },
+    {
+      "type": "p",
+      "text": "Die Anmelde- und Registrierungsseiten sowie die Web-App laden Clerk, das unsere Anmeldung betreibt. Clerk und Cloudflare im Auftrag von Clerk setzen die Anmelde-Cookies und Speichereinträge, die unter [Was wir speichern](#what-we-store) aufgeführt sind. In der Web-App speichern wir zusätzlich Ihre Menü-Anordnung, damit sie so aussieht, wie Sie sie verlassen haben. Wenn Sie „Mit Google anmelden“ wählen, öffnen sich Googles eigene Seiten, und dort gelten Googles Cookies und Bedingungen."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Kein Cookie-Banner",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Das Recht der EU und des Vereinigten Königreichs erlaubt einer Website, Informationen auf Ihrem Gerät ohne vorherige Einwilligung nur dann zu speichern oder auszulesen, wenn dies unbedingt erforderlich ist, um einen von Ihnen ausdrücklich gewünschten Dienst bereitzustellen (ePrivacy-Richtlinie Art. 5 Abs. 3; in Deutschland § 25 Abs. 2 Nr. 2 TDDDG; im Vereinigten Königreich die Privacy and Electronic Communications Regulations). Alles, was wir speichern, erfüllt diese Voraussetzung. Ihre Auswahl von Sprache, Darstellung und Region wird gespeichert, weil Sie dafür geklickt haben. Die Anmeldung benötigt ihre Cookies und den Bot-Schutz. Die Web-App speichert die von Ihnen eingestellte Menü-Anordnung. Wir verwenden nichts für Werbung, Analyse oder Tracking; es gibt daher nichts, wofür wir Ihre Einwilligung einholen müssten, und kein Banner."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Sollten wir jemals Speicher nutzen wollen, der nicht unbedingt erforderlich ist, werden wir zuvor Ihre Einwilligung einholen und diese Seite aktualisieren."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Kein Cookie-Banner",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Alles, was wir speichern, wird für etwas benötigt, das Sie angefordert haben: Ihre Regionsauswahl, die Anmeldung, den Schutz der Anmeldung vor Bots und das Speichern Ihrer Menü-Anordnung. Wir verwenden keine Werbe-, Analyse- oder Tracking-Cookies und lassen kein anderes Unternehmen Sie auf unserer Website verfolgen. Es gibt daher nichts, dem Sie widersprechen müssten, und kein Banner. Wenn Ihr Browser ein Global-Privacy-Control-Signal sendet, behandeln wir es als Widerspruch gegen den Verkauf und die Weitergabe Ihrer personenbezogenen Daten. Wir tun beides nicht, es ändert sich also nichts."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Sollten wir jemals Speicher für einen anderen Zweck nutzen wollen, werden wir zuvor diese Seite aktualisieren und Ihnen die gesetzlich vorgeschriebenen Wahlmöglichkeiten geben."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "Was wir nicht verwenden"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Keine Werbe-Cookies und keine Werbenetzwerke.",
+        "Keine Analyse- oder Tracking-Tools und keine Tracking-Pixel.",
+        "Keine Schriftarten oder sonstigen Dateien, die auf unseren Marketing- und Rechtsseiten von anderen Unternehmen geladen werden.",
+        "Kein Speicher, der Sie über andere Websites hinweg verfolgt."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Löschen und Blockieren"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sie können Cookies und Websitedaten in den Einstellungen Ihres Browsers einsehen, löschen und blockieren, meist unter „Datenschutz“ oder „Websitedaten“. Wenn Sie die Websitedaten für orqanix.com und für die Anmeldedomain von Clerk löschen, wird alles aus der Tabelle entfernt.",
+        "Um Ihre Regionsauswahl zu ändern, nutzen Sie den Schalter US / EU auf einer beliebigen Rechtsseite. Um sie zu entfernen, löschen Sie die Websitedaten Ihres Browsers für orqanix.com.",
+        "Durch das Abmelden wird Ihre Anmeldesitzung beendet.",
+        "Wenn Sie die Anmelde-Cookies oder die Prüfung von Cloudflare blockieren, können Sie unsere Website weiterhin lesen, aber die Anmeldung und die Web-App funktionieren nicht."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Die Desktop-App"
+    },
+    {
+      "type": "p",
+      "text": "Die Desktop-App ist keine Website. Sie verwendet keine Cookies oder Speicher für Werbung, Analyse oder Tracking. Sie bewahrt ihre Daten auf Ihrem Mac auf: Ihren Chatverlauf, Einstellungen, Protokolle, Ihre Orqanix-Anmeldung (im macOS-Schlüsselbund) und kleine Einträge im eigenen integrierten Speicher der App, etwa Ihr Design, Ihre Menü-Anordnung, angeheftete Chats und eine Liste der Nachrichten, die Sie kürzlich eingegeben haben. Unsere [Datenschutzerklärung](/instant/legal/privacy#desktop-app) erklärt, was auf Ihrem Mac bleibt und was ihn verlässt."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Änderungen"
+    },
+    {
+      "type": "p",
+      "text": "Wenn sich ändert, was wir speichern, aktualisieren wir diese Seite und das Datum oben. Fragen: {company.privacyEmail}."
+    }
+  ]
+}

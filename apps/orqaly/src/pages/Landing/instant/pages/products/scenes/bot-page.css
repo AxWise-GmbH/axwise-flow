@@ -1,0 +1,1926 @@
+/*
+ * Assistant Bot scene, the page-only cuts (prefix pbo-): role, map, contacts, files and
+ * control. Imported by BotPage.jsx, so it ships with the page and never rides the header's
+ * scenes chunk. The base parts, the menu and the hero live in bot.css, which always loads
+ * with the scene. Every selector starts from [data-product='assistant-bot'][data-cut=...],
+ * so a rule here outranks the base rule it reshapes whatever order the two files load in.
+ *
+ * A cut rests until it scrolls into view, then plays from its clock's start. Role, map and
+ * contacts would open on a bare card there, so their clocks start part way in: --o is a
+ * negative delay every part of the cut adds to its own. Each opens on a full frame (Sales
+ * with its duties; the whole lit map; the merged list), holds it, then replays the story.
+ */
+
+[data-product='assistant-bot'][data-cut='role'] {
+  --o: calc(var(--ps-loop) * -0.15);
+  /* The card, and the deck of two behind it. */
+  --pbo-face-bg: linear-gradient(180deg, #2c2c2c, #151515);
+  --pbo-deck: #1b1b1b;
+  --pbo-deck-edge: #151515;
+}
+
+[data-product='assistant-bot'][data-cut='map'] {
+  --o: calc(var(--ps-loop) * -0.74);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] {
+  --o: calc(var(--ps-loop) * -0.68);
+  /* A contact's face. */
+  --pbo-avatar: linear-gradient(160deg, #4a4a4a, #262626);
+}
+
+/* The faint paths out of the inbox, and a folder: its back and tab, two sheets of paper
+   peeking out, the front that tips open. */
+[data-product='assistant-bot'][data-cut='files'] {
+  --pbo-paths: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 75' preserveAspectRatio='none' fill='none' stroke='white' stroke-opacity='0.2' stroke-dasharray='1 1.4' stroke-width='0.3'%3E%3Cpath d='M46 16C46 29 21.5 27 21.5 41M50 16V41M54 16C54 29 78.5 27 78.5 41'/%3E%3C/svg%3E");
+  --pbo-folder-back: linear-gradient(180deg, #262626, #161616);
+  --pbo-folder-tab: #242424;
+  --pbo-sheet-front: #9c9c9c;
+  --pbo-sheet-back: #6a6a6a;
+  --pbo-folder-front: linear-gradient(180deg, #353535, #1d1d1d);
+}
+
+/* The ink on the lit "Mon 9:00" chip. */
+[data-product='assistant-bot'][data-cut='control'] {
+  --pbo-chip-ink: #111111;
+}
+
+/* Light: the app's light theme. White cards and folder fronts, a paler deck and folder
+   back, light faces with dark letters, dark dots and paths, white ink on the lit chip. */
+[data-product='assistant-bot'][data-cut='role']:is([data-oi-theme='light'] *) {
+  --pbo-face-bg: linear-gradient(180deg, #ffffff, #f8f8f8);
+  --pbo-deck: #f3f3f3;
+  --pbo-deck-edge: #e8e8e8;
+}
+
+[data-product='assistant-bot'][data-cut='map']:is([data-oi-theme='light'] *) .pbo-map::after {
+  --d: radial-gradient(circle closest-side, rgba(0, 0, 0, 0.45) 50%, transparent 72%);
+}
+
+[data-product='assistant-bot'][data-cut='contacts']:is([data-oi-theme='light'] *) {
+  --pbo-avatar: linear-gradient(160deg, #f2f2f2, #dddddd);
+}
+
+[data-product='assistant-bot'][data-cut='files']:is([data-oi-theme='light'] *) {
+  --pbo-paths: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 75' preserveAspectRatio='none' fill='none' stroke='black' stroke-opacity='0.24' stroke-dasharray='1 1.4' stroke-width='0.3'%3E%3Cpath d='M46 16C46 29 21.5 27 21.5 41M50 16V41M54 16C54 29 78.5 27 78.5 41'/%3E%3C/svg%3E");
+  --pbo-folder-back: linear-gradient(180deg, #e2e2e2, #d6d6d6);
+  --pbo-folder-tab: #e2e2e2;
+  --pbo-sheet-front: #ffffff;
+  --pbo-sheet-back: #efefef;
+  --pbo-folder-front: linear-gradient(180deg, #ffffff, #f3f3f3);
+}
+
+[data-product='assistant-bot'][data-cut='control']:is([data-oi-theme='light'] *) {
+  --pbo-chip-ink: #ffffff;
+}
+
+/* Role: the card turns to each role, the pick follows --------------------------------
+   Loop: Sales 0-30%, Finance 36-63%, Support 70-97%; the turns fall between. */
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-chips {
+  top: calc(var(--u) * 9);
+  left: 50%;
+  translate: -50% 0;
+  animation: none;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-chips .ps-chip {
+  animation: none;
+}
+
+/* "+ New bot" goes last and quiet: or make your own. */
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-chips .pbo-new {
+  order: 1;
+  margin: 0 0 0 calc(var(--u) * 1.4);
+  border-style: dashed;
+  background: transparent;
+  color: var(--oi-app-muted);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-new::before,
+[data-product='assistant-bot'][data-cut='role'] .pbo-new::after {
+  display: none;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-sel {
+  right: auto;
+  left: 0;
+  transform: translateX(var(--pitch));
+  animation-name: pbo-sel-role;
+  animation-delay: var(--o);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-flip {
+  position: absolute;
+  top: calc(var(--u) * 20.5);
+  left: 50%;
+  width: calc(var(--u) * 48);
+  height: calc(var(--u) * 42);
+  margin-left: calc(var(--u) * -24);
+  perspective: calc(var(--u) * 160);
+}
+
+/* The other roles wait behind it, a deck of two. */
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-flip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 2.8);
+  background: var(--pbo-deck);
+  box-shadow: 0 calc(var(--u) * -2.2) 0 calc(var(--u) * -1.6) var(--pbo-deck-edge);
+  transform: translateY(calc(var(--u) * -2.2)) scale(0.93);
+  opacity: 0.9;
+}
+
+/* The card's shadow on the floor. */
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-flip::after {
+  content: '';
+  position: absolute;
+  right: 6%;
+  bottom: calc(var(--u) * -3.4);
+  left: 6%;
+  z-index: -1;
+  height: calc(var(--u) * 5);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-shadow-rgb), calc(0.75 * var(--oi-shadow-k))),
+    transparent
+  );
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2.1);
+  padding: calc(var(--u) * 3.4);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 2.8);
+  background: var(--pbo-face-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.18),
+    0 calc(var(--u) * 4) calc(var(--u) * 10) calc(var(--u) * -3)
+      rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
+  backface-visibility: hidden;
+  opacity: 0;
+  transform: rotateY(84deg);
+  animation: pbo-face var(--ps-loop) var(--oi-ease) var(--o) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face:nth-child(2) {
+  opacity: 1;
+  transform: none;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face:nth-child(2),
+[data-product='assistant-bot'][data-cut='role'] .pbo-face:nth-child(2) p::after {
+  animation-delay: calc(var(--o) - var(--ps-loop) * 0.6667);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face:nth-child(3),
+[data-product='assistant-bot'][data-cut='role'] .pbo-face:nth-child(3) p::after {
+  animation-delay: calc(var(--o) - var(--ps-loop) * 0.3333);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face .pbo-bot {
+  gap: calc(var(--u) * 1.1) calc(var(--u) * 2);
+  padding-bottom: calc(var(--u) * 2.6);
+  border-bottom: var(--ps-line) solid var(--oi-app-border);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face .pbo-orb {
+  width: calc(var(--u) * 8);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face b {
+  font-size: calc(var(--t) * 3.1);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face b::after {
+  width: calc(var(--u) * 1.1);
+  height: calc(var(--u) * 1.1);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face .ps-bar {
+  height: calc(var(--u) * 0.8);
+}
+
+/* A duty: an icon on a small tile, a line of drawn words. */
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face p {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 2.4);
+  min-height: calc(var(--u) * 5.4);
+  margin: 0;
+  color: var(--oi-app-muted);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face p::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: calc(var(--u) * 5.4);
+  height: calc(var(--u) * 5.4);
+  margin-top: calc(var(--u) * -2.7);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 1.4);
+  background: var(--oi-app-fill);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face p .ps-icon {
+  position: relative;
+  width: calc(var(--u) * 2.4);
+  height: calc(var(--u) * 2.4);
+  margin-left: calc(var(--u) * 1.5);
+  color: var(--oi-app-text);
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face p::after {
+  content: '';
+  width: 58%;
+  height: calc(var(--u) * 0.9);
+  margin-left: calc(var(--u) * 1.5);
+  border-radius: calc(var(--u) * 0.45);
+  background: color-mix(in srgb, currentColor 34%, transparent);
+  transform-origin: left;
+  animation: pbo-duty var(--ps-loop) var(--oi-ease) var(--o) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face p:nth-child(3)::after {
+  width: 40%;
+}
+
+[data-product='assistant-bot'][data-cut='role'] .pbo-face p:nth-child(4)::after {
+  width: 66%;
+}
+
+@keyframes pbo-sel-role {
+  0%,
+  29% {
+    transform: none;
+  }
+  35%,
+  62% {
+    transform: translateX(var(--pitch));
+  }
+  68%,
+  95% {
+    transform: translateX(calc(var(--pitch) * 2));
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pbo-face {
+  0% {
+    opacity: 0;
+    transform: rotateY(-84deg);
+  }
+  3.5%,
+  30% {
+    opacity: 1;
+    transform: none;
+  }
+  33.4%,
+  100% {
+    opacity: 0;
+    transform: rotateY(84deg);
+  }
+}
+
+@keyframes pbo-duty {
+  0%,
+  4% {
+    transform: scaleX(0);
+  }
+  14%,
+  100% {
+    transform: none;
+  }
+}
+
+/* Map: the business map draws itself -------------------------------------------------
+   Loop: 2-7% the business; 7-23% four lines, their groups; 20-37% the leaves; 44-75% a
+   contact, a mail, a PDF and an image arrive and light their groups. */
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map {
+  top: calc(var(--u) * 8);
+  left: calc(var(--u) * 9);
+  width: calc(var(--u) * 82);
+  height: calc(var(--u) * 57);
+  animation: none;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map svg {
+  stroke-width: 0.3;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map path {
+  animation-name: pbo-g-draw;
+  animation-delay: var(--o);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map path:nth-child(n + 5) {
+  display: inline;
+  stroke: rgba(var(--oi-fg-rgb), 0.2);
+  animation-name: pbo-g-leaf;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map path:nth-child(4n + 2),
+[data-product='assistant-bot'][data-cut='map'] .pbo-node:nth-of-type(2) {
+  animation-delay: calc(var(--o) + var(--ps-loop) * 0.03);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map path:nth-child(4n + 3),
+[data-product='assistant-bot'][data-cut='map'] .pbo-node:nth-of-type(3) {
+  animation-delay: calc(var(--o) + var(--ps-loop) * 0.06);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map path:nth-child(4n),
+[data-product='assistant-bot'][data-cut='map'] .pbo-node:nth-of-type(4) {
+  animation-delay: calc(var(--o) + var(--ps-loop) * 0.09);
+}
+
+/* The leaves end in dots; the layer is set out by half a dot so % lands on centres. */
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map::after {
+  --d: radial-gradient(circle closest-side, rgba(255, 255, 255, 0.7) 50%, transparent 72%);
+  --s: calc(var(--u) * 1.6) calc(var(--u) * 1.6) no-repeat;
+
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * -0.8);
+  background:
+    var(--d) 5% 8% / var(--s),
+    var(--d) 4% 42% / var(--s),
+    var(--d) 95% 8% / var(--s),
+    var(--d) 96% 42% / var(--s),
+    var(--d) 95% 92% / var(--s),
+    var(--d) 96% 58% / var(--s),
+    var(--d) 5% 92% / var(--s),
+    var(--d) 4% 58% / var(--s);
+  animation: pbo-g-dots var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-hub {
+  width: calc(var(--u) * 9);
+  animation-name: pbo-g-hub;
+  animation-delay: var(--o);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map::before {
+  content: var(--pbo-say-business, 'Your business');
+  position: absolute;
+  top: calc(50% + var(--u) * 6.4);
+  left: 50%;
+  translate: -50% 0;
+  color: var(--oi-app-soft);
+  font-size: calc(var(--t) * 1.65);
+  white-space: nowrap;
+  animation: pbo-g-hub var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-node {
+  width: calc(var(--u) * 7);
+  animation-name: pbo-g-pop;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-node::before {
+  animation-name: pbo-g-lit;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-node,
+[data-product='assistant-bot'][data-cut='map'] .pbo-node::before,
+[data-product='assistant-bot'][data-cut='map'] .pbo-map .pbo-tile {
+  animation-delay: var(--o);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-node::after {
+  display: block;
+  font-size: calc(var(--t) * 1.6);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map .pbo-tile {
+  width: calc(var(--u) * 5.6);
+  animation-name: pbo-g-fly;
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map .pbo-tile:nth-of-type(6),
+[data-product='assistant-bot'][data-cut='map'] .pbo-node:nth-of-type(2)::before {
+  animation-delay: calc(var(--o) + var(--ps-loop) * 0.07);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map .pbo-tile:nth-of-type(7),
+[data-product='assistant-bot'][data-cut='map'] .pbo-node:nth-of-type(3)::before {
+  animation-delay: calc(var(--o) + var(--ps-loop) * 0.14);
+}
+
+[data-product='assistant-bot'][data-cut='map'] .pbo-map .pbo-tile:nth-of-type(8),
+[data-product='assistant-bot'][data-cut='map'] .pbo-node:nth-of-type(4)::before {
+  animation-delay: calc(var(--o) + var(--ps-loop) * 0.21);
+}
+
+@keyframes pbo-g-hub {
+  0%,
+  2% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  7%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes pbo-g-draw {
+  0%,
+  7% {
+    stroke-dashoffset: 1.05;
+  }
+  14%,
+  93% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 1.05;
+  }
+}
+
+@keyframes pbo-g-pop {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  16%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+@keyframes pbo-g-leaf {
+  0%,
+  22% {
+    stroke-dashoffset: 1.05;
+  }
+  30%,
+  93% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 1.05;
+  }
+}
+
+@keyframes pbo-g-dots {
+  0%,
+  33% {
+    opacity: 0;
+  }
+  40%,
+  93% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-g-fly {
+  0%,
+  44% {
+    opacity: 0;
+    transform: translate(var(--fx), var(--fy)) scale(1.15) rotate(-10deg);
+  }
+  46% {
+    opacity: 1;
+  }
+  51% {
+    opacity: 1;
+    transform: none;
+  }
+  53%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes pbo-g-lit {
+  0%,
+  50.5% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  55%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Contacts: mail and phone feed one list, then two rows for one person merge -----------
+   Loop: rows land at 10, 20, 30, 40 and 50% (a dot runs down a line to each); 56-66% the
+   phone copy of the first person slides into the mail copy, the rest close up; synced. */
+
+/* The two lines: stretched over the card by the base svg rule (bot.css), a finer stroke. */
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con svg {
+  stroke-width: 0.35;
+}
+
+/* A dot runs down each line in turn: mail (::before), then phone (::after). It slides on
+   transforms, not on the line's dashes: x at an even pace and y eased in and out, which
+   traces the lines' S bend (the card is 4:3, so 1% of its height is 0.75u). */
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con::before,
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con::after {
+  --dy: calc(var(--u) * 10.5);
+
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 16%;
+  width: calc(var(--u) * 1.2);
+  height: calc(var(--u) * 1.2);
+  margin: calc(var(--u) * -0.6);
+  border-radius: 50%;
+  background: rgb(var(--oi-fg-rgb));
+  box-shadow: 0 0 calc(var(--u) * 1) rgba(var(--oi-fg-rgb), calc(0.8 * var(--oi-halo-k)));
+  opacity: 0;
+  animation:
+    pbo-dot-x calc(var(--ps-loop) / 5) linear var(--o) infinite both,
+    pbo-dot-y calc(var(--ps-loop) / 5) linear var(--o) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con::after {
+  --dy: calc(var(--u) * -10.5);
+
+  top: 70%;
+  animation-delay: calc(var(--o) + var(--ps-loop) / 10);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con .pbo-tile {
+  top: 30%;
+  left: 16%;
+  width: calc(var(--u) * 9);
+  border-radius: calc(var(--u) * 2.4);
+  translate: -50% -50%;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con .pbo-tile + .pbo-tile {
+  top: 70%;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con .pbo-tile .ps-icon {
+  width: 42%;
+  height: 42%;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book {
+  position: absolute;
+  top: calc(var(--u) * 12.5);
+  left: calc(var(--u) * 40);
+  width: calc(var(--u) * 52);
+  height: calc(var(--u) * 50);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book .ps-win-bar {
+  height: calc(var(--u) * 4.4);
+  color: var(--oi-app-soft);
+  font-size: calc(var(--t) * 1.75);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book .ps-win-bar::after {
+  content: var(--pbo-say-contacts, 'Contacts');
+}
+
+/* Syncing: a turning ring; synced: a lit dot. */
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book::before,
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--u) * 1.3);
+  right: calc(var(--u) * 1.6);
+  width: calc(var(--u) * 1.8);
+  height: calc(var(--u) * 1.8);
+  border-radius: 50%;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book::before {
+  background: var(--oi-app-text);
+  box-shadow: 0 0 calc(var(--u) * 1.4) rgba(var(--oi-fg-rgb), calc(0.6 * var(--oi-halo-k)));
+  scale: 0.6;
+  animation: pbo-synced var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-book::after {
+  border: calc(var(--u) * 0.3) solid var(--oi-app-border-strong);
+  border-top-color: var(--oi-app-text);
+  opacity: 0;
+  animation: pbo-sync var(--ps-loop) linear var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person {
+  position: absolute;
+  top: calc(var(--u) * 6.4);
+  right: calc(var(--u) * 1.6);
+  left: calc(var(--u) * 1.6);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.2);
+  height: calc(var(--u) * 7.6);
+  margin: 0;
+  padding: 0 calc(var(--u) * 1.6) 0 calc(var(--u) * 7.6);
+  border-radius: calc(var(--u) * 1.4);
+  color: var(--oi-app-muted);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person::before {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--u) * 1.4);
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 4.8);
+  height: calc(var(--u) * 4.8);
+  margin-top: calc(var(--u) * -2.4);
+  border-radius: 50%;
+  background: var(--pbo-avatar);
+  color: var(--oi-app-text);
+  font-size: calc(var(--t) * 1.8);
+  font-weight: 500;
+}
+
+/* The merged row stays lit. */
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(var(--oi-fg-rgb), 0.07);
+  box-shadow: inset 0 0 0 var(--ps-line) rgba(var(--oi-fg-rgb), 0.28);
+  opacity: 0;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person .ps-bars {
+  flex: 1;
+  gap: calc(var(--u) * 1);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person .ps-bar {
+  height: calc(var(--u) * 0.8);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person .ps-bar:first-child {
+  background: color-mix(in srgb, currentColor 60%, transparent);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person .ps-icon {
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 2);
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(odd) [data-i='phone'],
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(even) [data-i='mail'] {
+  display: none;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(1) {
+  animation: pbo-r1 var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(1)::before,
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(2)::before {
+  content: 'A';
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(1) [data-i='phone'] {
+  display: inline-block;
+  animation: pbo-both var(--ps-loop) var(--pbo-spring) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(1)::after {
+  opacity: 1;
+  animation: pbo-merged var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(2) {
+  opacity: 0;
+  animation: pbo-r2 var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(3) {
+  top: calc(var(--u) * 14.9);
+  animation: pbo-r3 var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(3)::before {
+  content: 'M';
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(4) {
+  top: calc(var(--u) * 23.4);
+  animation: pbo-r4 var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(4)::before {
+  content: 'J';
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(5) {
+  top: calc(var(--u) * 31.9);
+  animation: pbo-r5 var(--ps-loop) var(--oi-ease) var(--o) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-person:nth-of-type(5)::before {
+  content: 'L';
+}
+
+@keyframes pbo-dot-x {
+  0%,
+  18% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  22%,
+  48% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * 24) 0;
+  }
+}
+
+/* The ease is 3t^2 - 2t^3, the curve of the lines' own bend. */
+@keyframes pbo-dot-y {
+  0%,
+  18% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.333, 0, 0.667, 1);
+  }
+  50%,
+  100% {
+    transform: translateY(var(--dy));
+  }
+}
+
+@keyframes pbo-sync {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  64% {
+    opacity: 1;
+    transform: rotate(7turn);
+  }
+  68%,
+  94% {
+    opacity: 0;
+    transform: rotate(7.5turn);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(8turn);
+  }
+}
+
+@keyframes pbo-synced {
+  0%,
+  64% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  69%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes pbo-r1 {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateX(calc(var(--u) * -3));
+  }
+  10%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-r2 {
+  0%,
+  16% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * -3), calc(var(--u) * 8.5));
+  }
+  20%,
+  56% {
+    opacity: 1;
+    transform: translateY(calc(var(--u) * 8.5));
+  }
+  64%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pbo-r3 {
+  0%,
+  26% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * -3), calc(var(--u) * 8.5));
+  }
+  30%,
+  58% {
+    opacity: 1;
+    transform: translateY(calc(var(--u) * 8.5));
+  }
+  66%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pbo-r4 {
+  0%,
+  36% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * -3), calc(var(--u) * 8.5));
+  }
+  40%,
+  58% {
+    opacity: 1;
+    transform: translateY(calc(var(--u) * 8.5));
+  }
+  66%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pbo-r5 {
+  0%,
+  46% {
+    opacity: 0;
+    transform: translate(calc(var(--u) * -3), calc(var(--u) * 8.5));
+  }
+  50%,
+  58% {
+    opacity: 1;
+    transform: translateY(calc(var(--u) * 8.5));
+  }
+  66%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pbo-both {
+  0%,
+  62% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  66%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-merged {
+  0%,
+  58% {
+    opacity: 0;
+  }
+  64%,
+  93% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Files: one inbox, three folders ---------------------------------------------------
+   Loop: six files leave the inbox (3-61%); each folder opens as one lands and its count
+   rolls on; Documents at 12 and 44%, Images at 20 and 52%, Invoices at 28 and 60%. */
+
+/* The inbox: a lit slot the files come out of. */
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--u) * 9);
+  left: 50%;
+  width: calc(var(--u) * 30);
+  height: calc(var(--u) * 5);
+  margin-left: calc(var(--u) * -15);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: 999px;
+  background:
+    radial-gradient(
+        closest-side,
+        rgba(var(--oi-fg-rgb), calc(0.55 * var(--oi-halo-k))),
+        transparent
+      )
+      center / 70% 40% no-repeat,
+    var(--oi-app-sunk);
+  box-shadow: 0 0 calc(var(--u) * 5) rgba(var(--oi-fg-rgb), calc(0.08 * var(--oi-halo-k)));
+}
+
+/* Faint paths from the inbox to each folder. */
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--pbo-paths) 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files .pbo-tile {
+  --r: -14deg;
+
+  z-index: 1;
+  top: calc(var(--u) * 42);
+  width: calc(var(--u) * 6.4);
+  border-radius: calc(var(--u) * 1.5);
+  translate: -50% -50%;
+  opacity: 0;
+  animation: pbo-drop var(--ps-loop) var(--oi-ease) calc(var(--ps-loop) * (var(--d) + var(--e, 0)))
+    infinite both;
+}
+
+/* Each column leaves in turn (--d); the second three follow a round later (--e). */
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files .pbo-tile:nth-of-type(3n + 1) {
+  --fx: calc(var(--u) * 28.5);
+  --d: 0.03;
+
+  left: 21.5%;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files .pbo-tile:nth-of-type(3n + 2) {
+  --fx: 0px;
+  --d: 0.11;
+  --r: 10deg;
+
+  left: 50%;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files .pbo-tile:nth-of-type(3n) {
+  --fx: calc(var(--u) * -28.5);
+  --d: 0.19;
+  --r: 16deg;
+
+  left: 78.5%;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-files .pbo-tile:nth-of-type(n + 4) {
+  --e: 0.32;
+}
+
+/* A folder: the back with its tab, a front that tips open, the name and a count. */
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder {
+  position: absolute;
+  bottom: calc(var(--u) * 7);
+  left: calc(var(--u) * 7.5);
+  width: calc(var(--u) * 27);
+  height: calc(var(--u) * 22);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 0.6) calc(var(--u) * 1.6) calc(var(--u) * 1.6);
+  /* Two sheets of paper peek out over the front. */
+  background:
+    linear-gradient(var(--pbo-sheet-front), var(--pbo-sheet-front)) calc(var(--u) * 3)
+      calc(var(--u) * 1.6) / calc(100% - var(--u) * 7) calc(var(--u) * 4) no-repeat,
+    linear-gradient(var(--pbo-sheet-back), var(--pbo-sheet-back)) calc(var(--u) * 5)
+      calc(var(--u) * 0.9) / calc(100% - var(--u) * 9) calc(var(--u) * 4) no-repeat,
+    var(--pbo-folder-back);
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(2) {
+  left: calc(var(--u) * 36.5);
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(3) {
+  left: calc(var(--u) * 65.5);
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - var(--ps-line));
+  left: calc(var(--ps-line) * -1);
+  width: 42%;
+  height: calc(var(--u) * 2.4);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-bottom: 0;
+  border-radius: calc(var(--u) * 1) calc(var(--u) * 1) 0 0;
+  background: var(--pbo-folder-tab);
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * 3.4) calc(var(--ps-line) * -1) calc(var(--ps-line) * -1);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 1.6);
+  background: var(--pbo-folder-front);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.14);
+  transform-origin: 50% 100%;
+  animation: pbo-gulp var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder b {
+  position: absolute;
+  right: calc(var(--u) * 2);
+  bottom: calc(var(--u) * 2);
+  left: calc(var(--u) * 2);
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 1.3em;
+  overflow: hidden;
+  color: var(--oi-app-text);
+  font-size: calc(var(--t) * 1.9);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder b::before {
+  content: var(--pbo-say-documents, 'Documents');
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(2) b::before {
+  content: var(--pbo-say-images, 'Images');
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(3) b::before {
+  content: var(--pbo-say-invoices, 'Invoices');
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder b::after {
+  content: '26\A 27\A 28';
+  color: var(--oi-app-muted);
+  font-family: var(--oi-mono);
+  font-weight: 400;
+  white-space: pre;
+  transform: translateY(-2.6em);
+  animation: pbo-count var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(2) b::after {
+  content: '14\A 15\A 16';
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(3) b::after {
+  content: '31\A 32\A 33';
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(2)::after,
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(2) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.08);
+}
+
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(3)::after,
+[data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(3) b::after {
+  animation-delay: calc(var(--ps-loop) * 0.16);
+}
+
+@keyframes pbo-drop {
+  0% {
+    opacity: 0;
+    transform: translate(var(--fx), calc(var(--u) * -28)) scale(0.4);
+  }
+  2% {
+    opacity: 1;
+  }
+  6% {
+    transform: translate(calc(var(--fx) * 0.5), calc(var(--u) * -14)) rotate(var(--r));
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(calc(var(--u) * -1)) scale(0.92);
+  }
+  12%,
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 5)) scale(0.5);
+  }
+}
+
+@keyframes pbo-gulp {
+  0%,
+  10.5% {
+    transform: none;
+  }
+  12.5% {
+    transform: perspective(calc(var(--u) * 40)) rotateX(-34deg);
+  }
+  17%,
+  42.5% {
+    transform: none;
+  }
+  44.5% {
+    transform: perspective(calc(var(--u) * 40)) rotateX(-34deg);
+  }
+  49%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pbo-count {
+  0%,
+  12.5% {
+    opacity: 1;
+    transform: none;
+  }
+  14.5%,
+  44.5% {
+    transform: translateY(-1.3em);
+  }
+  46.5%,
+  92% {
+    opacity: 1;
+    transform: translateY(-2.6em);
+  }
+  95% {
+    opacity: 0;
+    transform: translateY(-2.6em);
+  }
+  96% {
+    opacity: 0;
+    transform: none;
+  }
+  99%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Control: three bots take turns at the app ------------------------------------------
+   Loop: Sales opens a chat (4-24%), Finance runs a recipe (26-46%), Support sets a schedule
+   (48-68%), Finance makes the file (70-90%); the cursor passes by each bot in turn. */
+
+/* The contacts, files and control parts each fill the card. */
+[data-product='assistant-bot'][data-cut='contacts'] .pbo-con,
+[data-product='assistant-bot'][data-cut='files'] .pbo-files,
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl {
+  position: absolute;
+  inset: 0;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot {
+  position: absolute;
+  top: calc(var(--u) * 9);
+  left: calc(var(--u) * 5);
+  width: calc(var(--u) * 21);
+  height: calc(var(--u) * 9);
+  padding: 0 calc(var(--u) * 1.6);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.6);
+  background: rgba(var(--oi-fg-rgb), 0.03);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(2) {
+  top: calc(var(--u) * 20.5);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(3) {
+  top: calc(var(--u) * 32);
+}
+
+/* At the wheel: lit, with a line to the app. */
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot::before,
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot::after {
+  content: '';
+  position: absolute;
+  opacity: 0;
+  animation: pbo-turn1 var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot::before {
+  inset: calc(var(--ps-line) * -1);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.7);
+  border-radius: inherit;
+  background: rgba(var(--oi-fg-rgb), 0.07);
+  box-shadow: 0 0 calc(var(--u) * 3) rgba(var(--oi-fg-rgb), calc(0.12 * var(--oi-halo-k)));
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot::after {
+  top: 50%;
+  left: 100%;
+  width: calc(var(--u) * 4);
+  height: var(--ps-line);
+  background: linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.7), transparent);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(2)::before,
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(2)::after {
+  opacity: 1;
+  animation-name: pbo-turn2;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(3)::before,
+[data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(3)::after {
+  animation-delay: calc(var(--ps-loop) * 0.44);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-app {
+  position: absolute;
+  top: calc(var(--u) * 5);
+  left: calc(var(--u) * 30);
+  display: grid;
+  grid-template-columns: calc(var(--u) * 10) 1fr 1fr;
+  grid-template-rows: auto 1fr 1fr;
+  gap: calc(var(--u) * 1.4);
+  width: calc(var(--u) * 65);
+  height: calc(var(--u) * 40);
+  padding: 0 calc(var(--u) * 1.6) calc(var(--u) * 1.6) 0;
+  overflow: visible;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-app .ps-win-bar {
+  grid-column: 1 / -1;
+  border-radius: calc(var(--u) * 1.4) calc(var(--u) * 1.4) 0 0;
+  color: var(--oi-app-muted);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-app .ps-win-bar .ps-bars {
+  width: 60%;
+}
+
+/* The app's sidebar: a few drawn rows. */
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-app::before {
+  --b: linear-gradient(var(--oi-app-border-strong), var(--oi-app-border-strong));
+
+  content: '';
+  position: absolute;
+  top: calc(var(--u) * 3);
+  bottom: 0;
+  left: 0;
+  width: calc(var(--u) * 10);
+  border-right: var(--ps-line) solid var(--oi-app-border);
+  border-radius: 0 0 0 calc(var(--u) * 1.4);
+  background:
+    var(--b) calc(var(--u) * 1.4) calc(var(--u) * 2.4) / 62% calc(var(--u) * 0.7) no-repeat,
+    var(--b) calc(var(--u) * 1.4) calc(var(--u) * 4.8) / 48% calc(var(--u) * 0.7) no-repeat,
+    var(--b) calc(var(--u) * 1.4) calc(var(--u) * 7.2) / 56% calc(var(--u) * 0.7) no-repeat,
+    var(--b) calc(var(--u) * 1.4) calc(var(--u) * 8.5) / 40% calc(var(--u) * 0.7) no-repeat,
+    var(--oi-app-sunk);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  gap: calc(var(--u) * 1.4) calc(var(--u) * 1);
+  min-width: 0;
+  padding: calc(var(--u) * 1.6);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.2);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-muted);
+  font-size: calc(var(--t) * 1.3);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2),
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(4) {
+  grid-column: 2;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane > .ps-icon {
+  color: var(--oi-app-text);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane::after {
+  grid-row: 1;
+  grid-column: 2;
+  color: var(--oi-app-soft);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2)::after {
+  content: var(--pbo-say-chat, 'Chat');
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3)::after {
+  content: var(--pbo-say-recipe, 'Recipe');
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(4)::after {
+  content: var(--pbo-say-schedule, 'Schedule');
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(5)::after {
+  content: var(--pbo-say-files, 'Files');
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-bars,
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-file {
+  grid-column: 1 / -1;
+}
+
+/* Its turn: the pane lights while a bot works in it. */
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  border: var(--ps-line) solid rgba(var(--oi-fg-rgb), 0.6);
+  border-radius: inherit;
+  background: rgba(var(--oi-fg-rgb), 0.05);
+  opacity: 0;
+  animation: pbo-lamp var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3)::before {
+  animation-delay: calc(var(--ps-loop) * 0.22);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(4)::before {
+  animation-delay: calc(var(--ps-loop) * 0.44);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(5)::before {
+  animation-delay: calc(var(--ps-loop) * 0.66);
+}
+
+/* Chat: two bubbles. */
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2) .ps-bars {
+  gap: calc(var(--u) * 1);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2) .ps-bar {
+  height: calc(var(--u) * 2.2);
+  border-radius: calc(var(--u) * 1.1);
+  transform-origin: left;
+  animation: pbo-bubble var(--ps-loop) var(--pbo-spring) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2) .ps-bar:first-child {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--oi-app-text) 78%, transparent);
+  transform-origin: right;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2) .ps-bar + .ps-bar {
+  animation-delay: calc(var(--ps-loop) * 0.05);
+}
+
+/* Recipe: its steps fill. */
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3) .ps-bars {
+  gap: calc(var(--u) * 1.3);
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3) .ps-bar {
+  position: relative;
+  width: 100%;
+  height: calc(var(--u) * 0.7);
+  overflow: hidden;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3) .ps-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--oi-app-soft);
+  transform-origin: left;
+  animation: pbo-steps var(--ps-loop) var(--oi-ease) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3) .ps-bar + .ps-bar::after {
+  animation-delay: calc(var(--ps-loop) * 0.04);
+}
+
+/* Schedule: a time is set. */
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(4) .ps-bar + .ps-bar {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  margin-top: calc(var(--u) * 0.4);
+  padding: calc(var(--u) * 0.4) calc(var(--u) * 1.2);
+  border-radius: 999px;
+  background: var(--oi-app-text);
+  color: var(--pbo-chip-ink);
+  font: 500 calc(var(--t) * 1.2) / 1.2 var(--oi-mono);
+  animation: pbo-chipset var(--ps-loop) var(--pbo-spring) infinite both;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(4) .ps-bar + .ps-bar::after {
+  content: var(--pbo-say-when, 'Mon 9:00');
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-file {
+  padding: calc(var(--u) * 0.6) 0;
+  font-size: calc(var(--t) * 1.3);
+  animation: pbo-file2 var(--ps-loop) var(--oi-ease) infinite;
+}
+
+[data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-tick {
+  animation: pbo-chipset var(--ps-loop) var(--pbo-spring) calc(var(--ps-loop) * 0.26) infinite;
+}
+
+/* Where the cursor calls: at the first bot (k0), the chat (k1), the second bot (k2), the
+   recipe (k3), the third bot (k4), the schedule (k5), the files (k6); it rests at k7. */
+[data-product='assistant-bot'][data-cut='control'] .pbo-app .pbo-cur {
+  --k0: translate(calc(var(--u) * -3), calc(var(--u) * 8.5));
+  --k1: translate(calc(var(--u) * 22), calc(var(--u) * 12));
+  --k2: translate(calc(var(--u) * -3), calc(var(--u) * 20));
+  --k3: translate(calc(var(--u) * 48), calc(var(--u) * 12));
+  --k4: translate(calc(var(--u) * -3), calc(var(--u) * 31.5));
+  --k5: translate(calc(var(--u) * 22), calc(var(--u) * 30));
+  --k6: translate(calc(var(--u) * 48), calc(var(--u) * 30));
+  --k7: translate(calc(var(--u) * 49), calc(var(--u) * 30));
+
+  transform: var(--k7);
+  animation: pbo-drive var(--ps-loop) var(--oi-ease) infinite;
+}
+
+@keyframes pbo-turn1 {
+  0%,
+  3% {
+    opacity: 0;
+  }
+  6%,
+  22% {
+    opacity: 1;
+  }
+  25%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-turn2 {
+  0%,
+  25% {
+    opacity: 0;
+  }
+  28%,
+  44% {
+    opacity: 1;
+  }
+  47%,
+  69% {
+    opacity: 0;
+  }
+  72%,
+  93% {
+    opacity: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-lamp {
+  0%,
+  8.5% {
+    opacity: 0;
+  }
+  10%,
+  22% {
+    opacity: 1;
+  }
+  25%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-bubble {
+  0%,
+  10% {
+    opacity: 0;
+    transform: scale(0.3, 0.6);
+  }
+  13%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-steps {
+  0%,
+  32% {
+    transform: scaleX(0);
+  }
+  40%,
+  93% {
+    transform: none;
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes pbo-chipset {
+  0%,
+  54% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  58%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pbo-file2 {
+  0%,
+  76% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 1.6));
+  }
+  80%,
+  93% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The cursor calls at each bot, then works in that bot's pane. */
+
+@keyframes pbo-drive {
+  0%,
+  2% {
+    opacity: 0;
+    transform: var(--k0);
+  }
+  4% {
+    opacity: 1;
+    transform: var(--k0);
+  }
+  8.5% {
+    transform: var(--k1);
+  }
+  9.3% {
+    transform: var(--k1) scale(0.8);
+  }
+  10%,
+  24% {
+    transform: var(--k1);
+  }
+  27%,
+  71% {
+    transform: var(--k2);
+  }
+  30.5% {
+    transform: var(--k3);
+  }
+  31.3% {
+    transform: var(--k3) scale(0.8);
+  }
+  32%,
+  46% {
+    transform: var(--k3);
+  }
+  49% {
+    transform: var(--k4);
+  }
+  52.5% {
+    transform: var(--k5);
+  }
+  53.3% {
+    transform: var(--k5) scale(0.8);
+  }
+  54%,
+  68% {
+    transform: var(--k5);
+  }
+  74.5% {
+    transform: var(--k6);
+  }
+  75.3% {
+    transform: var(--k6) scale(0.8);
+  }
+  76% {
+    transform: var(--k6);
+  }
+  86%,
+  93% {
+    opacity: 1;
+    transform: var(--k7);
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: var(--k7);
+  }
+}
+
+/* The page cuts on a narrow card (a phone, or the half cards on a tablet) -------------- */
+
+@container ps (max-width: 480px) {
+  [data-product='assistant-bot'][data-cut='role'] .pbo-flip {
+    top: calc(var(--u) * 19.5);
+    width: calc(var(--u) * 64);
+    height: calc(var(--u) * 50);
+    margin-left: calc(var(--u) * -32);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face {
+    gap: calc(var(--u) * 2.4);
+    padding: calc(var(--u) * 4);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face .pbo-orb {
+    width: calc(var(--u) * 10);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face b {
+    font-size: calc(var(--u) * 5.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face b::after {
+    width: calc(var(--u) * 1.6);
+    height: calc(var(--u) * 1.6);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face .ps-bar {
+    height: calc(var(--u) * 1.1);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face p {
+    min-height: calc(var(--u) * 7.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face p::before {
+    width: calc(var(--u) * 7.4);
+    height: calc(var(--u) * 7.4);
+    margin-top: calc(var(--u) * -3.7);
+    border-radius: calc(var(--u) * 1.8);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face p .ps-icon {
+    width: calc(var(--u) * 3.4);
+    height: calc(var(--u) * 3.4);
+    margin-left: calc(var(--u) * 2);
+  }
+
+  [data-product='assistant-bot'][data-cut='role'] .pbo-face p::after {
+    height: calc(var(--u) * 1.2);
+    margin-left: calc(var(--u) * 2.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-map {
+    top: calc(var(--u) * 9);
+    left: calc(var(--u) * 4);
+    width: calc(var(--u) * 92);
+    height: calc(var(--u) * 57);
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-map svg {
+    stroke-width: 0.35;
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-map::after {
+    --s: calc(var(--u) * 2.2) calc(var(--u) * 2.2) no-repeat;
+
+    inset: calc(var(--u) * -1.1);
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-map::before {
+    top: calc(50% + var(--u) * 7);
+    font-size: max(9px, calc(var(--u) * 2.8));
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-hub {
+    width: calc(var(--u) * 13);
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-node {
+    width: calc(var(--u) * 11);
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-node::after {
+    font-size: max(9px, calc(var(--u) * 2.8));
+  }
+
+  [data-product='assistant-bot'][data-cut='map'] .pbo-map .pbo-tile {
+    width: calc(var(--u) * 9);
+    border-radius: calc(var(--u) * 2);
+  }
+
+  [data-product='assistant-bot'][data-cut='contacts'] .pbo-person .ps-icon {
+    width: calc(var(--u) * 2.8);
+    height: calc(var(--u) * 2.8);
+  }
+
+  [data-product='assistant-bot'][data-cut='files'] .pbo-folder {
+    left: calc(var(--u) * 4);
+    width: calc(var(--u) * 29);
+  }
+
+  [data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(2) {
+    left: calc(var(--u) * 35.5);
+  }
+
+  [data-product='assistant-bot'][data-cut='files'] .pbo-folder:nth-of-type(3) {
+    left: calc(var(--u) * 67);
+  }
+
+  [data-product='assistant-bot'][data-cut='files'] .pbo-folder b {
+    right: calc(var(--u) * 2.4);
+    left: calc(var(--u) * 2.4);
+    font-size: max(9px, calc(var(--u) * 2.7));
+  }
+
+  [data-product='assistant-bot'][data-cut='files'] .pbo-files .pbo-tile {
+    width: calc(var(--u) * 8.4);
+    border-radius: calc(var(--u) * 2);
+  }
+
+  /* Control stacks: the three bots in a row over the app. */
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot,
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(2),
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(3) {
+    top: calc(var(--u) * 6);
+    width: calc(var(--u) * 29);
+    height: calc(var(--u) * 12);
+    padding: 0 calc(var(--u) * 2);
+    border-radius: calc(var(--u) * 2.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(2) {
+    left: calc(var(--u) * 35.5);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot:nth-child(3) {
+    left: calc(var(--u) * 67);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-orb {
+    width: calc(var(--u) * 5.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl b {
+    font-size: max(9px, calc(var(--u) * 3.4));
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot .ps-bars,
+  [data-product='assistant-bot'][data-cut='control'] .pbo-app::before {
+    display: none;
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-ctl .pbo-bot::after {
+    top: 100%;
+    left: 50%;
+    width: var(--ps-line);
+    height: calc(var(--u) * 5);
+    background: linear-gradient(180deg, rgba(var(--oi-fg-rgb), 0.7), transparent);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-app {
+    top: calc(var(--u) * 23);
+    left: calc(var(--u) * 4);
+    grid-template-columns: 0 1fr 1fr;
+    width: calc(var(--u) * 92);
+    height: calc(var(--u) * 53);
+    padding-left: calc(var(--u) * 1.6);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-app .ps-win-bar {
+    height: calc(var(--u) * 4.4);
+    margin-left: calc(var(--u) * -1.6);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane {
+    padding: calc(var(--u) * 2.4);
+    font-size: max(9px, calc(var(--u) * 3));
+    gap: calc(var(--u) * 2) calc(var(--u) * 1.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane > .ps-icon {
+    width: calc(var(--u) * 3);
+    height: calc(var(--u) * 3);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(2) .ps-bar {
+    height: calc(var(--u) * 3.6);
+    border-radius: calc(var(--u) * 1.8);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(3) .ps-bar {
+    height: calc(var(--u) * 1.2);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane:nth-child(4) .ps-bar + .ps-bar {
+    font-size: max(9px, calc(var(--u) * 2.6));
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-file {
+    font-size: max(9px, calc(var(--u) * 2.8));
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-file-icon {
+    width: calc(var(--u) * 4.6);
+    height: calc(var(--u) * 4.6);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-pane .ps-tick {
+    width: calc(var(--u) * 3.4);
+    height: calc(var(--u) * 3.4);
+  }
+
+  [data-product='assistant-bot'][data-cut='control'] .pbo-app .pbo-cur {
+    --k0: translate(calc(var(--u) * 14.5), calc(var(--u) * -3));
+    --k1: translate(calc(var(--u) * 22), calc(var(--u) * 14));
+    --k2: translate(calc(var(--u) * 46), calc(var(--u) * -3));
+    --k3: translate(calc(var(--u) * 66), calc(var(--u) * 14));
+    --k4: translate(calc(var(--u) * 77.5), calc(var(--u) * -3));
+    --k5: translate(calc(var(--u) * 22), calc(var(--u) * 37));
+    --k6: translate(calc(var(--u) * 66), calc(var(--u) * 37));
+    --k7: translate(calc(var(--u) * 67), calc(var(--u) * 37));
+  }
+}

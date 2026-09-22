@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "Termini API",
+    "summary": "Le regole aggiuntive per le aziende che integrano l’API di Orqanix nei propri prodotti o sistemi.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Prima versione."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Informazioni su questi termini"
+    },
+    {
+      "type": "p",
+      "text": "I presenti Termini API si applicano quando un’azienda utilizza l’API di Orqanix. Si aggiungono ai nostri [Termini di servizio](/instant/legal/terms) e alla nostra [Politica di uso consentito](/instant/legal/acceptable-use). Per i dati personali si applica anche l’[Accordo sul trattamento dei dati](/instant/legal/dpa) (il “DPA”), che costituisce parte integrante dei presenti termini. In caso di contrasto tra i presenti termini e i Termini di servizio in merito all’API, prevalgono i presenti termini. Un accordo scritto separato firmato da entrambe le parti prevale su entrambi."
+    },
+    {
+      "type": "p",
+      "text": "“Lei” indica l’azienda che utilizza l’API. La persona che accetta i presenti termini conferma di avere il potere di vincolare tale azienda. “Noi” e “ci” indicano Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix è gestita da {company.legalName}, {company.address}, che è la parte contraente dei presenti termini.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "Chi può utilizzare l’API"
+    },
+    {
+      "type": "p",
+      "text": "L’API è riservata esclusivamente alle imprese. Non la utilizzi in qualità di consumatore, ossia per scopi estranei alla Sua attività commerciale, imprenditoriale o professionale. Tutte le persone che la utilizzano per Suo conto devono avere almeno 18 anni."
+    },
+    {
+      "type": "p",
+      "text": "Nella fase iniziale dell’API, l’accesso avviene su richiesta. Scriva a {company.email} con oggetto “Accesso API” e ci descriva la Sua azienda e ciò che intende sviluppare. Decidiamo noi chi ottiene l’accesso e possiamo rifiutarlo o porre condizioni."
+    },
+    {
+      "type": "p",
+      "text": "Nella fase iniziale l’API è gratuita. Prima dell’avvio di qualsiasi piano a pagamento, concorderemo con Lei per iscritto il prezzo e le condizioni di pagamento. Senza tale accordo non addebitiamo nulla."
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "Che cosa fa l’API"
+    },
+    {
+      "type": "p",
+      "text": "L’API è un livello di ragionamento per il Suo prodotto. Le invia un’attività, insieme agli agenti, agli strumenti e al budget di cui dispone. L’API risponde indicando chi dovrebbe svolgere il lavoro (un agente, un team o una persona), un punteggio per ciascun fattore considerato, il contesto, le misure di salvaguardia, le soluzioni alternative e, per i lavori più grandi, un piano per il team."
+    },
+    {
+      "type": "p",
+      "text": "L’API si limita a decidere; non svolge il lavoro. È il Suo sistema a scegliere se e come agire in base a ciascuna risposta, e Lei è responsabile di ciò che il Suo sistema fa di conseguenza."
+    },
+    {
+      "type": "p",
+      "text": "Per i lavori lunghi, può recuperare il risultato in un secondo momento o riceverlo tramite un webhook firmato. I clienti che hanno accesso ricevono la documentazione tecnica dell’API."
+    },
+    {
+      "type": "p",
+      "text": "Le risposte sono generate con l’AI. Possono essere errate, incomplete o non aggiornate. Le verifichi prima di farvi affidamento, soprattutto quando un errore potrebbe danneggiare qualcuno. [Come funziona la nostra AI](/instant/legal/ai) fornisce maggiori dettagli."
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "Chiavi di accesso"
+    },
+    {
+      "type": "p",
+      "text": "Accede all’API con una chiave segreta che Le forniamo. La tratti come una password:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "La mantenga segreta e la conservi solo sui Suoi server. Non la inserisca mai in un’app, in una pagina web o in codice visibile ad altri.",
+        "La condivida solo con le persone e i sistemi che ne hanno bisogno per la Sua integrazione.",
+        "Ci avvisi immediatamente all’indirizzo {company.securityEmail} se ritiene che sia stata divulgata o utilizzata senza il Suo permesso."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Lei è responsabile di ogni utilizzo della chiave che Le forniamo finché non ci comunica che potrebbe essere compromessa. Possiamo modificare, limitare o revocare una chiave in qualsiasi momento, ad esempio se rileviamo un uso improprio o un rischio per la sicurezza. Ove possibile, La informiamo."
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "Il Suo prodotto e i Suoi utenti"
+    },
+    {
+      "type": "p",
+      "text": "Quando integra l’API nel Suo prodotto, tale prodotto resta Suo. Lei è responsabile del prodotto e del modo in cui tratta le persone che lo utilizzano (i Suoi “utenti finali”). Lei deve:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "informare i Suoi utenti finali quando interagiscono con un’AI, salvo che ciò sia evidente dal contesto (AI Act dell’UE, art. 50(1); alcune leggi statali USA);",
+        "non utilizzare l’API in alcun prodotto destinato a persone di età inferiore a 18 anni o che possa essere utilizzato da esse;",
+        "fornire ai Suoi utenti finali una Sua informativa privacy. Deve spiegare come il Suo prodotto utilizza i loro dati, incluso il fatto che li invia a noi. La nostra [Informativa privacy](/instant/legal/privacy) non riguarda il Suo prodotto;",
+        "disporre di una base giuridica, e di ogni consenso necessario, prima di inviarci dati personali di chiunque;",
+        "far rispettare ai Suoi utenti finali regole almeno altrettanto rigorose della nostra [Politica di uso consentito](/instant/legal/acceptable-use) e fermare chiunque le violi;",
+        "presentare il Suo prodotto come proprio, e non come realizzato o approvato da Orqanix, salvo diverso accordo scritto con noi."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Ai sensi dell’AI Act dell’UE, Lei è il fornitore o il deployer del sistema di AI che sviluppa con l’API e ha gli obblighi propri di tale ruolo. Noi forniamo una parte del Suo sistema; non ne siamo il fornitore."
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Usi ad alto rischio"
+    },
+    {
+      "type": "p",
+      "text": "Alcune decisioni producono effetti giuridici o effetti analogamente significativi sulle persone, come le decisioni in materia di assunzioni e lavoro, istruzione, credito, assicurazioni, alloggio, assistenza sanitaria, accesso ai servizi pubblici, attività di contrasto, migrazione e giustizia. Non utilizzi le risposte dell’API per adottarle o supportarle finché non avrà effettuato una propria verifica legale e adottato le misure di salvaguardia richieste dalla legge. Tali misure comprendono un’effettiva revisione umana prima che una decisione produca effetti."
+    },
+    {
+      "type": "p",
+      "text": "Questi obblighi sono a Suo carico ai sensi delle leggi a Lei applicabili. Comprendono le norme dell’AI Act dell’UE sui sistemi di AI ad alto rischio, che si applicano dal 2 dicembre 2027 (AI Act, allegato III), e le norme del GDPR sulle decisioni automatizzate (GDPR, art. 22)."
+    },
+    {
+      "type": "p",
+      "text": "Comprendono inoltre le leggi statali USA sulle decisioni automatizzate. Ad esempio, la legge del Colorado sull’AI utilizzata nelle decisioni rilevanti (consequential decisions) entra in vigore il 1° gennaio 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "I Suoi dati"
+    },
+    {
+      "type": "p",
+      "text": "I Suoi dati sono ciò che invia all’API (attività, descrizioni dei Suoi agenti e strumenti, budget e contesto) e le risposte che l’API Le fornisce. Conserviamo le decisioni, i relativi esiti e i registri dell’ambito di ciascuna attività nel database dell’API, che funziona su Google Cloud nell’UE (Paesi Bassi). Li conserviamo finché utilizza l’API e, successivamente, come previsto dal DPA."
+    },
+    {
+      "type": "p",
+      "text": "Per rispondere a un’attività, la inviamo a Google Gemini, il modello di AI che utilizziamo. Gemini può anche effettuare ricerche sul web con Google Search. Google può trattare l’attività al di fuori dell’UE. La pagina [Sub-responsabili](/instant/legal/subprocessors) elenca tutti coloro che ci aiutano a gestire l’API."
+    },
+    {
+      "type": "p",
+      "text": "Utilizziamo l’API Gemini a pagamento di Google. In tale ambito, Google agisce come nostro responsabile del trattamento in base ai propri termini sul trattamento dei dati e non utilizza le Sue attività per migliorare i propri prodotti.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "Quando agiamo per Suo conto"
+    },
+    {
+      "type": "p",
+      "text": "Per i dati personali che ci invia, siamo il Suo responsabile del trattamento. Ciò significa che li trattiamo solo su Sue istruzioni e solo per gestire l’API per Lei, ai sensi del DPA."
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "Quando agiamo per conto nostro"
+    },
+    {
+      "type": "p",
+      "text": "Parte del lavoro dell’API è nostra e non Sua. Per cercare sul web in relazione a un’attività, il nostro servizio di ricerca invia ai motori di ricerca (Google, Bing, Brave e DuckDuckGo) query costruite a partire dalla Sua attività. Per cercare informazioni su un’azienda, l’API interroga il servizio di registro delle imprese OpenRegister, i cui risultati possono includere i nomi degli amministratori. Siamo noi a decidere come funzionano queste ricerche e consultazioni. Per esse agiamo per conto nostro (come “titolare del trattamento”) e si applica la nostra [Informativa privacy](/instant/legal/privacy), non il DPA."
+    },
+    {
+      "type": "p",
+      "text": "Poiché parti di un’attività possono finire nelle query di ricerca, non inserisca dati personali nel testo delle attività, salvo che l’attività lo richieda."
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "Che cosa non facciamo"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Non addestriamo i nostri modelli di AI con i Suoi dati.",
+        "Non vendiamo i Suoi dati e non li utilizziamo per la pubblicità."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "Che cosa non inviare"
+    },
+    {
+      "type": "p",
+      "text": "Non ci invii categorie particolari di dati personali (come dati relativi alla salute, alla religione, all’orientamento sessuale o dati biometrici) né dati relativi a condanne penali, salvo che lo abbiamo concordato per iscritto."
+    },
+    {
+      "type": "p",
+      "text": "Non ci invii informazioni sanitarie protette (protected health information) soggette a HIPAA. Non sottoscriviamo business associate agreement.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "Chi possiede che cosa"
+    },
+    {
+      "type": "p",
+      "text": "Lei conserva tutti i diritti su ciò che ci invia. Nei rapporti tra le parti, le risposte che l’API Le fornisce sono Sue, nella misura in cui su di esse esistano diritti. Lei ci concede i diritti necessari per utilizzare i Suoi input al fine di gestire l’API per Lei. Conserviamo tutti i diritti sull’API, sul nostro software, sulle nostre istruzioni e sui nostri metodi. Se ci invia idee o feedback, possiamo utilizzarli liberamente."
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "Limiti e restrizioni"
+    },
+    {
+      "type": "p",
+      "text": "Possiamo stabilire e modificare limiti al numero, alle dimensioni e al volume complessivo delle Sue richieste. Possiamo rallentare o rifiutare le richieste che superano tali limiti. Non cerchi di aggirare un limite, ad esempio utilizzando più chiavi o più account."
+    },
+    {
+      "type": "p",
+      "text": "Lei non deve:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "copiare, disassemblare o decompilare l’API, salvo nei casi consentiti dalla legge;",
+        "utilizzare l’API per sviluppare un servizio di ragionamento concorrente;",
+        "testare la sicurezza dell’API senza il nostro permesso (la nostra pagina [Sicurezza e divulgazione delle vulnerabilità](/instant/legal/security) spiega come segnalare un problema);",
+        "inviare malware o traffico destinato a sovraccaricare o danneggiare l’API."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "Disponibilità e modifiche"
+    },
+    {
+      "type": "p",
+      "text": "Per l’API non esiste alcun accordo sul livello di servizio (SLA). Non garantiamo alcun livello di disponibilità, di operatività o di velocità di risposta. L’API può essere interrotta per manutenzione, per modifiche o per cause al di fuori del nostro controllo. Progetti il Suo prodotto in modo che continui a funzionare in sicurezza quando l’API è lenta o non disponibile, ad esempio con una Sua soluzione alternativa."
+    },
+    {
+      "type": "p",
+      "text": "L’API cambierà man mano che la sviluppiamo. Ci impegniamo a informarLa in anticipo delle modifiche che interromperebbero un’integrazione funzionante. Non sempre possiamo farlo, ad esempio quando dobbiamo risolvere rapidamente un problema di sicurezza."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Riservatezza"
+    },
+    {
+      "type": "p",
+      "text": "Ciascuna parte può avere accesso alle informazioni riservate dell’altra: informazioni non pubbliche contrassegnate come riservate o che dovrebbero ragionevolmente essere intese come tali. Per Lei, ciò include i Suoi input. Per noi, include la documentazione e le chiavi dell’API."
+    },
+    {
+      "type": "p",
+      "text": "La parte che le riceve le utilizza solo ai fini dei presenti termini, le protegge con ragionevole diligenza e le condivide solo con persone che ne hanno bisogno e sono tenute a mantenerle riservate. Tale obbligo non riguarda le informazioni che sono pubbliche, già note al destinatario, sviluppate autonomamente o ricevute lecitamente da terzi. Se la legge impone la divulgazione, il destinatario può divulgare quanto richiesto e, ove consentito, ne informa prima l’altra parte."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Sospensione e cessazione"
+    },
+    {
+      "type": "p",
+      "text": "Può smettere di utilizzare l’API in qualsiasi momento. Finché l’API è gratuita, ciascuna parte può porre fine ai presenti termini in qualsiasi momento via email."
+    },
+    {
+      "type": "p",
+      "text": "Possiamo sospendere o revocare il Suo accesso con effetto immediato se viola i presenti termini o la Politica di uso consentito, se il Suo utilizzo mette a rischio l’API, altri clienti o chiunque altro, oppure se la legge lo impone. Ove possibile, La informiamo prima e Le diamo la possibilità di risolvere il problema."
+    },
+    {
+      "type": "p",
+      "text": "Alla cessazione dei presenti termini, il Suo diritto di utilizzare l’API cessa e revochiamo il Suo accesso. Trattiamo quindi i Suoi dati come previsto dal DPA. Le parti dei presenti termini che per loro natura devono sopravvivere, come quelle su riservatezza, responsabilità e legge applicabile, continuano ad applicarsi."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Cambio di fornitore",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Il Data Act dell’UE consente ai clienti business di servizi cloud e di altri servizi di trattamento dei dati di passare a un altro fornitore, o ai propri sistemi, senza restare vincolati (Data Act, artt. 23-31). Per l’API:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Può avviare un passaggio, oppure porre fine all’API e portare con sé i Suoi dati, comunicandocelo per iscritto. Il periodo di preavviso è al massimo di due mesi e Lei può sceglierne uno più breve.",
+        "Le consegniamo i Suoi dati, ossia i Suoi input e le decisioni, gli esiti e i registri dell’ambito che conserviamo per Lei, in un formato comune leggibile da dispositivo automatico.",
+        "La transizione dura fino a 30 giorni. Se ciò non è tecnicamente possibile, Le comunichiamo il motivo e il tempo di cui abbiamo bisogno, nei limiti consentiti dal Data Act.",
+        "Durante la transizione, manteniamo l’API attiva per Lei come concordato e La assistiamo in buona fede.",
+        "Al termine della transizione, dispone di almeno altri 30 giorni per recuperare i Suoi dati.",
+        "Una volta completato il passaggio, cancelliamo i Suoi dati come previsto dal DPA.",
+        "Fino al 12 gennaio 2027 possiamo addebitare solo i nostri costi diretti di un passaggio. Dal 12 gennaio 2027 non addebitiamo nulla per il passaggio. Finché l’API è gratuita, non addebitiamo nulla in assoluto."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Ubicazione e accesso da parte delle autorità pubbliche",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "L’API e il suo database funzionano su Google Cloud nell’UE (Paesi Bassi). Google Gemini può trattare le attività al di fuori dell’UE, e i motori di ricerca e OpenRegister trattano le query nei luoghi da loro scelti. La pagina [Sub-responsabili](/instant/legal/subprocessors) elenca ciascun fornitore e dove opera (Data Act, art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Se un’autorità pubblica al di fuori dell’UE ci chiede i Suoi dati non personali, li consegniamo solo se il diritto dell’UE o di uno Stato membro lo consente. La informiamo prima, salvo che la legge lo vieti (Data Act, art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Garanzie e responsabilità",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "L’API è fornita “così com’è” e “come disponibile”. Nella misura consentita dalla legge, non forniamo garanzie di alcun tipo, espresse o implicite, comprese le garanzie di commerciabilità, di idoneità a uno scopo particolare, di titolarità e di non violazione di diritti di terzi. Non garantiamo che le risposte siano accurate, complete o adatte al Suo utilizzo.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Nella misura consentita dalla legge, nessuna delle parti è responsabile per danni indiretti, incidentali, speciali, consequenziali o punitivi, né per perdita di profitti, ricavi, dati o avviamento. La nostra responsabilità complessiva ai sensi dei presenti termini è limitata all’importo maggiore tra 100 USD e gli importi che ci ha pagato per l’API nei 12 mesi precedenti l’evento che ha dato origine alla pretesa. Tali limiti non si applicano alla responsabilità che la legge non consente di limitare.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilità",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Rispondiamo integralmente dei danni causati con dolo o colpa grave, dei danni alla vita, all’integrità fisica o alla salute e ai sensi della normativa inderogabile sulla responsabilità per danno da prodotti.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "In caso di colpa lieve, rispondiamo solo se violiamo un obbligo essenziale: un obbligo che rende possibile la corretta esecuzione dei presenti termini e sul cui adempimento Lei può regolarmente fare affidamento. Anche in tal caso, rispondiamo solo dei danni tipici e prevedibili per questo tipo di contratto. Per il resto, la nostra responsabilità per colpa lieve è esclusa.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Lei ci terrà indenni dalle pretese di terzi, compresi i Suoi utenti finali, derivanti dal Suo prodotto, dai dati che ci invia o dalla Sua violazione dei presenti termini, nonché dai costi ragionevoli per gestirle. La informiamo tempestivamente di qualsiasi pretesa di questo tipo e Le consentiamo di partecipare alla sua gestione."
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Legge applicabile e controversie"
+    },
+    {
+      "type": "p",
+      "text": "I presenti termini sono regolati dalla legge di {company.law}, escluse le sue norme sui conflitti di legge. Le controversie sono decise dai tribunali di {company.law}, salvo che la legge imponga un altro foro.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Prima che una delle parti si rivolga al tribunale, cerchiamo di risolvere la questione in buona fede. Scriva a {company.email} descrivendo il problema."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "I presenti termini non contengono una clausola arbitrale. Ciascuna parte può proporre un’azione dinanzi a un tribunale per le controversie di modesta entità (small-claims court), se la pretesa ne ha i requisiti."
+    },
+    {
+      "type": "p",
+      "text": "Lei conferma di non figurare in un elenco di sanzioni degli Stati Uniti o dell’UE e di non trovarsi in un paese soggetto a embargo degli Stati Uniti o dell’UE e che, per quanto a Sua conoscenza, lo stesso vale per i Suoi utenti finali. Non deve utilizzare l’API in violazione delle sanzioni o delle norme sull’esportazione degli Stati Uniti o dell’UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Disposizioni generali"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Possiamo aggiornare i presenti termini. La informiamo in anticipo delle modifiche a Lei sfavorevoli. Se continua a utilizzare l’API dopo l’entrata in vigore di una modifica, si applicano i nuovi termini. Se non è d’accordo, smetta di utilizzarla.",
+        "Non può cedere i presenti termini senza il nostro consenso scritto. Noi possiamo cederli a una società che rilevi l’API.",
+        "Se una parte dei presenti termini è invalida, il resto continua ad applicarsi.",
+        "Le comunicazioni a noi vanno inviate a {company.email}. Le comunicazioni a Lei vanno inviate all’indirizzo email che ci ha fornito."
+      ]
+    }
+  ]
+}

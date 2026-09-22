@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "slug": "ai",
+    "title": "Yapay Zekâmız Nasıl Çalışır",
+    "summary": "Orqanix'teki yapay zekâya ilişkin sade bir rehber: hangi modelleri kullandığımız, ajanların ne yaptığı, modellerin hangi verileri gördüğü ve kontrolün nasıl sizde kaldığı.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "EU AI Act Art. 50(2): outputs are not machine-marked today, and the page says so. The 2 Dec 2026 grace period applies only if the Desktop App was on the EU market before 2 Aug 2026; if not, marking of text and files applies now (FACTS.md open point 10; critique item 11). Owner to decide on marking and give the first EU market date.",
+        "geminiPaidTier is empty: the paid-tier statement about Google's use of data stays hidden until the owner confirms Google's paid Gemini tier and data processing terms (FACTS.md open point 3). Google's terms require the paid tier for users in the EEA, UK and Switzerland.",
+        "Google's processing location is not pinned in our code; the page says Google may process data outside the EU.",
+        "Desktop defaults (auto-approve on, shell and file tools on, dictation on) are disclosed as they are. Owner may change them (FACTS.md open point 8); update this page if so.",
+        "Whether dictation works end to end is uncertain; the page only says that, if you use it, your voice goes to the model provider.",
+        "The Assistant Bot has no code yet; its AI disclosure to other people is a rule in the Assistant Bot Terms and must be built before launch.",
+        "US state chatbot rules are summarised in plain words without listing each law. Colorado HB 26-1263 (from 2027-01-01) and California SB 243 / SB 1119 positioning need lawyer review.",
+        "Research questions sent from the Desktop App to the cloud research tool are stored in our cloud (FACTS.md §4). The page says so, and the Privacy Policy, Desktop App Terms and Sub-processors page say the same (cross-check 2026-09-21).",
+        "The claim 'No one at Orqanix reads along' was removed because FACTS.md does not cover staff access to cloud data (support, abuse, legal requests). Owner to define staff access and state it in the Privacy Policy.",
+        "Art. 50(1) disclosure for third parties: Desktop agents can message or email other people through tools the user connects. The page leaves that duty with the user and the bot rule; lawyer to confirm whether we, as provider, must add an AI label to agent-sent messages from the Desktop App too.",
+        "Art. 50(4) deployer duties are passed to users for non-personal use; lawyer to confirm the wording and whether the Code of Practice on marking should be signed.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): AI output errors are described as a known limit; lawyer to confirm this does not read as a liability exclusion for consumers (liability is in the Terms of Service).",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "working-with-ai",
+      "text": "Yapay zekâ ile çalışmak"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix bir yapay zekâ ürünüdür. Orqanix ile sohbet ettiğinizde, ona bir hedef verdiğinizde veya Asistan Botunu kullandığınızda insanlarla değil, yapay zekâ ajanlarıyla çalışırsınız. Yapay zekâ ajanı, bir görevi anlamak, adımları planlamak ve bunları bir dosyayı okumak veya web'de arama yapmak gibi araçlarla uygulamak için bir yapay zekâ modeli kullanan bir yazılımdır."
+    },
+    {
+      "type": "p",
+      "text": "Ajanların yanıtları ve eylemleri Orqanix'ten herhangi birinden değil, yapay zekâdan gelir. Ekibimiz işinizde yalnızca bizimle iletişime geçerseniz (örneğin e-posta yoluyla) veya sizinle yazılı olarak üzerinde anlaştığımız bir Kurumsal projede yer alır."
+    },
+    {
+      "type": "h2",
+      "id": "models",
+      "text": "Modellerimiz"
+    },
+    {
+      "type": "p",
+      "text": "Varsayılan olarak ajanlarımız, Gemini API aracılığıyla Google tarafından geliştirilmiş bir yapay zekâ modeli olan Google Gemini'yi kullanır. Bulut asistanında ve API'de ajanlar, güncel bilgi bulmak için Gemini üzerinden Google Arama'yı da kullanabilir. Model sürümünü biz seçeriz ve daha iyi sürümler çıktığında değiştirebiliriz."
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasında bunun yerine OpenAI veya Anthropic gibi başka bir model sağlayıcısını bağlayabilir ya da Mac'inizde yerel bir model çalıştırabilirsiniz. Bir sağlayıcı bağlarsanız konuşmanız, o sağlayıcıyla yaptığınız kendi sözleşmeniz kapsamında o sağlayıcıya gider ve onun koşulları geçerli olur. Yerel bir model çalıştırırsanız konuşma, Mac'inizde o modelde kalır."
+    },
+    {
+      "type": "p",
+      "text": "Modelleri bu şirketler geliştirir. Ajanları ise biz oluştururuz: modelin işinizi yapabilmesi için ona verdiğimiz talimatlar, araçlar ve bağlam."
+    },
+    {
+      "type": "h2",
+      "id": "what-agents-do",
+      "text": "Ajanlar ne yapar"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Ürün",
+        "Yapay zekâ ne yapar",
+        "Sonucu kim uygular"
+      ],
+      "rows": [
+        [
+          "Masaüstü Uygulaması",
+          "Mac'inizde araştırır, planlar ve gerçek dosyalar oluşturur. Dosya okuyup yazabilir ve komut çalıştırabilir.",
+          "Seçtiğiniz ayarlar dahilinde, Mac'inizdeki ajan."
+        ],
+        [
+          "Mobil Uygulama",
+          "Telefonunuzdan işleri kontrol etmenizi, sonuçları okumanızı ve Mac'inizde iş başlatmanızı sağlar.",
+          "Mac'inizdeki Masaüstü Uygulaması."
+        ],
+        [
+          "Asistan Botu",
+          "Ona verdiğiniz bir rolde çalışır: bağladığınız hesaplar aracılığıyla mesaj taslakları hazırlar, dosyaları düzenler, kişi bilgilerini toplar ve zamanlanmış işleri çalıştırır.",
+          "Ona verdiğiniz erişim dahilinde bot. Bkz. [Asistan Botu Koşulları](/instant/legal/assistant-bot-terms)."
+        ],
+        [
+          "API",
+          "Bir görevi kimin yapması gerektiğini (bir ajan, bir ekip veya bir kişi) gerekçeler, koruma önlemleri ve bir planla birlikte önerir.",
+          "Sizin kendi sisteminiz. API yalnızca tavsiyede bulunur; işi kendisi yapmaz."
+        ],
+        [
+          "Kurumsal",
+          "Ajanlar ve uzmanlar, işletmeniz için yapay zekâ iş akışları oluşturur ve çalıştırır.",
+          "Yazılı siparişinizde kararlaştırıldığı şekilde."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Ajanlar, kredi, iş veya sözleşme konusunda karar vermek gibi, sizinle ilgili hukuki ya da benzer ölçüde önemli etkileri olan kararlar almaz. Verilerinizi reklam hedeflemesi için kullanmazlar ve Orqanix'te reklam yoktur."
+    },
+    {
+      "type": "h2",
+      "id": "ai-can-be-wrong",
+      "text": "Yapay zekâ yanılabilir"
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ modelleri olası yanıtları tahmin eder. Yanlış, eksik veya güncelliğini yitirmiş olabilirler ve yanlış şeyleri kendinden emin bir şekilde ifade edebilirler. Bir ajan bir görevi yanlış anlayabilir, yanlış dosyayı seçebilir veya beklemediğiniz bir adım atabilir."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sonuçlara güvenmeden, bunları paylaşmadan veya bunlara göre hareket etmeden önce kontrol edin.",
+        "Ajanların yazdığı her şeydeki olguları, sayıları, adları, kaynakları ve alıntıları kontrol edin.",
+        "Yapay zekâ çıktısı hukuki, tıbbi, vergi veya mali tavsiye gibi mesleki bir tavsiye değildir. Bunun için nitelikli bir kişiye danışın.",
+        "Bir ajanın önemli dosyaları değiştirmesine izin vermeden önce bunların kopyalarını saklayın."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-control",
+      "text": "İnsan kontrolü"
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasında bir ajanın kendi başına ne kadarını yapabileceğini siz seçersiniz:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Mod",
+        "Ne olur"
+      ],
+      "rows": [
+        [
+          "Otomatik onay (varsayılan)",
+          "Ajan, dosyaları düzenlemek veya komut çalıştırmak gibi adımlarını size önce sormadan uygular."
+        ],
+        [
+          "Yalnızca hassas adımlar için sor",
+          "Ajan, hassas kabul ettiği adımlardan önce sorar ve geri kalanları uygular. Bir Kez İzin Ver, Her Zaman İzin Ver veya Reddet seçeneklerinden birini seçersiniz."
+        ],
+        [
+          "Her adımdan önce sor",
+          "Ajan her eylemden önce sorar. Bir Kez İzin Ver, Her Zaman İzin Ver veya Reddet seçeneklerinden birini seçersiniz."
+        ],
+        [
+          "Yalnızca sohbet",
+          "Ajan yanıt verir ancak hiçbir eylem gerçekleştirmez."
+        ]
+      ]
+    },
+    {
+      "type": "note",
+      "text": "Varsayılan ayar, sormadan harekete geçmektir. Her adımı onaylamak istiyorsanız, çalışmaya başlamadan önce modu değiştirin."
+    },
+    {
+      "type": "p",
+      "text": "Bir ajanı istediğiniz zaman durdurabilir ve ne yaptığını görebilirsiniz. Oluşturduğu dosyalar seçtiğiniz proje klasörüne kaydedilir. Botlar için [Asistan Botu Koşulları](/instant/legal/assistant-bot-terms), rollerini ve erişimlerini nasıl belirleyeceğinizi açıklar."
+    },
+    {
+      "type": "h2",
+      "id": "data-models-see",
+      "text": "Modellerin gördüğü veriler"
+    },
+    {
+      "type": "p",
+      "text": "Modelin işini yapabilmesi için bağlama ihtiyacı vardır. Her adımda ajan, model sağlayıcısına o ana kadarki konuşmayı gönderir: yazdıklarınız, ajanın okuduğu dosyaların içeriği, çalıştırdığı komutların sonuçları ve talimatlarımız. Dikte kullanırsanız sesiniz model sağlayıcısına gönderilir."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Masaüstü Uygulamasında varsayılan modele yapılan istekler, Google'a giderken AB'deki bulutumuzdan geçer. İsteklerin içeriğini orada saklamayız.",
+        "Bir ajan web'de arama yaptığında, görevinizden oluşturulan arama sorguları arama motorlarına gider. Bazı araştırmalar şirket sicillerine de bakabilir.",
+        "Bir Masaüstü ajanı Orqanix bulut araştırmasını kullanırsa, gönderdiği soru ve eklediği bulut dosyası alıntıları bulut çalışma alanınızda saklanır.",
+        "Bulutumuz, bulut sohbetlerinizi, hedeflerinizi ve ajanların orada oluşturduğu dosyaları saklar. AB'de (Google Cloud, Hollanda) barındırılır. Masaüstü Uygulaması, sohbet geçmişini Mac'inizdeki bir dosyada tutar.",
+        "Google, aldığı verileri AB dışında işleyebilir."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Gizlilik Politikası](/instant/legal/privacy), neleri topladığımızı, nereye gittiğini, ne kadar süre sakladığımızı ve haklarınızı eksiksiz olarak açıklar. [Alt İşleyenler](/instant/legal/subprocessors) listemiz, ilgili şirketlerin adlarını verir."
+    },
+    {
+      "type": "h2",
+      "id": "training",
+      "text": "Model eğitimi"
+    },
+    {
+      "type": "p",
+      "text": "Kendi yapay zekâ modellerimizi içeriğinizle eğitmiyoruz. Kişisel verilerinizi satmıyoruz."
+    },
+    {
+      "type": "p",
+      "text": "Google'ın aldığı verilerle neler yapabileceği, Google'ın [Gemini API koşullarına](https://ai.google.dev/gemini-api/terms) bağlıdır. Google, kendi politikalarında açıklandığı üzere bazı verileri, örneğin kötüye kullanımı tespit etmek için, sınırlı bir süre saklar."
+    },
+    {
+      "type": "p",
+      "text": "Google'ın ücretli Gemini API hizmetini kullanıyoruz. Google'ın ücretli hizmetlere ilişkin koşulları uyarınca Google, istemlerinizi veya kendi yanıtlarını ürünlerini geliştirmek için kullanmaz. Bunları kendi veri işleme koşulları kapsamında işler.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Masaüstü Uygulamasında OpenAI, Anthropic veya başka bir sağlayıcı bağlarsanız, o sağlayıcının verilerinizi nasıl kullanacağını onun koşulları belirler."
+    },
+    {
+      "type": "h2",
+      "id": "ai-made-content",
+      "text": "Yapay zekâ ile üretilen içerik"
+    },
+    {
+      "type": "p",
+      "text": "Ajanların oluşturduğu dosyalar, metinler, raporlar ve mesajlar, bir insan tarafından yazılmış gibi görünseler bile yapay zekâ tarafından üretilmiştir. Bugün itibarıyla bunu belirten gizli bir filigran veya makine tarafından okunabilir bir etiket taşımazlar."
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ ile üretilen içerikle ne yapacağınıza siz karar verirsiniz ve bundan siz sorumlusunuz. Yayımlarsanız, doğru ve hukuka uygun olduğundan emin olun ve dürüstlüğün ya da hukukun gerektirdiği durumlarda yapay zekâ tarafından üretildiğini belirtin."
+    },
+    {
+      "type": "p",
+      "text": "AB'de, yapay zekâ ile üretilen içeriği tamamen kişisel amaçların ötesinde kullanırsanız bunu kendiniz etiketlemeniz gerekebilir. Kamuoyunu kamu yararını ilgilendiren konularda bilgilendirmek amacıyla yapay zekâ ile üretilen metin yayımlarsanız, bir kişi metni inceleyip düzenlemedikçe ve editoryal sorumluluğu üstlenmedikçe, metni yapay zekânın ürettiğini belirtmeniz gerekir. Bir deepfake (gerçek gibi görünen ancak yapay zekâ tarafından oluşturulmuş veya değiştirilmiş bir görüntü, ses ya da video) oluşturur veya paylaşırsanız, bunu belirtmeniz gerekir (EU AI Act Art. 50(4)).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bazı yasalar ve birçok platformun kuralları, örneğin siyasi reklamlarda, yapay zekâ ile üretilen içeriği etiketlemenizi ister. Size uygulandığı durumlarda bunlara uyun.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix'i, insanları içeriği kimin veya neyin ürettiği konusunda aldatan içerikler üretmek için kullanmayın. [Kabul Edilebilir Kullanım Politikamız](/instant/legal/acceptable-use), nelere izin verilmediğini belirler."
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "Yapay zekâ yasaları",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU AI Act, yapay zekâ için kurallar belirler. Orqanix gibi ürünler için temel kural şeffaflıktır: insanlar bir yapay zekâ ile muhatap olduklarını bilmeli ve yapay zekâ ile üretilen içerik tanınabilir olmalıdır. Bu sayfa, bu kurala uyma yöntemimizin bir parçasıdır (EU AI Act Art. 50, 2 Ağustos 2026'dan beri uygulanmaktadır).",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Yapay zekâ ile çalıştığınızı size hem üründe hem de bu sayfada bildiriyoruz.",
+        "Asistan Botu başka kişilere yazdığında, onlara bir yapay zekâ olduğunu söylemelidir. [Asistan Botu Koşulları](/instant/legal/assistant-bot-terms) bunu zorunlu kılar.",
+        "API'mizle kendi yapay zekâ sisteminizi oluşturup başkalarına sunarsanız, kullanıcılarınıza yapay zekâ ile muhatap olduklarını söylemek de dahil olmak üzere, sisteminize uygulanan AI Act yükümlülüklerinden siz sorumlusunuz.",
+        "Yapay zekâyı AI Act'in yasakladığı uygulamalar için kullanmıyoruz ve siz de Orqanix'i bu uygulamalar için kullanamazsınız."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "Yapay zekâ yasaları",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "ABD'deki birçok eyalette yapay zekâ sohbet botlarına ilişkin kurallar bulunmaktadır. Kısacası, insanlar bir insanla konuştuklarını düşünmeye yöneltilerek yanıltılmamalı ve biri sorduğunda yapay zekâ, yapay zekâ olduğunu söylemelidir. Bazı eyaletler, kamuya açık olarak kullanılan sohbet botları ve kişisel ilişkiler kuran arkadaş sohbet botları için ek kurallar getirmektedir.",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Yapay zekâ ile çalıştığınızı size hem üründe hem de bu sayfada bildiriyoruz.",
+        "Asistan Botu başka kişilere yazdığında, onlar sorduğunda da dahil olmak üzere, onlara bir yapay zekâ olduğunu söylemelidir. [Asistan Botu Koşulları](/instant/legal/assistant-bot-terms) bunu zorunlu kılar.",
+        "Orqanix iş için tasarlanmıştır. Bir arkadaş sohbet botu değildir ve onu bu şekilde yapılandıramazsınız.",
+        "API'mizle kendi yapay zekâ sisteminizi oluşturup başkalarına sunarsanız, sisteminize uygulanan bilgilendirme ve diğer yükümlülüklerden siz sorumlusunuz."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report-a-problem",
+      "text": "Sorun bildirme"
+    },
+    {
+      "type": "p",
+      "text": "Bir ajan zararlı, hukuka aykırı veya ciddi şekilde yanlış bir sonuç verdiyse ya da yapmaması gereken bir şey yaptıysa bize bildirin. Bildirimleri sorunları gidermek ve talimatlarımızı ve koruma önlemlerimizi iyileştirmek için kullanırız."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Yasa dışı içerik veya kötüye kullanım: \"Report\" konu başlığıyla {company.email} adresine e-posta gönderin. Ne olduğunu ve ne zaman olduğunu belirtin ve mümkünse kopyalarını veya bağlantılarını ekleyin. Bildirimi inceler, karar verir ve gerekçelerimizi size ve etkilenen kullanıcıya bildiririz. Ayrıntılar [İhlal bildirme](/instant/legal/acceptable-use#report) bölümünde yer almaktadır.",
+        "Yanlış veya zararlı yapay zekâ sonuçları ve yapay zekâmızla ilgili diğer sorular: {company.email}.",
+        "Verilerinizle ilgili sorular: {company.privacyEmail}.",
+        "Güvenlik zafiyetleri: {company.securityEmail}."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EU Digital Services Act kapsamında yetkililer ve kullanıcılar için tek irtibat noktamız, İngilizce olarak {company.email} adresidir.",
+      "only": "eu"
+    }
+  ]
+}

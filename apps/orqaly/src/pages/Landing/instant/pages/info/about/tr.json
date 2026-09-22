@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Hikaye",
+    "goal": "Hedef",
+    "mission": "Misyon",
+    "founders": "Kurucular"
+  },
+  "story": {
+    "tag": "Hikayemiz",
+    "title": "Birleşen iki yol.",
+    "lede": "İki ürün yöneticisi, iki ürün, tek bir fikir. Orqanix böyle doğdu.",
+    "steps": [
+      {
+        "when": "Kas 2024",
+        "who": "Vitaly · AxWise",
+        "title": "Düşünme katmanı",
+        "text": "Vitaly, kendini inşa etmekte olan yeni yapay zeka sektörünü haritalamaya başladı: modellerini, sağlayıcılarını ve hizmetlerini. Fikri, bir problemi yanıtlamadan önce baştan sona düşünen, bilişsel bir katmandı; böylece sonuç kullanıma hazır şekilde gelirdi."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "40 dakikadan saniyelere",
+        "text": "İlk çalıştırmalar 30 ila 40 dakika sürüyordu. Sonra modeller gelişti, katman da onlarla birlikte gelişti. Her tur bir öncekinden daha hızlı ve daha keskin döndü, ta ki aynı iş saniyeler sürene kadar."
+      },
+      {
+        "when": "Şub 2026",
+        "who": "Viktor · Orqaly",
+        "title": "Bir kişi, bütün bir ekibin işi",
+        "text": "Viktor yıllardır yapay zekayı takip ediyordu. Yeni bir öncü model çıktığında, tek başına gerçek bir ürün inşa edebileceğini gördü; front-end, back-end, DevOps ya da tasarım ekibi olmadan. Böylece yapay zeka ajanlarının işi paylaştığı, yavaşlatan devirler olmadan çalışan bir platform kurdu."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Eksik parça",
+        "text": "Birçok deneme başarısız oldu, her biri bir şey öğretti. Sonunda platform çalıştı, ama hâlâ eksik bir parça vardı: son katman olacak kadar güvenilir ajanlar."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Telefon",
+        "text": "Sonra Viktor, üniversiteden bir arkadaşı olan Vitaly'yi aradı. O görüşmede, aynı şeyi karşıt uçlardan inşa ettiklerini fark ettiler: düşünme katmanını ve onun etrafındaki orkestrasyonu."
+      },
+      {
+        "when": "Eyl 2026",
+        "who": "AxWise + Orqaly",
+        "title": "Tek bir ürün",
+        "text": "Bir ürünü diğerine katma sürecinde geçen aylar, yol boyunca araştırma ve karşılaştırmalarla birlikte, tek bir platforma dönüştü: Orqanix. İnsanların bir iş planlamasına, basit ya da derin sorular araştırmasına ve gerçek şeyleri daha hızlı inşa etmesine yardımcı oluyor."
+      }
+    ],
+    "close": "Araştır, planla ve inşa et. Dakikalar içinde."
+  },
+  "goal": {
+    "tag": "Hedefimiz",
+    "title": "Senin yapay zekan. Senin makinen. Senin seçimin.",
+    "lede": "Yapay zeka istediğin yerde, seçtiğin modellerle çalışmalı; model değiştirdiğinde bilgin de senin kalmalı.",
+    "core": "Bilgin",
+    "orbit": [
+      "Yerel model",
+      "Bulut modeli",
+      "Senin ajanın"
+    ],
+    "caption": "Modeller değişir. Bilgin kalır.",
+    "points": [
+      {
+        "title": "Modelleri yerel çalıştır",
+        "text": "Yerel dil modellerini veya diğer yapay zeka türlerini doğrudan kendi bilgisayarında çalıştır."
+      },
+      {
+        "title": "Herhangi bir sağlayıcıyı kullan",
+        "text": "Yapay zekayla çalışan herhangi bir hizmeti seç. Tek bir buluta veya sağlayıcıya bağlı kalma."
+      },
+      {
+        "title": "Ajan getir ya da oluştur",
+        "text": "Zaten kullandığın ajanı içe aktar ya da iş için kendi ajanını oluştur."
+      },
+      {
+        "title": "Tek bir bilgi tabanı",
+        "text": "Her şeyi tek bir yerde tut, böylece başka bir modele geçtiğinde hiçbir şey kaybolmaz."
+      }
+    ],
+    "close": "Bugünkü işine ve donanımına uyanı seç. Yapay zekayı kendi yönteminle kullanmanın özgürlüğü bu."
+  },
+  "mission": {
+    "tag": "Misyonumuz",
+    "statement": [
+      "Seninle birlikte büyüyen bir yapay zeka alanı.",
+      "Kim olduğun ve ne yaratmak istediğin etrafında kurulmuş."
+    ],
+    "stages": [
+      {
+        "title": "Seni tanır",
+        "text": "Ona anlattıklarını, dosyalarını ve işini okur, neye ihtiyacın olduğunu anlar."
+      },
+      {
+        "title": "Alanını şekillendirir",
+        "text": "Herkese uyan tek tip bir sohbet değil, hedeflerin etrafında kişisel bir çalışma alanı kurar."
+      },
+      {
+        "title": "Kendini geliştirir",
+        "text": "Canlı bir varlık gibi, sürekli daha iyi hale gelir: daha güvenilir, daha güvenli, kullanımı daha kolay."
+      }
+    ],
+    "loopLabel": "Döngü",
+    "loop": [
+      "Faturaları öde",
+      "İşe git",
+      "Maaşını al",
+      "Tekrarla"
+    ],
+    "pathLabel": "Senin yolun",
+    "path": "Büyük düşün. Neyde iyi olduğunu bul. İstediğin hayatı inşa et.",
+    "text": "Bu yarışa katılmak isteyen herkesin, yapay zekayla çalışmanın standart yollarının ötesinde, kendine ait bir yolu olmasını istiyoruz. Yaratmanın, öğrenmenin ve bildiklerini korumanın yeni bir yolu."
+  },
+  "founders": {
+    "tag": "Kurucular",
+    "title": "Orqanix'in arkasındaki insanlar.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "10+ yıl deneyim",
+        "since": "Kasım 2024'ten beri AxWise'ı inşa ediyor",
+        "place": "Berlin",
+        "text": "Bilişsel katmanı yönetir: Orqanix bir görevi yanıtlamadan önce nasıl baştan sona düşünür.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "10+ yıl deneyim",
+        "since": "Şubat 2026'dan beri Orqaly'yi inşa ediyor",
+        "place": "",
+        "text": "Orkestrasyonu yönetir: yapay zeka ajanları işi nasıl paylaşır ve gerçek dosyalara dönüştürür.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

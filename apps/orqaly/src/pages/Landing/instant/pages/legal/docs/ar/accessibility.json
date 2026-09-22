@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "بيان إمكانية الوصول",
+    "summary": "يوضّح هذا البيان مدى إمكانية الوصول إلى موقع Orqanix الإلكتروني، والجوانب التي لا يزال يقصر فيها، وكيفية الإبلاغ عن أي عائق.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "الإصدار الأول."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "هدفنا"
+    },
+    {
+      "type": "p",
+      "text": "نريد أن يتمكّن الجميع من استخدام موقع {company.name} الإلكتروني، بمن فيهم من يستخدمون لوحة المفاتيح أو قارئ الشاشة أو التكبير أو غير ذلك من التقنيات المساعدة. هدفنا هو المستوى AA من إرشادات إتاحة محتوى الويب (WCAG) 2.1، وهي المعيار الدولي الشائع."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "النطاق"
+    },
+    {
+      "type": "p",
+      "text": "يشمل هذا البيان الموقع الإلكتروني على orqanix.com: الصفحة الرئيسية، وصفحات المنتجات والحلول، وصفحة الأخبار، والمركز القانوني. ولا يشمل تطبيق الويب، ولا تطبيق سطح المكتب، ولا صفحات تسجيل الدخول التي توفرها Clerk، مزوّد خدمة تسجيل الدخول لدينا."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "الوضع الحالي"
+    },
+    {
+      "type": "p",
+      "text": "يستوفي الموقع الإلكتروني المستوى AA من WCAG 2.1 جزئيًا. لم يخضع بعدُ لتدقيق كامل، ولا ندّعي المطابقة الكاملة. الثغرات التي نعرفها مدرجة تحت [الثغرات المعروفة](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "ما قمنا به"
+    },
+    {
+      "type": "list",
+      "items": [
+        "لوحة المفاتيح: يمكنك الوصول إلى الروابط والأزرار والقوائم باستخدام لوحة المفاتيح، ومفتاح Escape يغلق القوائم المفتوحة.",
+        "التركيز المرئي: تُظهر الروابط والأزرار نمط تركيز مرئيًا عند الانتقال إليها باستخدام لوحة المفاتيح.",
+        "حركة أقل: إذا كان جهازك مضبوطًا على تقليل الحركة، تتوقف المشاهد المتحركة عن الحركة ويظهر المحتوى دون رسوم متحركة.",
+        "التباين: نصوص المتن والعناوين بلون قريب من الأبيض على خلفية سوداء.",
+        "البدائل النصية: للقوائم وعناصر التحكم والمشاهد التي تحمل معنى تسميات نصية لقارئات الشاشة. أما الرسومات الزخرفية البحتة فمخفية عنها.",
+        "البنية: تستخدم الصفحات عناوين، ومنطقة محتوى رئيسية، وقائمة رئيسية مُسمّاة، وقائمة تذييل مُسمّاة، ولغة الصفحة مضبوطة على الإنجليزية.",
+        "الشاشات الصغيرة: يتكيّف التصميم مع الهواتف والنوافذ الضيقة."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "الثغرات المعروفة"
+    },
+    {
+      "type": "list",
+      "items": [
+        "تحتوي بعض الرسوم التوضيحية على نص صغير، مثل التسميات داخل مشاهد المنتج المتحركة. وقد تصعب قراءته حتى عند التكبير.",
+        "تستخدم بعض التسميات الثانوية لونًا رماديًا باهتًا بتباين أقل مما تتطلبه WCAG للنص الصغير.",
+        "قد يصعب على بعض الأشخاص متابعة المشاهد المتحركة. وهي تتوقف عن الحركة إذا كان جهازك مضبوطًا على تقليل الحركة."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "نعتزم إصلاح هذه الثغرات. وإذا منعك أيٌّ منها من الحصول على معلومات تحتاج إليها، [أخبرنا](#feedback) وسنحاول تقديمها لك بطريقة أخرى."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "الملاحظات"
+    },
+    {
+      "type": "p",
+      "text": "إذا واجهت عائقًا على موقعنا الإلكتروني، يُرجى إخبارنا على {company.email}. اذكر الصفحة التي كان فيها، وما الذي حاولت القيام به، وإن شئت، المتصفح والتقنية المساعدة اللذين تستخدمهما. نسعى إلى الرد بسرعة وإصلاح ما نستطيع إصلاحه."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "إذا كنت مقيمًا في الاتحاد الأوروبي ولم يحلّ ردّنا المشكلة، يمكنك التواصل مع السلطة المختصة بالإشراف على إمكانية الوصول في بلدك."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "حول هذا البيان"
+    },
+    {
+      "type": "p",
+      "text": "أعددنا هذا البيان في 21 سبتمبر 2026، استنادًا إلى مراجعتنا الخاصة للموقع الإلكتروني. وسنحدّثه عندما نُصلح إحدى الثغرات أو نُكمل تدقيقًا."
+    }
+  ]
+}

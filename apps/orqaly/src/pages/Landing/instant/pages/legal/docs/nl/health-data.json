@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "slug": "health-data",
+    "title": "Privacybeleid voor consumentengezondheidsgegevens",
+    "summary": "Dit beleid legt uit hoe Orqanix consumentengezondheidsgegevens verzamelt, gebruikt en deelt volgens de wetgeving van Washington, Nevada en Connecticut, en hoe u uw rechten daarover kunt uitoefenen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'Orqanix is run by' line is hidden until filled (FACTS §14.1).",
+        "geminiPaidTier: the paid-tier sentence stays hidden until the owner confirms Google's paid Gemini tier and DPA; until then Google's use is described only by linking Google's terms (FACTS §14.3).",
+        "Lawyer: under MHMDA, do search queries sent to public search engines (which may contain health terms) count as 'sharing' that needs separate consent? The policy discloses them and treats them as part of the service requested.",
+        "Lawyer: MHMDA deletion duty vs. the immutable workspace tables (messages, artifacts, events). The text promises 'delete or anonymise, or tell you why'; a working deletion process is still missing (FACTS §3, §14.5).",
+        "Lawyer: confirm the response-time wording meets WA/NV/CT rules: requests \"within one month\" (the laws allow 45 days), appeals \"within 45 days\" (MHMDA); Attorney General contact given.",
+        "Consent UX: the policy now relies on \"necessary to provide the requested service\" (MHMDA) for collection and sharing, and promises consent for anything else; no in-product consent screen exists. Decide whether one is needed (FACTS §14.16).",
+        "Email: privacy@orqanix.com must receive mail (no MX record today, FACTS §14.2).",
+        "Keep a prominent footer/home-page link to this policy (Washington), unless health marketing is removed and the AUP bans health data (FACTS §14.16).",
+        "Lawyer/owner: Gemini tier. On Google's unpaid Gemini terms Google may use prompts for its own purposes, so Google would be a third party, not a processor; sending health data there may be \"sharing\" beyond what is necessary, and a free-service-for-data exchange could be argued to be a \"sale\". Confirm the paid tier before publishing (FACTS §14.3).",
+        "Lawyer: FTC Health Breach Notification Rule (16 CFR 318) may apply given the healthcare marketing; the text only says we notify where the law requires (verify.md, missing requirement 2).",
+        "Lawyer: HIPAA. Healthcare solution pages imply clinic use; this policy covers consumers only. A BAA or a \"no PHI\" clause is needed before clinics use it (us.md row 9)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Over dit beleid"
+    },
+    {
+      "type": "p",
+      "text": "Sommige Amerikaanse staten beschermen “consumentengezondheidsgegevens”: persoonsgegevens die u identificeren, of die redelijkerwijs aan u gekoppeld kunnen worden, en die iets zeggen over uw lichamelijke of geestelijke gezondheid in het verleden, nu of in de toekomst. Daaronder vallen ook gegevens die over u worden afgeleid, bijvoorbeeld uit waar u naar vraagt. De belangrijkste wetten zijn de My Health My Data Act van Washington, de wet van Nevada over consumentengezondheidsgegevens en de regels van Connecticut over consumentengezondheidsgegevens."
+    },
+    {
+      "type": "p",
+      "text": "Dit beleid legt uit hoe Orqanix (“wij”) met consumentengezondheidsgegevens omgaat. Het geldt voor mensen in de Verenigde Staten en vormt een aanvulling op ons [Privacybeleid](/instant/legal/privacy), dat alle andere persoonsgegevens behandelt."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Orqanix wordt geëxploiteerd door {company.legalName}, {company.address}."
+    },
+    {
+      "type": "note",
+      "text": "In het kort: we vragen niet om uw gezondheidsgegevens. Ze bereiken ons alleen als u ze typt, uitspreekt, uploadt of koppelt. We gebruiken ze alleen om te doen waarom u hebt gevraagd. We verkopen ze nooit, en we gebruiken ze niet voor advertenties."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Wat ons kan bereiken"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is een AI-assistent voor algemeen gebruik, geen gezondheidsdienst. We vragen niet om gezondheidsinformatie, en we verzamelen die niet via sensoren, apparaten of gezondheidsapps. Consumentengezondheidsgegevens bereiken ons alleen wanneer u ervoor kiest ze op te nemen, bijvoorbeeld:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "symptomen, aandoeningen, diagnoses, geneesmiddelen of behandelingen die u in een verzoek noemt;",
+        "gezondheidsdocumenten die u uploadt of door een agent laat lezen, zoals testuitslagen, formulieren of brieven van een arts;",
+        "afspraken, rekeningen of verzekeringsgegevens in bestanden of berichten die u ons geeft;",
+        "uw stem, als u over uw gezondheid praat terwijl u dicteren gebruikt in de Computerapp;",
+        "gezondheidsinformatie in de berichten, contactpersonen en bestanden van de accounts die u aan de Assistent-bot koppelt;",
+        "alles wat de AI uit uw vragen afleidt over uw gezondheid en in zijn antwoord verwerkt."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We gebruiken geen precieze locatie om iets over uw gezondheid te weten te komen, en we stellen geen virtuele grenzen (geofences) in rond plaatsen waar gezondheidszorg wordt verleend."
+    },
+    {
+      "type": "h2",
+      "id": "sources",
+      "text": "Waar het vandaan komt"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Van u, wanneer u iets typt, uitspreekt of uploadt.",
+        "Van de berichtenapps en e-mailaccounts die u aan de Assistent-bot koppelt, en van bestanden die u agents laat lezen.",
+        "Van openbare webpagina's die ons onderzoek vindt wanneer u om onderzoek vraagt.",
+        "Van de antwoorden van het AI-model op uw verzoeken."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Hoe we het gebruiken"
+    },
+    {
+      "type": "p",
+      "text": "We verzamelen en gebruiken consumentengezondheidsgegevens alleen voor zover nodig om de dienst te leveren waarom u hebt gevraagd. Dat betekent:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "uw verzoek naar het AI-model sturen en u het antwoord geven;",
+        "het werk doen waarom u vraagt, zoals onderzoek, documenten sorteren of bestanden maken;",
+        "uw werk bewaren in uw cloudwerkruimte of op uw Mac zodat u ernaar kunt terugkeren, zoals ons [Privacybeleid](/instant/legal/privacy#what-we-collect) beschrijft;",
+        "de dienst veilig houden en aan onze wettelijke verplichtingen voldoen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "We gebruiken consumentengezondheidsgegevens niet voor advertenties, we stellen er geen profielen mee op en we trainen er onze eigen AI-modellen niet mee."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Wie het ontvangt"
+    },
+    {
+      "type": "p",
+      "text": "We delen consumentengezondheidsgegevens alleen met de aanbieders die ons helpen de dienst te leveren, en alleen voor dat doel. We delen de gezondheidsgegevens in uw verzoek en het gesprek (de soorten die worden genoemd in [Wat ons kan bereiken](#what-we-collect)) met:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud, dat onze servers, database en bestanden host in de EU (Nederland).",
+        "Google, waarvan de Gemini API het AI-model levert dat u standaard antwoordt. Google ontvangt uw verzoek en het gesprek, en kan ze buiten de EU verwerken.",
+        "Openbare zoekmachines (Google, Bing, Brave en DuckDuckGo), wanneer u om onderzoek vraagt. Onze zoekdienst stuurt hun zoekopdrachten die op basis van uw verzoek zijn opgesteld, dus een zoekopdracht kan gezondheidstermen bevatten die u hebt gebruikt. We sturen alleen de zoekopdracht, niet uw naam of accountgegevens."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[De voorwaarden van Google voor de Gemini API](https://ai.google.dev/gemini-api/terms) bepalen hoe Google de gegevens mag gebruiken die het via de Gemini API ontvangt."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "We gebruiken de betaalde Gemini API-dienst van Google. Volgens de voorwaarden van Google voor betaalde diensten verwerkt Google uw verzoeken voor ons en gebruikt het ze niet om zijn producten te verbeteren."
+    },
+    {
+      "type": "p",
+      "text": "Als u in de Computerapp een andere AI-aanbieder koppelt, zoals OpenAI of Anthropic, ontvangt die uw gesprek op uw aanwijzing, op grond van uw eigen overeenkomst met die aanbieder. We kunnen gegevens ook verstrekken wanneer de wet dat vereist. De volledige lijst van onze aanbieders staat op onze pagina [Subverwerkers](/instant/legal/subprocessors)."
+    },
+    {
+      "type": "h2",
+      "id": "no-sale",
+      "text": "We verkopen het nooit"
+    },
+    {
+      "type": "p",
+      "text": "We verkopen geen consumentengezondheidsgegevens. De wet van Washington zou vóór elke verkoop uw ondertekende, schriftelijke machtiging vereisen, en daar vragen we niet om."
+    },
+    {
+      "type": "h2",
+      "id": "consent",
+      "text": "Toestemming"
+    },
+    {
+      "type": "p",
+      "text": "We verzamelen en delen consumentengezondheidsgegevens alleen voor zover nodig om de dienst te leveren waarom u hebt gevraagd, wat de wet toestaat zonder afzonderlijke toestemming. We zullen ze niet voor een ander doel verzamelen of gebruiken, of delen buiten de aanbieders in [Wie het ontvangt](#who-gets-it), zonder eerst om uw toestemming te vragen. Als u toestemming geeft, kunt u die op elk moment intrekken door te schrijven naar {company.privacyEmail}. U kunt ook op elk moment stoppen met het delen van gezondheidsgegevens: laat ze weg uit wat u ons geeft, en verwijder ze zoals beschreven in [Uw rechten](#your-rights)."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Uw rechten"
+    },
+    {
+      "type": "p",
+      "text": "In welke staat u ook woont, u kunt ons vragen om:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "te bevestigen of we uw consumentengezondheidsgegevens verzamelen, delen of verkopen;",
+        "u inzage te geven in die gegevens, met een lijst van de derden en gelieerde ondernemingen met wie we ze hebben gedeeld en hoe u contact met hen opneemt;",
+        "ze te verwijderen, ook uit onze administratie en bij de aanbieders die ze voor ons bewaren;",
+        "uw toestemming voor het verzamelen of delen ervan in te trekken."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u ons vraagt ze te verwijderen, verwijderen of anonimiseren we ze in uw cloudwerkruimte en vragen we de aanbieders die ze voor ons bewaren hetzelfde te doen. Kopieën in onze back-ups verdwijnen wanneer die back-ups verlopen, binnen ongeveer 7 dagen. Waar we een registratie moeten bewaren, laten we u weten waarom. Gegevens die de Computerapp op uw Mac bewaart, liggen in uw handen: u kunt ze daar op elk moment verwijderen."
+    },
+    {
+      "type": "p",
+      "text": "We behandelen u niet anders, bijvoorbeeld door dienstverlening te weigeren of de kwaliteit ervan te wijzigen, omdat u een recht hebt uitgeoefend."
+    },
+    {
+      "type": "h2",
+      "id": "how-to",
+      "text": "Uw rechten uitoefenen"
+    },
+    {
+      "type": "p",
+      "text": "Schrijf naar {company.privacyEmail} en vermeld welk recht u wilt uitoefenen. We kunnen u vragen uw identiteit te bevestigen, bijvoorbeeld door te schrijven vanaf het e-mailadres van uw account. Iemand die u machtigt, kan namens u een verzoek indienen. We kunnen om bewijs vragen dat u die persoon toestemming hebt gegeven. Het uitoefenen van uw rechten is kosteloos. We antwoorden binnen één maand."
+    },
+    {
+      "type": "h3",
+      "id": "appeal",
+      "text": "Beroep"
+    },
+    {
+      "type": "p",
+      "text": "Als we uw verzoek afwijzen, kunt u in beroep gaan door ons antwoord te beantwoorden met het onderwerp “Appeal”. We laten u binnen 45 dagen schriftelijk weten wat we hebben besloten en waarom. Als u het er nog steeds niet mee eens bent, kunt u contact opnemen met de Attorney General van uw staat. Zie voor Washington de [pagina over gezondheidsgegevens van de Attorney General](https://www.atg.wa.gov/protecting-washingtonians-personal-health-data-and-privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Beveiliging"
+    },
+    {
+      "type": "p",
+      "text": "We beschermen consumentengezondheidsgegevens zoals ons [Privacybeleid](/instant/legal/privacy#security) beschrijft: ze worden versleuteld verzonden, onze cloudaanbieder versleutelt ze bij opslag, en ze worden in de EU gehost. De Computerapp bewaart zijn chatgeschiedenis op uw Mac zonder eigen extra versleuteling, dus houd uw Mac vergrendeld. Als consumentengezondheidsgegevens zonder toestemming worden ingezien of verstrekt, informeren we u en de autoriteiten waar de wet dat vereist."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer dit beleid verandert, werken we het hier bij en passen we de datum bovenaan aan. Voordat we consumentengezondheidsgegevens op een nieuwe manier gebruiken, vragen we om uw toestemming. Vragen: {company.privacyEmail}."
+    }
+  ]
+}

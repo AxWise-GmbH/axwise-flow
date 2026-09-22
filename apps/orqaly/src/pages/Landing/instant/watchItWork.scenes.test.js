@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ASSUMPTIONS_LINE, SCENES } from './watchItWork.scenes';
+import { FILE_TYPES } from './WorkspaceFiles';
 
 // File types the app cannot write, and verbs that would claim it reaches outside the Mac.
 const NOT_TODAY =
@@ -21,15 +22,48 @@ function stringsIn(value) {
 
 const packItems = (scene) => scene.pack.columns.flatMap((column) => column.items);
 
+// The Workspace's Files card. The first three lists are the owner's own (2026-09-21), PDFs
+// and an image included, so the draft-type rules below skip them and this pins them word for
+// word instead. The review list is ours: pinned here too, but it gets no exemption.
+const OWNER_FILES = {
+  business: [
+    ['Business Plan', 'document'],
+    ['Marketing Strategy for EU', 'document'],
+    ['Company Landing Page', 'web'],
+    ['List of AI Agents to Support', 'spreadsheet'],
+  ],
+  product: [
+    ['Research & Examples', 'document'],
+    ['Prototype Image', 'image'],
+    ['Roadmap', 'pdf'],
+  ],
+  campaign: [
+    ['SMM Roadmap', 'pdf'],
+    ['Social Media Account Access', 'document'],
+    ['SMM Post Texts', 'document'],
+  ],
+  review: [
+    ['Finance Health Check', 'spreadsheet'],
+    ['Sales & Marketing Review', 'document'],
+    ['Company Audit Report', 'document'],
+    ['Action Plan', 'document'],
+  ],
+};
+
+const OWNER_LISTS = ['business', 'product', 'campaign'];
+const withoutOwnerFiles = (scene) =>
+  OWNER_LISTS.includes(scene.id) ? { ...scene, files: [] } : scene;
+
 describe('watchItWork scenes', () => {
-  it('offers exactly three scenes with unique ids and the agreed labels', () => {
-    expect(SCENES.map((scene) => scene.id)).toEqual(['business', 'product', 'campaign']);
+  it('offers exactly four scenes with unique ids and the agreed labels', () => {
+    expect(SCENES.map((scene) => scene.id)).toEqual(['business', 'product', 'campaign', 'review']);
     expect(SCENES.map((scene) => scene.label)).toEqual([
       'Start a business',
       'Launch a product',
       'Plan a campaign',
+      'Review my company',
     ]);
-    expect(new Set(SCENES.map((scene) => scene.chatTitle)).size).toBe(3);
+    expect(new Set(SCENES.map((scene) => scene.chatTitle)).size).toBe(4);
   });
 
   it('gives every scene the same shape', () => {
@@ -39,6 +73,7 @@ describe('watchItWork scenes', () => {
         'askLine',
         'callouts',
         'chatTitle',
+        'files',
         'fittedTo',
         'id',
         'label',
@@ -93,9 +128,29 @@ describe('watchItWork scenes', () => {
     }
   });
 
+  it("lists the owner's files in the Workspace, each written by one roadmap step", () => {
+    for (const scene of SCENES) {
+      expect(scene.files.map((file) => [file.name, file.type])).toEqual(OWNER_FILES[scene.id]);
+      expect(scene.files.length).toBeGreaterThanOrEqual(3);
+      expect(scene.files.length).toBeLessThanOrEqual(4);
+      for (const file of scene.files) {
+        expect(Object.keys(file).sort()).toEqual(['folder', 'name', 'step', 'type']);
+        expect(FILE_TYPES).toContain(file.type);
+        expect(file.folder).toMatch(/^[a-z]+$/);
+        expect(Number.isInteger(file.step)).toBe(true);
+        expect(file.step).toBeGreaterThanOrEqual(0);
+        expect(file.step).toBeLessThan(scene.steps.length);
+        expect(file.name).not.toMatch(OVERCLAIM);
+      }
+      // Listed in the order the run writes them.
+      const steps = scene.files.map((file) => file.step);
+      expect(steps).toEqual([...steps].sort((a, b) => a - b));
+    }
+  });
+
   it('never lists a file the app cannot write or a step that leaves the Mac', () => {
     for (const scene of SCENES) {
-      for (const text of stringsIn(scene)) {
+      for (const text of stringsIn(withoutOwnerFiles(scene))) {
         expect(text).not.toMatch(NOT_TODAY);
         expect(text).not.toMatch(OVERCLAIM);
       }
@@ -162,7 +217,7 @@ describe('watchItWork scenes', () => {
     });
   });
 
-  it('writes the other two scenes as drafts only, without numbers or results promised', () => {
+  it('writes the other scenes as drafts only, without numbers or results promised', () => {
     for (const scene of SCENES.slice(1)) {
       for (const item of packItems(scene)) expect(item).toMatch(DRAFT_ITEM);
       const written = stringsIn({ ...scene, planReply: '' });

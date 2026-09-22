@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "开源声明",
+    "summary": "本页面列出 Orqanix 桌面应用和我们网站中使用的开源软件及其许可证，并说明如何获取许可证文本。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "关于本页面"
+    },
+    {
+      "type": "p",
+      "text": "我们产品的部分组成是开源软件：其作者依据已公布的许可证，允许任何人使用、修改和分享的软件。本页面列出主要的开源组成部分，并说明如何获取其许可证文本。"
+    },
+    {
+      "type": "p",
+      "text": "每个组成部分仍受其各自许可证的约束。我们的[服务条款](/instant/legal/terms)或[桌面应用条款](/instant/legal/desktop-app-terms)中的任何内容均不限制这些许可证赋予您的权利。如果某一许可证规定其作者不提供任何保证，该规定适用于这些作者的成果。我们自己对产品作出的承诺载于我们的条款中。"
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "桌面应用"
+    },
+    {
+      "type": "p",
+      "text": "适用于 Mac 的 Orqanix 应用包含以下开源软件，例如："
+    },
+    {
+      "type": "table",
+      "head": [
+        "软件",
+        "在应用中的作用",
+        "许可证"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "应用中的智能体所运行的智能体框架",
+          "Apache License 2.0"
+        ],
+        [
+          "随应用捆绑提供的可选工程运行时",
+          "运行应用的工程工具",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "应用的窗口和桌面外壳",
+          "MIT License"
+        ],
+        [
+          "Chromium（包含在 Electron 中）",
+          "显示应用的界面",
+          "一种 BSD 类许可证及其他许可证"
+        ],
+        [
+          "Node.js",
+          "运行应用的部分功能",
+          "MIT License，部分捆绑组件适用其他许可证"
+        ],
+        [
+          "众多较小的 npm 和 Rust 软件包",
+          "在整个应用中使用的基础组件",
+          "各种开源许可证，例如 MIT、Apache 2.0 和 BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "本应用包含 Goose、工程运行时、Electron、Chromium 和 Node.js 的许可证文本和声明。如需查看，请在“访达”（Finder）中按住 Control 键点按本应用，选择“显示包内容”，然后依次打开 Contents 和 Resources。这些文件是具有权威性的文本；上表仅为摘要。对于较小的软件包，请按照[许可证文本和源代码](#get-the-texts)中所述方式向我们索取。"
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "我们的网站"
+    },
+    {
+      "type": "p",
+      "text": "我们的网站使用 Geist、Geist Mono 和 Inter 字体，均依据 [SIL 开放字体许可证 1.1](https://openfontlicense.org) 授权。"
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "名称和商标"
+    },
+    {
+      "type": "p",
+      "text": "开源项目的名称归其所有者所有。我们使用其软件并不意味着这些项目或其所有者为 Orqanix 背书，这些许可证也不赋予任何人使用其名称或标志的权利。"
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "许可证文本和源代码"
+    },
+    {
+      "type": "p",
+      "text": "如需索取许可证文本副本，或在许可证赋予您相应权利时索取源代码，请发送邮件至 {company.email}，并以“Open source”作为主题。请告知我们您所使用的桌面应用版本。"
+    },
+    {
+      "type": "p",
+      "text": "如果您认为我们遗漏了某项声明，或以其许可证不允许的方式使用了开源软件，请通过同一地址告知我们，我们将进行调查。"
+    }
+  ]
+}

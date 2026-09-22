@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "Subverwerkers",
+    "summary": "Deze pagina noemt de bedrijven die persoonsgegevens voor ons verwerken, de andere plaatsen waar uw gegevens naartoe kunnen gaan en waar onze servers staan.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "Over deze pagina"
+    },
+    {
+      "type": "p",
+      "text": "Een subverwerker is een bedrijf dat wij betalen om persoonsgegevens voor ons te verwerken, volgens onze instructies. Deze pagina noemt onze subverwerkers, de andere plaatsen waar uw gegevens naartoe kunnen gaan wanneer u {company.name} gebruikt, en waar onze servers staan. Zij geldt voor onze website en al onze producten. Wij voegen een aanbieder hier toe voordat die persoonsgegevens voor ons gaat verwerken."
+    },
+    {
+      "type": "p",
+      "text": "Ons [Privacybeleid](/instant/legal/privacy) legt uit hoe wij persoonsgegevens gebruiken. Wanneer zakelijke klanten van de API, onze zakelijke diensten (Zakelijk) of de Assistent-bot ons persoonsgegevens geven om te verwerken, is onze [Verwerkersovereenkomst](/instant/legal/dpa) van toepassing."
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "Onze subverwerkers"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Bedrijf",
+        "Waarvoor",
+        "Gegevens",
+        "Locatie",
+        "Grondslag voor doorgifte"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "Hosting van de website, de webapp, de dienst waarmee de Computerapp communiceert, de API, onze database, opgeslagen bestanden en serverlogs",
+          "Account-ID's, inhoud van de werkruimte (chats, doelen, bestanden, rapporten en automatiseringen), onderzoeksvragen vanuit de Computerapp, API-taken en -beslissingen, IP-adressen en verzoeklogs",
+          "EU (Nederland)",
+          "De gegevens worden in de EU gehost. De voorwaarden voor gegevensverwerking van Google Cloud zijn van toepassing."
+        ],
+        [
+          "Google (Gemini API, inclusief grounding met Google Search)",
+          "Het standaard AI-model voor de Computerapp, de cloudassistent en de API",
+          "Uw prompts, het gesprek tot dan toe, uitvoer van tools zoals bestandsinhoud en uitvoer van opdrachten, en uw stem als u dicteren gebruikt",
+          "Niet door ons vastgelegd. Google kan de gegevens buiten de EU verwerken.",
+          "De Gemini API-voorwaarden van Google. [Hoe onze AI werkt](/instant/legal/ai#data-models-see) legt uit hoe Google deze gegevens kan gebruiken."
+        ],
+        [
+          "Clerk, Inc.",
+          "Aanmelding en accounts",
+          "E-mailadres, naam, profielfoto (als u zich aanmeldt met Google), registraties van aanmeldingen en sessies, IP-adres en apparaatgegevens",
+          "Verenigde Staten",
+          "EU-VS-kader voor gegevensbescherming (Data Privacy Framework), met modelcontractbepalingen als terugvaloptie (de voorwaarden voor gegevensverwerking van Clerk)"
+        ],
+        [
+          "Cloudflare (gebruikt door Clerk, en Turnstile bij registratie)",
+          "Botbescherming op de aanmeld- en registratiepagina's",
+          "IP-adres, apparaat- en browsersignalen",
+          "Niet door ons vastgelegd. Het netwerk van Cloudflare kan de gegevens buiten de EU verwerken.",
+          "Gebruikt via Clerk, als onderdeel van de dienst van Clerk"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "De download van de Computerapp wordt ook geleverd vanuit Google Cloud Storage. Wanneer u de app downloadt, ziet Google uw IP-adres."
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "Andere ontvangers"
+    },
+    {
+      "type": "p",
+      "text": "Deze bedrijven zijn niet onze subverwerkers. Zij ontvangen gegevens wanneer u bepaalde functies gebruikt, en zij bepalen onder hun eigen voorwaarden hoe zij die gebruiken."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Ontvanger",
+        "Wanneer",
+        "Gegevens",
+        "Locatie",
+        "Hun rol"
+      ],
+      "rows": [
+        [
+          "Openbare zoekmachines: Google, Bing, Brave en DuckDuckGo",
+          "Wanneer de cloudassistent, het cloudonderzoek of de API op het web zoekt. De zoekopdrachten gaan via onze eigen zoekdienst.",
+          "Zoekopdrachten die op basis van uw verzoek zijn opgesteld. Wij sturen uw accountgegevens niet mee.",
+          "De eigen servers van elke zoekmachine, die zich in de VS of elders kunnen bevinden",
+          "Zelfstandig. Hun eigen voorwaarden en privacybeleid zijn van toepassing."
+        ],
+        [
+          "OpenRegister",
+          "Wanneer de API of het cloudonderzoek een bedrijf opzoekt in openbare handelsregisters",
+          "Bedrijfsnamen. De resultaten kunnen namen van bestuurders bevatten.",
+          "Bepaald door OpenRegister",
+          "Zelfstandig. Hun eigen voorwaarden zijn van toepassing."
+        ],
+        [
+          "Google (Inloggen met Google)",
+          "Alleen als u ervoor kiest om u aan te melden met uw Google-account",
+          "Uw Google-profiel: naam, e-mailadres en profielfoto",
+          "De eigen servers van Google, die zich in de VS kunnen bevinden",
+          "Uw keuze. De voorwaarden van Google zijn van toepassing."
+        ],
+        [
+          "AI-aanbieders die u in de Computerapp koppelt, zoals OpenAI of Anthropic",
+          "Alleen als u de Computerapp overschakelt op een aanbieder van uw keuze",
+          "Het gesprek en de uitvoer van tools, net als bij het standaardmodel",
+          "Bepaald door die aanbieder",
+          "U kiest ze en hebt een eigen overeenkomst met hen. Hun voorwaarden zijn van toepassing, niet de onze."
+        ],
+        [
+          "Apps, tools en accounts die u koppelt, zoals extensies in de Computerapp of de berichtenapps en e-mailaccounts die u aan de Assistent-bot koppelt",
+          "Alleen als u ze koppelt",
+          "Wat een agent of bot naar hen stuurt of van hen leest terwijl hij uw taak uitvoert",
+          "Bepaald door die dienst",
+          "U kiest ze en hebt een eigen overeenkomst met hen. Hun voorwaarden zijn van toepassing."
+        ],
+        [
+          "Hostinger",
+          "Domeinnaamdienst (DNS) voor orqanix.com",
+          "Technische opvragingen van onze domeinnaam. Geen accountgegevens.",
+          "Bepaald door Hostinger",
+          "Technische dienst"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Als u een lokaal AI-model op uw Mac gebruikt, gaat uw gesprek naar dat model in plaats van naar een AI-aanbieder. Vragen die de agents naar het cloudonderzoek van {company.name} sturen, gaan nog steeds naar onze cloud en naar de hierboven genoemde aanbieders."
+    },
+    {
+      "type": "p",
+      "text": "Wij hebben geen betalingsaanbieder, geen analysedienst en geen advertentienetwerk. Wij verkopen geen persoonsgegevens."
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "Waar onze servers staan"
+    },
+    {
+      "type": "p",
+      "text": "Wij hosten onze clouddiensten en databases op Google Cloud in de EU, in Nederland (regio europe-west4). Dit omvat de website, de webapp, de dienst waarmee de Computerapp communiceert, de API en de eigen database daarvan, en de bestanden en rapporten die uw agents in de cloud opslaan. Elk zakelijk project (Zakelijk) wordt gehost in een Google Cloud-regio in de EU die wij met de klant overeenkomen."
+    },
+    {
+      "type": "p",
+      "text": "Sommige aanbieders, zoals Clerk en Google Gemini, kunnen gegevens in de VS of elders verwerken. Gegevens worden versleuteld tijdens verzending (HTTPS), en onze cloudaanbieder versleutelt ze bij opslag."
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "Doorgiften buiten de EU",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Wanneer persoonsgegevens de EER, het Verenigd Koninkrijk of Zwitserland verlaten, vereist de wet een waarborg. Voor Clerk is die waarborg het EU-VS-kader voor gegevensbescherming (Data Privacy Framework), met de modelcontractbepalingen van de EU als terugvaloptie (AVG art. 45 en 46). Bij Google Cloud worden uw gegevens in de EU gehost."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Voor Google Gemini gebruiken wij de betaalde dienst van Google. De voorwaarden van Google voor betaalde diensten en zijn voorwaarden voor gegevensverwerking zijn van toepassing op de gegevens die wij versturen."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Om een kopie te krijgen van de waarborgen die op uw gegevens van toepassing zijn, schrijft u naar {company.privacyEmail}."
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "Verzoeken van buitenlandse overheden",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Het EU-recht vraagt cloudaanbieders om te vermelden waar hun infrastructuur zich bevindt en wat zij doen met verzoeken van overheden buiten de EU (EU Dataverordening, art. 28). Dit geldt voor alle gegevens, niet alleen voor persoonsgegevens."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Onze infrastructuur: onze clouddiensten en databases draaien op Google Cloud in Nederland, onder EU-recht. De aanmelding draait op Clerk in de Verenigde Staten.",
+        "Google en Clerk zijn Amerikaanse bedrijven of maken deel uit van Amerikaanse concerns, zodat ook Amerikaans recht op hen van toepassing kan zijn.",
+        "Als een overheid of rechter buiten de EU ons om uw gegevens vraagt, controleren wij of het verzoek rechtmatig is en of het EU-recht of het nationale recht ons toestaat erop in te gaan.",
+        "Waar mogelijk maken wij bezwaar tegen verzoeken die onrechtmatig of te ruim zijn. Wij verstrekken alleen het minimum dat het verzoek rechtmatig vereist.",
+        "Wij informeren de betrokken klant voordat wij antwoorden, tenzij de wet dat verbiedt."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "Privacywetgeving van Amerikaanse staten",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Op grond van de privacywetten van Amerikaanse staten werken Google Cloud, Clerk en Cloudflare voor ons als dienstverleners (service providers) of verwerkers. De voorwaarden van Google bepalen hoe Google gegevens mag gebruiken die wij naar de Gemini API sturen, zoals uitgelegd in [Hoe onze AI werkt](/instant/legal/ai#data-models-see). Wij verkopen geen persoonsgegevens en delen ze niet voor gerichte advertenties."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen in deze lijst"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer wij een subverwerker toevoegen of vervangen, werken wij deze pagina en de datum bovenaan bij."
+    },
+    {
+      "type": "p",
+      "text": "Zakelijke klanten die onder onze [Verwerkersovereenkomst](/instant/legal/dpa) vallen, krijgen bericht voordat een nieuwe subverwerker hun gegevens gaat verwerken. Zij kunnen bezwaar maken, zoals de overeenkomst bepaalt."
+    }
+  ]
+}

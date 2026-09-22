@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "slug": "security",
+    "title": "安全与漏洞披露",
+    "summary": "本页面说明我们如何保护 Orqanix、您如何确保数据安全，以及如何报告安全问题。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "security@orqanix.com probably receives no mail today: orqanix.com has no MX record (open point #2). Reports cannot reach us until this is fixed.",
+        "CRA Art. 14 reporting has applied since 11 Sep 2026: we need an internal runbook (ENISA Single Reporting Platform; 24 h / 72 h / 14 days / 1 month) and to know which national CSIRT is ours, which depends on the company (open point #1).",
+        "Supported versions: the page says only the newest Desktop App version gets security fixes. The owner must confirm this policy, and set a CRA support period (with its end date shown at download) before 11 Dec 2027.",
+        "Desktop defaults disclosed here as they are: Auto-approve on, shell and file tools on, provider keys stored in a plain-text file, chat history not additionally encrypted, app not notarized (open points #8 and #14). Update this page if any of them change.",
+        "'We aim to acknowledge within 5 working days' is a target the owner must be able to meet.",
+        "Safe-harbour promise: lawyer to confirm the wording for the company's home country (no promise can bind third parties or authorities).",
+        "Incident notice to users: the page promises to tell affected users. A breach runbook (GDPR 72 h, US state breach laws) is needed as an internal document.",
+        "Safe harbour now says we do not report researchers to the authorities 'unless the law requires us to' (for example a GDPR breach report). Lawyer to confirm.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): failing to provide security updates can make software defective, and consumer liability cannot be excluded. Decide the update and support policy before then (see supported versions).",
+        "Dir. 2019/770 Art. 8(2): EU consumers are owed security updates for the period they can reasonably expect. 'Newest version only, by manual download' must be squared with this in the Desktop App Terms.",
+        "The page says the shell and file tools can reach anything the macOS account can (no sandbox found in the Desktop App code). Update if a sandbox is added.",
+        "US: if health data is processed (health marketing, open point #16), the FTC Health Breach Notification Rule (16 CFR 318) adds notice duties to the FTC. Not written here; covered in the Health Data policy if needed.",
+        "CRA Art. 13(17) single point of contact (from 11 Dec 2027): security@ serves it once the mailbox works."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "overview",
+      "text": "概述"
+    },
+    {
+      "type": "p",
+      "text": "本页面涵盖网站、网页应用、桌面应用、移动应用、助理机器人、API 以及我们的企业版工作。"
+    },
+    {
+      "type": "p",
+      "text": "没有任何系统是绝对安全的，我们不保证 {company.name} 不存在漏洞。下面我们介绍目前实际采取的措施，包括您在依赖这些措施之前应当了解的局限。"
+    },
+    {
+      "type": "h2",
+      "id": "how-we-protect",
+      "text": "我们如何保护 Orqanix"
+    },
+    {
+      "type": "h3",
+      "id": "cloud",
+      "text": "云服务"
+    },
+    {
+      "type": "list",
+      "items": [
+        "托管：我们的云服务和数据库运行在位于欧盟荷兰的 Google Cloud 上（区域 europe-west4）。我们使用的公司列于[子处理方](/instant/legal/subprocessors)页面。",
+        "加密：数据在传输过程中加密（HTTPS），并由我们的云服务提供商进行静态加密。",
+        "登录：由专业登录服务提供商 Clerk 处理账户，并在注册页面上使用机器人防护。我们不存储您的密码。",
+        "密钥和机密信息：我们系统的服务密钥保存在 Google Cloud 的机密存储中。用于自动化的应用密钥仅以哈希值形式存储，因此无法从我们的数据库中读回密钥本身。",
+        "模型请求：当桌面应用通过我们的服务将对话发送给 AI 模型时，我们的服务仅转发该对话，不会存储。我们不会将您的提示词或消息内容写入我们的服务器日志。",
+        "记录：智能体所做事情的部分记录（消息、文件、批准和事件）以固定日志的形式保存。我们的系统不允许事后更改这些记录。这有助于您准确了解发生了什么。",
+        "备份：数据库每天备份，并已启用删除保护。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "desktop",
+      "text": "桌面应用"
+    },
+    {
+      "type": "list",
+      "items": [
+        "您的 {company.name} 登录令牌存储在 macOS 钥匙串中。退出登录即可将其撤销。",
+        "应用将其数据保存在一个只有您的 macOS 用户账户可以读取的配置文件夹中。",
+        "应用不发送任何使用统计数据，也没有崩溃报告程序。",
+        "智能体将其创建的文件保存到您选择的项目文件夹中。您还可以选择它们在不询问的情况下可以执行多少操作（参见[您的职责](#your-part)）。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "您应当了解的局限："
+    },
+    {
+      "type": "list",
+      "items": [
+        "默认情况下，应用会自动批准智能体的操作，且 shell 和文件编辑工具处于启用状态。因此，智能体可以在不事先询问的情况下读取和更改您 Mac 上的文件并运行命令。这些工具并不局限于您的项目文件夹：凡是您的 macOS 账户能够访问的内容，它们都能访问。",
+        "您自行连接的 AI 提供商（例如 OpenAI 或 Anthropic）的密钥以及扩展的密钥，以纯文本设置文件的形式存储在应用的文件夹中，而不是存储在钥匙串中。",
+        "聊天记录保存在本地数据库文件中，应用本身不对其进行加密。它受您 macOS 账户的文件权限保护，如果您启用了 FileVault 磁盘加密，还受其保护。",
+        "本应用未经 Apple 公证。首次打开时，macOS 会要求您通过“仍要打开”进行确认。",
+        "应用不会自动更新。安全修复以新版本的形式提供，需要您自行下载（参见[安全更新](#updates)）。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-part",
+      "text": "您的职责"
+    },
+    {
+      "type": "list",
+      "items": [
+        "请仅通过 orqanix.com 上的链接下载桌面应用。",
+        "保持 macOS 为最新版本，并启用 FileVault 磁盘加密和屏幕锁定。",
+        "选择适合您工作的批准模式。应用可以在每项操作前询问、仅对敏感操作询问，或仅进行聊天。处理重要文件时，请使用更严格的模式。",
+        "让智能体处理只包含其所需内容的项目文件夹，并备份您重视的文件。请记住，shell 和文件工具能够访问的范围超出该文件夹。",
+        "保护您为其他 AI 提供商添加的密钥。任何能够访问您 macOS 账户的人或程序都可以读取这些密钥。如果您认为某个密钥已泄露，请在该提供商处将其撤销。",
+        "在我们发布新版本时，请安装最新版本的应用。",
+        "在他人也使用的 Mac 上请退出登录，并确保您用于登录的账户安全。",
+        "检查智能体所做的事情。将它们从网络或文件中获取的内容视为不可信内容：其中可能包含意在误导智能体的指令。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "报告漏洞"
+    },
+    {
+      "type": "p",
+      "text": "如果您在 {company.name} 中发现安全问题，请通过 {company.securityEmail} 告知我们。请提供以下信息："
+    },
+    {
+      "type": "list",
+      "items": [
+        "受影响的产品、页面或版本。",
+        "问题是什么，以及攻击者可以利用它做什么。",
+        "复现步骤，如有截图或简短的概念验证，请一并提供。",
+        "我们如何与您联系，以及在修复问题时您是否希望署名。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们力求在 5 个工作日内确认收到您的报告，在调查期间随时告知您进展，并在问题修复后通知您。"
+    },
+    {
+      "type": "p",
+      "text": "我们的安全联系方式还以标准的机器可读格式发布在 [orqanix.com/.well-known/security.txt](https://orqanix.com/.well-known/security.txt)。"
+    },
+    {
+      "type": "h3",
+      "id": "rules",
+      "text": "研究规则"
+    },
+    {
+      "type": "list",
+      "items": [
+        "仅使用您自己的账户和数据进行测试。如果您接触到属于他人的数据，请立即停止，不要保留这些数据，并告知我们。",
+        "不得干扰我们的服务或其他用户：不得进行拒绝服务测试，不得发送垃圾信息，不得进行大规模自动化扫描。",
+        "不得对我们的员工或我们的提供商使用社会工程、网络钓鱼或物理攻击。",
+        "不得测试我们提供商（例如 Google 或 Clerk）的系统。请将其服务中的问题报告给它们。",
+        "在问题修复之前，或在我们与您商定日期之前，不得公开该问题。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "safe-harbour",
+      "text": "安全港"
+    },
+    {
+      "type": "p",
+      "text": "如果您本着善意行事并遵守这些规则，我们将视您的研究为已获授权。我们不会因此对您采取法律行动，也不会向有关当局举报您，除非法律要求我们这样做。如果有其他人因遵守这些规则的研究对您采取行动，我们将明确表示该研究已获我们授权。我们不设有偿漏洞赏金计划。"
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "安全更新"
+    },
+    {
+      "type": "p",
+      "text": "我们在最新版本的桌面应用中修复安全问题。我们不为旧版本提供补丁，因此请始终使用最新版本。应用不会自动更新：当我们发布修复时，请从 orqanix.com 下载新版本并覆盖安装旧版本。"
+    },
+    {
+      "type": "p",
+      "text": "我们对网站、网页应用、API 和其他云服务的修复会自动生效，您无需采取任何操作。"
+    },
+    {
+      "type": "h2",
+      "id": "incidents",
+      "text": "安全事件"
+    },
+    {
+      "type": "p",
+      "text": "如果安全事件影响到您的个人数据，我们会按照法律要求通知有关当局和受影响的人员。在通知您时，我们会说明发生了什么、涉及哪些数据、我们正在采取什么措施以及您可以做什么。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "在 GDPR 要求的情况下，我们会在 72 小时内向数据保护机构报告个人数据泄露，并在对受影响人员的风险较高时通知他们（GDPR 第 33 条和第 34 条）。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "根据欧盟《网络韧性法》，我们会在法律规定的期限内向有关当局报告影响我们应用的被积极利用的漏洞和严重安全事件。我们还会将问题以及他们应采取的任何措施告知受影响的用户（第 (EU) 2024/2847 号条例第 14 条）。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "在适用美国各州数据泄露通知法律的情况下，我们会在这些法律规定的期限内通知受影响的人员，并在需要时通知州主管机关。"
+    }
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "meta": {
+    "slug": "subprocessors",
+    "title": "उप-प्रसंस्करणकर्ता",
+    "summary": "यह पृष्ठ उन कंपनियों की सूची देता है जो हमारे लिए व्यक्तिगत डेटा को संभालती हैं, उन अन्य स्थानों की जहाँ आपका डेटा जा सकता है, और यह बताता है कि हमारे सर्वर कहाँ हैं।",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "पहला संस्करण।"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Email provider for hello@, privacy@ and security@ is not listed: orqanix.com has no mail provider (no MX record) yet. Add it as a sub-processor once chosen.",
+        "Region of the Cloud Storage bucket that serves the Desktop App download is unknown, so the page names no location for it. Confirm and add.",
+        "Google Cloud transfer basis: confirm that Google's Cloud data processing terms (with SCCs) cover any support access from outside the EU.",
+        "Google Gemini: processing location is not pinned in our code. The paid-tier data terms and Google's DPA are shown only once geminiPaidTier is set (open point #3).",
+        "Cloudflare (via Clerk and Turnstile): confirm its location and whether Clerk's DPA covers it. The page now says only that it is used through Clerk.",
+        "Search engines and OpenRegister are described as independent recipients, not processors. Lawyer to confirm the role split (open point #11). Confirm OpenRegister's location.",
+        "Data Act Art. 28 statement: lawyer to confirm the wording on the jurisdiction of Google and Clerk and our measures against foreign government access. We have no written request-handling process yet; create one so the promises here are true in practice.",
+        "Notice to DPA customers of new sub-processors: the notice period and how objections work must match the Data Processing Addendum.",
+        "Clerk runs a development instance today (open point #4). Move to production before relying on Clerk's DPA.",
+        "EU transfers, Gemini: while geminiPaidTier is empty, the EU version names no transfer safeguard for data sent to Google Gemini (GDPR Art. 13(1)(f), Chapter V). This is an EU launch blocker, not a wording issue (open point #3).",
+        "EU transfers, search engines and OpenRegister: queries leave our EU servers for engines that may be in the US. Lawyer to confirm the transfer basis for these independent recipients.",
+        "Mobile App: the phone notifies you when a job is done, so a push service (and possibly a relay) will receive data. Which ones is unknown; add them here before the Mobile App handles personal data.",
+        "Clerk development instance may send usage events to Clerk's telemetry host (uncertain). Confirm; it goes away with the move to production.",
+        "The intro promises that a provider is added to this page before it starts handling personal data. The owner must follow this for every new provider (and for the email provider, open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "what-this-page-is",
+      "text": "इस पृष्ठ के बारे में"
+    },
+    {
+      "type": "p",
+      "text": "उप-प्रसंस्करणकर्ता वह कंपनी है जिसे हम अपने निर्देशों पर, हमारे लिए व्यक्तिगत डेटा संभालने के लिए भुगतान करते हैं। यह पृष्ठ हमारे उप-प्रसंस्करणकर्ताओं की, उन अन्य स्थानों की जहाँ {company.name} का उपयोग करते समय आपका डेटा जा सकता है, सूची देता है, और यह बताता है कि हमारे सर्वर कहाँ हैं। यह हमारी वेबसाइट और हमारे सभी उत्पादों पर लागू होता है। किसी प्रदाता द्वारा हमारे लिए व्यक्तिगत डेटा संभालना शुरू करने से पहले हम उसे यहाँ जोड़ देते हैं।"
+    },
+    {
+      "type": "p",
+      "text": "हमारी [गोपनीयता नीति](/instant/legal/privacy) बताती है कि हम व्यक्तिगत डेटा का उपयोग कैसे करते हैं। जब API, हमारी उद्यम सेवाओं या सहायक बॉट के व्यावसायिक ग्राहक हमें संसाधित करने के लिए व्यक्तिगत डेटा देते हैं, तो हमारा [डेटा प्रसंस्करण परिशिष्ट](/instant/legal/dpa) लागू होता है।"
+    },
+    {
+      "type": "h2",
+      "id": "sub-processors",
+      "text": "हमारे उप-प्रसंस्करणकर्ता"
+    },
+    {
+      "type": "table",
+      "head": [
+        "कंपनी",
+        "किस लिए",
+        "डेटा",
+        "स्थान",
+        "स्थानांतरण का आधार"
+      ],
+      "rows": [
+        [
+          "Google Cloud",
+          "वेबसाइट, वेब ऐप, वह सेवा जिससे डेस्कटॉप ऐप संवाद करता है, API, हमारा डेटाबेस, संग्रहीत फ़ाइलें और सर्वर लॉग की होस्टिंग",
+          "खाता ID, वर्कस्पेस सामग्री (चैट, लक्ष्य, फ़ाइलें, रिपोर्ट और ऑटोमेशन), डेस्कटॉप ऐप से अनुसंधान प्रश्न, API कार्य और निर्णय, IP पते और अनुरोध लॉग",
+          "EU (नीदरलैंड)",
+          "डेटा EU में होस्ट किया जाता है। Google की Cloud डेटा प्रसंस्करण शर्तें लागू होती हैं।"
+        ],
+        [
+          "Google (Gemini API, Google Search grounding सहित)",
+          "डेस्कटॉप ऐप, क्लाउड सहायक और API के लिए डिफ़ॉल्ट AI मॉडल",
+          "आपके प्रॉम्प्ट, अब तक की बातचीत, टूल आउटपुट जैसे फ़ाइल सामग्री और कमांड आउटपुट, और यदि आप डिक्टेशन का उपयोग करते हैं तो आपकी आवाज़",
+          "हमारे द्वारा निर्धारित नहीं। Google इसे EU के बाहर संसाधित कर सकता है।",
+          "Google की Gemini API शर्तें। [हमारा AI कैसे काम करता है](/instant/legal/ai#data-models-see) बताता है कि Google इस डेटा का उपयोग कैसे कर सकता है।"
+        ],
+        [
+          "Clerk, Inc.",
+          "साइन-इन और खाते",
+          "ईमेल पता, नाम, प्रोफ़ाइल छवि (यदि आप Google से साइन इन करते हैं), साइन-इन और सत्र रिकॉर्ड, IP पता और डिवाइस डेटा",
+          "संयुक्त राज्य अमेरिका",
+          "EU-US Data Privacy Framework, विकल्प के रूप में Standard Contractual Clauses (मानक संविदात्मक खंड) के साथ (Clerk की डेटा प्रसंस्करण शर्तें)"
+        ],
+        [
+          "Cloudflare (Clerk द्वारा उपयोग किया जाता है, और साइन-अप पर Turnstile)",
+          "साइन-इन और साइन-अप पृष्ठों पर बॉट सुरक्षा",
+          "IP पता, डिवाइस और ब्राउज़र संकेत",
+          "हमारे द्वारा निर्धारित नहीं। Cloudflare का नेटवर्क इसे EU के बाहर संसाधित कर सकता है।",
+          "Clerk के माध्यम से, Clerk की सेवा के हिस्से के रूप में उपयोग किया जाता है"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "डेस्कटॉप ऐप का डाउनलोड भी Google Cloud Storage से उपलब्ध कराया जाता है। जब आप इसे डाउनलोड करते हैं, तो Google आपका IP पता देखता है।"
+    },
+    {
+      "type": "h2",
+      "id": "other-recipients",
+      "text": "अन्य प्राप्तकर्ता"
+    },
+    {
+      "type": "p",
+      "text": "ये कंपनियाँ हमारी उप-प्रसंस्करणकर्ता नहीं हैं। जब आप कुछ विशेष सुविधाओं का उपयोग करते हैं तो इन्हें डेटा प्राप्त होता है, और ये अपनी स्वयं की शर्तों के अंतर्गत तय करती हैं कि उसका उपयोग कैसे करना है।"
+    },
+    {
+      "type": "table",
+      "head": [
+        "प्राप्तकर्ता",
+        "कब",
+        "डेटा",
+        "स्थान",
+        "उनकी भूमिका"
+      ],
+      "rows": [
+        [
+          "सार्वजनिक सर्च इंजन: Google, Bing, Brave और DuckDuckGo",
+          "जब क्लाउड सहायक, क्लाउड अनुसंधान या API वेब पर खोज करता है। क्वेरी हमारी अपनी खोज सेवा से होकर जाती हैं।",
+          "आपके अनुरोध से बनाई गई खोज क्वेरी। हम आपके खाते का विवरण नहीं भेजते।",
+          "प्रत्येक इंजन के अपने सर्वर, जो US में या कहीं और हो सकते हैं",
+          "स्वतंत्र। उनकी अपनी शर्तें और गोपनीयता नीतियाँ लागू होती हैं।"
+        ],
+        [
+          "OpenRegister",
+          "जब API या क्लाउड अनुसंधान सार्वजनिक कंपनी रजिस्टरों में किसी कंपनी की जानकारी देखता है",
+          "कंपनियों के नाम। परिणामों में निदेशकों के नाम शामिल हो सकते हैं।",
+          "OpenRegister द्वारा निर्धारित",
+          "स्वतंत्र। उनकी अपनी शर्तें लागू होती हैं।"
+        ],
+        [
+          "Google (Sign in with Google)",
+          "केवल तभी जब आप अपने Google खाते से साइन इन करना चुनते हैं",
+          "आपकी Google प्रोफ़ाइल: नाम, ईमेल पता और प्रोफ़ाइल छवि",
+          "Google के अपने सर्वर, जो US में हो सकते हैं",
+          "आपका चुनाव। Google की शर्तें लागू होती हैं।"
+        ],
+        [
+          "डेस्कटॉप ऐप में आपके द्वारा कनेक्ट किए गए AI प्रदाता, जैसे OpenAI या Anthropic",
+          "केवल तभी जब आप डेस्कटॉप ऐप को अपने स्वयं के किसी प्रदाता पर स्विच करते हैं",
+          "बातचीत और टूल आउटपुट, जैसा डिफ़ॉल्ट मॉडल के साथ होता है",
+          "उस प्रदाता द्वारा निर्धारित",
+          "आप उन्हें चुनते हैं और उनके साथ आपका अपना समझौता होता है। उनकी शर्तें लागू होती हैं, हमारी नहीं।"
+        ],
+        [
+          "आपके द्वारा कनेक्ट किए गए ऐप, टूल और खाते, जैसे डेस्कटॉप ऐप में एक्सटेंशन या सहायक बॉट से कनेक्ट किए गए मैसेजिंग ऐप और ईमेल खाते",
+          "केवल तभी जब आप उन्हें कनेक्ट करते हैं",
+          "आपका कार्य करते समय कोई एजेंट या बॉट उन्हें जो भेजता है या उनसे जो पढ़ता है",
+          "उस सेवा द्वारा निर्धारित",
+          "आप उन्हें चुनते हैं और उनके साथ आपका अपना समझौता होता है। उनकी शर्तें लागू होती हैं।"
+        ],
+        [
+          "Hostinger",
+          "orqanix.com के लिए डोमेन नाम सेवा (DNS)",
+          "हमारे डोमेन नाम के तकनीकी लुकअप। कोई खाता डेटा नहीं।",
+          "Hostinger द्वारा निर्धारित",
+          "तकनीकी सेवा"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "यदि आप अपने Mac पर किसी स्थानीय AI मॉडल का उपयोग करते हैं, तो आपकी बातचीत किसी AI प्रदाता के बजाय उस मॉडल के पास जाती है। एजेंटों द्वारा {company.name} क्लाउड अनुसंधान को भेजे गए प्रश्न फिर भी हमारे क्लाउड और ऊपर बताए गए प्रदाताओं के पास जाते हैं।"
+    },
+    {
+      "type": "p",
+      "text": "हमारे पास कोई भुगतान प्रदाता, कोई एनालिटिक्स सेवा और कोई विज्ञापन नेटवर्क नहीं है। हम व्यक्तिगत डेटा नहीं बेचते।"
+    },
+    {
+      "type": "h2",
+      "id": "servers",
+      "text": "हमारे सर्वर कहाँ हैं"
+    },
+    {
+      "type": "p",
+      "text": "हम अपनी क्लाउड सेवाओं और डेटाबेस को EU में, नीदरलैंड में (क्षेत्र europe-west4) Google Cloud पर होस्ट करते हैं। इसमें वेबसाइट, वेब ऐप, वह सेवा जिससे डेस्कटॉप ऐप संवाद करता है, API और उसका अपना डेटाबेस, तथा वे फ़ाइलें और रिपोर्ट शामिल हैं जिन्हें आपके एजेंट क्लाउड में संग्रहीत करते हैं। प्रत्येक उद्यम परियोजना EU के उस Google Cloud क्षेत्र में होस्ट की जाती है जिस पर हम ग्राहक के साथ सहमत होते हैं।"
+    },
+    {
+      "type": "p",
+      "text": "कुछ प्रदाता, जैसे Clerk और Google Gemini, डेटा को US में या कहीं और संसाधित कर सकते हैं। डेटा पारगमन के दौरान (HTTPS) एन्क्रिप्ट किया जाता है, और हमारा क्लाउड प्रदाता उसे संग्रहण के दौरान (at rest) एन्क्रिप्ट करता है।"
+    },
+    {
+      "type": "h3",
+      "id": "transfers",
+      "text": "EU के बाहर स्थानांतरण",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "जब व्यक्तिगत डेटा EEA, UK या स्विट्ज़रलैंड से बाहर जाता है, तो कानून एक सुरक्षा उपाय की अपेक्षा करता है। Clerk के लिए, सुरक्षा उपाय EU-US Data Privacy Framework है, जिसके विकल्प के रूप में EU Standard Contractual Clauses (मानक संविदात्मक खंड) हैं (GDPR Art. 45 and 46)। Google Cloud के साथ, आपका डेटा EU में होस्ट किया जाता है।"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Google Gemini के लिए, हम Google की सशुल्क सेवा का उपयोग करते हैं। हमारे द्वारा भेजे गए डेटा पर Google की सशुल्क सेवा की शर्तें और उसकी डेटा प्रसंस्करण शर्तें लागू होती हैं।"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "आपके डेटा पर लागू सुरक्षा उपायों की एक प्रति प्राप्त करने के लिए, {company.privacyEmail} पर लिखें।"
+    },
+    {
+      "type": "h3",
+      "id": "government-access",
+      "text": "विदेशी सरकारों के अनुरोध",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU कानून क्लाउड प्रदाताओं से यह बताने की अपेक्षा करता है कि उनका बुनियादी ढाँचा कहाँ है और वे EU के बाहर की सरकारों के अनुरोधों के बारे में क्या करते हैं (EU Data Act, Art. 28)। यह सभी डेटा पर लागू होता है, केवल व्यक्तिगत डेटा पर नहीं।"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "हमारा बुनियादी ढाँचा: हमारी क्लाउड सेवाएँ और डेटाबेस EU कानून के अंतर्गत नीदरलैंड में Google Cloud पर चलते हैं। साइन-इन संयुक्त राज्य अमेरिका में Clerk पर चलता है।",
+        "Google और Clerk अमेरिकी कंपनियाँ हैं या अमेरिकी समूहों का हिस्सा हैं, इसलिए उन पर US कानून भी लागू हो सकता है।",
+        "यदि EU के बाहर की कोई सरकार या न्यायालय हमसे आपका डेटा माँगता है, तो हम जाँचते हैं कि अनुरोध वैध है या नहीं और क्या EU या राष्ट्रीय कानून हमें उसका उत्तर देने की अनुमति देता है।",
+        "जहाँ संभव हो, हम उन अनुरोधों पर आपत्ति करते हैं जो गैरकानूनी या बहुत व्यापक हैं। हम केवल उतना ही न्यूनतम डेटा सौंपते हैं जितना अनुरोध वैध रूप से अपेक्षित करता है।",
+        "उत्तर देने से पहले हम संबंधित ग्राहक को सूचित करते हैं, जब तक कि कानून इसकी मनाही न करे।"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "service-providers",
+      "text": "US राज्यों के गोपनीयता कानून",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "US राज्यों के गोपनीयता कानूनों के अंतर्गत, Google Cloud, Clerk और Cloudflare हमारे लिए सेवा प्रदाताओं या प्रोसेसरों के रूप में काम करते हैं। Google की शर्तें तय करती हैं कि Google, Gemini API को हमारे द्वारा भेजे गए डेटा का उपयोग कैसे कर सकता है, जैसा कि [हमारा AI कैसे काम करता है](/instant/legal/ai#data-models-see) में बताया गया है। हम व्यक्तिगत डेटा नहीं बेचते और न ही लक्षित विज्ञापन के लिए उसे साझा करते हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "इस सूची में बदलाव"
+    },
+    {
+      "type": "p",
+      "text": "जब हम कोई उप-प्रसंस्करणकर्ता जोड़ते या बदलते हैं, तो हम यह पृष्ठ और शीर्ष पर दी गई तिथि अपडेट करते हैं।"
+    },
+    {
+      "type": "p",
+      "text": "हमारे [डेटा प्रसंस्करण परिशिष्ट](/instant/legal/dpa) के अंतर्गत आने वाले व्यावसायिक ग्राहकों को किसी नए उप-प्रसंस्करणकर्ता द्वारा उनका डेटा संभालना शुरू करने से पहले सूचना मिलती है। वे परिशिष्ट में बताए अनुसार आपत्ति कर सकते हैं।"
+    }
+  ]
+}

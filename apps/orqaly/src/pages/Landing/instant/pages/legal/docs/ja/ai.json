@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "slug": "ai",
+    "title": "AI の仕組み",
+    "summary": "Orqanix の AI についてのわかりやすいガイドです。当社が使用するモデル、エージェントが行うこと、モデルが見るデータ、そしてお客様が主導権を保つ方法を説明します。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "EU AI Act Art. 50(2): outputs are not machine-marked today, and the page says so. The 2 Dec 2026 grace period applies only if the Desktop App was on the EU market before 2 Aug 2026; if not, marking of text and files applies now (FACTS.md open point 10; critique item 11). Owner to decide on marking and give the first EU market date.",
+        "geminiPaidTier is empty: the paid-tier statement about Google's use of data stays hidden until the owner confirms Google's paid Gemini tier and data processing terms (FACTS.md open point 3). Google's terms require the paid tier for users in the EEA, UK and Switzerland.",
+        "Google's processing location is not pinned in our code; the page says Google may process data outside the EU.",
+        "Desktop defaults (auto-approve on, shell and file tools on, dictation on) are disclosed as they are. Owner may change them (FACTS.md open point 8); update this page if so.",
+        "Whether dictation works end to end is uncertain; the page only says that, if you use it, your voice goes to the model provider.",
+        "The Assistant Bot has no code yet; its AI disclosure to other people is a rule in the Assistant Bot Terms and must be built before launch.",
+        "US state chatbot rules are summarised in plain words without listing each law. Colorado HB 26-1263 (from 2027-01-01) and California SB 243 / SB 1119 positioning need lawyer review.",
+        "Research questions sent from the Desktop App to the cloud research tool are stored in our cloud (FACTS.md §4). The page says so, and the Privacy Policy, Desktop App Terms and Sub-processors page say the same (cross-check 2026-09-21).",
+        "The claim 'No one at Orqanix reads along' was removed because FACTS.md does not cover staff access to cloud data (support, abuse, legal requests). Owner to define staff access and state it in the Privacy Policy.",
+        "Art. 50(1) disclosure for third parties: Desktop agents can message or email other people through tools the user connects. The page leaves that duty with the user and the bot rule; lawyer to confirm whether we, as provider, must add an AI label to agent-sent messages from the Desktop App too.",
+        "Art. 50(4) deployer duties are passed to users for non-personal use; lawyer to confirm the wording and whether the Code of Practice on marking should be signed.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): AI output errors are described as a known limit; lawyer to confirm this does not read as a liability exclusion for consumers (liability is in the Terms of Service).",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "working-with-ai",
+      "text": "AI と働く"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix は AI 製品です。Orqanix とチャットしたり、目標を与えたり、アシスタントボットを使ったりするとき、お客様は人ではなく AI エージェントと一緒に作業しています。AI エージェントとは、AI モデルを使ってタスクを理解し、手順を計画し、ファイルの読み取りやウェブ検索などのツールを使ってそれを実行するソフトウェアです。"
+    },
+    {
+      "type": "p",
+      "text": "エージェントの回答や操作は AI によるものであり、Orqanix の誰かによるものではありません。当社のチームがお客様の作業に関わるのは、お客様が当社にメールなどで連絡した場合、または当社がお客様と書面で合意したエンタープライズプロジェクトの場合に限られます。"
+    },
+    {
+      "type": "h2",
+      "id": "models",
+      "text": "当社のモデル"
+    },
+    {
+      "type": "p",
+      "text": "デフォルトでは、当社のエージェントは Gemini API を通じて、Google が開発した AI モデルである Google Gemini を使用します。クラウドアシスタントおよび API では、エージェントは Gemini を通じて Google 検索を使い、最新の情報を探すこともできます。当社はモデルのバージョンを選択し、より優れたバージョンが登場した場合には変更することがあります。"
+    },
+    {
+      "type": "p",
+      "text": "デスクトップアプリでは、代わりに OpenAI や Anthropic など別のモデルプロバイダーを接続することや、お客様の Mac 上でローカルモデルを実行することができます。プロバイダーを接続した場合、お客様の会話はお客様とそのプロバイダーとの契約に基づいてそのプロバイダーに送られ、そのプロバイダーの規約が適用されます。ローカルモデルを実行する場合、会話はお客様の Mac 上のそのモデルの中にとどまります。"
+    },
+    {
+      "type": "p",
+      "text": "モデルを作っているのはこれらの企業です。当社はエージェント、すなわちモデルがお客様の作業を行えるようにするための指示、ツールおよびコンテキストを構築しています。"
+    },
+    {
+      "type": "h2",
+      "id": "what-agents-do",
+      "text": "エージェントが行うこと"
+    },
+    {
+      "type": "table",
+      "head": [
+        "製品",
+        "AI が行うこと",
+        "結果を実行する主体"
+      ],
+      "rows": [
+        [
+          "デスクトップアプリ",
+          "お客様の Mac 上で調査し、計画し、実際のファイルを作成します。ファイルの読み書きやコマンドの実行ができます。",
+          "エージェントが、お客様の Mac 上で、お客様が選んだ設定の範囲内で実行します。"
+        ],
+        [
+          "モバイルアプリ",
+          "スマートフォンから、ジョブの確認、結果の閲覧、およびお客様の Mac での作業の開始ができます。",
+          "お客様の Mac 上のデスクトップアプリ。"
+        ],
+        [
+          "アシスタントボット",
+          "お客様が与えた役割で働きます。お客様が接続したアカウントを通じて、メッセージの下書き、ファイルの整理、連絡先の収集、スケジュールされたジョブの実行を行います。",
+          "ボットが、お客様が与えたアクセス権の範囲内で実行します。[アシスタントボット利用規約](/instant/legal/assistant-bot-terms)をご覧ください。"
+        ],
+        [
+          "API",
+          "タスクを誰が行うべきか（エージェント、チームまたは人）を、理由、ガードレールおよび計画とともに推奨します。",
+          "お客様自身のシステム。API は助言するのみで、作業は行いません。"
+        ],
+        [
+          "エンタープライズ",
+          "エージェントと専門家が、お客様の事業のための AI ワークフローを構築し運用します。",
+          "お客様の書面による注文で合意したとおり。"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "エージェントは、与信、仕事または契約に関する判断など、お客様について法的効果またはそれと同様に重要な効果を及ぼす判断を行いません。エージェントはお客様のデータを広告のターゲティングに使用せず、Orqanix には広告はありません。"
+    },
+    {
+      "type": "h2",
+      "id": "ai-can-be-wrong",
+      "text": "AI は間違えることがある"
+    },
+    {
+      "type": "p",
+      "text": "AI モデルは、もっともらしい答えを予測します。その答えは誤っている、不完全である、または古い場合があり、誤った内容を自信をもって述べることもあります。エージェントは、タスクを誤解したり、誤ったファイルを選んだり、お客様が予期しなかった手順を実行したりすることがあります。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "結果に依拠し、共有し、またはそれに基づいて行動する前に、結果を確認してください。",
+        "エージェントが書いたものに含まれる事実、数値、名前、情報源および引用を確認してください。",
+        "AI の出力は、法律、医療、税務または金融に関する助言などの専門的な助言ではありません。そのような助言は、資格を有する人に求めてください。",
+        "重要なファイルは、エージェントに変更させる前にコピーを保管してください。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-control",
+      "text": "人による管理"
+    },
+    {
+      "type": "p",
+      "text": "デスクトップアプリでは、エージェントが自らの判断でどこまで行ってよいかをお客様が選択します。"
+    },
+    {
+      "type": "table",
+      "head": [
+        "モード",
+        "動作"
+      ],
+      "rows": [
+        [
+          "自動承認（デフォルト）",
+          "エージェントは、ファイルの編集やコマンドの実行などの手順を、お客様に事前に確認することなく実行します。"
+        ],
+        [
+          "機密性の高い手順のみ確認",
+          "エージェントは、機密性が高いとみなす手順の前に確認し、それ以外は実行します。お客様は「1 回だけ許可」、「常に許可」または「拒否」を選択します。"
+        ],
+        [
+          "すべての手順の前に確認",
+          "エージェントは、各操作の前に確認します。お客様は「1 回だけ許可」、「常に許可」または「拒否」を選択します。"
+        ],
+        [
+          "チャットのみ",
+          "エージェントは回答しますが、操作は行いません。"
+        ]
+      ]
+    },
+    {
+      "type": "note",
+      "text": "デフォルトでは、確認せずに操作が行われます。各手順を承認したい場合は、作業を始める前にモードを変更してください。"
+    },
+    {
+      "type": "p",
+      "text": "お客様はいつでもエージェントを停止し、エージェントが行ったことを確認できます。エージェントが作成したファイルは、お客様が選択したプロジェクトフォルダに保存されます。ボットについては、その役割とアクセス権の設定方法を[アシスタントボット利用規約](/instant/legal/assistant-bot-terms)で説明しています。"
+    },
+    {
+      "type": "h2",
+      "id": "data-models-see",
+      "text": "モデルが見るデータ"
+    },
+    {
+      "type": "p",
+      "text": "作業を行うために、モデルにはコンテキストが必要です。各ステップで、エージェントはそれまでの会話をモデルプロバイダーに送信します。これには、お客様が書いた内容、エージェントが読み取ったファイルの内容、エージェントが実行したコマンドの結果、および当社の指示が含まれます。音声入力を使用する場合、お客様の音声はモデルプロバイダーに送信されます。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "デスクトップアプリでは、デフォルトのモデルへのリクエストは、Google に送られる途中で EU 内の当社クラウドを経由します。当社はその内容をそこに保存しません。",
+        "エージェントがウェブを検索する場合、お客様のタスクから作成された検索クエリが検索エンジンに送られます。一部のリサーチでは、商業登記の照会も行われることがあります。",
+        "デスクトップのエージェントが Orqanix クラウドリサーチを使用する場合、エージェントが送信する質問と、それに含まれるクラウドファイルの抜粋は、お客様のクラウドワークスペースに保存されます。",
+        "当社のクラウドには、お客様のクラウド上のチャット、目標、およびエージェントがそこで作成したファイルが保存されます。クラウドは EU 内（Google Cloud、オランダ）でホストされています。デスクトップアプリは、チャット履歴をお客様の Mac 上のファイルに保存します。",
+        "Google は、受け取ったデータを EU 域外で処理することがあります。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当社が収集するもの、その送信先、保存期間、およびお客様の権利については、[プライバシーポリシー](/instant/legal/privacy)で詳しく説明しています。関係する企業は、当社の[サブプロセッサ](/instant/legal/subprocessors)一覧に記載しています。"
+    },
+    {
+      "type": "h2",
+      "id": "training",
+      "text": "モデルの学習"
+    },
+    {
+      "type": "p",
+      "text": "当社は、お客様のコンテンツを使って自社の AI モデルを学習させることはありません。当社はお客様の個人データを販売しません。"
+    },
+    {
+      "type": "p",
+      "text": "Google が受け取ったデータをどのように扱うことができるかは、Google の[Gemini API 利用規約](https://ai.google.dev/gemini-api/terms)によって決まります。Google は、自社のポリシーに記載のとおり、不正利用の検出などのために一部のデータを一定期間保持します。"
+    },
+    {
+      "type": "p",
+      "text": "当社は、Google の有料の Gemini API サービスを利用しています。Google の有料サービス向けの規約に基づき、Google はお客様のプロンプトやその回答を自社製品の改善に使用しません。Google はそれらを、そのデータ処理規約に基づいて処理します。",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "デスクトップアプリで OpenAI、Anthropic その他のプロバイダーを接続した場合、そのプロバイダーがお客様のデータをどのように使用するかは、そのプロバイダーの規約によって決まります。"
+    },
+    {
+      "type": "h2",
+      "id": "ai-made-content",
+      "text": "AI が作成したコンテンツ"
+    },
+    {
+      "type": "p",
+      "text": "エージェントが作成したファイル、テキスト、レポートおよびメッセージは、人が書いたように見える場合でも、AI によって作成されたものです。現時点では、それらにはその旨を示す隠し透かしや機械可読なラベルは付いていません。"
+    },
+    {
+      "type": "p",
+      "text": "AI が作成したコンテンツをどう扱うかはお客様が決定し、お客様がその責任を負います。公開する場合は、それが正確かつ適法であることを確認し、誠実さまたは法律が求める場合には、AI が作成したものであることを示してください。"
+    },
+    {
+      "type": "p",
+      "text": "EU では、AI が作成したコンテンツを純粋に個人的な目的を超えて使用する場合、お客様自身がそれにラベルを付けなければならないことがあります。公共の利益に関する事項について公衆に情報を提供するために AI が作成したテキストを公開する場合は、人が確認・編集し編集上の責任を負う場合を除き、AI が作成したものであることを示さなければなりません。ディープフェイク（本物のように見えるが AI によって作成または改変された画像、音声または動画）を作成または共有する場合は、その旨を示さなければなりません（EU AI法 Art. 50(4)）。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "一部の法律や多くのプラットフォームのルールでは、政治広告などにおいて AI が作成したコンテンツにラベルを付けることが求められています。お客様に適用される場合は、それらに従ってください。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix を使って、誰（何）がコンテンツを作成したかについて人を欺くコンテンツを作成しないでください。許可されないことは、当社の[利用ポリシー](/instant/legal/acceptable-use)に定めています。"
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "AI に関する法律",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU AI法は、AI に関するルールを定めています。Orqanix のような製品にとっての主なルールは透明性です。すなわち、人々は自分が AI とやり取りしていることを知らされなければならず、AI が作成したコンテンツは識別可能でなければなりません。本ページは、当社がこのルールを満たすための取り組みの一部です（EU AI法 Art. 50。2026 年 8 月 2 日から適用）。",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "当社は、製品内および本ページで、お客様が AI と作業していることをお伝えします。",
+        "アシスタントボットが他者に書き送る場合、自らが AI であることを相手に伝えなければなりません。[アシスタントボット利用規約](/instant/legal/assistant-bot-terms)はこれを義務付けています。",
+        "当社の API を使って独自の AI システムを構築し、それを他者に提供する場合、お客様は、ユーザーに AI とやり取りしていることを伝えることを含め、お客様のシステムに適用される AI法上の義務について責任を負います。",
+        "当社は、AI法が禁止する行為に AI を使用しません。また、お客様も Orqanix をそれらの行為に使用してはなりません。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "AI に関する法律",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "米国のいくつかの州では、AI チャットボットに関するルールが定められています。要するに、人間と話していると人々に誤解させてはならず、尋ねられた場合には AI は自らが AI であると伝えなければなりません。一部の州では、公衆が利用するチャットボットや、個人的な関係を築くコンパニオン型チャットボットに関するルールも追加されています。",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "当社は、製品内および本ページで、お客様が AI と作業していることをお伝えします。",
+        "アシスタントボットが他者に書き送る場合、尋ねられたときを含め、自らが AI であることを相手に伝えなければなりません。[アシスタントボット利用規約](/instant/legal/assistant-bot-terms)はこれを義務付けています。",
+        "Orqanix は仕事のために作られています。コンパニオン型チャットボットではなく、お客様がそのように設定することもできません。",
+        "当社の API を使って独自の AI システムを構築し、それを他者に提供する場合、お客様は、お客様のシステムに適用される開示その他の義務について責任を負います。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report-a-problem",
+      "text": "問題の報告"
+    },
+    {
+      "type": "p",
+      "text": "エージェントが有害な、違法な、もしくは著しく誤った結果を出した場合、または行うべきでないことを行った場合は、当社にお知らせください。当社は、報告を問題の修正ならびに指示および安全対策の改善に役立てます。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "違法なコンテンツまたは不正利用：件名を「Report」として {company.email} までメールでご連絡ください。何がいつ起きたかを記載し、可能であればコピーまたはリンクを添付してください。当社は内容を確認して判断し、お客様および影響を受けたユーザーにその理由をお伝えします。詳細は[違反の報告](/instant/legal/acceptable-use#report)をご覧ください。",
+        "誤ったまたは有害な AI の結果、その他当社の AI に関するご質問：{company.email}。",
+        "お客様のデータに関するご質問：{company.privacyEmail}。",
+        "セキュリティ上の脆弱性：{company.securityEmail}。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EUデジタルサービス法に基づく当局およびユーザー向けの当社の単一連絡窓口は {company.email} です（英語で対応）。",
+      "only": "eu"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import HeroFrame from './HeroFrame';
+import { useT } from '../../i18n/useT';
+import { DEFAULT_LANG } from '../../i18n/languages';
 import './SpeedHero.css';
 
 // One lap of the face is 90 seconds, the same scale as the race tracks further down, so the
@@ -26,6 +28,17 @@ const SWEEP_DELAY_MS = 500;
 const LONGEST_FRAME_MS = 64;
 
 const UNIT = ' s';
+
+// The day the three runs were measured, as the page prints it.
+const MEASURED_ON = new Date(2026, 8, 18);
+
+/** "18 Sep 2026" in English, the same date in the reader's own form in any other language. */
+export function measuredOn(lang) {
+  if (lang === DEFAULT_LANG) return '18 Sep 2026';
+  return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    MEASURED_ON
+  );
+}
 
 function angleOf(seconds) {
   return (seconds / FACE_SECONDS) * 360;
@@ -330,6 +343,7 @@ function Readout({ run, position, seconds, onHover, onFocus }) {
 }
 
 function Instrument({ runs }) {
+  const { t, lang } = useT('pg');
   const total = Math.max(...runs.map((run) => run.seconds));
   const [ref, onScreen] = useOnScreen();
   const { seconds, still, replay } = useSweep(total, onScreen);
@@ -341,7 +355,7 @@ function Instrument({ runs }) {
   return (
     // data-live is the landing's contract for resting loops off screen (perf.css).
     <div ref={ref} className="ohs" data-live={onScreen}>
-      <div className="ohs-dial">
+      <div className="ohs-dial" dir="ltr">
         <Face />
         <Sweep runs={runs} seconds={seconds} total={total} active={active} />
         <div className="ohs-marks" aria-hidden="true">
@@ -375,14 +389,22 @@ function Instrument({ runs }) {
             </span>
           ))}
         </div>
-        <ul className="ohs-plate" role="list" aria-label="How these were measured">
-          <li>Single runs</li>
-          <li>18 Sep 2026</li>
-          <li>Orqanix cloud</li>
+        <ul
+          className="ohs-plate"
+          role="list"
+          aria-label={t('pg.speed.hero.plate', 'How these were measured')}
+        >
+          <li>{t('pg.speed.hero.single', 'Single runs')}</li>
+          <li>{measuredOn(lang)}</li>
+          <li>{t('pg.speed.hero.cloud', 'Orqanix cloud')}</li>
         </ul>
       </div>
       <div className="ohs-side">
-        <ol className="ohs-readouts" role="list" aria-label="Measured timings">
+        <ol
+          className="ohs-readouts"
+          role="list"
+          aria-label={t('pg.speed.hero.timings', 'Measured timings')}
+        >
           {runs.map((run, i) => (
             <Readout
               key={run.id}
@@ -397,11 +419,12 @@ function Instrument({ runs }) {
         {/* With motion switched off there is no sweep, so there is nothing to replay. */}
         {!still && (
           <div className="ohs-controls">
-            <span className="ohs-note">Sweep sped up</span>
+            <span className="ohs-note">{t('pg.speed.hero.spedup', 'Sweep sped up')}</span>
             <button type="button" className="ohs-replay" onClick={replay}>
               <ReplayGlyph />
               <span>
-                Replay<span className="oi-sr-only"> the dial</span>
+                {t('pg.speed.replay', 'Replay')}
+                <span className="oi-sr-only"> {t('pg.speed.hero.thedial', 'the dial')}</span>
               </span>
             </button>
           </div>
@@ -418,17 +441,21 @@ function Instrument({ runs }) {
  * `runs` is `{ id, seconds, label, href }`, shortest first; the page owns the ids it links to.
  */
 export default function SpeedHero({ runs, methodHref }) {
+  const { t } = useT('pg');
   return (
     <HeroFrame
       id="speed-page-heading"
-      tag="Speed"
-      title="Measured, not promised."
-      line="Three real timings from the Orqanix cloud, with the date and the limits next to them."
+      tag={t('pages.speed.label', 'Speed')}
+      title={t('pg.speed.hero.title', 'Measured, not promised.')}
+      line={t(
+        'pg.speed.hero.line',
+        'Three real timings from the Orqanix cloud, with the date and the limits next to them.'
+      )}
       className="ohs-hero"
       visual={<Instrument runs={runs} />}
     >
       <a className="ohs-method" href={methodHref}>
-        <span>How we measured</span>
+        <span>{t('pg.speed.method.title', 'How we measured')}</span>
         <ArrowDownGlyph />
       </a>
     </HeroFrame>
