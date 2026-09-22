@@ -29,7 +29,7 @@ const ChangedFileSchema = z.object({
   ),
   change: z.enum(['new', 'edited', 'deleted']),
 }).strict();
-const EvidenceSchema = z.object({
+const EvidenceShape = {
   diff: z.object({
     status: z.enum(['captured', 'unavailable']),
     before: z.string().max(MAX_EVIDENCE_CHARACTERS),
@@ -44,6 +44,10 @@ const EvidenceSchema = z.object({
     truncated: z.boolean(),
   }).strict(),
   toolsUsed: z.array(nonempty(200)).max(64),
+};
+const LegacyEvidenceSchema = z.object(EvidenceShape).strict();
+const CurrentEvidenceSchema = z.object({
+  ...EvidenceShape,
   changedFilesStatus: z.enum(['captured', 'unavailable']),
   changedFiles: z.array(ChangedFileSchema).max(256),
   relevantIgnoredFilesChanged: z.boolean(),
@@ -56,6 +60,7 @@ const EvidenceSchema = z.object({
     context.addIssue({ code: 'custom', path: ['changedFiles'], message: 'Changed-file paths must be unique.' });
   }
 });
+const EvidenceSchema = z.union([CurrentEvidenceSchema, LegacyEvidenceSchema]);
 export const EngineeringReviewSchema = z.object({
   taskId: DesktopConversationIdSchema,
   conversationId: DesktopConversationIdSchema,
@@ -135,12 +140,6 @@ export function createEngineeringReviewService({ desktopWorkService = null, apiK
       seenReferences.add(identity);
     }
     const started = Date.now();
-    const controller = new AbortController();
-    let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
-    const abort = () => controller.abort();
-    if (signal?.aborted) controller.abort();
-    signal?.addEventListener('abort', abort, { once: true });
     const receipt = (status, reason, evaluated = {}) => ({
       taskId: command.taskId,
       conversationId: command.conversationId,
@@ -153,6 +152,17 @@ export function createEngineeringReviewService({ desktopWorkService = null, apiK
         qualityScore: null, readyProbability: null, ...evaluated,
       },
     });
+    // Older desktop builds cannot attest which repository files changed. Accept their exact payload
+    // shape for compatibility, but never send incomplete evidence to the advisory provider.
+    if (!('changedFilesStatus' in command.evidence)) {
+      return receipt('not_evaluated', 'missing_changed_file_evidence');
+    }
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+    const abort = () => controller.abort();
+    if (signal?.aborted) controller.abort();
+    signal?.addEventListener('abort', abort, { once: true });
     try {
       const research = [];
       for (const reference of command.researchReferences) {
