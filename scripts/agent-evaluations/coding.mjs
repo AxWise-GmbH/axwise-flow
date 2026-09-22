@@ -382,6 +382,30 @@ function armEvaluation(checks, jevStatus) {
   };
 }
 
+function vanillaChangedFileEvidence(fixture, checks) {
+  const changedPaths = Array.isArray(checks.changedPaths) ? checks.changedPaths : [];
+  const safelyCaptured =
+    (changedPaths.length === 0 && checks.codeChanged === false) ||
+    (changedPaths.length === 1 &&
+      changedPaths[0] === fixture.targetFilename &&
+      checks.codeChanged === true &&
+      checks.onlyTargetChanged === true);
+  if (!safelyCaptured) {
+    return {
+      changedFilesStatus: 'unavailable',
+      changedFiles: [],
+      relevantIgnoredFilesChanged: false,
+    };
+  }
+  return {
+    changedFilesStatus: 'captured',
+    changedFiles: checks.codeChanged
+      ? [{ path: fixture.targetFilename, change: 'edited' }]
+      : [],
+    relevantIgnoredFilesChanged: false,
+  };
+}
+
 function outputText(response) {
   if (typeof response === 'string') return response;
   if (!response || typeof response !== 'object') return '';
@@ -557,6 +581,7 @@ async function evaluateVanillaWithJev({
     acceptanceCriteria: caseData.criteria,
     researchReferences: [],
   });
+  const changedFileEvidence = vanillaChangedFileEvidence(fixture, checks);
   const evidence = {
     diff: {
       status: 'captured',
@@ -566,6 +591,7 @@ async function evaluateVanillaWithJev({
     },
     tests: testResult,
     toolsUsed: [],
+    ...changedFileEvidence,
   };
   try {
     const receipt = await invokeValidatedJev(jevEvaluator, {
@@ -717,6 +743,10 @@ export async function runVanillaCodingArm({
         evidenceHash: jsonHash(receipt.evidence),
         targetHash: checks.targetHash,
         tests: testResult,
+        diff: receipt.evidence.diff,
+        changedFilesStatus: receipt.evidence.changedFilesStatus,
+        changedFiles: receipt.evidence.changedFiles,
+        relevantIgnoredFilesChanged: receipt.evidence.relevantIgnoredFilesChanged,
         review: receipt.review,
       },
       ...(response?.usage ? { usage: response.usage } : {}),
