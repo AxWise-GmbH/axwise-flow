@@ -23,7 +23,8 @@ export function DesktopDownloadButton({ descriptionId }) {
 export function DesktopReleaseDetails({ id, showChecksum = false }) {
   return (
     <Typography id={id} sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.8 }}>
-      Apple Silicon · {Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB · Preview (not notarized)
+      Orqanix {DESKTOP_RELEASE.version} · Apple Silicon ·{' '}
+      {Math.round(DESKTOP_RELEASE.bytes / 1_000_000)} MB · Preview (not notarized)
       <br />
       Sign in with your Orqanix account to use the app.
       {showChecksum && (
