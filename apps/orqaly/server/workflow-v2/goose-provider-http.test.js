@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import { createServer } from 'node:http';
-import { createGooseProviderRouter, GOOSE_PROVIDER_MODEL } from './goose-provider-http.js';
+import { createGooseProviderRouter, GOOSE_PROVIDER_MODEL, validateGooseChatRequest } from './goose-provider-http.js';
 import { DesktopWorkIdentitySchema, DesktopWorkStartSchema } from './desktop-work-service.js';
 
 const servers = [];
@@ -119,6 +119,20 @@ describe('desktop context and bounded work routes', () => {
 });
 const jsonResponse = (value) => new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 const requestBody = () => ({ model: GOOSE_PROVIDER_MODEL, messages: [{ role: 'user', content: 'Explain the next step.' }] });
+function imageBytes(mime, size = 16) {
+  const bytes = Buffer.alloc(size);
+  if (mime === 'image/jpeg') bytes.set([0xff, 0xd8, 0xff]);
+  else if (mime === 'image/png') bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  else if (mime === 'image/webp') {
+    bytes.write('RIFF', 0, 'ascii');
+    bytes.writeUInt32LE(Math.max(0, size - 8), 4);
+    bytes.write('WEBP', 8, 'ascii');
+  }
+  return bytes;
+}
+const imagePart = (mime, bytes = imageBytes(mime)) => ({
+  type: 'image_url', image_url: { url: `data:${mime};base64,${bytes.toString('base64')}` },
+});
 async function fixture(overrides = {}) {
   const commandService = { session: vi.fn().mockResolvedValue({ userId: 'user-1', tenantBound: true }) };
   const verifyDesktopAuth = vi.fn(async (req) => req.get('authorization') === 'Bearer desktop-token' ? { userId: 'user-1' } : null);
@@ -168,29 +182,132 @@ describe('authenticated Goose provider transport', () => {
   });
   it('serves authenticated model discovery and session without provider spend', async () => {
     const f = await fixture();
-    expect(await (await f.call('/models', null)).json()).toMatchObject({ data: [{ id: GOOSE_PROVIDER_MODEL }] });
-    expect(await (await f.call('/session', null)).json()).toEqual({ userId: 'user-1', tenantBound: true, model: GOOSE_PROVIDER_MODEL });
+    expect(await (await f.call('/models', null)).json()).toMatchObject({
+      data: [{ id: GOOSE_PROVIDER_MODEL, input_modalities: ['text', 'image'] }],
+    });
+    expect(await (await f.call('/session', null)).json()).toEqual({ userId: 'user-1', tenantBound: true,
+      model: GOOSE_PROVIDER_MODEL, input_modalities: ['text', 'image'] });
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
-  it('enforces the 2MB body limit after authenticating', async () => {
+  it('enforces the 18 MiB authenticated parser envelope', async () => {
     const f = await fixture();
-    const response = await f.call('/chat/completions', { ...requestBody(), messages: [{ role: 'user', content: 'x'.repeat(2 * 1024 * 1024) }] });
+    const response = await f.call('/chat/completions', { ...requestBody(), messages: [{ role: 'user', content: 'x'.repeat(18 * 1024 * 1024) }] });
     expect(response.status).toBe(413);
     expect(f.commandService.session).toHaveBeenCalledOnce();
     expect(f.fetchImpl).not.toHaveBeenCalled();
     expect(await response.json()).toMatchObject({ error: { code: 'CHAT_REQUEST_TOO_LARGE' } });
+  });
+  it('keeps non-image prompt and tool metadata within the prior 2 MiB budget', async () => {
+    const f = await fixture();
+    const response = await f.call('/chat/completions', { ...requestBody(),
+      messages: [{ role: 'user', content: 'x'.repeat(2 * 1024 * 1024) }] });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_REQUEST_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
   });
   it.each([
     { ...requestBody(), model: 'gemini-3.8-flash' },
     { ...requestBody(), upstream: 'https://attacker.invalid' },
     { ...requestBody(), tenantId: 'some-other-tenant' },
     { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'http://169.254.169.254/' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'https://external.invalid/image.png' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'file:///private/etc/passwd' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,not-base64' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [imagePart('image/jpeg', imageBytes('image/png'))] }] },
+    { ...requestBody(), messages: [{ role: 'assistant', content: [imagePart('image/jpeg')] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ ...imagePart('image/jpeg'), caption: 'untrusted' }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { ...imagePart('image/jpeg').image_url, detail: 'auto' } }] }] },
     { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'file', file: { file_id: 'external-file' } }] }] },
     { ...requestBody(), tools: [{ type: 'url_context' }] },
     { ...requestBody(), messages: [{ role: 'user', content: 'Text', attachments: [{ url: 'https://external.invalid/file' }] }] },
   ])('rejects unsupported model/routing/identity/modalities before upstream spend: %#', async (body) => {
     const f = await fixture();
-    expect((await f.call('/chat/completions', body)).status).toBe(400);
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: 'INVALID_CHAT_REQUEST' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it.each(['image/jpeg', 'image/png', 'image/webp'])('forwards an inline %s Goose image without changing its bytes', async (mime) => {
+    const f = await fixture();
+    const image = imagePart(mime);
+    const content = [
+      { type: 'text', text: 'First instruction.' }, image,
+      { type: 'text', text: 'Second instruction.', extra_content: { keep: true } },
+    ];
+    const body = { ...requestBody(), messages: [{ role: 'user', content }] };
+    expect((await f.call('/chat/completions', body)).status).toBe(200);
+    const sent = JSON.parse(f.fetchImpl.mock.calls[0][1].body);
+    expect(sent.messages[0].content).toEqual(content);
+    expect(sent.messages[0].content[1].image_url.url).toBe(image.image_url.url);
+  });
+  it('accepts an image exactly at the 1 MiB per-image bound', () => {
+    const body = { ...requestBody(), messages: [{ role: 'user',
+      content: [imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024))] }] };
+    expect(validateGooseChatRequest(body)).toBe(true);
+  });
+  it('rejects a decoded image over 1 MiB with a bounded-size error', async () => {
+    const f = await fixture();
+    const body = { ...requestBody(), messages: [{ role: 'user',
+      content: [imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024 + 4))] }] };
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('keeps aggregate decoded image bytes within the upstream request budget', async () => {
+    const f = await fixture();
+    const images = Array.from({ length: 11 }, () =>
+      imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024)));
+    const body = { ...requestBody(), messages: [
+      { role: 'user', content: images.slice(0, 10) },
+      { role: 'assistant', content: 'Continue.' },
+      { role: 'user', content: images.slice(10) },
+    ] };
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('accepts exactly 10 MiB of decoded images', () => {
+    const body = { ...requestBody(), messages: [{ role: 'user',
+      content: Array.from({ length: 10 }, () =>
+        imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024))) }] };
+    expect(validateGooseChatRequest(body)).toBe(true);
+  });
+  it('rejects more than the desktop maximum of 10 images in one user message', async () => {
+    const f = await fixture();
+    const response = await f.call('/chat/completions', { ...requestBody(), messages: [{ role: 'user',
+      content: Array.from({ length: 11 }, () => imagePart('image/png')) }] });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('does not strand a persisted conversation after more than 20 small historical images', async () => {
+    const f = await fixture();
+    const images = Array.from({ length: 21 }, () => imagePart('image/png'));
+    const body = { ...requestBody(), messages: [
+      { role: 'user', content: images.slice(0, 10) },
+      { role: 'assistant', content: 'Continue.' },
+      { role: 'user', content: images.slice(10, 20) },
+      { role: 'assistant', content: 'I reviewed those screenshots.' },
+      { role: 'user', content: [images[20]] },
+      { role: 'assistant', content: 'I reviewed the last screenshot.' },
+      { role: 'user', content: 'Summarize the result.' },
+    ] };
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(body.messages);
+  });
+  it('rejects more than Gemini\'s 3,600-image request ceiling', async () => {
+    const f = await fixture();
+    const messages = Array.from({ length: 361 }, (_value, index) => ({
+      role: 'user',
+      content: Array.from({ length: index === 360 ? 1 : 10 }, () => imagePart('image/png')),
+    }));
+    const response = await f.call('/chat/completions', { ...requestBody(), messages });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
   it('keeps tool calls, argument strings, thought signatures, usage and response bytes intact', async () => {
