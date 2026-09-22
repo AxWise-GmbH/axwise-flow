@@ -24,6 +24,14 @@ function request(change = () => {}) {
   value.inputHash = sha256Hex(JSON.stringify({ task: value.task, acceptanceCriteria: value.acceptanceCriteria, researchReferences: value.researchReferences }));
   return value;
 }
+function legacyRequest(change = () => {}) {
+  return request((value) => {
+    delete value.evidence.changedFilesStatus;
+    delete value.evidence.changedFiles;
+    delete value.evidence.relevantIgnoredFilesChanged;
+    change(value);
+  });
+}
 function fixture(overrides = {}) {
   const options = { desktopWorkService: { read: vi.fn(async () => ({ ...reference, status: 'completed', artifacts: [{ contentHash: reference.artifactHash, markdown }] })) },
     fetchImpl: vi.fn(async () => jsonResponse(answer())), apiKey: 'server-fixture-key', ...overrides };
@@ -126,16 +134,36 @@ describe('bounded cloud engineering review', () => {
     }
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
+  it('accepts the exact legacy evidence shape but fails closed without calling the provider', async () => {
+    const f = fixture();
+    const command = legacyRequest();
+    const receipt = await f.service.review(auth, command);
+    expect(receipt).toMatchObject({ taskId: command.taskId, inputHash: command.inputHash,
+      evidenceHash: sha256Hex(JSON.stringify(command.evidence)),
+      review: { status: 'not_evaluated', reason: 'missing_changed_file_evidence', advisory: true, model: null } });
+    expect(f.desktopWorkService.read).not.toHaveBeenCalled();
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
   it('strictly rejects malformed or inconsistent changed-file evidence', async () => {
     const f = fixture();
     for (const change of [
-      (value) => { delete value.evidence.changedFilesStatus; },
       (value) => { value.evidence.changedFiles[0].path = '../secret'; },
       (value) => { value.evidence.changedFiles[0].change = 'renamed'; },
       (value) => { value.evidence.changedFiles.push({ ...value.evidence.changedFiles[0] }); },
       (value) => { value.evidence.changedFilesStatus = 'unavailable'; },
     ]) {
       await expect(f.service.review(auth, request(change))).rejects.toMatchObject({ name: 'ZodError' });
+    }
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('rejects ambiguous payloads mixing legacy evidence with current-only fields', async () => {
+    const f = fixture();
+    for (const change of [
+      (value) => { value.evidence.changedFilesStatus = 'captured'; },
+      (value) => { value.evidence.changedFiles = [{ path: 'src/retry.js', change: 'edited' }]; },
+      (value) => { value.evidence.relevantIgnoredFilesChanged = false; },
+    ]) {
+      await expect(f.service.review(auth, legacyRequest(change))).rejects.toMatchObject({ name: 'ZodError' });
     }
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
@@ -183,6 +211,18 @@ describe('desktop engineering review route', () => {
       request: command, tokenProvider: async () => 'desktop-fixture-token' });
     expect(receipt).toMatchObject({ taskId: command.taskId, inputHash: command.inputHash, evidenceHash: sha256Hex(JSON.stringify(command.evidence)), review: { status: 'passed', model: 'jev-1.13.0', advisory: true } });
     expect(f.desktopWorkService.read).toHaveBeenCalledOnce(); expect(f.fetchImpl).toHaveBeenCalledOnce();
+  });
+  it('returns a fail-closed receipt for legacy evidence and rejects mixed legacy/current payloads', async () => {
+    const f = await routeFixture();
+    const legacy = legacyRequest();
+    const response = await f.call(legacy);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ taskId: legacy.taskId,
+      review: { status: 'not_evaluated', reason: 'missing_changed_file_evidence', advisory: true, model: null } });
+    expect(f.desktopWorkService.read).not.toHaveBeenCalled();
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+    expect((await f.call(legacyRequest((value) => { value.evidence.changedFilesStatus = 'captured'; }))).status).toBe(400);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
   });
   it('returns no-store receipts and rejects malformed or oversized JSON', async () => {
     const f = await routeFixture(); const response = await f.call();
