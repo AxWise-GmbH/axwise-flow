@@ -56,7 +56,7 @@ test('tool annotations disclose all open-world reach and edit describes conditio
   assert.match(edit.description, /shell access is not exposed/);
   assert.match(edit.description, /test_command is an arbitrary local process/);
   assert.match(edit.description, /open-world unless the desktop separately sandboxes or allowlists it/);
-  assert.match(edit.description, /When the Jev capability is enabled/);
+  assert.match(edit.description, /When the JEV capability is enabled/);
   assert.match(edit.description, /when disabled/);
   assert.match(exec.description, /filesystem or network effects/);
 });
