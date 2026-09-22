@@ -39,6 +39,14 @@ function delegationRequestPart(lifetime = 'temporary', agentId) {
   };
 }
 
+function capabilityRequestPart(capability) {
+  return { type: 'capability_request', capability };
+}
+
+function requestedCapability(message) {
+  return message.parts.find((part) => part.type === 'capability_request')?.capability;
+}
+
 function agentFromControlPlaneResponse(response) {
   return response?.body?.agent || response?.agent || null;
 }
@@ -150,6 +158,45 @@ function delegatedAgentPart(executionAgent, threadId, task, run, createdAt, agen
 function hasSourceLinkedResearchFact(response) {
   const sourceUrls = new Set(response.sources.map((source) => source.canonicalUrl));
   return response.facts.some((fact) => fact.sourceUrls.some((url) => sourceUrls.has(url)));
+}
+
+function hasSourceLinkedPresentationFact(response, presentation) {
+  const sourceUrl = presentation?.source?.url;
+  return (
+    typeof sourceUrl === 'string' &&
+    response.sources.some((source) => source.canonicalUrl === sourceUrl) &&
+    response.facts.some((fact) => fact.sourceUrls.includes(sourceUrl))
+  );
+}
+
+function validateCapabilityResponse(capabilityKind, response) {
+  const expectedPresentationKind = {
+    image_generate: 'generated_image',
+    weather: 'weather',
+    currency: 'currency',
+  }[capabilityKind];
+  if (!expectedPresentationKind) return;
+
+  if (
+    response.schemaVersion !== 'axwise.assistant-turn.v2' ||
+    response.presentations?.length !== 1 ||
+    response.presentations[0]?.kind !== expectedPresentationKind
+  ) {
+    throw new AxWiseDispatchError('AxWise returned a mismatched capability result', {
+      retryable: false,
+      errorClass: 'AXWISE_CAPABILITY_RESULT_MISMATCH',
+    });
+  }
+
+  if (
+    (capabilityKind === 'weather' || capabilityKind === 'currency') &&
+    !hasSourceLinkedPresentationFact(response, response.presentations[0])
+  ) {
+    throw new AxWiseDispatchError('AxWise returned an ungrounded capability result', {
+      retryable: true,
+      errorClass: 'AXWISE_UNGROUNDED_CAPABILITY_RESULT',
+    });
+  }
 }
 
 function approvedGoalRequest(message) {
@@ -401,15 +448,17 @@ export function createAssistantService({
 
   function axwiseEnvelope(owner, threadId, user, messages) {
     const identity = attemptIdentity(owner, threadId, user, messages);
+    const capability = requestedCapability(identity.root);
     const input = {
-      type: 'AssistantTurnV1',
+      type: capability && capability.kind !== 'text' ? 'AssistantTurnV2' : 'AssistantTurnV1',
       responseMode: responseModeForRoute(user.route),
       message: userText(identity.root),
       conversation: priorConversation(messages, identity.root.turnId),
+      ...(capability && capability.kind !== 'text' ? { capability } : {}),
     };
     return AxWiseOperationEnvelopeSchema.parse({
       operationId: identity.operationId,
-      operationType: 'AssistantTurnV1',
+      operationType: input.type,
       owner: {
         tenantId: owner.tenantId,
         organizationId: null,
@@ -533,6 +582,10 @@ export function createAssistantService({
         : textPart(result.markdown);
     const parts = [
       primary,
+      ...(result.presentations || []).map((presentation) => ({
+        type: 'presentation',
+        presentation,
+      })),
       ...result.facts.map((fact) => ({
         type: 'fact',
         statement: fact.statement,
@@ -582,8 +635,18 @@ export function createAssistantService({
         errorClass: 'AXWISE_INPUT_HASH_MISMATCH',
       });
     }
+    const capabilityKind = envelope.input.type === 'AssistantTurnV2'
+      ? envelope.input.capability.kind
+      : 'text';
+    if (
+      response.status === 'completed' &&
+      response.result.resultType === 'assistant_turn_completed'
+    ) {
+      validateCapabilityResponse(capabilityKind, response.result.response);
+    }
     if (
       envelope.input.responseMode === 'one_shot' &&
+      capabilityKind !== 'image_generate' &&
       response.status === 'completed' &&
       response.result.resultType === 'assistant_turn_completed' &&
       !hasSourceLinkedResearchFact(response.result.response)
@@ -1017,6 +1080,7 @@ export function createAssistantService({
     let operationId = responseModeForRoute(route) ? initialIdentity.operationId : null;
     const initialParts = [
       textPart(command.message),
+      ...(command.capability ? [capabilityRequestPart(command.capability)] : []),
       ...(route === 'START_GOAL'
         ? [delegationRequestPart(normalizedAgentLifetime, command.agentId)]
         : []),
@@ -1081,6 +1145,16 @@ export function createAssistantService({
     const persistedDelegation = created.message.parts.find(
       (part) => part.type === 'delegation_request'
     );
+    const persistedCapability = requestedCapability(created.message);
+    if (
+      canonicalHash(persistedCapability ?? null) !== canonicalHash(command.capability ?? null)
+    ) {
+      throw new WorkflowCommandError(
+        'IDEMPOTENCY_CONFLICT',
+        'assistant turn ID was reused with a changed capability request',
+        409
+      );
+    }
     if (
       route === 'START_GOAL' &&
       (persistedDelegation
@@ -1100,7 +1174,11 @@ export function createAssistantService({
       turnId: command.turnId,
       role: 'user',
       route,
-      parts: [textPart(command.message), ...(persistedDelegation ? [persistedDelegation] : [])],
+      parts: [
+        textPart(command.message),
+        ...(persistedCapability ? [capabilityRequestPart(persistedCapability)] : []),
+        ...(persistedDelegation ? [persistedDelegation] : []),
+      ],
       operationId,
       runId: route === 'CONTINUE_GOAL' ? created.message.workflowRunId : null,
       ...persistedRouteProvenance(created.message),
@@ -1136,7 +1214,13 @@ export function createAssistantService({
     };
   }
 
-  async function retry(auth, threadId, failedTurnId, rawCommand) {
+  async function retry(
+    auth,
+    threadId,
+    failedTurnId,
+    rawCommand,
+    { allowCapabilities = true } = {}
+  ) {
     const command = AssistantRetryCommandSchema.parse(rawCommand);
     const owner = await identity(auth);
     const loaded = await loadOwned(owner, threadId);
@@ -1180,13 +1264,24 @@ export function createAssistantService({
       );
     }
     const root = rootUser(loaded.messages, failedUser);
+    const capability = requestedCapability(root);
+    if (capability && !allowCapabilities) {
+      throw new WorkflowCommandError(
+        'ASSISTANT_CAPABILITY_DESKTOP_ONLY',
+        'Assistant capabilities are available through the desktop work boundary.',
+        400
+      );
+    }
     const retryUser = messageRecord({
       owner,
       threadId,
       turnId: command.turnId,
       role: 'user',
       route: failedUser.route,
-      parts: [textPart(userText(root))],
+      parts: [
+        textPart(userText(root)),
+        ...(capability ? [capabilityRequestPart(capability)] : []),
+      ],
       operationId: deterministicUuid(failedUser.axwiseOperationId, 'retry', 'operation'),
       retryOfTurnId: failedTurnId,
       ...persistedRouteProvenance(failedUser),
@@ -1241,6 +1336,10 @@ export function createAssistantService({
       ...(await executeAxwise(owner, threadId, retryUser, withRetry.messages)),
       idempotent: false,
     };
+  }
+
+  async function retryPublic(auth, threadId, failedTurnId, rawCommand) {
+    return retry(auth, threadId, failedTurnId, rawCommand, { allowCapabilities: false });
   }
 
   async function resume(auth, threadId, turnId) {
@@ -1394,5 +1493,5 @@ export function createAssistantService({
     );
   }
 
-  return { send, retry, resume, cancel, read, readTurnMetrics, list, agents, events };
+  return { send, retry, retryPublic, resume, cancel, read, readTurnMetrics, list, agents, events };
 }

@@ -348,7 +348,7 @@ describe('workflow v2 Cloud Run HTTP app', () => {
         idempotent: false,
         message: { role: 'assistant' },
       }),
-      retry: vi.fn().mockResolvedValue({
+      retryPublic: vi.fn().mockResolvedValue({
         route: 'DIRECT_ANSWER',
         persisted: false,
         idempotent: false,
@@ -383,6 +383,22 @@ describe('workflow v2 Cloud Run HTTP app', () => {
       '00000000-0000-4000-8000-000000000011',
       command
     );
+    const blockedCapability = await invoke(app, {
+      method: 'POST',
+      url: '/v2/assistant/threads/00000000-0000-4000-8000-000000000011/messages',
+      body: {
+        ...command,
+        capability: { kind: 'weather', location: 'Berlin', tempUnit: 'C' },
+      },
+    });
+    expect(blockedCapability.statusCode).toBe(400);
+    expect(blockedCapability._getJSONData()).toEqual({
+      error: {
+        code: 'ASSISTANT_CAPABILITY_DESKTOP_ONLY',
+        message: 'Assistant capabilities are available through the desktop work boundary.',
+      },
+    });
+    expect(assistantService.send).toHaveBeenCalledTimes(1);
     const resumed = await invoke(app, {
       method: 'POST',
       url: '/v2/assistant/threads/00000000-0000-4000-8000-000000000011/turns/00000000-0000-4000-8000-000000000010/resume',
@@ -404,7 +420,7 @@ describe('workflow v2 Cloud Run HTTP app', () => {
       body: retryCommand,
     });
     expect(retried.statusCode).toBe(202);
-    expect(assistantService.retry).toHaveBeenCalledWith(
+    expect(assistantService.retryPublic).toHaveBeenCalledWith(
       verified,
       '00000000-0000-4000-8000-000000000011',
       '00000000-0000-4000-8000-000000000010',

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import ipaddress
 import math
@@ -2104,6 +2106,118 @@ class AssistantTurnInputV1(ContractModel):
     )
 
 
+AssistantImageAspectRatioV1 = Literal[
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "21:9",
+]
+AssistantImageMimeTypeV1 = Literal["image/png", "image/jpeg", "image/webp"]
+AssistantCurrencyCodeV1 = Annotated[
+    str, StringConstraints(pattern=r"^[A-Z]{3}$")
+]
+AssistantUnsignedDecimalV1 = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=31,
+        pattern=r"^(?:0|[1-9][0-9]{0,17})(?:\.[0-9]{1,12})?$",
+    ),
+]
+AssistantMoneyAmountV1 = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=19,
+        pattern=r"^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,6})?$",
+    ),
+]
+AssistantTemperatureDecimalV1 = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=7,
+        pattern=r"^-?(?:0|[1-9][0-9]{0,2})(?:\.[0-9]{1,2})?$",
+    ),
+]
+
+
+def _canonical_base64_bytes(value: str, *, maximum_bytes: int | None) -> bytes:
+    if not value or len(value) % 4:
+        raise ValueError("image data must be non-empty canonical base64")
+    try:
+        decoded = base64.b64decode(value, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise ValueError("image data must be canonical base64") from error
+    if base64.b64encode(decoded).decode("ascii") != value:
+        raise ValueError("image data must be canonical base64")
+    if maximum_bytes is not None and len(decoded) > maximum_bytes:
+        raise ValueError(f"image data must decode to at most {maximum_bytes} bytes")
+    return decoded
+
+
+def _validate_image_bytes(mime_type: str, data: bytes) -> None:
+    signatures = {
+        "image/png": data.startswith(b"\x89PNG\r\n\x1a\n"),
+        "image/jpeg": data.startswith(b"\xff\xd8\xff"),
+        "image/webp": len(data) >= 12
+        and data.startswith(b"RIFF")
+        and data[8:12] == b"WEBP",
+    }
+    if not signatures.get(mime_type, False):
+        raise ValueError("image bytes must match mimeType")
+
+
+class AssistantTextCapabilityV2(ContractModel):
+    kind: Literal["text"]
+
+
+class AssistantImageGenerateCapabilityV2(ContractModel):
+    kind: Literal["image_generate"]
+    aspect_ratio: AssistantImageAspectRatioV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    image_size: Literal["1K"] = "1K"
+
+
+class AssistantWeatherCapabilityV2(ContractModel):
+    kind: Literal["weather"]
+    location: Text500
+    temp_unit: Literal["C", "F"]
+
+
+class AssistantCurrencyCapabilityV2(ContractModel):
+    kind: Literal["currency"]
+    base: AssistantCurrencyCodeV1
+    quote: AssistantCurrencyCodeV1
+    amount: AssistantMoneyAmountV1
+
+
+AssistantCapabilityV2 = Annotated[
+    Union[
+        AssistantTextCapabilityV2,
+        AssistantImageGenerateCapabilityV2,
+        AssistantWeatherCapabilityV2,
+        AssistantCurrencyCapabilityV2,
+    ],
+    Field(discriminator="kind"),
+]
+
+
+class AssistantTurnInputV2(ContractModel):
+    type: Literal["AssistantTurnV2"]
+    response_mode: Literal["direct_answer", "discover", "one_shot"]
+    message: str = Field(min_length=1, max_length=24_000)
+    conversation: list[AssistantConversationMessageV1] = Field(
+        default_factory=list, max_length=20
+    )
+    capability: AssistantCapabilityV2
+
+
 SolutionPreparationFieldNameV1 = Annotated[
     str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 ]
@@ -2879,6 +2993,7 @@ class SimulateInputV1(_FrozenCorpusModel):
 OperationInput = Annotated[
     Union[
         AssistantTurnInputV1,
+        AssistantTurnInputV2,
         PrepareSolutionInputV1,
         PrepareSolutionInputV2,
         CompileScopeInputV2,
@@ -2910,6 +3025,7 @@ class AxWiseOperationEnvelope(ContractModel):
     operation_id: UUID
     operation_type: Literal[
         "AssistantTurnV1",
+        "AssistantTurnV2",
         "PrepareSolutionV1",
         "PrepareSolutionV2",
         "CompileScopeV2",
@@ -3233,9 +3349,119 @@ class AssistantTurnV1(ContractModel):
     )
 
 
+class AssistantPresentationSourceV1(ContractModel):
+    title: Text500
+    url: str = Field(min_length=1, max_length=4000)
+
+    @model_validator(mode="after")
+    def canonical_source(self) -> "AssistantPresentationSourceV1":
+        if not is_canonical_public_https_url(self.url):
+            raise ValueError("presentation source URL must be canonical public HTTPS")
+        return self
+
+
+class AssistantGeneratedImagePresentationV1(ContractModel):
+    schema_version: Literal["axwise.presentation.generated-image.v1"] = (
+        "axwise.presentation.generated-image.v1"
+    )
+    kind: Literal["generated_image"]
+    mime_type: AssistantImageMimeTypeV1
+    data: str = Field(min_length=4, max_length=14_000_000)
+    sha256: Sha256
+    alt: Text1000
+    model: Annotated[
+        str,
+        StringConstraints(
+            min_length=1,
+            max_length=200,
+            pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$",
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def exact_generated_image(self) -> "AssistantGeneratedImagePresentationV1":
+        decoded = _canonical_base64_bytes(self.data, maximum_bytes=10_485_760)
+        _validate_image_bytes(self.mime_type, decoded)
+        if hashlib.sha256(decoded).hexdigest() != self.sha256:
+            raise ValueError("generated image sha256 must match its decoded bytes")
+        return self
+
+
+class AssistantWeatherForecastV1(ContractModel):
+    label: Text120
+    condition: Text120
+    high: AssistantTemperatureDecimalV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    low: AssistantTemperatureDecimalV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+
+class AssistantWeatherPresentationV1(ContractModel):
+    schema_version: Literal["axwise.presentation.weather.v1"] = (
+        "axwise.presentation.weather.v1"
+    )
+    kind: Literal["weather"]
+    location: Text500
+    observed_at: Rfc3339Utc
+    temperature_unit: Literal["C", "F"]
+    temperature: AssistantTemperatureDecimalV1
+    condition: Text120
+    high: AssistantTemperatureDecimalV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    low: AssistantTemperatureDecimalV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    forecast: list[AssistantWeatherForecastV1] = Field(max_length=10)
+    source: AssistantPresentationSourceV1
+
+
+class AssistantCurrencyPresentationV1(ContractModel):
+    schema_version: Literal["axwise.presentation.currency.v1"] = (
+        "axwise.presentation.currency.v1"
+    )
+    kind: Literal["currency"]
+    base: AssistantCurrencyCodeV1
+    quote: AssistantCurrencyCodeV1
+    amount: AssistantUnsignedDecimalV1
+    converted_amount: AssistantUnsignedDecimalV1
+    rate: AssistantUnsignedDecimalV1
+    inverse_rate: AssistantUnsignedDecimalV1 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    as_of: Rfc3339Utc
+    source: AssistantPresentationSourceV1
+
+
+AssistantPresentationV1 = Annotated[
+    Union[
+        AssistantGeneratedImagePresentationV1,
+        AssistantWeatherPresentationV1,
+        AssistantCurrencyPresentationV1,
+    ],
+    Field(discriminator="kind"),
+]
+
+
+class AssistantTurnV2(ContractModel):
+    schema_version: Literal["axwise.assistant-turn.v2"] = "axwise.assistant-turn.v2"
+    markdown: str = Field(min_length=1, max_length=120_000)
+    sources: list[AssistantSourceV1] = Field(default_factory=list, max_length=10)
+    facts: list[AssistantFactV1] = Field(default_factory=list, max_length=50)
+    recommendations: list[AssistantRecommendationV1] = Field(
+        default_factory=list, max_length=5
+    )
+    presentations: list[AssistantPresentationV1] = Field(min_length=1, max_length=8)
+
+
 class AssistantTurnCompletedResult(ContractModel):
     result_type: Literal["assistant_turn_completed"]
-    response: AssistantTurnV1
+    response: Annotated[
+        Union[AssistantTurnV1, AssistantTurnV2],
+        Field(discriminator="schema_version"),
+    ]
     metrics: OperationMetrics | None = None
 
 

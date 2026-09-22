@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { sha256Hex } from '../../lib/workflow-v2/canonical.js';
+import { AssistantCapabilityV2Schema } from '../../shared/workflow-v2/contracts.js';
 import { WorkflowCommandError } from './command-service.js';
 import { deterministicUuid } from './ids.js';
 
@@ -13,6 +14,7 @@ export const DesktopWorkStartSchema = DesktopWorkIdentitySchema.extend({
   question: z.string().trim().min(1).max(8_000),
   runId: z.uuid().optional(),
   artifactIds: z.array(z.uuid()).max(5).optional(),
+  capability: AssistantCapabilityV2Schema.optional(),
 }).superRefine((value, ctx) => {
   if (value.artifactIds !== undefined && !value.runId) {
     ctx.addIssue({ code: 'custom', path: ['artifactIds'], message: 'artifactIds require runId' });
@@ -109,6 +111,9 @@ function projectResult(work, result) {
     markdown: part.markdown,
     contentHash: sha256Hex(part.markdown),
   }));
+  const presentations = message.parts
+    .filter((part) => part.type === 'presentation')
+    .map((part) => part.presentation);
   if (!operationStatus && (!result.persisted || !artifacts.length)) {
     throw new WorkflowCommandError('DESKTOP_WORK_RESULT_INVALID', 'The research service did not save a result', 502);
   }
@@ -124,6 +129,7 @@ function projectResult(work, result) {
     sources: message.parts.filter((part) => part.type === 'source').map((part) => ({
       title: part.title, url: part.url, sourceTypes: part.sourceTypes,
     })),
+    ...(presentations.length ? { presentations } : {}),
     ...(operationStatus?.retryAfterSeconds ? { retryAfterSeconds: operationStatus.retryAfterSeconds } : {}),
     ...(operationStatus?.status === 'failed' ? { error: {
       code: operationStatus.errorClass || 'AXWISE_WORK_FAILED',
@@ -173,6 +179,7 @@ export function createDesktopWorkService({ assistantService, contextService }) {
       // Explicit intent, not a guessed route. This never starts a Goal or asks
       // for a scope approval merely to answer a bounded research question.
       intent: 'research',
+      ...(command.capability ? { capability: command.capability } : {}),
     });
     return projectResult(work, result);
   }

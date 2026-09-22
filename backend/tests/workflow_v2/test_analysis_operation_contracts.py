@@ -7,10 +7,12 @@ import hashlib
 import json
 import socket
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import TypeAdapter
 
+from backend.api.workflow_v2_app import capability_validation_error
 from backend.domain.workflow_v2 import contracts
 from backend.domain.workflow_v2.capability_limits import (
     CapabilityLimitsV1,
@@ -53,6 +55,35 @@ def no_network(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", reject)
     monkeypatch.setattr(socket.socket, "connect_ex", reject)
     monkeypatch.setattr(socket, "create_connection", reject)
+
+
+@pytest.mark.asyncio
+async def test_assistant_v2_validation_errors_do_not_echo_capability_input():
+    error = SimpleNamespace(
+        body={
+            "operationType": "AssistantTurnV2",
+            "input": {
+                "type": "AssistantTurnV2",
+                "message": "sensitive prompt",
+                "capability": {"kind": "image_edit", "data": "sensitive bytes"},
+            },
+        }
+    )
+
+    response = await capability_validation_error(None, error)  # type: ignore[arg-type]
+
+    assert response.status_code == 422
+    payload = json.loads(response.body)
+    assert payload == {
+        "detail": [
+            {
+                "loc": ["body"],
+                "msg": "Invalid bounded capability operation input",
+                "type": "value_error.capability_input",
+            }
+        ]
+    }
+    assert b"sensitive" not in response.body
 
 
 @pytest.mark.parametrize("make_input", [admission_input, analysis_input])
@@ -274,10 +305,6 @@ def test_admitted_completion_is_typed_json_and_lineage_must_be_exact():
             "0245b747fb457e74f80244b0bc17b81f77fc1daae58b78ed0ac8ff0c228b42db",
         ),
         (
-            "AssistantTurnCompletedResult",
-            "60178e467db78a2e99d75df39cd7c2de0caece957c2e0b2ba5dcaaad8305538d",
-        ),
-        (
             "PrepareSolutionCompletedResult",
             "1faa61216bd0eba1c5129370169b5910ce51fef7fbb56db6fbcd31e1941a4383",
         ),
@@ -310,6 +337,19 @@ def test_every_previous_request_and_completion_schema_hash_is_unchanged(name, ex
         separators=(",", ":"),
     ).encode()
     assert hashlib.sha256(encoded).hexdigest() == expected
+
+
+def test_assistant_completion_schema_hash_tracks_deliberate_v2_response_union():
+    """V1 payload bytes stay valid; this fingerprint changes to admit V2 responses."""
+
+    encoded = json.dumps(
+        contracts.AssistantTurnCompletedResult.model_json_schema(),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    assert hashlib.sha256(encoded).hexdigest() == (
+        "d7bccecb0a9ba78afe68fb0d5b0918c38b2ad9142601a93bb2cf114fc1c43bfe"
+    )
 
 
 def test_new_migration_is_guarded_and_previous_seven_schema_bytes_remain_pinned():

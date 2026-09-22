@@ -28,6 +28,7 @@ from backend.domain.workflow_v2.contracts import (
     ArtifactRef,
     ArtifactSynthesizedResult,
     AssistantTurnInputV1,
+    AssistantTurnInputV2,
     AxWiseOperationEnvelope,
     CompileScopeInputV2,
     CompileScopeInputV3,
@@ -1681,6 +1682,8 @@ class GeminiCognitiveExecutor:
         scope_reviser: ScopeReviser | None = None,
         assistant_runner: ResearchRunner | None = None,
         assistant_chat_runner: ResearchRunner | None = None,
+        assistant_image_runner: Any | None = None,
+        assistant_widget_runner: Any | None = None,
         solution_preparer: PydanticAISolutionPreparer | None = None,
         solution_preparer_v2: PydanticAINativeSolutionPreparer | None = None,
         analysis_generator: AnalysisGenerator | None = None,
@@ -1698,6 +1701,8 @@ class GeminiCognitiveExecutor:
         self.scope_reviser = scope_reviser
         self.assistant_runner = assistant_runner
         self.assistant_chat_runner = assistant_chat_runner
+        self.assistant_image_runner = assistant_image_runner
+        self.assistant_widget_runner = assistant_widget_runner
         self.solution_preparer = solution_preparer
         self.solution_preparer_v2 = solution_preparer_v2
         self.analysis_handler = AnalysisOperationHandler(
@@ -1716,6 +1721,8 @@ class GeminiCognitiveExecutor:
             source_type_classifier=_classify_source_types,
             usage_reader=_usage_from_search,
             metrics_factory=_operation_metrics,
+            image_runner=assistant_image_runner,
+            widget_runner=assistant_widget_runner,
         )
 
     async def close(self) -> None:
@@ -1724,6 +1731,8 @@ class GeminiCognitiveExecutor:
             self.research_runner,
             self.assistant_runner,
             self.assistant_chat_runner,
+            self.assistant_image_runner,
+            self.assistant_widget_runner,
         ):
             if runner is None or id(runner) in closed:
                 continue
@@ -1828,6 +1837,12 @@ class GeminiCognitiveExecutor:
             )
         if envelope.operation_type == "AssistantTurnV1":
             if not isinstance(envelope.input, AssistantTurnInputV1):
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
+            return await self._assistant_turn(envelope.input)
+        if envelope.operation_type == "AssistantTurnV2":
+            if not isinstance(envelope.input, AssistantTurnInputV2):
                 raise CognitiveExecutionFailure(
                     "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
                 )
@@ -2017,7 +2032,9 @@ class GeminiCognitiveExecutor:
             ),
         )
 
-    async def _assistant_turn(self, input_value: AssistantTurnInputV1):
+    async def _assistant_turn(
+        self, input_value: AssistantTurnInputV1 | AssistantTurnInputV2
+    ):
         return await self.assistant_turn_service.execute(input_value)
 
     async def _revise_scope(
@@ -3927,6 +3944,12 @@ def build_cognitive_executor(
         assistant_parsed_response_defects,
         assistant_source_url_allowed,
     )
+    from backend.services.workflow_v2.assistant.image_runner import (
+        GeminiAssistantImageRunner,
+    )
+    from backend.services.workflow_v2.assistant.widget_runner import (
+        GeminiAssistantWidgetRunner,
+    )
 
     api_key = os.getenv("GEMINI_API_KEY")
     authority_key = os.getenv("AXWISE_AUTHORITY_SEAL_KEY")
@@ -3975,6 +3998,8 @@ def build_cognitive_executor(
         PydanticAIScopeReviser(model),
         assistant_runner=assistant_runner,
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
+        assistant_image_runner=GeminiAssistantImageRunner(api_key),
+        assistant_widget_runner=GeminiAssistantWidgetRunner(api_key),
         solution_preparer=PydanticAISolutionPreparer(model),
         solution_preparer_v2=PydanticAINativeSolutionPreparer(model),
         **capability_generators,

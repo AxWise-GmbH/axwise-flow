@@ -1137,6 +1137,17 @@ export function createWorkflowHttpApp({
     '/v2/assistant/threads/:threadId/messages',
     asyncRoute(async (req, res) => {
       if (!assistantService) throw new Error('assistant service is not configured');
+      if (
+        req.body !== null &&
+        typeof req.body === 'object' &&
+        Object.prototype.hasOwnProperty.call(req.body, 'capability')
+      ) {
+        throw new WorkflowCommandError(
+          'ASSISTANT_CAPABILITY_DESKTOP_ONLY',
+          'Assistant capabilities are available through the desktop work boundary.',
+          400
+        );
+      }
       const result = await assistantService.send(req.authContext, req.params.threadId, req.body);
       res.status(result.persisted ? (result.idempotent ? 200 : 201) : 202).json(result);
     })
@@ -1145,7 +1156,7 @@ export function createWorkflowHttpApp({
     '/v2/assistant/threads/:threadId/turns/:turnId/retry',
     asyncRoute(async (req, res) => {
       if (!assistantService) throw new Error('assistant service is not configured');
-      const result = await assistantService.retry(
+      const result = await assistantService.retryPublic(
         req.authContext,
         req.params.threadId,
         req.params.turnId,

@@ -69,7 +69,26 @@ function harness() {
     status,
     ...(status === 'completed' ? { result: {
       resultType: 'assistant_turn_completed',
-      response: {
+      response: envelope.input.type === 'AssistantTurnV2' ? {
+        schemaVersion: 'axwise.assistant-turn.v2',
+        markdown: 'Berlin is currently mild.',
+        sources: [{ title: 'Weather source', canonicalUrl: 'https://example.com/weather', sourceTypes: ['official_documentation'] }],
+        facts: [{ statement: 'Berlin is currently 18.5 C.', sourceUrls: ['https://example.com/weather'] }],
+        recommendations: [],
+        presentations: [{
+          schemaVersion: 'axwise.presentation.weather.v1',
+          kind: 'weather',
+          location: 'Berlin',
+          observedAt: '2026-09-14T10:00:00Z',
+          temperatureUnit: 'C',
+          temperature: '18.5',
+          condition: 'Partly cloudy',
+          high: '21',
+          low: '12',
+          forecast: [{ label: 'Tomorrow', condition: 'Sunny', high: '23', low: '13' }],
+          source: { title: 'Weather source', url: 'https://example.com/weather' },
+        }],
+      } : {
         schemaVersion: 'axwise.assistant-turn.v1',
         markdown: '# Findings\nRetry transient failures with backoff.',
         sources: [{ title: 'Provider docs', canonicalUrl: 'https://example.com/docs/retries', sourceTypes: ['official_documentation'] }],
@@ -125,6 +144,24 @@ describe('desktop bounded AxWise work', () => {
     expect(h.contextService.read).toHaveBeenCalledWith(auth, runId);
     expect(h.contextService.artifact).not.toHaveBeenCalled();
     expect(h.axwiseClient.submit.mock.calls[0][0].input.message).toBe(command.question);
+  });
+
+  it('passes a desktop capability through V2 and projects the validated presentation', async () => {
+    const h = harness();
+    const capability = { kind: 'weather', location: 'Berlin', tempUnit: 'C' };
+    const result = await h.service.start(auth, { ...command, capability });
+    expect(h.axwiseClient.submit.mock.calls[0][0]).toMatchObject({
+      operationType: 'AssistantTurnV2',
+      input: { type: 'AssistantTurnV2', capability },
+    });
+    expect(result.presentations).toEqual([
+      expect.objectContaining({
+        schemaVersion: 'axwise.presentation.weather.v1',
+        kind: 'weather',
+        temperature: '18.5',
+      }),
+    ]);
+    expect(result.markdown).toBe('Berlin is currently mild.');
   });
 
   it('replays exact requests, rejects changed input and keeps separate conversations independent', async () => {
