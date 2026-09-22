@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import NamedTuple
@@ -24,7 +25,6 @@ DATABASE = "axwise_v2_preview_001"
 POSTGRES_ROLE = "postgres"
 POSTGRES_MAJOR = 16
 INSTANCE = f"{PROJECT}:europe-west4:orqaly-v2-preview-001-pg"
-PORT = 19518
 ROOT = Path(__file__).resolve().parents[2]
 OPERATOR_PATH = "deploy/workflow-v2/apply-assistant-turn-v2-preview.py"
 MIGRATION_PATH = "backend/database/workflow_v2/010_assistant_turn_v2.sql"
@@ -265,6 +265,7 @@ def main() -> int:
 
     connection = None
     proxy = None
+    proxy_socket_root = None
     stage = "source_validation"
     try:
         commit, sql_body = validate_source(require_clean=args.apply)
@@ -282,23 +283,30 @@ def main() -> int:
         )
         require(bool(password))
         stage = "owned_proxy_connect"
+        proxy_socket_root = tempfile.TemporaryDirectory(prefix="axw-", dir="/tmp")
+        proxy_host = Path(proxy_socket_root.name) / INSTANCE
+        proxy_socket = proxy_host / ".s.PGSQL.5432"
         proxy = subprocess.Popen(
             [
                 "cloud-sql-proxy",
-                INSTANCE,
                 "--gcloud-auth",
-                "--address=127.0.0.1",
-                f"--port={PORT}",
+                "--unix-socket",
+                proxy_socket_root.name,
+                "--max-connections=1",
+                INSTANCE,
             ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
         for _ in range(40):
             require(proxy.poll() is None)
+            if not proxy_socket.exists():
+                time.sleep(0.5)
+                continue
             try:
                 connection = psycopg2.connect(
-                    host="127.0.0.1",
-                    port=PORT,
+                    host=str(proxy_host),
+                    port=5432,
                     dbname=DATABASE,
                     user=POSTGRES_ROLE,
                     password=password,
@@ -382,6 +390,8 @@ def main() -> int:
             except subprocess.TimeoutExpired:
                 proxy.kill()
                 proxy.wait(timeout=5)
+        if proxy_socket_root is not None:
+            proxy_socket_root.cleanup()
 
 
 if __name__ == "__main__":

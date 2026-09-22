@@ -166,6 +166,19 @@ def test_apply_path_is_clean_committed_atomic_and_non_authorizing():
     assert "proxy.terminate()" in source and "connection.close()" in source
 
 
+def test_proxy_uses_a_private_single_use_unix_socket():
+    source = PATH.read_text()
+    assert 'TemporaryDirectory(prefix="axw-", dir="/tmp")' in source
+    assert 'proxy_host / ".s.PGSQL.5432"' in source
+    assert '"--unix-socket"' in source
+    assert '"--max-connections=1"' in source
+    assert "proxy.poll() is None" in source
+    assert "proxy_socket.exists()" in source
+    assert "host=str(proxy_host)" in source
+    assert "proxy_socket_root.cleanup()" in source
+    assert "--address=127.0.0.1" not in source
+
+
 def test_source_validation_rejects_dirty_checkout(monkeypatch):
     original_capture = operator.capture
 
