@@ -84,8 +84,8 @@ describe('LandingPageSimple', () => {
       `${DESKTOP_RELEASE.url}.sha256`
     );
     expect(DESKTOP_RELEASE.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(DESKTOP_RELEASE.version).toBe('2.3.2');
-    expect(DESKTOP_RELEASE.build).toBe('5664');
+    expect(DESKTOP_RELEASE.version).toBe('2.3.4');
+    expect(DESKTOP_RELEASE.build).toBe('5667');
     expect(DESKTOP_RELEASE.url).not.toMatch(/github\.com|token=|X-Goog-Signature/i);
     expect(screen.queryByText(/available separately/)).not.toBeInTheDocument();
   });
