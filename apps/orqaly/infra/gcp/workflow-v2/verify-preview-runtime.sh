@@ -836,6 +836,7 @@ permission_rules_json="$(jq -cn \
 trusted_platform_bindings_json="$(jq -cn \
   --arg artifact "serviceAccount:service-${project_number}@gcp-sa-artifactregistry.iam.gserviceaccount.com" \
   --arg cloudBuild "serviceAccount:service-${project_number}@gcp-sa-cloudbuild.iam.gserviceaccount.com" \
+  --arg cloudScheduler "serviceAccount:service-${project_number}@gcp-sa-cloudscheduler.iam.gserviceaccount.com" \
   --arg cloudServices "serviceAccount:${project_number}@cloudservices.gserviceaccount.com" \
   --arg compute "serviceAccount:service-${project_number}@compute-system.iam.gserviceaccount.com" \
   --arg containerRegistry "serviceAccount:service-${project_number}@containerregistry.iam.gserviceaccount.com" \
@@ -844,6 +845,7 @@ trusted_platform_bindings_json="$(jq -cn \
   {
     "roles/artifactregistry.serviceAgent": [$artifact],
     "roles/cloudbuild.serviceAgent": [$cloudBuild],
+    "roles/cloudscheduler.serviceAgent": [$cloudScheduler],
     "roles/compute.instanceGroupManagerServiceAgent": [$cloudServices],
     "roles/compute.serviceAgent": [$compute],
     "roles/containerregistry.ServiceAgent": [$containerRegistry],

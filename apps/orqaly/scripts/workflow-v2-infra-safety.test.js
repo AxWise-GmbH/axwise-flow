@@ -156,12 +156,18 @@ describe('workflow v2 Preview infrastructure safety', () => {
       'serviceAccount:orqaly-v2-worker-preview@axwise-v2-preview-001.iam.gserviceaccount.com';
     const runAgent =
       'serviceAccount:service-161074549006@serverless-robot-prod.iam.gserviceaccount.com';
+    const schedulerAgent =
+      'serviceAccount:service-161074549006@gcp-sa-cloudscheduler.iam.gserviceaccount.com';
     const rules = {
+      'iam.serviceAccounts.getAccessToken': [],
       'run.routes.invoke': [],
       'run.services.update': [],
       'storage.objects.create': [worker],
     };
-    const trusted = { 'roles/run.serviceAgent': [runAgent] };
+    const trusted = {
+      'roles/cloudscheduler.serviceAgent': [schedulerAgent],
+      'roles/run.serviceAgent': [runAgent],
+    };
     const bucket = '//storage.googleapis.com/axwise-v2-preview-001-orqaly-v2-preview-001-artifacts';
     const directPolicies = {
       [bucket]: [
@@ -181,16 +187,19 @@ describe('workflow v2 Preview infrastructure safety', () => {
       bindings: [
         { role: 'roles/owner', members: ['user:admin@example.com'] },
         { role: 'roles/run.serviceAgent', members: [runAgent] },
+        { role: 'roles/cloudscheduler.serviceAgent', members: [schedulerAgent] },
         { role: 'roles/storage.objectCreator', members: [worker] },
       ],
       permissionsByRole: {
         'roles/owner': ['run.services.update'],
         'roles/run.serviceAgent': ['run.routes.invoke'],
+        'roles/cloudscheduler.serviceAgent': ['iam.serviceAccounts.getAccessToken'],
         'roles/storage.objectCreator': ['storage.objects.create'],
       },
     });
     expected.push({ resource: bucket, policy: { bindings: directPolicies[bucket] } });
     expect(assertInheritedIamSearch(expected, options)).toEqual({
+      'iam.serviceAccounts.getAccessToken': [schedulerAgent],
       'run.routes.invoke': [runAgent],
       'run.services.update': ['user:admin@example.com'],
       'storage.objects.create': [worker],
@@ -306,6 +315,7 @@ describe('workflow v2 Preview infrastructure safety', () => {
       ],
     };
     expect(assertInheritedIamSearch(expected.slice(0, 1), authoritativeOptions)).toEqual({
+      'iam.serviceAccounts.getAccessToken': [schedulerAgent],
       'run.routes.invoke': [runAgent],
       'run.services.update': ['user:admin@example.com'],
       'storage.objects.create': [worker],
@@ -331,6 +341,14 @@ describe('workflow v2 Preview infrastructure safety', () => {
         authoritativeWorkloadMembers: authoritativeOptions.authoritativeWorkloadMembers,
       })
     ).toThrow(/authoritative direct policy .* differs from the allowlist/);
+  });
+
+  it('pins the Cloud Scheduler service agent to its exact project-number role pair', () => {
+    const runtime = read('infra/gcp/workflow-v2/verify-preview-runtime.sh');
+    expect(runtime).toContain(
+      'service-${project_number}@gcp-sa-cloudscheduler.iam.gserviceaccount.com'
+    );
+    expect(runtime).toContain('"roles/cloudscheduler.serviceAgent": [$cloudScheduler]');
   });
 
   it('requires build proof before mutation and restores all traffic on a failed cutover', () => {
