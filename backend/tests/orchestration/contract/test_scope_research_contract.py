@@ -737,3 +737,22 @@ def test_grounded_contract_requires_a_bound_geography():
 
     with pytest.raises(ValidationError, match="at least one geography"):
         ScopeResearchContractV1.model_validate(payload)
+
+
+async def test_scope_packet_hash_is_independent_of_optional_jev_configuration(monkeypatch):
+    from backend.services.workflow_v2.cognitive import typesafe_triage
+
+    def forbidden_provider(*_args, **_kwargs):
+        raise AssertionError("scope packet construction must not call a provider")
+
+    monkeypatch.setattr(typesafe_triage, "classify_intent_with_jev", forbidden_provider)
+    request = DecisionCreateRequestV1.model_validate(_commercial_payload())
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    without_key = build_scope_packet(request).model_dump(mode="json")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "offline-placeholder")
+    with_key = build_scope_packet(request).model_dump(mode="json")
+
+    assert with_key == without_key
+    assert with_key["research_contract"]["document_intent"] == "commercial_market_launch"
+    # Real serialization catches an unawaited classifier escaping into the hash.
+    assert json.loads(json.dumps(with_key)) == with_key

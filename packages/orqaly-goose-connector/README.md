@@ -106,3 +106,8 @@ and [reference example](https://github.com/clerk/cli-auth-example). It uses its 
 strict storage and discovery boundary; it does not copy the example's file
 fallback. Login/token exchange/refresh alone do not establish that the configured
 Orqaly API has enabled the desktop OAuth client.
+
+Cancellation of a token or logout command waits for an in-flight refresh to persist
+its rotated grant before releasing the store lock. The desktop allows 45 seconds
+before forcing termination. Cancelled lock waiters do not remove another process's
+lock, and a cancelled token command never prints an access token.

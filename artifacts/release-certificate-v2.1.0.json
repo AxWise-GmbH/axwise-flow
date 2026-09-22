@@ -1,0 +1,66 @@
+{
+  "certificateVersion": "orqanix.release-verification.v1",
+  "product": "Orqanix",
+  "releaseTag": "v2.1.0-instant-preview",
+  "certifiedAt": "2026-09-20T16:55:00.000Z",
+  "certifiedBy": "Vitaly Vishnevsky / Agentic AI Foundation / AxWise",
+  "scope": "Full End-to-End Release (macOS Desktop Client + Web Landing + Cloud Run Fleet)",
+
+  "desktopRelease": {
+    "version": "2.1.0",
+    "baseGooseVersion": "1.50.0",
+    "sourceCommit": "8c2bdf4b5e67bc2713f021ad5815beaf2475459f",
+    "platform": "macOS-arm64 (Apple Silicon)",
+    "dmgFilename": "Orqanix-Preview-macOS-arm64.dmg",
+    "dmgSizeBytes": 384559790,
+    "dmgSha256": "7720c575852192fef8d23a2f9a2f900451865acc4b34e177f051d8aec87bf32f",
+    "gcsUrl": "https://storage.googleapis.com/orqaly-preview-downloads-161074549006/releases/2026-09-20-v2.1.0/Orqanix-Preview-macOS-arm64.dmg",
+    "codeSignatureVerified": true,
+    "designatedRequirement": "identifier \"com.orqaly.preview\" and anchor apple generic",
+    "bundledRuntimes": {
+      "node": "v22.23.2",
+      "omp": "omp/18.2.1",
+      "goose": "goose/1.50.0"
+    }
+  },
+
+  "cloudRelease": {
+    "service": "orqaly-v2-web-preview",
+    "revision": "orqaly-v2-web-preview-00108-54s",
+    "sourceCommit": "442e7fc26ca0d2cb2f90a618d361d76378c8c7c1",
+    "image": "europe-west4-docker.pkg.dev/axwise-v2-preview-001/workflow-v2-preview/orqaly-web@sha256:7252fac2ad83206ccdcb120ba3134dcad3dedc4294245795e5db7b5d8331c20b",
+    "deployedFleet": "Google Cloud Run (europe-west4)",
+    "trafficAllocation": "100%",
+    "activeDomains": [
+      "https://orqanix.com/",
+      "https://orqanix.com/instant",
+      "https://orqanix.com/benchmark",
+      "https://preview.orqanix.com/instant"
+    ]
+  },
+
+  "qualityAndSecurityGates": {
+    "typesafeJev": {
+      "model": "typesafe:jev-latest (jev-1.13.0)",
+      "latencyAverageMs": 780,
+      "gateA_evidenceTriage": "PASSED (Drops 66-80% web noise)",
+      "gateB_deliverableIntegrity": "PASSED (Zero unhedged commercial assumptions)",
+      "preCommitAstGate": "PASSED (Sub-second syntax, import and secret defense)"
+    },
+    "testParity": {
+      "desktopUnitTests": "13 passed, 0 failed (workspace.test.ts & NavigationPanel.test.tsx)",
+      "ompBridgeTests": "18 passed, 0 failed (@orqanix/omp-mcp-server)",
+      "landingPageTests": "335 passed, 0 failed (Instant & Solutions suites)",
+      "cloudRunSmokeTests": "4 passed, 0 failed (test_axwise_e2e_pipeline_smoke.py)",
+      "visualRegressionTests": "15 passed, 0 failed (Desktop 1440px, Tablet 820px, Mobile 390px)"
+    },
+    "edgeSlaHeartbeat": {
+      "hourlyService": "scripts/heartbeat-service.mjs",
+      "githubAction": ".github/workflows/heartbeat.yml",
+      "status": "ALL HEALTHY",
+      "apexLatencyMs": 142,
+      "instantLatencyMs": 105,
+      "benchmarkLatencyMs": 231
+    }
+  }
+}

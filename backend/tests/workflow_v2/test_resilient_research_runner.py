@@ -472,7 +472,10 @@ async def test_mixed_primary_failure_falls_back_and_latches_open_circuit() -> No
     }
     primary = FakePrimary(mixed_failure)
     searx = FakeSearx(discovery(status="empty", search_performed=False))
-    runner = ResilientResearchRunner(primary, searxng=searx)
+    # Exact cooldown assertions need a controlled clock, independent of float drift.
+    runner = ResilientResearchRunner(
+        primary, searxng=searx, monotonic_clock=lambda: 0.0
+    )
 
     first = await runner.search(server_query())
     second = await runner.search(server_query())

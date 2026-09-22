@@ -200,3 +200,74 @@ export async function evaluateLintWithJev({
     };
   }
 }
+
+/**
+ * Formats a TypeSafe Jev lint evaluation verdict into clean human-readable Markdown.
+ *
+ * @param {object} verdict - Evaluation result from evaluateLintWithJev
+ * @returns {string} Markdown representation of status, latency, and violations
+ */
+export function formatJevVerdictMarkdown(verdict) {
+  if (!verdict || typeof verdict !== 'object') {
+    return [
+      '### Jev Lint Verdict',
+      '',
+      '- **Status:** Unknown',
+      '- **Latency:** N/A',
+      '',
+      '#### Violations',
+      'None',
+    ].join('\n');
+  }
+
+  let status;
+  if (verdict.evaluated === false) {
+    status = verdict.reason ? `Skipped (${verdict.reason})` : 'Skipped';
+  } else if (verdict.passed) {
+    status = 'Passed';
+  } else {
+    status = 'Failed';
+  }
+
+  const latency = verdict.latencyMs ?? verdict.latency;
+  const latencyText = typeof latency === 'number' ? `${latency}ms` : 'N/A';
+
+  const lines = [
+    '### Jev Lint Verdict',
+    '',
+    `- **Status:** ${status}`,
+    `- **Latency:** ${latencyText}`,
+  ];
+
+  if (verdict.model) {
+    lines.push(`- **Model:** ${verdict.model}`);
+  }
+
+  lines.push('', '#### Violations');
+
+  const violations = Array.isArray(verdict.violations) ? verdict.violations : [];
+  if (violations.length === 0) {
+    lines.push('None');
+  } else {
+    for (const v of violations) {
+      if (typeof v === 'string') {
+        lines.push(`- ${v}`);
+      } else if (v && typeof v === 'object') {
+        const severity = v.severity ? String(v.severity).toLowerCase() : 'warning';
+        const rule = v.rule || 'unknown';
+        const confPercent =
+          typeof v.confidence === 'number'
+            ? v.confidence <= 1
+              ? Math.round(v.confidence * 100)
+              : Math.round(v.confidence)
+            : null;
+        const confText = confPercent !== null ? ` (confidence: ${confPercent}%)` : '';
+        const msgText = v.message ? `: ${v.message}` : '';
+        lines.push(`- **[${severity}]** \`${rule}\`${msgText}${confText}`);
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+

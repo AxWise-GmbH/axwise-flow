@@ -9,7 +9,7 @@ This package is the narrow adapter between Orqanix Desktop and the bundled Oh My
 
 Each call starts an ephemeral `omp --mode rpc` child using OMP's native newline-delimited
 JSON protocol. The bridge does not add a daemon, distribute a Gemini key, store an access
-token, commit, push, deploy, install dependencies, or provide shell/browser/network tools.
+token, commit, push, deploy, install dependencies, or provide shell/browser/network tools to OMP. The approved edit call can execute an explicit test argv without a shell after OMP exits.
 The conversation workspace is fixed when the MCP server starts, rather than supplied by
 the model in a tool call.
 
@@ -30,6 +30,7 @@ orqanix-omp-mcp \
   --connector /bundled/orqaly-runtime/connector/src/cli.mjs \
   --connector-config /bundled/orqaly-runtime/connector/preview.config.example.json \
   --account-hash SHA256_VERIFIED_USER_ID \
+  --conversation-id DESKTOP_CONVERSATION_ID \
   --state-dir /private/account/profile/omp
 ```
 
@@ -54,3 +55,23 @@ npm test
 Tests use a local fake connector and fake OMP JSONL process. They make no model or network
 calls and assert that the access token is neither written to `models.yml` nor returned by
 the MCP surface.
+
+## Evidence and Jev review
+
+Approved edit calls accept `acceptance_criteria`, `research_references` and
+`test_command` (for example `["node", "--test", "feature.test.mjs"]`). The bridge
+captures the initial and final Git diff, including bounded untracked text files,
+and executes that test command in the fixed workspace. Oversize, binary, unsafe
+or unavailable evidence cannot receive a passing review. Existing dirty changes
+are included as the baseline, not attributed to the task.
+
+The bridge sends this evidence with a task ID and content hashes to the existing
+OAuth gateway `/desktop/v1/engineering/review`. The server validates ownership and
+hashes for referenced AxWise artifacts and calls TypeSafe with its Secret Manager
+credential. No TypeSafe key is stored in the desktop bundle or model environment.
+
+`review.status` is `passed`, `failed` or `not_evaluated`; it remains advisory.
+Only observed passing tests plus a passing review yield `verified: true` and a
+completed edit. Missing evidence, failed tests or unavailable review yield
+`review_required`; inspection alone never claims verification. A passing review
+is scoped to the captured evidence and is not proof of production readiness.

@@ -301,6 +301,72 @@ function harness({ submitResult = completed(), agentService = null } = {}) {
 }
 
 describe('assistant service', () => {
+  it('reads reported metrics from the original completed operation after persisted replay and later turns', async () => {
+    const h = harness();
+    const metrics = { latencyMs: 900, provider: 'google', model: 'gemini-3.8-flash',
+      inputTokens: 120, outputTokens: 40, totalTokens: 160 };
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Explain retries.' });
+    const original = h.axwiseClient.submit.mock.calls[0][0];
+    await h.service.send(auth, threadId, { turnId: secondTurnId,
+      issuedAt: '2026-08-31T18:01:00.000Z', message: 'Explain queues.' });
+    h.axwiseClient.poll.mockResolvedValue(forEnvelope(completed('Original answer.', {}, metrics), original));
+    expect((await h.service.resume(auth, threadId, turnId)).idempotent).toBe(true);
+    const before = structuredClone({ messages: h.repository.messages, events: h.repository.events });
+    await expect(h.service.readTurnMetrics(auth, threadId, turnId)).resolves.toEqual(metrics);
+    expect(h.axwiseClient.poll).toHaveBeenCalledWith(
+      `https://axwise.example/v2/operations/${original.operationId}?tenantId=${tenantId}`,
+      original.operationId, tenantId
+    );
+    expect(h.axwiseClient.submit).toHaveBeenCalledTimes(2);
+    expect({ messages: h.repository.messages, events: h.repository.events }).toEqual(before);
+  });
+
+  it.each(['user', 'tenant'])('checks %s ownership before reading operation metrics', async (changed) => {
+    const h = harness();
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Explain retries.' });
+    const originalLoad = h.repository.loadAssistantThread;
+    h.repository.loadAssistantThread = vi.fn(async (tenant, thread, user) =>
+      tenant === tenantId && user === auth.userId ? originalLoad(tenant, thread, user) : null);
+    if (changed === 'tenant') h.repository.resolveTenant.mockResolvedValue(secondTurnId);
+    await expect(h.service.readTurnMetrics(
+      changed === 'user' ? { userId: 'user_somebodyelse' } : auth, threadId, turnId
+    )).rejects.toMatchObject({ code: 'ASSISTANT_THREAD_NOT_FOUND', status: 404 });
+    expect(h.axwiseClient.poll).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['operationId', secondTurnId, 'AXWISE_OPERATION_ID_MISMATCH'],
+    ['canonicalInputHash', 'b'.repeat(64), 'AXWISE_INPUT_HASH_MISMATCH'],
+  ])('rejects changed %s when reading operation metrics', async (key, value, errorClass) => {
+    const h = harness();
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Explain retries.' });
+    const original = h.axwiseClient.submit.mock.calls[0][0];
+    h.axwiseClient.poll.mockResolvedValue({
+      ...forEnvelope(completed('Answer.', {}, { latencyMs: 10, inputTokens: 9,
+        outputTokens: 2, totalTokens: 11 }), original), [key]: value,
+    });
+    await expect(h.service.readTurnMetrics(auth, threadId, turnId)).rejects.toMatchObject({ errorClass });
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
+  it('does not look up a changed persisted operation identity or invent missing metrics', async () => {
+    const h = harness();
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Explain retries.' });
+    await expect(h.service.readTurnMetrics(auth, threadId, turnId)).resolves.toBeNull();
+    h.axwiseClient.poll.mockClear();
+    h.repository.messages.find((message) => message.role === 'user').axwiseOperationId = secondTurnId;
+    await expect(h.service.readTurnMetrics(auth, threadId, turnId))
+      .rejects.toMatchObject({ code: 'ASSISTANT_RETRY_LINEAGE_INVALID' });
+    expect(h.axwiseClient.poll).not.toHaveBeenCalled();
+  });
+
+  it('does not query completion metrics for a failed assistant turn', async () => {
+    const h = harness({ submitResult: failed() });
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Explain retries.' });
+    await expect(h.service.readTurnMetrics(auth, threadId, turnId)).resolves.toBeNull();
+    expect(h.axwiseClient.poll).not.toHaveBeenCalled();
+  });
+
   it('persists the user turn before direct AxWise dispatch', async () => {
     const h = harness();
     h.axwiseClient.submit.mockImplementation(async (envelope) => {

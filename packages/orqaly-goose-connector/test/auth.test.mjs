@@ -66,7 +66,7 @@ async function fixture(t) {
       }
       observed.refreshes++;
       assert.equal(fields.get('refresh_token'), 'synthetic-refresh-1');
-      await delay(100);
+      await delay(settings.refreshDelayMs ?? 100);
       return json({ access_token: 'synthetic-refreshed-access', refresh_token: 'synthetic-refresh-2', token_type: 'Bearer', expires_in: 3600, scope: 'offline_access profile' });
     } catch {
       res.writeHead(400, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: 'invalid_request', error_description: 'synthetic-private-detail' }));
@@ -183,6 +183,39 @@ test('refresh lock never bypasses an existing holder', async t => {
   let entered = false;
   await assert.rejects(withStoreLock(store, f.config, () => { entered = true; }, { timeoutMs: 5 }), /refresh lock/);
   assert.equal(entered, false);
+});
+
+test('cancelled refresh persists its rotated grant, unlocks, and prints no access token', async t => {
+  const f = await fixture(t), store = await createStore(f.config);
+  await store.set({ accessToken: 'synthetic-expired', refreshToken: 'synthetic-refresh-1', expiresAt: Date.now() - 1, scopes: f.config.scopes });
+  f.settings.refreshDelayMs = 300;
+  const refreshing = run(['token', ...f.args]);
+  t.after(() => refreshing.child.kill());
+  const deadline = Date.now() + 5000;
+  while (!f.observed.refreshes && Date.now() < deadline) await delay(10);
+  assert.equal(f.observed.refreshes, 1);
+  refreshing.child.kill('SIGTERM');
+  const cancelled = await refreshing.done;
+  assert.equal(cancelled.code, 1);
+  assert.equal(cancelled.stdout, '');
+  assert.match(cancelled.stderr, /AUTH_CANCELLED/);
+  assert.equal((await store.get()).refreshToken, 'synthetic-refresh-2');
+  const retry = await run(['token', ...f.args]).done;
+  assert.equal(retry.code, 0);
+  assert.equal(retry.stdout, 'synthetic-refreshed-access\n');
+  assert.equal(f.observed.refreshes, 1);
+});
+
+test('cancelling a lock waiter leaves the active holder intact', async t => {
+  const f = await fixture(t), store = await createStore(f.config);
+  const controller = new AbortController();
+  await withStoreLock(store, f.config, async () => {
+    const waiting = withStoreLock(store, f.config, () => assert.fail('waiter entered'), { signal: controller.signal });
+    controller.abort();
+    await assert.rejects(waiting, { name: 'AbortError' });
+    assert.equal((await lstat(join(store.lockRoot, `${f.config.identity}.lock`))).isDirectory(), true);
+  });
+  await withStoreLock(store, f.config, async () => {});
 });
 
 test('refresh errors never print credentials and revoked grants are cleared', async t => {

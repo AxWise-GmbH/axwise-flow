@@ -10,6 +10,7 @@ import {
 } from '../../shared/workflow-v2/assistant.js';
 import {
   AxWiseOperationEnvelopeSchema,
+  CompletionMetricsSchema,
   ExecutionAgentContractV1Schema,
   ExecutionAgentProfileSnapshotV1Schema,
 } from '../../shared/workflow-v2/contracts.js';
@@ -1324,6 +1325,40 @@ export function createAssistantService({
     return loadOwned(owner, threadId);
   }
 
+  // Internal evaluation read: completion metrics remain on the immutable AxWise
+  // operation, so replaying a persisted assistant turn must not dispatch it again.
+  async function readTurnMetrics(auth, threadId, turnId) {
+    const owner = await identity(auth);
+    const loaded = await loadOwned(owner, threadId);
+    const user = userByTurn(loaded.messages, turnId);
+    if (!user)
+      throw new WorkflowCommandError('ASSISTANT_TURN_NOT_FOUND', 'assistant turn not found', 404);
+    const assistant = loaded.messages.find(
+      (message) => message.turnId === turnId && message.role === 'assistant'
+    );
+    if (
+      !assistant || !user.axwiseOperationId || !responseModeForRoute(user.route) ||
+      assistant.parts.some((part) => part.type === 'operation_status')
+    ) return null;
+    const envelope = axwiseEnvelope(owner, threadId, user, loaded.messages);
+    if (envelope.operationId !== user.axwiseOperationId ||
+        assistant.axwiseOperationId !== user.axwiseOperationId) {
+      throw new WorkflowCommandError(
+        'ASSISTANT_RETRY_LINEAGE_INVALID',
+        'assistant operation identity does not match its immutable attempt',
+        409
+      );
+    }
+    const response = validateAxwiseResponse(envelope, await axwiseClient.poll(
+      axwiseClient.deterministicStatusUrl(user.axwiseOperationId, owner.tenantId),
+      user.axwiseOperationId,
+      owner.tenantId
+    ));
+    if (response.status !== 'completed' || response.result.resultType !== 'assistant_turn_completed')
+      return null;
+    return response.result.metrics ? CompletionMetricsSchema.parse(response.result.metrics) : null;
+  }
+
   async function list(auth, limit = 25) {
     const owner = await identity(auth);
     return {
@@ -1359,5 +1394,5 @@ export function createAssistantService({
     );
   }
 
-  return { send, retry, resume, cancel, read, list, agents, events };
+  return { send, retry, resume, cancel, read, readTurnMetrics, list, agents, events };
 }

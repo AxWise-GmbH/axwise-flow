@@ -443,6 +443,7 @@ from backend.services.workflow_v2.cognitive.sources import (
     _url_matches_allowed_hosts as _url_matches_allowed_hosts,
     _usage_from_search as _usage_from_search,
 )
+from backend.services.workflow_v2.cognitive.typesafe_triage import append_jev_advisory
 from backend.services.workflow_v2.cognitive.validation import (
     _EVIDENCE_REJECTION_RULES as _EVIDENCE_REJECTION_RULES,
     _MAX_LOGGED_EVIDENCE_FINDINGS as _MAX_LOGGED_EVIDENCE_FINDINGS,
@@ -3347,6 +3348,7 @@ class GeminiCognitiveExecutor:
                         common_context,
                         SynthesisDraft(title=draft.title, markdown=markdown),
                     )
+                markdown = await append_jev_advisory(markdown, common_context)
                 final_candidate = FinalArtifactV1(
                     title=draft.title,
                     markdown=markdown,
@@ -3862,6 +3864,8 @@ class GeminiCognitiveExecutor:
                         output_tokens=output_tokens,
                     ),
                 )
+        if input_value.purpose == "final_synthesis":
+            markdown = await append_jev_advisory(markdown, common_context)
         final = FinalArtifactV1(
             title=draft.title,
             markdown=markdown,

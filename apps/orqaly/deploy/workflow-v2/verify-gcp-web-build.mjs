@@ -11,9 +11,9 @@ if (existsSync(resolve(dist, 'sw.js')))
 const html = readFileSync(resolve(dist, 'index.html'), 'utf8');
 for (const marker of [
   'id="root"',
-  'Cloud reasoning. Local action.',
-  '<title>Orqanix — Cloud reasoning. Local action.</title>',
-  'theme-color" content="#F7F7FC',
+  'Instant Intelligence',
+  '<title>Orqanix — Instant Intelligence on your Mac</title>',
+  'theme-color" content="#000000',
 ]) {
   if (!html.includes(marker)) throw new Error(`GCP index.html is missing ${marker}`);
 }
@@ -97,8 +97,9 @@ const totalBytes = scripts.reduce((sum, name) => sum + statSync(resolve(assetsDi
 // Measured feature build in Linux container: 1,562,015 bytes across 58 route/feature scripts.
 // Owner-approved 2026-09-21: +40,000 (products menu and pages), then +25,000 (Enterprise
 // page and the Legal Center), to 1,665,000.
-// Owner-approved 2026-09-22: 1,710,000 for the 15-language landing (language picker,
-// translated pages and Legal Center) plus the light/dark switch. Measured build:
-// 1,704,947 bytes. The translated words ship as JSON assets and are not counted here.
-if (totalBytes > 1_710_000) throw new Error(`GCP JavaScript budget exceeded: ${totalBytes} bytes`);
+// Owner-approved 2026-09-22: 1,720,000 for the 15-language landing (language picker,
+// translated pages and Legal Center) plus the light/dark switch, merged with main.
+// Measured build in the Dockerfile.web container: 1,710,114 bytes. The translated words
+// ship as JSON assets and are not counted here.
+if (totalBytes > 1_720_000) throw new Error(`GCP JavaScript budget exceeded: ${totalBytes} bytes`);
 console.log(`Verified retained GCP build: ${scripts.length} scripts, ${totalBytes} bytes.`);
