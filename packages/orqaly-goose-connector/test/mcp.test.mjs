@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { PassThrough } from 'node:stream';
 import { createMcpTools, serveMcp } from '../src/mcp.mjs';
 
@@ -39,6 +40,129 @@ test('research sends only explicitly selected artifact IDs and rejects invalid r
   await call('ask_axwise', { question: 'Explain retries', runId: id, artifactIds: [id] });
   assert.equal(calls[1].runId, id);
   assert.deepEqual(calls[1].artifactIds, [id]);
+});
+test('explicit image and live-data tools send typed capabilities without invoking research routing', async () => {
+  const calls = [];
+  const call = createMcpTools({ ...base, fetchImpl: async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return response({ status: 'accepted', requestId: id });
+  } });
+  assert.equal((await call('generate_image', { prompt: 'A blue robot', aspectRatio: '16:9' })).isError, false);
+  assert.deepEqual(calls[0].capability, {
+    kind: 'image_generate', imageSize: '1K', aspectRatio: '16:9',
+  });
+  assert.equal(calls[0].question, 'A blue robot');
+
+  assert.equal((await call('lookup_live_data', {
+    kind: 'weather', location: 'Berlin', temperatureUnit: 'C',
+  })).isError, false);
+  assert.deepEqual(calls[1].capability, { kind: 'weather', location: 'Berlin', tempUnit: 'C' });
+
+  assert.equal((await call('lookup_live_data', {
+    kind: 'currency', base: 'EUR', quote: 'USD', amount: '10.50',
+  })).isError, false);
+  assert.deepEqual(calls[2].capability, {
+    kind: 'currency', base: 'EUR', quote: 'USD', amount: '10.50',
+  });
+  assert.equal((await call('lookup_live_data', {
+    kind: 'currency', base: 'eur', quote: 'USD', amount: '10',
+  })).isError, true);
+  assert.equal(calls.length, 3);
+});
+test('generated image bytes become an MCP image block and structured content keeps a safe reference', async () => {
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.from('generated'),
+  ]).toString('base64');
+  const sha256 = createHash('sha256').update(Buffer.from(png, 'base64')).digest('hex');
+  const state = { status: 'completed', requestId: id, presentations: [{
+    schemaVersion: 'axwise.presentation.generated-image.v1', kind: 'generated_image',
+    mimeType: 'image/png', data: png, sha256, alt: 'Blue robot',
+    model: 'gemini-3.1-flash-image',
+  }] };
+  const call = createMcpTools({ ...base, fetchImpl: async () => response(state) });
+  const value = await call('axwise_work_status', { requestId: id });
+  assert.equal(value.isError, false);
+  assert.equal(value.content[1].type, 'image');
+  assert.equal(value.content[1].data, png);
+  assert.equal(value.content[1].mimeType, 'image/png');
+  assert.equal(value.structuredContent.presentations[0].contentIndex, 1);
+  assert.equal(value.structuredContent.presentations[0].sha256, sha256);
+  assert.equal(value.structuredContent.presentations[0].model, 'gemini-3.1-flash-image');
+  assert.equal(Object.hasOwn(value.structuredContent.presentations[0], 'data'), false);
+  assert.equal(JSON.stringify(value.structuredContent).includes(png), false);
+});
+test('a cancellation that loses the completion race still returns the completed capability result', async () => {
+  const weather = {
+    schemaVersion: 'axwise.presentation.weather.v1', kind: 'weather', location: 'Berlin',
+    observedAt: '2026-09-22T10:30:00Z', temperature: '17', temperatureUnit: 'C',
+    condition: 'Partly cloudy', forecast: [],
+    source: { title: 'Weather office', url: 'https://example.com/weather' },
+  };
+  const calls = [];
+  const call = createMcpTools({ ...base, fetchImpl: async (url, options) => {
+    calls.push([url, options.method, options.body]);
+    return response({ status: 'completed', requestId: id, presentations: [weather] });
+  } });
+
+  const value = await call('cancel_axwise_work', { requestId: id });
+
+  assert.equal(value.isError, false);
+  assert.equal(value.structuredContent.status, 'completed');
+  assert.deepEqual(value.structuredContent.presentations, [weather]);
+  assert.deepEqual(calls, [[
+    `https://preview.example/desktop/v1/work/${base.conversationId}/${id}/cancel`,
+    'POST',
+    '{}',
+  ]]);
+});
+test('invalid generated image payload fails closed instead of exposing base64 in structured content', async () => {
+  const call = createMcpTools({ ...base, fetchImpl: async () => response({
+    status: 'completed', requestId: id, presentations: [{
+      schemaVersion: 'axwise.presentation.generated-image.v1', kind: 'generated_image',
+      mimeType: 'image/png', data: 'not-base64',
+    }],
+  }) });
+  const value = await call('axwise_work_status', { requestId: id });
+  assert.equal(value.isError, true);
+  assert.deepEqual(value.structuredContent, { error: 'Orqanix returned an invalid presentation.' });
+  assert.equal(value.content.length, 1);
+});
+test('generated image metadata must match the returned bytes', async () => {
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.from('generated'),
+  ]).toString('base64');
+  const call = createMcpTools({ ...base, fetchImpl: async () => response({
+    status: 'completed', requestId: id, presentations: [{
+      schemaVersion: 'axwise.presentation.generated-image.v1', kind: 'generated_image',
+      mimeType: 'image/png', data: png, sha256: '0'.repeat(64), alt: 'Blue robot',
+      model: 'gemini-3.1-flash-image',
+    }],
+  }) });
+  const value = await call('axwise_work_status', { requestId: id });
+  assert.equal(value.isError, true);
+  assert.equal(JSON.stringify(value).includes(png), false);
+});
+test('one invalid presentation removes image blocks staged earlier in the same result', async () => {
+  const bytes = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.from('generated'),
+  ]);
+  const png = bytes.toString('base64');
+  const valid = {
+    schemaVersion: 'axwise.presentation.generated-image.v1', kind: 'generated_image',
+    mimeType: 'image/png', data: png,
+    sha256: createHash('sha256').update(bytes).digest('hex'), alt: 'Blue robot',
+    model: 'gemini-3.1-flash-image',
+  };
+  const call = createMcpTools({ ...base, fetchImpl: async () => response({
+    status: 'completed', requestId: id, presentations: [valid, { ...valid, sha256: '0'.repeat(64) }],
+  }) });
+  const value = await call('axwise_work_status', { requestId: id });
+  assert.equal(value.isError, true);
+  assert.deepEqual(value.content.map((block) => block.type), ['text']);
+  assert.equal(JSON.stringify(value).includes(png), false);
 });
 test('one status call polls only the same request, honors server delays and returns completed research', async () => {
   let elapsed = 0;
@@ -171,13 +295,16 @@ test('stdio handshake exposes native tools and emits only JSON-RPC', async () =>
   await run;
   const replies = received.trim().split('\n').map(JSON.parse);
   assert.equal(replies[0].result.serverInfo.name, 'orqaly');
-  assert.match(replies[0].result.instructions, /^Orqanix project context and on-demand research tools/);
-  assert.equal(replies[1].result.tools.length, 4);
+  assert.equal(replies[0].result.serverInfo.version, '0.3.0');
+  assert.match(replies[0].result.instructions, /^Orqanix capabilities and project context/);
+  assert.equal(replies[1].result.tools.length, 6);
   assert.equal(replies[1].result.tools[0].annotations.readOnlyHint, false);
   assert.deepEqual(replies[1].result.tools.map(tool => tool.name), [
-    'ask_axwise', 'axwise_work_status', 'cancel_axwise_work', 'read_goal_artifact',
+    'ask_axwise', 'generate_image', 'lookup_live_data', 'axwise_work_status',
+    'cancel_axwise_work', 'read_goal_artifact',
   ]);
   assert.deepEqual(replies[1].result.tools.map(tool => tool.title), [
-    'Research on demand', 'Read research result', 'Cancel research', 'Read project document',
+    'Research on demand', 'Create image', 'Live data card', 'Check work result',
+    'Cancel work', 'Read project document',
   ]);
 });
