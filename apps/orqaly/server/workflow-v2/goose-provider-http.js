@@ -6,8 +6,19 @@ import { ENGINEERING_REVIEW_MAX_BYTES } from './engineering-review-service.js';
 
 export const GOOSE_PROVIDER_MODEL = 'orqaly-gemini';
 const GOOGLE_CHAT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const MAX_REQUEST_BYTES = 2 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 18 * 1024 * 1024;
+const MAX_UPSTREAM_REQUEST_BYTES = 18 * 1024 * 1024;
+const MAX_CONTEXT_BYTES = 2 * 1024 * 1024;
+const MAX_NON_IMAGE_REQUEST_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 1024 * 1024;
+const MAX_INLINE_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_BASE64_LENGTH = Math.ceil(MAX_IMAGE_BYTES / 3) * 4;
+const MAX_IMAGES_PER_MESSAGE = 10;
+const MAX_INLINE_IMAGES = 3_600;
+const MAX_CONTENT_PARTS_PER_MESSAGE = 128;
 const MAX_DEADLINE_MS = 180_000;
+const INPUT_MODALITIES = Object.freeze(['text', 'image']);
+const IMAGE_DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
 const REQUEST_FIELDS = new Set([
   'model', 'messages', 'tools', 'tool_choice', 'parallel_tool_calls', 'stream',
   'stream_options', 'max_tokens', 'max_completion_tokens', 'temperature', 'top_p',
@@ -35,57 +46,115 @@ function sendError(res, status, code) {
   res.status(status).json({ error: { type: 'orqaly_provider_error', code, message: code } });
 }
 
-function validContent(content) {
-  return content === undefined || content === null || typeof content === 'string'
-    || (Array.isArray(content) && content.every((part) =>
-      isObject(part) && part.type === 'text' && typeof part.text === 'string'
-      && Object.keys(part).every((key) => ['type', 'text', 'extra_content'].includes(key))));
+function hasImageSignature(mime, bytes) {
+  if (mime === 'image/jpeg') return bytes.length >= 3
+    && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === 'image/png') return bytes.length >= 8
+    && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  return bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF'
+    && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
 }
 
-export function validateGooseChatRequest(body) {
+function inspectImagePart(part, state) {
+  if (!isObject(part) || part.type !== 'image_url'
+    || Object.keys(part).length !== 2 || !Object.hasOwn(part, 'image_url')
+    || !isObject(part.image_url) || Object.keys(part.image_url).length !== 1
+    || typeof part.image_url.url !== 'string') return 'invalid';
+  const match = IMAGE_DATA_URL.exec(part.image_url.url);
+  if (!match) return 'invalid';
+  const [, mime, encoded] = match;
+  if (encoded.length % 4 !== 0) return 'invalid';
+  if (encoded.length > MAX_IMAGE_BASE64_LENGTH) return 'too_large';
+  const bytes = Buffer.from(encoded, 'base64');
+  if (bytes.toString('base64') !== encoded || !hasImageSignature(mime, bytes)) return 'invalid';
+  if (bytes.length > MAX_IMAGE_BYTES || state.imageBytes + bytes.length > MAX_INLINE_IMAGE_BYTES
+    || state.imageCount >= MAX_INLINE_IMAGES) return 'too_large';
+  state.imageCount += 1;
+  state.imageBytes += bytes.length;
+  state.inlineImageContainers.add(part.image_url);
+  return 'valid';
+}
+
+function inspectContent(content, role, state) {
+  if (content === undefined || content === null || typeof content === 'string') return 'valid';
+  if (!Array.isArray(content) || content.length > MAX_CONTENT_PARTS_PER_MESSAGE) return 'invalid';
+  let imageCount = 0;
+  for (const part of content) {
+    if (isObject(part) && part.type === 'text' && typeof part.text === 'string'
+      && Object.keys(part).every((key) => ['type', 'text', 'extra_content'].includes(key))) continue;
+    if (role !== 'user') return 'invalid';
+    imageCount += 1;
+    if (imageCount > MAX_IMAGES_PER_MESSAGE) return 'too_large';
+    const result = inspectImagePart(part, state);
+    if (result !== 'valid') return result;
+  }
+  return 'valid';
+}
+
+function inspectGooseChatRequest(body) {
+  const invalid = { valid: false, status: 400, code: 'INVALID_CHAT_REQUEST' };
+  const imagesTooLarge = { valid: false, status: 413, code: 'CHAT_IMAGES_TOO_LARGE' };
+  const requestTooLarge = { valid: false, status: 413, code: 'CHAT_REQUEST_TOO_LARGE' };
+  const state = { imageCount: 0, imageBytes: 0, inlineImageContainers: new WeakSet() };
   if (!isObject(body) || Object.keys(body).some((key) => !REQUEST_FIELDS.has(key))
     || body.model !== GOOSE_PROVIDER_MODEL
     || !Array.isArray(body.messages) || !body.messages.length || body.messages.length > 1000
-    || (body.stream !== undefined && typeof body.stream !== 'boolean')) return false;
-  if (!body.messages.every((message) => isObject(message)
-    && ['system', 'developer', 'user', 'assistant', 'tool'].includes(message.role)
-    && !REMOTE_MESSAGE_FIELDS.some((key) => Object.hasOwn(message, key))
-    && validContent(message.content)
-    && (message.role !== 'tool' || typeof message.tool_call_id === 'string')
-    && (message.tool_calls === undefined || (message.role === 'assistant'
-      && Array.isArray(message.tool_calls) && message.tool_calls.every((call) =>
-        isObject(call) && call.type === 'function' && typeof call.id === 'string'
-        && isObject(call.function) && typeof call.function.name === 'string'
-        && typeof call.function.arguments === 'string'))))) return false;
+    || (body.stream !== undefined && typeof body.stream !== 'boolean')) return invalid;
+  for (const message of body.messages) {
+    if (!isObject(message) || !['system', 'developer', 'user', 'assistant', 'tool'].includes(message.role)
+      || REMOTE_MESSAGE_FIELDS.some((key) => Object.hasOwn(message, key))
+      || (message.role === 'tool' && typeof message.tool_call_id !== 'string')
+      || (message.tool_calls !== undefined && (message.role !== 'assistant'
+        || !Array.isArray(message.tool_calls) || !message.tool_calls.every((call) =>
+          isObject(call) && call.type === 'function' && typeof call.id === 'string'
+          && isObject(call.function) && typeof call.function.name === 'string'
+          && typeof call.function.arguments === 'string')))) return invalid;
+    const content = inspectContent(message.content, message.role, state);
+    if (content === 'invalid') return invalid;
+    if (content === 'too_large') return imagesTooLarge;
+  }
   if (body.tools !== undefined && (!Array.isArray(body.tools) || body.tools.length > 256
     || !body.tools.every((tool) => isObject(tool) && tool.type === 'function'
       && isObject(tool.function) && typeof tool.function.name === 'string'
-      && (tool.function.parameters === undefined || isObject(tool.function.parameters))))) return false;
+      && (tool.function.parameters === undefined || isObject(tool.function.parameters))))) return invalid;
   if (body.tool_choice !== undefined && !['auto', 'none', 'required'].includes(body.tool_choice)
     && !(isObject(body.tool_choice) && body.tool_choice.type === 'function'
-      && isObject(body.tool_choice.function) && typeof body.tool_choice.function.name === 'string')) return false;
+      && isObject(body.tool_choice.function) && typeof body.tool_choice.function.name === 'string')) return invalid;
   for (const name of ['max_tokens', 'max_completion_tokens']) {
-    if (body[name] !== undefined && (!Number.isInteger(body[name]) || body[name] < 1 || body[name] > 65_536)) return false;
+    if (body[name] !== undefined && (!Number.isInteger(body[name]) || body[name] < 1 || body[name] > 65_536)) return invalid;
   }
   for (const name of ['parallel_tool_calls', 'logprobs']) {
-    if (body[name] !== undefined && typeof body[name] !== 'boolean') return false;
+    if (body[name] !== undefined && typeof body[name] !== 'boolean') return invalid;
   }
-  if (body.store !== undefined && typeof body.store !== 'boolean') return false;
+  if (body.store !== undefined && typeof body.store !== 'boolean') return invalid;
   for (const name of ['temperature', 'top_p', 'frequency_penalty', 'presence_penalty']) {
-    if (body[name] !== undefined && (typeof body[name] !== 'number' || !Number.isFinite(body[name]))) return false;
+    if (body[name] !== undefined && (typeof body[name] !== 'number' || !Number.isFinite(body[name]))) return invalid;
   }
-  if (body.n !== undefined && body.n !== 1) return false;
-  if (body.seed !== undefined && !Number.isSafeInteger(body.seed)) return false;
-  if (body.top_logprobs !== undefined && (!Number.isInteger(body.top_logprobs) || body.top_logprobs < 0 || body.top_logprobs > 20)) return false;
-  if (body.reasoning_effort !== undefined && !['low', 'medium', 'high'].includes(body.reasoning_effort)) return false;
+  if (body.n !== undefined && body.n !== 1) return invalid;
+  if (body.seed !== undefined && !Number.isSafeInteger(body.seed)) return invalid;
+  if (body.top_logprobs !== undefined && (!Number.isInteger(body.top_logprobs) || body.top_logprobs < 0 || body.top_logprobs > 20)) return invalid;
+  if (body.reasoning_effort !== undefined && !['low', 'medium', 'high'].includes(body.reasoning_effort)) return invalid;
   if (body.response_format !== undefined && (!isObject(body.response_format)
-    || !['text', 'json_object', 'json_schema'].includes(body.response_format.type))) return false;
+    || !['text', 'json_object', 'json_schema'].includes(body.response_format.type))) return invalid;
   if (body.stream_options !== undefined && (!isObject(body.stream_options)
     || Object.keys(body.stream_options).some((key) => key !== 'include_usage')
-    || (body.stream_options.include_usage !== undefined && typeof body.stream_options.include_usage !== 'boolean'))) return false;
+    || (body.stream_options.include_usage !== undefined && typeof body.stream_options.include_usage !== 'boolean'))) return invalid;
   if (body.stop !== undefined && typeof body.stop !== 'string'
-    && !(Array.isArray(body.stop) && body.stop.length <= 4 && body.stop.every((value) => typeof value === 'string'))) return false;
-  return true;
+    && !(Array.isArray(body.stop) && body.stop.length <= 4 && body.stop.every((value) => typeof value === 'string'))) return invalid;
+  let nonImageRequest;
+  try {
+    nonImageRequest = JSON.stringify(body, function omitInlineImageData(key, value) {
+      return key === 'url' && state.inlineImageContainers.has(this) ? '[inline image]' : value;
+    });
+  } catch {
+    return invalid;
+  }
+  if (Buffer.byteLength(nonImageRequest, 'utf8') > MAX_NON_IMAGE_REQUEST_BYTES) return requestTooLarge;
+  return { valid: true };
+}
+
+export function validateGooseChatRequest(body) {
+  return inspectGooseChatRequest(body).valid;
 }
 
 /** A transport boundary only: Goose, not this router, executes desktop tools. */
@@ -144,10 +213,13 @@ export function createGooseProviderRouter({
       return sendError(res, status, status === 401 ? 'UNAUTHENTICATED' : status === 403 ? 'ACCESS_DENIED' : 'IDENTITY_UNAVAILABLE');
     }
   });
-  router.get('/session', (req, res) => res.json({ ...req.gooseSession, model: GOOSE_PROVIDER_MODEL }));
+  router.get('/session', (req, res) => res.json({
+    ...req.gooseSession, model: GOOSE_PROVIDER_MODEL, input_modalities: INPUT_MODALITIES,
+  }));
   router.get('/models', (_req, res) => res.json({
     object: 'list',
-    data: [{ id: GOOSE_PROVIDER_MODEL, object: 'model', created: 0, owned_by: 'orqaly' }],
+    data: [{ id: GOOSE_PROVIDER_MODEL, object: 'model', created: 0, owned_by: 'orqaly',
+      input_modalities: INPUT_MODALITIES }],
   }));
   const desktopRead = (operation) => async (req, res) => {
     try { res.json(await operation(req)); }
@@ -185,7 +257,8 @@ export function createGooseProviderRouter({
     });
   }
   router.post('/chat/completions', express.json({ limit: MAX_REQUEST_BYTES, strict: true }), async (req, res) => {
-    if (!validateGooseChatRequest(req.body)) return sendError(res, 400, 'INVALID_CHAT_REQUEST');
+    const validation = inspectGooseChatRequest(req.body);
+    if (!validation.valid) return sendError(res, validation.status, validation.code);
     const controller = new AbortController();
     let timedOut = false;
     const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
@@ -221,7 +294,7 @@ export function createGooseProviderRouter({
           throw error;
         }
         if (context !== null && context !== undefined) {
-          if (typeof context !== 'string' || Buffer.byteLength(context, 'utf8') > MAX_REQUEST_BYTES)
+          if (typeof context !== 'string' || Buffer.byteLength(context, 'utf8') > MAX_CONTEXT_BYTES)
             throw new Error('GOOSE_PROVIDER_CONTEXT_INVALID');
           if (context) {
             const [leading, ...history] = body.messages;
@@ -237,10 +310,13 @@ export function createGooseProviderRouter({
         }
       }
       controller.signal.throwIfAborted();
+      const upstreamBody = JSON.stringify(body);
+      if (Buffer.byteLength(upstreamBody, 'utf8') > MAX_UPSTREAM_REQUEST_BYTES)
+        return sendError(res, 413, 'CHAT_REQUEST_TOO_LARGE');
       const upstream = await fetchImpl(GOOGLE_CHAT_URL, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: upstreamBody,
         signal: controller.signal,
         redirect: 'error',
       });
