@@ -13,6 +13,48 @@ describe('Goose desktop identity and source context', () => {
     expect(() => createGooseProviderFromEnvironment({ environment: { ORQALY_GOOSE_ENABLED: 'true' } })).toThrow();
   });
 
+  it('constructs the default Clerk-backed thin provider without a workflow session', () => {
+    const environment = {
+      ORQALY_GOOSE_ENABLED: 'true',
+      ORQALY_GOOSE_OAUTH_CLIENT_ID: clientId,
+      ORQALY_GOOSE_GEMINI_API_KEY: 'backend-only-test-key',
+      CLERK_SECRET_KEY: 'sk_test_placeholder',
+      CLERK_PUBLISHABLE_KEY: 'pk_test_placeholder',
+    };
+    expect(createGooseProviderFromEnvironment({ environment })).toBeTypeOf('function');
+    expect(() => createGooseProviderFromEnvironment({
+      environment: { ...environment, ORQALY_GOOSE_LEGACY_WORKFLOW_ROUTES: 'true' },
+    })).toThrow(/workflow session/);
+  });
+
+  it('mounts optional advisory engineering review in reset without legacy workflow routes', () => {
+    const environment = {
+      ORQALY_GOOSE_ENABLED: 'true',
+      ORQALY_GOOSE_OAUTH_CLIENT_ID: clientId,
+      ORQALY_GOOSE_GEMINI_API_KEY: 'backend-only-test-key',
+      TYPESAFE_API_KEY: 'review-only-test-key',
+      CLERK_SECRET_KEY: 'sk_test_placeholder',
+      CLERK_PUBLISHABLE_KEY: 'pk_test_placeholder',
+    };
+    const commandService = { session: vi.fn() };
+    const desktopWorkService = { read: vi.fn() };
+    const routes = (router) => router.stack.flatMap((layer) =>
+      layer.handle?.stack?.map((nested) => nested.route?.path).filter(Boolean) || []);
+
+    const withReview = createGooseProviderFromEnvironment({ environment,
+      commandService, desktopWorkService });
+    expect(routes(withReview)).toEqual([
+      '/session', '/models', '/decisions', '/search', '/engineering/review', '/chat/completions',
+    ]);
+    expect(commandService.session).not.toHaveBeenCalled();
+    expect(desktopWorkService.read).not.toHaveBeenCalled();
+
+    const withoutReview = createGooseProviderFromEnvironment({ environment: {
+      ...environment, TYPESAFE_API_KEY: undefined,
+    }, commandService, desktopWorkService });
+    expect(routes(withoutReview)).toEqual(['/session', '/models', '/search', '/chat/completions']);
+  });
+
   it('accepts only verified user identity from this OAuth client and scope', () => {
     expect(desktopOAuthIdentity(oauth, clientId)).toEqual({ userId: 'user_owner' });
     for (const auth of [null, { ...oauth, isAuthenticated: false }, { ...oauth, tokenType: 'session_token' },

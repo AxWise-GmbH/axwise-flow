@@ -5,6 +5,7 @@ import { createDesktopContextService, DESKTOP_PRODUCT_GUIDANCE } from './desktop
 import { createEngineeringReviewService } from './engineering-review-service.js';
 import { createDesktopDecisionService } from './desktop-decision-service.js';
 import { createDesktopInformationService } from './desktop-information-service.js';
+import { createDesktopSearchService } from './desktop-search-service.js';
 
 function denied(status = 403) {
   return Object.assign(new Error('DESKTOP_ACCESS_DENIED'), { status });
@@ -35,6 +36,7 @@ export function createGooseRunContext(commandService) {
 
 export function createGooseProviderFromEnvironment({
   commandService, rateLimiter, desktopWorkService = null, environment = process.env,
+  fetchImpl = fetch,
 }) {
   const enabled = environment.ORQALY_GOOSE_ENABLED;
   if (enabled === undefined || enabled === '' || enabled === 'false') return null;
@@ -44,23 +46,41 @@ export function createGooseProviderFromEnvironment({
     throw new Error('ORQALY_GOOSE_OAUTH_CLIENT_ID is required');
   if (!environment.CLERK_SECRET_KEY || !environment.CLERK_PUBLISHABLE_KEY)
     throw new Error('Goose requires the existing Clerk instance configuration');
+  const legacyFlag = environment.ORQALY_GOOSE_LEGACY_WORKFLOW_ROUTES;
+  if (legacyFlag !== undefined && legacyFlag !== '' && legacyFlag !== 'true' && legacyFlag !== 'false')
+    throw new Error('ORQALY_GOOSE_LEGACY_WORKFLOW_ROUTES must be true or false');
+  const legacyWorkflowRoutes = legacyFlag === 'true';
+  if (legacyWorkflowRoutes && typeof commandService?.session !== 'function')
+    throw new Error('Legacy Goose routes require the workflow session service');
   const router = express.Router();
   // Browser authorizedParties are web origins, not the native OAuth client.
   // Verify against this Clerk instance, then enforce the exact desktop client.
   router.use(clerkMiddleware({ secretKey: environment.CLERK_SECRET_KEY,
     publishableKey: environment.CLERK_PUBLISHABLE_KEY }));
   router.use(createGooseProviderRouter({
-    commandService,
+    ...(legacyWorkflowRoutes ? { commandService } : {}),
     verifyDesktopAuth: (req) => desktopOAuthIdentity(getAuth(req, { acceptsToken: 'oauth_token' }), clientId),
     apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY,
     rateLimiter,
-    contextForRequest: createGooseRunContext(commandService),
-    productGuidance: DESKTOP_PRODUCT_GUIDANCE,
-    desktopContextService: createDesktopContextService({ commandService }),
-    desktopWorkService,
-    decisionService: createDesktopDecisionService({ apiKey: environment.TYPESAFE_API_KEY }),
-    informationService: createDesktopInformationService({ baseUrl: environment.AXWISE_SERVICE_URL }),
-    engineeringReviewService: createEngineeringReviewService({ desktopWorkService, apiKey: environment.TYPESAFE_API_KEY }),
+    fetchImpl,
+    searchService: createDesktopSearchService({ apiKey: environment.ORQALY_GOOSE_GEMINI_API_KEY, fetchImpl }),
+    ...(environment.TYPESAFE_API_KEY ? {
+      decisionService: createDesktopDecisionService({ apiKey: environment.TYPESAFE_API_KEY }),
+    } : {}),
+    // Advisory engineering review is optional in reset mode. It receives the
+    // authenticated user and may verify explicitly supplied research references,
+    // but it does not require a workflow session or add context to ordinary chat.
+    ...(legacyWorkflowRoutes || environment.TYPESAFE_API_KEY ? {
+      engineeringReviewService: createEngineeringReviewService({ desktopWorkService,
+        apiKey: environment.TYPESAFE_API_KEY }),
+    } : {}),
+    ...(legacyWorkflowRoutes ? {
+      contextForRequest: createGooseRunContext(commandService),
+      productGuidance: DESKTOP_PRODUCT_GUIDANCE,
+      desktopContextService: createDesktopContextService({ commandService }),
+      desktopWorkService,
+      informationService: createDesktopInformationService({ baseUrl: environment.AXWISE_SERVICE_URL }),
+    } : {}),
   }));
   return router;
 }
