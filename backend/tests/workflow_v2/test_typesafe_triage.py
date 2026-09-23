@@ -57,6 +57,8 @@ async def test_missing_key_never_evaluates(monkeypatch):
     docs = ["doc"]
     assert await jev.filter_documents_with_jev("query", docs) is docs
     assert await jev.classify_intent_with_jev(["Build an app"]) is None
+    with pytest.raises(jev.QuickInfoRouteUnavailable):
+        await jev.classify_quick_info_route("Latest score?")
     review = await jev.validate_deliverable_with_jev("draft")
     assert review.status == "not_evaluated"
     assert review.reason == "not_configured"
@@ -159,6 +161,82 @@ async def test_provider_error_preserves_documents(mock_api):
     docs = [SimpleNamespace(text="evidence")]
     assert await jev.filter_documents_with_jev("query", docs) is docs
     assert await jev.classify_intent_with_jev(["Build an app"]) is None
+    with pytest.raises(jev.QuickInfoRouteUnavailable):
+        await jev.classify_quick_info_route("Latest score?")
+
+
+async def test_quick_info_choice_uses_official_closed_set_contract(monkeypatch):
+    calls = []
+    original = httpx.AsyncClient
+
+    async def handle(request):
+        calls.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-1.13.0",
+                "answers": {
+                    "route": {
+                        "type": "choice",
+                        "choice": "quick_info",
+                        "confidence": 0.91,
+                        "probabilities": {
+                            "quick_info": 0.86,
+                            "research": 0.08,
+                            "local_engineering": 0.02,
+                            "conversation": 0.04,
+                        },
+                    }
+                },
+                "usage": {"input_tokens": 392, "output_tokens": 65},
+            },
+        )
+
+    monkeypatch.setattr(
+        jev.httpx,
+        "AsyncClient",
+        lambda **kwargs: original(transport=httpx.MockTransport(handle), **kwargs),
+    )
+    monkeypatch.setenv("TYPESAFE_API_KEY", "offline-placeholder")
+
+    result = await jev.classify_quick_info_route(
+        "What time does IKEA Bremen close today?", "Bremen"
+    )
+
+    assert result is not None and result.confidently_quick_info
+    assert calls == [
+        {
+            "model": "jev-latest",
+            "state": {
+                "message": "What time does IKEA Bremen close today?",
+                "hasProjectContext": False,
+                "location": "Bremen",
+            },
+            "questions": {
+                "route": {
+                    "type": "choice",
+                    "instructions": (
+                        "Choose the single safest handling lane for this user request."
+                    ),
+                    "criteria": calls[0]["questions"]["route"]["criteria"],
+                }
+            },
+        }
+    ]
+    assert set(calls[0]["questions"]["route"]["criteria"]) == {
+        "quick_info",
+        "research",
+        "local_engineering",
+        "conversation",
+    }
+
+
+async def test_quick_info_choice_rejects_malformed_probabilities(mock_api):
+    config, _calls = mock_api
+    # The generic Noul mock is deliberately not a valid Choice response.
+    config["scores"] = {}
+    with pytest.raises(jev.QuickInfoRouteUnavailable):
+        await jev.classify_quick_info_route("Latest score?")
 
 
 async def test_configured_review_status_is_visible_without_pass_certificate(mock_api):

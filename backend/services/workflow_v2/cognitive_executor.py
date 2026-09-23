@@ -1684,6 +1684,7 @@ class GeminiCognitiveExecutor:
         assistant_chat_runner: ResearchRunner | None = None,
         assistant_image_runner: Any | None = None,
         assistant_widget_runner: Any | None = None,
+        assistant_quick_info_runner: Any | None = None,
         solution_preparer: PydanticAISolutionPreparer | None = None,
         solution_preparer_v2: PydanticAINativeSolutionPreparer | None = None,
         analysis_generator: AnalysisGenerator | None = None,
@@ -1703,6 +1704,7 @@ class GeminiCognitiveExecutor:
         self.assistant_chat_runner = assistant_chat_runner
         self.assistant_image_runner = assistant_image_runner
         self.assistant_widget_runner = assistant_widget_runner
+        self.assistant_quick_info_runner = assistant_quick_info_runner
         self.solution_preparer = solution_preparer
         self.solution_preparer_v2 = solution_preparer_v2
         self.analysis_handler = AnalysisOperationHandler(
@@ -1723,6 +1725,7 @@ class GeminiCognitiveExecutor:
             metrics_factory=_operation_metrics,
             image_runner=assistant_image_runner,
             widget_runner=assistant_widget_runner,
+            quick_info_runner=assistant_quick_info_runner,
         )
 
     async def close(self) -> None:
@@ -1733,6 +1736,7 @@ class GeminiCognitiveExecutor:
             self.assistant_chat_runner,
             self.assistant_image_runner,
             self.assistant_widget_runner,
+            self.assistant_quick_info_runner,
         ):
             if runner is None or id(runner) in closed:
                 continue
@@ -3950,6 +3954,9 @@ def build_cognitive_executor(
     from backend.services.workflow_v2.assistant.widget_runner import (
         GeminiAssistantWidgetRunner,
     )
+    from backend.services.workflow_v2.assistant.quick_info_runner import (
+        GeminiAssistantQuickInfoRunner,
+    )
 
     api_key = os.getenv("GEMINI_API_KEY")
     authority_key = os.getenv("AXWISE_AUTHORITY_SEAL_KEY")
@@ -4000,6 +4007,7 @@ def build_cognitive_executor(
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
         assistant_image_runner=GeminiAssistantImageRunner(api_key),
         assistant_widget_runner=GeminiAssistantWidgetRunner(api_key),
+        assistant_quick_info_runner=GeminiAssistantQuickInfoRunner(api_key),
         solution_preparer=PydanticAISolutionPreparer(model),
         solution_preparer_v2=PydanticAINativeSolutionPreparer(model),
         **capability_generators,

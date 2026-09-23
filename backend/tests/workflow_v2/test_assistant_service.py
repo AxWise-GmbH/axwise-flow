@@ -22,6 +22,12 @@ from backend.services.workflow_v2.assistant.projection import project_assistant_
 from backend.services.workflow_v2.assistant.prompts import assistant_turn_query
 from backend.services.workflow_v2.assistant.service import AssistantTurnService
 from backend.services.workflow_v2.assistant.image_runner import AssistantGeneratedImage
+from backend.services.workflow_v2.assistant.quick_info_runner import (
+    AssistantQuickInfoError,
+    AssistantQuickInfoResult,
+    QuickInfoFact,
+    QuickInfoSource,
+)
 from backend.services.workflow_v2.assistant.widget_runner import (
     AssistantWidgetResult,
     CurrencyCandidate,
@@ -113,6 +119,7 @@ def service(
     conversation: RecordingRunner | None,
     image_runner=None,
     widget_runner=None,
+    quick_info_runner=None,
 ) -> AssistantTurnService:
     return AssistantTurnService(
         grounded_runner=grounded,
@@ -122,6 +129,7 @@ def service(
         metrics_factory=metrics_factory,
         image_runner=image_runner,
         widget_runner=widget_runner,
+        quick_info_runner=quick_info_runner,
     )
 
 
@@ -144,9 +152,12 @@ class RecordingImageRunner:
 
 
 class RecordingWidgetRunner:
-    def __init__(self, *, cache_hit: bool = False) -> None:
+    def __init__(
+        self, *, cache_hit: bool = False, search_calls: int = 1
+    ) -> None:
         self.calls: list[tuple] = []
         self.cache_hit = cache_hit
+        self.search_calls = 0 if cache_hit else search_calls
 
     async def weather(self, location: str, *, temperature_unit: str):
         self.calls.append(("weather", location, temperature_unit))
@@ -178,6 +189,7 @@ class RecordingWidgetRunner:
             model_version="gemini-3.8-flash-001",
             input_tokens=20,
             output_tokens=8,
+            search_calls=self.search_calls,
             cache_hit=self.cache_hit,
         )
 
@@ -203,8 +215,116 @@ class RecordingWidgetRunner:
             model_version=None,
             input_tokens=0 if self.cache_hit else None,
             output_tokens=0 if self.cache_hit else None,
+            search_calls=self.search_calls,
             cache_hit=self.cache_hit,
         )
+
+
+class RecordingQuickInfoRunner:
+    def __init__(self, error: AssistantQuickInfoError | None = None) -> None:
+        self.calls: list[tuple] = []
+        self.error = error
+
+    async def quick_info(self, query, *, location, jev_enabled):
+        self.calls.append((query, location, jev_enabled))
+        if self.error is not None:
+            raise self.error
+        return AssistantQuickInfoResult(
+            markdown="IKEA Bremen closes at 8:00 PM today.",
+            sources=(
+                QuickInfoSource(
+                    title="IKEA Bremen",
+                    url="https://www.ikea.com/de/en/stores/bremen/",
+                ),
+            ),
+            facts=(
+                QuickInfoFact(
+                    statement="IKEA Bremen closes at 8:00 PM today.",
+                    source_urls=(
+                        "https://www.ikea.com/de/en/stores/bremen/",
+                    ),
+                ),
+            ),
+            model="gemini-3.8-flash",
+            model_version="gemini-3.8-flash-001",
+            input_tokens=12,
+            output_tokens=7,
+            search_calls=1,
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("routing_mode", "jev_enabled"), [("jev", True), ("explicit", False)]
+)
+async def test_quick_info_returns_v1_grounded_answer_and_maps_routing_mode(
+    routing_mode, jev_enabled
+):
+    quick = RecordingQuickInfoRunner()
+    result = await service(
+        grounded=None, conversation=None, quick_info_runner=quick
+    ).execute(
+        assistant_v2(
+            {
+                "kind": "quick_info",
+                "location": "Bremen",
+                "routingMode": routing_mode,
+            },
+            message="When does IKEA Bremen close today?",
+        )
+    )
+
+    assert quick.calls == [
+        ("When does IKEA Bremen close today?", "Bremen", jev_enabled)
+    ]
+    assert result.response.schema_version == "axwise.assistant-turn.v1"
+    assert result.response.facts[0].source_urls == [
+        "https://www.ikea.com/de/en/stores/bremen/"
+    ]
+    assert result.metrics is not None
+    assert result.metrics.input_tokens == 12
+    assert result.metrics.output_tokens == 7
+    assert result.metrics.search_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_quick_info_route_mismatch_stays_typed_and_non_retryable():
+    quick = RecordingQuickInfoRunner(
+        AssistantQuickInfoError(
+            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH", retryable=False
+        )
+    )
+    with pytest.raises(CognitiveExecutionFailure) as error:
+        await service(
+            grounded=None, conversation=None, quick_info_runner=quick
+        ).execute(
+            assistant_v2(
+                {"kind": "quick_info", "routingMode": "jev"},
+                message="Compare five phones",
+            )
+        )
+    assert error.value.error_class == "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH"
+    assert error.value.retryable is False
+
+
+@pytest.mark.asyncio
+async def test_quick_info_route_provider_outage_stays_typed_and_retryable():
+    quick = RecordingQuickInfoRunner(
+        AssistantQuickInfoError(
+            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE", retryable=True
+        )
+    )
+    with pytest.raises(CognitiveExecutionFailure) as error:
+        await service(
+            grounded=None, conversation=None, quick_info_runner=quick
+        ).execute(
+            assistant_v2(
+                {"kind": "quick_info", "routingMode": "jev"},
+                message="Latest score?",
+            )
+        )
+    assert error.value.error_class == "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE"
+    assert error.value.retryable is True
 
 
 @pytest.mark.asyncio
@@ -249,7 +369,7 @@ async def test_explicit_image_capability_uses_the_fast_image_runner() -> None:
 
 @pytest.mark.asyncio
 async def test_weather_capability_returns_grounded_card_and_utc_fallback() -> None:
-    widgets = RecordingWidgetRunner()
+    widgets = RecordingWidgetRunner(search_calls=3)
 
     result = await service(
         grounded=None, conversation=None, widget_runner=widgets
@@ -271,7 +391,7 @@ async def test_weather_capability_returns_grounded_card_and_utc_fallback() -> No
     assert "[Source](<https://example.com/weather>)" in result.response.markdown
     assert result.metrics is not None
     assert result.metrics.total_tokens == 28
-    assert result.metrics.search_calls == 1
+    assert result.metrics.search_calls == 3
 
 
 @pytest.mark.asyncio

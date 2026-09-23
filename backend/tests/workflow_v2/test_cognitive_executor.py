@@ -2196,6 +2196,17 @@ def test_production_executor_wires_resilient_search_and_typed_span_extraction(
     assert executor.research_runner.discovery_seconds == 10
     assert executor.assistant_runner.discovery_seconds == 20
     assert executor.assistant_chat_runner is assistant
+    from backend.services.workflow_v2.assistant.quick_info_runner import (
+        GeminiAssistantQuickInfoRunner,
+    )
+
+    assert isinstance(
+        executor.assistant_quick_info_runner, GeminiAssistantQuickInfoRunner
+    )
+    assert (
+        executor.assistant_turn_service.quick_info_runner
+        is executor.assistant_quick_info_runner
+    )
     from backend.services.workflow_v2.assistant.answer_quality import (
         assistant_answer_defects,
         assistant_repair_query,
@@ -14000,12 +14011,14 @@ async def test_executor_closes_each_distinct_runner_once() -> None:
     research = ClosingRunner()
     grounded_assistant = ClosingRunner()
     conversational_assistant = ClosingRunner()
+    quick_info = ClosingRunner()
     executor = GeminiCognitiveExecutor(
         FakeDrafter(),
         AUTHORITY_KEY,
         research_runner=research,
         assistant_runner=grounded_assistant,
         assistant_chat_runner=conversational_assistant,
+        assistant_quick_info_runner=quick_info,
     )
 
     await executor.close()
@@ -14013,6 +14026,7 @@ async def test_executor_closes_each_distinct_runner_once() -> None:
     assert research.close_calls == 1
     assert grounded_assistant.close_calls == 1
     assert conversational_assistant.close_calls == 1
+    assert quick_info.close_calls == 1
 
 
 @pytest.mark.asyncio

@@ -536,6 +536,35 @@ describe('assistant service', () => {
     expect(result.message.parts.filter((part) => part.type === 'presentation')).toHaveLength(1);
   });
 
+  it('dispatches quick info through V2 and accepts one grounded V1 answer', async () => {
+    const capability = { kind: 'quick_info', location: 'Bremen', routingMode: 'jev' };
+    const h = harness({ submitResult: completed('IKEA Bremen is open until 20:00 today.') });
+
+    const result = await h.service.send(auth, threadId, {
+      turnId,
+      issuedAt,
+      intent: 'research',
+      message: 'When does IKEA Bremen close today?',
+      capability,
+    });
+
+    expect(h.axwiseClient.submit.mock.calls[0][0]).toMatchObject({
+      operationType: 'AssistantTurnV2',
+      input: {
+        type: 'AssistantTurnV2',
+        responseMode: 'one_shot',
+        message: 'When does IKEA Bremen close today?',
+        capability,
+      },
+    });
+    expect(result.message.parts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'artifact' }),
+      expect.objectContaining({ type: 'fact' }),
+      expect.objectContaining({ type: 'source' }),
+    ]));
+    expect(result.message.parts.some((part) => part.type === 'presentation')).toBe(false);
+  });
+
   it('fails closed when an image capability returns a V1 text answer', async () => {
     const h = harness({ submitResult: completed('I could not generate the image.') });
     const result = await h.service.send(auth, threadId, {

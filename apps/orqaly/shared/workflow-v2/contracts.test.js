@@ -234,6 +234,38 @@ describe('workflow v2 contracts', () => {
     })).toThrow();
   });
 
+  it('accepts a strict quick-info capability without duplicating the top-level message', () => {
+    const input = AssistantTurnInputV2Schema.parse({
+      type: 'AssistantTurnV2',
+      responseMode: 'one_shot',
+      message: 'What are the main local headlines in Bremen today?',
+      conversation: [],
+      capability: {
+        kind: 'quick_info',
+        location: 'Bremen',
+        routingMode: 'jev',
+      },
+    });
+
+    expect(input.capability).toEqual({
+      kind: 'quick_info',
+      location: 'Bremen',
+      routingMode: 'jev',
+    });
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      capability: { ...input.capability, query: input.message },
+    })).toThrow();
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      capability: { ...input.capability, routingMode: 'automatic' },
+    })).toThrow();
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      message: 'x'.repeat(2_001),
+    })).toThrow(/2,000/);
+  });
+
   it('keeps attempt lease credentials out of the public snapshot contract', () => {
     const inputPayload = {
       type: 'CompileScopeV2',

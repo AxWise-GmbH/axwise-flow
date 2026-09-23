@@ -2,11 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { PassThrough } from 'node:stream';
-import { createMcpTools, serveMcp } from '../src/mcp.mjs';
+import { createMcpTools, parseMcpLaunchArguments, serveMcp } from '../src/mcp.mjs';
 
 const id = '11111111-1111-4111-8111-111111111111';
 const base = { apiUrl: 'https://preview.example', conversationId: '20260914_1', accountHash: 'a'.repeat(64), token: async () => 'test-secret', newId: () => id };
 const response = (data) => new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json' } });
+
+test('packaged launch arguments require one explicit boolean JEV setting', () => {
+  const accountHash = 'a'.repeat(64);
+  const baseArgs = ['--config', '/public/config.json', '--conversation-id', 'chat_1', '--account-hash', accountHash];
+  assert.deepEqual(parseMcpLaunchArguments([...baseArgs, '--jev-enabled', 'true']), {
+    conversationId: 'chat_1', accountHash, jevEnabled: true,
+    authArgs: ['--config', '/public/config.json'],
+  });
+  assert.equal(parseMcpLaunchArguments([...baseArgs, '--jev-enabled', 'false']).jevEnabled, false);
+  for (const args of [
+    baseArgs,
+    [...baseArgs, '--jev-enabled', 'yes'],
+    [...baseArgs, '--jev-enabled', 'true', '--jev-enabled', 'false'],
+    [...baseArgs, '--conversation-id', 'chat_2', '--jev-enabled', 'true'],
+  ]) assert.throws(() => parseMcpLaunchArguments(args));
+});
 
 test('cloud work is bound to native conversation and token never becomes tool content', async () => {
   const calls = [];
@@ -45,7 +61,7 @@ test('explicit image and live-data tools send typed capabilities without invokin
   const calls = [];
   const call = createMcpTools({ ...base, fetchImpl: async (_url, options) => {
     calls.push(JSON.parse(options.body));
-    return response({ status: 'accepted', requestId: id });
+    return response({ status: calls.length === 1 ? 'accepted' : 'completed', requestId: id, kind: 'research' });
   } });
   assert.equal((await call('generate_image', { prompt: 'A blue robot', aspectRatio: '16:9' })).isError, false);
   assert.deepEqual(calls[0].capability, {
@@ -68,6 +84,170 @@ test('explicit image and live-data tools send typed capabilities without invokin
     kind: 'currency', base: 'eur', quote: 'USD', amount: '10',
   })).isError, true);
   assert.equal(calls.length, 3);
+});
+test('live-data lookup starts and polls one durable request to completion in one tool call', async () => {
+  let elapsed = 0;
+  const calls = [];
+  let submitted;
+  const states = [
+    { requestId: id, status: 'accepted', kind: 'research' },
+    { requestId: id, status: 'running', kind: 'research', retryAfterSeconds: 1 },
+    { requestId: id, status: 'completed', kind: 'research', presentations: [{ kind: 'weather' }] },
+  ];
+  const call = createMcpTools({ ...base, clock: () => elapsed,
+    sleep: async (ms) => { elapsed += ms; },
+    fetchImpl: async (url, options) => {
+      calls.push([url, options.method]);
+      if (options.method === 'POST') submitted = JSON.parse(options.body);
+      return response(states.shift());
+    },
+  });
+
+  const value = await call('lookup_live_data', {
+    kind: 'weather', location: 'Bremen',
+  });
+
+  assert.equal(value.isError, false);
+  assert.equal(value.structuredContent.status, 'completed');
+  assert.equal(value.structuredContent.kind, 'weather');
+  assert.deepEqual(submitted.capability, { kind: 'weather', location: 'Bremen', tempUnit: 'C' });
+  assert.deepEqual(calls, [
+    ['https://preview.example/desktop/v1/work', 'POST'],
+    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}`, 'GET'],
+    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}`, 'GET'],
+  ]);
+  assert.equal(elapsed, 3000);
+});
+test('quick info sends one bounded capability with the desktop JEV routing mode', async () => {
+  let elapsed = 0;
+  const calls = [];
+  const states = [
+    { requestId: id, status: 'accepted', kind: 'research' },
+    { requestId: id, status: 'completed', kind: 'research', markdown: 'Werder won 2-1.' },
+  ];
+  const call = createMcpTools({ ...base, jevEnabled: true, clock: () => elapsed,
+    sleep: async (ms) => { elapsed += ms; },
+    fetchImpl: async (url, options) => {
+      calls.push([url, options.method, options.body && JSON.parse(options.body)]);
+      return response(states.shift());
+    },
+  });
+
+  const value = await call('quick_info', {
+    query: 'What was the latest Werder Bremen score?', location: 'Bremen',
+  });
+
+  assert.equal(value.isError, false);
+  assert.equal(value.structuredContent.status, 'completed');
+  assert.equal(value.structuredContent.kind, 'quick_info');
+  assert.deepEqual(calls[0][2].capability, {
+    kind: 'quick_info', location: 'Bremen', routingMode: 'jev',
+  });
+  assert.equal(calls[0][2].question, 'What was the latest Werder Bremen score?');
+  assert.equal(calls.length, 2);
+  assert.equal(elapsed, 0);
+});
+test('quick info remains available with JEV explicitly disabled for benchmarking', async () => {
+  const calls = [];
+  const call = createMcpTools({ ...base, jevEnabled: false, fetchImpl: async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return response({ requestId: id, status: 'completed', markdown: 'Open until 20:00.' });
+  } });
+
+  const value = await call('quick_info', { query: 'When does IKEA Bremen close today?' });
+
+  assert.equal(value.isError, false);
+  assert.deepEqual(calls[0].capability, { kind: 'quick_info', routingMode: 'explicit' });
+  for (const args of [
+    { query: '' },
+    { query: 'x'.repeat(2001) },
+    { query: 'Latest local headlines', location: ' ' },
+  ]) assert.equal((await call('quick_info', args)).isError, true);
+  assert.equal(calls.length, 1);
+});
+test('quick-info failure forbids automatic research, web, shell, or OMP fallback', async () => {
+  let calls = 0;
+  const call = createMcpTools({ ...base, fetchImpl: async () => response(++calls === 1
+    ? { requestId: id, status: 'pending', kind: 'research' }
+    : { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH' } }),
+  });
+
+  const value = await call('quick_info', { query: 'Compare all local newspapers.' });
+
+  assert.equal(value.structuredContent.kind, 'quick_info');
+  assert.equal(value.structuredContent.automaticFallback, 'disabled');
+  assert.match(value.structuredContent.next, /routing mismatch/i);
+  assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*OMP/i);
+});
+test('live-data terminal failure forbids an automatic research, web, shell, or OMP fallback', async () => {
+  let calls = 0;
+  const call = createMcpTools({ ...base,
+    fetchImpl: async () => response(++calls === 1
+      ? { requestId: id, status: 'pending', kind: 'research' }
+      : { requestId: id, status: 'failed', kind: 'research', error: { code: 'LIVE_DATA_FAILED' } }),
+  });
+
+  const value = await call('lookup_live_data', {
+    kind: 'currency', base: 'EUR', quote: 'USD', amount: '10',
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(value.isError, false);
+  assert.equal(value.structuredContent.status, 'failed');
+  assert.equal(value.structuredContent.kind, 'currency');
+  assert.equal(value.structuredContent.automaticFallback, 'disabled');
+  assert.match(value.structuredContent.next, /ask the user/i);
+  assert.match(value.structuredContent.next, /web-search.*fetch.*shell.*OMP/i);
+});
+test('same-request status recovery preserves the remembered live-data kind and failure contract', async () => {
+  let calls = 0; let elapsed = 0;
+  const call = createMcpTools({ ...base, statusWaitMs: 1, clock: () => elapsed,
+    sleep: async (ms) => { elapsed += ms; },
+    fetchImpl: async (_url, options) => {
+      calls++;
+      if (options.method === 'POST') return response({ requestId: id, status: 'running', kind: 'research' });
+      return response({ requestId: id, status: calls === 2 ? 'running' : 'failed', kind: 'research' });
+    },
+  });
+  const started = await call('lookup_live_data', { kind: 'weather', location: 'Bremen' });
+  assert.equal(started.structuredContent.status, 'running');
+  assert.equal(started.structuredContent.kind, 'weather');
+  const recovered = await call('axwise_work_status', { requestId: id });
+  assert.equal(recovered.structuredContent.kind, 'weather');
+  assert.equal(recovered.structuredContent.automaticFallback, 'disabled');
+});
+test('status recovery after a connector restart preserves the durable quick-info failure contract', async () => {
+  const call = createMcpTools({ ...base, fetchImpl: async () => response({
+    requestId: id, status: 'failed', kind: 'quick_info',
+    error: { code: 'AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH' },
+  }) });
+
+  const value = await call('axwise_work_status', { requestId: id });
+
+  assert.equal(value.structuredContent.kind, 'quick_info');
+  assert.equal(value.structuredContent.automaticFallback, 'disabled');
+  assert.match(value.structuredContent.next, /routing mismatch/i);
+  assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*OMP/i);
+});
+test('status recovery remembers a durable bounded kind before a later transport failure', async () => {
+  let calls = 0; let elapsed = 0;
+  const call = createMcpTools({ ...base, statusWaitMs: 5000, clock: () => elapsed,
+    sleep: async (ms) => { elapsed += ms; },
+    fetchImpl: async () => {
+      calls++;
+      return calls === 1
+        ? response({ requestId: id, status: 'running', kind: 'quick_info' })
+        : new Response('', { status: 503 });
+    },
+  });
+
+  const value = await call('axwise_work_status', { requestId: id });
+
+  assert.equal(calls, 2);
+  assert.equal(value.isError, true);
+  assert.equal(value.structuredContent.kind, 'quick_info');
+  assert.equal(value.structuredContent.automaticFallback, 'disabled');
+  assert.match(value.structuredContent.next, /same requestId.*research.*web-search.*fetch.*shell.*OMP/i);
 });
 test('generated image bytes become an MCP image block and structured content keeps a safe reference', async () => {
   const png = Buffer.concat([
@@ -295,16 +475,22 @@ test('stdio handshake exposes native tools and emits only JSON-RPC', async () =>
   await run;
   const replies = received.trim().split('\n').map(JSON.parse);
   assert.equal(replies[0].result.serverInfo.name, 'orqaly');
-  assert.equal(replies[0].result.serverInfo.version, '0.3.0');
+  assert.equal(replies[0].result.serverInfo.version, '0.3.1');
   assert.match(replies[0].result.instructions, /^Orqanix capabilities and project context/);
-  assert.equal(replies[1].result.tools.length, 6);
+  assert.match(replies[0].result.instructions, /simple current weather or currency/);
+  assert.match(replies[0].result.instructions, /one narrow current public fact/);
+  assert.match(replies[0].result.instructions, /Do not automatically replace/);
+  assert.equal(replies[1].result.tools.length, 7);
+  assert.match(replies[1].result.tools[0].description, /Never use this for a simple weather\/currency/);
+  assert.match(replies[1].result.tools[2].description, /starts one durable request and waits/);
+  assert.match(replies[1].result.tools[3].description, /local headlines.*opening hours/);
   assert.equal(replies[1].result.tools[0].annotations.readOnlyHint, false);
   assert.deepEqual(replies[1].result.tools.map(tool => tool.name), [
-    'ask_axwise', 'generate_image', 'lookup_live_data', 'axwise_work_status',
+    'ask_axwise', 'generate_image', 'lookup_live_data', 'quick_info', 'axwise_work_status',
     'cancel_axwise_work', 'read_goal_artifact',
   ]);
   assert.deepEqual(replies[1].result.tools.map(tool => tool.title), [
-    'Research on demand', 'Create image', 'Live data card', 'Check work result',
+    'Research on demand', 'Create image', 'Live data card', 'Quick current check', 'Check work result',
     'Cancel work', 'Read project document',
   ]);
 });

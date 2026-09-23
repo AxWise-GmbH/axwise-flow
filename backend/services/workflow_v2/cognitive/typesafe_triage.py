@@ -23,7 +23,19 @@ _TYPESAFE_KEY_ENV = "TYPESAFE_API_KEY"
 _ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 _TIMEOUT_SECONDS = 8.0
 _MAX_STATE_CHARACTERS = 48_000
+_MAX_RESPONSE_BYTES = 64_000
 Decision = TypeVar("Decision", bound=BaseModel)
+QuickInfoRoute = Literal[
+    "quick_info", "research", "local_engineering", "conversation"
+]
+_QUICK_INFO_ROUTES = (
+    "quick_info",
+    "research",
+    "local_engineering",
+    "conversation",
+)
+_QUICK_INFO_MIN_CONFIDENCE = 0.75
+_QUICK_INFO_MIN_MARGIN = 0.20
 
 
 def is_typesafe_available() -> bool:
@@ -84,6 +96,54 @@ class _UncertainDecision(ValueError):
     pass
 
 
+class QuickInfoRouteUnavailable(RuntimeError):
+    """The configured TypeSafe route provider did not produce a valid decision."""
+
+
+class QuickInfoRouteDecision(BaseModel):
+    route: QuickInfoRoute
+    confidence: float
+    probabilities: dict[QuickInfoRoute, float]
+    model: str
+
+    @property
+    def confidently_quick_info(self) -> bool:
+        ordered = sorted(self.probabilities.values(), reverse=True)
+        return (
+            self.route == "quick_info"
+            and self.confidence >= _QUICK_INFO_MIN_CONFIDENCE
+            and self.probabilities["quick_info"] >= _QUICK_INFO_MIN_CONFIDENCE
+            and ordered[0] - ordered[1] >= _QUICK_INFO_MIN_MARGIN
+        )
+
+
+async def _post_systemone(
+    payload: dict[str, Any], *, timeout_seconds: float
+) -> dict[str, Any]:
+    async with asyncio.timeout(timeout_seconds):
+        async with httpx.AsyncClient(
+            timeout=timeout_seconds, follow_redirects=False
+        ) as client:
+            response = await client.post(
+                _ENDPOINT,
+                headers={
+                    "Authorization": "Bearer "
+                    + os.environ[_TYPESAFE_KEY_ENV].strip()
+                },
+                json=payload,
+            )
+            response.raise_for_status()
+            if len(response.content) > _MAX_RESPONSE_BYTES:
+                raise ValueError("provider_response_too_large")
+            content_type = response.headers.get("content-type", "").split(";", 1)[0]
+            if content_type.strip().casefold() != "application/json":
+                raise ValueError("provider_response_not_json")
+            decoded = response.json()
+    if not isinstance(decoded, dict):
+        raise ValueError("invalid_provider_response")
+    return decoded
+
+
 async def _evaluate(
     state: dict[str, Any],
     decision_type: type[Decision],
@@ -97,21 +157,11 @@ async def _evaluate(
         name: {"type": "noul", "instructions": field.description}
         for name, field in decision_type.model_fields.items()
     }
-    # One wall-clock deadline covers connect, read and response validation. No retry
-    # can multiply the operation budget. Never log headers or provider error text.
-    async with asyncio.timeout(timeout_seconds):
-        async with httpx.AsyncClient(
-            timeout=timeout_seconds, follow_redirects=False
-        ) as client:
-            response = await client.post(
-                _ENDPOINT,
-                headers={
-                    "Authorization": "Bearer " + os.environ[_TYPESAFE_KEY_ENV].strip()
-                },
-                json={"model": "jev-latest", "state": state, "questions": questions},
-            )
-            response.raise_for_status()
-            answers = response.json()["answers"]
+    decoded = await _post_systemone(
+        {"model": "jev-latest", "state": state, "questions": questions},
+        timeout_seconds=timeout_seconds,
+    )
+    answers = decoded["answers"]
     values = {}
     for name in questions:
         answer = answers[name]
@@ -128,6 +178,118 @@ async def _evaluate(
             raise _UncertainDecision()
         values[name] = value >= 0.8
     return decision_type.model_validate(values)
+
+
+async def classify_quick_info_route(
+    query: str,
+    location: str | None = None,
+    *,
+    timeout_seconds: float = _TIMEOUT_SECONDS,
+) -> QuickInfoRouteDecision:
+    """Classify one capability; provider failures never become route decisions."""
+
+    if not is_typesafe_available():
+        raise QuickInfoRouteUnavailable("not_configured")
+    state: dict[str, Any] = {"message": query, "hasProjectContext": False}
+    if location is not None:
+        state["location"] = location
+    criteria = {
+        "quick_info": (
+            "One narrow current public fact answerable with one focused search: "
+            "local headlines, opening hours, a score, current status, or a small "
+            "current-fact check. No action, local files, comparison, recommendation, "
+            "or broad synthesis."
+        ),
+        "research": (
+            "Needs multi-source comparison, synthesis, investigation, explanation of "
+            "causes, recommendations, or broad or deep coverage."
+        ),
+        "local_engineering": (
+            "Needs local files, an attached project, repository inspection or editing, "
+            "a command, browser or device state, or another local action."
+        ),
+        "conversation": (
+            "Casual conversation or stable knowledge that does not need current web "
+            "evidence."
+        ),
+    }
+    try:
+        decoded = await _post_systemone(
+            {
+                "model": "jev-latest",
+                "state": state,
+                "questions": {
+                    "route": {
+                        "type": "choice",
+                        "instructions": (
+                            "Choose the single safest handling lane for this user request."
+                        ),
+                        "criteria": criteria,
+                    }
+                },
+            },
+            timeout_seconds=timeout_seconds,
+        )
+        if set(decoded) != {"model", "answers", "usage"}:
+            raise ValueError("invalid_provider_response")
+        model = decoded["model"]
+        if not isinstance(model, str) or not model or len(model) > 200:
+            raise ValueError("invalid_provider_model")
+        if not all(character.isalnum() or character in "._:/-" for character in model):
+            raise ValueError("invalid_provider_model")
+        answers = decoded["answers"]
+        if not isinstance(answers, dict) or set(answers) != {"route"}:
+            raise ValueError("invalid_provider_answers")
+        answer = answers["route"]
+        if not isinstance(answer, dict) or set(answer) != {
+            "type",
+            "choice",
+            "confidence",
+            "probabilities",
+        }:
+            raise ValueError("invalid_provider_choice")
+        if answer["type"] != "choice" or answer["choice"] not in _QUICK_INFO_ROUTES:
+            raise ValueError("invalid_provider_choice")
+        probabilities = answer["probabilities"]
+        if not isinstance(probabilities, dict) or set(probabilities) != set(
+            _QUICK_INFO_ROUTES
+        ):
+            raise ValueError("invalid_provider_probabilities")
+
+        def probability(value: Any) -> float:
+            if (
+                type(value) not in (int, float)
+                or not math.isfinite(value)
+                or not 0 <= value <= 1
+            ):
+                raise ValueError("invalid_provider_probability")
+            return float(value)
+
+        confidence = probability(answer["confidence"])
+        normalized = {name: probability(probabilities[name]) for name in _QUICK_INFO_ROUTES}
+        if not math.isclose(sum(normalized.values()), 1.0, abs_tol=0.02):
+            raise ValueError("invalid_provider_probabilities")
+        usage = decoded["usage"]
+        if (
+            not isinstance(usage, dict)
+            or set(usage) != {"input_tokens", "output_tokens"}
+            or any(
+                type(usage[name]) is not int or usage[name] < 0
+                for name in ("input_tokens", "output_tokens")
+            )
+        ):
+            raise ValueError("invalid_provider_usage")
+        return QuickInfoRouteDecision(
+            route=answer["choice"],
+            confidence=confidence,
+            probabilities=normalized,
+            model=model,
+        )
+    except QuickInfoRouteUnavailable:
+        raise
+    except Exception:
+        logger.info("jev_quick_info_route status=not_evaluated")
+        raise QuickInfoRouteUnavailable("provider_unavailable") from None
 
 
 async def filter_documents_with_jev(

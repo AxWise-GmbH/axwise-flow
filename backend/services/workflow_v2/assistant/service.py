@@ -13,6 +13,7 @@ from backend.domain.workflow_v2.contracts import (
     AssistantTurnCompletedResult,
     AssistantTurnInputV1,
     AssistantTurnInputV2,
+    AssistantTurnV1,
     AssistantTurnV2,
     AssistantWeatherForecastV1,
     AssistantWeatherPresentationV1,
@@ -21,6 +22,10 @@ from backend.domain.workflow_v2.contracts import (
 from backend.services.workflow_v2.assistant.image_runner import (
     AssistantImageGenerationError,
     GeminiAssistantImageRunner,
+)
+from backend.services.workflow_v2.assistant.quick_info_runner import (
+    AssistantQuickInfoError,
+    GeminiAssistantQuickInfoRunner,
 )
 from backend.services.workflow_v2.assistant.projection import project_assistant_result
 from backend.services.workflow_v2.assistant.answer_quality import (
@@ -109,6 +114,7 @@ class AssistantTurnService:
         metrics_factory: MetricsFactory,
         image_runner: GeminiAssistantImageRunner | None = None,
         widget_runner: GeminiAssistantWidgetRunner | None = None,
+        quick_info_runner: GeminiAssistantQuickInfoRunner | None = None,
     ) -> None:
         self.grounded_runner = grounded_runner
         self.conversational_runner = conversational_runner
@@ -117,6 +123,7 @@ class AssistantTurnService:
         self.metrics_factory = metrics_factory
         self.image_runner = image_runner
         self.widget_runner = widget_runner
+        self.quick_info_runner = quick_info_runner
 
     async def execute(
         self, input_value: AssistantTurnInputV1 | AssistantTurnInputV2
@@ -202,6 +209,8 @@ class AssistantTurnService:
             return await self._execute_image(input_value)
         if capability.kind in {"weather", "currency"}:
             return await self._execute_widget(input_value)
+        if capability.kind == "quick_info":
+            return await self._execute_quick_info(input_value)
         raise CognitiveExecutionFailure(
             "AXWISE_ASSISTANT_CAPABILITY_UNSUPPORTED", retryable=False
         )
@@ -250,6 +259,69 @@ class AssistantTurnService:
                 input_tokens=generated.input_tokens,
                 output_tokens=generated.output_tokens,
                 search_calls=0,
+            ),
+        )
+
+    async def _execute_quick_info(
+        self, input_value: AssistantTurnInputV2
+    ) -> AssistantTurnCompletedResult:
+        if self.quick_info_runner is None:
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_QUICK_INFO_UNAVAILABLE", retryable=True
+            )
+        capability = input_value.capability
+        if capability.kind != "quick_info":
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_CAPABILITY_UNSUPPORTED", retryable=False
+            )
+        try:
+            result = await self.quick_info_runner.quick_info(
+                input_value.message,
+                location=capability.location,
+                jev_enabled=capability.routing_mode == "jev",
+            )
+        except ValueError as error:
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_QUICK_INFO_INPUT_INVALID", retryable=False
+            ) from error
+        except AssistantQuickInfoError as error:
+            raise CognitiveExecutionFailure(
+                error.code, retryable=error.retryable
+            ) from error
+        sources = [
+            AssistantSourceV1(
+                title=source.title,
+                canonical_url=source.url,
+                source_types=sorted(
+                    self.source_type_classifier(source.url, source.title)
+                ),
+            )
+            for source in result.sources
+        ]
+        facts = [
+            AssistantFactV1(
+                statement=fact.statement,
+                source_urls=list(fact.source_urls),
+            )
+            for fact in result.facts
+        ]
+        if not sources or not facts:
+            raise CognitiveExecutionFailure(
+                "AXWISE_ASSISTANT_QUICK_INFO_UNGROUNDED", retryable=False
+            )
+        return AssistantTurnCompletedResult(
+            result_type="assistant_turn_completed",
+            response=AssistantTurnV1(
+                markdown=result.markdown,
+                sources=sources,
+                facts=facts,
+            ),
+            metrics=_usage_metrics(
+                model=result.model,
+                model_version=result.model_version,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+                search_calls=result.search_calls,
             ),
         )
 
@@ -360,7 +432,7 @@ class AssistantTurnService:
                 model_version=result.model_version,
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
-                search_calls=0 if result.cache_hit else 1,
+                search_calls=result.search_calls,
             ),
         )
 

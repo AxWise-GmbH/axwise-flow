@@ -2197,12 +2197,21 @@ class AssistantCurrencyCapabilityV2(ContractModel):
     amount: AssistantMoneyAmountV1
 
 
+class AssistantQuickInfoCapabilityV2(ContractModel):
+    kind: Literal["quick_info"]
+    location: Text500 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    routing_mode: Literal["jev", "explicit"]
+
+
 AssistantCapabilityV2 = Annotated[
     Union[
         AssistantTextCapabilityV2,
         AssistantImageGenerateCapabilityV2,
         AssistantWeatherCapabilityV2,
         AssistantCurrencyCapabilityV2,
+        AssistantQuickInfoCapabilityV2,
     ],
     Field(discriminator="kind"),
 ]
@@ -2216,6 +2225,12 @@ class AssistantTurnInputV2(ContractModel):
         default_factory=list, max_length=20
     )
     capability: AssistantCapabilityV2
+
+    @model_validator(mode="after")
+    def bounded_quick_info_query(self) -> "AssistantTurnInputV2":
+        if self.capability.kind == "quick_info" and len(self.message) > 2000:
+            raise ValueError("quick-info message must contain at most 2000 characters")
+        return self
 
 
 SolutionPreparationFieldNameV1 = Annotated[
