@@ -54,6 +54,17 @@ def test_workflow_v2_image_contains_only_the_small_search_adapter() -> None:
     assert "services/workflow_v2 /app/backend/services/workflow_v2" in dockerfile
 
 
+def test_workflow_v2_image_packages_the_stateless_information_route() -> None:
+    dockerfile = V2_DOCKERFILE.read_text(encoding="utf-8")
+    app = (ROOT / "backend/api/workflow_v2_app.py").read_text(encoding="utf-8")
+    assert "from backend.api.routes.desktop_information import" in app
+    assert (
+        "COPY api/routes/desktop_information.py /app/backend/api/routes/desktop_information.py"
+        in dockerfile
+    )
+    assert (ROOT / "backend/api/routes/desktop_information.py").is_file()
+
+
 def test_workflow_v2_search_build_keeps_the_pinned_image_and_logging_contract() -> None:
     config = SEARX_BUILD_CONFIG.read_text(encoding="utf-8")
     dockerfile = SEARX_DOCKERFILE.read_text(encoding="utf-8")

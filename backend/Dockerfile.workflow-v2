@@ -16,6 +16,7 @@ COPY services/llm/gemini_runtime.py /app/backend/services/llm/gemini_runtime.py
 COPY services/generative/gemini_search_service.py /app/backend/services/generative/gemini_search_service.py
 COPY services/generative/searxng_search_service.py /app/backend/services/generative/searxng_search_service.py
 COPY api/routes/workflow_v2_operations.py /app/backend/api/routes/workflow_v2_operations.py
+COPY api/routes/desktop_information.py /app/backend/api/routes/desktop_information.py
 COPY api/workflow_v2_app.py /app/backend/api/workflow_v2_app.py
 COPY api/workflow_v2_worker_app.py /app/backend/api/workflow_v2_worker_app.py
 
