@@ -10,6 +10,7 @@ from pydantic_ai.messages import ModelResponse
 
 import backend.services.workflow_v2.assistant.conversation_runner as conversation_runner_module
 from backend.domain.workflow_v2.contracts import (
+    AssistantTurnCompletedResult,
     AssistantTurnInputV1,
     AssistantTurnInputV2,
     OperationMetrics,
@@ -37,6 +38,19 @@ from backend.services.workflow_v2.assistant.widget_runner import (
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 
 pytestmark = pytest.mark.contract
+
+
+def assert_persisted_assistant_turn_round_trips(
+    result: AssistantTurnCompletedResult,
+) -> None:
+    """Match the worker's sparse JSON persistence boundary."""
+
+    payload = result.model_dump(mode="json", by_alias=True, exclude_unset=True)
+    assert payload["response"]["schemaVersion"] in {
+        "axwise.assistant-turn.v1",
+        "axwise.assistant-turn.v2",
+    }
+    assert AssistantTurnCompletedResult.model_validate(payload) == result
 
 
 def assistant_input(
@@ -285,6 +299,7 @@ async def test_quick_info_returns_v1_grounded_answer_and_maps_routing_mode(
     assert result.metrics.input_tokens == 12
     assert result.metrics.output_tokens == 7
     assert result.metrics.search_calls == 1
+    assert_persisted_assistant_turn_round_trips(result)
 
 
 @pytest.mark.asyncio
@@ -365,6 +380,7 @@ async def test_explicit_image_capability_uses_the_fast_image_runner() -> None:
     assert result.metrics.total_tokens == 46
     assert result.metrics.search_calls == 0
     assert result.metrics.estimated_cost_micros is None
+    assert_persisted_assistant_turn_round_trips(result)
 
 
 @pytest.mark.asyncio
@@ -392,6 +408,7 @@ async def test_weather_capability_returns_grounded_card_and_utc_fallback() -> No
     assert result.metrics is not None
     assert result.metrics.total_tokens == 28
     assert result.metrics.search_calls == 3
+    assert_persisted_assistant_turn_round_trips(result)
 
 
 @pytest.mark.asyncio
@@ -422,6 +439,7 @@ async def test_currency_capability_preserves_exact_decimal_strings() -> None:
     assert "outputTokens" not in serialized_metrics
     assert "totalTokens" not in serialized_metrics
     assert "estimatedCostMicros" not in serialized_metrics
+    assert_persisted_assistant_turn_round_trips(result)
 
 
 @pytest.mark.asyncio

@@ -241,6 +241,7 @@ class AssistantTurnService:
         return AssistantTurnCompletedResult(
             result_type="assistant_turn_completed",
             response=AssistantTurnV2(
+                schema_version="axwise.assistant-turn.v2",
                 markdown="Image generated successfully.",
                 presentations=[
                     AssistantGeneratedImagePresentationV1(
@@ -312,6 +313,7 @@ class AssistantTurnService:
         return AssistantTurnCompletedResult(
             result_type="assistant_turn_completed",
             response=AssistantTurnV1(
+                schema_version="axwise.assistant-turn.v1",
                 markdown=result.markdown,
                 sources=sources,
                 facts=facts,
@@ -418,6 +420,7 @@ class AssistantTurnService:
         return AssistantTurnCompletedResult(
             result_type="assistant_turn_completed",
             response=AssistantTurnV2(
+                schema_version="axwise.assistant-turn.v2",
                 markdown=f"{statement} [Source](<{result.source.url}>)",
                 sources=[assistant_source],
                 facts=[
