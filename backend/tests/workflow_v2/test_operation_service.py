@@ -149,6 +149,61 @@ async def test_lost_terminal_response_adopts_exact_stored_result_without_enqueue
     ) == terminal_result()
 
 
+@pytest.mark.parametrize(
+    ("response", "expected_version"),
+    [
+        (
+            {"markdown": "Grounded quick answer."},
+            "axwise.assistant-turn.v1",
+        ),
+        (
+            {
+                "markdown": "Weather in Bremen: 9°C, clear.",
+                "presentations": [
+                    {
+                        "kind": "weather",
+                        "location": "Bremen, Germany",
+                        "observedAt": "2026-09-23T07:20:00Z",
+                        "temperatureUnit": "C",
+                        "temperature": "9",
+                        "condition": "Clear",
+                        "forecast": [],
+                        "source": {
+                            "title": "Weather office",
+                            "url": "https://example.com/weather",
+                        },
+                    }
+                ],
+            },
+            "axwise.assistant-turn.v2",
+        ),
+    ],
+)
+def test_completed_capability_result_repairs_missing_legacy_schema_version(
+    response, expected_version
+) -> None:
+    operation = envelope()
+    persisted = {
+        "resultType": "assistant_turn_completed",
+        "response": response,
+        "metrics": {"latencyMs": 7},
+    }
+    record = OperationRecord(
+        operation_id=operation.operation_id,
+        tenant_id=operation.owner.tenant_id,
+        canonical_input_hash=operation.canonical_input_hash,
+        status="completed",
+        result_payload=persisted,
+        retryable=None,
+        error_class=None,
+    )
+
+    completed = response_for(record, "https://axwise.test/status")
+
+    assert completed.result.response.schema_version == expected_version
+    assert "schemaVersion" not in persisted["response"]
+
+
 @pytest.mark.asyncio
 async def test_status_lookup_is_tenant_scoped() -> None:
     store = MemoryStore()
