@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "volunteer-shifts",
+  "title": "Fictional community-kitchen shift coordination",
+  "provenance": "All people, statements and scenarios below are synthetic benchmark fixtures, not customer evidence.",
+  "analysis": {
+    "decisionQuestion": "What should a volunteer shift coordination pilot solve without confusing privacy, access and approval preferences?",
+    "questions": [
+      "Which recurring needs are supported across these selected fictional interviews? Distinguish synthesis from merely repeating quotations.",
+      "Which preferences genuinely conflict, and which can coexist? Explain the source-backed distinction without inventing a conflict.",
+      "What decision-critical evidence is missing, and what should be tested before committing to requirements?"
+    ],
+    "outputs": ["jobs_pains"],
+    "transcripts": [
+      {
+        "id": "kitchen-anita",
+        "title": "Synthetic coordinator Anita",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "anita", "role": "participant", "questionId": "q1", "text": "Three versions of the rota circulate in messages. I need one current rota and an explicit confirmation when someone accepts a shift."},
+          {"speaker": "anita", "role": "participant", "questionId": "q2", "text": "Every shift swap must wait for coordinator approval before the replacement becomes responsible, including swaps between two trained volunteers."},
+          {"speaker": "anita", "role": "participant", "questionId": "q3", "text": "I do not have a measured no-show rate. Nobody has agreed a retention target or an operating budget for a new system."}
+        ]
+      },
+      {
+        "id": "kitchen-berit",
+        "title": "Synthetic experienced volunteer Berit",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "berit", "role": "participant", "questionId": "q1", "text": "I once followed an old rota and arrived on the wrong day. Show which version is current and tell me that my shift acceptance was recorded."},
+          {"speaker": "berit", "role": "participant", "questionId": "q2", "text": "A swap between two trained volunteers must become effective as soon as both accept, without waiting for any coordinator approval. The coordinator can be notified afterwards."},
+          {"speaker": "berit", "role": "participant", "questionId": "q3", "text": "I prefer text-message reminders because I do not want to install an app. I am happy to open a rota link in my phone's browser."}
+        ]
+      },
+      {
+        "id": "kitchen-cem",
+        "title": "Synthetic new volunteer Cem",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "cem", "role": "participant", "questionId": "q1", "text": "I want to see my confirmed shifts and which named teammate is on duty, without hunting through the chat."},
+          {"speaker": "cem", "role": "participant", "questionId": "q2", "text": "Showing a teammate's first name on the rota is fine. Do not publish everyone's phone number to the whole volunteer group. I have no preference about swap approval."},
+          {"speaker": "cem", "role": "participant", "questionId": "q3", "text": "Nobody asked me to test accessibility or language options. Please do not assume that every volunteer has a smartphone."}
+        ]
+      },
+      {
+        "id": "kitchen-daria",
+        "title": "Synthetic kitchen lead Daria",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "daria", "role": "participant", "questionId": "q1", "text": "We need a single current rota with a clear accepted-or-unconfirmed status for each assignment. I also need to see whether someone is trained for the kitchen task."},
+          {"speaker": "daria", "role": "participant", "questionId": "q2", "text": "A phone browser and text-message reminders are enough for a first pilot; we do not need a native app. Do not put donor fundraising or meal stock management into this pilot."},
+          {"speaker": "daria", "role": "participant", "questionId": "q3", "text": "We could test for three weeks in this kitchen. We have not checked text-message costs, consent requirements or who maintains training records. These conversations did not include volunteers without phones."}
+        ]
+      }
+    ]
+  },
+  "prdBrief": "Create a concise product PRD for a three-week, one-kitchen volunteer rota pilot from the selected synthetic interview analysis. Include recurring needs, genuine tensions versus compatible preferences, source-linked prioritized requirements, testable acceptance checks, proposed metrics and a measurement plan, non-goals, unknowns and next steps. Do not turn fictional statements into real customer evidence. Preserve the unresolved swap-approval decision and account for missing accessibility and non-phone-user evidence. Any numerical success threshold or owner not explicitly supplied is a proposal, not an agreed fact.",
+  "reviewCriteria": [
+    {"id": "shared-need", "dimension": "synthesis", "expected": "Synthesizes a common need for one authoritative rota plus explicit assignment acceptance from Anita, Berit, Cem or Daria, rather than only listing separate quotes."},
+    {"id": "real-conflict", "dimension": "conflict_accuracy", "expected": "Identifies mandatory coordinator approval before every swap versus immediate swaps between trained volunteers as a genuine policy conflict; does not quietly choose a winner."},
+    {"id": "compatible-access", "dimension": "conflict_accuracy", "expected": "Recognizes text-message reminders and browser access are compatible, and neither requires installing a native app."},
+    {"id": "compatible-privacy", "dimension": "conflict_accuracy", "expected": "Recognizes displaying first names on the rota is compatible with withholding group-wide phone numbers; does not manufacture an anonymity-versus-coordination conflict."},
+    {"id": "unknowns", "dimension": "uncertainty", "expected": "Notes missing no-show baseline, budget/SMS costs/consent, training-record ownership, accessibility/language and non-phone-user evidence; avoids inventing outcomes or universal smartphone access."},
+    {"id": "pilot-boundaries", "dimension": "requirements", "expected": "Keeps a one-kitchen/three-week scenario pilot, with fundraising, meal inventory and native app development excluded or explicitly deferred."},
+    {"id": "testable-acceptance", "dimension": "requirements", "expected": "Gives observable checks for current rota consistency, recorded acceptance, training suitability and phone-number access control; handles swap approval as a testable proposal or unresolved decision."},
+    {"id": "validation-plan", "dimension": "requirements", "expected": "Proposes baseline and pilot comparisons for rota confusion or unconfirmed shifts, and recruitment/testing to cover absent non-phone/accessibility perspectives. Numerical success targets remain proposals."},
+    {"id": "source-links", "dimension": "traceability", "expected": "Key analytical claims and requirements have followable supporting sources/finding IDs, not decorative unrelated citations."},
+    {"id": "synthetic", "dimension": "provenance", "expected": "Preserves fictional/synthetic provenance and does not assert real customer validation, population prevalence, invented quotations or verified facts."}
+  ]
+}

@@ -117,14 +117,18 @@ const CALLBACKS = new Map([
 ]);
 
 /** This accepts a tiny grammar, not arbitrary TypeScript. Every nested tool call is approved here. */
-export function validateCodeModeScript(code, workspace, parser = typescriptParser) {
+export function validateCodeModeScript(code, workspace, parser = typescriptParser, policy = {}) {
   if (!parser) return { allowed: false, reason: 'TypeScript parser was not loaded' };
   if (typeof code !== 'string' || code.length > 12_000) return { allowed: false, reason: 'Code must be a bounded string' };
   const ts = parser;
+  const callbacks = new Map([...CALLBACKS, ...(policy.additionalCallbacks || [])]);
+  const permitted = policy.permissionAllowed || permissionAllowed;
   const calls = [];
   const bindings = new Set();
+  const resultTools = new Map();
   const dataBindings = new Map();
-  const reserved = new Set(['run', 'console', 'JSON', 'Developer', 'Skills', 'Todo', 'DesktopUtilities', '__proto__', 'constructor', 'prototype']);
+  const reserved = new Set(['run', 'console', 'JSON', 'String', 'Developer', 'Skills', 'Todo', 'DesktopUtilities', '__proto__', 'constructor', 'prototype']);
+  for (const name of callbacks.keys()) reserved.add(name.split('.')[0]);
   let nodes = 0;
   const reject = (reason) => { throw new Error(reason); };
   function count() { if (++nodes > 256) reject('AST exceeds benchmark bound'); }
@@ -160,24 +164,42 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
   }
   function callback(node) {
     const name = staticCall(node);
-    const tool = CALLBACKS.get(name);
+    const tool = callbacks.get(name);
     if (!tool || node.arguments.length !== 1 || !ts.isObjectLiteralExpression(node.arguments[0])) reject('Unknown callback or nonliteral argument object');
     const args = literal(node.arguments[0]);
-    if (!permissionAllowed({ _meta: { toolName: tool }, rawInput: args }, workspace)) reject(`Nested callback needs operator review: ${name}`);
+    if (!permitted({ _meta: { toolName: tool }, rawInput: args }, workspace)) reject(`Nested callback needs operator review: ${name}`);
     if (calls.length >= 6) reject('At most six tool calls per wrapper');
     calls.push({ name, tool, args });
+    return tool;
+  }
+  function projection(node) {
+    if (!ts.isPropertyAccessExpression(node) || node.questionDotToken
+      || !ts.isIdentifier(node.expression) || !ts.isIdentifier(node.name)) return false;
+    const property = node.name.text;
+    if (['__proto__', 'constructor', 'prototype'].includes(property)) return false;
+    // Opt-in per originating callback. Only a direct immutable response field
+    // may be projected; never methods, computed keys, nested paths or arguments.
+    return Boolean(policy.responseProperties?.get(resultTools.get(node.expression.text))?.has(property));
   }
   function output(node) {
     count();
     if (ts.isIdentifier(node) && bindings.has(node.text)) return;
+    if (projection(node)) return;
     if (ts.isObjectLiteralExpression(node)) {
       const keys = new Set();
       for (const property of node.properties) {
+        if (policy.allowShorthandOutput && ts.isShorthandPropertyAssignment(property)
+          && !property.objectAssignmentInitializer && bindings.has(property.name.text)
+          && !reserved.has(property.name.text) && !keys.has(property.name.text)) {
+          keys.add(property.name.text);
+          count();
+          continue;
+        }
         if (!ts.isPropertyAssignment(property) || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) reject('Output objects require static property assignments');
         const key = property.name.text;
         if (['__proto__', 'constructor', 'prototype'].includes(key) || keys.has(key)) reject('Unsafe or duplicate output property');
         keys.add(key);
-        if (ts.isIdentifier(property.initializer) && bindings.has(property.initializer.text)) count();
+        if ((ts.isIdentifier(property.initializer) && bindings.has(property.initializer.text)) || projection(property.initializer)) count();
         else literal(property.initializer);
       }
       return;
@@ -201,7 +223,12 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
       if (!ts.isIdentifier(declaration.name) || reserved.has(declaration.name.text) || bindings.has(declaration.name.text) || dataBindings.has(declaration.name.text)
         || declaration.type || declaration.exclamationToken || !declaration.initializer) reject('Only unique immutable const bindings are allowed');
       if (ts.isAwaitExpression(declaration.initializer)) {
-        callback(declaration.initializer.expression);
+        const tool = callback(declaration.initializer.expression);
+        bindings.add(declaration.name.text);
+        resultTools.set(declaration.name.text, tool);
+      } else if (projection(declaration.initializer)) {
+        // This output-only binding is intentionally NOT literal argument data.
+        // It cannot feed tool callbacks or become a new response-field root.
         bindings.add(declaration.name.text);
       } else {
         const value = declaration.initializer;
@@ -222,6 +249,27 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
     if (ts.isReturnStatement(node) && isLast) { if (node.expression) output(node.expression); return; }
     reject('Loops, assignments, nested functions, imports and other statements are forbidden');
   }
+  function outerTry(node) {
+    count();
+    const clause = node.catchClause;
+    if (policy.allowToolTryCatch !== true || node.finallyBlock || !clause || !clause.variableDeclaration
+      || !ts.isIdentifier(clause.variableDeclaration.name) || clause.variableDeclaration.type
+      || reserved.has(clause.variableDeclaration.name.text) || clause.block.statements.length !== 1)
+      reject('Only an approved outer tool try/catch with one static error return is allowed');
+    const returned = clause.block.statements[0];
+    if (!ts.isReturnStatement(returned) || !returned.expression || !ts.isObjectLiteralExpression(returned.expression)
+      || returned.expression.properties.length !== 1) reject('Catch may only return {error:String(caughtError)}');
+    const property = returned.expression.properties[0];
+    if (!ts.isPropertyAssignment(property) || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+      || property.name.text !== 'error') reject('Catch may only return the error property');
+    const value = property.initializer;
+    if (!ts.isCallExpression(value) || value.questionDotToken || value.typeArguments?.length
+      || !ts.isIdentifier(value.expression) || value.expression.text !== 'String' || value.arguments.length !== 1
+      || !ts.isIdentifier(value.arguments[0]) || value.arguments[0].text !== clause.variableDeclaration.name.text)
+      reject('Catch may only convert its own error to a string');
+    for (let index = 0; index < node.tryBlock.statements.length; index++)
+      statement(node.tryBlock.statements[index], index === node.tryBlock.statements.length - 1);
+  }
   try {
     const source = ts.createSourceFile('benchmark.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
     if (source.parseDiagnostics.length || source.statements.length !== 1) reject('Require one well-formed async run wrapper');
@@ -229,7 +277,8 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
     if (!ts.isFunctionDeclaration(wrapper) || wrapper.name?.text !== 'run' || wrapper.parameters.length || wrapper.asteriskToken
       || wrapper.type || wrapper.typeParameters?.length || !wrapper.body || wrapper.modifiers?.length !== 1
       || wrapper.modifiers[0].kind !== ts.SyntaxKind.AsyncKeyword) reject('Require only async function run() with zero arguments');
-    for (let index = 0; index < wrapper.body.statements.length; index++) statement(wrapper.body.statements[index], index === wrapper.body.statements.length - 1);
+    if (wrapper.body.statements.length === 1 && ts.isTryStatement(wrapper.body.statements[0])) outerTry(wrapper.body.statements[0]);
+    else for (let index = 0; index < wrapper.body.statements.length; index++) statement(wrapper.body.statements[index], index === wrapper.body.statements.length - 1);
     if (!calls.length) reject('Wrapper must contain a permitted callback');
     return { allowed: true, calls };
   } catch (error) { return { allowed: false, reason: error.message }; }
