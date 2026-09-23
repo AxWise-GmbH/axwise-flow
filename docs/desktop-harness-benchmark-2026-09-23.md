@@ -34,6 +34,17 @@ Final-gate spot-check (Bremen, Riga, Kaunas news; three calls per JEV setting): 
 
 Two additional diagnostic queries identified the main problem: all six Riga/Kaunas cited pages fetched successfully, but they were homepages, archives or category pages, with no same-page publication metadata. Examples included `eng.lsm.lv/popular/`, `eng.lsm.lv/archive/`, `kaunas.lt/kategorija/naujienos/` and `kauno.diena.lt/`. The next retrieval fix is title-matched resolution to exact article detail URLs before the existing gates, not relaxing date/locality checks. The current bounded first-four-child fallback is insufficient.
 
+### Deployed 2.3.9 smoke check
+
+The signed packaged connector was tested against the deployed release API (backend image source `dae5142ba528cc9504d1c9ef85c02b7d913ab732`; desktop `e208ecc81bd75e08c682ac09b2a325a0a99fb6bb`, build 5675). This includes authenticated API transport and providers, but still **excludes the desktop's initial Gemini tool-selection turn and rendering**. One call per case is a smoke check, not a percentile benchmark:
+
+- Kaunas weather: 580 ms, complete card; immediate cached repeat: 271 ms, cache hit.
+- EUR→USD conversion: 353 ms, complete card with daily reference rate.
+- Riga news: 11,486 ms, honest `no_verified_matches`.
+- JEV disabled: 346 ms round trip, `uncertain/disabled`; enabled: 540 ms, `steer/classified`.
+- Every information request used `/desktop/v1/information`, without an operation ID or status polling. Terminal-answer markers were preserved.
+- All five preview Cloud Run services were ready at 100% new-revision traffic. Existing configuration, scaling and tags were preserved except the two approved API secret bindings.
+
 Reproduce public weather/FX timings with `scripts/benchmark-structured-information.py`. Use `scripts/benchmark-desktop-information.py --cloud-secrets` for discovery and `apps/orqaly/scripts/benchmark-desktop-decisions.mjs` for disposition. Provider secrets remain in memory; benchmark outputs contain only public test prompts/results and timings.
 
 ## Caching and bounded work
