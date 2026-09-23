@@ -1,8 +1,31 @@
 # Axwise as a bundled local Goose specialist — 23 September 2026
 
-Status: **architecture decision and implementation plan, not a shipped extension**.
-Orqanix 2.3.11 already restores the Goose-controlled desktop loop; it does not
-yet include a local Axwise Python engine.
+Status: **2.3.13 release candidate; publication conditional on verification**.
+Published Orqanix 2.3.11 restores the Goose-controlled desktop loop. The separate
+2.3.12 local evaluation adds a bundled Python specialist and a default-off
+settings toggle; it has not been uploaded or deployed.
+
+The 2.3.13 candidate adds bounded synthesis/review/repair, private stage
+checkpoints, and analysis-to-PRD reuse by account/conversation-scoped artifact ID
+and exact file hash. See `LOCAL_AXWISE_QUALITY_GATE_2026-09-23.md` for the
+predeclared release gate and `LOCAL_AXWISE_QUALITY_EVALUATION_2026-09-23.md` for
+the comparison, including failures. It is not an automatic router or a claim
+that every generated requirement is semantically correct.
+
+The first implementation deliberately uses atomically written, account- and
+conversation-scoped JSON artifacts, not the proposed SQLite operation journal.
+Cancellation and duplicate requests on the same connection are handled; durable
+restart/resume and automatic retries are not implemented. The simulation is the
+bounded scenario generator below, not the richer legacy interview engine.
+At most one explicit model repair is now allowed within an operation; this is
+not transport retry, crash recovery, or an unbounded agent loop.
+
+Implementation entrypoints are `backend/services/local_axwise/`,
+`packages/axwise-local/`, `scripts/smoke-local-axwise.mjs`, and
+`scripts/benchmark-local-axwise.mjs`. The fork's
+`ui/desktop/scripts/LOCAL_AXWISE_PACKAGING.md` describes the pinned macOS arm64
+runtime. Other operating systems and CPU architectures are not yet supported by
+this evaluation package.
 
 ## Product boundary
 
