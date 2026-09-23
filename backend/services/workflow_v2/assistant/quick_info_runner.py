@@ -82,8 +82,21 @@ def _search_call_count(response: Any) -> int:
     return calls
 
 
+def _markdown_inline(value: str) -> str:
+    """Keep cited text literal, including source titles containing Markdown."""
+
+    normalized = re.sub(r"\s+", " ", value).strip()
+    return re.sub(r"([\\`*_{}\[\]<>&|])", r"\\\1", normalized)
+
+
+def _markdown_source_url(url: str) -> str:
+    # Angle brackets delimit the destination, so encode them if a source URL
+    # contains either character. The fact retains the original canonical URL.
+    return url.replace("<", "%3C").replace(">", "%3E")
+
+
 def _grounded_answer(
-    response: Any,
+    response: Any, *, query: str,
 ) -> tuple[str, tuple[QuickInfoSource, ...], tuple[QuickInfoFact, ...]] | None:
     """Project only URL-cited byte ranges, discarding any uncited model prose."""
 
@@ -145,12 +158,24 @@ def _grounded_answer(
         )
         for statement, urls in list(fact_urls.items())[:50]
     )
-    markdown = "\n\n".join(fact.statement for fact in facts).strip()
+    headlines = re.search(r"\b(?:headlines?|news)\b", query, re.IGNORECASE) is not None
+    if headlines:
+        facts = facts[:3]
+    cited_urls = {url for fact in facts for url in fact.source_urls}
+    ordered_sources = tuple(
+        sources[url] for url in utf16_ordinal_sorted(cited_urls)
+    )
+    lines = []
+    for fact in facts:
+        links = " ".join(
+            f"[{_markdown_inline(sources[url].title)}](<{_markdown_source_url(url)}>)"
+            for url in fact.source_urls
+        )
+        line = f"{_markdown_inline(fact.statement)} — {links}"
+        lines.append(f"- {line}" if headlines else line)
+    markdown = ("\n" if headlines else "\n\n").join(lines).strip()
     if not markdown or len(markdown) > 120_000:
         return None
-    ordered_sources = tuple(
-        sources[url] for url in utf16_ordinal_sorted(sources)
-    )
     return markdown, ordered_sources, facts
 
 
@@ -286,7 +311,8 @@ class GeminiAssistantQuickInfoRunner:
         prompt = (
             "Use Google Search once to give a concise, direct answer to this narrow current "
             "public-information request. Cite every factual statement with URL citations. "
-            "For local news, return at most three fresh items. Opening hours, sports scores "
+            "For local news, return at most three fresh items, each as a separate short "
+            "sentence with its own URL citation. Opening hours, sports scores "
             "or schedules, and current public facts should be answered directly. Do not do "
             "deep research, repository or device work, private or account-data access, or "
             "consequential medical, legal, or financial advice. Do not add uncited factual "
@@ -340,7 +366,7 @@ class GeminiAssistantQuickInfoRunner:
                 if not search_task.done():
                     search_task.cancel()
                     await asyncio.gather(search_task, return_exceptions=True)
-            grounded = _grounded_answer(response)
+            grounded = _grounded_answer(response, query=query)
             search_calls = _search_call_count(response)
             if grounded is None or search_calls < 1:
                 raise AssistantQuickInfoError(

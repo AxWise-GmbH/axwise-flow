@@ -134,7 +134,10 @@ async def test_jev_and_one_low_thinking_search_start_concurrently_and_cache():
         jev_enabled=True,
     )
 
-    assert first.markdown == "IKEA Bremen closes at 8:00 PM today."
+    assert first.markdown == (
+        "IKEA Bremen closes at 8:00 PM today. — "
+        "[IKEA Bremen](<https://www.ikea.com/de/en/stores/bremen/>)"
+    )
     assert first.facts[0].source_urls == (
         "https://www.ikea.com/de/en/stores/bremen/",
     )
@@ -142,6 +145,55 @@ async def test_jev_and_one_low_thinking_search_start_concurrently_and_cache():
     assert first.search_calls == 1
     assert second.cache_hit is True
     assert second.input_tokens == 0 and second.search_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_local_headlines_keep_three_exact_fact_source_pairs():
+    statements = [
+        "The port published a new notice.",
+        "Bremen transit announced a route change.",
+        "The city council published an agenda.",
+        "A fourth item must be omitted.",
+    ]
+    urls = [f"https://example.com/story-{index}" for index in range(4)]
+    titles = ["Port", "Transit [Bremen]", "City council", "Fourth source"]
+    output = "\n".join(statements)
+    annotations = []
+    for statement, url, title in zip(statements, urls, titles):
+        start = output.encode("utf-8").index(statement.encode("utf-8"))
+        annotations.append(
+            SimpleNamespace(
+                type="url_citation",
+                url=url,
+                title=title,
+                start_index=start,
+                end_index=start + len(statement.encode("utf-8")),
+            )
+        )
+    grounded = SimpleNamespace(
+        model="gemini-3.8-flash-001",
+        output_text=output,
+        usage=SimpleNamespace(total_input_tokens=12, total_output_tokens=30),
+        steps=[
+            SimpleNamespace(type="google_search_call", arguments=SimpleNamespace(queries=["Bremen news"])),
+            SimpleNamespace(type="model_output", content=[SimpleNamespace(type="text", text=output, annotations=annotations)]),
+        ],
+    )
+    runner = GeminiAssistantQuickInfoRunner(client=client_with(AsyncMock(return_value=grounded)))
+
+    result = await runner.quick_info(
+        "What are the latest local headlines in Bremen? Give me 3 short bullets with source links.",
+        location="Bremen",
+        jev_enabled=False,
+    )
+
+    assert result.markdown.splitlines() == [
+        "- The port published a new notice. — [Port](<https://example.com/story-0>)",
+        "- Bremen transit announced a route change. — [Transit \\[Bremen\\]](<https://example.com/story-1>)",
+        "- The city council published an agenda. — [City council](<https://example.com/story-2>)",
+    ]
+    assert [fact.source_urls for fact in result.facts] == [(url,) for url in urls[:3]]
+    assert [source.url for source in result.sources] == sorted(urls[:3])
 
 
 @pytest.mark.asyncio

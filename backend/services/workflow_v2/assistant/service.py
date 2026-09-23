@@ -245,6 +245,7 @@ class AssistantTurnService:
                 markdown="Image generated successfully.",
                 presentations=[
                     AssistantGeneratedImagePresentationV1(
+                        schema_version="axwise.presentation.generated-image.v1",
                         kind="generated_image",
                         mime_type=generated.mime_type,
                         data=generated.data_base64,
@@ -375,6 +376,7 @@ class AssistantTurnService:
                 f"{payload.temperature_unit}, {payload.condition}."
             )
             presentation = AssistantWeatherPresentationV1(
+                schema_version="axwise.presentation.weather.v1",
                 kind="weather",
                 location=payload.location,
                 observed_at=_utc_timestamp(payload.observed_at),
@@ -403,6 +405,7 @@ class AssistantTurnService:
                 f"{payload.quote} at {payload.rate} {payload.quote} per {payload.base}."
             )
             presentation = AssistantCurrencyPresentationV1(
+                schema_version="axwise.presentation.currency.v1",
                 kind="currency",
                 base=payload.base,
                 quote=payload.quote,
