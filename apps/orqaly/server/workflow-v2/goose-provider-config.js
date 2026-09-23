@@ -3,6 +3,8 @@ import { clerkMiddleware, getAuth } from '@clerk/express';
 import { createGooseProviderRouter } from './goose-provider-http.js';
 import { createDesktopContextService, DESKTOP_PRODUCT_GUIDANCE } from './desktop-context-service.js';
 import { createEngineeringReviewService } from './engineering-review-service.js';
+import { createDesktopDecisionService } from './desktop-decision-service.js';
+import { createDesktopInformationService } from './desktop-information-service.js';
 
 function denied(status = 403) {
   return Object.assign(new Error('DESKTOP_ACCESS_DENIED'), { status });
@@ -56,6 +58,8 @@ export function createGooseProviderFromEnvironment({
     productGuidance: DESKTOP_PRODUCT_GUIDANCE,
     desktopContextService: createDesktopContextService({ commandService }),
     desktopWorkService,
+    decisionService: createDesktopDecisionService({ apiKey: environment.TYPESAFE_API_KEY }),
+    informationService: createDesktopInformationService({ baseUrl: environment.AXWISE_SERVICE_URL }),
     engineeringReviewService: createEngineeringReviewService({ desktopWorkService, apiKey: environment.TYPESAFE_API_KEY }),
   }));
   return router;

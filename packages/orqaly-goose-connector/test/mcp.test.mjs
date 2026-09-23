@@ -85,13 +85,11 @@ test('explicit image and live-data tools send typed capabilities without invokin
   })).isError, true);
   assert.equal(calls.length, 3);
 });
-test('live-data lookup starts and polls one durable request to completion in one tool call', async () => {
+test('live-data lookup uses one stateless request and never polls', async () => {
   let elapsed = 0;
   const calls = [];
   let submitted;
   const states = [
-    { requestId: id, status: 'accepted', kind: 'research' },
-    { requestId: id, status: 'running', kind: 'research', retryAfterSeconds: 1 },
     { requestId: id, status: 'completed', kind: 'research', presentations: [{ kind: 'weather' }] },
   ];
   const call = createMcpTools({ ...base, clock: () => elapsed,
@@ -112,17 +110,14 @@ test('live-data lookup starts and polls one durable request to completion in one
   assert.equal(value.structuredContent.kind, 'weather');
   assert.deepEqual(submitted.capability, { kind: 'weather', location: 'Bremen', tempUnit: 'C' });
   assert.deepEqual(calls, [
-    ['https://preview.example/desktop/v1/work', 'POST'],
-    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}?waitMs=8000`, 'GET'],
-    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}?waitMs=8000`, 'GET'],
+    ['https://preview.example/desktop/v1/information', 'POST'],
   ]);
-  assert.equal(elapsed, 3000);
+  assert.equal(elapsed, 0);
 });
 test('quick info sends one bounded capability with the desktop JEV routing mode', async () => {
   let elapsed = 0;
   const calls = [];
   const states = [
-    { requestId: id, status: 'accepted', kind: 'research' },
     { requestId: id, status: 'completed', kind: 'research', markdown: 'Werder won 2-1.' },
   ];
   const call = createMcpTools({ ...base, jevEnabled: true, clock: () => elapsed,
@@ -134,17 +129,18 @@ test('quick info sends one bounded capability with the desktop JEV routing mode'
   });
 
   const value = await call('quick_info', {
-    query: 'What was the latest Werder Bremen score?', location: 'Bremen',
+    query: 'What was the latest Werder Bremen score?', location: 'Bremen', discoveryKind: 'current_facts',
   });
 
   assert.equal(value.isError, false);
   assert.equal(value.structuredContent.status, 'completed');
   assert.equal(value.structuredContent.kind, 'quick_info');
   assert.deepEqual(calls[0][2].capability, {
-    kind: 'quick_info', location: 'Bremen', routingMode: 'jev',
+    kind: 'quick_info', location: 'Bremen', discoveryKind: 'current_facts', routingMode: 'jev',
   });
   assert.equal(calls[0][2].question, 'What was the latest Werder Bremen score?');
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'https://preview.example/desktop/v1/information');
   assert.equal(elapsed, 0);
 });
 test('quick info gives Goose exact linked Markdown while preserving fact-to-source evidence', async () => {
@@ -168,13 +164,13 @@ test('Riga follow-up carries the week and radius into the same bounded search qu
     questions.push(JSON.parse(options.body));
     return response({ requestId: id, status: 'completed', kind: 'quick_info', markdown: 'Sourced result' });
   } });
-  await call('quick_info', { query: 'List events in Riga with dates and links.', location: 'Riga', timeRange: 'this week' });
+  await call('quick_info', { query: 'List events in Riga with dates and links.', discoveryKind: 'events', location: 'Riga', timeRange: 'this week' });
   await call('quick_info', { query: 'List raves and electronic music parties with dates, venues and source links.',
-    location: 'Riga', timeRange: 'this week', radiusKm: 150 });
+    discoveryKind: 'events', location: 'Riga', timeRange: 'this week', radiusKm: 150 });
   assert.match(questions[1].question, /Time window: this week/);
   assert.match(questions[1].question, /within 150 km of Riga/);
   assert.match(questions[1].question, /raves and electronic music parties/);
-  assert.deepEqual(questions[1].capability, { kind: 'quick_info', location: 'Riga', routingMode: 'jev' });
+  assert.deepEqual(questions[1].capability, { kind: 'quick_info', location: 'Riga', discoveryKind: 'events', routingMode: 'jev' });
   // Context resolution belongs to the conversation. The connector must not
   // retain stale dates/radii when a later request replaces or clears them.
   await call('quick_info', { query: 'List gigs tomorrow.', location: 'Berlin', timeRange: 'tomorrow' });
@@ -189,6 +185,7 @@ test('quick-info filters are validated locally and cannot overflow the wire ques
     { radiusKm: 150 }, { location: 'Riga', radiusKm: 0 }, { location: 'Riga', radiusKm: 1001 },
     { location: 'Riga', radiusKm: 1.5 }, { location: 'Riga', radiusKm: '150' },
     { timeRange: '' }, { timeRange: 'x'.repeat(201) }, { timeRange: null },
+    { discoveryKind: 'weather' },
     { query: 'x'.repeat(2000), timeRange: 'this week' },
   ]) assert.equal((await call('quick_info', { query: 'List parties', ...filters })).isError, true);
   assert.equal(requests, 0);
@@ -196,6 +193,8 @@ test('quick-info filters are validated locally and cannot overflow the wire ques
   assert.match(quick.description, /radiusKm 150/);
   assert.match(quick.description, /changed city, date or radius replaces/);
   assert.match(quick.inputSchema.properties.query.description, /self-contained user request/);
+  assert.deepEqual(quick.inputSchema.properties.discoveryKind.enum, ['news', 'events', 'current_facts']);
+  assert.match(quick.description, /Set discoveryKind explicitly on every quick check/);
 });
 test('direct completion requires standalone intent and a completed result bound to this request', async () => {
   const markdown = '- A sourced headline — [Source](<https://example.com/article>)';
@@ -250,9 +249,8 @@ test('quick info remains available with JEV explicitly disabled for benchmarking
 });
 test('quick-info failure forbids automatic research, web, shell, or OMP fallback', async () => {
   let calls = 0;
-  const call = createMcpTools({ ...base, fetchImpl: async () => response(++calls === 1
-    ? { requestId: id, status: 'pending', kind: 'research' }
-    : { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH' } }),
+  const call = createMcpTools({ ...base, fetchImpl: async () => { calls++; return response(
+    { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH' } }); },
   });
 
   const value = await call('quick_info', { query: 'Compare all local newspapers.' });
@@ -282,16 +280,15 @@ test('routing decisions are not described as a search-provider outage', async ()
 test('live-data terminal failure forbids an automatic research, web, shell, or OMP fallback', async () => {
   let calls = 0;
   const call = createMcpTools({ ...base,
-    fetchImpl: async () => response(++calls === 1
-      ? { requestId: id, status: 'pending', kind: 'research' }
-      : { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_INVALID_TERMINAL_CONTRACT' } }),
+    fetchImpl: async () => { calls++; return response(
+      { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_INVALID_TERMINAL_CONTRACT' } }); },
   });
 
   const value = await call('lookup_live_data', {
     kind: 'currency', base: 'EUR', quote: 'USD', amount: '10',
   });
 
-  assert.equal(calls, 2);
+  assert.equal(calls, 1);
   assert.equal(value.isError, false);
   assert.equal(value.structuredContent.status, 'failed');
   assert.equal(value.structuredContent.kind, 'currency');
@@ -302,7 +299,7 @@ test('live-data terminal failure forbids an automatic research, web, shell, or O
   assert.doesNotMatch(value.content[0].text, /AXWISE_INVALID_TERMINAL_CONTRACT/);
   assert.match(value.content[0].text, /could not be completed right now/);
 });
-test('same-request status recovery preserves the remembered live-data kind and failure contract', async () => {
+test('nonterminal response from information is rejected without polling', async () => {
   let calls = 0; let elapsed = 0;
   const call = createMcpTools({ ...base, statusWaitMs: 1, clock: () => elapsed,
     sleep: async (ms) => { elapsed += ms; },
@@ -313,11 +310,10 @@ test('same-request status recovery preserves the remembered live-data kind and f
     },
   });
   const started = await call('lookup_live_data', { kind: 'weather', location: 'Bremen' });
-  assert.equal(started.structuredContent.status, 'running');
+  assert.equal(started.structuredContent.status, 'failed');
   assert.equal(started.structuredContent.kind, 'weather');
-  const recovered = await call('axwise_work_status', { requestId: id });
-  assert.equal(recovered.structuredContent.kind, 'weather');
-  assert.equal(recovered.structuredContent.automaticFallback, 'disabled');
+  assert.equal(calls, 1);
+  assert.match(started.structuredContent.next, /Do not poll/);
 });
 test('status recovery after a connector restart preserves the durable quick-info failure contract', async () => {
   const call = createMcpTools({ ...base, fetchImpl: async () => response({
@@ -599,7 +595,7 @@ test('stdio handshake exposes native tools and emits only JSON-RPC', async () =>
   assert.match(replies[0].result.instructions, /Do not automatically replace/);
   assert.equal(replies[1].result.tools.length, 7);
   assert.match(replies[1].result.tools[0].description, /Never use this for a simple weather\/currency/);
-  assert.match(replies[1].result.tools[2].description, /starts one durable request and waits/);
+  assert.match(replies[1].result.tools[2].description, /stateless lookup/);
   assert.match(replies[1].result.tools[3].description, /local headlines.*opening hours/);
   assert.equal(replies[1].result.tools[0].annotations.readOnlyHint, false);
   assert.deepEqual(replies[1].result.tools.map(tool => tool.name), [

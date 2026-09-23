@@ -2174,6 +2174,7 @@ def _validate_image_bytes(mime_type: str, data: bytes) -> None:
 
 class AssistantTextCapabilityV2(ContractModel):
     kind: Literal["text"]
+    jev_enabled: bool | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class AssistantImageGenerateCapabilityV2(ContractModel):
@@ -2200,6 +2201,9 @@ class AssistantCurrencyCapabilityV2(ContractModel):
 class AssistantQuickInfoCapabilityV2(ContractModel):
     kind: Literal["quick_info"]
     location: Text500 | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    discovery_kind: Literal["news", "events", "current_facts"] | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     routing_mode: Literal["jev", "explicit"]

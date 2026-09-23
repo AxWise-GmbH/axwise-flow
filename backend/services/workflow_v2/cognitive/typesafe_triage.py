@@ -13,12 +13,14 @@ import json
 import logging
 import math
 import os
+from contextvars import ContextVar
 from typing import Any, Literal, Sequence, TypeVar
 
 import httpx
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+jev_request_enabled: ContextVar[bool] = ContextVar("jev_request_enabled", default=True)
 _TYPESAFE_KEY_ENV = "TYPESAFE_API_KEY"
 _ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 _TIMEOUT_SECONDS = 8.0
@@ -39,7 +41,7 @@ _QUICK_INFO_MIN_MARGIN = 0.20
 
 
 def is_typesafe_available() -> bool:
-    return bool(os.getenv(_TYPESAFE_KEY_ENV, "").strip())
+    return jev_request_enabled.get() and bool(os.getenv(_TYPESAFE_KEY_ENV, "").strip())
 
 
 class PassageRelevanceDecision(BaseModel):
@@ -130,6 +132,8 @@ class QuickInfoRouteDecision(BaseModel):
 async def _post_systemone(
     payload: dict[str, Any], *, timeout_seconds: float
 ) -> dict[str, Any]:
+    if not jev_request_enabled.get():
+        raise ValueError("jev_disabled_for_request")
     async with asyncio.timeout(timeout_seconds):
         async with httpx.AsyncClient(
             timeout=timeout_seconds, follow_redirects=False
@@ -194,7 +198,7 @@ async def classify_quick_info_route(
     query: str,
     location: str | None = None,
     *,
-    timeout_seconds: float = _TIMEOUT_SECONDS,
+    timeout_seconds: float = 1.0,
 ) -> QuickInfoRouteDecision:
     """Classify one capability; provider failures never become route decisions."""
 
@@ -210,14 +214,15 @@ async def classify_quick_info_route(
             "short list of public events, parties, concerts or club nights filtered "
             "by dates, place, genre and a nearby radius (for example, events this "
             "week in Riga and within 150 km). Listing a few matching options is "
-            "discovery, not a recommendation or broad research. No action, local "
-            "files, ranked recommendations, comparisons, itinerary planning, "
+            "discovery. Short comparisons or rankings of a few retrieved public "
+            "options also fit here. No action, local "
+            "files, detailed itinerary planning, "
             "exhaustive coverage, or broad synthesis."
         ),
         "research": (
-            "Needs multi-source comparison, synthesis, investigation, explanation of "
-            "causes, ranked or personalized recommendations, itinerary planning, "
-            "or broad, exhaustive or deep coverage. A short factual list of "
+            "Needs substantial multi-source synthesis, investigation, interviews, "
+            "simulation, PRDs, consequential interpretation, detailed itinerary planning, "
+            "or broad, exhaustive or deep coverage. A short comparison, ranking or factual list of "
             "matching public events does not by itself require this route."
         ),
         "local_engineering": (

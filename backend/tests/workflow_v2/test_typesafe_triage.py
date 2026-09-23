@@ -232,7 +232,8 @@ async def test_quick_info_choice_uses_official_closed_set_contract(monkeypatch):
     criteria = calls[0]["questions"]["route"]["criteria"]
     assert "events this week in Riga and within 150 km" in criteria["quick_info"]
     assert "dates, place, genre" in criteria["quick_info"]
-    assert "ranked or personalized recommendations" in criteria["research"]
+    assert "Short comparisons or rankings" in criteria["quick_info"]
+    assert "PRDs" in criteria["research"]
 
 
 @pytest.mark.parametrize(

@@ -170,6 +170,8 @@ export function createGooseProviderRouter({
   desktopContextService = null,
   desktopWorkService = null,
   engineeringReviewService = null,
+  decisionService = null,
+  informationService = null,
   rateLimiter = (_req, _res, next) => next(),
   timeoutMs = MAX_DEADLINE_MS,
 }) {
@@ -238,6 +240,21 @@ export function createGooseProviderRouter({
   if (desktopContextService) {
     router.get('/goals/:runId/context', desktopRead((req) => desktopContextService.read(req.authContext, req.params.runId)));
     router.get('/goals/:runId/artifacts/:artifactId', desktopRead((req) => desktopContextService.artifact(req.authContext, req.params.runId, req.params.artifactId)));
+  }
+  if (decisionService) {
+    router.post('/decisions', express.json({ limit: '32kb', strict: true }),
+      desktopRead((req) => decisionService.decide(req.authContext, req.body)));
+  }
+  if (informationService) {
+    router.post('/information', express.json({ limit: '32kb', strict: true }), async (req, res) => {
+      const controller = new AbortController();
+      const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+      req.once('aborted', disconnected);
+      res.once('close', disconnected);
+      try { await desktopRead((request) => informationService.lookup(request.authContext, request.body,
+        { signal: controller.signal }))(req, res); }
+      finally { req.off('aborted', disconnected); res.off('close', disconnected); }
+    });
   }
   if (desktopWorkService) {
     router.post('/work', express.json({ limit: '64kb', strict: true }), desktopRead((req) => desktopWorkService.start(req.authContext, req.body)));

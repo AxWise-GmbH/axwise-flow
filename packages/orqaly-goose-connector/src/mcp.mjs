@@ -12,6 +12,7 @@ const RUNNING = new Set(['accepted', 'pending', 'queued', 'running', 'cancel_req
 const START_TOOLS = new Set(['ask_axwise', 'generate_image', 'lookup_live_data', 'quick_info']);
 const BOUNDED_KINDS = new Set(['weather', 'currency', 'quick_info']);
 const ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9']);
+const DISCOVERY_KINDS = new Set(['news', 'events', 'current_facts']);
 const MONEY_AMOUNT = /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/;
 const MAX_RESULT_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 15 * 1024 * 1024;
@@ -93,7 +94,7 @@ const result = (data, isError = false) => {
 };
 
 export const TOOLS = [
-  { name: 'ask_axwise', title: 'Research on demand', description: 'Request focused, self-contained multi-source research when the user needs comparison, synthesis, investigation, causes, recommendations, or broad/deep coverage. Never use this for a simple weather/currency lookup or one narrow current fact; use lookup_live_data or quick_info instead, and do not use research as their automatic fallback. State the specific question and source needs. Omit runId and artifactIds for standalone factual or technical questions. If design context is necessary, use read_goal_artifact first, then include runId and only the relevant artifactIds (up to five); runId alone does not attach documents. Returns a durable request ID. This produces written advice only, not code execution or deployment. For ordinary work, use your existing local tools and skills. If still running or uncertain, use axwise_work_status with the returned requestId; do not submit the same question again.',
+  { name: 'ask_axwise', title: 'Research on demand', description: 'Request substantial evidence workflows such as PRDs, interviews, simulations, product discovery, or deep multi-source investigation. Short public comparisons and rankings belong in quick_info. Never use this for a simple weather/currency lookup or one narrow current fact; use lookup_live_data or quick_info instead, and do not use research as their automatic fallback. State the specific question and source needs. Omit runId and artifactIds for standalone factual or technical questions. If design context is necessary, use read_goal_artifact first, then include runId and only the relevant artifactIds (up to five); runId alone does not attach documents. Returns a durable request ID. This produces written advice only, not code execution or deployment. For ordinary work, use your existing local tools and skills. If still running or uncertain, use axwise_work_status with the returned requestId; do not submit the same question again.',
     inputSchema: schema({ question: { type: 'string', minLength: 1, maxLength: 8000 }, runId: uuid,
       artifactIds: { type: 'array', items: uuid, maxItems: 5, uniqueItems: true, description: 'Only relevant artifact UUIDs read from runId; requires runId.' } }, ['question']),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
@@ -101,16 +102,18 @@ export const TOOLS = [
     inputSchema: schema({ prompt: { type: 'string', minLength: 1, maxLength: 8000 },
       aspectRatio: { type: 'string', enum: [...ASPECT_RATIOS], description: 'Optional output aspect ratio.' } }, ['prompt']),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
-  { name: 'lookup_live_data', title: 'Live data card', description: `Return a fast, source-backed weather or currency card in one call: this tool starts one durable request and waits for its result within a bounded time. Use for a simple current lookup, not multi-source research. Weather requires a location: reuse the most recent unambiguous locality supplied by the user in this conversation when the current request is a follow-up. For example, after a user asks for Bremen headlines, "tell me the weather" means Bremen. Ask only when no locality is established or the user has made it ambiguous; never invent a second clarification. Default to Celsius unless the user requests Fahrenheit. Currency requires base, quote and amount. If the bounded wait expires, use axwise_work_status with the same request ID. ${LIVE_DATA_NO_FALLBACK}`,
+  { name: 'lookup_live_data', title: 'Live data card', description: `Return a fast, source-backed weather or currency card in one call: this is a stateless lookup with a short deadline, no worker queue or status polling. Use for a simple current lookup, not multi-source research. Weather requires a location: reuse the most recent unambiguous locality supplied by the user in this conversation when the current request is a follow-up. For example, after a user asks for Bremen headlines, "tell me the weather" means Bremen. Ask only when no locality is established or the user has made it ambiguous; never invent a second clarification. Default to Celsius unless the user requests Fahrenheit. Currency requires base, quote and amount. This lookup is not a durable job; on failure report it without polling or switching to engineering tools. ${LIVE_DATA_NO_FALLBACK}`,
     inputSchema: schema({ kind: { type: 'string', enum: ['weather', 'currency'] }, standalone,
       location: { type: 'string', minLength: 1, maxLength: 500 },
       temperatureUnit: { type: 'string', enum: ['C', 'F'] },
       base: { type: 'string', pattern: '^[A-Z]{3}$' }, quote: { type: 'string', pattern: '^[A-Z]{3}$' },
       amount: { type: 'string', pattern: '^(?:0|[1-9]\\d{0,11})(?:\\.\\d{1,6})?$' } }, ['kind']),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
-  { name: 'quick_info', title: 'Quick current check', description: `Return a concise, source-backed current answer in one bounded call. Use for local headlines, opening hours, a latest score or schedule, current service status, a current officeholder, or a short list of public events, parties or gigs filtered by place, dates, genre and distance. Listing matching events is a quick check; comparing, ranking or planning a trip needs research. Use lookup_live_data for weather or currency. Do not use this for causes, broad research, high-stakes interpretation, project or local files, code, device state, or actions. Include the most recent unambiguous user-supplied locality when the check depends on it; ask only when locality is required and unresolved. Preserve every constraint from the current request and relevant immediate follow-up context: never reduce it to search keywords. After Riga events this week, "raves and parties there and within 150km" means location Riga, timeRange this week, radiusKm 150, and a query asking for matching raves and parties with dates, venues and links. A changed city, date or radius replaces the earlier value; do not carry old filters into an unrelated topic. For completed results, use the returned Markdown with its exact source links rather than paraphrasing or replacing citations. JEV classifies the lane when enabled, while the live lookup runs in parallel. If the bounded wait expires, use axwise_work_status with the same request ID. ${QUICK_INFO_NO_FALLBACK}`,
+  { name: 'quick_info', title: 'Quick current check', description: `Return a concise, source-backed current answer in one bounded call. Use for local headlines, opening hours, a latest score or schedule, current service status, a current officeholder, or a short list of public events, parties or gigs filtered by place, dates, genre and distance. Set discoveryKind explicitly on every quick check: news for news/headlines in any language, events for things happening or "what's on", and current_facts for other current facts such as hours, scores, schedules, status or officeholders. Listing, briefly comparing or ranking a few matching public options is a quick check; substantial itinerary planning or deep synthesis needs research. Use lookup_live_data for weather or currency. Do not use this for causes, broad research, high-stakes interpretation, project or local files, code, device state, or actions. Include the most recent unambiguous user-supplied locality when the check depends on it; ask only when locality is required and unresolved. Preserve every constraint from the current request and relevant immediate follow-up context: never reduce it to search keywords. After Riga events this week, "raves and parties there and within 150km" means location Riga, timeRange this week, radiusKm 150, and a query asking for matching raves and parties with dates, venues and links. A changed city, date or radius replaces the earlier value; do not carry old filters into an unrelated topic. For completed results, use the returned Markdown with its exact source links rather than paraphrasing or replacing citations. JEV classifies the lane when enabled, while the live lookup runs in parallel. This lookup is not a durable job; on failure report it without polling or switching to engineering tools. ${QUICK_INFO_NO_FALLBACK}`,
     inputSchema: schema({ standalone, query: { type: 'string', minLength: 1, maxLength: 2000,
       description: 'Complete self-contained user request, including requested count/format, topic and all filters. Resolve follow-up references from the conversation; do not send a bag of search keywords.' },
+      discoveryKind: { type: 'string', enum: [...DISCOVERY_KINDS],
+        description: 'Always select news, events, or current_facts for this quick check. Optional only for compatibility with older clients.' },
       location: { type: 'string', minLength: 1, maxLength: 500 },
       timeRange: { type: 'string', minLength: 1, maxLength: 200,
         description: 'Requested date window, including a still-relevant immediate follow-up window (for example this week or September 25–27, 2026). Omit for unrelated requests; do not invent dates.' },
@@ -253,7 +256,7 @@ export function createMcpTools({ apiUrl, conversationId, accountHash, token, jev
         if (name === 'ask_axwise') {
           if (typeof args.question !== 'string' || !args.question.trim() || args.question.length > 8000)
             return result({ error: 'Use a question between 1 and 8,000 characters.' }, true);
-          command = { question: args.question,
+          command = { question: args.question, capability: { kind: 'text', jevEnabled },
             ...(args.runId ? { runId: args.runId } : {}),
             ...(args.artifactIds !== undefined ? { artifactIds: args.artifactIds } : {}) };
         } else if (name === 'generate_image') {
@@ -264,6 +267,7 @@ export function createMcpTools({ apiUrl, conversationId, accountHash, token, jev
             ...(args.aspectRatio ? { aspectRatio: args.aspectRatio } : {}) } };
         } else if (name === 'quick_info') {
           if (typeof args.query !== 'string' || !args.query.trim() || args.query.length > 2000
+            || (args.discoveryKind !== undefined && !DISCOVERY_KINDS.has(args.discoveryKind))
             || (args.location !== undefined && (typeof args.location !== 'string'
               || !args.location.trim() || args.location.length > 500))
             || (args.timeRange !== undefined && (typeof args.timeRange !== 'string'
@@ -279,6 +283,7 @@ export function createMcpTools({ apiUrl, conversationId, accountHash, token, jev
             return result({ error: 'The complete quick-check query and its filters must fit within 2,000 characters.' }, true);
           command = { question, capability: { kind: 'quick_info',
             ...(args.location ? { location: args.location.trim() } : {}),
+            ...(args.discoveryKind ? { discoveryKind: args.discoveryKind } : {}),
             routingMode: jevEnabled ? 'jev' : 'explicit' } };
         } else if (args.kind === 'weather') {
           if (typeof args.location !== 'string' || !args.location.trim() || args.location.length > 500
@@ -299,10 +304,12 @@ export function createMcpTools({ apiUrl, conversationId, accountHash, token, jev
         }
         if (name === 'lookup_live_data') boundedKinds.set(requestId, args.kind);
         if (name === 'quick_info') boundedKinds.set(requestId, 'quick_info');
-        data = await request('/work', { conversationId, requestId, issuedAt: now(), ...command }, signal);
+        const information = name === 'lookup_live_data' || name === 'quick_info';
+        data = await request(information ? '/information' : '/work',
+          { conversationId, requestId, issuedAt: now(), ...command },
+          information ? (signal ? AbortSignal.any([signal, AbortSignal.timeout(22_000)]) : AbortSignal.timeout(22_000)) : signal);
         if (name === 'lookup_live_data' || name === 'quick_info') {
-          if (RUNNING.has(data?.status))
-            data = await waitForWork(`/work/${conversationId}/${requestId}`, signal, requestId);
+          if (RUNNING.has(data?.status)) throw new Error('Stateless information returned a non-terminal response');
           data = boundedResult(data, name === 'quick_info' ? 'quick_info' : args.kind);
         }
       } else if (name === 'read_goal_artifact') {
@@ -334,6 +341,12 @@ export function createMcpTools({ apiUrl, conversationId, accountHash, token, jev
       }
       return result(data);
     } catch (error) {
+      if (name === 'quick_info' || name === 'lookup_live_data') {
+        return result({ version: 'orqaly.desktop-work.v1', conversationId, requestId,
+          kind: name === 'quick_info' ? 'quick_info' : args.kind, status: 'failed',
+          error: { code: 'INFORMATION_UNAVAILABLE' }, automaticFallback: 'disabled',
+          next: `This was a stateless lookup, not a durable job. Do not poll axwise_work_status. ${name === 'quick_info' ? QUICK_INFO_NO_FALLBACK : LIVE_DATA_NO_FALLBACK}` }, true);
+      }
       const message = signal?.aborted ? 'The local tool call was cancelled. Cloud work was not cancelled by stopping this call.'
         : error?.status ? error.message : 'The Orqanix request did not return a usable response.';
       const knownRequestId = requestId || args.requestId;
