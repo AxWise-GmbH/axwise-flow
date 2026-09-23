@@ -279,24 +279,63 @@ def _current_failure_diagnostics(
 
 
 def _restore_legacy_assistant_schema_version(value: Any) -> Any:
-    """Repair capability results written before their discriminator was explicit."""
+    """Repair omitted discriminators in older sparse assistant results."""
 
     if not isinstance(value, dict) or _mapping_value(
         value, "result_type", "resultType"
     ) != "assistant_turn_completed":
         return value
     response = value.get("response")
-    if not isinstance(response, dict) or _mapping_value(
-        response, "schema_version", "schemaVersion"
-    ) is not None:
+    if not isinstance(response, dict):
         return value
+
+    response_version = _mapping_value(response, "schema_version", "schemaVersion")
+    missing_response_version = (
+        "schema_version" not in response and "schemaVersion" not in response
+    )
+    if missing_response_version:
+        response_version = (
+            "axwise.assistant-turn.v2"
+            if "presentations" in response
+            else "axwise.assistant-turn.v1"
+        )
+    presentation_versions = {
+        "generated_image": "axwise.presentation.generated-image.v1",
+        "weather": "axwise.presentation.weather.v1",
+        "currency": "axwise.presentation.currency.v1",
+    }
+    presentations = response.get("presentations")
+    missing_presentation_versions = (
+        response_version == "axwise.assistant-turn.v2"
+        and isinstance(presentations, list)
+        and any(
+            isinstance(presentation, dict)
+            and isinstance(presentation.get("kind"), str)
+            and presentation.get("kind") in presentation_versions
+            and "schema_version" not in presentation
+            and "schemaVersion" not in presentation
+            for presentation in presentations
+        )
+    )
+    if not missing_response_version and not missing_presentation_versions:
+        return value
+
     repaired = deepcopy(value)
     repaired_response = repaired["response"]
-    repaired_response["schemaVersion"] = (
-        "axwise.assistant-turn.v2"
-        if "presentations" in repaired_response
-        else "axwise.assistant-turn.v1"
-    )
+    if missing_response_version:
+        repaired_response["schemaVersion"] = response_version
+    if missing_presentation_versions:
+        for presentation in repaired_response["presentations"]:
+            if not isinstance(presentation, dict):
+                continue
+            kind = presentation.get("kind")
+            version = presentation_versions.get(kind) if isinstance(kind, str) else None
+            if (
+                version is not None
+                and "schema_version" not in presentation
+                and "schemaVersion" not in presentation
+            ):
+                presentation["schemaVersion"] = version
     return repaired
 
 

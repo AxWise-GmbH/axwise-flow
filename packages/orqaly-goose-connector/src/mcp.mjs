@@ -16,8 +16,8 @@ const MONEY_AMOUNT = /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/;
 const MAX_RESULT_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 15 * 1024 * 1024;
 const MAX_STATUS_WAIT_MS = 75_000;
-const LIVE_DATA_NO_FALLBACK = 'Do not automatically replace this live-data lookup with AxWise research, a web-search skill, fetch, shell, or OMP. Report the result or failure, and ask the user before trying another method.';
-const QUICK_INFO_NO_FALLBACK = 'Do not automatically replace this quick check with AxWise research, a web-search skill, fetch, shell, or OMP. Report the result or routing mismatch, and ask the user before trying another method.';
+const LIVE_DATA_NO_FALLBACK = 'Do not automatically replace this live-data lookup with AxWise research, a web-search skill, fetch, shell, or OMP. Report a failure in plain language without the internal error code or a numbered next-steps menu, and ask the user before trying another method.';
+const QUICK_INFO_NO_FALLBACK = 'Do not automatically replace this quick check with AxWise research, a web-search skill, fetch, shell, or OMP. Report a failure or routing mismatch in plain language without the internal error code or a numbered next-steps menu, and ask the user before trying another method.';
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value);
 const schema = (properties, required) => ({ type: 'object', properties, required, additionalProperties: false });
 const uuid = { type: 'string', description: 'Exact UUID from the current context or a prior tool result.' };
@@ -70,7 +70,18 @@ const result = (data, isError = false) => {
       content.length = 1;
     }
   }
-  content[0] = { type: 'text', text: JSON.stringify(structuredContent) };
+  // The completed quick answer is already grounded and formatted by AxWise.
+  // Present its exact links to the model instead of inviting a JSON paraphrase.
+  const quickMarkdown = !isError && object(structuredContent)
+    && structuredContent.kind === 'quick_info' && structuredContent.status === 'completed'
+    && typeof structuredContent.markdown === 'string' && structuredContent.markdown.trim()
+    ? structuredContent.markdown : null;
+  const boundedFailure = object(structuredContent) && structuredContent.status === 'failed'
+    && BOUNDED_KINDS.has(structuredContent.kind);
+  const failureText = boundedFailure
+    ? `The ${structuredContent.kind === 'quick_info' ? 'quick current check' : structuredContent.kind === 'weather' ? 'live weather check' : 'currency check'} could not be completed right now. You can ask me to retry; I will not switch to another source unless you ask.`
+    : null;
+  content[0] = { type: 'text', text: failureText || quickMarkdown || JSON.stringify(structuredContent) };
   return { content, structuredContent, isError };
 };
 
@@ -83,14 +94,14 @@ export const TOOLS = [
     inputSchema: schema({ prompt: { type: 'string', minLength: 1, maxLength: 8000 },
       aspectRatio: { type: 'string', enum: [...ASPECT_RATIOS], description: 'Optional output aspect ratio.' } }, ['prompt']),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
-  { name: 'lookup_live_data', title: 'Live data card', description: `Return a fast, source-backed weather or currency card in one call: this tool starts one durable request and waits for its result within a bounded time. Use for a simple current lookup, not multi-source research. Weather requires location and defaults to Celsius unless the user requests Fahrenheit; ask only for a missing location, never invent a second clarification. Currency requires base, quote and amount. If the bounded wait expires, use axwise_work_status with the same request ID. ${LIVE_DATA_NO_FALLBACK}`,
+  { name: 'lookup_live_data', title: 'Live data card', description: `Return a fast, source-backed weather or currency card in one call: this tool starts one durable request and waits for its result within a bounded time. Use for a simple current lookup, not multi-source research. Weather requires a location: reuse the most recent unambiguous locality supplied by the user in this conversation when the current request is a follow-up. For example, after a user asks for Bremen headlines, "tell me the weather" means Bremen. Ask only when no locality is established or the user has made it ambiguous; never invent a second clarification. Default to Celsius unless the user requests Fahrenheit. Currency requires base, quote and amount. If the bounded wait expires, use axwise_work_status with the same request ID. ${LIVE_DATA_NO_FALLBACK}`,
     inputSchema: schema({ kind: { type: 'string', enum: ['weather', 'currency'] },
       location: { type: 'string', minLength: 1, maxLength: 500 },
       temperatureUnit: { type: 'string', enum: ['C', 'F'] },
       base: { type: 'string', pattern: '^[A-Z]{3}$' }, quote: { type: 'string', pattern: '^[A-Z]{3}$' },
       amount: { type: 'string', pattern: '^(?:0|[1-9]\\d{0,11})(?:\\.\\d{1,6})?$' } }, ['kind']),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
-  { name: 'quick_info', title: 'Quick current check', description: `Return one concise, source-backed current fact in one bounded call. Use for local headlines, opening hours, a latest score or schedule, current service status, a current officeholder, or another narrow public fact. Use lookup_live_data for weather or currency. Do not use this for comparisons, causes, recommendations, broad research, high-stakes interpretation, project or local files, code, device state, or actions. Include location when the check depends on locality and it is known; ask only when locality is required and unresolved. JEV classifies the lane when enabled, while the live lookup runs in parallel. If the bounded wait expires, use axwise_work_status with the same request ID. ${QUICK_INFO_NO_FALLBACK}`,
+  { name: 'quick_info', title: 'Quick current check', description: `Return one concise, source-backed current fact in one bounded call. Use for local headlines, opening hours, a latest score or schedule, current service status, a current officeholder, or another narrow public fact. Use lookup_live_data for weather or currency. Do not use this for comparisons, causes, recommendations, broad research, high-stakes interpretation, project or local files, code, device state, or actions. Include the most recent unambiguous user-supplied locality when the check depends on it; ask only when locality is required and unresolved. For completed results, use the returned Markdown with its exact source links rather than paraphrasing or replacing citations. JEV classifies the lane when enabled, while the live lookup runs in parallel. If the bounded wait expires, use axwise_work_status with the same request ID. ${QUICK_INFO_NO_FALLBACK}`,
     inputSchema: schema({ query: { type: 'string', minLength: 1, maxLength: 2000 },
       location: { type: 'string', minLength: 1, maxLength: 500 } }, ['query']),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
@@ -319,7 +330,7 @@ export async function serveMcp({ input = process.stdin, output = process.stdout,
       initialized = true;
       write({ jsonrpc: '2.0', id: message.id, result: { protocolVersion: '2025-06-18', capabilities: { tools: {} },
         serverInfo: { name: 'orqaly', version: '0.3.1' },
-        instructions: `Orqanix capabilities and project context. Keep working in this conversation; these tools do not require a phase switch and do not authorize local or external actions. For simple current weather or currency, use only lookup_live_data. For one narrow current public fact, use quick_info. Use same-request status recovery and never silently escalate either fast route. ${LIVE_DATA_NO_FALLBACK} ${QUICK_INFO_NO_FALLBACK}` } });
+        instructions: `Orqanix capabilities and project context. Keep working in this conversation; these tools do not require a phase switch and do not authorize local or external actions. For simple current weather or currency, use only lookup_live_data. Reuse the most recent unambiguous user-supplied location for a follow-up weather question; Bremen headlines followed by "tell me the weather" means Bremen. For one narrow current public fact, use quick_info and preserve the exact source links in its returned Markdown. Use same-request status recovery and never silently escalate either fast route. ${LIVE_DATA_NO_FALLBACK} ${QUICK_INFO_NO_FALLBACK}` } });
     } else if (message.method === 'ping') write({ jsonrpc: '2.0', id: message.id, result: {} });
     else if (!initialized) write({ jsonrpc: '2.0', id: message.id, error: { code: -32002, message: 'Initialize first' } });
     else if (message.method === 'tools/list') write({ jsonrpc: '2.0', id: message.id, result: { tools: TOOLS } });

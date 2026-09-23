@@ -19,7 +19,7 @@ const artifact = {
   title: 'Webhook design', markdown: '# Webhook design\nUse exponential backoff.',
 };
 
-function harness() {
+function harness({ quickInfoResponse } = {}) {
   const threads = new Map();
   const events = [];
   const publicMessage = ({ contentHash: _contentHash, ...message }) => message;
@@ -70,7 +70,7 @@ function harness() {
     ...(status === 'completed' ? { result: {
       resultType: 'assistant_turn_completed',
       response: envelope.input.type === 'AssistantTurnV2'
-        && envelope.input.capability.kind === 'quick_info' ? {
+        && envelope.input.capability.kind === 'quick_info' ? quickInfoResponse || {
         schemaVersion: 'axwise.assistant-turn.v1',
         markdown: 'IKEA Bremen is open until 20:00 today.',
         sources: [{ title: 'IKEA Bremen', canonicalUrl: 'https://example.com/ikea-bremen', sourceTypes: ['official_documentation'] }],
@@ -185,12 +185,55 @@ describe('desktop bounded AxWise work', () => {
 
     expect(started.kind).toBe('quick_info');
     expect(started.presentations).toBeUndefined();
+    expect(started.markdown).toBe('IKEA Bremen is open until 20:00 today. — [IKEA Bremen](<https://example.com/ikea-bremen>)');
+    expect(started.artifacts[0].markdown).toBe(started.markdown);
+    expect(started.facts).toEqual([
+      { statement: 'IKEA Bremen is open until 20:00 today.', sourceUrls: ['https://example.com/ikea-bremen'] },
+    ]);
     expect(await h.service.read(auth, identity)).toEqual(started);
     await expect(h.service.start(auth, {
       ...request,
       requestId: '55555555-5555-4555-8555-555555555555',
       question: 'x'.repeat(2_001),
     })).rejects.toThrow(/2,000/);
+  });
+
+  it('renders at most three headline bullets using each fact\'s exact source link', async () => {
+    const headlineSources = [
+      ['Port closure', 'https://example.com/bremen-port'],
+      ['Transit [Bremen]', 'https://example.com/bremen-transit'],
+      ['City council', 'https://example.com/bremen-council'],
+      ['Unselected source', 'https://example.com/fourth-story'],
+    ];
+    const headlineFacts = [
+      'Bremen port has a new update.',
+      'Transit routes changed today.',
+      'The council published a new notice.',
+      'A fourth item should be omitted.',
+    ];
+    const h = harness({ quickInfoResponse: {
+      schemaVersion: 'axwise.assistant-turn.v1',
+      markdown: 'Old unlinked model prose that must not be published.',
+      sources: headlineSources.map(([title, canonicalUrl]) => ({ title, canonicalUrl, sourceTypes: ['news'] })),
+      facts: headlineFacts.map((statement, index) => ({ statement, sourceUrls: [headlineSources[index][1]] })),
+      recommendations: [],
+    } });
+    const request = {
+      ...command,
+      question: 'What are the latest local headlines in Bremen? Give me 3 short bullets with source links.',
+      capability: { kind: 'quick_info', location: 'Bremen', routingMode: 'jev' },
+    };
+
+    const started = await h.service.start(auth, request);
+    expect(started.markdown.split('\n')).toEqual([
+      '- Bremen port has a new update. — [Port closure](<https://example.com/bremen-port>)',
+      '- Transit routes changed today. — [Transit \\[Bremen\\]](<https://example.com/bremen-transit>)',
+      '- The council published a new notice. — [City council](<https://example.com/bremen-council>)',
+    ]);
+    expect(started.facts).toHaveLength(3);
+    expect(started.sources.map((source) => source.url)).toEqual(headlineSources.slice(0, 3).map(([, url]) => url));
+    expect(started.markdown).not.toContain('Old unlinked model prose');
+    expect(await h.service.read(auth, identity)).toEqual(started);
   });
 
   it('replays exact requests, rejects changed input and keeps separate conversations independent', async () => {

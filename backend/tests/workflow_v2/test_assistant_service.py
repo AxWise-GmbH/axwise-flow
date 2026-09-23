@@ -50,6 +50,15 @@ def assert_persisted_assistant_turn_round_trips(
         "axwise.assistant-turn.v1",
         "axwise.assistant-turn.v2",
     }
+    presentation_versions = {
+        "generated_image": "axwise.presentation.generated-image.v1",
+        "weather": "axwise.presentation.weather.v1",
+        "currency": "axwise.presentation.currency.v1",
+    }
+    for presentation in payload["response"].get("presentations", []):
+        assert presentation["schemaVersion"] == presentation_versions[
+            presentation["kind"]
+        ]
     assert AssistantTurnCompletedResult.model_validate(payload) == result
 
 

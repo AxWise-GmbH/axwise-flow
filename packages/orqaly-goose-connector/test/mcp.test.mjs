@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { PassThrough } from 'node:stream';
-import { createMcpTools, parseMcpLaunchArguments, serveMcp } from '../src/mcp.mjs';
+import { TOOLS, createMcpTools, parseMcpLaunchArguments, serveMcp } from '../src/mcp.mjs';
 
 const id = '11111111-1111-4111-8111-111111111111';
 const base = { apiUrl: 'https://preview.example', conversationId: '20260914_1', accountHash: 'a'.repeat(64), token: async () => 'test-secret', newId: () => id };
@@ -147,6 +147,26 @@ test('quick info sends one bounded capability with the desktop JEV routing mode'
   assert.equal(calls.length, 2);
   assert.equal(elapsed, 0);
 });
+test('quick info gives Goose exact linked Markdown while preserving fact-to-source evidence', async () => {
+  const markdown = '- Bremen headline — [Weser-Kurier](<https://example.com/bremen>)';
+  const sources = [{ title: 'Weser-Kurier', url: 'https://example.com/bremen', sourceTypes: ['news'] }];
+  const facts = [{ statement: 'Bremen headline', sourceUrls: ['https://example.com/bremen'] }];
+  const call = createMcpTools({ ...base, fetchImpl: async () => response({
+    requestId: id, status: 'completed', kind: 'quick_info', markdown, sources, facts,
+  }) });
+
+  const value = await call('quick_info', { query: 'Give me one Bremen headline' });
+
+  assert.equal(value.content[0].text, markdown);
+  assert.deepEqual(value.structuredContent.sources, sources);
+  assert.deepEqual(value.structuredContent.facts, facts);
+  assert.match(TOOLS.find((tool) => tool.name === 'quick_info').description, /exact source links/);
+});
+test('weather tool explicitly reuses a recent user-supplied location', () => {
+  const description = TOOLS.find((tool) => tool.name === 'lookup_live_data').description;
+  assert.match(description, /Bremen headlines.*tell me the weather.*means Bremen/);
+  assert.match(description, /Ask only when no locality is established.*ambiguous/);
+});
 test('quick info remains available with JEV explicitly disabled for benchmarking', async () => {
   const calls = [];
   const call = createMcpTools({ ...base, jevEnabled: false, fetchImpl: async (_url, options) => {
@@ -176,6 +196,8 @@ test('quick-info failure forbids automatic research, web, shell, or OMP fallback
 
   assert.equal(value.structuredContent.kind, 'quick_info');
   assert.equal(value.structuredContent.automaticFallback, 'disabled');
+  assert.doesNotMatch(value.content[0].text, /AXWISE_ASSISTANT_QUICK_ROUTE_MISMATCH/);
+  assert.match(value.content[0].text, /could not be completed right now/);
   assert.match(value.structuredContent.next, /routing mismatch/i);
   assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*OMP/i);
 });
@@ -184,7 +206,7 @@ test('live-data terminal failure forbids an automatic research, web, shell, or O
   const call = createMcpTools({ ...base,
     fetchImpl: async () => response(++calls === 1
       ? { requestId: id, status: 'pending', kind: 'research' }
-      : { requestId: id, status: 'failed', kind: 'research', error: { code: 'LIVE_DATA_FAILED' } }),
+      : { requestId: id, status: 'failed', kind: 'research', error: { code: 'AXWISE_INVALID_TERMINAL_CONTRACT' } }),
   });
 
   const value = await call('lookup_live_data', {
@@ -198,6 +220,9 @@ test('live-data terminal failure forbids an automatic research, web, shell, or O
   assert.equal(value.structuredContent.automaticFallback, 'disabled');
   assert.match(value.structuredContent.next, /ask the user/i);
   assert.match(value.structuredContent.next, /web-search.*fetch.*shell.*OMP/i);
+  assert.equal(value.structuredContent.error.code, 'AXWISE_INVALID_TERMINAL_CONTRACT');
+  assert.doesNotMatch(value.content[0].text, /AXWISE_INVALID_TERMINAL_CONTRACT/);
+  assert.match(value.content[0].text, /could not be completed right now/);
 });
 test('same-request status recovery preserves the remembered live-data kind and failure contract', async () => {
   let calls = 0; let elapsed = 0;
