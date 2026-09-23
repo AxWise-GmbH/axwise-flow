@@ -1,6 +1,6 @@
 # Local Axwise staged specialist — quality evaluation
 
-Date: 2026-09-23. Status: **quality, native-chain and packaged-runtime checks passed; publication pending**.
+Date: 2026-09-23. Status: **published as optional/default-off Orqanix 2.3.13, build 5680**.
 
 This report evaluates the optional local Axwise specialist after the initial
 single-generation prototype. It does not authorize publication by itself. The
@@ -312,15 +312,14 @@ references, cancellation or finite error handling. Important limits remain:
   is made for other packaged platforms, broad population research, or external
   semantic verification. Ordinary Goose remains in control.
 
-## Package and publication — pending
+## Package and publication — complete
 
 - [x] Final native specialist-chain acceptance recorded above.
 - [x] Source commits: Axwise `52388b3b`, fork `40684d753`; app 2.3.13 / build 5680.
 - [x] Final macOS arm64 package rebuilt; nested signatures and runtime/source inventory verified.
-- [ ] Archive checksum, local package smoke check and exact downloadable artifact recorded.
-- [ ] Approved website/download metadata updated to that exact artifact and externally checked.
+- [x] Archive checksum, local package smoke check and exact downloadable artifact recorded.
+- [x] Website/download metadata updated to that exact artifact and externally checked.
 
-No upload, deployment, merge or website update is established by this evaluation
-document. The coordinator must append the actual release evidence or leave the
-candidate local if a remaining gate fails. Existing ad-hoc preview signing is
-not Apple notarization.
+See [the release receipt](./RELEASE_2.3.13_2026-09-23.md) for source commits,
+installer SHA-256, successful cloud build, deployed revision and public-domain
+verification. Existing ad-hoc preview signing is not Apple notarization.

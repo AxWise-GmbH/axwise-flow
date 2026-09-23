@@ -1,16 +1,18 @@
 # Axwise as a bundled local Goose specialist — 23 September 2026
 
-Status: **2.3.13 release candidate; publication conditional on verification**.
+Status: **published as optional/default-off Orqanix 2.3.13, build 5680**.
 Published Orqanix 2.3.11 restores the Goose-controlled desktop loop. The separate
 2.3.12 local evaluation adds a bundled Python specialist and a default-off
 settings toggle; it has not been uploaded or deployed.
 
-The 2.3.13 candidate adds bounded synthesis/review/repair, private stage
+The 2.3.13 release adds bounded synthesis/review/repair, private stage
 checkpoints, and analysis-to-PRD reuse by account/conversation-scoped artifact ID
 and exact file hash. See `LOCAL_AXWISE_QUALITY_GATE_2026-09-23.md` for the
 predeclared release gate and `LOCAL_AXWISE_QUALITY_EVALUATION_2026-09-23.md` for
 the comparison, including failures. It is not an automatic router or a claim
 that every generated requirement is semantically correct.
+Publication and artifact verification are recorded in
+`RELEASE_2.3.13_2026-09-23.md`.
 
 The first implementation deliberately uses atomically written, account- and
 conversation-scoped JSON artifacts, not the proposed SQLite operation journal.
