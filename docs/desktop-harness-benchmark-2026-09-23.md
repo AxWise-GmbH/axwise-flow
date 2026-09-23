@@ -1,6 +1,6 @@
 # Desktop harness revision: implementation and benchmark
 
-## Shipped design
+## Implemented design
 
 The desktop keeps one conversation and the existing floating workflow panel. The implementation separates three paths:
 
@@ -29,6 +29,10 @@ All percentiles below use nearest rank. Small, hand-selected samples are smoke b
 | Gemini discovery, JEV on | 5 | 7.187 s | 11.125 s | Representative pre-final-regression live run |
 
 Provider-side caching is uncontrolled even when our runner/client is fresh. The discovery sample was taken before final identity/future-date/genre/intent regression tightening; it is not a final-release quality score. Five of ten cold discovery calls produced at least one eligible item; others honestly returned no verified match. Search variance and this sample size do not establish a speed/quality improvement from JEV. The previous user trace's minute-long weather sequence is not an apples-to-apples benchmark baseline.
+
+Final-gate spot-check (Bremen, Riga, Kaunas news; three calls per JEV setting): **only 1/6 cold calls produced verified results**, three Bremen publisher headlines with JEV enabled. The other five returned no verified matches. JEV-off median/p95: 8.452/10.404 seconds; JEV-on: 9.226/14.220 seconds. All six immediate repeats were cache hits. This is a **discovery-coverage failure**, not a passing news-quality benchmark. Do not advertise news retrieval as solved; the release improves isolation, source/date discipline and failure behavior while publisher coverage remains follow-up work.
+
+Two additional diagnostic queries identified the main problem: all six Riga/Kaunas cited pages fetched successfully, but they were homepages, archives or category pages, with no same-page publication metadata. Examples included `eng.lsm.lv/popular/`, `eng.lsm.lv/archive/`, `kaunas.lt/kategorija/naujienos/` and `kauno.diena.lt/`. The next retrieval fix is title-matched resolution to exact article detail URLs before the existing gates, not relaxing date/locality checks. The current bounded first-four-child fallback is insufficient.
 
 Reproduce public weather/FX timings with `scripts/benchmark-structured-information.py`. Use `scripts/benchmark-desktop-information.py --cloud-secrets` for discovery and `apps/orqaly/scripts/benchmark-desktop-decisions.mjs` for disposition. Provider secrets remain in memory; benchmark outputs contain only public test prompts/results and timings.
 
