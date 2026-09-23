@@ -6,6 +6,14 @@ data were read. No cloud resource was changed, paused or deleted by this audit.
 Service presence does not prove active use; retirement candidates below have
 not been proved idle.
 
+## Product decision after this audit
+
+Keep the Axwise website and its application services. The user chose to retain
+Axwise and pursue a genuinely local, bundled Goose specialist extension for
+desktop use. The inventory below identifies what ordinary reset chat does not
+call; it is **not** a decision to retire services still supporting Axwise.
+See `LOCAL_AXWISE_EXTENSION_PLAN_2026-09-23.md` for the intended boundary.
+
 ## Website and desktop release targets
 
 Live mappings in `axwise-v2-preview-001`, region `europe-west4`, both reported
@@ -112,11 +120,12 @@ Do not confuse their repeated service names with the current desktop project.
 Any retirement there needs a separate scope and dependency check; this audit
 does not authorize changes to those sites or their stored data.
 
-## Recommended next step
+## Possible infrastructure follow-up (separate approval required)
 
 Publish and verify the reset while retaining bootstrap dependencies. Then add a
 standalone production thin entrypoint with only desktop authentication, model
 transport, search and optional decision/review capabilities. Once that boundary
-is verified, request explicit cleanup approval for exact legacy services and
+is verified, distinguish retained Axwise website dependencies from genuinely
+unused desktop-only infrastructure. Request explicit cleanup approval for exact services and
 schedules, including a decision about unfinished test work and retained data.
 Stopping obsolete compute and deleting persistent data are separate decisions.

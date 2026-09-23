@@ -1,11 +1,32 @@
 # Orqaly Goose authentication connector
 
-## Conversation tools
+## Current desktop: Goose-controlled reset (2.3.11)
 
-The packaged desktop also starts `src/mcp.mjs` as a native Goose stdio extension,
+The packaged desktop mounts `src/utilities-mcp.mjs`, not the legacy Axwise
+conversation extension. It exposes `get_weather`, `convert_currency`, and
+`search_web`. Weather and currency retrieval use public data APIs directly;
+search uses the authenticated Gemini search relay, without an Axwise workflow,
+durable-work polling, or a required JEV classification first.
+
+These are ordinary Goose tools. Results return to Goose's model loop, which
+chooses the next step; there is no mandatory Axwise route or blanket ban on
+using another available retrieval tool. OMP remains separately optional. JEV's
+advisory decision/review capabilities do not take ownership of the Goose loop.
+Authentication and model transport still use the account-scoped gateway.
+
+A genuinely local Axwise specialist extension is a **planned separate step**,
+not something provided by the old cloud connector. See the
+[local extension boundary](../../apps/orqaly/docs/LOCAL_AXWISE_EXTENSION_PLAN_2026-09-23.md).
+
+## Legacy conversation tools (not mounted by the reset)
+
+The earlier desktop started `src/mcp.mjs` as a native Goose stdio extension,
 bound to one conversation and the verified account hash. It uses the same
 credential store internally; stdout contains only MCP protocol messages, never
 an access token. The gateway checks the expected account on every request.
+This process is a local **adapter to cloud Axwise**, not a local Axwise engine.
+The behavior below describes that legacy integration only, not the current
+desktop's routing policy. Legacy server routes are disabled in the reset release.
 
 Available tools: `read_goal_artifact`, `ask_axwise`, `generate_image`,
 `lookup_live_data`, `quick_info`, `axwise_work_status`, and `cancel_axwise_work`. AxWise uses
