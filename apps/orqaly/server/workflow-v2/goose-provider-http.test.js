@@ -34,6 +34,7 @@ describe('desktop context and bounded work routes', () => {
         events: vi.fn(async () => ({ events: [], cursor: 0 })),
       },
       informationService: { lookup: vi.fn(async (_auth, input) => ({ ...input, status: 'completed' })) },
+      searchService: { search: vi.fn(async (_auth, input) => ({ ...input, outcome: 'grounded', sources: [] })) },
       decisionService: { decide: vi.fn(async (_auth, input) => ({ ...input, decision: 'queue' })) },
     };
   }
@@ -46,6 +47,7 @@ describe('desktop context and bounded work routes', () => {
       [`${workPath}/events`, null], [`/goals/${runId}/context`, null],
       [`/goals/${runId}/artifacts/${artifactId}`, null],
       ['/information', '{invalid'], ['/decisions', '{invalid'],
+      ['/search', '{invalid'],
     ]) {
       const response = await f.call(path, payload, { headers: { 'Content-Type': 'application/json' } });
       expect(response.status).toBe(401);
@@ -75,6 +77,9 @@ describe('desktop context and bounded work routes', () => {
     expect((await f.call('/information', body)).status).toBe(200);
     expect(s.informationService.lookup).toHaveBeenCalledWith({ userId: 'user-1' }, body,
       { signal: expect.any(AbortSignal) });
+    expect((await f.call('/search', { query: 'Bremen headlines' })).status).toBe(200);
+    expect(s.searchService.search).toHaveBeenCalledWith({ userId: 'user-1' },
+      { query: 'Bremen headlines' }, { signal: expect.any(AbortSignal) });
     const decision = { kind: 'message_disposition', incomingMessage: 'Also add a test.' };
     expect((await f.call('/decisions', decision)).status).toBe(200);
     expect(s.decisionService.decide).toHaveBeenCalledWith({ userId: 'user-1' }, decision);
@@ -223,6 +228,72 @@ async function fixture(overrides = {}) {
 }
 
 describe('authenticated Goose provider transport', () => {
+  it('runs thin chat and search with account identity and no workflow session or prompt injection', async () => {
+    const searchService = { search: vi.fn(async () => ({
+      markdown: '- Cited result — [Source](<https://example.com/story>)',
+      sources: [{ title: 'Source', url: 'https://example.com/story' }],
+      outcome: 'grounded', retrievedAt: '2026-09-23T09:00:00.000Z',
+    })) };
+    const f = await fixture({ commandService: undefined, searchService });
+    expect(await (await f.call('/session', null)).json()).toEqual({
+      userId: 'user-1', accountScoped: true,
+      model: GOOSE_PROVIDER_MODEL, input_modalities: ['text', 'image'],
+    });
+    const search = await f.call('/search', { query: 'Bremen headlines' });
+    expect(search.status).toBe(200);
+    expect((await search.json()).outcome).toBe('grounded');
+    expect(searchService.search).toHaveBeenCalledWith({ userId: 'user-1' },
+      { query: 'Bremen headlines' }, { signal: expect.any(AbortSignal) });
+    const body = { model: GOOSE_PROVIDER_MODEL,
+      messages: [{ role: 'system', content: 'Goose controls tool use.' }, { role: 'user', content: 'Hello.' }] };
+    expect((await f.call('/chat/completions', body)).status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(body.messages);
+    expect(f.commandService).toBeUndefined();
+  });
+  it('keeps optional engineering review authenticated and isolated from thin chat', async () => {
+    const engineeringReviewService = { review: vi.fn(async (auth, input) => ({
+      owner: auth.userId, taskId: input.taskId, review: { status: 'passed', advisory: true },
+    })) };
+    const f = await fixture({ commandService: undefined, engineeringReviewService });
+    const reviewBody = { taskId: 'task-1' };
+
+    const unauthenticated = await f.call('/engineering/review', '{private-evidence', {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(unauthenticated.status).toBe(401);
+    expect(engineeringReviewService.review).not.toHaveBeenCalled();
+
+    const accountChanged = await f.call('/engineering/review', reviewBody, {
+      headers: { Authorization: 'Bearer desktop-token', 'Content-Type': 'application/json',
+        'X-Orqaly-Account-Hash': 'wrong-account' },
+    });
+    expect(accountChanged.status).toBe(403);
+    expect(engineeringReviewService.review).not.toHaveBeenCalled();
+
+    expect(await (await f.call('/session', null)).json()).toMatchObject({
+      userId: 'user-1', accountScoped: true,
+    });
+    expect((await f.call('/work', reviewBody)).status).toBe(404);
+    expect((await f.call('/information', reviewBody)).status).toBe(404);
+    expect((await f.call('/goals/any/context', null)).status).toBe(404);
+    expect(engineeringReviewService.review).not.toHaveBeenCalled();
+
+    const review = await f.call('/engineering/review', reviewBody);
+    expect(review.status).toBe(200);
+    expect(await review.json()).toMatchObject({ owner: 'user-1', taskId: 'task-1',
+      review: { status: 'passed', advisory: true } });
+    expect(engineeringReviewService.review).toHaveBeenCalledOnce();
+    expect(engineeringReviewService.review).toHaveBeenCalledWith({ userId: 'user-1' }, reviewBody,
+      { signal: expect.any(AbortSignal) });
+
+    const chat = { model: GOOSE_PROVIDER_MODEL,
+      messages: [{ role: 'system', content: 'Goose decides how to work.' },
+        { role: 'user', content: 'Hello.' }] };
+    expect((await f.call('/chat/completions', chat)).status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(chat.messages);
+    expect(engineeringReviewService.review).toHaveBeenCalledOnce();
+    expect(f.commandService).toBeUndefined();
+  });
   it('rejects unauthenticated input before parsing or tenant/provider work', async () => {
     const f = await fixture();
     const response = await f.call('/chat/completions', 'x'.repeat(2 * 1024 * 1024 + 1), { headers: { 'Content-Type': 'application/json' } });

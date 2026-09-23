@@ -172,11 +172,21 @@ export function createGooseProviderRouter({
   engineeringReviewService = null,
   decisionService = null,
   informationService = null,
+  searchService = null,
   rateLimiter = (_req, _res, next) => next(),
   timeoutMs = MAX_DEADLINE_MS,
 }) {
-  if (typeof verifyDesktopAuth !== 'function' || typeof commandService?.session !== 'function')
+  if (typeof verifyDesktopAuth !== 'function')
     throw new Error('GOOSE_PROVIDER_AUTH_REQUIRED');
+  if (commandService !== undefined && typeof commandService?.session !== 'function')
+    throw new Error('GOOSE_PROVIDER_LEGACY_SESSION_REQUIRED');
+  if (!commandService && (desktopContextService || desktopWorkService
+    || informationService || contextForRequest || productGuidance))
+    throw new Error('GOOSE_PROVIDER_LEGACY_SESSION_REQUIRED');
+  if (engineeringReviewService !== null && typeof engineeringReviewService?.review !== 'function')
+    throw new Error('GOOSE_PROVIDER_ENGINEERING_REVIEW_SERVICE_INVALID');
+  if (searchService !== null && typeof searchService?.search !== 'function')
+    throw new Error('GOOSE_PROVIDER_SEARCH_SERVICE_INVALID');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /[\r\n]/.test(apiKey))
     throw new Error('GOOSE_PROVIDER_API_KEY_REQUIRED');
   if (typeof model !== 'string' || !/^gemini-[a-z0-9.-]+$/.test(model))
@@ -205,6 +215,10 @@ export function createGooseProviderRouter({
   });
   router.use(rateLimiter);
   router.use(async (req, res, next) => {
+    if (!commandService) {
+      req.gooseSession = { userId: req.authContext.userId, accountScoped: true };
+      return next();
+    }
     try {
       const session = await commandService.session(req.authContext);
       if (session?.userId !== req.authContext.userId || session.tenantBound !== true)
@@ -231,7 +245,7 @@ export function createGooseProviderRouter({
     }
     catch (error) {
       if (error?.name === 'ZodError') return sendError(res, 400, 'INVALID_DESKTOP_REQUEST');
-      const status = [400, 401, 403, 404, 409, 413, 429].includes(error?.status) ? error.status : 503;
+      const status = [400, 401, 403, 404, 409, 413, 429, 502, 504].includes(error?.status) ? error.status : 503;
       const code = typeof error?.code === 'string' && /^[A-Z_]{3,80}$/.test(error.code)
         ? error.code : 'DESKTOP_WORK_UNAVAILABLE';
       sendError(res, status, code);
@@ -244,6 +258,21 @@ export function createGooseProviderRouter({
   if (decisionService) {
     router.post('/decisions', express.json({ limit: '32kb', strict: true }),
       desktopRead((req) => decisionService.decide(req.authContext, req.body)));
+  }
+  if (searchService) {
+    router.post('/search', express.json({ limit: '16kb', strict: true }), async (req, res) => {
+      const controller = new AbortController();
+      const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+      req.once('aborted', disconnected);
+      res.once('close', disconnected);
+      try {
+        await desktopRead((request) => searchService.search(request.authContext, request.body,
+          { signal: controller.signal }))(req, res);
+      } finally {
+        req.off('aborted', disconnected);
+        res.off('close', disconnected);
+      }
+    });
   }
   if (informationService) {
     router.post('/information', express.json({ limit: '32kb', strict: true }), async (req, res) => {
@@ -383,6 +412,8 @@ export function createGooseProviderRouter({
     }
   });
   router.use((error, req, res, _next) => {
+    if (req.path === '/search') return sendError(res, error?.type === 'entity.too.large' ? 413 : 400,
+      error?.type === 'entity.too.large' ? 'SEARCH_REQUEST_TOO_LARGE' : 'INVALID_SEARCH_REQUEST');
     if (req.path === '/engineering/review') return sendError(res, error?.type === 'entity.too.large' ? 413 : 400,
       error?.type === 'entity.too.large' ? 'ENGINEERING_REVIEW_TOO_LARGE' : 'INVALID_ENGINEERING_REVIEW_REQUEST');
     sendError(res, error?.type === 'entity.too.large' ? 413 : 400,
