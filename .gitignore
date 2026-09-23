@@ -71,9 +71,9 @@ augment-mcp-import.json
 /deploy/
 /docs/
 /frontend/
-/packages/
+/packages/*
 /screenshots/
-/scripts/
+/scripts/*
 /supabase/
 /tmp/
 dist/
@@ -82,6 +82,22 @@ build/
 target/
 coverage/
 temp/
+
+# Local Goose-reset source and reproducible comparison tooling.
+!/packages/orqaly-goose-connector/
+/packages/orqaly-goose-connector/*
+!/packages/orqaly-goose-connector/src/
+/packages/orqaly-goose-connector/src/*
+!/packages/orqaly-goose-connector/src/utilities-mcp.mjs
+!/packages/orqaly-goose-connector/src/utility-providers.mjs
+!/packages/orqaly-goose-connector/test/
+/packages/orqaly-goose-connector/test/*
+!/packages/orqaly-goose-connector/test/utilities-mcp.test.mjs
+!/packages/orqaly-goose-connector/test/utility-providers.test.mjs
+!/scripts/benchmark-goose-reset.mjs
+!/scripts/benchmark-goose-reset.test.mjs
+!/scripts/run-local-reset-preview.mjs
+!/scripts/sync-local-desktop-utilities.mjs
 
 # Reviewed Orqaly monorepo CI; local/unreviewed GitHub helpers stay ignored.
 !/.github/
