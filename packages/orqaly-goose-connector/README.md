@@ -8,9 +8,10 @@ credential store internally; stdout contains only MCP protocol messages, never
 an access token. The gateway checks the expected account on every request.
 
 Available tools: `read_goal_artifact`, `ask_axwise`, `generate_image`,
-`lookup_live_data`, `axwise_work_status`, and `cancel_axwise_work`. AxWise uses
+`lookup_live_data`, `quick_info`, `axwise_work_status`, and `cancel_axwise_work`. AxWise uses
 the durable Assistant operation for focused multi-source research, explicit
-Gemini image creation, and fast source-backed weather or currency cards. These
+Gemini image creation, fast source-backed weather or currency cards, and narrow
+current-fact checks. These
 capabilities do not create a Goal, fabricate scope approvals, execute local code,
 or deploy anything. Local skills/tools and their approvals remain with Goose.
 Questions and selected reference excerpts go to the Orqaly/AxWise preview and
@@ -18,10 +19,21 @@ its configured models; results are saved in the conversation. Full project files
 are not automatically uploaded by this helper.
 
 Use `lookup_live_data` for a simple current weather or currency answer and
-`ask_axwise` only when the request benefits from multi-source research. Use
-`generate_image` only for explicit image creation. These three capability tools
-do not invoke OMP or JEV; engineering work continues through the separately
-configured local engineering extension.
+`quick_info` for one narrow current public fact such as local headlines, opening
+hours, a latest score or schedule, or service status. Use `ask_axwise` only when
+the request benefits from multi-source comparison, synthesis, investigation, or
+recommendations. Use `generate_image` only for explicit image creation. None of
+these capability tools invokes OMP; engineering work continues through the
+separately configured local engineering extension. When enabled in desktop
+settings, JEV classifies a `quick_info` request at the same time as Gemini performs
+the source-backed lookup. Disabling JEV keeps the bounded quick lookup available
+for direct benchmarking and does not enable an automatic fallback.
+`lookup_live_data` and `quick_info` each start and poll the
+same durable request within one bounded tool call. Weather defaults to Celsius,
+so only a missing location needs clarification unless the user asks for another
+unit. If either fast route fails or JEV selects another lane, report that result
+and ask before trying research, a web-search skill, fetch, shell, or OMP; none is
+an automatic fallback.
 
 Keep ordinary research questions self-contained. `runId` checks access to a
 project; it no longer implicitly appends its whole design. Read the project with
@@ -41,7 +53,7 @@ the same request later. Stopping a local status wait does not cancel cloud work;
 use the explicit cancellation tool for that.
 
 Launch arguments are `--config PUBLIC_CONFIG --conversation-id SESSION_ID
---account-hash SHA256_VERIFIED_USER_ID`. The packaged app supplies these values;
+--account-hash SHA256_VERIFIED_USER_ID --jev-enabled true|false`. The packaged app supplies these values;
 neither conversation IDs nor account hashes are credentials or authorization.
 
 ## Authentication

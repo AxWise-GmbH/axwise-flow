@@ -2503,11 +2503,20 @@ export const AssistantCurrencyCapabilityV2Schema = z
   })
   .strict();
 
+export const AssistantQuickInfoCapabilityV2Schema = z
+  .object({
+    kind: z.literal('quick_info'),
+    location: z.string().min(1).max(500).optional(),
+    routingMode: z.enum(['jev', 'explicit']),
+  })
+  .strict();
+
 export const AssistantCapabilityV2Schema = z.discriminatedUnion('kind', [
   AssistantTextCapabilityV2Schema,
   AssistantImageGenerateCapabilityV2Schema,
   AssistantWeatherCapabilityV2Schema,
   AssistantCurrencyCapabilityV2Schema,
+  AssistantQuickInfoCapabilityV2Schema,
 ]);
 
 export const AssistantTurnInputV2Schema = z
@@ -2518,7 +2527,16 @@ export const AssistantTurnInputV2Schema = z
     conversation: z.array(AssistantConversationMessageV1Schema).max(20).default([]),
     capability: AssistantCapabilityV2Schema,
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.capability.kind === 'quick_info' && Array.from(value.message).length > 2_000) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['message'],
+        message: 'quick-info messages must not exceed 2,000 characters',
+      });
+    }
+  });
 
 const SolutionPreparationFieldNameV1Schema = z
   .string()

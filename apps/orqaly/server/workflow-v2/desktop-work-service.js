@@ -22,6 +22,13 @@ export const DesktopWorkStartSchema = DesktopWorkIdentitySchema.extend({
   if (new Set(value.artifactIds).size !== (value.artifactIds?.length || 0)) {
     ctx.addIssue({ code: 'custom', path: ['artifactIds'], message: 'artifactIds must be distinct' });
   }
+  if (value.capability?.kind === 'quick_info' && Array.from(value.question).length > 2_000) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['question'],
+      message: 'quick-info questions must not exceed 2,000 characters',
+    });
+  }
 });
 
 const VERSION = 'orqaly.desktop-work.v1';
@@ -114,6 +121,12 @@ function projectResult(work, result) {
   const presentations = message.parts
     .filter((part) => part.type === 'presentation')
     .map((part) => part.presentation);
+  const requestedKind = {
+    image_generate: 'generated_image',
+    weather: 'weather',
+    currency: 'currency',
+    quick_info: 'quick_info',
+  }[work.capabilityKind];
   if (!operationStatus && (!result.persisted || !artifacts.length)) {
     throw new WorkflowCommandError('DESKTOP_WORK_RESULT_INVALID', 'The research service did not save a result', 502);
   }
@@ -122,7 +135,7 @@ function projectResult(work, result) {
     conversationId: work.conversationId,
     requestId: work.requestId,
     operationId: message.axwiseOperationId,
-    kind: 'research',
+    kind: presentations[0]?.kind || requestedKind || 'research',
     status: operationStatus?.status || 'completed',
     markdown: artifacts.map((artifact) => artifact.markdown).join('\n\n') || null,
     artifacts,
@@ -181,17 +194,40 @@ export function createDesktopWorkService({ assistantService, contextService }) {
       intent: 'research',
       ...(command.capability ? { capability: command.capability } : {}),
     });
-    return projectResult(work, result);
+    return projectResult(
+      { ...work, capabilityKind: command.capability?.kind },
+      result
+    );
+  }
+
+  async function persistedCapabilityKind(auth, work) {
+    const thread = await assistantService.read(auth, work.threadId);
+    const user = thread?.messages?.find(
+      (message) => message.turnId === work.requestId && message.role === 'user'
+    );
+    const capability = user?.parts?.find(
+      (part) => part.type === 'capability_request'
+    )?.capability;
+    const parsed = AssistantCapabilityV2Schema.safeParse(capability);
+    return parsed.success ? parsed.data.kind : undefined;
   }
 
   async function read(auth, rawIdentity) {
     const work = identity(auth, rawIdentity);
-    return projectResult(work, await assistantService.resume(auth, work.threadId, work.requestId));
+    const [capabilityKind, result] = await Promise.all([
+      persistedCapabilityKind(auth, work),
+      assistantService.resume(auth, work.threadId, work.requestId),
+    ]);
+    return projectResult({ ...work, capabilityKind }, result);
   }
 
   async function cancel(auth, rawIdentity) {
     const work = identity(auth, rawIdentity);
-    return projectResult(work, await assistantService.cancel(auth, work.threadId, work.requestId));
+    const [capabilityKind, result] = await Promise.all([
+      persistedCapabilityKind(auth, work),
+      assistantService.cancel(auth, work.threadId, work.requestId),
+    ]);
+    return projectResult({ ...work, capabilityKind }, result);
   }
 
   async function events(auth, rawIdentity, afterSequence = 0, limit = 100) {

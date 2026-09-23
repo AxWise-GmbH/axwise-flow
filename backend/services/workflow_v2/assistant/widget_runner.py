@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import re
 import time
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Callable, Literal
+from typing import Any, Awaitable, Callable, Literal, TypeVar
 from urllib.parse import urlsplit
 
 from google import genai
-from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.domain.workflow_v2.contracts import is_canonical_public_https_url
@@ -25,12 +23,14 @@ TEMPERATURE_PATTERN = r"^-?(?:0|[1-9][0-9]{0,2})(?:\.[0-9]{1,2})?$"
 UNSIGNED_DECIMAL_PATTERN = r"^(?:0|[1-9][0-9]{0,17})(?:\.[0-9]{1,12})?$"
 MONEY_AMOUNT_PATTERN = r"^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,6})?$"
 DEFAULT_WIDGET_DEADLINE_SECONDS = 25.0
+DEFAULT_WIDGET_EVIDENCE_STAGE_SECONDS = 9.0
 DEFAULT_WEATHER_TTL_SECONDS = 300.0
 DEFAULT_CURRENCY_TTL_SECONDS = 900.0
 MAX_WIDGET_CACHE_ENTRIES = 256
 MAX_WEATHER_AGE = timedelta(hours=24)
 MAX_CURRENCY_AGE = timedelta(days=7)
 MAX_FUTURE_SKEW = timedelta(minutes=10)
+_StageResult = TypeVar("_StageResult")
 
 
 class AssistantWidgetError(RuntimeError):
@@ -102,64 +102,287 @@ class AssistantWidgetResult:
     model_version: str | None
     input_tokens: int | None
     output_tokens: int | None
+    search_calls: int
     cache_hit: bool = False
 
 
+@dataclass(frozen=True)
+class _CitedEvidence:
+    source: WidgetSource
+    linked_text: str
+
+
 def _usage_value(response: Any, name: str) -> int | None:
-    usage = getattr(response, "usage_metadata", None)
+    usage = getattr(response, "usage", None)
     value = getattr(usage, name, None)
     return value if type(value) is int and value >= 0 else None
 
 
+def _combined_usage_value(responses: tuple[Any, ...], name: str) -> int | None:
+    values = [
+        value
+        for response in responses
+        if (value := _usage_value(response, name)) is not None
+    ]
+    return sum(values) if values else None
+
+
+def _search_call_count(response: Any) -> int:
+    calls = 0
+    for step in getattr(response, "steps", None) or []:
+        if getattr(step, "type", None) != "google_search_call":
+            continue
+        arguments = getattr(step, "arguments", None)
+        queries = (
+            arguments.get("queries")
+            if isinstance(arguments, dict)
+            else getattr(arguments, "queries", None)
+        )
+        calls += len(queries) if isinstance(queries, (list, tuple)) and queries else 1
+    return calls
+
+
 def _response_text(response: Any) -> str | None:
-    value = getattr(response, "text", None)
+    value = getattr(response, "output_text", None)
     if isinstance(value, str) and value.strip():
         return value.strip()
-    for candidate in getattr(response, "candidates", None) or []:
-        content = getattr(candidate, "content", None)
-        for part in getattr(content, "parts", None) or []:
-            text = getattr(part, "text", None)
-            if isinstance(text, str) and text.strip():
-                return text.strip()
     return None
 
 
-def _grounded_source(
+def _cited_source(
     response: Any, *, required_fragments: tuple[str, ...]
-) -> WidgetSource | None:
+) -> _CitedEvidence | None:
+    """Return one source whose own annotations cover every required value.
+
+    Interactions citations are byte ranges over model-output text. Segments from
+    separate annotations may be combined only when they point to the same public
+    HTTPS URL. Evidence from a second URL can never authorize values attributed
+    to the returned source.
+    """
+
     normalized_fragments = tuple(fragment.casefold() for fragment in required_fragments)
-    for candidate in getattr(response, "candidates", None) or []:
-        metadata = getattr(candidate, "grounding_metadata", None)
-        chunks = list(getattr(metadata, "grounding_chunks", None) or [])
-        supported_text: dict[int, list[str]] = {}
-        for support in getattr(metadata, "grounding_supports", None) or []:
-            segment = getattr(support, "segment", None)
-            segment_text = getattr(segment, "text", None)
-            if not isinstance(segment_text, str) or not segment_text.strip():
+    cited_text_by_url: dict[str, list[str]] = {}
+    sources_by_url: dict[str, WidgetSource] = {}
+    for step in getattr(response, "steps", None) or []:
+        if getattr(step, "type", None) != "model_output":
+            continue
+        for content in getattr(step, "content", None) or []:
+            if getattr(content, "type", None) != "text":
                 continue
-            for index in getattr(support, "grounding_chunk_indices", None) or []:
-                if type(index) is int and 0 <= index < len(chunks):
-                    supported_text.setdefault(index, []).append(segment_text)
-        for index, chunk in enumerate(chunks):
-            linked_text = " ".join(supported_text.get(index, ())).casefold()
-            if not linked_text or not all(
-                fragment in linked_text for fragment in normalized_fragments
-            ):
+            text = getattr(content, "text", None)
+            if not isinstance(text, str) or not text:
                 continue
-            web = getattr(chunk, "web", None)
-            uri = getattr(web, "uri", None)
-            if not isinstance(uri, str) or not is_canonical_public_https_url(uri):
-                continue
-            raw_title = getattr(web, "title", None)
-            title = raw_title.strip()[:500] if isinstance(raw_title, str) else ""
-            if not title:
-                title = (urlsplit(uri).hostname or "Source")[:500]
-            return WidgetSource(title=title, url=uri)
+            encoded = text.encode("utf-8")
+            for annotation in getattr(content, "annotations", None) or []:
+                if getattr(annotation, "type", None) != "url_citation":
+                    continue
+                uri = getattr(annotation, "url", None)
+                if not isinstance(uri, str) or not is_canonical_public_https_url(uri):
+                    continue
+                start = getattr(annotation, "start_index", None)
+                end = getattr(annotation, "end_index", None)
+                if (
+                    type(start) is not int
+                    or type(end) is not int
+                    or start < 0
+                    or end <= start
+                    or end > len(encoded)
+                ):
+                    continue
+                try:
+                    segment_text = encoded[start:end].decode("utf-8")
+                except UnicodeDecodeError:
+                    continue
+                if not segment_text.strip():
+                    continue
+                raw_title = getattr(annotation, "title", None)
+                title = raw_title.strip()[:500] if isinstance(raw_title, str) else ""
+                if not title:
+                    title = (urlsplit(uri).hostname or "Source")[:500]
+                cited_text_by_url.setdefault(uri, []).append(segment_text)
+                sources_by_url.setdefault(uri, WidgetSource(title=title, url=uri))
+    for uri, cited_text in cited_text_by_url.items():
+        linked_text = " ".join(cited_text).casefold()
+        if all(fragment in linked_text for fragment in normalized_fragments):
+            return _CitedEvidence(
+                source=sources_by_url[uri], linked_text=linked_text
+            )
     return None
+
+
+def _core_evidence_fragments(
+    payload: WeatherCandidate | CurrencyCandidate,
+) -> tuple[str, ...]:
+    if isinstance(payload, WeatherCandidate):
+        return payload.location, payload.temperature, payload.condition
+    return (
+        payload.base,
+        payload.quote,
+        payload.amount,
+        payload.converted_amount,
+        payload.rate,
+        payload.as_of,
+    )
+
+
+def _source_supported_payload(
+    payload: WeatherCandidate | CurrencyCandidate, linked_text: str
+) -> WeatherCandidate | CurrencyCandidate:
+    def covered(value: str | None) -> bool:
+        return value is not None and value.casefold() in linked_text
+
+    if isinstance(payload, CurrencyCandidate):
+        return payload.model_copy(
+            update={
+                "inverse_rate": (
+                    payload.inverse_rate if covered(payload.inverse_rate) else None
+                )
+            }
+        )
+    forecast: list[WeatherForecastCandidate] = []
+    for item in payload.forecast:
+        if not covered(item.label) or not covered(item.condition):
+            continue
+        forecast.append(
+            item.model_copy(
+                update={
+                    "high": item.high if covered(item.high) else None,
+                    "low": item.low if covered(item.low) else None,
+                }
+            )
+        )
+    return payload.model_copy(
+        update={
+            "high": payload.high if covered(payload.high) else None,
+            "low": payload.low if covered(payload.low) else None,
+            "forecast": forecast,
+        }
+    )
+
+
+def _labeled_evidence_value(text: str, label: str) -> str | None:
+    match = re.search(
+        rf"^\s*(?:[-*]\s*)?(?:\*\*)?{re.escape(label)}(?:\*\*)?\s*:\s*(.+?)\s*$",
+        text,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    if match is None:
+        return None
+    value = match.group(1).strip()
+    return value or None
+
+
+def _parse_temperature(value: str | None, unit: Literal["C", "F"]) -> str | None:
+    if value is None:
+        return None
+    match = re.fullmatch(
+        rf"({TEMPERATURE_PATTERN[1:-1]})\s*°?\s*([CF])",
+        value,
+        flags=re.IGNORECASE,
+    )
+    if match is None or match.group(2).upper() != unit:
+        return None
+    return match.group(1)
+
+
+def _parse_optional_temperature(
+    value: str | None, unit: Literal["C", "F"]
+) -> str | None:
+    if value is None:
+        return None
+    return _parse_temperature(value, unit)
+
+
+def _parse_weather_evidence(
+    evidence: str,
+    *,
+    temperature_unit: Literal["C", "F"],
+    retrieved_at: datetime,
+) -> WeatherCandidate | None:
+    location = _labeled_evidence_value(evidence, "Location")
+    temperature = _parse_temperature(
+        _labeled_evidence_value(evidence, "Current temperature"),
+        temperature_unit,
+    )
+    condition = _labeled_evidence_value(evidence, "Condition")
+    if location is None or temperature is None or condition is None:
+        return None
+    high_raw = _labeled_evidence_value(evidence, "High")
+    low_raw = _labeled_evidence_value(evidence, "Low")
+    high = _parse_optional_temperature(high_raw, temperature_unit)
+    low = _parse_optional_temperature(low_raw, temperature_unit)
+    if (high_raw is not None and high is None) or (
+        low_raw is not None and low is None
+    ):
+        return None
+    forecast: list[dict[str, str | None]] = []
+    forecast_raw = _labeled_evidence_value(evidence, "Forecast")
+    if forecast_raw is not None:
+        for entry in forecast_raw.split(";"):
+            parts = [part.strip() for part in entry.split("|")]
+            if len(parts) not in {2, 4} or not parts[0] or not parts[1]:
+                return None
+            forecast_high = (
+                _parse_optional_temperature(parts[2] or None, temperature_unit)
+                if len(parts) == 4
+                else None
+            )
+            forecast_low = (
+                _parse_optional_temperature(parts[3] or None, temperature_unit)
+                if len(parts) == 4
+                else None
+            )
+            if len(parts) == 4 and (
+                (parts[2] and forecast_high is None)
+                or (parts[3] and forecast_low is None)
+            ):
+                return None
+            forecast.append(
+                {
+                    "label": parts[0],
+                    "condition": parts[1],
+                    "high": forecast_high,
+                    "low": forecast_low,
+                }
+            )
+    try:
+        return WeatherCandidate.model_validate(
+            {
+                "location": location,
+                "observedAt": retrieved_at.isoformat(),
+                "temperatureUnit": temperature_unit,
+                "temperature": temperature,
+                "condition": condition,
+                "high": high,
+                "low": low,
+                "forecast": forecast,
+            }
+        )
+    except ValueError:
+        return None
+
+
+def _parse_currency_evidence(evidence: str) -> CurrencyCandidate | None:
+    try:
+        return CurrencyCandidate.model_validate(
+            {
+                "base": _labeled_evidence_value(evidence, "Base"),
+                "quote": _labeled_evidence_value(evidence, "Quote"),
+                "amount": _labeled_evidence_value(evidence, "Amount"),
+                "convertedAmount": _labeled_evidence_value(
+                    evidence, "Converted amount"
+                ),
+                "rate": _labeled_evidence_value(evidence, "Rate"),
+                "inverseRate": _labeled_evidence_value(evidence, "Inverse rate"),
+                "asOf": _labeled_evidence_value(evidence, "As of"),
+            }
+        )
+    except ValueError:
+        return None
 
 
 class GeminiAssistantWidgetRunner:
-    """One low-thinking grounded lookup with short-lived process-local caching."""
+    """Cited live lookup with deterministic parsing and short-lived caching."""
 
     def __init__(
         self,
@@ -189,6 +412,7 @@ class GeminiAssistantWidgetRunner:
         self._inflight: dict[
             tuple[str, ...], asyncio.Task[AssistantWidgetResult]
         ] = {}
+        self._waiters: dict[tuple[str, ...], int] = {}
         self._lock = asyncio.Lock()
         self._owns_client = client is None
         credential = api_key or os.getenv("GEMINI_API_KEY")
@@ -206,18 +430,22 @@ class GeminiAssistantWidgetRunner:
             raise ValueError("unsupported temperature unit")
         key = ("weather", normalized.casefold(), temperature_unit)
         prompt = (
-            "Find the current weather and a concise forecast using current web data. "
-            "Prefer an authoritative meteorological source. Return only the requested JSON. "
+            "Use up to two focused Google searches for the current weather. Prefer authoritative "
+            "meteorological sources. Return only compact factual lines whose values are covered by "
+            "URL citations: Location: <place>; Current temperature: <decimal immediately followed "
+            "by C or F>; Condition: <80 characters or fewer>. These three lines are mandatory. "
+            "Optional lines are High: <decimal+unit>, Low: <decimal+unit>, and Forecast: "
+            "<label>|<condition>|<high+unit>|<low+unit>, with semicolons between forecast entries. "
+            "Omit unavailable optional lines. Do not add explanations or placeholders. "
             f"Location: {normalized}. Temperature unit: {temperature_unit}. "
-            "Keep the requested location at the start of the location field. Use an offset-aware "
-            "observedAt timestamp. Decimal values must be plain strings."
+            "Keep every condition and forecast label to 80 characters or fewer."
         )
         return await self._cached_generate(
             key,
             self.weather_ttl_seconds,
             kind="weather",
             prompt=prompt,
-            candidate_type=WeatherCandidate,
+            requested_temperature_unit=temperature_unit,
             result_validator=lambda candidate: self._validate_weather_result(
                 candidate, normalized, temperature_unit
             ),
@@ -238,9 +466,12 @@ class GeminiAssistantWidgetRunner:
             raise ValueError("currency amount is invalid") from None
         key = ("currency", base, quote, str(requested_amount))
         prompt = (
-            "Find the latest current exchange rate using a primary or authoritative source. "
-            "Return only the requested JSON and use an offset-aware asOf timestamp. "
-            "All numerical values must be plain decimal strings without grouping separators. "
+            "Use up to two focused Google searches for the latest current exchange rate using an "
+            "authoritative source. Reply with short natural-language evidence whose factual values "
+            "are covered by URL citations. Use these exact labeled lines: Base, Quote, Amount, "
+            "Rate, Converted amount, Inverse rate, As of. All except Inverse rate are mandatory. "
+            "As of must be offset-aware ISO 8601. Use plain decimals without grouping separators. "
+            "Omit Inverse rate when unavailable. Do not add explanations or placeholders. "
             f"Convert {amount} {base} to {quote}."
         )
         result = await self._cached_generate(
@@ -248,7 +479,6 @@ class GeminiAssistantWidgetRunner:
             self.currency_ttl_seconds,
             kind="currency",
             prompt=prompt,
-            candidate_type=CurrencyCandidate,
             result_validator=lambda candidate: self._validate_currency_result(
                 candidate, base, quote, requested_amount
             ),
@@ -372,7 +602,7 @@ class GeminiAssistantWidgetRunner:
         *,
         kind: Literal["weather", "currency"],
         prompt: str,
-        candidate_type: type[WeatherCandidate] | type[CurrencyCandidate],
+        requested_temperature_unit: Literal["C", "F"] | None = None,
         result_validator: Callable[[AssistantWidgetResult], None] | None = None,
     ) -> AssistantWidgetResult:
         now = self.clock()
@@ -386,7 +616,11 @@ class GeminiAssistantWidgetRunner:
             cached = self._cache.get(key)
             if cached and cached[0] > now:
                 return replace(
-                    cached[1], input_tokens=0, output_tokens=0, cache_hit=True
+                    cached[1],
+                    input_tokens=0,
+                    output_tokens=0,
+                    search_calls=0,
+                    cache_hit=True,
                 )
             task = self._inflight.get(key)
             shared = task is not None
@@ -394,7 +628,9 @@ class GeminiAssistantWidgetRunner:
 
                 async def generate_and_validate() -> AssistantWidgetResult:
                     result = await self._generate(
-                        kind=kind, prompt=prompt, candidate_type=candidate_type
+                        kind=kind,
+                        prompt=prompt,
+                        requested_temperature_unit=requested_temperature_unit,
                     )
                     if result_validator is not None:
                         result_validator(result)
@@ -407,12 +643,41 @@ class GeminiAssistantWidgetRunner:
                         self._settle_generation(cache_key, completed, ttl)
                     )
                 )
+            self._waiters[key] = self._waiters.get(key, 0) + 1
         # A cancelled desktop request must not cancel the shared provider call
         # while another identical request is waiting for the same result.
-        result = await asyncio.shield(task)
+        try:
+            result = await asyncio.shield(task)
+        finally:
+            await self._release_waiter(key, task)
         if shared:
-            return replace(result, input_tokens=0, output_tokens=0, cache_hit=True)
+            return replace(
+                result,
+                input_tokens=0,
+                output_tokens=0,
+                search_calls=0,
+                cache_hit=True,
+            )
         return result
+
+    async def _release_waiter(
+        self,
+        key: tuple[str, ...],
+        task: asyncio.Task[AssistantWidgetResult],
+    ) -> None:
+        cancel = False
+        async with self._lock:
+            remaining = self._waiters.get(key, 0) - 1
+            if remaining > 0:
+                self._waiters[key] = remaining
+            else:
+                self._waiters.pop(key, None)
+                if not task.done() and self._inflight.get(key) is task:
+                    self._inflight.pop(key, None)
+                    cancel = True
+        if cancel:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
 
     async def _settle_generation(
         self,
@@ -440,26 +705,95 @@ class GeminiAssistantWidgetRunner:
         *,
         kind: Literal["weather", "currency"],
         prompt: str,
-        candidate_type: type[WeatherCandidate] | type[CurrencyCandidate],
+        requested_temperature_unit: Literal["C", "F"] | None,
     ) -> AssistantWidgetResult:
-        config = types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_json_schema=candidate_type.model_json_schema(by_alias=True),
-            tools=[types.Tool(google_search=types.GoogleSearch())],
-            thinking_config=types.ThinkingConfig(
-                thinking_level=types.ThinkingLevel.LOW,
-                include_thoughts=False,
-            ),
-        )
-        try:
-            response = await asyncio.wait_for(
-                self.client.aio.models.generate_content(
-                    model=RESEARCH_MODEL,
-                    contents=prompt,
-                    config=config,
-                ),
-                timeout=self.deadline_seconds,
+        loop = asyncio.get_running_loop()
+        started_at = loop.time()
+        retrieved_at = self.now()
+        if not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None:
+            raise AssistantWidgetError(
+                "AXWISE_ASSISTANT_WIDGET_INVALID_OUTPUT", retryable=True
             )
+        retrieved_at = retrieved_at.astimezone(timezone.utc).replace(microsecond=0)
+
+        async def run_stage(
+            factory: Callable[[], Awaitable[_StageResult]], budget_seconds: float
+        ) -> _StageResult:
+            remaining = self.deadline_seconds - (loop.time() - started_at)
+            if remaining <= 0:
+                raise asyncio.TimeoutError
+            return await asyncio.wait_for(
+                factory(), timeout=min(budget_seconds, remaining)
+            )
+
+        async def evidence_interaction(input_text: str) -> Any:
+            return await run_stage(
+                lambda: self.client.aio.interactions.create(
+                    model=RESEARCH_MODEL,
+                    input=input_text,
+                    tools=[{"type": "google_search"}],
+                    generation_config={"thinking_level": "low"},
+                    store=False,
+                ),
+                DEFAULT_WIDGET_EVIDENCE_STAGE_SECONDS,
+            )
+
+        async def generate_stages() -> tuple[
+            tuple[Any, ...],
+            WeatherCandidate | CurrencyCandidate,
+            WidgetSource,
+        ]:
+            evidence_responses: list[Any] = []
+            for attempt in range(2):
+                evidence_prompt = prompt
+                if attempt:
+                    evidence_prompt += (
+                        "\n\nThe previous result could not be parsed or cited. Try again using a "
+                        "different authoritative source and return only the exact labeled lines."
+                    )
+                candidate_response = await evidence_interaction(evidence_prompt)
+                evidence_responses.append(candidate_response)
+                candidate_evidence = _response_text(candidate_response)
+                if candidate_evidence is None:
+                    continue
+                payload: WeatherCandidate | CurrencyCandidate | None
+                if kind == "weather":
+                    if requested_temperature_unit is None:
+                        raise AssistantWidgetError(
+                            "AXWISE_ASSISTANT_WIDGET_INVALID_OUTPUT", retryable=True
+                        )
+                    payload = _parse_weather_evidence(
+                        candidate_evidence,
+                        temperature_unit=requested_temperature_unit,
+                        retrieved_at=retrieved_at,
+                    )
+                else:
+                    payload = _parse_currency_evidence(candidate_evidence)
+                if payload is None:
+                    continue
+                cited = _cited_source(
+                    candidate_response,
+                    required_fragments=_core_evidence_fragments(payload),
+                )
+                if cited is not None:
+                    return (
+                        tuple(evidence_responses),
+                        _source_supported_payload(payload, cited.linked_text),
+                        cited.source,
+                    )
+            raise AssistantWidgetError(
+                "AXWISE_ASSISTANT_WIDGET_UNGROUNDED", retryable=True
+            )
+
+        try:
+            evidence_responses, payload, source = (
+                await asyncio.wait_for(
+                    generate_stages(),
+                    timeout=self.deadline_seconds,
+                )
+            )
+        except AssistantWidgetError:
+            raise
         except asyncio.CancelledError:
             raise
         except asyncio.TimeoutError:
@@ -470,28 +804,7 @@ class GeminiAssistantWidgetRunner:
             raise AssistantWidgetError(
                 "AXWISE_ASSISTANT_WIDGET_PROVIDER_FAILED", retryable=True
             ) from None
-        raw = _response_text(response)
-        if raw is None:
-            raise AssistantWidgetError(
-                "AXWISE_ASSISTANT_WIDGET_UNGROUNDED", retryable=True
-            )
-        try:
-            payload = candidate_type.model_validate(json.loads(raw))
-        except (TypeError, ValueError, json.JSONDecodeError):
-            raise AssistantWidgetError(
-                "AXWISE_ASSISTANT_WIDGET_INVALID_OUTPUT", retryable=True
-            ) from None
-        required_fragments = (
-            (payload.location, payload.temperature, payload.condition)
-            if isinstance(payload, WeatherCandidate)
-            else (payload.base, payload.quote, payload.rate)
-        )
-        source = _grounded_source(response, required_fragments=required_fragments)
-        if source is None:
-            raise AssistantWidgetError(
-                "AXWISE_ASSISTANT_WIDGET_UNGROUNDED", retryable=True
-            )
-        version = getattr(response, "model_version", None)
+        version = getattr(evidence_responses[-1], "model", None)
         if not isinstance(version, str) or not re.fullmatch(
             r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", version
         ):
@@ -502,14 +815,22 @@ class GeminiAssistantWidgetRunner:
             source=source,
             model=RESEARCH_MODEL,
             model_version=version,
-            input_tokens=_usage_value(response, "prompt_token_count"),
-            output_tokens=_usage_value(response, "candidates_token_count"),
+            input_tokens=_combined_usage_value(
+                evidence_responses, "total_input_tokens"
+            ),
+            output_tokens=_combined_usage_value(
+                evidence_responses, "total_output_tokens"
+            ),
+            search_calls=sum(
+                _search_call_count(response) for response in evidence_responses
+            ),
         )
 
     async def close(self) -> None:
         async with self._lock:
             pending = list(self._inflight.values())
             self._inflight.clear()
+            self._waiters.clear()
             self._cache.clear()
         for task in pending:
             task.cancel()

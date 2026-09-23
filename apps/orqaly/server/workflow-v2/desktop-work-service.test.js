@@ -69,7 +69,14 @@ function harness() {
     status,
     ...(status === 'completed' ? { result: {
       resultType: 'assistant_turn_completed',
-      response: envelope.input.type === 'AssistantTurnV2' ? {
+      response: envelope.input.type === 'AssistantTurnV2'
+        && envelope.input.capability.kind === 'quick_info' ? {
+        schemaVersion: 'axwise.assistant-turn.v1',
+        markdown: 'IKEA Bremen is open until 20:00 today.',
+        sources: [{ title: 'IKEA Bremen', canonicalUrl: 'https://example.com/ikea-bremen', sourceTypes: ['official_documentation'] }],
+        facts: [{ statement: 'IKEA Bremen is open until 20:00 today.', sourceUrls: ['https://example.com/ikea-bremen'] }],
+        recommendations: [],
+      } : envelope.input.type === 'AssistantTurnV2' ? {
         schemaVersion: 'axwise.assistant-turn.v2',
         markdown: 'Berlin is currently mild.',
         sources: [{ title: 'Weather source', canonicalUrl: 'https://example.com/weather', sourceTypes: ['official_documentation'] }],
@@ -161,7 +168,29 @@ describe('desktop bounded AxWise work', () => {
         temperature: '18.5',
       }),
     ]);
+    expect(result.kind).toBe('weather');
     expect(result.markdown).toBe('Berlin is currently mild.');
+  });
+
+  it('preserves quick-info identity across durable status reads', async () => {
+    const h = harness();
+    const capability = { kind: 'quick_info', location: 'Bremen', routingMode: 'jev' };
+    const request = {
+      ...command,
+      question: 'When does IKEA Bremen close today?',
+      capability,
+    };
+
+    const started = await h.service.start(auth, request);
+
+    expect(started.kind).toBe('quick_info');
+    expect(started.presentations).toBeUndefined();
+    expect(await h.service.read(auth, identity)).toEqual(started);
+    await expect(h.service.start(auth, {
+      ...request,
+      requestId: '55555555-5555-4555-8555-555555555555',
+      question: 'x'.repeat(2_001),
+    })).rejects.toThrow(/2,000/);
   });
 
   it('replays exact requests, rejects changed input and keeps separate conversations independent', async () => {
