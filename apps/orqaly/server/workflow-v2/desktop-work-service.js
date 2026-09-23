@@ -10,6 +10,11 @@ export const DesktopWorkIdentitySchema = z.object({
   conversationId: DesktopConversationIdSchema,
   requestId: z.uuid(),
 }).strict();
+const DesktopWorkWaitMsSchema = z.number().int().min(0).max(8_000);
+export const DesktopWorkReadQuerySchema = z.object({
+  waitMs: z.string().regex(/^(0|[1-9]\d{0,3})$/).transform(Number)
+    .pipe(DesktopWorkWaitMsSchema).optional(),
+}).strict();
 export const DesktopWorkStartSchema = DesktopWorkIdentitySchema.extend({
   issuedAt: z.string().datetime({ offset: true }),
   question: z.string().trim().min(1).max(8_000),
@@ -34,6 +39,31 @@ export const DesktopWorkStartSchema = DesktopWorkIdentitySchema.extend({
 
 const VERSION = 'orqaly.desktop-work.v1';
 const MAX_REFERENCE_JSON = 14_000;
+const MIN_STATUS_INTERVAL_MS = 750;
+
+function waitForStatus(milliseconds, signal) {
+  return new Promise((resolve, reject) => {
+    signal.throwIfAborted();
+    const abort = () => { clearTimeout(timer); reject(signal.reason); };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', abort);
+      resolve();
+    }, milliseconds);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+async function withAbort(operation, signal) {
+  if (!signal) return operation();
+  signal.throwIfAborted();
+  let abort;
+  const cancelled = new Promise((_resolve, reject) => {
+    abort = () => reject(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+  try { return await Promise.race([operation(), cancelled]); }
+  finally { signal.removeEventListener('abort', abort); }
+}
 
 function referenceJson(value) {
   // Python's source-policy parser also recognizes these Unicode line endings.
@@ -212,7 +242,9 @@ function projectResult(work, result) {
  * and persistence stay in the existing services. No Goal, approval or job store
  * is created here, and nothing in this service executes local tools.
  */
-export function createDesktopWorkService({ assistantService, contextService }) {
+export function createDesktopWorkService({
+  assistantService, contextService, now = Date.now, sleep = waitForStatus,
+}) {
   for (const method of ['send', 'resume', 'cancel', 'read', 'events']) {
     if (typeof assistantService?.[method] !== 'function') throw new Error('DESKTOP_ASSISTANT_SERVICE_REQUIRED');
   }
@@ -271,13 +303,53 @@ export function createDesktopWorkService({ assistantService, contextService }) {
     };
   }
 
-  async function read(auth, rawIdentity) {
+  async function read(auth, rawIdentity, { waitMs = 0, signal } = {}) {
     const work = identity(auth, rawIdentity);
-    const [capability, result] = await Promise.all([
-      persistedCapability(auth, work),
-      assistantService.resume(auth, work.threadId, work.requestId),
-    ]);
-    return projectResult({ ...work, ...capability }, result);
+    DesktopWorkWaitMsSchema.parse(waitMs);
+    // Capability/question are immutable for this request. Read them once while
+    // resume still revalidates tenant and thread ownership on every status read.
+    let capabilityPromise;
+    const once = async (options) => {
+      const [capability, result] = await Promise.all([
+        capabilityPromise ||= persistedCapability(auth, work),
+        assistantService.resume(auth, work.threadId, work.requestId, options),
+      ]);
+      return projectResult({ ...work, ...capability }, result);
+    };
+    if (!waitMs) return withAbort(() => once(signal ? { signal } : undefined), signal);
+
+    // One authenticated HTTP request, not another job or a new operation. Each
+    // status read rechecks the owner. No transaction survives the sleep, and
+    // statusOnly prevents same-envelope redispatch or local execution on reads.
+    const controller = new AbortController();
+    const deadlineError = new WorkflowCommandError('DESKTOP_WORK_WAIT_TIMEOUT', 'work status read timed out', 503);
+    const disconnected = () => controller.abort(signal.reason);
+    signal?.throwIfAborted();
+    signal?.addEventListener('abort', disconnected, { once: true });
+    const deadline = now() + waitMs;
+    const timeout = setTimeout(() => controller.abort(deadlineError), waitMs);
+    let latest;
+    try {
+      for (;;) {
+        latest = await withAbort(() => once({ statusOnly: true, signal: controller.signal }), controller.signal);
+        if (!['accepted', 'running'].includes(latest.status)) return latest;
+        const remaining = deadline - now();
+        if (remaining <= 0) return latest;
+        // Respect AxWise's hint: its status endpoint also touches durable state.
+        // The 750ms floor bounds load when an older result has no retry hint.
+        const delay = Math.max(MIN_STATUS_INTERVAL_MS, (latest.retryAfterSeconds || 0) * 1_000);
+        await withAbort(() => sleep(Math.min(delay, remaining), controller.signal), controller.signal);
+        if (delay >= remaining) return latest;
+      }
+    } catch (error) {
+      // A deadline never invents completion or restarts durable work. If the
+      // first read itself failed to finish, no trustworthy status is available.
+      if (error === deadlineError && latest) return latest;
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      signal?.removeEventListener('abort', disconnected);
+    }
   }
 
   async function cancel(auth, rawIdentity) {

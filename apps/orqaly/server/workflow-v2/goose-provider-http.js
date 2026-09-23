@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
 import { ENGINEERING_REVIEW_MAX_BYTES } from './engineering-review-service.js';
+import { DesktopWorkReadQuerySchema } from './desktop-work-service.js';
 
 export const GOOSE_PROVIDER_MODEL = 'orqaly-gemini';
 const GOOGLE_CHAT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
@@ -222,7 +223,10 @@ export function createGooseProviderRouter({
       input_modalities: INPUT_MODALITIES }],
   }));
   const desktopRead = (operation) => async (req, res) => {
-    try { res.json(await operation(req)); }
+    try {
+      const result = await operation(req);
+      if (!res.destroyed && !res.writableEnded) res.json(result);
+    }
     catch (error) {
       if (error?.name === 'ZodError') return sendError(res, 400, 'INVALID_DESKTOP_REQUEST');
       const status = [400, 401, 403, 404, 409, 413, 429].includes(error?.status) ? error.status : 503;
@@ -237,7 +241,21 @@ export function createGooseProviderRouter({
   }
   if (desktopWorkService) {
     router.post('/work', express.json({ limit: '64kb', strict: true }), desktopRead((req) => desktopWorkService.start(req.authContext, req.body)));
-    router.get('/work/:conversationId/:requestId', desktopRead((req) => desktopWorkService.read(req.authContext, req.params)));
+    router.get('/work/:conversationId/:requestId', async (req, res) => {
+      const controller = new AbortController();
+      const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+      req.once('aborted', disconnected);
+      res.once('close', disconnected);
+      try {
+        await desktopRead((request) => {
+          const { waitMs = 0 } = DesktopWorkReadQuerySchema.parse(request.query);
+          return desktopWorkService.read(request.authContext, request.params, { waitMs, signal: controller.signal });
+        })(req, res);
+      } finally {
+        req.off('aborted', disconnected);
+        res.off('close', disconnected);
+      }
+    });
     router.post('/work/:conversationId/:requestId/cancel', desktopRead((req) => desktopWorkService.cancel(req.authContext, req.params)));
     router.get('/work/:conversationId/:requestId/events', desktopRead((req) => desktopWorkService.events(req.authContext, req.params, Number(req.query.after || 0), Number(req.query.limit || 100))));
   }

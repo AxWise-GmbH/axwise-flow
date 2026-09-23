@@ -229,6 +229,32 @@ async def test_quick_info_choice_uses_official_closed_set_contract(monkeypatch):
         "local_engineering",
         "conversation",
     }
+    criteria = calls[0]["questions"]["route"]["criteria"]
+    assert "events this week in Riga and within 150 km" in criteria["quick_info"]
+    assert "dates, place, genre" in criteria["quick_info"]
+    assert "ranked or personalized recommendations" in criteria["research"]
+
+
+@pytest.mark.parametrize(
+    "route,probabilities,expected",
+    [
+        ("quick_info", [0.4, 0.3, 0.2, 0.1], True),
+        ("quick_info", [0.4, 0.4, 0.1, 0.1], False),
+        ("quick_info", [0.3, 0.4, 0.2, 0.1], False),
+        ("research", [0.4, 0.3, 0.2, 0.1], False),
+    ],
+)
+def test_bounded_search_advice_requires_consistent_unique_quick_info_winner(
+    route, probabilities, expected,
+):
+    decision = jev.QuickInfoRouteDecision(
+        route=route, confidence=0.6,
+        probabilities=dict(zip(jev._QUICK_INFO_ROUTES, probabilities)),
+        model="jev-1.13.0",
+    )
+
+    assert decision.quick_info_is_unique_winner is expected
+    assert decision.confidently_quick_info is False
 
 
 async def test_quick_info_choice_rejects_malformed_probabilities(mock_api):

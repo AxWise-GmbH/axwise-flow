@@ -107,6 +107,16 @@ class QuickInfoRouteDecision(BaseModel):
     model: str
 
     @property
+    def quick_info_is_unique_winner(self) -> bool:
+        """A route choice is advice for bounded public search, not action permission."""
+
+        return self.route == "quick_info" and all(
+            self.probabilities["quick_info"] > self.probabilities[route]
+            for route in _QUICK_INFO_ROUTES
+            if route != "quick_info"
+        )
+
+    @property
     def confidently_quick_info(self) -> bool:
         ordered = sorted(self.probabilities.values(), reverse=True)
         return (
@@ -195,14 +205,20 @@ async def classify_quick_info_route(
         state["location"] = location
     criteria = {
         "quick_info": (
-            "One narrow current public fact answerable with one focused search: "
-            "local headlines, opening hours, a score, current status, or a small "
-            "current-fact check. No action, local files, comparison, recommendation, "
-            "or broad synthesis."
+            "A narrow current public-information lookup answerable with one focused "
+            "search: local headlines, opening hours, a score, current status, or a "
+            "short list of public events, parties, concerts or club nights filtered "
+            "by dates, place, genre and a nearby radius (for example, events this "
+            "week in Riga and within 150 km). Listing a few matching options is "
+            "discovery, not a recommendation or broad research. No action, local "
+            "files, ranked recommendations, comparisons, itinerary planning, "
+            "exhaustive coverage, or broad synthesis."
         ),
         "research": (
             "Needs multi-source comparison, synthesis, investigation, explanation of "
-            "causes, recommendations, or broad or deep coverage."
+            "causes, ranked or personalized recommendations, itinerary planning, "
+            "or broad, exhaustive or deep coverage. A short factual list of "
+            "matching public events does not by itself require this route."
         ),
         "local_engineering": (
             "Needs local files, an attached project, repository inspection or editing, "

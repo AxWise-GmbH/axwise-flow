@@ -689,7 +689,8 @@ export function createAssistantService({
     }
   }
 
-  async function executeAxwise(owner, threadId, user, messages, { poll = false } = {}) {
+  async function executeAxwise(owner, threadId, user, messages, { poll = false, statusOnly = false, signal } = {}) {
+    signal?.throwIfAborted();
     const envelope = axwiseEnvelope(owner, threadId, user, messages);
     if (envelope.operationId !== user.axwiseOperationId) {
       throw new WorkflowCommandError(
@@ -700,19 +701,27 @@ export function createAssistantService({
     }
     const request = async (isPoll) => {
       try {
+        signal?.throwIfAborted();
         if (!isPoll) await emitEvent(owner, threadId, user, 'submitted');
         const stopping = isPoll && (await cancellationRequested(owner, threadId, user.turnId));
+        signal?.throwIfAborted();
+        if (stopping && statusOnly) {
+          return { message: pendingMessage(owner, threadId, user, { status: 'cancel_requested', retryAfterSeconds: 2 }), persisted: false };
+        }
         const response = stopping
           ? await requestCancellation(owner, user, envelope)
           : isPoll
             ? await axwiseClient.poll(
                 axwiseClient.deterministicStatusUrl(user.axwiseOperationId, owner.tenantId),
                 user.axwiseOperationId,
-                owner.tenantId
+                owner.tenantId,
+                ...(signal ? [{ signal }] : [])
               )
             : await axwiseClient.submit(envelope);
+        signal?.throwIfAborted();
         return finishAxwise(owner, threadId, user, validateAxwiseResponse(envelope, response));
       } catch (error) {
+        signal?.throwIfAborted();
         if (!(error instanceof AxWiseDispatchError)) throw error;
         if (error.disposition === 'ambiguous') {
           return {
@@ -724,6 +733,9 @@ export function createAssistantService({
           };
         }
         if (isPoll && error.disposition === 'not_found') {
+          if (statusOnly) {
+            throw new WorkflowCommandError('ASSISTANT_OPERATION_NOT_FOUND', 'assistant operation not found', 404);
+          }
           if (await cancellationRequested(owner, threadId, user.turnId)) {
             return finishAxwise(owner, threadId, user, {
               operationId: envelope.operationId,
@@ -1342,9 +1354,12 @@ export function createAssistantService({
     return retry(auth, threadId, failedTurnId, rawCommand, { allowCapabilities: false });
   }
 
-  async function resume(auth, threadId, turnId) {
+  async function resume(auth, threadId, turnId, { statusOnly = false, signal } = {}) {
+    signal?.throwIfAborted();
     const owner = await identity(auth);
+    signal?.throwIfAborted();
     const loaded = await loadOwned(owner, threadId);
+    signal?.throwIfAborted();
     const assistant = loaded.messages.find(
       (message) => message.turnId === turnId && message.role === 'assistant'
     );
@@ -1361,6 +1376,9 @@ export function createAssistantService({
     if (!user)
       throw new WorkflowCommandError('ASSISTANT_TURN_NOT_FOUND', 'assistant turn not found', 404);
     if (!responseModeForRoute(user.route)) {
+      if (statusOnly) {
+        throw new WorkflowCommandError('ASSISTANT_TURN_NOT_RESUMABLE', 'assistant turn is not resumable', 409);
+      }
       const result = {
         route: user.route,
         ...(await executeLocal(owner, auth, threadId, user, loaded.messages)),
@@ -1375,10 +1393,13 @@ export function createAssistantService({
         409
       );
     }
-    await mirrorAxwiseEvents(owner, threadId, user);
+    // Bounded status waits do not repeatedly fetch up to five pages of optional
+    // progress events. The operation status remains the authoritative result.
+    if (!statusOnly) await mirrorAxwiseEvents(owner, threadId, user);
+    signal?.throwIfAborted();
     return {
       route: user.route,
-      ...(await executeAxwise(owner, threadId, user, loaded.messages, { poll: true })),
+      ...(await executeAxwise(owner, threadId, user, loaded.messages, { poll: true, statusOnly, signal })),
       idempotent: false,
     };
   }

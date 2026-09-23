@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -37,15 +38,17 @@ def decision(
     )
 
 
-def response(*, source=True, url="https://www.ikea.com/de/en/stores/bremen/"):
-    text = "IKEA Bremen closes at 8:00 PM today."
+def response(
+    *, source=True, url="https://www.ikea.com/de/en/stores/bremen/",
+    text="IKEA Bremen closes at 8:00 PM today.", title="IKEA Bremen",
+):
     annotations = []
     if source:
         annotations.append(
             SimpleNamespace(
                 type="url_citation",
                 url=url,
-                title="IKEA Bremen",
+                title=title,
                 start_index=0,
                 end_index=len(text.encode("utf-8")),
             )
@@ -342,10 +345,31 @@ async def test_unavailable_jev_is_retryable_without_fallback():
 
 
 @pytest.mark.asyncio
-async def test_low_confidence_jev_is_non_retryable_uncertainty():
+@pytest.mark.parametrize("confidence,quick_info", [(0.6, 0.9), (0.9, 0.55)])
+async def test_quick_info_winner_uses_grounded_search_despite_confidence_or_margin(
+    confidence, quick_info,
+):
     runner = GeminiAssistantQuickInfoRunner(
         client=client_with(AsyncMock(return_value=response())),
-        route_classifier=AsyncMock(return_value=decision(confidence=0.6)),
+        route_classifier=AsyncMock(
+            return_value=decision(confidence=confidence, quick_info=quick_info)
+        ),
+    )
+
+    result = await runner.quick_info("Latest score?", location=None, jev_enabled=True)
+
+    assert result.search_calls == 1
+    assert result.facts[0].source_urls == (
+        "https://www.ikea.com/de/en/stores/bremen/",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("quick_info", [0.5, 0.4])
+async def test_tied_or_inconsistent_quick_info_choice_is_still_uncertain(quick_info):
+    runner = GeminiAssistantQuickInfoRunner(
+        client=client_with(AsyncMock(return_value=response())),
+        route_classifier=AsyncMock(return_value=decision(quick_info=quick_info)),
     )
     with pytest.raises(AssistantQuickInfoError) as error:
         await runner.quick_info("Latest score?", location=None, jev_enabled=True)
@@ -354,10 +378,144 @@ async def test_low_confidence_jev_is_non_retryable_uncertainty():
 
 
 @pytest.mark.asyncio
+async def test_riga_event_discovery_preserves_scope_and_cited_utf8_with_route_advice():
+    query = (
+        "Find a few raves, techno club nights and electronic music parties this week "
+        "in Riga and within 150 km of Riga."
+    )
+    statement = "Kārlis Auziņš plays at M/Darbnīca, Riga, on 25 September 2026."
+    create = AsyncMock(return_value=response(
+        text=f"- {statement}", url="https://fienta.com/lv/riga-event", title="M/Darbnīca",
+    ))
+    classify = AsyncMock(return_value=decision(confidence=0.6, quick_info=0.55))
+    runner = GeminiAssistantQuickInfoRunner(
+        client=client_with(create), route_classifier=classify,
+        now=lambda: datetime(2026, 9, 23, 9, 3, tzinfo=timezone.utc),
+    )
+
+    result = await runner.quick_info(query, location="Riga, Latvia", jev_enabled=True)
+
+    classify.assert_awaited_once_with(query, "Riga, Latvia")
+    prompt = create.await_args.kwargs["input"]
+    assert f"Request: {query}" in prompt
+    assert "User-supplied location context: Riga, Latvia" in prompt
+    assert "2026-09-23T09:03:00+00:00" in prompt
+    assert "2026-09-21 through 2026-09-27" in prompt
+    assert "event's date, venue, locality, and direct event source" in prompt
+    assert "do not invent distances or imply exhaustive area coverage" in prompt
+    assert result.facts[0].statement == statement
+    assert result.markdown == (
+        f"{statement} — [M/Darbnīca](<https://fienta.com/lv/riga-event>)"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "before,after,first_week,next_week",
+    [
+        (
+            datetime(2026, 9, 27, 23, 59, tzinfo=timezone.utc),
+            datetime(2026, 9, 28, 0, 0, tzinfo=timezone.utc),
+            "2026-09-21 through 2026-09-27", "2026-09-28 through 2026-10-04",
+        ),
+        (
+            datetime(2026, 12, 31, 23, 59, tzinfo=timezone.utc),
+            datetime(2027, 1, 1, 0, 0, tzinfo=timezone.utc),
+            "2026-12-28 through 2027-01-03", "2026-12-28 through 2027-01-03",
+        ),
+    ],
+)
+async def test_temporal_rollover_refreshes_anchor_and_does_not_reuse_yesterdays_cache(
+    before, after, first_week, next_week,
+):
+    wall_clock = [before]
+    create = AsyncMock(return_value=response())
+    runner = GeminiAssistantQuickInfoRunner(
+        client=client_with(create), now=lambda: wall_clock[0], clock=lambda: 0,
+    )
+    await runner.quick_info("Events this week", location="Riga", jev_enabled=False)
+    await asyncio.sleep(0)
+    wall_clock[0] = after
+    second = await runner.quick_info("Events this week", location="Riga", jev_enabled=False)
+
+    assert create.await_count == 2
+    assert second.cache_hit is False
+    first_prompt, next_prompt = [call.kwargs["input"] for call in create.await_args_list]
+    assert before.isoformat() in first_prompt and first_week in first_prompt
+    assert after.isoformat() in next_prompt and next_week in next_prompt
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("marker", ["- ", "* ", "+ ", "• ", "1. ", "2) "])
+async def test_headlines_strip_only_leading_list_marker_from_exact_cited_span(marker):
+    statement = "Rīga announces a new late-night route."
+    runner = GeminiAssistantQuickInfoRunner(client=client_with(AsyncMock(
+        return_value=response(text=f"{marker}{statement}"),
+    )))
+
+    result = await runner.quick_info("Riga local news", location="Riga", jev_enabled=False)
+
+    assert result.facts[0].statement == statement
+    assert result.markdown.startswith(f"- {statement} — ")
+
+
+@pytest.mark.asyncio
+async def test_nested_event_citations_keep_full_fact_without_promoting_prefix_sources():
+    text = "**JAUDA** on September 25 at Kaņepes Kultūras Centrs, Riga."
+    raw = response(text=text)
+    short = "**JAUDA** on September 25"
+    full_url = "https://example.com/event-details"
+    annotations = raw.steps[1].content[0].annotations
+    annotations[0].end_index = len(short.encode("utf-8"))
+    annotations.append(SimpleNamespace(
+        type="url_citation", url=full_url, title="Event listing",
+        start_index=0, end_index=len(text.encode("utf-8")),
+    ))
+    runner = GeminiAssistantQuickInfoRunner(client=client_with(AsyncMock(return_value=raw)))
+
+    result = await runner.quick_info("Riga parties this week", location="Riga", jev_enabled=False)
+
+    assert len(result.facts) == 1
+    assert result.facts[0].statement == "JAUDA on September 25 at Kaņepes Kultūras Centrs, Riga."
+    assert result.facts[0].source_urls == (full_url,)
+    assert [source.url for source in result.sources] == [full_url]
+    assert "\\*" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_citation_marker_spill_is_not_a_headline_and_does_not_create_links():
+    text = "([LSM](https://example.com/previous)) * **Rīga opens a new route.**"
+    runner = GeminiAssistantQuickInfoRunner(client=client_with(AsyncMock(return_value=response(text=text))))
+
+    result = await runner.quick_info("Riga headlines", location="Riga", jev_enabled=False)
+
+    assert result.facts[0].statement == "Rīga opens a new route."
+    assert "previous" not in result.markdown
+    assert "\\*" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_overlapping_not_nested_spans_are_not_merged_or_given_each_others_sources():
+    text = "Event A. Event B. Event C."
+    raw = response(text=text)
+    annotations = raw.steps[1].content[0].annotations
+    annotations[0].end_index = len("Event A. Event B.")
+    annotations.append(SimpleNamespace(
+        type="url_citation", url="https://example.com/b-c", title="B and C",
+        start_index=len("Event A. "), end_index=len(text),
+    ))
+    runner = GeminiAssistantQuickInfoRunner(client=client_with(AsyncMock(return_value=raw)))
+    result = await runner.quick_info("Events", location="Riga", jev_enabled=False)
+    assert len(result.facts) == 2
+    assert result.facts[0].source_urls == ("https://www.ikea.com/de/en/stores/bremen/",)
+    assert result.facts[1].source_urls == ("https://example.com/b-c",)
+
+
+@pytest.mark.asyncio
 async def test_uncited_output_is_never_published():
     runner = GeminiAssistantQuickInfoRunner(
         client=client_with(AsyncMock(return_value=response(source=False))),
-        route_classifier=AsyncMock(return_value=decision()),
+        route_classifier=AsyncMock(return_value=decision(confidence=0.6, quick_info=0.55)),
     )
     with pytest.raises(AssistantQuickInfoError) as error:
         await runner.quick_info("Latest score?", location=None, jev_enabled=True)
