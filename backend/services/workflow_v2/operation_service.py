@@ -278,6 +278,28 @@ def _current_failure_diagnostics(
     return result
 
 
+def _restore_legacy_assistant_schema_version(value: Any) -> Any:
+    """Repair capability results written before their discriminator was explicit."""
+
+    if not isinstance(value, dict) or _mapping_value(
+        value, "result_type", "resultType"
+    ) != "assistant_turn_completed":
+        return value
+    response = value.get("response")
+    if not isinstance(response, dict) or _mapping_value(
+        response, "schema_version", "schemaVersion"
+    ) is not None:
+        return value
+    repaired = deepcopy(value)
+    repaired_response = repaired["response"]
+    repaired_response["schemaVersion"] = (
+        "axwise.assistant-turn.v2"
+        if "presentations" in repaired_response
+        else "axwise.assistant-turn.v1"
+    )
+    return repaired
+
+
 def response_for(
     record: OperationRecord,
     status_url: str,
@@ -292,7 +314,9 @@ def response_for(
         return OperationCompleted(
             **common,
             status="completed",
-            result=_COMPLETION_RESULT_ADAPTER.validate_python(record.result_payload),
+            result=_COMPLETION_RESULT_ADAPTER.validate_python(
+                _restore_legacy_assistant_schema_version(record.result_payload)
+            ),
         )
     if record.status == "failed":
         retryable = bool(record.retryable)
