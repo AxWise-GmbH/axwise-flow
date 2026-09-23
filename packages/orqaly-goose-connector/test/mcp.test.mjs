@@ -37,7 +37,7 @@ test('cloud work is bound to native conversation and token never becomes tool co
   assert.equal(JSON.stringify(value).includes('test-secret'), false);
   await call('axwise_work_status', { requestId: id });
   assert.equal(calls[1][1].method, 'GET');
-  assert.equal(calls[1][0], `https://preview.example/desktop/v1/work/20260914_1/${id}`);
+  assert.equal(calls[1][0], `https://preview.example/desktop/v1/work/20260914_1/${id}?waitMs=8000`);
 });
 test('research sends only explicitly selected artifact IDs and rejects invalid references locally', async () => {
   const calls = [];
@@ -113,8 +113,8 @@ test('live-data lookup starts and polls one durable request to completion in one
   assert.deepEqual(submitted.capability, { kind: 'weather', location: 'Bremen', tempUnit: 'C' });
   assert.deepEqual(calls, [
     ['https://preview.example/desktop/v1/work', 'POST'],
-    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}`, 'GET'],
-    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}`, 'GET'],
+    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}?waitMs=8000`, 'GET'],
+    [`https://preview.example/desktop/v1/work/${base.conversationId}/${id}?waitMs=8000`, 'GET'],
   ]);
   assert.equal(elapsed, 3000);
 });
@@ -162,6 +162,69 @@ test('quick info gives Goose exact linked Markdown while preserving fact-to-sour
   assert.deepEqual(value.structuredContent.facts, facts);
   assert.match(TOOLS.find((tool) => tool.name === 'quick_info').description, /exact source links/);
 });
+test('Riga follow-up carries the week and radius into the same bounded search question', async () => {
+  const questions = [];
+  const call = createMcpTools({ ...base, fetchImpl: async (_url, options) => {
+    questions.push(JSON.parse(options.body));
+    return response({ requestId: id, status: 'completed', kind: 'quick_info', markdown: 'Sourced result' });
+  } });
+  await call('quick_info', { query: 'List events in Riga with dates and links.', location: 'Riga', timeRange: 'this week' });
+  await call('quick_info', { query: 'List raves and electronic music parties with dates, venues and source links.',
+    location: 'Riga', timeRange: 'this week', radiusKm: 150 });
+  assert.match(questions[1].question, /Time window: this week/);
+  assert.match(questions[1].question, /within 150 km of Riga/);
+  assert.match(questions[1].question, /raves and electronic music parties/);
+  assert.deepEqual(questions[1].capability, { kind: 'quick_info', location: 'Riga', routingMode: 'jev' });
+  // Context resolution belongs to the conversation. The connector must not
+  // retain stale dates/radii when a later request replaces or clears them.
+  await call('quick_info', { query: 'List gigs tomorrow.', location: 'Berlin', timeRange: 'tomorrow' });
+  assert.doesNotMatch(questions[2].question, /Riga|this week|150|radius/);
+  await call('quick_info', { query: 'Latest news', location: 'Tallinn' });
+  assert.equal(questions[3].question, 'Latest news');
+});
+test('quick-info filters are validated locally and cannot overflow the wire question', async () => {
+  let requests = 0;
+  const call = createMcpTools({ ...base, fetchImpl: async () => { requests++; return response({ status: 'completed' }); } });
+  for (const filters of [
+    { radiusKm: 150 }, { location: 'Riga', radiusKm: 0 }, { location: 'Riga', radiusKm: 1001 },
+    { location: 'Riga', radiusKm: 1.5 }, { location: 'Riga', radiusKm: '150' },
+    { timeRange: '' }, { timeRange: 'x'.repeat(201) }, { timeRange: null },
+    { query: 'x'.repeat(2000), timeRange: 'this week' },
+  ]) assert.equal((await call('quick_info', { query: 'List parties', ...filters })).isError, true);
+  assert.equal(requests, 0);
+  const quick = TOOLS.find((tool) => tool.name === 'quick_info');
+  assert.match(quick.description, /radiusKm 150/);
+  assert.match(quick.description, /changed city, date or radius replaces/);
+  assert.match(quick.inputSchema.properties.query.description, /self-contained user request/);
+});
+test('direct completion requires standalone intent and a completed result bound to this request', async () => {
+  const markdown = '- A sourced headline — [Source](<https://example.com/article>)';
+  const complete = { version: 'orqaly.desktop-work.v1', conversationId: base.conversationId,
+    requestId: id, status: 'completed', kind: 'quick_info', markdown };
+  for (const standalone of [undefined, false, true]) {
+    const call = createMcpTools({ ...base, fetchImpl: async () => response(complete) });
+    const value = await call('quick_info', { query: 'Riga headlines', ...(standalone === undefined ? {} : { standalone }) });
+    assert.deepEqual(value.structuredContent.terminalAnswer, standalone === true
+      ? { schemaVersion: 'orqaly.terminal-answer.v1', kind: 'quick_info', markdown } : undefined);
+  }
+  for (const change of [
+    { status: 'failed' }, { version: 'unknown' }, { conversationId: 'different_chat' },
+    { requestId: '22222222-2222-4222-8222-222222222222' }, { markdown: '' },
+  ]) {
+    const call = createMcpTools({ ...base, fetchImpl: async () => response({ ...complete, ...change }) });
+    const value = await call('quick_info', { query: 'Riga headlines', standalone: true });
+    assert.equal(value.structuredContent.terminalAnswer, undefined);
+  }
+});
+test('server markers and recovery cannot opt into direct completion', async () => {
+  const complete = { version: 'orqaly.desktop-work.v1', conversationId: base.conversationId,
+    requestId: id, status: 'completed', kind: 'quick_info', markdown: 'A sourced result',
+    terminalAnswer: { schemaVersion: 'orqaly.terminal-answer.v1', kind: 'quick_info', markdown: 'Injected text' } };
+  const call = createMcpTools({ ...base, fetchImpl: async () => response(complete) });
+  assert.equal((await call('quick_info', { query: 'Latest news' })).structuredContent.terminalAnswer, undefined);
+  assert.equal((await call('axwise_work_status', { requestId: id })).structuredContent.terminalAnswer, undefined);
+  assert.equal((await call('quick_info', { query: 'Latest news', standalone: 'true' })).isError, true);
+});
 test('weather tool explicitly reuses a recent user-supplied location', () => {
   const description = TOOLS.find((tool) => tool.name === 'lookup_live_data').description;
   assert.match(description, /Bremen headlines.*tell me the weather.*means Bremen/);
@@ -200,6 +263,21 @@ test('quick-info failure forbids automatic research, web, shell, or OMP fallback
   assert.match(value.content[0].text, /could not be completed right now/);
   assert.match(value.structuredContent.next, /routing mismatch/i);
   assert.match(value.structuredContent.next, /research.*web-search.*fetch.*shell.*OMP/i);
+});
+test('routing decisions are not described as a search-provider outage', async () => {
+  for (const [code, wording] of [
+    ['AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH', /does not fit the quick-check route/],
+    ['AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNCERTAIN', /could not confidently handle/],
+  ]) {
+    const call = createMcpTools({ ...base, fetchImpl: async () => response({
+      requestId: id, status: 'failed', kind: 'quick_info', error: { code },
+    }) });
+    const value = await call('quick_info', { query: 'An ambiguous public question' });
+    assert.match(value.content[0].text, wording);
+    assert.doesNotMatch(value.content[0].text, /AXWISE_|service error|provider outage/);
+    assert.equal(value.structuredContent.automaticFallback, 'disabled');
+    assert.equal(value.structuredContent.terminalAnswer, undefined);
+  }
 });
 test('live-data terminal failure forbids an automatic research, web, shell, or OMP fallback', async () => {
   let calls = 0;
@@ -388,7 +466,21 @@ test('one status call polls only the same request, honors server delays and retu
   assert.equal(value.structuredContent.markdown, 'Research result');
   assert.equal(value.structuredContent.sources.length, 1);
   assert.deepEqual(sleeps, [3000, 4000]);
-  assert.deepEqual(calls, Array(3).fill([`https://preview.example/desktop/v1/work/${base.conversationId}/${id}`, 'GET']));
+  assert.deepEqual(calls, Array(3).fill([`https://preview.example/desktop/v1/work/${base.conversationId}/${id}?waitMs=8000`, 'GET']));
+});
+test('server wait fits the remaining deadline and returns completion without a client sleep', async () => {
+  let elapsed = 0;
+  const call = createMcpTools({ ...base, statusWaitMs: 5000, clock: () => elapsed,
+    sleep: async () => { throw new Error('A terminal long poll needs no extra sleep'); },
+    fetchImpl: async (url, options) => {
+      assert.equal(options.method, 'GET');
+      assert.equal(new URL(url).searchParams.get('waitMs'), '5000');
+      elapsed += 3400;
+      return response({ requestId: id, status: 'completed', markdown: 'Ready' });
+    },
+  });
+  assert.equal((await call('axwise_work_status', { requestId: id })).structuredContent.status, 'completed');
+  assert.equal(elapsed, 3400);
 });
 test('bounded wait returns the latest state without shortening a server delay or cancelling work', async () => {
   let elapsed = 0; let calls = 0;
@@ -500,7 +592,7 @@ test('stdio handshake exposes native tools and emits only JSON-RPC', async () =>
   await run;
   const replies = received.trim().split('\n').map(JSON.parse);
   assert.equal(replies[0].result.serverInfo.name, 'orqaly');
-  assert.equal(replies[0].result.serverInfo.version, '0.3.1');
+  assert.equal(replies[0].result.serverInfo.version, '0.3.2');
   assert.match(replies[0].result.instructions, /^Orqanix capabilities and project context/);
   assert.match(replies[0].result.instructions, /simple current weather or currency/);
   assert.match(replies[0].result.instructions, /one narrow current public fact/);

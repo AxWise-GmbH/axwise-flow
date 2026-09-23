@@ -59,7 +59,8 @@ describe('desktop context and bounded work routes', () => {
     expect((await f.call('/work', body)).status).toBe(200);
     expect(s.desktopWorkService.start).toHaveBeenCalledWith({ userId: 'user-1' }, body);
     expect((await f.call(workPath, null)).status).toBe(200);
-    expect(s.desktopWorkService.read).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId });
+    expect(s.desktopWorkService.read).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId },
+      { waitMs: 0, signal: expect.any(AbortSignal) });
     expect((await f.call(`${workPath}/cancel`, {})).status).toBe(200);
     expect(s.desktopWorkService.cancel).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId });
     expect((await f.call(`${workPath}/events?after=2&limit=10`, null)).status).toBe(200);
@@ -68,6 +69,65 @@ describe('desktop context and bounded work routes', () => {
     expect(s.desktopContextService.read).toHaveBeenCalledWith({ userId: 'user-1' }, runId);
     expect((await f.call(`/goals/${runId}/artifacts/${artifactId}`, null)).status).toBe(200);
     expect(s.desktopContextService.artifact).toHaveBeenCalledWith({ userId: 'user-1' }, runId, artifactId);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('accepts an optional bounded status wait without spending another auth or request-rate budget', async () => {
+    const s = services();
+    const rateLimiter = vi.fn((_req, _res, next) => next());
+    const f = await fixture({ ...s, rateLimiter });
+    for (const waitMs of [0, 8_000]) {
+      expect((await f.call(`${workPath}?waitMs=${waitMs}`, null)).status).toBe(200);
+      expect(s.desktopWorkService.read).toHaveBeenLastCalledWith(
+        { userId: 'user-1' }, { conversationId, requestId }, { waitMs, signal: expect.any(AbortSignal) }
+      );
+    }
+    expect(rateLimiter).toHaveBeenCalledTimes(2);
+    expect(f.verifyDesktopAuth).toHaveBeenCalledTimes(2);
+    expect(f.commandService.session).toHaveBeenCalledTimes(2);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each(['-1', '8001', '1.5', '', 'NaN', 'Infinity', '1e3', '0001', '1&waitMs=2'])('rejects malformed waitMs=%s before a status lookup', async (waitMs) => {
+    const s = services();
+    const f = await fixture(s);
+    const response = await f.call(`${workPath}?waitMs=${waitMs}`, null);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: 'INVALID_DESKTOP_REQUEST' } });
+    expect(s.desktopWorkService.read).not.toHaveBeenCalled();
+  });
+
+  it('authenticates bounded waits before query parsing and rejects a tenant mismatch before work', async () => {
+    const s = services();
+    const commandService = { session: vi.fn().mockResolvedValue({ userId: 'different-owner', tenantBound: true }) };
+    const f = await fixture({ ...s, commandService });
+    expect((await f.call(`${workPath}?waitMs=invalid`, null, { headers: {} })).status).toBe(401);
+    expect(commandService.session).not.toHaveBeenCalled();
+    expect((await f.call(`${workPath}?waitMs=8000`, null)).status).toBe(403);
+    expect(s.desktopWorkService.read).not.toHaveBeenCalled();
+  });
+
+  it('aborts an outstanding status wait on disconnect without cancelling or restarting work', async () => {
+    const s = services();
+    let markStarted;
+    const started = new Promise((resolve) => { markStarted = resolve; });
+    let waitSignal;
+    s.desktopWorkService.read.mockImplementation((_auth, _identity, { signal }) => new Promise((_resolve, reject) => {
+      waitSignal = signal;
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      markStarted();
+    }));
+    const f = await fixture(s);
+    const controller = new AbortController();
+    const request = f.call(`${workPath}?waitMs=8000`, null, { signal: controller.signal });
+    const rejected = expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    await started;
+    controller.abort();
+    await rejected;
+    await vi.waitFor(() => expect(waitSignal.aborted).toBe(true));
+    expect(s.desktopWorkService.read).toHaveBeenCalledOnce();
+    expect(s.desktopWorkService.cancel).not.toHaveBeenCalled();
+    expect(s.desktopWorkService.start).not.toHaveBeenCalled();
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
 

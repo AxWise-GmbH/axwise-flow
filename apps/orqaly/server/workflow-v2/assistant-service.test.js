@@ -1318,6 +1318,84 @@ describe('assistant service', () => {
     ]);
   });
 
+  it('uses status-only reads without optional event mirroring or redispatch on a missing operation', async () => {
+    const h = harness({ submitResult: {
+      status: 'accepted', statusUrl: 'https://axwise.example/status', retryAfterSeconds: 2,
+    } });
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Research the EU AI Act.' });
+    h.axwiseClient.events = vi.fn();
+    h.axwiseClient.poll.mockRejectedValue(new AxWiseDispatchError('not found', {
+      retryable: true, errorClass: 'AXWISE_OPERATION_NOT_FOUND', status: 404, disposition: 'not_found',
+    }));
+
+    await expect(h.service.resume(auth, threadId, turnId, { statusOnly: true }))
+      .rejects.toMatchObject({ code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 });
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.poll).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.events).not.toHaveBeenCalled();
+    expect(h.repository.messages).toHaveLength(1);
+
+    // Explicit legacy resume still has its original same-operation recovery.
+    delete h.axwiseClient.events;
+    await h.service.resume(auth, threadId, turnId);
+    expect(h.axwiseClient.submit).toHaveBeenCalledTimes(2);
+    expect(h.axwiseClient.submit.mock.calls[1][0]).toEqual(h.axwiseClient.submit.mock.calls[0][0]);
+  });
+
+  it('does not execute a local route or bypass ownership during a status-only read', async () => {
+    const h = harness({ submitResult: {
+      status: 'accepted', statusUrl: 'https://axwise.example/status', retryAfterSeconds: 2,
+    } });
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Research the EU AI Act.' });
+    const ownedRead = vi.spyOn(h.repository, 'loadAssistantThread').mockResolvedValueOnce(null);
+    await expect(h.service.resume({ userId: 'user_other' }, threadId, turnId, { statusOnly: true }))
+      .rejects.toMatchObject({ status: 404 });
+    expect(ownedRead).toHaveBeenCalledWith(tenantId, threadId, 'user_other');
+    ownedRead.mockRestore();
+    h.repository.messages[0].route = 'PROPOSE_GOAL';
+    await expect(h.service.resume(auth, threadId, turnId, { statusOnly: true }))
+      .rejects.toMatchObject({ code: 'ASSISTANT_TURN_NOT_RESUMABLE' });
+    expect(h.axwiseClient.poll).not.toHaveBeenCalled();
+    expect(h.repository.messages).toHaveLength(1);
+    expect(h.workflowCommandService.start).not.toHaveBeenCalled();
+    expect(h.workflowCommandService.startFromAssistant).not.toHaveBeenCalled();
+  });
+
+  it('propagates an aborted status-only read without persisting failure or scheduling recovery', async () => {
+    const h = harness({ submitResult: {
+      status: 'accepted', statusUrl: 'https://axwise.example/status', retryAfterSeconds: 2,
+    } });
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Research the EU AI Act.' });
+    const controller = new AbortController();
+    h.axwiseClient.poll.mockImplementation(async (_url, _operationId, _tenantId, { signal }) => {
+      expect(signal).toBe(controller.signal);
+      controller.abort();
+      signal.throwIfAborted();
+    });
+    await expect(h.service.resume(auth, threadId, turnId, { statusOnly: true, signal: controller.signal }))
+      .rejects.toMatchObject({ name: 'AbortError' });
+    expect(h.repository.messages).toHaveLength(1);
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.cancel).not.toHaveBeenCalled();
+    expect(h.repository.events.some((event) => event.type === 'failed')).toBe(false);
+  });
+
+  it('returns a persisted cancellation request without replaying the cancellation POST', async () => {
+    const h = harness({ submitResult: {
+      status: 'accepted', statusUrl: 'https://axwise.example/status', retryAfterSeconds: 2,
+    } });
+    await h.service.send(auth, threadId, { turnId, issuedAt, message: 'Research the EU AI Act.' });
+    h.axwiseClient.cancel.mockResolvedValue(forEnvelope({
+      status: 'cancel_requested', retryAfterSeconds: 2,
+    }, h.axwiseClient.submit.mock.calls[0][0]));
+    await h.service.cancel(auth, threadId, turnId);
+    const result = await h.service.resume(auth, threadId, turnId, { statusOnly: true });
+    expect(result).toMatchObject({ persisted: false, message: { parts: [expect.objectContaining({ status: 'cancel_requested' })] } });
+    expect(h.axwiseClient.cancel).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.poll).not.toHaveBeenCalled();
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
   it('cancels a pending operation idempotently and persists the terminal projection', async () => {
     const h = harness({
       submitResult: {

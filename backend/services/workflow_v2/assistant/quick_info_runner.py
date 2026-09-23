@@ -7,6 +7,7 @@ import os
 import re
 import time
 from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable
 from urllib.parse import urlsplit
 
@@ -27,6 +28,7 @@ from backend.services.workflow_v2.cognitive.typesafe_triage import (
 DEFAULT_QUICK_INFO_DEADLINE_SECONDS = 15.0
 DEFAULT_QUICK_INFO_TTL_SECONDS = 120.0
 MAX_QUICK_INFO_CACHE_ENTRIES = 256
+_QuickInfoCacheKey = tuple[str, str, bool, str]
 
 
 class AssistantQuickInfoError(RuntimeError):
@@ -95,6 +97,20 @@ def _markdown_source_url(url: str) -> str:
     return url.replace("<", "%3C").replace(">", "%3E")
 
 
+def _plain_cited_statement(value: str) -> str:
+    """Remove display markup, never add prose outside the cited byte range."""
+
+    value = value.strip()
+    # Gemini sometimes includes the preceding inline citation in the next
+    # annotation. It is a citation marker, not another headline or event.
+    value = re.sub(r"^(?:\(?\[[^\]\n]{1,200}\]\(https://[^\s)]+\)\)?\s*)+", "", value)
+    value = re.sub(r"(?:\*\*)?Source:(?:\*\*)?\s*\[[^\]\n]+\]\(https://[^\s)]+\)\s*$", "", value)
+    value = re.sub(r"^(?:[-*+•]\s+|\d{1,3}[.)]\s+)", "", value)
+    value = re.sub(r"\*\*([^*\n]+)\*\*", r"\1", value)
+    value = re.sub(r"\[([^\]\n]+)\]\(https://[^\s)]+\)", r"\1", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
 def _grounded_answer(
     response: Any, *, query: str,
 ) -> tuple[str, tuple[QuickInfoSource, ...], tuple[QuickInfoFact, ...]] | None:
@@ -115,6 +131,7 @@ def _grounded_answer(
             if not isinstance(text, str) or not text:
                 continue
             encoded = text.encode("utf-8")
+            spans: dict[tuple[int, int], set[str]] = {}
             for annotation in getattr(content, "annotations", None) or []:
                 if getattr(annotation, "type", None) != "url_citation":
                     continue
@@ -148,7 +165,20 @@ def _grounded_answer(
                 if not title:
                     title = (urlsplit(url).hostname or "Source")[:500]
                 sources.setdefault(url, QuickInfoSource(title=title, url=url))
-                fact_urls.setdefault(statement, set()).add(url)
+                spans.setdefault((start, end), set()).add(url)
+            for (start, end), urls in sorted(spans.items()):
+                # Nested citations often repeat the same event with successively
+                # longer prefixes. Keep the complete cited span and ONLY its own
+                # supporting URLs; a prefix citation cannot support added details.
+                if any(
+                    outer_start <= start and end <= outer_end
+                    and (outer_start, outer_end) != (start, end)
+                    for outer_start, outer_end in spans
+                ):
+                    continue
+                statement = _plain_cited_statement(encoded[start:end].decode("utf-8"))
+                if statement:
+                    fact_urls.setdefault(statement, set()).update(urls)
     if not sources or not fact_urls:
         return None
     facts = tuple(
@@ -180,7 +210,7 @@ def _grounded_answer(
 
 
 class GeminiAssistantQuickInfoRunner:
-    """Run search and optional JEV route admission concurrently, then fail closed."""
+    """Run bounded search and optional JEV route advice, publishing only cited facts."""
 
     def __init__(
         self,
@@ -193,6 +223,7 @@ class GeminiAssistantQuickInfoRunner:
         deadline_seconds: float = DEFAULT_QUICK_INFO_DEADLINE_SECONDS,
         ttl_seconds: float = DEFAULT_QUICK_INFO_TTL_SECONDS,
         clock=time.monotonic,
+        now: Callable[[], datetime] | None = None,
     ) -> None:
         if deadline_seconds <= 0 or deadline_seconds > 60:
             raise ValueError("quick-info deadline must be within one minute")
@@ -206,14 +237,15 @@ class GeminiAssistantQuickInfoRunner:
         self.deadline_seconds = deadline_seconds
         self.ttl_seconds = ttl_seconds
         self.clock = clock
+        self.now = now or (lambda: datetime.now(timezone.utc))
         self._owns_client = client is None
         self._cache: dict[
-            tuple[str, str, bool], tuple[float, AssistantQuickInfoResult]
+            _QuickInfoCacheKey, tuple[float, AssistantQuickInfoResult]
         ] = {}
         self._inflight: dict[
-            tuple[str, str, bool], asyncio.Task[AssistantQuickInfoResult]
+            _QuickInfoCacheKey, asyncio.Task[AssistantQuickInfoResult]
         ] = {}
-        self._waiters: dict[tuple[str, str, bool], int] = {}
+        self._waiters: dict[_QuickInfoCacheKey, int] = {}
         self._lock = asyncio.Lock()
 
     async def quick_info(
@@ -233,10 +265,15 @@ class GeminiAssistantQuickInfoRunner:
             raise ValueError("quick-info location is outside the accepted boundary")
         if type(jev_enabled) is not bool:
             raise ValueError("quick-info JEV selection must be explicit")
+        requested_at = self.now()
+        if not isinstance(requested_at, datetime) or requested_at.tzinfo is None:
+            raise ValueError("quick-info wall clock must be timezone-aware")
+        requested_at = requested_at.astimezone(timezone.utc)
         key = (
             normalized_query.casefold(),
             normalized_location.casefold(),
             jev_enabled,
+            requested_at.date().isoformat(),
         )
         now = self.clock()
         async with self._lock:
@@ -263,6 +300,7 @@ class GeminiAssistantQuickInfoRunner:
                         normalized_query,
                         location=normalized_location or None,
                         jev_enabled=jev_enabled,
+                        requested_at=requested_at,
                     )
                 )
                 self._inflight[key] = task
@@ -288,7 +326,7 @@ class GeminiAssistantQuickInfoRunner:
 
     async def _release_waiter(
         self,
-        key: tuple[str, str, bool],
+        key: _QuickInfoCacheKey,
         task: asyncio.Task[AssistantQuickInfoResult],
     ) -> None:
         cancel = False
@@ -306,13 +344,38 @@ class GeminiAssistantQuickInfoRunner:
             await asyncio.gather(task, return_exceptions=True)
 
     async def _generate(
-        self, query: str, *, location: str | None, jev_enabled: bool
+        self, query: str, *, location: str | None, jev_enabled: bool,
+        requested_at: datetime,
     ) -> AssistantQuickInfoResult:
+        week_start = requested_at.date() - timedelta(days=requested_at.weekday())
+        week_end = week_start + timedelta(days=6)
         prompt = (
+            f"Trusted current UTC timestamp: {requested_at.isoformat()}. "
+            f"Current UTC calendar week (Monday-Sunday): {week_start.isoformat()} "
+            f"through {week_end.isoformat()}. Resolve relative dates such as today "
+            "or this week in the requested location's local time, using this UTC "
+            "timestamp as the clock anchor; explicit requested dates take precedence. "
             "Use Google Search once to give a concise, direct answer to this narrow current "
             "public-information request. Cite every factual statement with URL citations. "
+            "Write plain-text sentences, one item per paragraph. Do not add Markdown "
+            "emphasis, tables, nested lists, explicit links or Source labels in the prose; "
+            "use native URL citation annotations for sources. Each event should be one "
+            "complete concise sentence, not separate Date/Venue/Locality fields. "
             "For local news, return at most three fresh items, each as a separate short "
-            "sentence with its own URL citation. Opening hours, sports scores "
+            "sentence with its own URL citation and publication date where available. "
+            "For latest news, prefer reports from the last 72 hours; return fewer items "
+            "rather than pad the answer with old stories. Never invent publication dates. "
+            "Local headlines must concern the requested city or its immediate area, "
+            "not unrelated national or international stories. "
+            "For event or party discovery, return a short list of verified matching "
+            "events with each event's date, venue, locality, and direct event source. "
+            "Preserve the request's dates, place, genre and radius constraints; do not "
+            "replace them with a generic keyword search. Exclude past or out-of-window "
+            "events unless requested. Only claim an event is within a requested radius "
+            "when its location supports that claim; do not invent distances or imply "
+            "exhaustive area coverage. When a radius is requested, also look for "
+            "matching listings in nearby towns, without padding with unrelated events. "
+            "Opening hours, sports scores "
             "or schedules, and current public facts should be answered directly. Do not do "
             "deep research, repository or device work, private or account-data access, or "
             "consequential medical, legal, or financial advice. Do not add uncited factual "
@@ -356,7 +419,13 @@ class GeminiAssistantQuickInfoRunner:
                             "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH",
                             retryable=False,
                         )
-                    if not decision.confidently_quick_info:
+                    # Confidence describes lane ambiguity, not whether a public
+                    # lookup is authorized. A valid quick-info winner may still
+                    # answer through this search-only lane under the same time
+                    # budget and citation checks. Explicit other-route decisions,
+                    # ties/inconsistent choices, and provider failures remain
+                    # failures; this never enables research, local tools or actions.
+                    if not decision.quick_info_is_unique_winner:
                         raise AssistantQuickInfoError(
                             "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNCERTAIN",
                             retryable=False,
@@ -406,7 +475,7 @@ class GeminiAssistantQuickInfoRunner:
 
     async def _settle(
         self,
-        key: tuple[str, str, bool],
+        key: _QuickInfoCacheKey,
         task: asyncio.Task[AssistantQuickInfoResult],
     ) -> None:
         try:
