@@ -99,6 +99,31 @@ temp/
 !/scripts/run-local-reset-preview.mjs
 !/scripts/sync-local-desktop-utilities.mjs
 
+# Local Axwise specialist package and isolated comparison tooling.
+!/packages/axwise-local/
+!/scripts/benchmark-local-axwise.mjs
+!/scripts/benchmark-local-axwise.test.mjs
+!/scripts/smoke-local-axwise.mjs
+!/scripts/benchmark-axwise-quality.mjs
+!/scripts/benchmark-axwise-quality.test.mjs
+!/scripts/fixtures/
+/scripts/fixtures/*
+!/scripts/fixtures/local-axwise-quality/
+/scripts/fixtures/local-axwise-quality/*
+!/scripts/fixtures/local-axwise-quality/repair-handoffs.json
+!/scripts/fixtures/local-axwise-quality/volunteer-shifts.json
+!/backend/
+/backend/*
+!/backend/services/
+/backend/services/*
+!/backend/services/local_axwise/
+!/backend/services/workflow_v2/
+/backend/services/workflow_v2/*
+!/backend/services/workflow_v2/cognitive_factory.py
+!/backend/tests/
+/backend/tests/*
+!/backend/tests/local_axwise/
+
 # Reviewed Orqaly monorepo CI; local/unreviewed GitHub helpers stay ignored.
 !/.github/
 /.github/*

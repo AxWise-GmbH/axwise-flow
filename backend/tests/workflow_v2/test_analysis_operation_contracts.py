@@ -11,6 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 from pydantic import TypeAdapter
+from starlette.requests import Request
 
 from backend.api.workflow_v2_app import capability_validation_error
 from backend.domain.workflow_v2 import contracts
@@ -70,7 +71,18 @@ async def test_assistant_v2_validation_errors_do_not_echo_capability_input():
         }
     )
 
-    response = await capability_validation_error(None, error)  # type: ignore[arg-type]
+    http_request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "scheme": "https",
+            "server": ("testserver", 443),
+            "path": "/v2/operations",
+            "query_string": b"",
+            "headers": [],
+        }
+    )
+    response = await capability_validation_error(http_request, error)  # type: ignore[arg-type]
 
     assert response.status_code == 422
     payload = json.loads(response.body)
