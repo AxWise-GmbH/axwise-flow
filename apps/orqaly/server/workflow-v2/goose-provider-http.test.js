@@ -33,6 +33,8 @@ describe('desktop context and bounded work routes', () => {
         cancel: vi.fn(async (_auth, input) => ({ ...DesktopWorkIdentitySchema.parse(input), status: 'cancel_requested' })),
         events: vi.fn(async () => ({ events: [], cursor: 0 })),
       },
+      informationService: { lookup: vi.fn(async (_auth, input) => ({ ...input, status: 'completed' })) },
+      decisionService: { decide: vi.fn(async (_auth, input) => ({ ...input, decision: 'queue' })) },
     };
   }
 
@@ -43,6 +45,7 @@ describe('desktop context and bounded work routes', () => {
       ['/work', '{invalid'], [workPath, null], [`${workPath}/cancel`, {}],
       [`${workPath}/events`, null], [`/goals/${runId}/context`, null],
       [`/goals/${runId}/artifacts/${artifactId}`, null],
+      ['/information', '{invalid'], ['/decisions', '{invalid'],
     ]) {
       const response = await f.call(path, payload, { headers: { 'Content-Type': 'application/json' } });
       expect(response.status).toBe(401);
@@ -69,6 +72,12 @@ describe('desktop context and bounded work routes', () => {
     expect(s.desktopContextService.read).toHaveBeenCalledWith({ userId: 'user-1' }, runId);
     expect((await f.call(`/goals/${runId}/artifacts/${artifactId}`, null)).status).toBe(200);
     expect(s.desktopContextService.artifact).toHaveBeenCalledWith({ userId: 'user-1' }, runId, artifactId);
+    expect((await f.call('/information', body)).status).toBe(200);
+    expect(s.informationService.lookup).toHaveBeenCalledWith({ userId: 'user-1' }, body,
+      { signal: expect.any(AbortSignal) });
+    const decision = { kind: 'message_disposition', incomingMessage: 'Also add a test.' };
+    expect((await f.call('/decisions', decision)).status).toBe(200);
+    expect(s.decisionService.decide).toHaveBeenCalledWith({ userId: 'user-1' }, decision);
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
 

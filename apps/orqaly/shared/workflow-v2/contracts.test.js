@@ -243,6 +243,7 @@ describe('workflow v2 contracts', () => {
       capability: {
         kind: 'quick_info',
         location: 'Bremen',
+        discoveryKind: 'news',
         routingMode: 'jev',
       },
     });
@@ -250,6 +251,7 @@ describe('workflow v2 contracts', () => {
     expect(input.capability).toEqual({
       kind: 'quick_info',
       location: 'Bremen',
+      discoveryKind: 'news',
       routingMode: 'jev',
     });
     expect(() => AssistantTurnInputV2Schema.parse({

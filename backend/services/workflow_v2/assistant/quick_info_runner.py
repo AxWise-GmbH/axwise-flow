@@ -8,7 +8,7 @@ import re
 import time
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Literal
 from urllib.parse import urlsplit
 
 from google import genai
@@ -28,7 +28,8 @@ from backend.services.workflow_v2.cognitive.typesafe_triage import (
 DEFAULT_QUICK_INFO_DEADLINE_SECONDS = 15.0
 DEFAULT_QUICK_INFO_TTL_SECONDS = 120.0
 MAX_QUICK_INFO_CACHE_ENTRIES = 256
-_QuickInfoCacheKey = tuple[str, str, bool, str]
+DiscoveryKind = Literal["news", "events", "current_facts"]
+_QuickInfoCacheKey = tuple[str, str, bool, str, str]
 
 
 class AssistantQuickInfoError(RuntimeError):
@@ -61,6 +62,7 @@ class AssistantQuickInfoResult:
     output_tokens: int | None
     search_calls: int
     cache_hit: bool = False
+    outcome: str = "complete"
 
 
 def _usage_value(response: Any, name: str) -> int | None:
@@ -104,7 +106,9 @@ def _plain_cited_statement(value: str) -> str:
     # Gemini sometimes includes the preceding inline citation in the next
     # annotation. It is a citation marker, not another headline or event.
     value = re.sub(r"^(?:\(?\[[^\]\n]{1,200}\]\(https://[^\s)]+\)\)?\s*)+", "", value)
-    value = re.sub(r"(?:\*\*)?Source:(?:\*\*)?\s*\[[^\]\n]+\]\(https://[^\s)]+\)\s*$", "", value)
+    value = re.sub(
+        r"(?:\*\*)?Source:(?:\*\*)?\s*\[[^\]\n]+\]\(https://[^\s)]+\)\s*$", "", value
+    )
     value = re.sub(r"^(?:[-*+•]\s+|\d{1,3}[.)]\s+)", "", value)
     value = re.sub(r"\*\*([^*\n]+)\*\*", r"\1", value)
     value = re.sub(r"\[([^\]\n]+)\]\(https://[^\s)]+\)", r"\1", value)
@@ -112,7 +116,10 @@ def _plain_cited_statement(value: str) -> str:
 
 
 def _grounded_answer(
-    response: Any, *, query: str,
+    response: Any,
+    *,
+    query: str,
+    discovery_kind: DiscoveryKind | None = None,
 ) -> tuple[str, tuple[QuickInfoSource, ...], tuple[QuickInfoFact, ...]] | None:
     """Project only URL-cited byte ranges, discarding any uncited model prose."""
 
@@ -171,7 +178,8 @@ def _grounded_answer(
                 # longer prefixes. Keep the complete cited span and ONLY its own
                 # supporting URLs; a prefix citation cannot support added details.
                 if any(
-                    outer_start <= start and end <= outer_end
+                    outer_start <= start
+                    and end <= outer_end
                     and (outer_start, outer_end) != (start, end)
                     for outer_start, outer_end in spans
                 ):
@@ -188,13 +196,13 @@ def _grounded_answer(
         )
         for statement, urls in list(fact_urls.items())[:50]
     )
-    headlines = re.search(r"\b(?:headlines?|news)\b", query, re.IGNORECASE) is not None
+    headlines = discovery_kind == "news" or (
+        re.search(r"\b(?:headlines?|news)\b", query, re.IGNORECASE) is not None
+    )
     if headlines:
         facts = facts[:3]
     cited_urls = {url for fact in facts for url in fact.source_urls}
-    ordered_sources = tuple(
-        sources[url] for url in utf16_ordinal_sorted(cited_urls)
-    )
+    ordered_sources = tuple(sources[url] for url in utf16_ordinal_sorted(cited_urls))
     lines = []
     for fact in facts:
         links = " ".join(
@@ -224,6 +232,7 @@ class GeminiAssistantQuickInfoRunner:
         ttl_seconds: float = DEFAULT_QUICK_INFO_TTL_SECONDS,
         clock=time.monotonic,
         now: Callable[[], datetime] | None = None,
+        verify_discovery: bool = False,
     ) -> None:
         if deadline_seconds <= 0 or deadline_seconds > 60:
             raise ValueError("quick-info deadline must be within one minute")
@@ -238,6 +247,7 @@ class GeminiAssistantQuickInfoRunner:
         self.ttl_seconds = ttl_seconds
         self.clock = clock
         self.now = now or (lambda: datetime.now(timezone.utc))
+        self.verify_discovery = verify_discovery
         self._owns_client = client is None
         self._cache: dict[
             _QuickInfoCacheKey, tuple[float, AssistantQuickInfoResult]
@@ -254,6 +264,7 @@ class GeminiAssistantQuickInfoRunner:
         *,
         location: str | None,
         jev_enabled: bool,
+        discovery_kind: DiscoveryKind | None = None,
     ) -> AssistantQuickInfoResult:
         normalized_query = re.sub(r"\s+", " ", query).strip()
         normalized_location = (
@@ -265,6 +276,8 @@ class GeminiAssistantQuickInfoRunner:
             raise ValueError("quick-info location is outside the accepted boundary")
         if type(jev_enabled) is not bool:
             raise ValueError("quick-info JEV selection must be explicit")
+        if discovery_kind not in {None, "news", "events", "current_facts"}:
+            raise ValueError("quick-info discovery kind is invalid")
         requested_at = self.now()
         if not isinstance(requested_at, datetime) or requested_at.tzinfo is None:
             raise ValueError("quick-info wall clock must be timezone-aware")
@@ -273,6 +286,7 @@ class GeminiAssistantQuickInfoRunner:
             normalized_query.casefold(),
             normalized_location.casefold(),
             jev_enabled,
+            discovery_kind or "",
             requested_at.date().isoformat(),
         )
         now = self.clock()
@@ -300,6 +314,7 @@ class GeminiAssistantQuickInfoRunner:
                         normalized_query,
                         location=normalized_location or None,
                         jev_enabled=jev_enabled,
+                        discovery_kind=discovery_kind,
                         requested_at=requested_at,
                     )
                 )
@@ -344,9 +359,15 @@ class GeminiAssistantQuickInfoRunner:
             await asyncio.gather(task, return_exceptions=True)
 
     async def _generate(
-        self, query: str, *, location: str | None, jev_enabled: bool,
+        self,
+        query: str,
+        *,
+        location: str | None,
+        jev_enabled: bool,
+        discovery_kind: DiscoveryKind | None,
         requested_at: datetime,
     ) -> AssistantQuickInfoResult:
+        started = asyncio.get_running_loop().time()
         week_start = requested_at.date() - timedelta(days=requested_at.weekday())
         week_end = week_start + timedelta(days=6)
         prompt = (
@@ -383,15 +404,21 @@ class GeminiAssistantQuickInfoRunner:
         )
         if location is not None:
             prompt += f"\nUser-supplied location context: {location}"
+        if discovery_kind is not None:
+            prompt += f"\nCaller-selected discovery kind: {discovery_kind}"
 
-        async def search() -> Any:
-            return await self.client.aio.interactions.create(
+        responses = []
+
+        async def search(input_prompt: str = prompt) -> Any:
+            response = await self.client.aio.interactions.create(
                 model=RESEARCH_MODEL,
-                input=prompt,
+                input=input_prompt,
                 tools=[{"type": "google_search"}],
                 generation_config={"thinking_level": "low"},
                 store=False,
             )
+            responses.append(response)
+            return response
 
         async def run() -> AssistantQuickInfoResult:
             search_task = asyncio.create_task(search())
@@ -399,22 +426,9 @@ class GeminiAssistantQuickInfoRunner:
                 if jev_enabled:
                     try:
                         decision = await self.route_classifier(query, location)
-                    except QuickInfoRouteUnavailable:
-                        raise AssistantQuickInfoError(
-                            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE",
-                            retryable=True,
-                        ) from None
                     except Exception:
-                        raise AssistantQuickInfoError(
-                            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE",
-                            retryable=True,
-                        ) from None
-                    if decision is None:
-                        raise AssistantQuickInfoError(
-                            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE",
-                            retryable=True,
-                        )
-                    if decision.route != "quick_info":
+                        decision = None
+                    if decision is not None and decision.route != "quick_info":
                         raise AssistantQuickInfoError(
                             "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH",
                             retryable=False,
@@ -423,9 +437,13 @@ class GeminiAssistantQuickInfoRunner:
                     # lookup is authorized. A valid quick-info winner may still
                     # answer through this search-only lane under the same time
                     # budget and citation checks. Explicit other-route decisions,
-                    # ties/inconsistent choices, and provider failures remain
-                    # failures; this never enables research, local tools or actions.
-                    if not decision.quick_info_is_unique_winner:
+                    # ties/inconsistent choices remain failures. Provider outage
+                    # retains the caller's explicit read-only lookup, never opens
+                    # research, local tools or actions.
+                    if (
+                        decision is not None
+                        and not decision.quick_info_is_unique_winner
+                    ):
                         raise AssistantQuickInfoError(
                             "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNCERTAIN",
                             retryable=False,
@@ -435,27 +453,146 @@ class GeminiAssistantQuickInfoRunner:
                 if not search_task.done():
                     search_task.cancel()
                     await asyncio.gather(search_task, return_exceptions=True)
-            grounded = _grounded_answer(response, query=query)
+            grounded = _grounded_answer(
+                response, query=query, discovery_kind=discovery_kind
+            )
             search_calls = _search_call_count(response)
             if grounded is None or search_calls < 1:
                 raise AssistantQuickInfoError(
                     "AXWISE_ASSISTANT_QUICK_INFO_UNGROUNDED", retryable=True
                 )
             markdown, sources, facts = grounded
+            outcome = "complete"
+            if self.verify_discovery:
+                from backend.services.workflow_v2.assistant.discovery_evidence import (
+                    resolve_discovery_kind,
+                    validate_discovery,
+                )
+
+                resolved_discovery_kind = resolve_discovery_kind(query, discovery_kind)
+                facts, sources, outcome = await validate_discovery(
+                    facts,
+                    sources,
+                    query=query,
+                    location=location,
+                    now=requested_at,
+                    jev_enabled=jev_enabled,
+                    discovery_kind=discovery_kind,
+                )
+                if (
+                    outcome == "no_verified_matches"
+                    and resolved_discovery_kind != "unknown_temporal"
+                ):
+                    remaining = (
+                        self.deadline_seconds
+                        - (asyncio.get_running_loop().time() - started)
+                        - 0.5
+                    )
+                    if remaining >= 5:
+                        # One bounded repair INSIDE this read-only capability,
+                        # never an AxWise workflow or local-shell fallback.
+                        rejected_publishers = ", ".join(
+                            source.title for source in grounded[1]
+                        )[:1000]
+
+                        async def repair():
+                            retry = await search(
+                                prompt
+                                + "\nThe first shortlist had no independently verifiable publisher items. "
+                                "Find DIFFERENT publishers or direct official venue/ticket/article detail pages with machine-readable dates. "
+                                "Do not cite category, city listings, homepages, or Resident Advisor pages that block retrieval. "
+                                "Do not repeat these publishers: " + rejected_publishers
+                            )
+                            projected = _grounded_answer(
+                                retry, query=query, discovery_kind=discovery_kind
+                            )
+                            if projected is None or _search_call_count(retry) < 1:
+                                return None
+                            checked = await validate_discovery(
+                                projected[2],
+                                projected[1],
+                                query=query,
+                                location=location,
+                                now=requested_at,
+                                jev_enabled=jev_enabled,
+                                discovery_kind=discovery_kind,
+                            )
+                            return retry, checked
+
+                        try:
+                            repaired = await asyncio.wait_for(
+                                repair(), timeout=remaining
+                            )
+                            if repaired is not None:
+                                retry, (facts, sources, outcome) = repaired
+                                search_calls += _search_call_count(retry)
+                        except Exception:
+                            pass  # Preserve the honest no-match result within budget.
+                if (
+                    re.search(r"\b(rank|ranking|best|recommend|top)\b", query, re.I)
+                    and len(facts) > 1
+                ):
+                    from backend.services.workflow_v2.cognitive.information_ranking import (
+                        rank_information,
+                    )
+
+                    remaining = (
+                        self.deadline_seconds
+                        - (asyncio.get_running_loop().time() - started)
+                        - 0.2
+                    )
+                    advice = await rank_information(
+                        query,
+                        [fact.statement for fact in facts],
+                        enabled=jev_enabled and remaining >= 0.2,
+                        timeout_seconds=min(1.0, max(0.1, remaining)),
+                    )
+                    facts = tuple(facts[index] for index in advice.order)
+                if outcome != "complete":
+                    by_url = {source.url: source for source in sources}
+                    lines = [
+                        f"- {_markdown_inline(fact.statement)} — "
+                        + " ".join(
+                            f"[{_markdown_inline(by_url[url].title)}](<{_markdown_source_url(url)}>)"
+                            for url in fact.source_urls
+                        )
+                        for fact in facts
+                    ]
+                    markdown = (
+                        (
+                            "\n".join(lines)
+                            + "\n\nOnly date- and locality-verified publisher items are shown; coverage may be incomplete."
+                        )
+                        if lines
+                        else (
+                            "I couldn’t verify current matching items from the available publisher pages. "
+                            "I have not substituted older stories or generic venue listings."
+                        )
+                    )
             version = getattr(response, "model", None)
             if not isinstance(version, str) or not re.fullmatch(
                 r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", version
             ):
                 version = None
+
+            def total_usage(name):
+                values = [_usage_value(item, name) for item in responses]
+                return (
+                    sum(value for value in values if value is not None)
+                    if any(value is not None for value in values)
+                    else None
+                )
+
             return AssistantQuickInfoResult(
                 markdown=markdown,
                 sources=sources,
                 facts=facts,
                 model=RESEARCH_MODEL,
                 model_version=version,
-                input_tokens=_usage_value(response, "total_input_tokens"),
-                output_tokens=_usage_value(response, "total_output_tokens"),
-                search_calls=search_calls,
+                input_tokens=total_usage("total_input_tokens"),
+                output_tokens=total_usage("total_output_tokens"),
+                search_calls=sum(_search_call_count(item) for item in responses),
+                outcome=outcome,
             )
 
         try:
@@ -491,7 +628,12 @@ class GeminiAssistantQuickInfoRunner:
                 return
             while len(self._cache) >= MAX_QUICK_INFO_CACHE_ENTRIES:
                 self._cache.pop(next(iter(self._cache)))
-            self._cache[key] = (self.clock() + self.ttl_seconds, result)
+            ttl = (
+                min(self.ttl_seconds, 15)
+                if result.outcome == "no_verified_matches"
+                else self.ttl_seconds
+            )
+            self._cache[key] = (self.clock() + ttl, result)
 
     async def close(self) -> None:
         async with self._lock:

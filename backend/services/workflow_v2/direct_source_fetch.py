@@ -349,6 +349,7 @@ async def fetch_direct_source(
     attempt_seconds: float = _DEFAULT_ATTEMPT_SECONDS,
     client: httpx.AsyncClient | None = None,
     url_validator: Callable[[str], bool] | None = None,
+    include_metadata: bool = False,
 ) -> dict[str, Any]:
     """Fetch one public textual document with per-hop SSRF and size gates."""
 
@@ -485,7 +486,12 @@ async def fetch_direct_source(
                         .replace("+00:00", "Z")
                         .replace(".000000Z", "Z")
                     )
+                    metadata = {}
+                    if include_metadata:
+                        from backend.services.workflow_v2.assistant.discovery_evidence import publisher_metadata
+                        metadata = {"metadata": publisher_metadata(b"".join(chunks).decode("utf-8", errors="replace"))}
                     return {
+                        **metadata,
                         "final_url": (
                             source_identity if celex_transport is not None else final_url
                         ),

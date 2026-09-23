@@ -128,6 +128,17 @@ class AssistantTurnService:
     async def execute(
         self, input_value: AssistantTurnInputV1 | AssistantTurnInputV2
     ) -> AssistantTurnCompletedResult:
+        from backend.services.workflow_v2.cognitive.typesafe_triage import jev_request_enabled
+        enabled = getattr(getattr(input_value, "capability", None), "jev_enabled", None)
+        token = jev_request_enabled.set(enabled is not False)
+        try:
+            return await self._execute_with_policy(input_value)
+        finally:
+            jev_request_enabled.reset(token)
+
+    async def _execute_with_policy(
+        self, input_value: AssistantTurnInputV1 | AssistantTurnInputV2
+    ) -> AssistantTurnCompletedResult:
         if isinstance(input_value, AssistantTurnInputV2):
             if input_value.capability.kind == "text":
                 return await self._execute_text(
@@ -277,10 +288,15 @@ class AssistantTurnService:
                 "AXWISE_ASSISTANT_CAPABILITY_UNSUPPORTED", retryable=False
             )
         try:
+            quick_info_options = {
+                "location": capability.location,
+                "jev_enabled": capability.routing_mode == "jev",
+            }
+            if capability.discovery_kind is not None:
+                quick_info_options["discovery_kind"] = capability.discovery_kind
             result = await self.quick_info_runner.quick_info(
                 input_value.message,
-                location=capability.location,
-                jev_enabled=capability.routing_mode == "jev",
+                **quick_info_options,
             )
         except ValueError as error:
             raise CognitiveExecutionFailure(
@@ -358,6 +374,10 @@ class AssistantTurnService:
                 error.code, retryable=error.retryable
             ) from error
 
+        return self.project_widget_result(result)
+
+    def project_widget_result(self, result) -> AssistantTurnCompletedResult:
+        """Pure typed projection shared by durable and stateless transports."""
         source = AssistantPresentationSourceV1(
             title=result.source.title,
             url=result.source.url,

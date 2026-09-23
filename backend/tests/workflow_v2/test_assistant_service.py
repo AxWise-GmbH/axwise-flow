@@ -276,6 +276,18 @@ class RecordingQuickInfoRunner:
         )
 
 
+class RecordingTypedQuickInfoRunner(RecordingQuickInfoRunner):
+    def __init__(self) -> None:
+        super().__init__()
+        self.discovery_kinds = []
+
+    async def quick_info(self, query, *, location, jev_enabled, discovery_kind):
+        self.discovery_kinds.append(discovery_kind)
+        return await super().quick_info(
+            query, location=location, jev_enabled=jev_enabled
+        )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("routing_mode", "jev_enabled"), [("jev", True), ("explicit", False)]
@@ -309,6 +321,27 @@ async def test_quick_info_returns_v1_grounded_answer_and_maps_routing_mode(
     assert result.metrics.output_tokens == 7
     assert result.metrics.search_calls == 1
     assert_persisted_assistant_turn_round_trips(result)
+
+
+@pytest.mark.asyncio
+async def test_quick_info_forwards_explicit_discovery_kind():
+    quick = RecordingTypedQuickInfoRunner()
+
+    await service(
+        grounded=None, conversation=None, quick_info_runner=quick
+    ).execute(
+        assistant_v2(
+            {
+                "kind": "quick_info",
+                "location": "Riga",
+                "discoveryKind": "news",
+                "routingMode": "explicit",
+            },
+            message="Jaunākās ziņas Rīgā",
+        )
+    )
+
+    assert quick.discovery_kinds == ["news"]
 
 
 @pytest.mark.asyncio

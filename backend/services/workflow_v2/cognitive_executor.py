@@ -3951,8 +3951,8 @@ def build_cognitive_executor(
     from backend.services.workflow_v2.assistant.image_runner import (
         GeminiAssistantImageRunner,
     )
-    from backend.services.workflow_v2.assistant.widget_runner import (
-        GeminiAssistantWidgetRunner,
+    from backend.services.workflow_v2.assistant.structured_widget_runner import (
+        StructuredWidgetRunner,
     )
     from backend.services.workflow_v2.assistant.quick_info_runner import (
         GeminiAssistantQuickInfoRunner,
@@ -4006,8 +4006,8 @@ def build_cognitive_executor(
         assistant_runner=assistant_runner,
         assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
         assistant_image_runner=GeminiAssistantImageRunner(api_key),
-        assistant_widget_runner=GeminiAssistantWidgetRunner(api_key),
-        assistant_quick_info_runner=GeminiAssistantQuickInfoRunner(api_key),
+        assistant_widget_runner=StructuredWidgetRunner(),
+        assistant_quick_info_runner=GeminiAssistantQuickInfoRunner(api_key, verify_discovery=True),
         solution_preparer=PydanticAISolutionPreparer(model),
         solution_preparer_v2=PydanticAINativeSolutionPreparer(model),
         **capability_generators,

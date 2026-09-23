@@ -90,11 +90,13 @@ def test_quick_info_contract_uses_message_and_explicit_routing_mode():
             "capability": {
                 "kind": "quick_info",
                 "location": "Bremen",
+                "discoveryKind": "current_facts",
                 "routingMode": "jev",
             },
         }
     )
     assert parsed.capability.kind == "quick_info"
+    assert parsed.capability.discovery_kind == "current_facts"
     assert parsed.capability.routing_mode == "jev"
     with pytest.raises(ValueError):
         AssistantTurnInputV2.model_validate(
@@ -106,6 +108,49 @@ def test_quick_info_contract_uses_message_and_explicit_routing_mode():
                 "capability": {"kind": "quick_info", "routingMode": "explicit"},
             }
         )
+
+
+@pytest.mark.asyncio
+async def test_discovery_kind_is_part_of_cache_identity_and_search_prompt():
+    create = AsyncMock(return_value=response())
+    runner = GeminiAssistantQuickInfoRunner(client=client_with(create), clock=lambda: 0)
+
+    await runner.quick_info(
+        "Latest Bremen update",
+        location="Bremen",
+        jev_enabled=False,
+        discovery_kind="news",
+    )
+    await asyncio.sleep(0)
+    await runner.quick_info(
+        "Latest Bremen update",
+        location="Bremen",
+        jev_enabled=False,
+        discovery_kind="current_facts",
+    )
+
+    assert create.await_count == 2
+    prompts = [call.kwargs["input"] for call in create.await_args_list]
+    assert "Caller-selected discovery kind: news" in prompts[0]
+    assert "Caller-selected discovery kind: current_facts" in prompts[1]
+
+
+@pytest.mark.asyncio
+async def test_unknown_untyped_temporal_check_fails_closed_without_extra_model_call():
+    create = AsyncMock(return_value=response())
+    runner = GeminiAssistantQuickInfoRunner(
+        client=client_with(create), verify_discovery=True
+    )
+
+    result = await runner.quick_info(
+        "Tell me what changed recently",
+        location=None,
+        jev_enabled=False,
+    )
+
+    assert result.outcome == "no_verified_matches"
+    assert result.facts == ()
+    assert create.await_count == 1
 
 
 @pytest.mark.asyncio
@@ -332,16 +377,15 @@ async def test_non_quick_route_cancels_search_and_is_non_retryable():
 
 
 @pytest.mark.asyncio
-async def test_unavailable_jev_is_retryable_without_fallback():
+async def test_unavailable_jev_preserves_explicit_read_only_lookup():
     create = AsyncMock(return_value=response())
     classify = AsyncMock(side_effect=QuickInfoRouteUnavailable("provider_unavailable"))
     runner = GeminiAssistantQuickInfoRunner(
         client=client_with(create), route_classifier=classify
     )
-    with pytest.raises(AssistantQuickInfoError) as error:
-        await runner.quick_info("Latest score?", location=None, jev_enabled=True)
-    assert error.value.code == "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE"
-    assert error.value.retryable is True
+    result = await runner.quick_info("Latest score?", location=None, jev_enabled=True)
+    assert result.search_calls == 1
+    create.assert_awaited_once()
 
 
 @pytest.mark.asyncio

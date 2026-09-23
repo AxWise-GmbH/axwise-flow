@@ -2476,7 +2476,7 @@ function imageBytesMatchMimeType(mimeType, bytes) {
   );
 }
 
-export const AssistantTextCapabilityV2Schema = z.object({ kind: z.literal('text') }).strict();
+export const AssistantTextCapabilityV2Schema = z.object({ kind: z.literal('text'), jevEnabled: z.boolean().optional() }).strict();
 
 export const AssistantImageGenerateCapabilityV2Schema = z
   .object({
@@ -2507,6 +2507,7 @@ export const AssistantQuickInfoCapabilityV2Schema = z
   .object({
     kind: z.literal('quick_info'),
     location: z.string().min(1).max(500).optional(),
+    discoveryKind: z.enum(['news', 'events', 'current_facts']).optional(),
     routingMode: z.enum(['jev', 'explicit']),
   })
   .strict();

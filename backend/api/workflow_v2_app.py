@@ -15,6 +15,10 @@ from backend.api.routes.workflow_v2_operations import (
     get_operation_service,
     router as workflow_v2_operations_router,
 )
+from backend.api.routes.desktop_information import (
+    router as information_router,
+    get_information_service,
+)
 
 
 @asynccontextmanager
@@ -24,6 +28,9 @@ async def lifespan(_app: FastAPI):
     if not await asyncio.to_thread(service.store.ready):
         raise RuntimeError("AxWise operation database is not ready")
     yield
+    if get_information_service.cache_info().currsize:
+        await get_information_service().close()
+    get_information_service.cache_clear()
     if get_operation_service.cache_info().currsize:
         service = get_operation_service()
         engine = getattr(service.store, "engine", None)
@@ -59,7 +66,7 @@ async def capability_validation_error(request: Request, error: RequestValidation
     operation_type = body.get("operationType") if type(body) is dict else None
     input_value = body.get("input") if type(body) is dict else None
     input_type = input_value.get("type") if type(input_value) is dict else None
-    if any(
+    if request.url.path == "/v2/information" or any(
         type(value) is str and value in capability_types
         for value in (operation_type, input_type)
     ):
@@ -92,3 +99,4 @@ async def readyz() -> dict[str, str]:
 
 
 app.include_router(workflow_v2_operations_router)
+app.include_router(information_router)
