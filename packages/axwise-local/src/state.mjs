@@ -127,7 +127,7 @@ export async function resolveArtifactReference(options, reference, signal) {
       || !(typeof record.candidate === 'string' || object(record.candidate))) throw new StateError();
     signal.throwIfAborted();
     const resultArtifact = record.resultArtifact;
-    if (resultArtifact && (!object(resultArtifact) || resultArtifact.schemaVersion !== 'orqanix.result.v1'
+    if (resultArtifact && (!object(resultArtifact) || !['orqanix.result.v1', 'axwise.result.v1'].includes(resultArtifact.schemaVersion)
       || !UUID.test(resultArtifact.artifactId || '') || resultArtifact.revisionId !== record.operationId
       || resultArtifact.path !== join(directory, `${record.operationId}.md`)
       || resultArtifact.sha256 !== digest(record.markdown))) throw new StateError();

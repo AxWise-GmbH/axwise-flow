@@ -114,7 +114,7 @@ export function createKernel({ python, kernelRoot, spawnImpl = spawn, timeoutMs 
   };
 }
 
-export function validateTools(description) {
+export function validateTools(description, { boundary = AXWISE_TOOL_BOUNDARY } = {}) {
   if (!object(description) || description.protocolVersion !== 1 || !Array.isArray(description.tools)
     || description.tools.length !== TOOL_NAMES.length || new Set(description.tools.map((t) => t?.name)).size !== TOOL_NAMES.length
     || description.tools.some((tool) => !object(tool) || !TOOL_NAMES.includes(tool.name)
@@ -122,14 +122,16 @@ export function validateTools(description) {
       || !object(tool.inputSchema) || tool.inputSchema.type !== 'object'))
     fail('KERNEL_INVALID', 'The local specialist tool definitions are invalid.');
   return description.tools.map(({ name, description: text, inputSchema }) => ({
-    name, description: `${text} ${AXWISE_TOOL_BOUNDARY}`,
+    name, description: `${text} ${boundary}`,
     inputSchema: providerSchema(inputSchema), annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   }));
 }
 
-async function readJson(response, signal) {
-  if (response.redirected || !response.headers.get('content-type')?.toLowerCase().startsWith('application/json') || !response.body)
+export async function readProviderJson(response, signal) {
+  if (response.redirected || !response.headers.get('content-type')?.toLowerCase().startsWith('application/json') || !response.body) {
+    await response.body?.cancel().catch(() => {});
     fail('PROVIDER_INVALID', 'The model returned an invalid response.');
+  }
   const reader = response.body.getReader(), chunks = []; let size = 0;
   try {
     while (true) {
@@ -177,7 +179,7 @@ export function createProvider({ apiUrl, accountHash, token, fetchImpl = fetch }
       if ([401, 403].includes(response.status)) fail('LOGIN_REQUIRED', 'Sign in with the expected account to use Axwise.');
       fail(response.status === 429 ? 'PROVIDER_BUSY' : 'PROVIDER_UNAVAILABLE', 'Axwise model inference is unavailable. No automatic retry was performed.');
     }
-    const data = await readJson(response, signal), choice = data?.choices?.[0];
+    const data = await readProviderJson(response, signal), choice = data?.choices?.[0];
     if (data?.choices?.length !== 1 || choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string'
       || !choice.message.content.trim() || choice.message.tool_calls?.length)
       fail('PROVIDER_INVALID', 'The model did not return a complete specialist artifact.');
@@ -225,15 +227,17 @@ function assertFinalized(value) {
 
 export function createSpecialistTools({ kernel, provider, stateDir, accountHash, conversationId,
   timeoutMs = 180_000, save = saveArtifact, journal = createJournal, resolveReference = resolveAnalysisReference,
-  now = () => performance.now(), newId = randomUUID } = {}) {
+  now = () => performance.now(), newId = randomUUID, presentation = 'orqanix' } = {}) {
   if (typeof kernel !== 'function' || typeof provider !== 'function' || !isAbsolute(stateDir || '')
     || !ACCOUNT_HASH.test(accountHash || '') || !CONVERSATION.test(conversationId || '')
-    || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 180_000) throw new Error('Invalid specialist configuration.');
+    || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 180_000
+    || !['orqanix', 'generic'].includes(presentation)) throw new Error('Invalid specialist configuration.');
   let busy = false;
   return async function call(tool, input, signal = new AbortController().signal) {
     const operationId = newId(), started = now();
     const timings = { prepareMs: 0, validateMs: 0, authMs: 0, inferenceMs: 0, authAndInferenceMs: 0 };
-    const stages = [], usage = { modelCalls: 0, model: 'orqaly-gemini', provider: 'authenticated-desktop-gateway' };
+    const stages = [], usage = { modelCalls: 0,
+      ...(provider.metadata ?? { model: 'orqaly-gemini', provider: 'authenticated-desktop-gateway' }) };
     const resultError = (code, message) => ({ content: [{ type: 'text', text: message }], isError: true,
       structuredContent: { operationId, conversationId, tool, status: 'failed', error: { code, message }, usage,
         execution: { orchestration: 'local', pipelineVersion: 'axwise.local-staged.v1', calls: usage.modelCalls, stages }, timings: { ...timings, totalMs: Math.round(now() - started) } } });
@@ -307,7 +311,19 @@ export function createSpecialistTools({ kernel, provider, stateDir, accountHash,
         usage.modelCalls += 1; stages.push(metric);
         try {
           const generated = await abortable(() => provider(payload, requestSignal), requestSignal);
-          if (stage === 'generation' || stage === 'repair' || stage.startsWith('interview_')) candidateUsage = { ...generated.usage, modelCalls: 1 };
+          for (const key of ['provider', 'model', 'requestedModel']) if (typeof generated.usage?.[key] === 'string') {
+            usage[key] = generated.usage[key]; metric[key] = generated.usage[key];
+          }
+          if (typeof generated.usage?.modelReported === 'boolean') {
+            usage.modelReported = generated.usage.modelReported; metric.modelReported = generated.usage.modelReported;
+          }
+          if (stage === 'generation' || stage === 'repair' || stage.startsWith('interview_')) {
+            // The deterministic kernel accepts a narrow candidate-usage schema.
+            // Transport-only metadata stays in aggregate/stage records instead.
+            candidateUsage = { modelCalls: 1 };
+            for (const key of ['inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'model', 'provider'])
+              if (generated.usage?.[key] !== undefined) candidateUsage[key] = generated.usage[key];
+          }
           metric.status = 'completed';
           metric.authAndInferenceMs = Math.round(now() - at);
           metric.inferenceMs = generated.timings?.providerMs ?? metric.authAndInferenceMs;
@@ -388,12 +404,12 @@ export function createSpecialistTools({ kernel, provider, stateDir, accountHash,
         ...(qualityReview ? { qualityReview } : {}),
         ...(hostEvidence && !Array.isArray(hostEvidence) ? { analysisReference: hostEvidence.reference } : {}),
         ...(hostArtifacts.length ? { references: hostArtifacts.map((item) => item.reference) } : {}),
-        execution: { orchestration: 'local', pipelineVersion: 'axwise.local-staged.v1', inference: 'authenticated-desktop-gateway', calls: usage.modelCalls, stages }, timings: { ...timings } };
+        execution: { orchestration: 'local', pipelineVersion: 'axwise.local-staged.v1', inference: usage.provider, calls: usage.modelCalls, stages }, timings: { ...timings } };
       const directory = await scopedDirectory(scope);
       const parent = parentArtifact?.resultArtifact;
       const resultTitle = String(finalized.artifact.title || finalized.markdown.match(/^#\s+(.+)$/m)?.[1] || '')
         .replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 256);
-      record.resultArtifact = { schemaVersion: 'orqanix.result.v1',
+      record.resultArtifact = { schemaVersion: presentation === 'orqanix' ? 'orqanix.result.v1' : 'axwise.result.v1',
         artifactId: parent?.artifactId ?? operationId,
         revisionId: operationId, parentRevisionId: parent ? parentArtifact.reference.operationId : null,
         title: resultTitle || tool.replaceAll('_', ' '),
@@ -406,8 +422,11 @@ export function createSpecialistTools({ kernel, provider, stateDir, accountHash,
       const reference = { operationId, sha256: artifact.sha256 };
       const linkTitle = record.resultArtifact.title.replace(/[\\\[\]]/g, '\\$&');
       const text = `${finalized.markdown}\n\nSaved result artifact: ${JSON.stringify(record.resultArtifact)}\n`
-        + `Open saved result: [${linkTitle}](orqanix-result:${operationId})\n`
-        + 'For the chat reply, use this exact result link and at most three short faithful bullets unless the user requested detail. Do not repeat the document or internal IDs, hashes and paths. Interview-guide questions are for participants, not a form for the chat user.\n'
+        + (presentation === 'orqanix'
+          ? `Open saved result: [${linkTitle}](orqanix-result:${operationId})\n`
+            + 'For the chat reply, use this exact result link and at most three short faithful bullets unless the user requested detail. Do not repeat the document or internal IDs, hashes and paths. Interview-guide questions are for participants, not a form for the chat user.\n'
+          : `Saved local Markdown artifact: ${JSON.stringify(record.resultArtifact.path)}.\n`
+            + 'For the chat reply, link to this saved Markdown file if your host supports local file links and use at most three short faithful bullets unless detail was requested. Do not claim a custom results panel or repeat the document and internal IDs. Interview-guide questions are for participants, not a form for the chat user.\n')
         + `Saved local Axwise JSON artifact: ${JSON.stringify(artifact.path)}.\n`
         + `Saved artifact reference: ${JSON.stringify(reference)}. Use references for a later specialist or revisionOf to revise this result.\n`
         + (tool === 'analyze_interviews' ? `To create a PRD from this exact frozen analysis, pass analysisArtifact: ${JSON.stringify(reference)}. Do not retype or relabel its interview sources.\n` : '');

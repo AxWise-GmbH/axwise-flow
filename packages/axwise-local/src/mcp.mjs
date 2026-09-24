@@ -46,8 +46,13 @@ async function* boundedLines(input) {
   if (oversized || text.trim()) yield oversized ? null : text;
 }
 
-export async function serveMcp({ tools, call, input = process.stdin, output = process.stdout }) {
+export const SUPPORTED_PROTOCOL_VERSIONS = Object.freeze(['2025-06-18', '2025-03-26', '2024-11-05']);
+
+export async function serveMcp({ tools, call, input = process.stdin, output = process.stdout,
+  instructions = AXWISE_CONVERSATION_POLICY, strictInitialization = false,
+  serverInfo = { name: 'axwise-local', version: '0.2.0' } }) {
   const active = new Map(), tasks = new Set(), seenCalls = new Set(); let initialized = false;
+  let protocolVersion = SUPPORTED_PROTOCOL_VERSIONS[0];
   const write = (message) => { if (!output.destroyed) output.write(`${JSON.stringify(message)}\n`); };
   const error = (id, code, message) => write({ jsonrpc: '2.0', id, error: { code, message } });
   try {
@@ -62,13 +67,18 @@ export async function serveMcp({ tools, call, input = process.stdin, output = pr
       if (!((typeof id === 'string' && id.length <= 256) || Number.isSafeInteger(id)) || active.has(id)
         || seenCalls.has(id)) { error(null, -32600, 'Invalid or duplicate request ID'); continue; }
       if (message.method === 'initialize') {
+        if (initialized) { error(id, -32600, 'Already initialized'); continue; }
+        const requested = message.params?.protocolVersion;
+        if (strictInitialization && typeof requested !== 'string') { error(id, -32602, 'An MCP protocol version is required'); continue; }
+        protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(requested) ? requested : SUPPORTED_PROTOCOL_VERSIONS[0];
         initialized = true;
-        write({ jsonrpc: '2.0', id, result: { protocolVersion: '2025-06-18', capabilities: { tools: {} },
-          serverInfo: { name: 'axwise-local', version: '0.2.0' },
-          instructions: AXWISE_CONVERSATION_POLICY } });
+        write({ jsonrpc: '2.0', id, result: { protocolVersion, capabilities: { tools: {} },
+          serverInfo,
+          instructions } });
       } else if (message.method === 'ping') write({ jsonrpc: '2.0', id, result: {} });
       else if (!initialized) error(id, -32002, 'Initialize first');
-      else if (message.method === 'tools/list') write({ jsonrpc: '2.0', id, result: { tools } });
+      else if (message.method === 'tools/list') write({ jsonrpc: '2.0', id, result: {
+        tools: protocolVersion === '2024-11-05' ? tools.map(({ annotations: _annotations, ...tool }) => tool) : tools } });
       else if (message.method === 'tools/call') {
         // A replay on this connection cannot trigger another paid inference,
         // including after a prior call completed. Bound memory without evicting
@@ -77,7 +87,12 @@ export async function serveMcp({ tools, call, input = process.stdin, output = pr
         seenCalls.add(id);
         const controller = new AbortController(); active.set(id, controller);
         const task = Promise.resolve().then(() => call(message.params?.name, message.params?.arguments ?? {}, controller.signal))
-          .then((result) => write({ jsonrpc: '2.0', id, result }))
+          .then((result) => {
+            // Older hosts still receive the complete text result and exact
+            // artifact references without an unsupported structured field.
+            if (protocolVersion !== '2025-06-18') { const { structuredContent: _structured, ...legacy } = result; result = legacy; }
+            write({ jsonrpc: '2.0', id, result });
+          })
           .catch(() => write({ jsonrpc: '2.0', id, result: { isError: true, content: [{ type: 'text', text: 'The local specialist could not complete this request.' }] } }))
           .finally(() => { active.delete(id); tasks.delete(task); });
         tasks.add(task);
