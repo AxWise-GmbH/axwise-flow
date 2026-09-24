@@ -256,6 +256,7 @@ const RuntimeAttestationCoreSchema = z
                 orqalyApiDatabaseUrl: z.string().regex(/^[1-9][0-9]*$/),
                 orqalyWorkerDatabaseUrl: z.string().regex(/^[1-9][0-9]*$/),
                 clerkSecretKey: z.string().regex(/^[1-9][0-9]*$/),
+                typesafeApiKey: z.string().regex(/^[1-9][0-9]*$/),
                 axwiseApiDatabaseUrl: z.string().regex(/^[1-9][0-9]*$/),
                 axwiseWorkerDatabaseUrl: z.string().regex(/^[1-9][0-9]*$/),
                 axwiseGeminiApiKey: z.string().regex(/^[1-9][0-9]*$/),

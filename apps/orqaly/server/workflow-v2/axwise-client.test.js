@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { canonicalHash } from '../../lib/workflow-v2/canonical.js';
 import { createAxWiseClient } from './axwise-client.js';
@@ -216,6 +217,40 @@ describe('AxWise Cloud Run client', () => {
       retryable: true,
       disposition: 'not_found',
     });
+  });
+
+  it('propagates status-read cancellation to the upstream GET without turning it into a retryable failure', async () => {
+    const controller = new AbortController();
+    let upstreamSignal;
+    let markStarted;
+    const started = new Promise((resolve) => { markStarted = resolve; });
+    const fetchImpl = vi.fn((_url, { signal }) => new Promise((_resolve, reject) => {
+      upstreamSignal = signal;
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      markStarted();
+    }));
+    const client = createAxWiseClient({ baseUrl: 'https://axwise.test', authHeaders: async () => ({}), fetchImpl });
+    const reason = new Error('status wait ended');
+    const result = expect(client.poll(client.deterministicStatusUrl(operationId, tenantId), operationId, tenantId,
+      { signal: controller.signal })).rejects.toBe(reason);
+    await started;
+    controller.abort(reason);
+    await result;
+    expect(upstreamSignal.aborted).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it('does not issue a status GET if cancellation happens while authenticating upstream', async () => {
+    const controller = new AbortController();
+    const fetchImpl = vi.fn();
+    const client = createAxWiseClient({
+      baseUrl: 'https://axwise.test',
+      authHeaders: async () => { controller.abort(); return {}; },
+      fetchImpl,
+    });
+    await expect(client.poll(client.deterministicStatusUrl(operationId, tenantId), operationId, tenantId,
+      { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('reads typed cursor events and cancels through tenant-bound operation endpoints', async () => {

@@ -354,6 +354,7 @@ function runtimeAttestation() {
           orqalyApiDatabaseUrl: '4',
           orqalyWorkerDatabaseUrl: '5',
           clerkSecretKey: '2',
+          typesafeApiKey: '11',
           axwiseApiDatabaseUrl: '6',
           axwiseWorkerDatabaseUrl: '7',
           axwiseGeminiApiKey: '8',
@@ -418,6 +419,7 @@ function validInput(live = liveEvidence()) {
       adminDatabasePassword: '10',
       clerkPublishableKey: '1',
       clerkSecretKey: '2',
+      typesafeApiKey: '11',
       orqalyIdentityDatabaseUrl: '3',
       orqalyApiDatabaseUrl: '4',
       orqalyWorkerDatabaseUrl: '5',
@@ -733,6 +735,14 @@ describe('workflow v2 Preview release manifest', () => {
     const build = buildAttestation();
     build.code.axwiseCommit = 'c'.repeat(40);
     expect(() => buildReleaseManifest(manifestArguments({ buildAttestation: build }))).toThrow();
+  });
+
+  it('requires the release and runtime attestations to select the same TypeSafe key version', () => {
+    const input = validInput();
+    input.secretVersions.typesafeApiKey = '12';
+    expect(() => buildReleaseManifest(manifestArguments({ input }))).toThrow(
+      /different secret versions/
+    );
   });
 
   it('rejects changed role bindings and arbitrary baseline markers', () => {

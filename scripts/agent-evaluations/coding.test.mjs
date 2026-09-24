@@ -57,6 +57,7 @@ test('extractVanillaSource accepts bounded JSON or fenced source and rejects pro
 test('vanilla arm runs the catalog prompt through hidden tests and Jev', async () => {
   const caseData = codingCase();
   const prompts = [];
+  let reviewRequest;
   const arm = await runVanillaCodingArm({
     caseData,
     apiBaseUrl: BASE,
@@ -73,7 +74,10 @@ test('vanilla arm runs the catalog prompt through hidden tests and Jev', async (
         usage: { inputTokens: 10, outputTokens: 20 },
       };
     },
-    jevEvaluator: passingReview,
+    jevEvaluator: async (args) => {
+      reviewRequest = args.request;
+      return passingReview(args);
+    },
   });
   assert.deepEqual(prompts, [caseData.prompt]);
   assert.equal(arm.status, 'completed');
@@ -85,6 +89,42 @@ test('vanilla arm runs the catalog prompt through hidden tests and Jev', async (
   assert.equal(arm.checks.jevStatus, 'passed');
   assert.equal(arm.evidence.execution, 'direct_model');
   assert.match(arm.evidence.tests.output, /"status":"passed"/);
+  assert.equal(reviewRequest.evidence.changedFilesStatus, 'captured');
+  assert.deepEqual(reviewRequest.evidence.changedFiles, [
+    { path: caseData.fixture.targetFilename, change: 'edited' },
+  ]);
+  assert.equal(reviewRequest.evidence.relevantIgnoredFilesChanged, false);
+  assert.equal(arm.evidence.changedFilesStatus, 'captured');
+  assert.deepEqual(arm.evidence.changedFiles, reviewRequest.evidence.changedFiles);
+  assert.equal(arm.evidence.relevantIgnoredFilesChanged, false);
+});
+
+test('vanilla arm preserves a non-passing Jev reason with its changed-file evidence', async () => {
+  const caseData = codingCase();
+  const arm = await runVanillaCodingArm({
+    caseData,
+    apiBaseUrl: BASE,
+    accountHash: ACCOUNT,
+    conversationId: 'evaluation-coding',
+    tokenProvider: TOKEN,
+    vanillaCall: async () => ({ output: passingSource(caseData), model: 'gemini-direct' }),
+    jevEvaluator: async ({ request }) => ({
+      taskId: request.taskId,
+      inputHash: request.inputHash,
+      evidenceHash: createHash('sha256').update(JSON.stringify(request.evidence)).digest('hex'),
+      review: {
+        status: 'not_evaluated',
+        advisory: true,
+        reason: 'missing_changed_file_evidence',
+      },
+    }),
+  });
+  assert.equal(arm.evaluation.verdict, 'not_evaluated');
+  assert.equal(arm.evidence.review.reason, 'missing_changed_file_evidence');
+  assert.equal(arm.evidence.changedFilesStatus, 'captured');
+  assert.deepEqual(arm.evidence.changedFiles, [
+    { path: caseData.fixture.targetFilename, change: 'edited' },
+  ]);
 });
 
 test('risky generated source fails before it can access ambient capabilities', async () => {

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "repair-handoffs",
+  "title": "Fictional repair-shop handoff pilot",
+  "provenance": "All people, statements and scenarios below are synthetic benchmark fixtures, not customer evidence.",
+  "analysis": {
+    "decisionQuestion": "What should a small repair-shop handoff pilot solve, which preferences genuinely conflict, and what remains unverified?",
+    "questions": [
+      "Which recurring needs are supported across these selected fictional interviews? Distinguish synthesis from merely repeating quotations.",
+      "Which preferences genuinely conflict, and which can coexist? Explain the source-backed distinction without inventing a conflict.",
+      "What decision-critical evidence is missing, and what should be tested before committing to requirements?"
+    ],
+    "outputs": ["jobs_pains"],
+    "transcripts": [
+      {
+        "id": "repair-mara",
+        "title": "Synthetic receptionist Mara",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "mara", "role": "participant", "questionId": "q1", "text": "I copy the same repair status from the technician chat into our customer email, and sometimes send yesterday's status. I want one current status and one named owner for each repair."},
+          {"speaker": "mara", "role": "participant", "questionId": "q2", "text": "Keep customer email. I do not want us copying updates manually. For every job, assigning a technician must require the dispatcher to approve it first, even when a technician is free."},
+          {"speaker": "mara", "role": "participant", "questionId": "q3", "text": "We have not measured minutes spent copying. I do not know what a new tool should cost."}
+        ]
+      },
+      {
+        "id": "repair-ivo",
+        "title": "Synthetic technician Ivo",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "ivo", "role": "participant", "questionId": "q1", "text": "A job sometimes has two owners while another has none. A shared queue should show the current repair status and the single person responsible."},
+          {"speaker": "ivo", "role": "participant", "questionId": "q2", "text": "For every job, assign the next free technician automatically without asking the dispatcher first. A dispatcher should only correct the assignment afterwards. Customer email can stay; it is the copying I dislike."},
+          {"speaker": "ivo", "role": "participant", "questionId": "q3", "text": "Our workshop Wi-Fi sometimes drops, but I have not counted the outages or tested a disconnected workflow."}
+        ]
+      },
+      {
+        "id": "repair-lena",
+        "title": "Synthetic manager Lena",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "lena", "role": "participant", "questionId": "q1", "text": "I need to see stale repairs and who owns each one before promising a collection date. Today the queue and emails disagree about the latest status."},
+          {"speaker": "lena", "role": "participant", "questionId": "q2", "text": "A desktop-only pilot at our front desk is fine. I still want a shared queue; desktop-only does not mean one person's private list."},
+          {"speaker": "lena", "role": "participant", "questionId": "q3", "text": "We can offer one shop and two weeks for a pilot. I have not approved a budget or any customer-satisfaction target, and no customers were interviewed here."}
+        ]
+      },
+      {
+        "id": "repair-oleg",
+        "title": "Synthetic part-time dispatcher Oleg",
+        "origin": "synthetic_transcript",
+        "turns": [
+          {"speaker": "oleg", "role": "participant", "questionId": "q1", "text": "At shift change I cannot tell whether the owner field is current. A time-stamped status and visible owner would help me hand over unfinished repairs."},
+          {"speaker": "oleg", "role": "participant", "questionId": "q2", "text": "Please do not add payroll or inventory purchasing to the handoff pilot. I have no settled view on manual versus automatic assignment."},
+          {"speaker": "oleg", "role": "participant", "questionId": "q3", "text": "I have not checked the email system's integration options or the rules for storing customer details."}
+        ]
+      }
+    ]
+  },
+  "prdBrief": "Create a concise product PRD for a two-week, one-shop repair handoff pilot from the selected synthetic interview analysis. Include recurring needs, genuine tensions versus compatible preferences, source-linked prioritized requirements, testable acceptance checks, proposed metrics and a measurement plan, non-goals, unknowns and next steps. Do not turn fictional statements into real customer evidence. Do not decide the disputed assignment policy silently; present a bounded proposed experiment or an explicit owner decision needed. Any numerical success threshold or owner not explicitly supplied is a proposal, not an agreed fact.",
+  "reviewCriteria": [
+    {"id": "shared-need", "dimension": "synthesis", "expected": "Synthesizes a shared current-status/single-owner problem using at least Mara, Ivo and Lena or Oleg; does not merely list one quote per person."},
+    {"id": "real-conflict", "dimension": "conflict_accuracy", "expected": "Identifies mandatory pre-approval versus automatic assignment without pre-approval for every job as a genuine incompatible policy preference between Mara and Ivo."},
+    {"id": "compatible-email", "dimension": "conflict_accuracy", "expected": "Does not call preserving customer email incompatible with reducing manual copying; explicitly recognizes they can coexist."},
+    {"id": "compatible-desktop", "dimension": "conflict_accuracy", "expected": "Does not call a desktop-only pilot incompatible with a shared queue; explicitly recognizes those are different dimensions."},
+    {"id": "unknowns", "dimension": "uncertainty", "expected": "Calls out unmeasured copying baseline, budget or willingness to pay, customer outcomes, integration feasibility/privacy and unmeasured connectivity rather than inventing numbers or consensus."},
+    {"id": "pilot-boundaries", "dimension": "requirements", "expected": "Keeps scope to a proposed handoff pilot with payroll and purchasing out of scope; preserves one shop/two weeks as scenario evidence, not validated real-world authorization."},
+    {"id": "testable-acceptance", "dimension": "requirements", "expected": "Includes observable acceptance checks for exactly one owner, consistent current status, and handling disputed assignment behavior or an explicit unresolved decision."},
+    {"id": "validation-plan", "dimension": "requirements", "expected": "Defines a baseline measurement and a concrete pilot comparison for copying or stale-status errors; any numeric thresholds, budgets or assigned owners are explicitly proposed."},
+    {"id": "source-links", "dimension": "traceability", "expected": "Key analytical claims and resulting requirements name supporting selected sources or finding IDs that a reviewer can follow; does not cite irrelevant quotes as support."},
+    {"id": "synthetic", "dimension": "provenance", "expected": "Clearly labels synthetic evidence and simulation-derived hypotheses, with no real customer claims, population prevalence, invented quotations or externally verified facts."}
+  ]
+}

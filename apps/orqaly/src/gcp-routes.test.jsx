@@ -112,7 +112,6 @@ const explicitTopLevelPatterns = [
   '/instant/news/:slug',
   '/instant/solutions/:slug',
   '/instant/products/:slug?',
-  '/instant/legal/*',
   '/login',
   '/signup',
   '/auth/callback',
@@ -403,22 +402,29 @@ describe('GCP launch route allowlist', () => {
     '/instant/legal/eu',
     '/instant/legal/us/privacy',
     '/instant/legal/terms',
-  ])('serves the Legal Center path %s publicly through one route', (location) => {
+  ])('does not serve the unpublished Legal Center at %s', (location) => {
     const routeMatches = matches(location);
     expect(routeMatches).toHaveLength(1);
-    expect(routeMatches[0].route.path).toBe('/instant/legal/*');
-    expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+    expect(routeMatches[0].route.path).not.toBe('/instant/legal/*');
     expect(gcpRoutePaths).not.toContain('/instant/legal/*');
   });
 
   it.each([
-    ['/privacy', '/instant/legal/privacy'],
-    ['/terms', '/instant/legal/terms'],
-    ['/cookies', '/instant/legal/cookies'],
-  ])('sends the old %s placeholder to its Legal Center document', (from, to) => {
-    const route = leaf(from);
-    expect(route.element.type).toBe(Navigate);
-    expect(route.element.props).toMatchObject({ to, replace: true });
+    [
+      '/privacy',
+      'Privacy',
+      'The production privacy notice will describe Clerk authentication, GCP hosting, durable workflow data, retention, and user rights before launch.',
+    ],
+    ['/terms', 'Terms', 'Production terms will be published before public launch.'],
+    [
+      '/cookies',
+      'Cookies',
+      'The launch build uses the cookies and browser storage required by Clerk authentication and essential application operation.',
+    ],
+  ])('preserves the existing %s notice unchanged', (path, title, body) => {
+    const route = leaf(path);
+    expect(route.element.type).not.toBe(Navigate);
+    expect(route.element.props).toMatchObject({ eyebrow: 'Legal', title, body });
   });
 
   it.each(['/instant/news/orqaly-and-axwise-merge', '/instant/news/business-api'])(

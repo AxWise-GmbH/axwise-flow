@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import canonicalizeNativeJson from 'canonicalize';
 import {
   PrepareSolutionInputV2Schema,
@@ -2415,6 +2417,128 @@ export const AssistantTurnInputV1Schema = z
   })
   .strict();
 
+export const AssistantImageAspectRatioV1Schema = z.enum([
+  '1:1',
+  '2:3',
+  '3:2',
+  '3:4',
+  '4:3',
+  '9:16',
+  '16:9',
+  '21:9',
+]);
+
+export const AssistantImageMimeTypeV1Schema = z.enum([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+
+const AssistantCurrencyCodeV1Schema = z.string().regex(/^[A-Z]{3}$/u);
+const AssistantUnsignedDecimalV1Schema = z
+  .string()
+  .min(1)
+  .max(31)
+  .regex(/^(?:0|[1-9][0-9]{0,17})(?:\.[0-9]{1,12})?$/u);
+const AssistantMoneyAmountV1Schema = z
+  .string()
+  .min(1)
+  .max(19)
+  .regex(/^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,6})?$/u);
+const AssistantTemperatureDecimalV1Schema = z
+  .string()
+  .min(1)
+  .max(7)
+  .regex(/^-?(?:0|[1-9][0-9]{0,2})(?:\.[0-9]{1,2})?$/u);
+
+function canonicalBase64Bytes(value) {
+  if (!value || value.length % 4) return null;
+  try {
+    const bytes = Buffer.from(value, 'base64');
+    return bytes.toString('base64') === value ? bytes : null;
+  } catch {
+    return null;
+  }
+}
+
+function imageBytesMatchMimeType(mimeType, bytes) {
+  if (mimeType === 'image/png') {
+    return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'));
+  }
+  if (mimeType === 'image/jpeg') {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  return (
+    mimeType === 'image/webp' &&
+    bytes.length >= 12 &&
+    bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+  );
+}
+
+export const AssistantTextCapabilityV2Schema = z.object({ kind: z.literal('text'), jevEnabled: z.boolean().optional() }).strict();
+
+export const AssistantImageGenerateCapabilityV2Schema = z
+  .object({
+    kind: z.literal('image_generate'),
+    aspectRatio: AssistantImageAspectRatioV1Schema.optional(),
+    imageSize: z.literal('1K').default('1K'),
+  })
+  .strict();
+
+export const AssistantWeatherCapabilityV2Schema = z
+  .object({
+    kind: z.literal('weather'),
+    location: z.string().min(1).max(500),
+    tempUnit: z.enum(['C', 'F']),
+  })
+  .strict();
+
+export const AssistantCurrencyCapabilityV2Schema = z
+  .object({
+    kind: z.literal('currency'),
+    base: AssistantCurrencyCodeV1Schema,
+    quote: AssistantCurrencyCodeV1Schema,
+    amount: AssistantMoneyAmountV1Schema,
+  })
+  .strict();
+
+export const AssistantQuickInfoCapabilityV2Schema = z
+  .object({
+    kind: z.literal('quick_info'),
+    location: z.string().min(1).max(500).optional(),
+    discoveryKind: z.enum(['news', 'events', 'current_facts']).optional(),
+    routingMode: z.enum(['jev', 'explicit']),
+  })
+  .strict();
+
+export const AssistantCapabilityV2Schema = z.discriminatedUnion('kind', [
+  AssistantTextCapabilityV2Schema,
+  AssistantImageGenerateCapabilityV2Schema,
+  AssistantWeatherCapabilityV2Schema,
+  AssistantCurrencyCapabilityV2Schema,
+  AssistantQuickInfoCapabilityV2Schema,
+]);
+
+export const AssistantTurnInputV2Schema = z
+  .object({
+    type: z.literal('AssistantTurnV2'),
+    responseMode: z.enum(['direct_answer', 'discover', 'one_shot']),
+    message: z.string().min(1).max(24_000),
+    conversation: z.array(AssistantConversationMessageV1Schema).max(20).default([]),
+    capability: AssistantCapabilityV2Schema,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.capability.kind === 'quick_info' && Array.from(value.message).length > 2_000) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['message'],
+        message: 'quick-info messages must not exceed 2,000 characters',
+      });
+    }
+  });
+
 const SolutionPreparationFieldNameV1Schema = z
   .string()
   .regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/)
@@ -2559,6 +2683,7 @@ export const ActivityInputSchema = capabilityAwareSchema(z.union([
 
 export const AxWiseOperationInputSchema = capabilityAwareSchema(z.union([
   AssistantTurnInputV1Schema,
+  AssistantTurnInputV2Schema,
   PrepareSolutionInputV2Schema,
   PrepareSolutionInputV1Schema,
   CompileScopeInputV2Schema,
@@ -2576,6 +2701,7 @@ const AxWiseOperationEnvelopeObjectSchema = z
     operationId: UuidSchema,
     operationType: z.enum([
       'AssistantTurnV1',
+      'AssistantTurnV2',
       'PrepareSolutionV1',
       'PrepareSolutionV2',
       'CompileScopeV2',
@@ -2981,10 +3107,108 @@ export const AssistantTurnV1Schema = z
   })
   .strict();
 
+export const AssistantPresentationSourceV1Schema = z
+  .object({
+    title: z.string().min(1).max(500),
+    url: PublicHttpsUrlSchema,
+  })
+  .strict();
+
+export const AssistantGeneratedImagePresentationV1Schema = z
+  .object({
+    schemaVersion: z.literal('axwise.presentation.generated-image.v1'),
+    kind: z.literal('generated_image'),
+    mimeType: AssistantImageMimeTypeV1Schema,
+    data: z.string().min(4).max(14_000_000),
+    sha256: Sha256Schema,
+    alt: z.string().min(1).max(1000),
+    model: z.string().min(1).max(200).regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$/u),
+  })
+  .strict()
+  .superRefine((presentation, ctx) => {
+    const bytes = canonicalBase64Bytes(presentation.data);
+    if (!bytes) {
+      ctx.addIssue({ code: 'custom', path: ['data'], message: 'image data must be canonical base64' });
+      return;
+    }
+    if (bytes.length > 10_485_760) {
+      ctx.addIssue({ code: 'custom', path: ['data'], message: 'generated image data must decode to at most 10485760 bytes' });
+    }
+    if (!imageBytesMatchMimeType(presentation.mimeType, bytes)) {
+      ctx.addIssue({ code: 'custom', path: ['mimeType'], message: 'image bytes must match mimeType' });
+    }
+    const actual = createHash('sha256').update(bytes).digest('hex');
+    if (actual !== presentation.sha256) {
+      ctx.addIssue({ code: 'custom', path: ['sha256'], message: 'generated image sha256 must match its decoded bytes' });
+    }
+  });
+
+export const AssistantWeatherForecastV1Schema = z
+  .object({
+    label: z.string().min(1).max(120),
+    condition: z.string().min(1).max(120),
+    high: AssistantTemperatureDecimalV1Schema.optional(),
+    low: AssistantTemperatureDecimalV1Schema.optional(),
+  })
+  .strict();
+
+export const AssistantWeatherPresentationV1Schema = z
+  .object({
+    schemaVersion: z.literal('axwise.presentation.weather.v1'),
+    kind: z.literal('weather'),
+    location: z.string().min(1).max(500),
+    observedAt: UtcRfc3339Schema,
+    temperatureUnit: z.enum(['C', 'F']),
+    temperature: AssistantTemperatureDecimalV1Schema,
+    condition: z.string().min(1).max(120),
+    high: AssistantTemperatureDecimalV1Schema.optional(),
+    low: AssistantTemperatureDecimalV1Schema.optional(),
+    forecast: z.array(AssistantWeatherForecastV1Schema).max(10),
+    source: AssistantPresentationSourceV1Schema,
+  })
+  .strict();
+
+export const AssistantCurrencyPresentationV1Schema = z
+  .object({
+    schemaVersion: z.literal('axwise.presentation.currency.v1'),
+    kind: z.literal('currency'),
+    base: AssistantCurrencyCodeV1Schema,
+    quote: AssistantCurrencyCodeV1Schema,
+    amount: AssistantUnsignedDecimalV1Schema,
+    convertedAmount: AssistantUnsignedDecimalV1Schema,
+    rate: AssistantUnsignedDecimalV1Schema,
+    inverseRate: AssistantUnsignedDecimalV1Schema.optional(),
+    asOf: UtcRfc3339Schema,
+    source: AssistantPresentationSourceV1Schema,
+  })
+  .strict();
+
+export const AssistantPresentationV1Schema = z.discriminatedUnion('kind', [
+  AssistantGeneratedImagePresentationV1Schema,
+  AssistantWeatherPresentationV1Schema,
+  AssistantCurrencyPresentationV1Schema,
+]);
+
+export const AssistantTurnV2Schema = z
+  .object({
+    schemaVersion: z.literal('axwise.assistant-turn.v2'),
+    markdown: z.string().min(1).max(120_000),
+    sources: z.array(AssistantSourceV1Schema).max(10).default([]),
+    facts: z.array(AssistantFactV1Schema).max(50).default([]),
+    recommendations: z.array(AssistantRecommendationV1Schema).max(5).default([]),
+    presentations: z.array(AssistantPresentationV1Schema).min(1).max(8),
+  })
+  .strict();
+
+export const AssistantTurnResponseSchema = z.discriminatedUnion('schemaVersion', [
+  AssistantTurnV1Schema,
+  AssistantTurnV2Schema,
+]);
+
 const AssistantTurnCompletionResultSchema = z
   .object({
     resultType: z.literal('assistant_turn_completed'),
-    response: AssistantTurnV1Schema,
+    response: AssistantTurnResponseSchema,
     metrics: CompletionMetricsSchema.optional(),
   })
   .strict();

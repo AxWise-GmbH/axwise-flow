@@ -24,6 +24,7 @@ const OPTIONS = new Set([
   '--account-hash',
   '--conversation-id',
   '--state-dir',
+  '--jev-enabled',
 ]);
 
 function integer(value, fallback, minimum, maximum, name) {
@@ -36,6 +37,13 @@ function integer(value, fallback, minimum, maximum, name) {
   return parsed;
 }
 
+function boolean(value, fallback, name) {
+  if (value === undefined || value === '') return fallback;
+  if (value === true || value === 'true' || value === '1') return true;
+  if (value === false || value === 'false' || value === '0') return false;
+  throw new Error(`${name} must be true, false, 1, or 0.`);
+}
+
 function parseArgs(argv) {
   const options = {};
   for (let index = 0; index < argv.length; index += 2) {
@@ -44,7 +52,7 @@ function parseArgs(argv) {
     if (!OPTIONS.has(key) || !value || Object.hasOwn(options, key)) {
       throw new Error(
         'Use one value each for --workspace, --omp, --node, --connector, ' +
-          '--connector-config, --account-hash and --state-dir.'
+          '--connector-config, --account-hash, --conversation-id, --state-dir and --jev-enabled.'
       );
     }
     options[key] = value;
@@ -179,6 +187,11 @@ export async function loadConfig({ argv = [], env = process.env, cwd = process.c
     modelsFile,
     model: 'orqanix/orqaly-gemini',
     thinking: 'high',
+    jevEnabled: boolean(
+      options['--jev-enabled'] ?? env.ORQANIX_JEV_ENABLED,
+      true,
+      'Jev capability'
+    ),
     timeoutMs: integer(env.ORQANIX_OMP_TIMEOUT_MS, 600_000, 10_000, 1_800_000, 'OMP timeout'),
     startupTimeoutMs: integer(
       env.ORQANIX_OMP_STARTUP_TIMEOUT_MS,

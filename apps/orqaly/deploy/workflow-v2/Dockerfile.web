@@ -3,6 +3,8 @@ FROM node:22-alpine AS build
 
 ARG VITE_CLERK_PUBLISHABLE_KEY
 ARG VITE_ORQALY_API_URL
+ARG VITE_CLERK_ENVIRONMENT=preview
+ARG VITE_ORQALY_API_ENVIRONMENT=preview
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -18,6 +20,7 @@ COPY deploy/workflow-v2/verify-gcp-web-build.mjs ./deploy/workflow-v2/verify-gcp
 
 RUN test -n "$VITE_CLERK_PUBLISHABLE_KEY" \
     && test -n "$VITE_ORQALY_API_URL" \
+    && node --input-type=module -e "import { clerkBrowserOptionsFromEnvironment } from './src/components/Auth/clerk-config.js'; clerkBrowserOptionsFromEnvironment(process.env);" \
     && VITE_CLERK_PUBLISHABLE_KEY="$VITE_CLERK_PUBLISHABLE_KEY" \
        VITE_ORQALY_API_URL="$VITE_ORQALY_API_URL" \
        npm run build:gcp \

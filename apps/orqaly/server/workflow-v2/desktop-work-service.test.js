@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { canonicalHash } from '../../lib/workflow-v2/canonical.js';
 import { createAssistantService } from './assistant-service.js';
 import { createDesktopWorkService, desktopWorkMessage, DesktopWorkStartSchema } from './desktop-work-service.js';
@@ -19,7 +19,9 @@ const artifact = {
   title: 'Webhook design', markdown: '# Webhook design\nUse exponential backoff.',
 };
 
-function harness() {
+afterEach(() => vi.useRealTimers());
+
+function harness({ quickInfoResponse, pendingRetryAfterSeconds, serviceOptions } = {}) {
   const threads = new Map();
   const events = [];
   const publicMessage = ({ contentHash: _contentHash, ...message }) => message;
@@ -67,9 +69,37 @@ function harness() {
     operationId: envelope.operationId,
     canonicalInputHash: envelope.canonicalInputHash,
     status,
+    ...(['accepted', 'running', 'cancel_requested'].includes(status) && pendingRetryAfterSeconds
+      ? { retryAfterSeconds: pendingRetryAfterSeconds } : {}),
     ...(status === 'completed' ? { result: {
       resultType: 'assistant_turn_completed',
-      response: {
+      response: envelope.input.type === 'AssistantTurnV2'
+        && envelope.input.capability.kind === 'quick_info' ? quickInfoResponse || {
+        schemaVersion: 'axwise.assistant-turn.v1',
+        markdown: 'IKEA Bremen is open until 20:00 today.',
+        sources: [{ title: 'IKEA Bremen', canonicalUrl: 'https://example.com/ikea-bremen', sourceTypes: ['official_documentation'] }],
+        facts: [{ statement: 'IKEA Bremen is open until 20:00 today.', sourceUrls: ['https://example.com/ikea-bremen'] }],
+        recommendations: [],
+      } : envelope.input.type === 'AssistantTurnV2' ? {
+        schemaVersion: 'axwise.assistant-turn.v2',
+        markdown: 'Berlin is currently mild.',
+        sources: [{ title: 'Weather source', canonicalUrl: 'https://example.com/weather', sourceTypes: ['official_documentation'] }],
+        facts: [{ statement: 'Berlin is currently 18.5 C.', sourceUrls: ['https://example.com/weather'] }],
+        recommendations: [],
+        presentations: [{
+          schemaVersion: 'axwise.presentation.weather.v1',
+          kind: 'weather',
+          location: 'Berlin',
+          observedAt: '2026-09-14T10:00:00Z',
+          temperatureUnit: 'C',
+          temperature: '18.5',
+          condition: 'Partly cloudy',
+          high: '21',
+          low: '12',
+          forecast: [{ label: 'Tomorrow', condition: 'Sunny', high: '23', low: '13' }],
+          source: { title: 'Weather source', url: 'https://example.com/weather' },
+        }],
+      } : {
         schemaVersion: 'axwise.assistant-turn.v1',
         markdown: '# Findings\nRetry transient failures with backoff.',
         sources: [{ title: 'Provider docs', canonicalUrl: 'https://example.com/docs/retries', sourceTypes: ['official_documentation'] }],
@@ -94,7 +124,7 @@ function harness() {
     artifact: vi.fn(async () => artifact),
   };
   return {
-    service: createDesktopWorkService({ assistantService, contextService }),
+    service: createDesktopWorkService({ assistantService, contextService, ...serviceOptions }),
     assistantService, axwiseClient, contextService, workflowCommandService, threads,
     status: (value) => { nextStatus = value; },
   };
@@ -127,6 +157,89 @@ describe('desktop bounded AxWise work', () => {
     expect(h.axwiseClient.submit.mock.calls[0][0].input.message).toBe(command.question);
   });
 
+  it('passes a desktop capability through V2 and projects the validated presentation', async () => {
+    const h = harness();
+    const capability = { kind: 'weather', location: 'Berlin', tempUnit: 'C' };
+    const result = await h.service.start(auth, { ...command, capability });
+    expect(h.axwiseClient.submit.mock.calls[0][0]).toMatchObject({
+      operationType: 'AssistantTurnV2',
+      input: { type: 'AssistantTurnV2', capability },
+    });
+    expect(result.presentations).toEqual([
+      expect.objectContaining({
+        schemaVersion: 'axwise.presentation.weather.v1',
+        kind: 'weather',
+        temperature: '18.5',
+      }),
+    ]);
+    expect(result.kind).toBe('weather');
+    expect(result.markdown).toBe('Berlin is currently mild.');
+  });
+
+  it('preserves quick-info identity across durable status reads', async () => {
+    const h = harness();
+    const capability = { kind: 'quick_info', location: 'Bremen', routingMode: 'jev' };
+    const request = {
+      ...command,
+      question: 'When does IKEA Bremen close today?',
+      capability,
+    };
+
+    const started = await h.service.start(auth, request);
+
+    expect(started.kind).toBe('quick_info');
+    expect(started.presentations).toBeUndefined();
+    expect(started.markdown).toBe('IKEA Bremen is open until 20:00 today. — [IKEA Bremen](<https://example.com/ikea-bremen>)');
+    expect(started.artifacts[0].markdown).toBe(started.markdown);
+    expect(started.facts).toEqual([
+      { statement: 'IKEA Bremen is open until 20:00 today.', sourceUrls: ['https://example.com/ikea-bremen'] },
+    ]);
+    expect(await h.service.read(auth, identity)).toEqual(started);
+    await expect(h.service.start(auth, {
+      ...request,
+      requestId: '55555555-5555-4555-8555-555555555555',
+      question: 'x'.repeat(2_001),
+    })).rejects.toThrow(/2,000/);
+  });
+
+  it('renders at most three headline bullets using each fact\'s exact source link', async () => {
+    const headlineSources = [
+      ['Port closure', 'https://example.com/bremen-port'],
+      ['Transit [Bremen]', 'https://example.com/bremen-transit'],
+      ['City council', 'https://example.com/bremen-council'],
+      ['Unselected source', 'https://example.com/fourth-story'],
+    ];
+    const headlineFacts = [
+      'Bremen port has a new update.',
+      'Transit routes changed today.',
+      'The council published a new notice.',
+      'A fourth item should be omitted.',
+    ];
+    const h = harness({ quickInfoResponse: {
+      schemaVersion: 'axwise.assistant-turn.v1',
+      markdown: 'Old unlinked model prose that must not be published.',
+      sources: headlineSources.map(([title, canonicalUrl]) => ({ title, canonicalUrl, sourceTypes: ['news'] })),
+      facts: headlineFacts.map((statement, index) => ({ statement, sourceUrls: [headlineSources[index][1]] })),
+      recommendations: [],
+    } });
+    const request = {
+      ...command,
+      question: 'What are the latest local headlines in Bremen? Give me 3 short bullets with source links.',
+      capability: { kind: 'quick_info', location: 'Bremen', routingMode: 'jev' },
+    };
+
+    const started = await h.service.start(auth, request);
+    expect(started.markdown.split('\n')).toEqual([
+      '- Bremen port has a new update. — [Port closure](<https://example.com/bremen-port>)',
+      '- Transit routes changed today. — [Transit \\[Bremen\\]](<https://example.com/bremen-transit>)',
+      '- The council published a new notice. — [City council](<https://example.com/bremen-council>)',
+    ]);
+    expect(started.facts).toHaveLength(3);
+    expect(started.sources.map((source) => source.url)).toEqual(headlineSources.slice(0, 3).map(([, url]) => url));
+    expect(started.markdown).not.toContain('Old unlinked model prose');
+    expect(await h.service.read(auth, identity)).toEqual(started);
+  });
+
   it('replays exact requests, rejects changed input and keeps separate conversations independent', async () => {
     const h = harness();
     const first = await h.service.start(auth, command);
@@ -150,6 +263,139 @@ describe('desktop bounded AxWise work', () => {
     const page = await h.service.events(auth, identity);
     expect(page.events.map((event) => event.type)).toEqual(expect.arrayContaining(['submitted', 'completed']));
     expect(page.cursor).toBeGreaterThan(0);
+  });
+
+  it('returns a completed status before the previous fixed three-second client tick', async () => {
+    let clock = 0;
+    const sleep = vi.fn(async (milliseconds) => {
+      clock += milliseconds;
+      if (clock >= 1_500) h.status('completed');
+    });
+    const h = harness({ serviceOptions: { now: () => clock, sleep } });
+    h.status('running');
+    const pending = await h.service.start(auth, command);
+    const result = await h.service.read(auth, identity, { waitMs: 8_000 });
+
+    expect(result).toMatchObject({ status: 'completed', operationId: pending.operationId });
+    expect(clock).toBe(1_500);
+    expect(sleep.mock.calls.map(([milliseconds]) => milliseconds)).toEqual([750, 750]);
+    expect(h.axwiseClient.poll).toHaveBeenCalledTimes(3);
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
+  it('honors server retry hints and returns durable pending state at the bounded deadline', async () => {
+    let clock = 0;
+    const sleep = vi.fn(async (milliseconds) => { clock += milliseconds; });
+    const h = harness({ pendingRetryAfterSeconds: 2, serviceOptions: { now: () => clock, sleep } });
+    h.status('running');
+    const pending = await h.service.start(auth, command);
+    const result = await h.service.read(auth, identity, { waitMs: 4_500 });
+
+    expect(result).toEqual(pending);
+    expect(result).toMatchObject({ status: 'running', retryAfterSeconds: 2, markdown: null });
+    expect(clock).toBe(4_500);
+    expect(sleep.mock.calls.map(([milliseconds]) => milliseconds)).toEqual([2_000, 2_000, 500]);
+    expect(h.axwiseClient.poll).toHaveBeenCalledTimes(3);
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
+  it('bounds an in-flight status read and returns only the latest verified pending result', async () => {
+    vi.useFakeTimers();
+    const h = harness();
+    h.status('running');
+    const pending = await h.service.start(auth, command);
+    let upstreamSignal;
+    h.axwiseClient.poll.mockImplementationOnce(async (_url, operationId) => ({
+      operationId, status: 'running', canonicalInputHash: h.axwiseClient.submit.mock.calls[0][0].canonicalInputHash,
+      statusUrl: `https://axwise.example/operations/${operationId}`, retryAfterSeconds: 2,
+    })).mockImplementationOnce((_url, _operationId, _tenantId, { signal }) => new Promise((_resolve, reject) => {
+      upstreamSignal = signal;
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    }));
+    const result = h.service.read(auth, identity, { waitMs: 8_000 });
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(upstreamSignal.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(await result).toMatchObject({ ...pending, retryAfterSeconds: 2 });
+    expect(upstreamSignal.aborted).toBe(true);
+    expect(h.axwiseClient.poll).toHaveBeenCalledTimes(2);
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not invent pending state when even the first status read exceeds its deadline', async () => {
+    vi.useFakeTimers();
+    const h = harness();
+    h.status('running');
+    await h.service.start(auth, command);
+    h.axwiseClient.poll.mockImplementation((_url, _operationId, _tenantId, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    }));
+    const result = expect(h.service.read(auth, identity, { waitMs: 1_000 }))
+      .rejects.toMatchObject({ code: 'DESKTOP_WORK_WAIT_TIMEOUT' });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await result;
+    expect(h.axwiseClient.poll).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('stops scheduling on disconnect without cancelling the durable operation', async () => {
+    vi.useFakeTimers();
+    const h = harness();
+    h.status('running');
+    await h.service.start(auth, command);
+    const controller = new AbortController();
+    const result = expect(h.service.read(auth, identity, { waitMs: 8_000, signal: controller.signal }))
+      .rejects.toMatchObject({ name: 'AbortError' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.axwiseClient.poll).toHaveBeenCalledOnce();
+    controller.abort();
+    await result;
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(h.axwiseClient.poll).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.cancel).not.toHaveBeenCalled();
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('rechecks ownership during a wait and stops before another upstream read if access is lost', async () => {
+    const sleep = vi.fn(async () => { h.threads.clear(); });
+    const h = harness({ serviceOptions: { sleep } });
+    h.status('running');
+    await h.service.start(auth, command);
+    await expect(h.service.read(auth, identity, { waitMs: 8_000 })).rejects.toMatchObject({ status: 404 });
+    expect(h.axwiseClient.poll).toHaveBeenCalledOnce();
+    expect(sleep).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
+  it.each(['cancel_requested', 'cancelled', 'failed', 'completed'])('returns %s immediately without another wait or restart', async (status) => {
+    const sleep = vi.fn();
+    const h = harness({ serviceOptions: { sleep } });
+    h.status('running');
+    await h.service.start(auth, command);
+    h.status(status);
+    expect(await h.service.read(auth, identity, { waitMs: 8_000 })).toMatchObject({ status });
+    expect(sleep).not.toHaveBeenCalled();
+    expect(h.axwiseClient.poll).toHaveBeenCalledOnce();
+    expect(h.axwiseClient.submit).toHaveBeenCalledOnce();
+  });
+
+  it('keeps omitted and zero wait backward-compatible and rejects invalid service bounds', async () => {
+    const sleep = vi.fn();
+    const h = harness({ serviceOptions: { sleep } });
+    h.status('running');
+    await h.service.start(auth, command);
+    expect(await h.service.read(auth, identity)).toEqual(await h.service.read(auth, identity, { waitMs: 0 }));
+    expect(h.axwiseClient.poll).toHaveBeenCalledTimes(2);
+    expect(sleep).not.toHaveBeenCalled();
+    for (const waitMs of [-1, 8_001, 0.5, '1000', NaN]) {
+      await expect(h.service.read(auth, identity, { waitMs })).rejects.toMatchObject({ name: 'ZodError' });
+    }
+    await expect(h.service.read({}, identity, { waitMs: 8_000 })).rejects.toMatchObject({ status: 401 });
+    await expect(h.service.read({ userId: 'different' }, identity, { waitMs: 8_000 })).rejects.toMatchObject({ status: 404 });
+    expect(h.axwiseClient.poll).toHaveBeenCalledTimes(2);
   });
 
   it('cancels only the owned pending operation and preserves cancellation on later reads', async () => {

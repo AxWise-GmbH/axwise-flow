@@ -202,6 +202,16 @@ function normalizedBuildDefinition(build) {
   };
 }
 
+export function expectedBuildDefinition(config, expectedSubstitutions) {
+  // Defaults are part of the exact committed build configuration, not values
+  // trusted from the remote build. Explicit attested inputs still take priority.
+  return normalizedBuildDefinition(substitute(config, {
+    ...config.substitutions,
+    PROJECT_ID,
+    ...expectedSubstitutions,
+  }));
+}
+
 export function buildRecord({
   buildId,
   image,
@@ -241,9 +251,7 @@ export function buildRecord({
   ]);
   assertDocumentContainsImage(descriptor, image);
   const configText = headFile(repository, configPath);
-  const expectedDefinition = normalizedBuildDefinition(
-    substitute(yaml.load(configText), { PROJECT_ID, ...expectedSubstitutions })
-  );
+  const expectedDefinition = expectedBuildDefinition(yaml.load(configText), expectedSubstitutions);
   const observedDefinition = normalizedBuildDefinition(build);
   if (stableJson(expectedDefinition) !== stableJson(observedDefinition)) {
     throw new Error(`Cloud Build ${buildId} executed a definition different from exact HEAD config`);
@@ -432,6 +440,7 @@ async function runtimeMode() {
     orqalyApiDatabaseUrl: requiredEnvironment('ORQALY_API_DB_SECRET_VERSION'),
     orqalyWorkerDatabaseUrl: requiredEnvironment('ORQALY_WORKER_DB_SECRET_VERSION'),
     clerkSecretKey: requiredEnvironment('CLERK_SECRET_KEY_VERSION'),
+    typesafeApiKey: requiredEnvironment('TYPESAFE_API_KEY_SECRET_VERSION'),
     axwiseApiDatabaseUrl: requiredEnvironment('AXWISE_API_DB_SECRET_VERSION'),
     axwiseWorkerDatabaseUrl: requiredEnvironment('AXWISE_WORKER_DB_SECRET_VERSION'),
     axwiseGeminiApiKey: requiredEnvironment('AXWISE_GEMINI_SECRET_VERSION'),
@@ -476,6 +485,7 @@ async function runtimeMode() {
     'axwise-v2-preview-001-db-worker-url',
     'axwise-v2-preview-001-gemini-api-key',
     'axwise-v2-preview-001-authority-seal',
+    'axwise-v2-preview-001-typesafe-api-key',
   ];
   const secretIam = secretNames.map((secret) => policy([
     'secrets', 'get-iam-policy', secret, `--project=${PROJECT_ID}`,

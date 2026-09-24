@@ -7,13 +7,7 @@ import { INSTANT_PAGES } from './pages/instantPages';
 import { INFO_PAGES } from './pages/info/info.data';
 import { SOLUTIONS_MENU, solutionPath } from './pages/solutions/solutionsMenu';
 import { NAV_PRODUCTS, PRODUCT_SLUGS, productPath } from './pages/products/productsMenu';
-import {
-  FOOTER_LEGAL,
-  FOOTER_LEGAL_MORE,
-  LEGAL_BASE,
-  PUBLISHED_DOCS,
-  legalPath,
-} from './pages/legal/legal.links';
+import { PUBLIC_LEGAL_LINKS } from './pages/publicLegalLinks';
 
 const INFO_SLUGS = INSTANT_PAGES.filter((page) => page.info).map((page) => page.slug);
 // Personalised Models keeps its page but stays out of the footer (nav: false).
@@ -27,7 +21,7 @@ function renderFooter() {
   );
 }
 
-// Each long column (Solutions, Legal) keeps its tail under its own More.
+// The long Solutions column keeps its tail under More.
 const columnOf = (name) => screen.getByRole('list', { name }).parentElement;
 const openAllMore = (nav) =>
   within(nav)
@@ -65,9 +59,7 @@ describe('InstantFooter', () => {
       ...INFO_SLUGS.map((slug) => `/instant/${slug}`),
       // Owner: News lives in the footer only (Company column), not in the header.
       '/instant/news',
-      // The Legal Center and every document it shows.
-      LEGAL_BASE,
-      ...PUBLISHED_DOCS.map((doc) => legalPath(doc.slug)),
+      ...PUBLIC_LEGAL_LINKS.map((link) => link.to),
     ];
     expect([...hrefs].sort()).toEqual([...expected].sort());
 
@@ -75,8 +67,7 @@ describe('InstantFooter', () => {
       ...INSTANT_PAGES.map((page) => page.path),
       ...PRODUCT_SLUGS.map(productPath),
       ...SOLUTIONS_MENU.map((item) => solutionPath(item.slug)),
-      LEGAL_BASE,
-      ...PUBLISHED_DOCS.map((doc) => legalPath(doc.slug)),
+      ...PUBLIC_LEGAL_LINKS.map((link) => link.to),
     ]);
     expect(hrefs.filter((href) => !known.has(href))).toEqual([]);
   });
@@ -92,31 +83,20 @@ describe('InstantFooter', () => {
     expect(column.textContent).not.toMatch(/soon|Personalised/i);
   });
 
-  it('opens the Legal column on the Legal Center and the main documents, the rest under More', () => {
+  it('links only the existing legal pages, never the unpublished Legal Center drafts', () => {
     renderFooter();
     const column = columnOf('Legal');
-    const labels = () =>
-      within(screen.getByRole('list', { name: 'Legal' }))
-        .getAllByRole('link')
-        .map((link) => link.textContent);
-    // The Legal Notice joins them once the company facts are filled in (company.js).
-    expect(labels()).toEqual(FOOTER_LEGAL.map((link) => link.label));
-    expect(labels().slice(0, 4)).toEqual([
-      'Legal Center',
-      'Terms of Service',
-      'Privacy Policy',
-      'Cookies & Storage',
-    ]);
-    // Washington's health-data law wants this link easy to find: in view, not under More.
-    expect(labels()).toContain('Health Data Privacy (US)');
-    fireEvent.click(within(column).getByRole('button', { name: 'More' }));
-    const more = within(column)
-      .getAllByRole('link')
-      .map((link) => link.textContent);
-    expect(more).toEqual([...FOOTER_LEGAL, ...FOOTER_LEGAL_MORE].map((link) => link.label));
-    expect(more).toEqual(
-      expect.arrayContaining(['Desktop App Terms', 'API Terms', 'Enterprise Terms'])
+    const links = within(column).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual(
+      PUBLIC_LEGAL_LINKS.map((link) => link.label)
     );
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/privacy',
+      '/terms',
+      '/cookies',
+    ]);
+    expect(within(column).queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    expect(column).not.toHaveTextContent(/Legal Center|Health Data|Enterprise Terms/);
   });
 
   it('keeps the makers line and drops the two lines the owner removed', () => {

@@ -1,0 +1,9 @@
+{
+  "name": "@orqaly/axwise-local",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "axwise-local": "src/mcp.mjs" },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

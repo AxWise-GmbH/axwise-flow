@@ -3,9 +3,8 @@ import { ClerkProvider } from '@clerk/react';
 import { needsClerk } from './needsClerk';
 
 /**
- * The landing, the product pages and the Legal Center never need sign-in. Clerk's script sets
- * cookies and browser storage the moment it loads, so on those pages it does not load at all:
- * a first visit stores nothing and needs no cookie banner (the Cookies & Storage page says so).
+ * The landing, product pages and public notices do not need sign-in, so Clerk's
+ * scripts are not loaded there on a first visit.
  * Clerk starts once the visitor reaches any other page (sign-in, sign-up, the app) and then
  * stays, so signing in and moving around the app work as before.
  *

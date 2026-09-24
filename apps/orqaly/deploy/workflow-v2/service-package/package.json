@@ -8,6 +8,7 @@
     "canonicalize": "4.0.0",
     "express": "5.2.1",
     "google-auth-library": "10.3.0",
+    "mdast-util-from-markdown": "2.0.3",
     "pg": "8.23.0",
     "zod": "4.3.6"
   }

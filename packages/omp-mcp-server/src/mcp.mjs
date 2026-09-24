@@ -51,7 +51,7 @@ export const TOOLS = [
     name: 'orqanix_engineering_inspect',
     title: 'Inspect repository with engineering runtime',
     description:
-      'Explore and inspect the local repository with Oh My Pi (OMP) and TypeSafe Jev. ALWAYS use this tool instead of manual shell grep/sed/cat/find commands for codebase search, symbol lookups, multi-file inspection, and architectural analysis. It runs semantically in a single turn without polluting chat context.',
+      'Explore and inspect the local repository with Oh My Pi (OMP). Use this tool for codebase search, symbol lookups, multi-file inspection, and architectural analysis. It does not edit files.',
     inputSchema: schema(TASK_PROPERTIES, ['task']),
     annotations: {
       readOnlyHint: true,
@@ -64,13 +64,26 @@ export const TOOLS = [
     name: 'orqanix_engineering_edit',
     title: 'Edit repository with engineering runtime',
     description:
-      'Perform approved file modifications with Oh My Pi (OMP). Provide acceptance_criteria, exact research_references when using AxWise research, and an approved test_command argv to execute locally after editing. Captures real workspace changes and test results for authenticated server-side Jev review. Completion requires passing tests and review; review_required means further verification is needed.',
+      'Perform approved file modifications with the bounded Oh My Pi (OMP) edit and write tools; OMP shell access is not exposed in this mode. The optional test_command is an arbitrary local process and remains open-world unless the desktop separately sandboxes or allowlists it. Provide acceptance_criteria and exact research_references when using AxWise research. The bridge runs the approved test command, then captures workspace changes and test results. When the JEV capability is enabled, that evidence is sent for advisory review; when disabled, review is not evaluated and the edit cannot report that its checks passed.',
     inputSchema: schema({ ...TASK_PROPERTIES, test_command: { type: 'array', minItems: 1, maxItems: 32, items: { type: 'string', maxLength: 2000 }, description: 'Approved executable and arguments for local tests, without a shell; e.g. ["node","--test","feature.test.mjs"].' } }, ['task']),
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
+    },
+  },
+  {
+    name: 'orqanix_engineering_exec',
+    title: 'Execute terminal workflows with engineering runtime',
+    description:
+      'Run an approved terminal-oriented task with Oh My Pi (OMP), such as a build, test, Git operation, migration, or script. OMP can run local shell commands with filesystem or network effects. The result is the bounded OMP assistant report.',
+    inputSchema: schema(TASK_PROPERTIES, ['task']),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
 ];
@@ -112,7 +125,11 @@ export function createMcpTools({ config, inspect = inspectOmp, run = runEngineer
       if (!validTask(args)) {
         return result({ status: 'failed', code: 'INVALID_ARGUMENTS' }, true);
       }
-      const mode = name === 'orqanix_engineering_edit' ? 'edit' : 'inspect';
+      const mode = name === 'orqanix_engineering_edit'
+        ? 'edit'
+        : name === 'orqanix_engineering_exec'
+          ? 'exec'
+          : 'inspect';
       const data = await run({
         config,
         task: args.task.trim(),
@@ -166,7 +183,7 @@ export async function serveMcp({ input = process.stdin, output = process.stdout,
           capabilities: { tools: {} },
           serverInfo: { name: 'orqanix-engineering', version: '0.1.0' },
           instructions:
-            'Local, workspace-bound engineering powered by Oh My Pi (OMP). Existing Goose tools and skills remain available. Use engineering_inspect for repository exploration and engineering_edit for approved edits. Forward exact completed AxWise research references and acceptance criteria. Supply an approved test_command to capture real tests for Jev review. Never describe review_required, failed or not_evaluated as verified. Jev is an advisory review of captured evidence, not proof of production readiness. Developer shell remains available for builds and interactive commands.',
+            'Local, workspace-bound engineering powered by Oh My Pi (OMP). Existing Goose tools and skills remain available. Use engineering_inspect for repository exploration, engineering_edit for approved edits, and engineering_exec for terminal-oriented workflows. Forward exact completed AxWise research references and acceptance criteria. Supply an approved test_command only to engineering_edit to capture real tests; that arbitrary local process is open-world unless the desktop separately sandboxes or allowlists it. When enabled, JEV is an advisory review of edit evidence, not proof of production readiness. Never describe review_required, failed or not_evaluated as checks passed or evidence reviewed.',
         },
       });
     } else if (message.method === 'ping') {

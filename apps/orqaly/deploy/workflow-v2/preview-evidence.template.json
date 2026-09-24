@@ -4,6 +4,7 @@
     "adminDatabasePassword": "<positive numeric version>",
     "clerkPublishableKey": "<positive numeric version>",
     "clerkSecretKey": "<positive numeric version>",
+    "typesafeApiKey": "<positive numeric version>",
     "orqalyIdentityDatabaseUrl": "<positive numeric version>",
     "orqalyApiDatabaseUrl": "<positive numeric version>",
     "orqalyWorkerDatabaseUrl": "<positive numeric version>",

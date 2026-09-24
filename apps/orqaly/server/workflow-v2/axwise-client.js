@@ -56,10 +56,12 @@ export function createAxWiseClient({
     return url.href;
   }
 
-  async function request(url, options, { operationId, tenantId, isPoll }) {
+  async function request(url, options, { operationId, tenantId, isPoll, signal }) {
     let response;
     try {
+      signal?.throwIfAborted();
       const providedHeaders = await authHeaders();
+      signal?.throwIfAborted();
       const authenticationHeaders =
         typeof providedHeaders?.entries === 'function'
           ? Object.fromEntries(providedHeaders.entries())
@@ -67,9 +69,11 @@ export function createAxWiseClient({
       response = await fetchImpl(url, {
         ...options,
         headers: { ...authenticationHeaders, ...options.headers },
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
       });
+      signal?.throwIfAborted();
     } catch (error) {
+      signal?.throwIfAborted();
       throw new AxWiseDispatchError('AxWise request did not return', {
         retryable: true,
         errorClass: error.name === 'TimeoutError' ? 'AXWISE_TIMEOUT' : 'AXWISE_NETWORK',
@@ -95,6 +99,7 @@ export function createAxWiseClient({
     try {
       body = await response.json();
     } catch {
+      signal?.throwIfAborted();
       throw new AxWiseDispatchError('AxWise returned invalid JSON', {
         retryable: true,
         errorClass: 'AXWISE_INVALID_JSON',
@@ -102,6 +107,7 @@ export function createAxWiseClient({
         disposition: 'ambiguous',
       });
     }
+    signal?.throwIfAborted();
     let parsed;
     try {
       parsed = AxWiseOperationResponseSchema.parse(body);
@@ -193,11 +199,11 @@ export function createAxWiseClient({
         isPoll: false,
       });
     },
-    poll(statusUrl, operationId, tenantId) {
+    poll(statusUrl, operationId, tenantId, { signal } = {}) {
       return request(assertStatusUrl(baseUrl, statusUrl, operationId, tenantId), {
         method: 'GET',
         headers: { 'idempotency-key': operationId },
-      }, { operationId, tenantId, isPoll: true });
+      }, { operationId, tenantId, isPoll: true, signal });
     },
     events(operationId, tenantId, { after = 0, limit = 200 } = {}) {
       return eventPage(operationId, tenantId, after, limit);

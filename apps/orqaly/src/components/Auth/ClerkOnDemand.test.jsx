@@ -1,18 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { transferableAbortController } from 'node:util';
+import { StrictMode } from 'react';
+import { useAuth } from '@clerk/react';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import ClerkOnDemand from './ClerkOnDemand';
 import { needsClerk } from './needsClerk';
 
-// Stand-in provider: it only marks where Clerk would be running.
-vi.mock('@clerk/react', () => ({
-  ClerkProvider: ({ children, publishableKey }) => (
-    <div data-testid="clerk" data-key={publishableKey}>
-      {children}
-    </div>
-  ),
-}));
+// Make missing provider ancestry fail just as real Clerk hooks do.
+vi.mock('@clerk/react', async () => {
+  const { createContext, useContext } = await import('react');
+  const AuthContext = createContext(null);
+  return {
+    ClerkProvider: ({ children, publishableKey }) => (
+      <AuthContext.Provider value={{ isLoaded: true }}>
+        <div data-testid="clerk" data-key={publishableKey}>{children}</div>
+      </AuthContext.Provider>
+    ),
+    useAuth: () => {
+      const value = useContext(AuthContext);
+      if (!value) throw new Error('Auth route rendered outside ClerkProvider');
+      return value;
+    },
+  };
+});
+
+function AuthPage({ children }) {
+  const { isLoaded } = useAuth();
+  return isLoaded ? <p>{children}</p> : null;
+}
 
 // React Router's data router builds a real Node Request; its signal must come from the same
 // realm as that Request (the same fix as AssistantWorkflowNavigationGuard.test.jsx).
@@ -38,15 +54,17 @@ function renderAt(path) {
     [
       { path: '/', element: <p>Landing</p> },
       { path: '/instant/*', element: <p>Instant page</p> },
-      { path: '/login', element: <p>Sign in</p> },
-      { path: '/home', element: <p>App</p> },
+      { path: '/login', element: <AuthPage>Sign in</AuthPage> },
+      { path: '/home', element: <AuthPage>App</AuthPage> },
     ],
     { initialEntries: [path] }
   );
   render(
-    <ClerkOnDemand router={router} clerkProps={{ publishableKey: 'pk_test' }}>
-      <RouterProvider router={router} />
-    </ClerkOnDemand>
+    <StrictMode>
+      <ClerkOnDemand router={router} clerkProps={{ publishableKey: 'pk_test' }}>
+        <RouterProvider router={router} />
+      </ClerkOnDemand>
+    </StrictMode>
   );
   return router;
 }

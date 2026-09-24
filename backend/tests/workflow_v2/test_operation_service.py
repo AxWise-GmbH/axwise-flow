@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 from dataclasses import replace
 from datetime import datetime, timezone
 
@@ -147,6 +149,148 @@ async def test_lost_terminal_response_adopts_exact_stored_result_without_enqueue
     assert duplicate.result.model_dump(
         mode="json", by_alias=True, exclude_unset=True
     ) == terminal_result()
+
+
+@pytest.mark.parametrize(
+    ("response", "expected_version"),
+    [
+        (
+            {"markdown": "Grounded quick answer."},
+            "axwise.assistant-turn.v1",
+        ),
+        (
+            {
+                "markdown": "Weather in Bremen: 9°C, clear.",
+                "presentations": [
+                    {
+                        "kind": "weather",
+                        "location": "Bremen, Germany",
+                        "observedAt": "2026-09-23T07:20:00Z",
+                        "temperatureUnit": "C",
+                        "temperature": "9",
+                        "condition": "Clear",
+                        "forecast": [],
+                        "source": {
+                            "title": "Weather office",
+                            "url": "https://example.com/weather",
+                        },
+                    }
+                ],
+            },
+            "axwise.assistant-turn.v2",
+        ),
+    ],
+)
+def test_completed_capability_result_repairs_missing_legacy_schema_version(
+    response, expected_version
+) -> None:
+    operation = envelope()
+    persisted = {
+        "resultType": "assistant_turn_completed",
+        "response": response,
+        "metrics": {"latencyMs": 7},
+    }
+    record = OperationRecord(
+        operation_id=operation.operation_id,
+        tenant_id=operation.owner.tenant_id,
+        canonical_input_hash=operation.canonical_input_hash,
+        status="completed",
+        result_payload=persisted,
+        retryable=None,
+        error_class=None,
+    )
+
+    completed = response_for(record, "https://axwise.test/status")
+
+    assert completed.result.response.schema_version == expected_version
+    assert "schemaVersion" not in persisted["response"]
+    serialized = completed.model_dump(mode="json", by_alias=True, exclude_unset=True)
+    assert serialized["result"]["response"]["schemaVersion"] == expected_version
+    if "presentations" in response:
+        assert serialized["result"]["response"]["presentations"][0][
+            "schemaVersion"
+        ] == "axwise.presentation.weather.v1"
+        assert "schemaVersion" not in persisted["response"]["presentations"][0]
+
+
+@pytest.mark.parametrize(
+    ("presentation", "expected_version"),
+    [
+        (
+            {
+                "kind": "weather",
+                "location": "Bremen, Germany",
+                "observedAt": "2026-09-23T07:20:00Z",
+                "temperatureUnit": "C",
+                "temperature": "9",
+                "condition": "Clear",
+                "forecast": [],
+                "source": {
+                    "title": "Weather office",
+                    "url": "https://example.com/weather",
+                },
+            },
+            "axwise.presentation.weather.v1",
+        ),
+        (
+            {
+                "kind": "currency",
+                "base": "EUR",
+                "quote": "USD",
+                "amount": "100",
+                "convertedAmount": "117",
+                "rate": "1.17",
+                "asOf": "2026-09-23T07:20:00Z",
+                "source": {
+                    "title": "Exchange rates",
+                    "url": "https://example.com/currency",
+                },
+            },
+            "axwise.presentation.currency.v1",
+        ),
+        (
+            {
+                "kind": "generated_image",
+                "mimeType": "image/png",
+                "data": base64.b64encode(b"\x89PNG\r\n\x1a\ngenerated").decode("ascii"),
+                "sha256": hashlib.sha256(b"\x89PNG\r\n\x1a\ngenerated").hexdigest(),
+                "alt": "Generated image",
+                "model": "gemini-3.1-flash-image",
+            },
+            "axwise.presentation.generated-image.v1",
+        ),
+    ],
+)
+def test_completed_capability_result_repairs_nested_legacy_schema_version(
+    presentation, expected_version
+) -> None:
+    operation = envelope()
+    persisted = {
+        "resultType": "assistant_turn_completed",
+        "response": {
+            "schemaVersion": "axwise.assistant-turn.v2",
+            "markdown": "Completed fast capability.",
+            "presentations": [presentation],
+        },
+        "metrics": {"latencyMs": 7},
+    }
+    record = OperationRecord(
+        operation_id=operation.operation_id,
+        tenant_id=operation.owner.tenant_id,
+        canonical_input_hash=operation.canonical_input_hash,
+        status="completed",
+        result_payload=persisted,
+        retryable=None,
+        error_class=None,
+    )
+
+    completed = response_for(record, "https://axwise.test/status")
+
+    serialized = completed.model_dump(mode="json", by_alias=True, exclude_unset=True)
+    assert serialized["result"]["response"]["presentations"][0][
+        "schemaVersion"
+    ] == expected_version
+    assert "schemaVersion" not in persisted["response"]["presentations"][0]
 
 
 @pytest.mark.asyncio

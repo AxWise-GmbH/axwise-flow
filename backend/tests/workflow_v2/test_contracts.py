@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import subprocess
@@ -10,6 +11,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from backend.domain.workflow_v2.contracts import (
+    AssistantTurnCompletedResult,
     AxWiseOperationEnvelope,
     CompileScopeInputV3,
     CompletionResult,
@@ -710,7 +712,92 @@ def test_assistant_turn_envelope_is_typed_and_canonically_bound() -> None:
     )
 
     assert envelope.operation_type == "AssistantTurnV1"
+    assert envelope.canonical_input_hash == (
+        "3befecdade2f3b709368595b6062b3dad9259c5ab2e90aba6f3072773090dbd3"
+    )
     assert envelope.model_dump(mode="json", by_alias=True)["input"] == input_payload
+
+
+def test_assistant_turn_v2_image_generation_contract_is_typed_and_byte_bound() -> None:
+    image = b"\x89PNG\r\n\x1a\nfixture"
+    data = base64.b64encode(image).decode("ascii")
+    input_payload = {
+        "type": "AssistantTurnV2",
+        "responseMode": "direct_answer",
+        "message": "Create a compact weather illustration.",
+        "conversation": [],
+        "capability": {
+            "kind": "image_generate",
+            "aspectRatio": "16:9",
+            "imageSize": "1K",
+        },
+    }
+    envelope = AxWiseOperationEnvelope.model_validate(
+        {
+            "operationId": "00000000-0000-4000-8000-000000000931",
+            "operationType": "AssistantTurnV2",
+            "owner": {
+                "tenantId": "00000000-0000-4000-8000-000000000932",
+                "organizationId": None,
+                "userId": "user_assistantcontract123",
+            },
+            "workflow": {
+                "runId": "00000000-0000-4000-8000-000000000933",
+                "stageId": "00000000-0000-4000-8000-000000000934",
+                "stageAttemptId": "00000000-0000-4000-8000-000000000935",
+            },
+            "contractVersion": "axwise.operation.v2",
+            "canonicalInputHash": canonical_hash(input_payload),
+            "input": input_payload,
+        }
+    )
+    assert envelope.operation_type == "AssistantTurnV2"
+    assert envelope.model_dump(mode="json", by_alias=True)["input"] == input_payload
+
+    response = AssistantTurnCompletedResult.model_validate(
+        {
+            "resultType": "assistant_turn_completed",
+            "response": {
+                "schemaVersion": "axwise.assistant-turn.v2",
+                "markdown": "Here is the generated image.",
+                "sources": [],
+                "facts": [],
+                "recommendations": [],
+                "presentations": [
+                    {
+                        "schemaVersion": "axwise.presentation.generated-image.v1",
+                        "kind": "generated_image",
+                        "mimeType": "image/png",
+                        "data": data,
+                        "sha256": hashlib.sha256(image).hexdigest(),
+                        "alt": "A compact weather illustration",
+                        "model": "gemini-3.1-flash-image",
+                    }
+                ],
+            },
+        }
+    )
+    assert response.response.schema_version == "axwise.assistant-turn.v2"
+
+    bad_input = deepcopy(input_payload)
+    bad_input["capability"] = {
+        "kind": "image_edit",
+        "imageSize": "1K",
+        "media": [{"mimeType": "image/png", "data": data}],
+    }
+    with pytest.raises(ValidationError, match="union_tag_invalid"):
+        AxWiseOperationEnvelope.model_validate(
+            {
+                **envelope.model_dump(mode="json", by_alias=True),
+                "canonicalInputHash": canonical_hash(bad_input),
+                "input": bad_input,
+            }
+        )
+
+    bad_result = response.model_dump(mode="json", by_alias=True)
+    bad_result["response"]["presentations"][0]["sha256"] = "0" * 64
+    with pytest.raises(ValidationError, match="sha256"):
+        AssistantTurnCompletedResult.model_validate(bad_result)
 
 
 def test_synthesize_artifact_inputs_and_results_match_shared_javascript_golden() -> None:
