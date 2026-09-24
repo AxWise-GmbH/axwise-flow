@@ -127,29 +127,58 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
   const bindings = new Set();
   const resultTools = new Map();
   const dataBindings = new Map();
-  const reserved = new Set(['run', 'console', 'JSON', 'String', 'Developer', 'Skills', 'Todo', 'DesktopUtilities', '__proto__', 'constructor', 'prototype']);
+  const reserved = new Set(['run', 'console', 'JSON', 'String', 'Promise', 'Developer', 'Skills', 'Todo', 'DesktopUtilities', '__proto__', 'constructor', 'prototype']);
   for (const name of callbacks.keys()) reserved.add(name.split('.')[0]);
   let nodes = 0;
   const reject = (reason) => { throw new Error(reason); };
   function count() { if (++nodes > 256) reject('AST exceeds benchmark bound'); }
-  function literal(node, depth = 0) {
+  function copiedData(value, depth) {
+    count();
+    if (depth > 6) reject('Literal argument is too deep');
+    if (Array.isArray(value)) return value.map((item) => copiedData(item, depth + 1));
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value)
+      .map(([key, item]) => [key, copiedData(item, depth + 1)]));
+    return value;
+  }
+  function isConstAssertion(node) {
+    return ts.isAsExpression(node) && ts.isTypeReferenceNode(node.type)
+      && ts.isIdentifier(node.type.typeName) && node.type.typeName.text === 'const'
+      && !node.type.typeArguments?.length;
+  }
+  function stringifyArguments(node) {
+    if (staticCall(node) !== 'JSON.stringify' || node.arguments.length < 1 || node.arguments.length > 3)
+      reject('Only bounded JSON.stringify is allowed');
+    if (node.arguments.length >= 2 && node.arguments[1].kind !== ts.SyntaxKind.NullKeyword) reject('JSON.stringify replacer is forbidden');
+    if (node.arguments.length === 3 && (!ts.isNumericLiteral(node.arguments[2]) || ![0, 1, 2, 3, 4].includes(Number(node.arguments[2].text)))) reject('JSON.stringify indent must be a bounded literal');
+    return node.arguments.length === 3 ? Number(node.arguments[2].text) : undefined;
+  }
+  function literal(node, depth = 0, allowBindings = true, allowSerialization = true) {
     count();
     if (!node || depth > 6) reject('Literal argument is too deep');
+    if (policy.allowStaticLiteralData === true && isConstAssertion(node))
+      return literal(node.expression, depth, allowBindings, allowSerialization);
+    if (policy.allowStaticLiteralData === true && allowSerialization && ts.isCallExpression(node)) {
+      const indent = stringifyArguments(node);
+      const value = literal(node.arguments[0], depth + 1, allowBindings, false);
+      const text = JSON.stringify(value, null, indent);
+      if (text.length > 40_000) reject('Serialized literal exceeds benchmark bound');
+      return text;
+    }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
-    if (ts.isIdentifier(node) && dataBindings.has(node.text)) return dataBindings.get(node.text);
+    if (allowBindings && ts.isIdentifier(node) && dataBindings.has(node.text)) return copiedData(dataBindings.get(node.text), depth);
     if (ts.isNumericLiteral(node)) { const value = Number(node.text); if (!Number.isFinite(value)) reject('Non-finite literal'); return value; }
     if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
     if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
     if (node.kind === ts.SyntaxKind.NullKeyword) return null;
-    if (ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(node.operand)) return -literal(node.operand, depth + 1);
-    if (ts.isArrayLiteralExpression(node)) return node.elements.map((element) => literal(element, depth + 1));
+    if (ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(node.operand)) return -literal(node.operand, depth + 1, allowBindings, allowSerialization);
+    if (ts.isArrayLiteralExpression(node)) return node.elements.map((element) => literal(element, depth + 1, allowBindings, allowSerialization));
     if (ts.isObjectLiteralExpression(node)) {
       const result = Object.create(null);
       for (const property of node.properties) {
         if (!ts.isPropertyAssignment(property) || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) reject('Only static object properties are allowed');
         const key = property.name.text;
         if (['__proto__', 'constructor', 'prototype'].includes(key) || Object.hasOwn(result, key)) reject('Unsafe or duplicate object property');
-        result[key] = literal(property.initializer, depth + 1);
+        result[key] = literal(property.initializer, depth + 1, allowBindings, allowSerialization);
       }
       return result;
     }
@@ -206,11 +235,9 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
     }
     if (ts.isAwaitExpression(node)) { callback(node.expression); return; }
     if (ts.isCallExpression(node)) {
-      if (staticCall(node) !== 'JSON.stringify' || node.arguments.length < 1 || node.arguments.length > 3) reject('Only JSON.stringify of a bound result is allowed');
+      stringifyArguments(node);
       const first = node.arguments[0];
       if (!ts.isIdentifier(first) || !bindings.has(first.text)) reject('JSON.stringify requires one previously bound result');
-      if (node.arguments.length >= 2 && node.arguments[1].kind !== ts.SyntaxKind.NullKeyword) reject('JSON.stringify replacer is forbidden');
-      if (node.arguments.length === 3 && (!ts.isNumericLiteral(node.arguments[2]) || ![0, 1, 2, 3, 4].includes(Number(node.arguments[2].text)))) reject('JSON.stringify indent must be a bounded literal');
       return;
     }
     literal(node);
@@ -220,6 +247,32 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
     if (ts.isVariableStatement(node)) {
       if (node.modifiers?.length || !(node.declarationList.flags & ts.NodeFlags.Const) || node.declarationList.declarations.length !== 1) reject('Only one const binding per declaration is allowed');
       const declaration = node.declarationList.declarations[0];
+      if (ts.isArrayBindingPattern(declaration.name)) {
+        if (policy.allowStaticParallelCalls !== true || declaration.type || declaration.exclamationToken
+          || !declaration.initializer || !ts.isAwaitExpression(declaration.initializer))
+          reject('Parallel results require an explicitly enabled const await binding');
+        const elements = declaration.name.elements;
+        if (elements.length < 1 || elements.length > 3) reject('Parallel batches require one to three results');
+        const names = elements.map((element) => {
+          count();
+          if (!ts.isBindingElement(element) || element.dotDotDotToken || element.initializer
+            || element.propertyName || !ts.isIdentifier(element.name)
+            || reserved.has(element.name.text) || bindings.has(element.name.text) || dataBindings.has(element.name.text))
+            reject('Parallel results require unique plain output-only identifiers');
+          return element.name.text;
+        });
+        if (new Set(names).size !== names.length) reject('Parallel result names must be unique');
+        const awaited = declaration.initializer.expression;
+        if (staticCall(awaited) !== 'Promise.all' || awaited.arguments.length !== 1
+          || !ts.isArrayLiteralExpression(awaited.arguments[0])
+          || awaited.arguments[0].elements.length !== names.length)
+          reject('Promise.all requires one static array with an exact result count');
+        // Validate every callback before admitting any result. Never accept a
+        // promise variable, mapper, arbitrary computation, or result as input.
+        for (const call of awaited.arguments[0].elements) callback(call);
+        for (const name of names) bindings.add(name);
+        return;
+      }
       if (!ts.isIdentifier(declaration.name) || reserved.has(declaration.name.text) || bindings.has(declaration.name.text) || dataBindings.has(declaration.name.text)
         || declaration.type || declaration.exclamationToken || !declaration.initializer) reject('Only unique immutable const bindings are allowed');
       if (ts.isAwaitExpression(declaration.initializer)) {
@@ -234,16 +287,27 @@ export function validateCodeModeScript(code, workspace, parser = typescriptParse
         const value = declaration.initializer;
         if (!(ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value) || ts.isNumericLiteral(value)
           || [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(value.kind)
-          || (ts.isPrefixUnaryExpression(value) && value.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(value.operand)))) reject('Data bindings must contain a direct primitive literal');
-        dataBindings.set(declaration.name.text, literal(value));
+          || (ts.isPrefixUnaryExpression(value) && value.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(value.operand))
+          || (policy.allowStaticLiteralData === true && (ts.isArrayLiteralExpression(value) || ts.isObjectLiteralExpression(value) || isConstAssertion(value))))) reject('Data bindings must contain direct permitted literals');
+        // No aliases inside data declarations: prevent reference expansion and
+        // mutation graphs. Callback arguments may read these frozen literals.
+        dataBindings.set(declaration.name.text, literal(value, 0, false, false));
       }
       return;
     }
     if (ts.isExpressionStatement(node)) {
       const expression = node.expression;
       if (ts.isAwaitExpression(expression)) { callback(expression.expression); return; }
-      if (!ts.isCallExpression(expression) || staticCall(expression) !== 'console.log' || expression.arguments.length !== 1) reject('Only direct await or console.log of one safe result is allowed');
-      output(expression.arguments[0]);
+      if (!ts.isCallExpression(expression) || staticCall(expression) !== 'console.log') reject('Only direct await or console.log of a safe result is allowed');
+      if (expression.arguments.length === 2 && policy.allowLabelledConsoleOutput === true) {
+        const label = expression.arguments[0];
+        if (!(ts.isStringLiteral(label) || ts.isNoSubstitutionTemplateLiteral(label)) || label.text.length > 200)
+          reject('Console labels must be bounded string literals');
+        output(expression.arguments[1]);
+      } else {
+        if (expression.arguments.length !== 1) reject('Only one safe console result is allowed');
+        output(expression.arguments[0]);
+      }
       return;
     }
     if (ts.isReturnStatement(node) && isLast) { if (node.expression) output(node.expression); return; }

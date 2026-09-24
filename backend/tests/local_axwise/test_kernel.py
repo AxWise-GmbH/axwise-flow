@@ -36,13 +36,15 @@ class KernelTests(unittest.TestCase):
         metadata = describe()
         self.assertEqual(
             [row["name"] for row in metadata["tools"]],
-            ["create_prd", "analyze_interviews", "simulate_interviews"],
+            ["create_prd", "analyze_interviews", "simulate_interviews",
+             "prepare_discovery", "research_market", "generate_personas",
+             "chat_with_persona", "create_delivery_brief"],
         )
         self.assertEqual(metadata["capabilities"]["network"], False)
         for row in metadata["tools"]:
             self.assertFalse(row["inputSchema"]["additionalProperties"])
 
-    def test_three_valid_capabilities(self):
+    def test_original_three_capabilities_remain_compatible(self):
         for tool, value in inputs().items():
             with self.subTest(tool=tool):
                 result = finalize(tool, value, candidate(tool, value))
@@ -252,9 +254,12 @@ class KernelTests(unittest.TestCase):
             "REQUIRED for every synthetic_transcript turn", question["description"]
         )
         self.assertIn("Do not invent IDs", question["description"])
-        source = tools["create_prd"]["inputSchema"]["$defs"]["SelectedSource"]
+        source = tools["create_prd"]["inputSchema"]["$defs"]["EvidenceSource"]
         self.assertIn("origin", source["required"])
         self.assertNotIn("default", source["properties"]["origin"])
+        self.assertIn("web_source", source["properties"]["origin"]["enum"])
+        self.assertIn("retrievedAt", source["properties"])
+        self.assertIn("publishedAt", source["properties"])
 
     def test_unknown_origin_remains_generic_private_error(self):
         value = inputs()["analyze_interviews"]
@@ -404,7 +409,7 @@ class KernelTests(unittest.TestCase):
             + b"\n"
         )
         result = subprocess.run(
-            [sys.executable, "-m", "backend.services.local_axwise.worker"],
+            [sys.executable, "-B", "-m", "backend.services.local_axwise.worker"],
             input=data,
             capture_output=True,
             cwd=ROOT,
@@ -425,7 +430,7 @@ class KernelTests(unittest.TestCase):
             + b"\n"
         )
         result = subprocess.run(
-            [sys.executable, "-m", "backend.services.local_axwise.worker"],
+            [sys.executable, "-B", "-m", "backend.services.local_axwise.worker"],
             input=data,
             capture_output=True,
             cwd=ROOT,
@@ -449,8 +454,10 @@ def fail(*args, **kwargs): raise AssertionError('network attempt')
 socket.getaddrinfo = fail
 socket.socket.connect = fail
 from backend.services.local_axwise.kernel import describe, prepare
-assert len(describe()['tools']) == 3
+assert len(describe()['tools']) == 8
 prepare('create_prd', {'brief':'A selected product brief'})
+prepare('prepare_discovery', {'brief':'Explore customer handoff problems'})
+prepare('research_market', {'brief':'Find relevant handoff suppliers'})
 assert 'backend.database' not in sys.modules
 print('isolated')
 """
@@ -460,7 +467,7 @@ print('isolated')
             if key in {"PATH", "SYSTEMROOT", "LANG"}
         }
         result = subprocess.run(
-            [sys.executable, "-c", source],
+            [sys.executable, "-B", "-c", source],
             cwd=ROOT,
             env=environment,
             capture_output=True,

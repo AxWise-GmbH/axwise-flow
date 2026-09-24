@@ -35,6 +35,82 @@ test('Code Mode allows literal specialist callbacks but not dynamic code', () =>
   assert.equal(check('async function run() { await Developer.shell({command:"rm -rf /tmp/fixture"}); }'), false);
 });
 
+test('observed Todo, tree and analysis wrapper accepts immutable structured literals and exact const assertions', () => {
+  const parser = loadTypescriptParser();
+  const code = `async function run() {
+    await Todo.todoWrite({content: JSON.stringify([
+      {id:"1",task:"Analyze selected synthetic interviews",status:"in_progress"},
+      {id:"2",task:"Return the saved artifact",status:"pending"}
+    ], null, 2)});
+    const treeResult = await Developer.tree({path:"."});
+    const transcripts = [{id:"interview-a",title:"Synthetic dispatcher",
+      origin:"synthetic_transcript" as const,
+      turns:[{speaker:"mara",role:"participant" as const,questionId:"q1",text:"I copy requests manually."}]}];
+    const analysis = await AxwiseLocal.analyzeInterviews({decisionQuestion:"What delays work?",
+      questions:["What makes work difficult?"],transcripts:transcripts});
+    return {tree:treeResult,analysis:analysis};
+  }`;
+  assert.equal(benchmarkPermission({ name: 'execute_typescript', rawInput: { code } }, '/tmp/fixture', parser), true);
+  assert.equal(hasSpecialistInvocation({ name: 'execute_typescript', input: { code } }, parser), true);
+  assert.equal(confirmedExecutionForTest(code), false, 'permission/proposal still does not prove execution');
+  const directData = 'async function run(){const items=[{task:"Read fixture",status:"pending" as const}]; await Todo.todoWrite({content:JSON.stringify(items,null,2)});}';
+  assert.equal(benchmarkPermission({ name: 'execute_typescript', rawInput: { code: directData } }, '/tmp/fixture', parser), true);
+  assert.equal(validateCodeModeScript(directData, '/tmp/fixture', parser).allowed, false, 'default reset grammar remains unchanged');
+});
+
+function confirmedExecutionForTest(code) {
+  return inspectOutcome(CASES[0], { status: 'completed', markdown: 'Done.', tools: [
+    { name: 'execute_typescript', status: 'completed', input: { code } },
+  ] }).structuralChecks.axwiseUsed;
+}
+
+test('literal-data grammar rejects dynamic calls, casts, serializers, mutation and expansion aliases', () => {
+  const parser = loadTypescriptParser();
+  const check = (body) => benchmarkPermission({ name: 'execute_typescript', rawInput: { code: `async function run(){${body}}` } }, '/tmp/fixture', parser);
+  for (const body of [
+    'const rows=[{text:process.env.SECRET}]; await AxwiseLocal.analyzeInterviews({transcripts:rows});',
+    'const rows=[{text:await fetch("https://example.org")}]; await AxwiseLocal.analyzeInterviews({transcripts:rows});',
+    'const rows=[{get text(){return "secret";}}]; await AxwiseLocal.analyzeInterviews({transcripts:rows});',
+    'const rows=[{text:"one"}]; rows.push({text:"two"}); await AxwiseLocal.analyzeInterviews({transcripts:rows});',
+    'const rows=[{text:"one"}]; rows[0].text="changed"; await AxwiseLocal.analyzeInterviews({transcripts:rows});',
+    'const rows=[{text:"one"}]; const alias=rows; await AxwiseLocal.analyzeInterviews({transcripts:alias});',
+    'const rows=[{text:"one"}]; const more=[rows,rows]; await AxwiseLocal.analyzeInterviews({transcripts:more});',
+    'const rows=[{text:"one"}]; await AxwiseLocal.analyzeInterviews({transcripts:[...rows]});',
+    'await AxwiseLocal.createPrd({brief:"fixture" as any});',
+    'await AxwiseLocal.createPrd({brief:"fixture" as string});',
+    'await AxwiseLocal.createPrd({brief:("fixture" as const).constructor});',
+    'await Todo.todoWrite({content:JSON.stringify([{toJSON(){return "unsafe";}}])});',
+    'await Todo.todoWrite({content:JSON.stringify([{__proto__:{x:1}}])});',
+    'await Todo.todoWrite({content:JSON.stringify([{task:"safe"}],()=>process.env)});',
+    'await Todo.todoWrite({content:JSON.stringify([{task:"safe"}],null,20)});',
+    'await Todo.todoWrite({content:JSON.stringify(JSON.stringify([{task:"safe"}]))});',
+    'const result=await Developer.shell({command:"cat README.md"}); await Todo.todoWrite({content:JSON.stringify(result)});',
+    'const JSON={stringify:"shadow"}; await Todo.todoWrite({content:JSON.stringify([])});',
+    'await Todo.todoWrite({content:JSON["stringify"]([])});',
+    'await Todo.todoWrite({content:JSON.stringify?.([])});',
+    'const deep=[[[[[[["too deep"]]]]]]]; await AxwiseLocal.createPrd({brief:deep});',
+  ]) assert.equal(check(body), false, body);
+});
+
+test('labelled console output permits a static label and safe result only', () => {
+  const parser = loadTypescriptParser();
+  const read = 'const result=await Developer.shell({command:"cat README.md"});';
+  const check = (output) => benchmarkPermission({ name: 'execute_typescript', rawInput: { code: `async function run(){${read}${output}}` } }, '/tmp/fixture', parser);
+  const output = 'console.log("README output:",JSON.stringify(result)); return {result};';
+  assert.equal(check(output), true);
+  assert.equal(validateCodeModeScript(`async function run(){${read}${output}}`, '/tmp/fixture', parser).allowed, false);
+  for (const output of [
+    'console.log(process.env.SECRET,JSON.stringify(result));',
+    'console.log("label",JSON.stringify(result),process.env);',
+    'console.log("label",JSON.stringify(result,()=>process.env));',
+    'console.log("label",JSON.stringify(result,null,99));',
+    'console.log("label",eval(result.stdout));',
+    'console.log("label",result.constructor);',
+    'console.log("label",fetch("https://example.org"));',
+    `console.log("${'a'.repeat(201)}",result);`,
+  ]) assert.equal(check(output), false, output);
+});
+
 test('common-case interference includes Code Mode nested calls and never passes a failed turn', () => {
   const item = CASES[0];
   assert.equal(inspectOutcome(item, { status: 'completed', markdown: '42', tools: [] }).structuralChecks.noSpecialistInterference, true);

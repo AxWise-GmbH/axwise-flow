@@ -13,7 +13,7 @@ const object = (value) => value !== null && typeof value === 'object' && !Array.
 export class StateError extends Error {
   constructor(code = 'STATE_UNAVAILABLE') {
     super(code === 'ARTIFACT_REFERENCE_INVALID'
-      ? 'Use a valid saved interview-analysis reference from this account and conversation. No document was opened or inferred.'
+      ? 'Use a valid saved artifact reference from this account and conversation. No document was opened or inferred.'
       : 'The private local Axwise state could not be accessed. No artifact was published.');
     this.code = code;
   }
@@ -40,8 +40,10 @@ export async function scopedDirectory(options, create = true) {
 }
 
 export async function atomicPrivateFile(directory, name, record, signal,
-  write = async (file, bytes) => { await file.writeFile(bytes); await file.sync(); }) {
-  const bytes = `${JSON.stringify(record, null, 2)}\n`;
+  write = async (file, bytes) => { await file.writeFile(bytes); await file.sync(); }, rawText = false) {
+  if (!/^[A-Za-z0-9_.-]+$/.test(name) || name === '.' || name === '..') throw new StateError();
+  const bytes = rawText ? record : `${JSON.stringify(record, null, 2)}\n`;
+  if (typeof bytes !== 'string') throw new StateError();
   if (Buffer.byteLength(bytes) > LIMIT) throw new StateError();
   signal.throwIfAborted();
   const temporary = join(directory, `.${randomUUID()}.tmp`), path = join(directory, name);
@@ -79,6 +81,14 @@ export async function createJournal(options, signal) {
 
 /** Only frozen, previously accepted analysis in this exact host scope may be reused. */
 export async function resolveAnalysisReference(options, reference, signal) {
+  const saved = await resolveArtifactReference(options, reference, signal);
+  if (saved.tool !== 'analyze_interviews' || saved.qualityReview?.passed !== true)
+    throw new StateError('ARTIFACT_REFERENCE_INVALID');
+  return { input: saved.input, candidate: saved.candidate, artifact: saved.artifact, reference: saved.reference };
+}
+
+/** Exact same-account/conversation reference, never a caller-supplied filesystem path. */
+export async function resolveArtifactReference(options, reference, signal) {
   try {
     if (!object(reference) || Object.keys(reference).sort().join(',') !== 'operationId,sha256'
       || !UUID.test(reference.operationId || '') || !ACCOUNT.test(reference.sha256 || '')) throw new StateError();
@@ -106,15 +116,42 @@ export async function resolveAnalysisReference(options, reference, signal) {
     if (!after.isDirectory() || before.ino !== after.ino || before.dev !== after.dev
       || digest(bytes) !== reference.sha256) throw new StateError();
     const record = JSON.parse(bytes);
-    if (!object(record) || record.version !== 'axwise.local-artifact.v2' || record.tool !== 'analyze_interviews'
+    if (!object(record) || record.version !== 'axwise.local-artifact.v2'
+      || !['create_prd', 'analyze_interviews', 'simulate_interviews', 'prepare_discovery', 'generate_personas', 'chat_with_persona', 'research_market', 'create_delivery_brief'].includes(record.tool)
       || record.operationId !== reference.operationId || record.accountHash !== options.accountHash
       || record.conversationId !== options.conversationId || record.validation?.valid !== true
-      || record.qualityReview?.passed !== true || !object(record.selectedInput)
+      || (record.tool !== 'simulate_interviews' && record.qualityReview?.passed !== true) || !object(record.selectedInput)
       || record.inputSha256 !== digest(record.selectedInput) || !object(record.artifact)
       || record.artifactSha256 !== digest(record.artifact)
+      || (record.resolvedInput !== undefined && (!object(record.resolvedInput) || record.resolvedInputSha256 !== digest(record.resolvedInput)))
       || !(typeof record.candidate === 'string' || object(record.candidate))) throw new StateError();
     signal.throwIfAborted();
-    return { input: record.selectedInput, candidate: record.candidate, artifact: record.artifact, reference: { ...reference } };
+    const resultArtifact = record.resultArtifact;
+    if (resultArtifact && (!object(resultArtifact) || resultArtifact.schemaVersion !== 'orqanix.result.v1'
+      || !UUID.test(resultArtifact.artifactId || '') || resultArtifact.revisionId !== record.operationId
+      || resultArtifact.path !== join(directory, `${record.operationId}.md`)
+      || resultArtifact.sha256 !== digest(record.markdown))) throw new StateError();
+    if (resultArtifact) {
+      const markdownFile = await open(resultArtifact.path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+      try {
+        const info = await markdownFile.stat();
+        if (!info.isFile() || info.size < 1 || info.size > LIMIT) throw new StateError();
+        const buffer = Buffer.alloc(LIMIT + 1); let count = 0;
+        while (count < buffer.length) {
+          signal.throwIfAborted();
+          const read = await markdownFile.read(buffer, count, buffer.length - count, null);
+          if (!read.bytesRead) break;
+          count += read.bytesRead;
+        }
+        if (count > LIMIT || digest(buffer.subarray(0, count).toString('utf8')) !== resultArtifact.sha256)
+          throw new StateError();
+      } finally { await markdownFile.close(); }
+      const finalDirectory = await lstat(directory);
+      if (!finalDirectory.isDirectory() || before.ino !== finalDirectory.ino || before.dev !== finalDirectory.dev) throw new StateError();
+    }
+    return { input: record.resolvedInput ?? record.selectedInput, candidate: record.candidate, artifact: record.artifact,
+      reference: { ...reference }, tool: record.tool, markdown: record.markdown,
+      qualityReview: record.qualityReview, resultArtifact: resultArtifact ?? null };
   } catch (error) {
     if (signal.aborted) throw signal.reason;
     throw new StateError('ARTIFACT_REFERENCE_INVALID');

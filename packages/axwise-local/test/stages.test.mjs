@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, readdir, readFile, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createSpecialistTools, LocalAxwiseError, saveArtifact, hash } from '../src/runtime.mjs';
 import { resolveAnalysisReference } from '../src/state.mjs';
@@ -83,6 +83,18 @@ test('failed substantive review gets exactly one repair and final review', async
   assert.ok(validations.every((request) => request.usage.modelCalls === 1));
   assert.ok(validations.every((request) => request.usage.inputTokens === 10));
   assert.equal(result.structuredContent.usage.inputTokens, 40);
+});
+
+test('cache totals include reporting coverage so missing measurements are not mistaken for zero', async () => {
+  let calls = 0;
+  const f = await fixture({ provider: async () => ({ response: '{}',
+    usage: ++calls === 1 ? { cacheReadTokens: 0, cacheWriteTokens: 12 } : { cacheReadTokens: 8 } }) });
+  const result = await f.call('create_prd', { brief: 'Draft' });
+  assert.equal(result.structuredContent.usage.cacheReadTokens, 8);
+  assert.equal(result.structuredContent.usage.cacheReadTokensReportedCalls, 2);
+  assert.equal(result.structuredContent.usage.cacheWriteTokens, 12);
+  assert.equal(result.structuredContent.usage.cacheWriteTokensReportedCalls, 1);
+  assert.equal(result.structuredContent.execution.stages[1].cacheWriteTokens, undefined);
 });
 
 test('final failed quality review is terminal, never repaired again or published', async () => {
@@ -180,7 +192,11 @@ test('reference hash, UUID, scope metadata, version, kind, input hash and qualit
     await assert.rejects(resolveAnalysisReference(scope, reference, signal()), { code: 'ARTIFACT_REFERENCE_INVALID' });
   for (const change of [{ version: 'axwise.local-artifact.v1' }, { tool: 'create_prd' }, { accountHash: 'b'.repeat(64) },
     { conversationId: 'other' }, { inputSha256: 'bad' }, { artifactSha256: 'bad' }, { qualityReview: { passed: false } }]) {
-    const operationId = randomUUID(), saved = await saveArtifact({ ...scope, operationId, record: { ...original, operationId, ...change } }, signal());
+    const operationId = randomUUID();
+    const resultArtifact = { ...original.resultArtifact, artifactId: operationId, revisionId: operationId,
+      path: join(dirname(analysis.structuredContent.artifactFile.path), `${operationId}.md`) };
+    const saved = await saveArtifact({ ...scope, operationId,
+      record: { ...original, operationId, resultArtifact, ...change } }, signal());
     await assert.rejects(resolveAnalysisReference(scope, { operationId, sha256: saved.sha256 }, signal()), { code: 'ARTIFACT_REFERENCE_INVALID' });
   }
 });
