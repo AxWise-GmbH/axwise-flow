@@ -1,62 +1,7 @@
-# Virtual environments
 .venv/
-venv/
-venv_*/
-backend/venv/
-backend/.venv/
-
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# SQLite database files
-*.db
-backend/*.db
-
-# Node.js
 node_modules/
-frontend/node_modules/
-.next/
-.turbo/
-
-# Environment files (except templates)
-.env
-.env.local
-.env.*.local
-frontend/.env.local
-frontend/.env.production
-
-# Vercel / Firebase
-.vercel/
-.firebase/
-
-# Security/cleanup artifacts
-repomix-output.xml
-bfg.jar
-*.jar
-
-# Build metadata
-*.tsbuildinfo
-
-# IDE
-*.code-workspace
-.idea/
-.vscode/
-
-# OS files
-.DS_Store
-Thumbs.db
-backend/.env.oss
-
-# Production Scripts
-scripts/deploy-axwise-de-*.sh
-
-# Personal MCP tooling (not part of product)
-gmailmcp/
-gmailmcp/client_secret_993236701053-c0k1216s1hjpi1rbephfdbo76epe1qhf.apps.googleusercontent.com.json
-.axwise-flow-private
-
-# Local scratch
-tmp/
+__pycache__/
+*.pyc
+dist/
+.env*
+!*.example.json

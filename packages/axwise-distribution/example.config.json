@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "provider": "gemini",
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+  "model": "gemini-3.8-flash",
+  "apiKeyEnv": "GEMINI_API_KEY",
+  "stateDir": "/absolute/path/to/axwise-state",
+  "profileId": "personal",
+  "workspaceId": "customer-discovery",
+  "sessionId": "discovery-session-001"
+}

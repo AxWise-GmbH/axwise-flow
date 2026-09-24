@@ -1,3 +1,1 @@
-"""
-Test package for backend components.
-"""
+"""Focused AxWise kernel tests."""

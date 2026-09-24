@@ -1,0 +1,351 @@
+{
+  "format": "axwise.source-allowlist.v1",
+  "version": "0.3.0",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "e2474c3ed27f491b47fcab0893eadbe5916b7972d296c353552385df32e68b4d",
+      "bytes": 68
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "2519e11f824f50273c36a10581fbca879c8d97bfdf81c5c52e0193adc419c389",
+      "bytes": 11351
+    },
+    {
+      "path": "README.md",
+      "sha256": "bad5ad0b1b7f171de5e9f284f627dfdb7f4da3d55f1980f9e56a4490f219feb6",
+      "bytes": 9674
+    },
+    {
+      "path": "axwise.example.json",
+      "sha256": "a7e481a67a42625917acab95c4946ad9e38e23bb5464ad87ec77add2ebd1d671",
+      "bytes": 333
+    },
+    {
+      "path": "backend/__init__.py",
+      "sha256": "11cd693784d0cd0d8445edfe81ef309ce7bb60853e24fddfbeeccaa665c1390d",
+      "bytes": 32
+    },
+    {
+      "path": "backend/domain/__init__.py",
+      "sha256": "a52abde0646e4287675a453f12c011a80a7b383eb039263c2fa4587e470f41bc",
+      "bytes": 35
+    },
+    {
+      "path": "backend/domain/workflow_v2/__init__.py",
+      "sha256": "c83d2353f9de4d813ddb17a06061444edcc1da13424d8d7f9a009137cdc72901",
+      "bytes": 70
+    },
+    {
+      "path": "backend/domain/workflow_v2/qualitative_analysis.py",
+      "sha256": "3999923d72909a12716bf58e17032aea205c56b0eff5d7010b2e2fd520863a3f",
+      "bytes": 33056
+    },
+    {
+      "path": "backend/domain/workflow_v2/simulation.py",
+      "sha256": "5c7315106096e0e6e0a8b8b9cb6c3e0ab5628fc022033173c4ae526ebfa01fbf",
+      "bytes": 29136
+    },
+    {
+      "path": "backend/domain/workflow_v2/transcript_corpus.py",
+      "sha256": "a102e3956364a9341cb66594b2bba1014c38f4dfdfbe9ed660c487922f0509a0",
+      "bytes": 17684
+    },
+    {
+      "path": "backend/domain/workflow_v2/wire.py",
+      "sha256": "10b80531ca77461ec884a93c8781bfc35e8594613c5ffe3ad40a11702314841e",
+      "bytes": 3808
+    },
+    {
+      "path": "backend/services/__init__.py",
+      "sha256": "21565776191b4acecb89d35e07fb291a037cb8bf6fa270d4bf4a5924972e8de0",
+      "bytes": 33
+    },
+    {
+      "path": "backend/services/local_axwise/__init__.py",
+      "sha256": "4cf97b3224fd7e6152d3fff26f62c13f5c14425d136afcd4038892e4d6b80e4e",
+      "bytes": 122
+    },
+    {
+      "path": "backend/services/local_axwise/analysis_views.py",
+      "sha256": "fedf48afb026b24c2a0634f107f1d89c9ae7294ace8749e0d14178f1b218c036",
+      "bytes": 14215
+    },
+    {
+      "path": "backend/services/local_axwise/delivery.py",
+      "sha256": "a8af3e7c417c0521f5e4057cc6a6d6552b395d797d0086612806b14662dca47d",
+      "bytes": 28133
+    },
+    {
+      "path": "backend/services/local_axwise/discovery.py",
+      "sha256": "ceac187ea12a0a448921c37ae3230f53ec94cb881807deecc78d43f5ef7665ca",
+      "bytes": 28773
+    },
+    {
+      "path": "backend/services/local_axwise/kernel.py",
+      "sha256": "22d4b16d2c185bc81c26b48d402f26392a3c128702e606d361f82849d817beeb",
+      "bytes": 78778
+    },
+    {
+      "path": "backend/services/local_axwise/personas.py",
+      "sha256": "0cf5e0e313901cea48dcc677b5e5596db569bde0a765e453bf0df45dc7013e27",
+      "bytes": 36876
+    },
+    {
+      "path": "backend/services/local_axwise/pipeline_common.py",
+      "sha256": "e94877221d21b4a0438fa5513b00f1788b015e7e26307fdff581ce3f8b89ec6b",
+      "bytes": 3940
+    },
+    {
+      "path": "backend/services/local_axwise/prd_revisions.py",
+      "sha256": "c044891620e49574c5e5049e181c43cdf58fc089d38ca758b388327d02c80fa2",
+      "bytes": 9321
+    },
+    {
+      "path": "backend/services/local_axwise/quality.py",
+      "sha256": "326f9faa195f673170b3a1e1714fa5673b1381355e31ca350af0fc45cbaeb317",
+      "bytes": 17548
+    },
+    {
+      "path": "backend/services/local_axwise/requirements.txt",
+      "sha256": "39bb5bd9f00ed2942d51b2004994bfd45b27b03bfbd1acd0a74b511eb4b7dbe3",
+      "bytes": 183
+    },
+    {
+      "path": "backend/services/local_axwise/worker.py",
+      "sha256": "e724dec41bb2315b5fbfd986cd6c6168f53acb1bcd5355fc90be29c594d8420a",
+      "bytes": 5572
+    },
+    {
+      "path": "backend/services/workflow_v2/__init__.py",
+      "sha256": "52b9af834f319c277ed58f383bebc6447fc096f77f9318c44bca1abeed7cbb70",
+      "bytes": 55
+    },
+    {
+      "path": "backend/services/workflow_v2/analysis_candidates.py",
+      "sha256": "1581046042f898d4dd22eb6ef4d9fb2d22dd50b34ed182f8aee6c1f90688a2ce",
+      "bytes": 7065
+    },
+    {
+      "path": "backend/services/workflow_v2/capability_generation_payloads.py",
+      "sha256": "3cf1af29efba4fe981622fa1b947b2786a71d43dde92acb3459529b9fb4410b4",
+      "bytes": 2999
+    },
+    {
+      "path": "backend/services/workflow_v2/cognitive/__init__.py",
+      "sha256": "d90a31afbe27bc51f54149aacf6e1abdee38a0f02886c73297c94806867417c3",
+      "bytes": 68
+    },
+    {
+      "path": "backend/services/workflow_v2/cognitive/policy.py",
+      "sha256": "9b8fb640ece5203b435fbe9377b2a7d5c56ebb6b4261d0c2c4392267ad9cd5df",
+      "bytes": 73279
+    },
+    {
+      "path": "backend/tests/__init__.py",
+      "sha256": "5f2ec846bc01dd6c07c83352d57deee3922b8d8136c09895a334a1cee46b0e53",
+      "bytes": 35
+    },
+    {
+      "path": "backend/tests/local_axwise/__init__.py",
+      "sha256": "c81625befd7f781c0c308f85c1345453df00c2f156354df3ab5be569de438e1f",
+      "bytes": 81
+    },
+    {
+      "path": "backend/tests/local_axwise/fixtures.py",
+      "sha256": "a49c7341dab5a4739f40aa15e380d9e0d2749dca750e067f2bcb7afbc591e31b",
+      "bytes": 5302
+    },
+    {
+      "path": "backend/tests/local_axwise/test_analysis_context.py",
+      "sha256": "48244e76f77f487077bc3b3a366db4159681829ce7ec49ce0bce263ddec9eabf",
+      "bytes": 11548
+    },
+    {
+      "path": "backend/tests/local_axwise/test_analysis_views.py",
+      "sha256": "91a795e6bb48437d66cb92636af69e684156e60f40a044ca97deda9dd725a02a",
+      "bytes": 10619
+    },
+    {
+      "path": "backend/tests/local_axwise/test_delivery.py",
+      "sha256": "ec1a608d8fdbf9de74415adf68a95bfa3d661d8718e59d9967dde19a0002b24d",
+      "bytes": 26497
+    },
+    {
+      "path": "backend/tests/local_axwise/test_discovery.py",
+      "sha256": "91ba5e44ab66fb288727bc0bd412a4c6b457d39973cf4c34fa6767c59157e539",
+      "bytes": 21540
+    },
+    {
+      "path": "backend/tests/local_axwise/test_kernel.py",
+      "sha256": "30b58bc1e8e87ba190f5b1bb574202907b3a91bbc87f1f760462e6663157dc52",
+      "bytes": 20483
+    },
+    {
+      "path": "backend/tests/local_axwise/test_personas.py",
+      "sha256": "909add427f7f54b4a347c61bdf0d62f1a12b65bec50670cdb1bd492e478b06a9",
+      "bytes": 37693
+    },
+    {
+      "path": "backend/tests/local_axwise/test_pipeline_integration.py",
+      "sha256": "496cefa60a71ec8543b5c2eec2627bd42dde9f726d858dd1ce77e41d2d17e073",
+      "bytes": 28305
+    },
+    {
+      "path": "backend/tests/local_axwise/test_prd_revisions.py",
+      "sha256": "8c2586ab83eeadd9be1d0679d5247f24cb4687d4da03b9bd150fc72ab9a75df0",
+      "bytes": 14261
+    },
+    {
+      "path": "backend/tests/local_axwise/test_quality.py",
+      "sha256": "c8327d844c24c1213c92a0a151329fd15d8bd2530f0faa3e6972e66415521b3e",
+      "bytes": 34477
+    },
+    {
+      "path": "packages/axwise-distribution/PUBLIC_README.md",
+      "sha256": "bad5ad0b1b7f171de5e9f284f627dfdb7f4da3d55f1980f9e56a4490f219feb6",
+      "bytes": 9674
+    },
+    {
+      "path": "packages/axwise-distribution/README.md",
+      "sha256": "0e440cc4ebe757a7214743adb71137c65dc8bb63e3eac7028422bb24b74ce900",
+      "bytes": 1748
+    },
+    {
+      "path": "packages/axwise-distribution/build.py",
+      "sha256": "d329198f0e3b5a035fc429d36b00be49bb46f64bae1b70900068883c3bd227c3",
+      "bytes": 10655
+    },
+    {
+      "path": "packages/axwise-distribution/build_backend.py",
+      "sha256": "652b42d8c9bacbdb4a134b8363b95dfabb2cdd60ec0200e0fa45e49c15477814",
+      "bytes": 587
+    },
+    {
+      "path": "packages/axwise-distribution/example.config.json",
+      "sha256": "a7e481a67a42625917acab95c4946ad9e38e23bb5464ad87ec77add2ebd1d671",
+      "bytes": 333
+    },
+    {
+      "path": "packages/axwise-distribution/launcher.py",
+      "sha256": "c52f9b443cebf08e9d7ab6b07a565a4b0fe26e91cd2e479bfc8d8d9324f4438e",
+      "bytes": 2125
+    },
+    {
+      "path": "packages/axwise-distribution/manifest.py",
+      "sha256": "fa0f94306826595c92aa486129169e480dd52d244889c424ca1d870085207c64",
+      "bytes": 2391
+    },
+    {
+      "path": "packages/axwise-distribution/npm-cli.mjs",
+      "sha256": "8cb68c786c5256b74bd16c9c4f5d1f72a9a9c6e930336a9826f285756de4176d",
+      "bytes": 957
+    },
+    {
+      "path": "packages/axwise-distribution/pyproject.toml",
+      "sha256": "9552b5f321d4330adbd15e1aa0ccc5cb14876260fbee8fb1cb72914c776ab639",
+      "bytes": 634
+    },
+    {
+      "path": "packages/axwise-distribution/smoke.py",
+      "sha256": "7edbc67588aacd851e55a5ef390d6e3e055c92ca8c6ea0ea4eee4acba210ee9c",
+      "bytes": 5333
+    },
+    {
+      "path": "packages/axwise-distribution/test_distribution.py",
+      "sha256": "f9537052f44e86420a2c7d13ce2e4e8b16a96dae415d5a05deefaa88287d65d0",
+      "bytes": 6449
+    },
+    {
+      "path": "packages/axwise-local/package.json",
+      "sha256": "fdc7e41c366f33f9649f2cf0dfe37bb2ad56be30ef929d015265150e711ef07e",
+      "bytes": 203
+    },
+    {
+      "path": "packages/axwise-local/src/byok-provider.mjs",
+      "sha256": "748c366e68c99a5f44b599121fd6985fa74dbcbfb82feff92f37b8f38d7f15b5",
+      "bytes": 5679
+    },
+    {
+      "path": "packages/axwise-local/src/conversation-policy.mjs",
+      "sha256": "7d2e74212adf1bae63bd60403231a821f44c242521e7ad360885250a63fba794",
+      "bytes": 5652
+    },
+    {
+      "path": "packages/axwise-local/src/mcp.mjs",
+      "sha256": "77b5147bfe66d473cf662c0f614fb02cd6e797d07a37b4ab458b420560cbeab1",
+      "bytes": 8326
+    },
+    {
+      "path": "packages/axwise-local/src/runtime.mjs",
+      "sha256": "bf2fd81749d433f498c8f17f5714c006b0c54ee8c61b00d4ad340f6a5b72654b",
+      "bytes": 31340
+    },
+    {
+      "path": "packages/axwise-local/src/schema.mjs",
+      "sha256": "7c88315df248f4f8781fd194a90e2b8ddb01c0e9069145e7cb0770203fb86997",
+      "bytes": 4759
+    },
+    {
+      "path": "packages/axwise-local/src/standalone-config.mjs",
+      "sha256": "dbe9bafe28dafaf981cc6ddf185c8b1edcfc8b4097dccb02adaa4ee42ab75c04",
+      "bytes": 4364
+    },
+    {
+      "path": "packages/axwise-local/src/standalone.mjs",
+      "sha256": "90f775ce6db0d0498fa2ee811b277bb87459534a207bf8194c5118c894b2056e",
+      "bytes": 2641
+    },
+    {
+      "path": "packages/axwise-local/src/state.mjs",
+      "sha256": "98ced40541a796143b1e6904531f856d25dfd2be5b2f780c02c17d358d3d433d",
+      "bytes": 8959
+    },
+    {
+      "path": "packages/axwise-local/test/conversation-policy.test.mjs",
+      "sha256": "5b64e4b172d34f0c286aa906015dbb9aad035905f99970540bc43612024bbd37",
+      "bytes": 2847
+    },
+    {
+      "path": "packages/axwise-local/test/kernel-integration.test.mjs",
+      "sha256": "05fed20e8f7fdc45149032e0dc9e8b677a81f5f0bfa966d9684821f43e843cc9",
+      "bytes": 2895
+    },
+    {
+      "path": "packages/axwise-local/test/pipeline-runtime.test.mjs",
+      "sha256": "aad28cf40374238af2d1972895e8a6e022f42d6d85d41c5c06a9e0241b4953f3",
+      "bytes": 15736
+    },
+    {
+      "path": "packages/axwise-local/test/runtime.test.mjs",
+      "sha256": "c0fbd778eca6c5f150f25794566b55258dfea1411b93e0932216f82f9070ecf7",
+      "bytes": 23336
+    },
+    {
+      "path": "packages/axwise-local/test/schema.test.mjs",
+      "sha256": "2a6dfedde900436225b1d428f46f6229df55cfc15a5c0683b49f77cb42189845",
+      "bytes": 3139
+    },
+    {
+      "path": "packages/axwise-local/test/stages.test.mjs",
+      "sha256": "245ab1211ffff3dc74b3a4100678b02e9e78015fbcaa6afd03be51cdf0b42e7f",
+      "bytes": 14359
+    },
+    {
+      "path": "packages/axwise-local/test/standalone.test.mjs",
+      "sha256": "084f8baf2f39966acd45f8bb2e8fa3625d8d9b8a26d6fa036291eb9848a45f37",
+      "bytes": 21702
+    },
+    {
+      "path": "packages/axwise-local/test/state.test.mjs",
+      "sha256": "f6e29954968940f8c6c7dbb0c4654d0a246e148558e53029d0b4100718239d66",
+      "bytes": 8348
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "9552b5f321d4330adbd15e1aa0ccc5cb14876260fbee8fb1cb72914c776ab639",
+      "bytes": 634
+    }
+  ]
+}
