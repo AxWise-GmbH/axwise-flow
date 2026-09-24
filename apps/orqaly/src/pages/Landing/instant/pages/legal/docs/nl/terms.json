@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "Servicevoorwaarden",
+    "summary": "Deze voorwaarden vormen de hoofdovereenkomst voor elk Orqanix-product en gaan over uw account, uw content, agents, aansprakelijkheid en geschillen.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Wie wij zijn"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix is een familie van AI-producten: de Computerapp, de Mobiele app, de Assistent-bot, de API en onze zakelijke diensten. Samen met deze website en uw Orqanix-account noemen wij deze de \"Diensten\"."
+    },
+    {
+      "type": "p",
+      "text": "Deze Servicevoorwaarden zijn een overeenkomst tussen u en het bedrijf dat Orqanix exploiteert (\"Orqanix\", \"wij\" of \"ons\")."
+    },
+    {
+      "type": "p",
+      "text": "Dat bedrijf is {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Het is ingeschreven bij {company.register}. Het btw-nummer is {company.vatId}.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "U kunt ons bereiken via {company.email}. Ons [Privacybeleid](/instant/legal/privacy) legt uit hoe wij met persoonsgegevens omgaan. Het maakt geen deel uit van deze overeenkomst, maar lees het alstublieft."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "Aanvaarding van deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "U aanvaardt deze voorwaarden wanneer u een account aanmaakt, of wanneer u een van de Diensten downloadt of gebruikt. Als u niet akkoord gaat, gebruik ze dan niet."
+    },
+    {
+      "type": "p",
+      "text": "Als u namens een bedrijf of andere organisatie aanvaardt, bevestigt u dat u deze mag binden. \"U\" betekent dan die organisatie, en u moet als de persoon die de Diensten gebruikt ook zelf deze voorwaarden naleven."
+    },
+    {
+      "type": "p",
+      "text": "In deze voorwaarden is een \"consument\" een persoon die de Diensten hoofdzakelijk gebruikt voor doeleinden buiten zijn handels-, bedrijfs-, ambachts- of beroepsactiviteit. Een \"zakelijke gebruiker\" is ieder ander. Sommige regels hieronder verschillen voor consumenten, omdat de wet hun meer bescherming biedt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Sommige regels hieronder hangen ervan af of u de Diensten voor uzelf of voor een bedrijf gebruikt. Een \"zakelijke gebruiker\" is iedereen die de Diensten gebruikt voor een handels-, bedrijfs- of beroepsactiviteit, of namens een organisatie.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Wie Orqanix mag gebruiken"
+    },
+    {
+      "type": "p",
+      "text": "U moet 18 jaar of ouder zijn om de Diensten te gebruiken, waar u ook woont. De Diensten zijn niet bedoeld voor kinderen, en u mag ze niet gebruiken om iets te bouwen dat gericht is op personen jonger dan 18 jaar."
+    },
+    {
+      "type": "p",
+      "text": "U mag de Diensten ook niet gebruiken als de wet dat verbiedt, onder meer op grond van de regels in [Sancties en export](#sanctions), of als wij een eerder account van u hebben gesloten wegens een ernstige schending van deze voorwaarden."
+    },
+    {
+      "type": "p",
+      "text": "De API en de zakelijke diensten zijn uitsluitend bestemd voor zakelijke gebruikers."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "Uw account"
+    },
+    {
+      "type": "p",
+      "text": "Voor de meeste Diensten is een Orqanix-account nodig. Een aanmeldprovider verzorgt het aanmelden voor ons, en u kunt zich ook aanmelden met Google. Verstrek ons juiste gegevens en houd deze actueel."
+    },
+    {
+      "type": "p",
+      "text": "Houd uw aanmeldgegevens veilig en deel uw account niet. U bent verantwoordelijk voor wat er onder uw account gebeurt, tenzij dit door onze schuld gebeurt. Als u denkt dat iemand anders uw account heeft gebruikt, laat het ons dan direct weten via {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Om uw account te sluiten of een kopie van uw gegevens te krijgen, schrijft u naar {company.privacyEmail}. Ons [Privacybeleid](/instant/legal/privacy) legt uit wat wij bewaren en waarom."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "Onze producten"
+    },
+    {
+      "type": "p",
+      "text": "Deze voorwaarden gelden voor alle Diensten. Elk product heeft daarnaast eigen voorwaarden, die regels voor dat product toevoegen:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[Voorwaarden computerapp](/instant/legal/desktop-app-terms): de macOS-app, waarin AI-agents onderzoek doen, plannen maken en echte bestanden op uw Mac aanmaken.",
+        "[Voorwaarden mobiele app](/instant/legal/mobile-app-terms): de telefoonapp die werkt als afstandsbediening voor de Computerapp.",
+        "[Voorwaarden Assistent-bot](/instant/legal/assistant-bot-terms): de zakelijke assistent die u bereikt via de berichtenapps en e-mailaccounts die u koppelt.",
+        "[API-voorwaarden](/instant/legal/api-terms): de redeneerlaag voor andere producten (uitsluitend voor zakelijke gebruikers).",
+        "[Zakelijke voorwaarden](/instant/legal/enterprise-terms): diensten waarbij onze agents en experts oplossingen voor u bouwen (uitsluitend voor zakelijke gebruikers)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u een product gebruikt, gelden zowel de voorwaarden van dat product als deze voorwaarden. Als ze met elkaar in strijd zijn, gaan de productvoorwaarden voor dat product voor. Een schriftelijke overeenkomst die u met ons ondertekent, zoals een zakelijke opdracht, gaat voor beide voor, voor zover die overeenkomst reikt."
+    },
+    {
+      "type": "p",
+      "text": "Wanneer zakelijke gebruikers van de API, onze zakelijke diensten of de Assistent-bot ons persoonsgegevens verstrekken om namens hen te verwerken, is ook onze [Verwerkersovereenkomst](/instant/legal/dpa) van toepassing."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "Prijs"
+    },
+    {
+      "type": "p",
+      "text": "De Diensten zijn gratis in deze vroege fase. Wij brengen u niets in rekening, tenzij u instemt met een betaald abonnement."
+    },
+    {
+      "type": "p",
+      "text": "Voordat een betaald abonnement ingaat, publiceren wij de prijs en de regels voor betalen en opzeggen. U kunt dan beslissen of u het wilt.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Voordat een betaald abonnement ingaat, publiceren wij de prijs, inclusief belastingen, en de regels voor betalen, opzeggen en herroepen. Op dat moment leggen wij uw herroepingsrecht als consument uit. U kunt dan beslissen of u het wilt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Omdat de Diensten gratis zijn, kunt u deze overeenkomst op elk moment beëindigen, zonder kosten en zonder opgave van redenen. Dit gaat verder dan het herroepingsrecht van 14 dagen dat het EU-recht aan consumenten geeft.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "Uw content"
+    },
+    {
+      "type": "p",
+      "text": "\"Invoer\" betekent wat u aan de Diensten geeft: prompts, berichten, bestanden, spraak, instructies en alles wat de agents met uw toestemming lezen. \"Uitvoer\" betekent wat de Diensten teruggeven: antwoorden, rapporten, bestanden en andere resultaten. Samen vormen zij \"uw content\"."
+    },
+    {
+      "type": "p",
+      "text": "Tussen u en ons is uw content van u. Wij claimen er geen eigendom van. Als wij rechten hebben op uw uitvoer, dragen wij die aan u over."
+    },
+    {
+      "type": "p",
+      "text": "Om de Diensten te laten werken, hebben wij uw toestemming nodig om uw content te gebruiken. U verleent ons een wereldwijde, niet-exclusieve, royaltyvrije licentie om deze te hosten, op te slaan, te kopiëren, te verwerken, te verzenden en te tonen. Wij gebruiken deze licentie alleen om de Diensten voor u te leveren, te beveiligen en te ondersteunen, om ze rechtmatig te houden en om deze voorwaarden te handhaven. De licentie eindigt wanneer uw content uit onze systemen is verwijderd, met uitzondering van kopieën die wij wettelijk moeten bewaren of zoals ons [Privacybeleid](/instant/legal/privacy) uitlegt."
+    },
+    {
+      "type": "p",
+      "text": "Wij trainen onze eigen AI-modellen niet met uw content. Wij verkopen uw persoonsgegevens niet en wij tonen geen advertenties."
+    },
+    {
+      "type": "p",
+      "text": "U bent verantwoordelijk voor uw invoer. U bevestigt dat u de rechten en toestemmingen hebt om deze aan ons te geven, ook van personen van wie persoonsgegevens erin staan, en dat het gebruik ervan met de Diensten niet in strijd is met de wet of met deze voorwaarden."
+    },
+    {
+      "type": "p",
+      "text": "AI-modellen kunnen vergelijkbare uitvoer aan verschillende mensen geven. Uitvoer die anderen ontvangen is niet uw content, ook niet als die op de uwe lijkt."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "AI kan zich vergissen"
+    },
+    {
+      "type": "p",
+      "text": "De Diensten maken gebruik van kunstmatige intelligentie. AI-uitvoer kan onjuist, onvolledig, verouderd of aanstootgevend zijn, ook wanneer die zelfverzekerd klinkt. Hij kan ook elke keer dat u iets vraagt anders zijn."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Controleer uitvoer voordat u erop vertrouwt of hem deelt, vooral bij alles wat belangrijk is.",
+        "Uitvoer is geen juridisch, medisch, financieel, fiscaal of ander professioneel advies en vervangt geen gekwalificeerde deskundige.",
+        "Gebruik uitvoer niet als enige basis voor beslissingen die gevolgen hebben voor de rechten, gezondheid, financiën of banen van mensen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Hoe onze AI werkt](/instant/legal/ai) legt uit welke modellen wij gebruiken en hoe."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "Agents"
+    },
+    {
+      "type": "p",
+      "text": "Sommige Diensten maken gebruik van AI-agents. Een agent geeft niet alleen antwoord. Hij voert handelingen uit. Afhankelijk van het product en uw instellingen kunnen agents bestanden lezen en wijzigen, opdrachten op uw computer uitvoeren, op het web zoeken en tools gebruiken die u koppelt, waaronder het namens u versturen van berichten of e-mails."
+    },
+    {
+      "type": "p",
+      "text": "Agents handelen op uw instructies en binnen de rechten die u hun geeft. Standaard keurt de Computerapp handelingen van agents automatisch goed. U kunt dit wijzigen zodat de app u eerst om toestemming vraagt, alleen vraagt bij gevoelige handelingen, of alleen chat. De [Voorwaarden computerapp](/instant/legal/desktop-app-terms) leggen de instellingen uit."
+    },
+    {
+      "type": "p",
+      "text": "U bent verantwoordelijk voor de handelingen die u toestaat, of u ze nu een voor een of vooraf goedkeurt. In het bijzonder:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Laat agents alleen computers, accounts, bestanden en systemen gebruiken die u zelf mag gebruiken.",
+        "Controleer wat een agent gaat doen wanneer het ertoe doet, en houd zijn werk in de gaten wanneer u hem zelfstandig laat werken.",
+        "Maak back-ups van alles wat belangrijk is. Agents kunnen per vergissing bestanden wijzigen of verwijderen.",
+        "Een agent die berichten aan andere mensen stuurt, doet dat in uw naam. U bent verantwoordelijk voor die berichten, en voor het meedelen aan mensen dat ze van een AI afkomstig zijn wanneer ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) of de wet dat vereist."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Dit neemt onze verantwoordelijkheid niet weg wanneer de Diensten zelf gebrekkig zijn. Zie [Aansprakelijkheid](#liability)."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "Gekoppelde diensten"
+    },
+    {
+      "type": "p",
+      "text": "Ons standaard AI-model is Google Gemini. Wanneer uw content daarheen gaat, gelden de voorwaarden van Google voor die dienst ook voor de manier waarop Google ermee omgaat. [Hoe onze AI werkt](/instant/legal/ai) en ons [Privacybeleid](/instant/legal/privacy) leggen uit wat er wordt verzonden. U moet ook de regels van Google naleven, die ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) opsomt."
+    },
+    {
+      "type": "p",
+      "text": "In sommige producten kunt u zelf andere diensten koppelen, zoals AI-modellen van OpenAI, Anthropic of anderen, berichtenapps, e-mailaccounts of andere tools. Wanneer u dat doet:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "is uw relatie met die dienst een zaak tussen u en de aanbieder ervan, en gelden de voorwaarden en prijzen van die dienst;",
+        "ontvangt die dienst de content die hij nodig heeft om zijn werk te doen, zoals uw gesprek;",
+        "bent u verantwoordelijk voor uw sleutels en accounts bij die dienst en voor alle kosten die deze in rekening brengt;",
+        "hebben wij er geen zeggenschap over en zijn wij niet verantwoordelijk voor wat de dienst doet, behalve wanneer de wet ons verantwoordelijk stelt."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "Aanvaardbaar gebruik"
+    },
+    {
+      "type": "p",
+      "text": "U moet ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) naleven, dat deel uitmaakt van deze voorwaarden. Kort gezegd: niets illegaals, niets wat mensen schaadt, geen aanvallen op ons of anderen, geen misleiding, en geen toepassingen die het beleid alleen onder een speciale overeenkomst toestaat."
+    },
+    {
+      "type": "p",
+      "text": "U mag de Diensten ook niet kopiëren, verkopen of doorverkopen zonder onze schriftelijke toestemming, onze limieten of veiligheidsmaatregelen omzeilen, of de Diensten gebruiken op een manier die hun beveiliging of andere gebruikers in gevaar brengt."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Feedback"
+    },
+    {
+      "type": "p",
+      "text": "Ideeën en suggesties zijn welkom. Als u ons feedback stuurt, mogen wij die vrij gebruiken om de Diensten te verbeteren, zonder u te betalen en zonder enige verplichting jegens u. Wij publiceren uw naam er niet bij zonder uw toestemming."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "Onze rechten"
+    },
+    {
+      "type": "p",
+      "text": "De Diensten, inclusief onze software, ontwerpen, namen en logo's, behoren toe aan ons of onze licentiegevers en zijn wettelijk beschermd. Deze voorwaarden geven u het recht de Diensten te gebruiken zoals zij beschrijven, zolang u ze mag gebruiken. Zij geven u geen andere rechten."
+    },
+    {
+      "type": "p",
+      "text": "Sommige onderdelen van de Diensten zijn opensourcesoftware. Voor die onderdelen gelden hun eigen licenties, die voor die onderdelen voorgaan op deze voorwaarden. Zie [Opensourcevermeldingen](/instant/legal/open-source)."
+    },
+    {
+      "type": "p",
+      "text": "U mag de Diensten niet demonteren, decompileren of reverse-engineeren, behalve voor zover de wet of een opensourcelicentie dat toestaat."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Opschorting en beëindiging"
+    },
+    {
+      "type": "p",
+      "text": "U kunt op elk moment stoppen met het gebruik van de Diensten en ons vragen uw account te sluiten, zoals uitgelegd in [Uw account](#your-account)."
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen uw toegang opschorten of beperken, content verwijderen of uw account sluiten als:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "u deze voorwaarden of het [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) ernstig of herhaaldelijk schendt;",
+        "de wet of een autoriteit dat vereist;",
+        "uw gebruik andere mensen, de Diensten of ons blootstelt aan een risico op schade of juridische aansprakelijkheid; of",
+        "uw account lange tijd niet is gebruikt en wij u dat vooraf hebben laten weten."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Waar mogelijk waarschuwen wij u eerst en geven wij u de kans het probleem op te lossen. Wij handelen in verhouding tot wat er is gebeurd. Wanneer wij optreden, laten wij u weten wat wij hebben gedaan en waarom, tenzij de wet dat verbiedt of het meedelen schade zou veroorzaken."
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen ook stoppen met het aanbieden van een Dienst, of van alle Diensten. Als wij dat doen, laten wij u dat met een redelijke termijn weten en geven wij u de tijd om een kopie van uw gegevens te vragen, tenzij wij om juridische of beveiligingsredenen eerder moeten stoppen."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Om uw gegevens over te zetten naar een andere aanbieder of naar uw eigen systemen, schrijft u naar {company.privacyEmail}. Wij geven u kosteloos een kopie van uw content en gegevens in een gestructureerd, gangbaar en machineleesbaar formaat en helpen u bij de overstap. U kunt de overeenkomst op elk moment beëindigen. (EU-dataverordening (Data Act), art. 23 en 25)"
+    },
+    {
+      "type": "p",
+      "text": "Als u het niet eens bent met een beslissing over uw account, beantwoord dan ons bericht of schrijf naar {company.email}. Een mens bekijkt de beslissing dan opnieuw."
+    },
+    {
+      "type": "p",
+      "text": "Onderdelen van deze voorwaarden die naar hun aard moeten blijven gelden, zoals die over content, aansprakelijkheid, vrijwaring en geschillen, blijven van kracht nadat de overeenkomst is geëindigd."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen in de Diensten en deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "De Diensten staan nog in de kinderschoenen en zullen veranderen. Wij voegen functies toe, verbeteren ze en verwijderen ze, en wij wijzigen de AI-modellen die wij gebruiken."
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen deze voorwaarden wijzigen, bijvoorbeeld wanneer de Diensten, de wet of onze bedrijfsvoering veranderen. De datum bovenaan geeft aan wanneer de huidige versie van kracht is geworden. Wijzigingen gelden niet voor gebruik in het verleden of voor geschillen die al bestaan."
+    },
+    {
+      "type": "p",
+      "text": "Over wijzigingen die voor u van belang zijn, informeren wij u vooraf, per e-mail of in de Diensten. Als u de Diensten blijft gebruiken nadat een wijziging van kracht is geworden, gelden de nieuwe voorwaarden. Als u niet akkoord gaat, stop dan met het gebruik van de Diensten en sluit uw account.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "Uw rechten bij wijzigingen",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij wijzigen de Diensten op een manier die u raakt alleen om een geldige reden: om ons aan te passen aan nieuwe technologie of aan veranderingen bij de modelaanbieders waarop wij vertrouwen, om ze veilig te houden, om aan wettelijke verplichtingen te voldoen, of om ze te verbeteren of te reorganiseren. Een wijziging brengt voor u geen extra kosten met zich mee. (Richtlijn (EU) 2019/770, art. 19)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als een wijziging uw toegang tot de Diensten, of uw gebruik ervan, meer dan in geringe mate nadelig beïnvloedt, informeren wij u vooraf duidelijk op een duurzame gegevensdrager, zoals e-mail. U kunt de overeenkomst dan kosteloos beëindigen binnen 30 dagen na de kennisgeving of na de wijziging, afhankelijk van wat later is.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Bij wijzigingen van deze voorwaarden die u raken, informeren wij u ten minste 30 dagen voordat zij van kracht worden per e-mail en leggen wij uit wat er verandert. Waar de wet uw toestemming vereist, vragen wij daarom. Wij beschouwen uw stilzwijgen niet als instemming. Als u niet akkoord gaat, kunt u uw account kosteloos sluiten voordat de wijziging van kracht wordt. Wij gebruiken wijzigingen nooit om rechten af te nemen die de wet u geeft.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij leveren de updates, inclusief beveiligingsupdates, die de wet vereist om de Diensten te laten werken zoals beschreven, zolang de wet dat vereist. Voor de Computerapp verschijnen nieuwe versies als nieuwe download, zoals de [Voorwaarden computerapp](/instant/legal/desktop-app-terms) uitleggen. Als wij u hebben geïnformeerd over een update en over wat er gebeurt als u deze niet installeert, zijn wij niet verantwoordelijk voor problemen die door het installeren ervan zouden zijn verholpen.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Disclaimers",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "De Diensten bevinden zich in een vroeg stadium en worden gratis aangeboden. Ze kunnen veranderen, defect raken of stoppen, en uitvoer kan onjuist zijn.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "VOOR ZOVER DE WET DAT TOESTAAT, WORDEN DE DIENSTEN EN ALLE UITVOER GELEVERD \"IN DE STAAT WAARIN ZIJ ZICH BEVINDEN\" EN \"ZOALS BESCHIKBAAR\". WIJ GEVEN GEEN ENKELE GARANTIE, UITDRUKKELIJK, STILZWIJGEND OF WETTELIJK, WAARONDER GARANTIES VAN VERKOOPBAARHEID, GESCHIKTHEID VOOR EEN BEPAALD DOEL, EIGENDOMSRECHT, NIET-INBREUK EN NAUWKEURIGHEID. WIJ GARANDEREN NIET DAT DE DIENSTEN ONONDERBROKEN, VEILIG OF FOUTLOOS ZULLEN ZIJN, DAT CONTENT NIET VERLOREN ZAL GAAN, OF DAT UITVOER OF HANDELINGEN VAN AGENTS JUIST OF VEILIG ZULLEN ZIJN.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Op sommige plaatsen is het niet toegestaan bepaalde garanties uit te sluiten. Daar gelden de bovenstaande uitsluitingen alleen voor zover de wet dat toestaat.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Wettelijke garantie",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u consument bent, geeft het EU-recht u een wettelijke garantie voor digitale inhoud en digitale diensten. De Diensten moeten overeenkomen met wat deze voorwaarden en de productvoorwaarden beschrijven, en wij zijn verantwoordelijk als dat niet zo is. Niets in deze voorwaarden beperkt die garantie. (Richtlijn (EU) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "De Diensten bevinden zich in een vroeg stadium, en functies kunnen veranderen zoals beschreven in [Wijzigingen in de Diensten en deze voorwaarden](#changes). Voordat u zich aanmeldt, vertellen wij u dat AI-uitvoer onjuist kan zijn (zie [AI kan zich vergissen](#ai-limits)). Onjuiste uitvoer van die aard hoort bij hoe AI-diensten vandaag de dag werken. Gebreken in de Diensten zelf blijven onze verantwoordelijkheid.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u een zakelijke gebruiker bent, leveren wij de Diensten zoals ze zijn, zonder garanties behalve die welke de wet voorschrijft en die wij niet mogen uitsluiten.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Aansprakelijkheid",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "VOOR ZOVER DE WET DAT TOESTAAT: (A) ZIJN WIJ NIET AANSPRAKELIJK VOOR INDIRECTE, INCIDENTELE, BIJZONDERE OF GEVOLGSCHADE, OF VOOR SCHADEVERGOEDING MET EEN VOORBEELD- OF STRAFFUNCTIE, OF VOOR GEDERFDE WINST, GEMISTE OMZET, VERLOREN GEGEVENS OF GOODWILL, ZELFS ALS ONS WERD MEEGEDEELD DAT DEZE MOGELIJK WAREN; EN (B) IS ONZE TOTALE AANSPRAKELIJKHEID VOOR ALLE VORDERINGEN MET BETREKKING TOT DE DIENSTEN OF DEZE VOORWAARDEN BEPERKT TOT HET HOOGSTE VAN HET BEDRAG DAT U ONS VOOR DE DIENSTEN HEBT BETAALD IN DE 12 MAANDEN VÓÓR DE GEBEURTENIS DIE TOT DE VORDERING HEEFT GELEID, OF 100 AMERIKAANSE DOLLAR.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Dit geldt ongeacht de juridische grondslag, of het nu gaat om een overeenkomst, garantie, onrechtmatige daad (waaronder nalatigheid) of iets anders. Het beperkt geen aansprakelijkheid die wij volgens de wet niet mogen beperken, zoals aansprakelijkheid voor fraude, of voor overlijden of letselschade veroorzaakt door onze nalatigheid. Op sommige plaatsen zijn deze beperkingen niet toegestaan. Daar gelden zij alleen voor zover de wet dat toestaat.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "U bent verantwoordelijk voor de handelingen die u agents laat uitvoeren en voor de manier waarop u uitvoer gebruikt, zoals uitgelegd in [Agents](#agents).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Aansprakelijkheid",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij zijn onbeperkt aansprakelijk:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "voor schade die wij opzettelijk of door grove nalatigheid veroorzaken;",
+        "voor letsel aan leven, lichaam of gezondheid;",
+        "op grond van de wetgeving inzake productaansprakelijkheid, en op grond van een garantie die wij hebben gegeven;",
+        "in elk ander geval waarin de wet geen beperking van aansprakelijkheid toestaat."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "In andere gevallen zijn wij bij lichte nalatigheid alleen aansprakelijk als wij een wezenlijke verplichting schenden. Dat is een verplichting die de uitvoering van de overeenkomst überhaupt mogelijk maakt en waarop u normaal gesproken mag vertrouwen. Onze aansprakelijkheid is dan beperkt tot de schade die typisch is voor dit soort overeenkomst en die voorzienbaar was toen u deze aanvaardde.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij zijn niet aansprakelijk voor schade die u had kunnen voorkomen door zelf redelijke maatregelen te nemen, zoals het maken van back-ups, het controleren van uitvoer of het nakijken van handelingen voordat u ze goedkeurde (zie [Agents](#agents)). Dit geldt niet wanneer de wet u tegen een dergelijke regel beschermt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Deze regels beschermen ook onze medewerkers en de mensen die voor ons werken.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "Vrijwaring"
+    },
+    {
+      "type": "p",
+      "text": "Als u een zakelijke gebruiker bent, verdedigt en vrijwaart u ons tegen vorderingen van derden die voortvloeien uit uw content, uw gebruik van de Diensten in strijd met deze voorwaarden of de wet, of de handelingen die u agents hebt laten uitvoeren. \"Vrijwaren\" betekent dat u onze redelijke kosten, verliezen en juridische kosten vergoedt. Wij informeren u onverwijld over een dergelijke vordering, laten u de verdediging voeren en helpen u in redelijkheid op uw kosten. U mag een vordering niet schikken op een manier die schuld aan onze kant erkent of ons bindt zonder onze toestemming."
+    },
+    {
+      "type": "p",
+      "text": "Als u consument bent, is dit artikel niet op u van toepassing. U blijft volgens de wet verantwoordelijk voor schade die u veroorzaakt.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u de Diensten alleen voor uzelf gebruikt en niet voor een bedrijf, is dit artikel niet op u van toepassing. U blijft volgens de wet verantwoordelijk voor schade die u veroorzaakt.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sancties en export"
+    },
+    {
+      "type": "p",
+      "text": "Wij volgen de sanctie- en exportregels van de Verenigde Staten en de Europese Unie, en u moet deze ook naleven. U mag de Diensten niet gebruiken als:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "u zich bevindt of gewoonlijk verblijft in een land of regio waartegen alomvattende sancties van de VS of de EU gelden;",
+        "u vermeld staat op een sanctielijst van de VS of de EU, of eigendom bent van of onder zeggenschap staat van iemand die daarop staat; of",
+        "uw gebruik in strijd zou zijn met sanctie- of exportregels van de VS of de EU, bijvoorbeeld door de Diensten aan zo'n persoon of voor een verboden doel te leveren."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wij mogen de toegang blokkeren, accounts sluiten of dienstverlening weigeren om aan deze regels te voldoen."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Geschillen en toepasselijk recht",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Als u een probleem hebt met de Diensten, schrijf dan eerst naar {company.email}. De meeste problemen kunnen zo snel worden opgelost, en wij zullen te goeder trouw proberen dat te doen.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Op deze voorwaarden, en op elk geschil daarover of over de Diensten, is het recht van {company.law} van toepassing, zonder rekening te houden met de regels van dat recht inzake conflicterende wetgeving.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Geschillen worden aan de rechter voorgelegd, niet aan arbitrage. U doet geen afstand van het recht om deel te nemen aan een class action of groepsactie wanneer de wet dat toestaat. Vorderingen worden voorgelegd aan de rechter die bevoegd is volgens het toepasselijke recht, waaronder de rechter in uw woonplaats als het plaatselijke recht u dat recht geeft.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Ieder van ons mag in plaats daarvan een individuele vordering instellen bij een rechter voor kleine vorderingen, als de vordering daarvoor in aanmerking komt, in de plaats waar u woont of waar wij gevestigd zijn.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Niets in deze voorwaarden ontneemt u rechten die u hebt op grond van het consumentenrecht van uw woonplaats, als dat recht niet toestaat dat die rechten worden uitgesloten.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Geschillen en toepasselijk recht",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u een probleem hebt met de Diensten, schrijf dan eerst naar {company.email}. De meeste problemen kunnen zo snel worden opgelost, en wij zullen te goeder trouw proberen dat te doen.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Op deze voorwaarden is het recht van {company.law} van toepassing. Het Weens Koopverdrag (VN-Verdrag inzake internationale koopovereenkomsten betreffende roerende zaken) is niet van toepassing.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Als u consument bent, behoudt u de bescherming van het dwingende recht van het land waar u woont, ongeacht welk recht deze voorwaarden kiezen. U kunt een vordering tegen ons instellen bij de rechter van uw woonplaats. Wij kunnen een vordering tegen u alleen instellen bij de rechter van uw woonplaats.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u een zakelijke gebruiker bent, is de rechter van onze statutaire zetel bevoegd, voor zover de wet dat toestaat. Wij mogen ook een vordering instellen bij de rechter van uw vestigingsplaats.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Er is geen arbitrage, en niets in deze voorwaarden beperkt uw recht om deel te nemen aan een representatieve of collectieve actie wanneer de wet dat toestaat.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wij nemen niet deel aan, en zijn niet bereid deel te nemen aan, geschillenbeslechtingsprocedures voor een consumentengeschillencommissie.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "Contactpunten en moderatie",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "De Europese Digitaledienstenverordening (DSA) verplicht ons u te vertellen hoe u ons kunt bereiken en hoe wij met content omgaan.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "Contactpunten",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ons centrale contactpunt voor gebruikers en voor de autoriteiten van de EU-lidstaten, de Europese Commissie en de Europese raad voor digitale diensten is {company.email}. U kunt ons in het Engels schrijven, en u kunt altijd een mens bereiken, niet alleen een geautomatiseerd systeem. (DSA art. 11 en 12)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Onze wettelijke vertegenwoordiger in de EU is {company.euRepresentative}. U kunt contact met hem of haar opnemen over elke kwestie op grond van de DSA. (DSA art. 13)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "Wat wij hosten en hoe wij modereren",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u onze cloudwerkruimte, het cloudonderzoek van de Computerapp, de Assistent-bot of de API gebruikt, slaan wij op uw verzoek content op, zoals uw chats, onderzoeksvragen, doelen, bestanden en rapporten. Wij publiceren deze niet en delen deze niet met andere gebruikers. Wij houden er in het algemeen geen toezicht op, en wij rangschikken of aanbevelen geen content.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Onze contentregels staan in deze voorwaarden en in het [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use). Wij treden op wanneer wij kennisnemen van illegale content of een schending van die regels, voornamelijk via meldingen.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Iedereen kan content melden waarvan hij of zij denkt dat die illegaal is of onze regels schendt, zoals uitgelegd in [Een overtreding melden](/instant/legal/acceptable-use#report).",
+        "Een mens beoordeelt elke melding en neemt een beslissing. Wij handelen tijdig, zorgvuldig en objectief en respecteren de rechten van alle betrokkenen, waaronder de vrijheid van meningsuiting.",
+        "Maatregelen kunnen bestaan uit het verwijderen of ontoegankelijk maken van content, het beperken van functies, en het opschorten of sluiten van een account. Wij kiezen de minst ingrijpende maatregel die doeltreffend is.",
+        "Wij geven de betrokken gebruiker een motivering: wat wij hebben gedaan, de feiten, of er geautomatiseerde middelen zijn gebruikt, de regel of wet waarop wij ons hebben gebaseerd, en hoe de beslissing kan worden aangevochten. (DSA art. 17)",
+        "Als wij kennisnemen van een strafbaar feit dat iemands leven of veiligheid bedreigt, informeren wij de autoriteiten. (DSA art. 18)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Als u het niet eens bent met een beslissing, beantwoord dan ons bericht of schrijf naar {company.email}, en een mens beoordeelt de beslissing opnieuw. U kunt ook naar de rechter stappen of een klacht indienen bij de digitaledienstencoördinator in het land waar u woont.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "Kennisgevingen"
+    },
+    {
+      "type": "p",
+      "text": "Wij sturen kennisgevingen naar het e-mailadres van uw account of tonen ze in de Diensten. Houd uw e-mailadres actueel. U kunt kennisgevingen aan ons sturen via {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Formele juridische kennisgevingen kunnen ook per post worden gestuurd naar {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Algemeen"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Deze voorwaarden, de productvoorwaarden en het beleid waarnaar zij verwijzen, vormen de volledige overeenkomst tussen u en ons over de Diensten. Een afzonderlijke schriftelijke overeenkomst die u met ons ondertekent, gaat voor voor zover die reikt.",
+        "Als een rechter een deel van deze voorwaarden ongeldig verklaart, blijft de rest van kracht. Het ongeldige deel wordt vervangen door de regel die de wet voorschrijft.",
+        "Als wij een recht niet direct uitoefenen, doen wij daarmee geen afstand van dat recht.",
+        "U mag uw rechten of verplichtingen uit deze voorwaarden niet overdragen zonder onze schriftelijke toestemming. Wij mogen de overeenkomst overdragen aan een bedrijf dat de Diensten overneemt, als uw rechten daardoor niet worden beperkt. Wij informeren u daar vooraf over, en u kunt de overeenkomst dan op elk moment beëindigen.",
+        "Wij zijn niet verantwoordelijk voor vertragingen of tekortkomingen die worden veroorzaakt door gebeurtenissen buiten onze redelijke controle, zoals storingen bij de aanbieders waarop wij vertrouwen, natuurrampen of overheidsmaatregelen. Dit doet geen afbreuk aan uw rechten als consument.",
+        "Niemand anders dan u en wij heeft rechten op grond van deze voorwaarden.",
+        "Deze voorwaarden zijn in het Engels opgesteld. Als wij een vertaling aanbieden, geldt bij verschillen de Engelse versie, tenzij de wet anders bepaalt."
+      ]
+    }
+  ]
+}

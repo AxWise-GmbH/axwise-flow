@@ -11,6 +11,7 @@ import {
   OpenAIMark,
   SupabaseMark,
 } from './brandMarks';
+import { useT } from './i18n/useT';
 import './IntegrationsHub.css';
 
 const HEADING_ID = 'integrations-heading';
@@ -233,6 +234,7 @@ function Wire({ wire, index, active, beat }) {
 /* Cards ------------------------------------------------------------------------- */
 
 function HubCard({ item, slot, onActive, onTap }) {
+  const { t } = useT('pg');
   const { Mark } = item;
   return (
     <li className="oih-slot" style={{ '--d': `${200 + slot * 110}ms` }}>
@@ -253,7 +255,7 @@ function HubCard({ item, slot, onActive, onTap }) {
         </span>
         <span className="oih-text">
           <span className="oih-name">{item.name}</span>{' '}
-          <span className="oih-type">{item.type}</span>
+          <span className="oih-type">{t(`pg.hub.type.${item.type}`, item.type)}</span>
         </span>
         <span className="oih-live" />
       </button>
@@ -277,9 +279,14 @@ function HubList({ id, label, area, items, onActive, onTap }) {
   );
 }
 
+export function hubWords() {
+  return Object.fromEntries(ITEMS.map((item) => [`pg.hub.type.${item.type}`, item.type]));
+}
+
 /* Section ------------------------------------------------------------------------ */
 
 export default function IntegrationsHub() {
+  const { t } = useT('pg');
   const hubRef = useRef(null);
   const coreRef = useRef(null);
   const releaseRef = useRef(0);
@@ -369,14 +376,14 @@ export default function IntegrationsHub() {
         <Seen className="oih-gate oih-head">
           <div className="oih-head-main">
             <Reveal as="p" className="oi-tag oi-tag-bracket">
-              Integrations
+              {t('pg.hub.tag', 'Integrations')}
             </Reveal>
             <Reveal as="h2" id={HEADING_ID} className="oi-h2 oih-h2" delay={90}>
-              Plug in any LLM &amp; Tool
+              {t('pg.hub.title', 'Plug in any LLM & Tool')}
             </Reveal>
           </div>
           <Reveal as="p" className="oi-line oih-lead" delay={180}>
-            One workspace for everything.
+            {t('pg.hub.lead', 'One workspace for everything.')}
           </Reveal>
         </Seen>
 
@@ -386,6 +393,7 @@ export default function IntegrationsHub() {
             className="oih-hub"
             data-stacked={geometry.stacked}
             data-swell={active !== null}
+            dir="ltr"
           >
             <svg
               className="oih-wires"
@@ -407,7 +415,7 @@ export default function IntegrationsHub() {
 
             <HubList
               id={MODELS_ID}
-              label="Models"
+              label={t('pg.hub.models', 'Models')}
               area="models"
               items={MODELS}
               onActive={hold}
@@ -425,7 +433,7 @@ export default function IntegrationsHub() {
 
             <HubList
               id={TOOLS_ID}
-              label="Tools"
+              label={t('pg.hub.tools', 'Tools')}
               area="tools"
               items={TOOLS}
               onActive={hold}
@@ -436,7 +444,12 @@ export default function IntegrationsHub() {
 
         <Seen className="oih-gate oih-after">
           {/* Focusable so that the keyboard can stop the movement too. */}
-          <Reveal className="oih-marquee" role="group" aria-label="Connectors" tabIndex={0}>
+          <Reveal
+            className="oih-marquee"
+            role="group"
+            aria-label={t('pg.hub.connectors', 'Connectors')}
+            tabIndex={0}
+          >
             <div className="oih-track">
               <ul className="oih-pills">
                 {CONNECTORS.map((name) => (
@@ -455,7 +468,7 @@ export default function IntegrationsHub() {
             </div>
           </Reveal>
           <Reveal as="p" className="oi-small oih-note-line" delay={120}>
-            50+ connectors.
+            {t('pg.hub.count', '50+ connectors.')}
           </Reveal>
         </Seen>
       </div>

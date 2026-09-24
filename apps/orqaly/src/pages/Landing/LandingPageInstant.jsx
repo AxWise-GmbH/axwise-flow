@@ -4,13 +4,12 @@ import OrbitHero from './instant/OrbitHero';
 import Capabilities from './instant/Capabilities';
 import InstantFaq from './instant/InstantFaq';
 import DownloadBlock from './instant/DownloadBlock';
+import { useT } from './instant/i18n/useT';
 
 // Everything below the first screen that is heavy loads after it, so the hero paints first.
 const WatchItWork = lazy(() => import('./instant/WatchItWork.jsx'));
 const Anywhere = lazy(() => import('./instant/Anywhere.jsx'));
 const UseCases = lazy(() => import('./instant/UseCases.jsx'));
-
-const PAGE_TITLE = 'Orqanix — Instant Intelligence on your Mac';
 
 /**
  * A late block behind a placeholder of its own height (desktop, phone), so the page does
@@ -31,10 +30,15 @@ function Late({ height, phoneHeight, children }) {
 // download. Speed has its own page; the examples window repeated the demo; the owner took
 // the integrations block off (IntegrationsHub.jsx stays, unused).
 export default function LandingPageInstant() {
+  const { t } = useT();
   return (
-    <InstantLayout title={PAGE_TITLE} entrance>
+    <InstantLayout
+      title={t('home.title', 'Orqanix — Instant Intelligence on your Mac')}
+      entrance
+      translated
+    >
       <OrbitHero />
-      <Late height={1250} phoneHeight={1760}>
+      <Late height={1241} phoneHeight={1996}>
         <WatchItWork />
       </Late>
       <Late height={1108} phoneHeight={1021}>

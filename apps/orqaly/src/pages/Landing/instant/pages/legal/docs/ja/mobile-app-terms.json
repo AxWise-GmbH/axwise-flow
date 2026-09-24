@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "モバイルアプリ利用規約",
+    "summary": "本規約は、Orqanix のスマートフォンアプリを Mac 上の Orqanix のリモコンとして利用することについて、アプリストアが求める条項を含めて定めるものです。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "本規約について"
+    },
+    {
+      "type": "p",
+      "text": "本規約は、スマートフォン向け Orqanix アプリ（以下「モバイルアプリ」）に関して、当社の[利用規約](/instant/legal/terms)を補足するものです。本規約は、利用規約、[デスクトップアプリ利用規約](/instant/legal/desktop-app-terms)、当社の[利用ポリシー](/instant/legal/acceptable-use)および当社の[プライバシーポリシー](/instant/legal/privacy)とあわせて、一つの契約を構成します。モバイルアプリに関して本規約と利用規約の内容が異なる場合は、本規約が適用されます。"
+    },
+    {
+      "type": "p",
+      "text": "当社の製品が初期段階にある間、モバイルアプリは無料です。有料プランを開始する前に、当社は料金ならびに支払いおよび解約に関するルールを公表します。"
+    },
+    {
+      "type": "p",
+      "text": "また、それまでに、EU 法の定めに従い、購入の撤回に関するルールも公表します。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Mac のリモコン"
+    },
+    {
+      "type": "p",
+      "text": "モバイルアプリは、お客様の Mac 上の Orqanix のリモコンです。モバイルアプリを利用する場合は、以下のとおりとなります。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様の Mac に Orqanix アプリ（デスクトップアプリ）が必要です。まず Mac のアプリから始め、その後スマートフォンを追加してください。",
+        "すべての作業は、お客様の Mac 上で、そのファイル、ツールおよび設定を使って実行されます。スマートフォンは進行状況を表示し、次のジョブを指示できるようにします。",
+        "ファイルはお客様の Mac 上で作成され、そのプロジェクトフォルダに保存されます。スマートフォンは作成されたものを表示し、原本は Mac に保存されます。",
+        "モバイルアプリは、お客様の Mac がオンラインで Orqanix が開いている間のみ動作します。Mac がスリープまたはオフラインになると、スマートフォンにはその旨が表示され、Mac が復帰するまで待機します。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当社は、お客様のスマートフォンが常にお客様の Mac に接続できることを約束するものではありません。ネットワーク、スリープ設定およびお客様のデバイスは、当社の管理外にあります。"
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "スマートフォンから作業する"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、実行中のジョブを確認し、結果を閲覧し、保存したタスク（レシピ）を再実行し、必要なことを入力または話すことで新しい作業を開始できます。その作業は、[デスクトップアプリ利用規約](/instant/legal/desktop-app-terms)に基づき、お客様の Mac 上のデスクトップアプリが実行します。したがって、以下のとおりとなります。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様の Mac 上のエージェントは、ファイルの変更やコマンドの実行など、実際の操作を行うことができます。お客様が Mac で[その設定を変更](/instant/legal/desktop-app-terms#approval-modes)していない限り、デフォルトではエージェントは事前に確認せずにそれらを行います。",
+        "お客様は、スマートフォンから開始した作業について、Mac で開始した場合と同様に責任を負います。",
+        "お客様は Mac の前で見守っているわけではないため、依頼する内容を慎重に選び、結果に依拠する前に確認してください。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AI は間違えることがあります。結果は誤っている、不完全である、または古い可能性があります。[AI の仕組み](/instant/legal/ai)をご覧ください。"
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "通知"
+    },
+    {
+      "type": "p",
+      "text": "モバイルアプリは、ジョブが完了したときにお知らせすることができます。通知はスマートフォンの設定でオフにできます。通知はロック画面に表示されることがあるため、通知のプレビューはお客様に合った設定にしてください。当社は、すべての通知が届くこと、または時間どおりに届くことを約束するものではありません。"
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "アカウントとスマートフォン"
+    },
+    {
+      "type": "list",
+      "items": [
+        "モバイルアプリを利用するには、18 歳以上であることが必要です。",
+        "ロックが解除されたお客様のスマートフォンを使える人は誰でも、モバイルアプリを通じてお客様の Mac で作業を開始できる可能性があります。スマートフォンはロックしておいてください。スマートフォンを紛失または譲渡した場合は、可能であればモバイルアプリを削除し、当社にお知らせください。",
+        "他の誰かがお客様のアカウントを使用したと思われる場合は、{company.email} までお知らせください。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "モバイルアプリの利用時に当社が収集するものとその理由は、[プライバシーポリシー](/instant/legal/privacy)で説明しています。"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "ライセンス"
+    },
+    {
+      "type": "p",
+      "text": "お客様が本規約を遵守している間、当社はお客様に対し、お客様が所有または管理するスマートフォンにモバイルアプリをインストールして利用するための、個人的、非独占的かつ譲渡不能なライセンスを付与します。お客様は、モバイルアプリを販売、賃貸、貸与もしくはサブライセンスすること、そのセキュリティ対策もしくは制限を回避すること、または競合製品を開発するためにこれをコピーすることはできません。"
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "アップデートと変更"
+    },
+    {
+      "type": "p",
+      "text": "当社は、モバイルアプリの新しいバージョンをリリースし、機能を変更または削除することがあります。アプリストアから入手した場合、アップデートはそのストアのルールに従ってそのストアを通じて提供されます。変更に関するルールは、[本サービスおよび本規約の変更](/instant/legal/terms#changes)に記載しています。"
+    },
+    {
+      "type": "p",
+      "text": "お客様が消費者として（お客様の営業または事業の範囲外で）モバイルアプリを利用する場合、お客様はデジタルコンテンツについて EU 法が消費者に与える権利を有します。本アプリは無料ですが、お客様は本アプリを利用するために当社に個人データを提供しているため、これらの権利が適用されます（Dir. (EU) 2019/770）。当社は、法律が求める期間、記載どおりに動作し続けるために必要なアップデート（セキュリティアップデートを含みます）を提供します。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "それを超えて、当社がモバイルアプリを変更するのは正当な理由がある場合に限られ、その費用をお客様に負担させることはありません。そのような変更によってお客様の本アプリの利用が軽微な程度を超えて損なわれる場合、当社は、変更の前に十分な余裕をもってお客様にメールでお知らせします。その場合、お客様は、当社の通知または変更のいずれか遅い方から 30 日以内であれば、無料で本契約を終了することができます。ただし、当社がお客様に変更前のバージョンを追加費用なしで引き続き利用させる場合はこの限りではありません。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "責任"
+    },
+    {
+      "type": "p",
+      "text": "法律で認められる範囲において、モバイルアプリは、いかなる種類の保証もなく「現状有姿」かつ「提供可能な範囲」で提供されます。利用規約の[免責事項](/instant/legal/terms#warranty)および[責任](/instant/legal/terms#liability)がモバイルアプリに適用されます。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "当社は、利用規約の[責任](/instant/legal/terms#liability)に定めるとおり、お客様の国の法律に基づいてモバイルアプリについて責任を負います。本規約またはアプリストアの規約のいかなる規定も、消費者としてのお客様の法定の権利を制限するものではありません。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "アプリストアの規約"
+    },
+    {
+      "type": "p",
+      "text": "本セクションは、お客様がアプリストアからモバイルアプリを入手した場合に適用されます。お客様のダウンロードおよび利用には、そのストア独自の規約も適用されます。お客様は、それらの規約、およびデータプランなどお客様のモバイルネットワークの規約を遵守しなければなりません。"
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "お客様が Apple の App Store からモバイルアプリを入手した場合、お客様と当社は以下のことに合意します。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "本規約はお客様と当社との間のみのものであり、Apple との間のものではありません。モバイルアプリおよびそのコンテンツについては、Apple ではなく当社が単独で責任を負います。",
+        "お客様のライセンスは、Apple の[メディアサービス利用規約](https://www.apple.com/legal/internet-services/itunes/)の利用規則が認めるとおり、お客様が所有または管理する Apple ブランドの製品での利用を対象とします。ファミリー共有または一括購入を通じてお客様のアカウントに紐づく他の人も、それらの規則が認める範囲でこれを利用することができます。",
+        "モバイルアプリの保守およびサポートについては当社のみが責任を負います。Apple はこれらを提供する義務を一切負いません。",
+        "モバイルアプリが適用される保証を満たさない場合、お客様は Apple に通知することができ、Apple はお客様がアプリに支払った代金（もしあれば）を返金します。法律で認められる範囲において、Apple はモバイルアプリについてその他の保証義務を一切負いません。そのような不履行によって生じたその他の請求、損失、責任、損害、費用または出費は、本規約および法律がそのように定める範囲において、当社の責任となります。",
+        "モバイルアプリまたはお客様によるその利用に関するお客様または他者からの請求（製造物責任に基づく請求、法令もしくは規制上の要件を満たしていないとの請求、および消費者保護、プライバシーもしくは類似の法律に基づく請求を含みます）には、Apple ではなく当社が対応します。",
+        "モバイルアプリまたはお客様によるその利用が自己の知的財産権を侵害すると誰かが主張する場合、本規約が当社の責任と定める範囲において、Apple ではなく当社が、その請求の調査、防御、和解および解決について責任を負います。",
+        "お客様は、米国政府の禁輸措置の対象となっている国、または米国政府が「テロ支援国家」に指定している国に所在しておらず、米国政府の禁止または制限対象者リストのいずれにも掲載されていません。",
+        "Apple およびその子会社は、本規約の第三者受益者です。お客様が本規約に同意した時点で、Apple は第三者受益者としてお客様に対して本規約を執行する権利を有し、またその権利を受諾したものとみなされます。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "モバイルアプリに関するご質問、苦情または請求は、Apple ではなく当社（{company.email}）までお送りください。"
+    },
+    {
+      "type": "p",
+      "text": "モバイルアプリの開発者は、{company.legalName}（{company.address}）です。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "お客様が Google Play からモバイルアプリを入手した場合、お客様と当社は以下のことに合意します。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "本規約はお客様と当社との間のみのものであり、Google との間のものではありません。Google は、モバイルアプリ、そのコンテンツ、そのサポート、またはそれに関するいかなる請求についても責任を負いません。",
+        "お客様のダウンロードおよび利用には、[Google Play 利用規約](https://play.google.com/about/play-terms/)も適用されます。お客様と Google との関係について Google Play 利用規約と本規約が矛盾する場合は、Google Play 利用規約が適用されます。",
+        "Google Play を通じて購入したものの返金は、Google Play のルールに従います。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "制裁および輸出"
+    },
+    {
+      "type": "p",
+      "text": "米国もしくは EU の制裁もしくは輸出規制により禁止されている場所で、またはお客様が米国もしくは EU の制裁リストに掲載されている場合、お客様はモバイルアプリをダウンロードまたは利用してはなりません。利用規約の[制裁および輸出](/instant/legal/terms#sanctions)をご覧ください。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "利用の終了"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、スマートフォンからモバイルアプリを削除することで、いつでもその利用をやめることができます。これによってデスクトップアプリが停止したり、お客様の Mac 上のファイルが削除されたり、お客様の Orqanix アカウントが閉鎖されたりすることはありません。アカウントを閉鎖する場合、またはデータの削除を当社に依頼する場合は、[利用規約](/instant/legal/terms)および[プライバシーポリシー](/instant/legal/privacy)をご覧ください。"
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "お問い合わせ"
+    },
+    {
+      "type": "p",
+      "text": "本規約に関するご質問：{company.email}。プライバシーに関するご請求：{company.privacyEmail}。"
+    }
+  ]
+}

@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Auftragsverarbeitungsvertrag",
+    "summary": "Wie wir als Ihr Auftragsverarbeiter mit personenbezogenen Daten umgehen, wenn Ihr Unternehmen die API, Leistungen für Unternehmen oder den Assistenz-Bot nutzt.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Über diesen Vertrag"
+    },
+    {
+      "type": "p",
+      "text": "Dieser Auftragsverarbeitungsvertrag (der „AVV“) regelt, wie wir mit personenbezogenen Daten umgehen, die wir für Geschäftskunden verarbeiten. Er ist Bestandteil der [API-AGB](/instant/legal/api-terms), der [Bedingungen für Unternehmen](/instant/legal/enterprise-terms) und, wenn Sie den Assistenz-Bot für Ihr Unternehmen nutzen, der [Bedingungen Assistenz-Bot](/instant/legal/assistant-bot-terms). Welcher dieser Verträge für Sie gilt, nennen wir den „Hauptvertrag“."
+    },
+    {
+      "type": "p",
+      "text": "Der AVV gilt automatisch, sobald Sie den Hauptvertrag annehmen. Eine Unterschrift ist nicht erforderlich. Wenn Sie ein unterzeichnetes Exemplar für Ihre Unterlagen benötigen, schreiben Sie an {company.privacyEmail}."
+    },
+    {
+      "type": "p",
+      "text": "Widersprechen sich dieser AVV und der Hauptvertrag in Bezug auf personenbezogene Daten, hat dieser AVV Vorrang. Soweit die Standardvertragsklauseln gelten (siehe [Internationale Übermittlungen](#transfers)), haben diese Vorrang vor beiden."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "Die Parteien"
+    },
+    {
+      "type": "p",
+      "text": "Dieser AVV wird zwischen Ihnen, dem Geschäftskunden („Sie“), und Orqanix („wir“ oder „uns“) geschlossen."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix wird von {company.legalName}, {company.address} betrieben; diese ist Partei dieses AVV.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Unser Vertreter in der EU ist {company.euRepresentative}.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Unser Ansprechpartner für den Datenschutz ist {company.privacyEmail}. Teilen Sie uns mit, wer Ihr Ansprechpartner ist, damit wir Sie zu diesem AVV erreichen können."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Begriffe"
+    },
+    {
+      "type": "list",
+      "items": [
+        "„Personenbezogene Daten“ sind alle Informationen über eine identifizierte oder identifizierbare Person.",
+        "„Verarbeitung“ ist jeder Vorgang mit personenbezogenen Daten, etwa das Speichern, Lesen, Übermitteln oder Löschen.",
+        "Ein „Verantwortlicher“ entscheidet über die Zwecke und Mittel der Verarbeitung personenbezogener Daten. Ein „Auftragsverarbeiter“ verarbeitet sie für einen Verantwortlichen und nach dessen Weisungen. Ein „Unterauftragsverarbeiter“ ist ein Auftragsverarbeiter, den wir einsetzen.",
+        "„Personenbezogene Kundendaten“ sind personenbezogene Daten, die wir im Rahmen des Hauptvertrags für Sie verarbeiten.",
+        "„Datenschutzrecht“ bezeichnet jedes Datenschutzgesetz, das auf die Verarbeitung anwendbar ist, etwa die EU-Datenschutz-Grundverordnung (DSGVO), die UK GDPR, das Schweizer Bundesgesetz über den Datenschutz (DSG) und die Datenschutzgesetze der US-Bundesstaaten."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Unsere Rollen"
+    },
+    {
+      "type": "p",
+      "text": "Sie sind Verantwortlicher für die personenbezogenen Kundendaten oder Auftragsverarbeiter für Ihre eigenen Kunden. Wir sind Ihr Auftragsverarbeiter oder Unterauftragsverarbeiter. Manche Daten verarbeiten wir für eigene Zwecke; für diese Daten sind wir Verantwortlicher:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Daten",
+        "Unsere Rolle",
+        "Was gilt"
+      ],
+      "rows": [
+        [
+          "Personenbezogene Daten in dem, was Sie oder Ihre Nutzer an die API senden, in Leistungen für Unternehmen oder im Arbeitsbereich und in den verbundenen Konten eines geschäftlich genutzten Assistenz-Bots",
+          "Auftragsverarbeiter für Sie",
+          "Dieser AVV"
+        ],
+        [
+          "Konto- und Anmeldedaten Ihrer Mitarbeitenden, Ihre Ansprechpersonen sowie unsere Aufzeichnungen zu Verträgen und Rechnungen",
+          "Verantwortlicher",
+          "Unsere [Datenschutzerklärung](/instant/legal/privacy)"
+        ],
+        [
+          "Dienst- und Sicherheitsprotokolle (IP-Adresse, Browser, Zeitpunkt, aufgerufene Adresse)",
+          "Verantwortlicher",
+          "Unsere Datenschutzerklärung"
+        ],
+        [
+          "Suchanfragen, die unser eigener Suchdienst an Websuchmaschinen sendet, um eine Aufgabe zu erledigen",
+          "Verantwortlicher",
+          "Unsere Datenschutzerklärung"
+        ],
+        [
+          "Abfragen im Handelsregister über OpenRegister, deren Ergebnisse die Namen von Geschäftsführern enthalten können",
+          "Verantwortlicher",
+          "Unsere Datenschutzerklärung"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wir entscheiden, wie unsere Suchen und Registerabfragen funktionieren; für sie handeln wir daher im eigenen Namen (Art. 4 Nr. 7 DSGVO). Suchanfragen werden aus Ihrer Aufgabe gebildet; nehmen Sie daher keine personenbezogenen Daten in den Aufgabentext auf, sofern die Aufgabe sie nicht erfordert."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "Einzelheiten der Verarbeitung"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Punkt",
+        "Einzelheiten"
+      ],
+      "rows": [
+        [
+          "Gegenstand",
+          "Erbringung der Leistung aus dem Hauptvertrag: die API, Leistungen für Unternehmen oder der für Ihr Unternehmen genutzte Assistenz-Bot."
+        ],
+        [
+          "Dauer",
+          "Für die Laufzeit des Hauptvertrags und danach, bis wir die personenbezogenen Kundendaten wie in diesem AVV festgelegt gelöscht oder zurückgegeben haben."
+        ],
+        [
+          "Art",
+          "Empfangen, Speichern, Ordnen, Lesen, Analysieren mit KI-Modellen, Erstellen von Antworten und Dateien, Übermitteln an Sie und Ihre Systeme sowie Löschen."
+        ],
+        [
+          "Zweck",
+          "Ausschließlich, um Ihnen die Leistung zu erbringen, sie sicher zu halten und unsere gesetzlichen Pflichten zu erfüllen."
+        ],
+        [
+          "Arten personenbezogener Daten",
+          "Alles, was Sie uns senden oder verbinden. In der Regel Namen, Kontaktdaten, berufliche Funktionen, Geschäftsbeziehungen sowie die Inhalte von Aufgaben, Nachrichten, Dokumenten und Dateien."
+        ],
+        [
+          "Betroffene Personen",
+          "Ihre Mitarbeitenden, Ihre Kunden und Endnutzer, Ihre Lieferanten und Geschäftskontakte sowie alle weiteren Personen, die in den von Ihnen gesendeten oder verbundenen Daten genannt sind, einschließlich der Kontakte in den E-Mail- und Messenger-Konten, die Sie mit einem geschäftlich genutzten Assistenz-Bot verbinden."
+        ],
+        [
+          "Besondere Kategorien",
+          "Keine, sofern wir nicht schriftlich etwas anderes vereinbart haben. Ohne eine solche Vereinbarung senden Sie uns bitte keine Gesundheitsdaten, biometrischen Daten oder sonstigen Daten besonderer Kategorien und keine Daten über strafrechtliche Verurteilungen."
+        ],
+        [
+          "Häufigkeit",
+          "Fortlaufend, immer wenn Sie oder Ihre Nutzer die Leistung verwenden."
+        ],
+        [
+          "Ort",
+          "Unser Cloud-Arbeitsbereich und die API speichern Daten bei Google Cloud in der EU (Niederlande). Leistungen für Unternehmen werden in der in der Bestellung genannten EU-Region von Google Cloud gehostet. Unterauftragsverarbeiter können Daten auch anderswo verarbeiten, wie die Seite [Unterauftragsverarbeiter](/instant/legal/subprocessors) zeigt."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "Unsere Zusagen"
+    },
+    {
+      "type": "p",
+      "text": "Diese Zusagen geben die Pflichten eines Auftragsverarbeiters in einfachen Worten wieder (Art. 28 Abs. 3 DSGVO; Art. 28 Abs. 3 UK GDPR; Art. 9 DSG)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Ihre Weisungen"
+    },
+    {
+      "type": "p",
+      "text": "Wir verarbeiten personenbezogene Kundendaten nur auf Ihre dokumentierte Weisung, auch was ihre Übermittlung in andere Länder betrifft. Ihre Weisungen sind der Hauptvertrag, dieser AVV sowie die Art, wie Sie die Leistung einrichten und nutzen. Sie können weitere schriftliche Weisungen erteilen, sofern sie zur Leistung passen. Ohne Ihre Weisung dürfen wir Daten nur verarbeiten, wenn das Gesetz es verlangt. Wir teilen Ihnen dies dann vorher mit, sofern das betreffende Gesetz dies nicht verbietet. Sind wir der Auffassung, dass eine Weisung gegen Datenschutzrecht verstößt, teilen wir Ihnen dies unverzüglich mit."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Vertraulichkeit"
+    },
+    {
+      "type": "p",
+      "text": "Nur Personen, die personenbezogene Kundendaten für ihre Arbeit benötigen, haben Zugriff darauf, und jede von ihnen ist zur Vertraulichkeit verpflichtet."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Sicherheit"
+    },
+    {
+      "type": "p",
+      "text": "Wir treffen dem Risiko angemessene technische und organisatorische Maßnahmen, um personenbezogene Kundendaten vor versehentlichem oder unrechtmäßigem Verlust, Veränderung, Offenlegung oder Zugriff zu schützen (Art. 32 DSGVO). Der [Sicherheitsanhang](#security-measures) am Ende dieses AVV beschreibt sie. Wir dürfen sie im Laufe der Zeit ändern, werden das Gesamtschutzniveau jedoch nicht senken."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Unterauftragsverarbeiter"
+    },
+    {
+      "type": "p",
+      "text": "Sie gestatten uns, Unterauftragsverarbeiter einzusetzen. Die Seite [Unterauftragsverarbeiter](/instant/legal/subprocessors) führt auf, welche wir derzeit einsetzen, was sie tun und wo. Für Leistungen für Unternehmen kann die Bestellung weitere nennen."
+    },
+    {
+      "type": "p",
+      "text": "Bevor wir einen Unterauftragsverarbeiter hinzufügen oder ersetzen, aktualisieren wir diese Seite und informieren Sie, damit Sie widersprechen können, bevor die Änderung wirksam wird. Widersprechen Sie aus berechtigten datenschutzrechtlichen Gründen, suchen wir gemeinsam mit Ihnen nach einer Lösung. Finden wir keine, können Sie den betroffenen Teil der Leistung beenden."
+    },
+    {
+      "type": "p",
+      "text": "Wir verpflichten jeden Unterauftragsverarbeiter schriftlich zu Datenschutzpflichten, die mindestens so schützend sind wie dieser AVV. Wir bleiben Ihnen gegenüber für deren Arbeit verantwortlich."
+    },
+    {
+      "type": "p",
+      "text": "Die Messenger-Apps, E-Mail-Konten und sonstigen Dienste, die Sie verbinden, sind Ihre eigenen, von Ihnen gewählten Anbieter. Sie sind nicht unsere Unterauftragsverarbeiter, und für ihren Umgang mit den Daten gelten deren eigene Bedingungen."
+    },
+    {
+      "type": "p",
+      "text": "Wir verwenden Google Gemini als KI-Modell; daher werden die Inhalte von Aufgaben und Unterhaltungen an Google übermittelt. Google kann sie außerhalb der EU verarbeiten."
+    },
+    {
+      "type": "p",
+      "text": "Wir nutzen die kostenpflichtige Gemini-API von Google. Dort handelt Google als unser Auftragsverarbeiter nach seinen Bedingungen zur Datenverarbeitung und verwendet die Inhalte nicht zur Verbesserung seiner Produkte.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "Rechte betroffener Personen"
+    },
+    {
+      "type": "p",
+      "text": "Personen können verlangen, ihre Daten einzusehen, zu berichtigen, zu löschen oder zu übertragen, oder ihrer Verwendung widersprechen. Erhalten wir eine solche Anfrage zu personenbezogenen Kundendaten, leiten wir sie an Sie weiter und beantworten sie nicht selbst, es sei denn, Sie bitten uns darum. Wir unterstützen Sie bei der Beantwortung von Anfragen, soweit die Art der Leistung dies zulässt (Art. 12–23 DSGVO)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Datenschutzverletzungen"
+    },
+    {
+      "type": "p",
+      "text": "Wird uns eine Sicherheitsverletzung bekannt, die personenbezogene Kundendaten betrifft, informieren wir Sie unverzüglich. Wir teilen Ihnen mit, was wir wissen, und ergänzen weitere Informationen, sobald wir sie erhalten (Art. 33 Abs. 2 und 3 DSGVO):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "was geschehen ist;",
+        "welche Arten von Daten und Personen betroffen sind und ungefähr wie viele;",
+        "die wahrscheinlichen Folgen;",
+        "was wir dagegen unternommen haben und unternehmen wollen;",
+        "an wen Sie sich wenden können."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Die Mitteilung ist kein Schuldeingeständnis."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Weitere Unterstützung"
+    },
+    {
+      "type": "p",
+      "text": "Soweit die Art der Leistung und die uns vorliegenden Informationen es zulassen, unterstützen wir Sie bei Ihren Sicherheitspflichten, bei Datenschutz-Folgenabschätzungen und bei der Konsultation Ihrer Datenschutzaufsichtsbehörde (Art. 32–36 DSGVO)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "Rückgabe und Löschung"
+    },
+    {
+      "type": "p",
+      "text": "Endet der Hauptvertrag, löschen wir die personenbezogenen Kundendaten. Wenn Sie uns vorher darum bitten, geben wir sie Ihnen zuerst zurück. Wir behalten eine Kopie nur, soweit das Gesetz es verlangt, nur so lange, wie es dies verlangt, und geschützt wie in diesem AVV festgelegt. Kopien in unseren Sicherungen verschwinden, wenn diese Sicherungen ablaufen."
+    },
+    {
+      "type": "p",
+      "text": "Einige Aufzeichnungen darüber, was Agenten getan haben, werden in einem festen Protokoll gespeichert, das nicht geändert werden kann. Enthält eine solche Aufzeichnung personenbezogene Kundendaten, löschen oder anonymisieren wir sie oder teilen Ihnen, wenn wir sie aufbewahren müssen, den Grund mit."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Prüfungen"
+    },
+    {
+      "type": "p",
+      "text": "Wir stellen Ihnen die Informationen zur Verfügung, die Sie vernünftigerweise benötigen, um nachzuweisen, dass wir diese Pflichten erfüllen. Reicht das nicht aus, können Sie oder ein zur Vertraulichkeit verpflichteter unabhängiger Prüfer uns prüfen. Sie kündigen die Prüfung mit angemessener Frist an, und die Prüfung darf unseren Betrieb nicht stören und die Daten anderer Kunden nicht gefährden. Ihre eigenen Prüfungskosten tragen Sie selbst. Eine Datenschutzaufsichtsbehörde darf uns jederzeit im gesetzlich zulässigen Rahmen prüfen."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "Ihre Zusagen"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Sie verfügen über eine Rechtsgrundlage für die Verarbeitung und geben den betroffenen Personen die gesetzlich vorgeschriebenen Datenschutzinformationen, einschließlich des Hinweises, dass Sie uns einsetzen.",
+        "Ihre Weisungen stehen im Einklang mit dem Datenschutzrecht.",
+        "Sie senden uns nur die personenbezogenen Daten, die die Leistung benötigt, und keine Daten besonderer Kategorien, sofern wir dem nicht schriftlich zugestimmt haben.",
+        "Sie richten die Leistung auf Ihrer Seite sicher ein, insbesondere indem Sie Zugriffsschlüssel und Anmeldedaten sicher aufbewahren und geeignete Freigabeeinstellungen für Agenten wählen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Internationale Übermittlungen"
+    },
+    {
+      "type": "p",
+      "text": "Unser Cloud-Arbeitsbereich, die API und das Hosting der Leistungen für Unternehmen speichern personenbezogene Kundendaten in der EU. Einige Unterauftragsverarbeiter können sie in anderen Ländern verarbeiten, wie die Seite [Unterauftragsverarbeiter](/instant/legal/subprocessors) zeigt."
+    },
+    {
+      "type": "p",
+      "text": "Wir übermitteln personenbezogene Daten aus dem EWR, dem Vereinigten Königreich oder der Schweiz nur, soweit das Datenschutzrecht dies erlaubt. Beispielsweise übermitteln wir sie in ein Land, für das die EU ein angemessenes Datenschutzniveau festgestellt hat, an ein US-Unternehmen, das nach dem EU-US Data Privacy Framework zertifiziert ist, oder auf Grundlage von Standardvertragsklauseln."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Standardvertragsklauseln"
+    },
+    {
+      "type": "p",
+      "text": "Soweit eine Übermittlung zwischen Ihnen und uns sie erfordert, sind die von der Europäischen Kommission genehmigten Standardvertragsklauseln (Durchführungsbeschluss (EU) 2021/914, die „SCC“) Bestandteil dieses AVV. Welcher Teil der SCC (ein „Modul“) gilt, hängt davon ab, wo jede Partei niedergelassen ist:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Modul Zwei (Verantwortlicher an Auftragsverarbeiter), wenn Sie der Verantwortliche sind und uns Daten außerhalb des EWR übermitteln.",
+        "Modul Drei (Auftragsverarbeiter an Auftragsverarbeiter), wenn Sie Auftragsverarbeiter für Ihre eigenen Kunden sind und uns Daten außerhalb des EWR übermitteln.",
+        "Modul Vier (Auftragsverarbeiter an Verantwortlichen), wenn wir im EWR sind und Ihnen Daten außerhalb des EWR zurückübermitteln."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Für die SCC treffen wir folgende Festlegungen:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Klausel 7: Die optionale Kopplungsklausel gilt.",
+        "Klausel 9: Option 2 (allgemeine Genehmigung für Unterauftragsverarbeiter) gilt, mit Benachrichtigung wie unter [Unterauftragsverarbeiter](#sub-processors) festgelegt.",
+        "Klausel 11: Die optionale Formulierung gilt nicht.",
+        "Klausel 13: Zuständige Aufsichtsbehörde ist die für Sie als Datenexporteur zuständige Behörde.",
+        "Anhänge: [Unsere Rollen](#roles) und [Einzelheiten der Verarbeitung](#details) füllen Anhang I aus, der [Sicherheitsanhang](#security-measures) füllt Anhang II aus, und die Seite Unterauftragsverarbeiter füllt Anhang III aus."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nach den Klauseln 17 und 18 unterliegen die SCC dem Recht des EU-Mitgliedstaats, in dem Sie niedergelassen sind, und Streitigkeiten werden vor dessen Gerichten ausgetragen. Sind Sie nicht in der EU niedergelassen, gelten das Recht und die Gerichte von {company.law}, sofern es sich dabei um einen EU-Mitgliedstaat handelt.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Vereinigtes Königreich und Schweiz"
+    },
+    {
+      "type": "p",
+      "text": "Für Übermittlungen aus dem Vereinigten Königreich gilt das vom britischen Information Commissioner herausgegebene International Data Transfer Addendum zu den SCC (das „UK Addendum“), ergänzt um die Angaben in diesem AVV."
+    },
+    {
+      "type": "p",
+      "text": "Für Übermittlungen aus der Schweiz gelten die SCC mit folgenden Änderungen: Der Eidgenössische Datenschutz- und Öffentlichkeitsbeauftragte ist die Aufsichtsbehörde für Übermittlungen nach dem DSG; Verweise auf die DSGVO gelten auch als Verweise auf das DSG; und „Mitgliedstaat“ schließt die Schweiz ein, sodass Personen dort an ihrem Wohnort Ansprüche geltend machen können."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Übermittlungen durch Unterauftragsverarbeiter"
+    },
+    {
+      "type": "p",
+      "text": "Übermittelt ein Unterauftragsverarbeiter personenbezogene Kundendaten aus dem EWR, dem Vereinigten Königreich oder der Schweiz, stellen wir sicher, dass eine gültige Grundlage sie abdeckt, etwa das Data Privacy Framework oder die SCC in unserem Vertrag mit diesem Unterauftragsverarbeiter."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "Datenschutzgesetze der US-Bundesstaaten",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Sind Sie ein „business“ im Sinne des California Consumer Privacy Act oder ein Verantwortlicher nach einem anderen Datenschutzgesetz eines US-Bundesstaats, sind wir für personenbezogene Kundendaten Ihr „service provider“, „contractor“ oder „processor“. Wir:",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "verkaufen oder teilen („sell“ oder „share“) personenbezogene Kundendaten nicht im Sinne der Definitionen dieser Gesetze;",
+        "verarbeiten sie nur für die im Hauptvertrag und in diesem AVV festgelegten Geschäftszwecke und nicht für andere kommerzielle Zwecke;",
+        "bewahren sie nicht außerhalb unserer direkten Geschäftsbeziehung mit Ihnen auf, verwenden sie nicht außerhalb dieser und legen sie nicht außerhalb dieser offen;",
+        "verknüpfen sie nicht mit personenbezogenen Daten, die wir von anderen erhalten oder selbst erheben, außer soweit diese Gesetze es erlauben;",
+        "halten diese Gesetze ein und gewährleisten das von ihnen geforderte Datenschutzniveau;",
+        "teilen Ihnen mit, wenn wir feststellen, dass wir diese Pflichten nicht mehr erfüllen können."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Sie dürfen angemessene und geeignete Maßnahmen ergreifen, um sicherzustellen, dass wir personenbezogene Kundendaten im Einklang mit diesen Gesetzen verwenden, und um eine unzulässige Verwendung zu unterbinden und zu beheben. Wir verstehen diese Beschränkungen und werden sie einhalten.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Haftung"
+    },
+    {
+      "type": "p",
+      "text": "Die Haftung jeder Partei nach diesem AVV richtet sich nach den Beschränkungen des Hauptvertrags, soweit das Datenschutzrecht dies zulässt. Diese Beschränkungen schmälern nicht die Rechte, die Personen unmittelbar nach dem Datenschutzrecht zustehen."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Laufzeit und Aktualisierungen"
+    },
+    {
+      "type": "p",
+      "text": "Dieser AVV gilt, solange wir personenbezogene Kundendaten für Sie verarbeiten, auch nach Ende des Hauptvertrags."
+    },
+    {
+      "type": "p",
+      "text": "Wir dürfen diesen AVV aktualisieren, um Änderungen des Rechts, unserer Unterauftragsverarbeiter oder unserer Leistungen Rechnung zu tragen. Ohne Ihre Zustimmung werden wir ihn nicht so ändern, dass der Schutz personenbezogener Kundendaten sinkt, es sei denn, das Gesetz verlangt die Änderung."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Anhang: Sicherheitsmaßnahmen"
+    },
+    {
+      "type": "p",
+      "text": "Dies sind die wichtigsten technischen und organisatorischen Maßnahmen, die wir derzeit treffen. Die Seite [Sicherheit und Meldung von Schwachstellen](/instant/legal/security) erklärt, wie Sie ein Sicherheitsproblem an {company.securityEmail} melden."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Bereich",
+        "Was wir tun"
+      ],
+      "rows": [
+        [
+          "Hosting",
+          "Unsere Cloud-Dienste und Datenbanken laufen bei Google Cloud in der EU (Niederlande). Leistungen für Unternehmen werden in der in der Bestellung genannten EU-Region von Google Cloud gehostet."
+        ],
+        [
+          "Verschlüsselung",
+          "Daten werden bei der Übertragung (HTTPS) und im Ruhezustand durch unseren Cloud-Anbieter verschlüsselt."
+        ],
+        [
+          "Zugang zu Konten",
+          "Nutzer melden sich im Orqanix-Arbeitsbereich über unseren Anmeldeanbieter Clerk an, mit einer Bot-Prüfung bei der Registrierung. Die API ist nur mit einem geheimen Zugriffsschlüssel erreichbar, den wir ausgeben."
+        ],
+        [
+          "Gespeicherte Schlüssel und Geheimnisse",
+          "Anwendungsschlüssel für Automatisierungen werden nur als Hashwerte gespeichert, nicht in lesbarer Form. Die Geheimnisse, die unsere Dienste verwenden, werden im Google Cloud Secret Manager aufbewahrt, nicht in unserem Code."
+        ],
+        [
+          "Gespeicherte Dateien",
+          "Dateien, die der Cloud-Arbeitsbereich erstellt, werden in einem privaten Google-Cloud-Storage-Bucket in der EU aufbewahrt."
+        ],
+        [
+          "Zugriff durch Mitarbeitende",
+          "Zugriff haben nur Personen, die ihn für ihre Arbeit benötigen, und sie sind zur Vertraulichkeit verpflichtet."
+        ],
+        [
+          "Aufzeichnungen über Aktionen von Agenten",
+          "Was Agenten getan haben, was freigegeben wurde und welche Dateien sie erstellt haben, wird in einem Protokoll aufgezeichnet, das nachträglich nicht geändert werden kann. Unternehmenskunden legen Freigaben (Einmal erlauben, Immer erlauben, Ablehnen) und rollenbasierte Zugriffsrechte fest."
+        ],
+        [
+          "Protokolle",
+          "Anfrageprotokolle enthalten IP-Adresse, Browser, Zeitpunkt, die aufgerufene Adresse und das Ergebnis. Die Inhalte von Prompts oder Nachrichten protokollieren wir nicht."
+        ],
+        [
+          "Sicherungen",
+          "Die Datenbank des Cloud-Arbeitsbereichs wird täglich automatisch gesichert, mit Wiederherstellung zu einem beliebigen Zeitpunkt und Schutz vor versehentlichem Löschen."
+        ],
+        [
+          "Modelle",
+          "Wir trainieren unsere eigenen KI-Modelle nicht mit Kundendaten."
+        ],
+        [
+          "Vorfälle",
+          "Wir informieren betroffene Kunden unverzüglich über Verletzungen des Schutzes personenbezogener Daten, wie unter [Datenschutzverletzungen](#breaches) festgelegt."
+        ]
+      ]
+    }
+  ]
+}

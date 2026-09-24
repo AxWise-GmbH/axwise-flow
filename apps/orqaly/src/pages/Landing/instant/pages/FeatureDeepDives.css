@@ -113,8 +113,8 @@
   z-index: -1;
   background: radial-gradient(
     closest-side,
-    rgba(var(--oi-accent-rgb), 0.2),
-    rgba(var(--oi-deep-rgb), 0.22) 52%,
+    rgba(var(--oi-accent-rgb), calc(0.2 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.22 * var(--oi-halo-k))) 52%,
     transparent
   );
   pointer-events: none;
@@ -131,16 +131,18 @@
   --oi-dim: var(--oi-app-dim);
   --oi-hairline: var(--oi-app-border);
   --oi-hairline-strong: var(--oi-app-border-strong);
+  /* The tick on a filled (done) marker: dark on the pale disc, white on the dark one. */
+  --ofd-check-ink: #222222;
   position: relative;
   overflow: hidden;
   border: 1px solid var(--oi-app-edge);
   border-radius: 22px;
   background: var(--oi-app-surface);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 50px 110px -40px rgba(0, 0, 0, 0.95),
-    0 0 90px -24px rgba(var(--oi-glow-rgb), 0.7);
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16),
+    0 0 0 1px rgba(var(--oi-shadow-rgb), calc(0.6 * var(--oi-shadow-k))),
+    0 50px 110px -40px rgba(var(--oi-shadow-rgb), calc(0.95 * var(--oi-shadow-k))),
+    0 0 90px -24px rgba(var(--oi-glow-rgb), calc(0.7 * var(--oi-halo-k)));
   color: var(--oi-app-text);
   font-size: 13px;
   line-height: 1.5;
@@ -180,7 +182,7 @@
   z-index: -1;
   background: radial-gradient(
     380px circle at var(--mx, 50%) var(--my, 0%),
-    rgba(var(--oi-accent-rgb), 0.2),
+    rgba(var(--oi-accent-rgb), calc(0.2 * var(--oi-halo-k))),
     transparent 62%
   );
   opacity: 0;
@@ -190,6 +192,16 @@
 
 .ofd-mock:hover::after {
   opacity: 1;
+}
+
+/* Light: the app's light theme. The done tick turns white on its dark disc, and the top-edge
+   catch light is only a trace (at full strength ink it would read as a dark rule). */
+[data-oi-theme='light'] .ofd-mock {
+  --ofd-check-ink: #ffffff;
+}
+
+[data-oi-theme='light'] .ofd-mock::before {
+  opacity: 0.3;
 }
 
 .ofd-mock[data-mock='tracker'] {
@@ -210,7 +222,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(var(--oi-fg-rgb), 0.14);
 }
 
 .ofd-bar span,
@@ -254,7 +266,7 @@
 }
 
 .ofd-menu li[data-on='true'] {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(var(--oi-fg-rgb), 0.07);
   color: var(--oi-ink);
 }
 
@@ -275,7 +287,7 @@
 .ofd-chat + .ofd-panel {
   flex: 0 0 45%;
   border-left: 1px solid var(--oi-hairline);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(var(--oi-fg-rgb), 0.02);
 }
 
 .ofd-bubble {
@@ -286,7 +298,7 @@
   margin-bottom: 8px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--oi-fg-rgb), 0.06);
 }
 
 .ofd-ghost {
@@ -294,7 +306,7 @@
   width: var(--w, 60%);
   height: 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--oi-fg-rgb), 0.1);
 }
 
 .ofd-composer {
@@ -356,7 +368,7 @@
   gap: 7px;
   padding: 3px 10px 3px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(var(--oi-fg-rgb), 0.09);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -367,12 +379,12 @@
   height: 6px;
   border-radius: 50%;
   background: var(--oi-app-light);
-  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.9);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), calc(0.9 * var(--oi-halo-k)));
 }
 
 .ofd-pill[data-state='waiting'] i {
   background: var(--oi-ink);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 8px rgba(var(--oi-fg-rgb), calc(0.7 * var(--oi-halo-k)));
 }
 
 .ofd-pill-check {
@@ -414,7 +426,7 @@
   overflow: hidden;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--oi-fg-rgb), 0.1);
   -webkit-mask-image: repeating-linear-gradient(
     90deg,
     #000 0,
@@ -453,7 +465,7 @@
   padding: 9px 12px;
   border: 1px solid var(--oi-hairline);
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(var(--oi-fg-rgb), 0.035);
 }
 
 .ofd-row[data-live] {
@@ -484,7 +496,7 @@
 .ofd-timer i {
   width: 12px;
   height: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border: 1.5px solid rgba(var(--oi-fg-rgb), 0.16);
   border-top-color: var(--oi-app-light);
   border-radius: 50%;
 }
@@ -537,7 +549,7 @@
 .ofd-road-pane {
   flex: 0 0 40%;
   border-right: 1px solid var(--oi-hairline);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(var(--oi-fg-rgb), 0.02);
 }
 
 .ofd-road-wrap {
@@ -611,7 +623,7 @@
 
 .ofd-step[data-state='now'] .ofd-marker::before {
   border-color: var(--oi-app-text);
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(var(--oi-fg-rgb), 0.14);
 }
 
 .ofd-step[data-state='pending'] .ofd-marker::before {
@@ -627,7 +639,7 @@
 .ofd-marker-check {
   width: 10px;
   height: 10px;
-  color: #222222;
+  color: var(--ofd-check-ink);
 }
 
 .ofd-marker i {
@@ -676,7 +688,7 @@
   background: linear-gradient(
     180deg,
     transparent,
-    #ffffff 45%,
+    rgb(var(--oi-fg-rgb)) 45%,
     var(--oi-app-light) 75%,
     transparent
   );
@@ -759,7 +771,7 @@
   padding: 0 14px;
   border: 1px solid var(--oi-hairline-strong);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(var(--oi-shadow-rgb), calc(0.35 * var(--oi-shadow-k)));
 }
 
 /*
@@ -825,7 +837,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--oi-app-light);
-  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), 0.9);
+  box-shadow: 0 0 8px rgba(var(--oi-accent-rgb), calc(0.9 * var(--oi-halo-k)));
 }
 
 /* Results slide in once the query has been typed. */
@@ -837,7 +849,7 @@
   padding: 12px 14px;
   border: 1px solid var(--oi-hairline);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(var(--oi-fg-rgb), 0.035);
   transition:
     opacity 900ms var(--oi-ease) calc(var(--i, 0) * 170ms + 2600ms),
     transform 900ms var(--oi-ease) calc(var(--i, 0) * 170ms + 2600ms);
@@ -1116,7 +1128,7 @@
   padding: 10px 8px 12px;
   border: 1px solid var(--oi-hairline);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(var(--oi-fg-rgb), 0.02);
 }
 
 .ofd-lane[data-state='live'] {
@@ -1151,7 +1163,7 @@
   padding: 10px 10px 11px;
   border: 1px solid var(--oi-hairline);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.045);
+  background: rgba(var(--oi-fg-rgb), 0.045);
 }
 
 .ofd-task-kind {
@@ -1194,7 +1206,7 @@
   margin-top: 2px;
   overflow: hidden;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--oi-fg-rgb), 0.08);
 }
 
 .ofd-task-bar::after {
@@ -1215,7 +1227,7 @@
 /* One card is being carried: it lifts, tips and settles, again and again. */
 .ofd-visual[data-seen='true'] .ofd-task[data-lift] {
   border-color: var(--oi-app-border-strong);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 14px 30px rgba(var(--oi-shadow-rgb), calc(0.45 * var(--oi-shadow-k)));
   animation: ofd-task-lift 6s var(--oi-ease) 2.4s infinite;
 }
 
@@ -1283,8 +1295,12 @@
   border: 1px dashed var(--oi-hairline-strong);
   border-radius: 14px;
   background:
-    radial-gradient(120% 140% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 70%),
-    rgba(0, 0, 0, 0.16);
+    radial-gradient(
+      120% 140% at 50% 0%,
+      rgba(var(--oi-fg-rgb), calc(0.07 * var(--oi-halo-k))),
+      transparent 70%
+    ),
+    rgba(var(--oi-shadow-rgb), calc(0.16 * var(--oi-shadow-k)));
   text-align: center;
 }
 
@@ -1325,7 +1341,7 @@
   height: 19px;
   border: 1px solid var(--oi-app-border-strong);
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(var(--oi-bg-rgb), 0.55);
   opacity: 0;
 }
 
@@ -1383,7 +1399,7 @@
   padding: 9px 10px 9px 9px;
   border: 1px solid var(--oi-hairline);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--oi-fg-rgb), 0.03);
 }
 
 .ofd-source-logo {
@@ -1393,7 +1409,7 @@
   height: 32px;
   border: 1px solid var(--oi-hairline);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--oi-fg-rgb), 0.05);
   color: var(--oi-ink);
 }
 

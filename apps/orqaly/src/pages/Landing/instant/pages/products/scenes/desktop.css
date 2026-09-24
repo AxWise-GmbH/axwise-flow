@@ -1,0 +1,1309 @@
+/*
+ * Desktop App scene (class prefix pd-): the Mac app at work. One markup, many cuts; the cut
+ * picks the parts and the story. Plain styles are the finished frame (reduced motion shows
+ * it); keyframes bring each part in on the shared clock. Every rule starts from .pd, a pd-
+ * class or [data-product='desktop'], so nothing here reaches another product's scene.
+ *
+ * This file rides the header's scenes chunk, so it holds only the parts and the two cuts the
+ * header and the page top play: menu and hero. The page's own close-ups (ask, plan, files,
+ * schedule, approve) are in desktop-page.css, which ships with the page.
+ *
+ * The story, loop 11s: 4-21% the ask types in the composer, 22-27% it is sent and rises as
+ * a bubble, 26-30% the plan appears in the Workspace, steps tick at 38/45/52/59%, files land
+ * at 41/48/55% and turn New at 51/58/65%, 66-73% the reply draws, 71-78% the files it made
+ * attach, 77-89% (hero) a light crosses the window, 92-97% it all clears.
+ * menu and hero open 42% in (--pd-t0, --pd-at): the first frame already has the ask, the
+ * plan and its first tick, the files land in the first two seconds, then the story goes
+ * round (clear, a new ask types, it is sent, the plan appears).
+ * The close-ups reuse these keyframes, shifted by --pd-at and spaced by --pd-gap.
+ * Keyframes hold no var(): distances are in em (each part's font is a fixed step of u), so
+ * every story animation can run on the compositor.
+ */
+
+.ps.pd {
+  --ps-loop: 11s;
+  /* The app's own surfaces. The composer's fill is also the cover over its untyped words. */
+  --pd-ask-bg: #202020;
+  --pd-field: #1b1b1b;
+  --pd-ws-bg: linear-gradient(180deg, #1d1d1d, #121212);
+}
+
+/* Light: the app's light theme. A grey bubble, white fields, a white Workspace card. */
+.ps.pd:is([data-oi-theme='light'] *) {
+  --pd-ask-bg: #efefef;
+  --pd-field: #ffffff;
+  --pd-ws-bg: linear-gradient(180deg, #ffffff, #f8f8f8);
+}
+
+.pd .ps-scene {
+  --pd-gap: 0.07;
+  --pd-at: 0;
+  --pd-t0: 0s;
+}
+
+/* The header and the page top open mid-story: the ask is up and the plan is running. */
+[data-product='desktop']:is([data-cut='menu'], [data-cut='hero']) .ps-scene {
+  --pd-at: -0.42;
+  --pd-t0: calc(var(--ps-loop) * -0.42);
+}
+
+.pd-glow,
+.pd-cam,
+.pd-app,
+.pd-ws,
+.pd-sched,
+.pd-ok {
+  position: absolute;
+}
+
+/* The schedule and the approval are the page's close-ups (desktop-page.css). */
+.pd-sched,
+.pd-ok {
+  display: none;
+}
+
+/* A soft light behind the work; it warms up as the files land. */
+.pd-glow {
+  top: calc(var(--u) * 2);
+  left: calc(var(--u) * 46);
+  width: calc(var(--u) * 60);
+  height: calc(var(--u) * 60);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.11 * var(--oi-halo-k))),
+    transparent
+  );
+  animation: pd-glow var(--ps-loop) ease-in-out var(--pd-t0) infinite;
+}
+
+/* The camera: a slow push-in on the Workspace through the story, back out while it clears. */
+.pd-cam {
+  inset: 0;
+  transform-origin: 68% 42%;
+  animation: pd-cam var(--ps-loop) ease-in-out var(--pd-t0) infinite;
+}
+
+/* The window ------------------------------------------------------------------------------ */
+
+.pd-app {
+  top: calc(var(--u) * 5.5);
+  left: calc(var(--u) * 5);
+  width: calc(var(--u) * 70);
+  height: calc(var(--u) * 52);
+  animation: pd-sink var(--ps-loop) ease-in-out infinite alternate;
+}
+
+.pd-app .ps-win-bar {
+  background: rgba(var(--oi-fg-rgb), 0.035);
+}
+
+.pd-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: calc(var(--u) * 16) calc(var(--u) * 39) 1fr;
+  min-height: 0;
+}
+
+.pd-side {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.9);
+  padding: calc(var(--u) * 1.8) calc(var(--u) * 1.1);
+  border-right: var(--ps-line) solid var(--oi-app-border);
+  background: rgba(var(--oi-fg-rgb), 0.02);
+  color: var(--oi-app-dim);
+  font-size: calc(var(--u) * 1.35);
+  white-space: nowrap;
+}
+
+.pd-side span {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 0.45) calc(var(--u) * 0.6);
+  border-radius: calc(var(--u) * 0.6);
+}
+
+/* A drawn icon for each entry. */
+.pd-side span::before {
+  content: '';
+  flex: none;
+  width: calc(var(--u) * 1.1);
+  height: calc(var(--u) * 1.1);
+  border: var(--ps-line) solid currentColor;
+  border-radius: calc(var(--u) * 0.3);
+  opacity: 0.8;
+}
+
+.pd-side span:first-child {
+  background: var(--oi-app-fill);
+  color: var(--oi-app-text);
+}
+
+.pd-side span:nth-child(4) {
+  margin-top: calc(var(--u) * 1.4);
+}
+
+.pd-chat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.6);
+  min-width: 0;
+  padding: calc(var(--u) * 2.6) calc(var(--u) * 2.2) calc(var(--u) * 2.2);
+}
+
+.pd-chat p {
+  margin: 0;
+}
+
+/* A new chat: the ring of lines the app greets you with, until the ask goes up. It turns as
+   one layer (a rotated box, nothing inside it moves). */
+.pd-chat::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: calc(var(--u) * 13);
+  height: calc(var(--u) * 13);
+  margin: calc(var(--u) * -6.5) 0 0 calc(var(--u) * -6.5);
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    rgba(var(--oi-fg-rgb), 0.5) 0 1.4deg,
+    transparent 1.4deg 7.5deg
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent 56%, #000 60% 96%, transparent);
+  mask: radial-gradient(closest-side, transparent 56%, #000 60% 96%, transparent);
+  opacity: 0;
+  animation:
+    pd-orb var(--ps-loop) ease var(--pd-t0) infinite,
+    ps-spin 24s linear infinite;
+}
+
+.pd-ask {
+  align-self: flex-end;
+  max-width: calc(var(--u) * 30);
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1.3);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.4) calc(var(--u) * 1.4) calc(var(--u) * 0.4);
+  background: var(--pd-ask-bg);
+  color: var(--oi-app-text);
+  font-size: calc(var(--u) * 1.7);
+  line-height: 1.35;
+  transform-origin: 100% 100%;
+  animation: pd-ask var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+/* The answer: a status line while it works, then the reply, drawn as lines. */
+.pd-out {
+  position: relative;
+  animation: pd-out var(--ps-loop) linear var(--pd-t0) infinite;
+}
+
+.pd-chat .pd-status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.7);
+  color: var(--oi-app-muted);
+  font-size: calc(var(--u) * 1.35);
+  white-space: nowrap;
+  opacity: 0;
+  animation: pd-status var(--ps-loop) ease var(--pd-t0) infinite;
+}
+
+.pd-status .ps-icon {
+  width: calc(var(--u) * 1.4);
+  height: calc(var(--u) * 1.4);
+  color: var(--oi-app-text);
+  animation: pd-breathe 1.4s ease-in-out infinite;
+}
+
+.pd-chat .pd-reply {
+  display: grid;
+  gap: calc(var(--u) * 0.9);
+  padding-top: calc(var(--u) * 0.4);
+}
+
+.pd-reply i {
+  display: block;
+  height: calc(var(--u) * 0.8);
+  border-radius: calc(var(--u) * 0.4);
+  background: color-mix(in srgb, var(--oi-app-muted) 42%, transparent);
+  transform-origin: left;
+  animation: pd-draw var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite backwards;
+}
+
+.pd-reply i:nth-child(1) {
+  width: 96%;
+}
+
+.pd-reply i:nth-child(2),
+.pd-chips .ps-chip:nth-child(2) {
+  animation-delay: calc(var(--pd-t0) + var(--ps-loop) * 0.015);
+}
+
+.pd-reply i:nth-child(2) {
+  width: 84%;
+}
+
+.pd-reply i:nth-child(3),
+.pd-chips .ps-chip:nth-child(3) {
+  animation-delay: calc(var(--pd-t0) + var(--ps-loop) * 0.03);
+}
+
+.pd-reply i:nth-child(3) {
+  width: 58%;
+}
+
+/* The files it made, attached to the answer, one after another. */
+.pd-chat .pd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--u) * 0.7);
+  margin-top: calc(var(--u) * 2);
+}
+
+.pd-chips .ps-chip {
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 0.9);
+  font-size: max(9px, calc(var(--u) * 1.2));
+  color: var(--oi-app-text);
+  animation: pd-chip var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite backwards;
+}
+
+.pd-chips .ps-icon {
+  width: calc(var(--u) * 1.2);
+  height: calc(var(--u) * 1.2);
+  color: var(--oi-app-muted);
+}
+
+/* The composer: the ask types here, then goes up as a bubble. Opaque (--pd-field is the fill
+   on the window), so a cover of the same colour can hide the words it has not typed yet. */
+.pd-chat .pd-input {
+  --pd-pad: calc(var(--u) * 1.3);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: calc(var(--u) * 4.2);
+  margin-top: auto;
+  padding: 0 calc(var(--u) * 0.7) 0 var(--pd-pad);
+  overflow: hidden;
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.4);
+  background: var(--pd-field);
+  color: var(--oi-app-text);
+  font-size: calc(var(--u) * 1.35);
+}
+
+.pd-input::before {
+  content: var(--pd-say-empty, 'Ask anything…');
+  position: absolute;
+  left: var(--pd-pad);
+  z-index: 1;
+  color: var(--oi-app-dim);
+  animation: pd-hint var(--ps-loop) linear var(--pd-t0) infinite;
+}
+
+/* The typed words sit at full width under a cover that steps off them a letter at a time
+   (a transform in steps, not a growing width): --n steps of its own width. */
+.pd-typed {
+  position: relative;
+  padding-right: 0.2em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pd-typed::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--pd-field);
+  animation: pd-type var(--ps-loop) steps(var(--n), end) var(--pd-t0) infinite;
+}
+
+/* The caret rides the cover's edge, blinks, and goes when the ask is sent. pd-caret moves
+   it 15.3em: the ask's width in this face (33 letters of 0.4636em); keep it with ASK. */
+.pd-input .ps-caret {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--pd-pad);
+  margin: auto 0;
+  scale: 0;
+  animation:
+    ps-blink 1s steps(1) infinite,
+    pd-caret var(--ps-loop) steps(var(--n), end) var(--pd-t0) infinite;
+}
+
+.pd-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--u) * 2.7);
+  height: calc(var(--u) * 2.7);
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--oi-app-text);
+  color: var(--oi-paper-strong);
+  opacity: 0.4;
+  animation: pd-send var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+.pd-send .ps-icon {
+  width: 58%;
+  height: 58%;
+  rotate: -90deg;
+}
+
+/* The Workspace: a raised card over the window's edge, a step closer to you. -------------- */
+
+.pd-ws {
+  top: calc(var(--u) * 12);
+  left: calc(var(--u) * 59);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.6);
+  width: calc(var(--u) * 35);
+  padding: calc(var(--u) * 2);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 1.6);
+  background: var(--pd-ws-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.1),
+    0 calc(var(--u) * 3) calc(var(--u) * 8) calc(var(--u) * -2)
+      rgba(var(--oi-shadow-rgb), calc(0.85 * var(--oi-shadow-k)));
+  animation: pd-float var(--ps-loop) ease-in-out infinite alternate;
+}
+
+/* Before the ask: the Workspace's own empty line. */
+.pd-ws::after {
+  content: var(--pd-say-wait, 'Steps appear here');
+  position: absolute;
+  top: 46%;
+  right: 0;
+  left: 0;
+  color: var(--oi-app-dim);
+  font-size: max(9px, calc(var(--u) * 1.3));
+  text-align: center;
+  opacity: 0;
+  animation: pd-empty var(--ps-loop) ease var(--pd-t0) infinite;
+}
+
+.pd-ws-head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+  margin: 0;
+  color: var(--oi-app-text);
+  font-size: calc(var(--u) * 1.6);
+  font-weight: 500;
+}
+
+.pd-ws-head .ps-icon {
+  color: var(--oi-app-muted);
+}
+
+.pd-steps,
+.pd-files {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  animation: pd-gate var(--ps-loop) ease var(--pd-t0) infinite;
+}
+
+.pd-steps {
+  gap: calc(var(--u) * 1.2);
+  color: var(--oi-app-soft);
+  font-size: calc(var(--u) * 1.5);
+  list-style: none;
+}
+
+.pd-steps::before {
+  content: var(--pd-say-plan, 'AI plan');
+  justify-self: start;
+  padding: calc(var(--u) * 0.2) calc(var(--u) * 0.7);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: 999px;
+  color: var(--oi-app-muted);
+  font: 500 max(9px, calc(var(--u) * 0.9)) / 1.3 var(--oi-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pd-steps li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+}
+
+/* Each step: an empty ring, a turning arc while it runs, then the tick. */
+.pd-steps li::before,
+.pd-steps li::after,
+.pd-steps .ps-tick {
+  width: calc(var(--u) * 1.8);
+  height: calc(var(--u) * 1.8);
+}
+
+.pd-steps li::before,
+.pd-steps li::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: 50%;
+}
+
+.pd-steps li::after {
+  border-width: calc(var(--ps-line) * 1.6);
+  border-color: transparent;
+  border-top-color: var(--oi-app-text);
+  opacity: 0;
+  animation:
+    ps-spin 0.9s linear infinite,
+    pd-now var(--ps-loop) linear infinite backwards;
+  animation-delay: 0s, calc((var(--i, 0) * var(--pd-gap) + var(--pd-at)) * var(--ps-loop));
+}
+
+.pd-steps .ps-tick {
+  position: relative;
+  animation: pd-tick var(--ps-loop) var(--oi-ease) infinite backwards;
+  animation-delay: calc((var(--i, 0) * var(--pd-gap) + var(--pd-at)) * var(--ps-loop));
+}
+
+.pd-steps li:nth-child(2),
+.pd-files .ps-file:nth-child(2) {
+  --i: 1;
+}
+
+.pd-steps li:nth-child(3),
+.pd-files .ps-file:nth-child(3) {
+  --i: 2;
+}
+
+.pd-steps li:nth-child(4) {
+  --i: 3;
+}
+
+.pd-files {
+  gap: calc(var(--u) * 0.6);
+  padding-top: calc(var(--u) * 1.4);
+  border-top: var(--ps-line) solid var(--oi-app-border);
+  animation-delay: calc(var(--pd-t0) + var(--ps-loop) * 0.02);
+}
+
+/* File rows (here, in the schedule and under the approval): an empty dashed slot, then the
+   file lands, a line runs while it is written and a turning ring waits in the tag's place,
+   then the tag pops up, lit: New. --pd-tag is the tag's size, never under 9px. */
+.pd .ps-file {
+  --pd-tag: max(9px, calc(var(--u) * 1.3));
+
+  position: relative;
+  isolation: isolate;
+  font-size: max(9px, calc(var(--u) * 1.3));
+  border: var(--ps-line) dashed var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 1);
+}
+
+.pd .ps-file::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  z-index: -1;
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: inherit;
+  background: var(--pd-field);
+}
+
+/* The tag is left out: its ring turns, and a turning part inside a moving parent costs a
+   style pass every frame. The ring and New fade in and out on their own (pd-wip, pd-new). */
+.pd .ps-file > :not(.ps-file-state),
+.pd .ps-file::before {
+  animation: pd-land var(--ps-loop) var(--oi-ease) infinite backwards;
+  animation-delay: calc((var(--i, 0) * var(--pd-gap) + var(--pd-at)) * var(--ps-loop));
+}
+
+.pd .ps-file::after {
+  content: '';
+  position: absolute;
+  right: calc(var(--pd-tag) * 3.7 + var(--u) * 0.8);
+  bottom: calc(var(--u) * 0.45);
+  left: calc(var(--u) * 4);
+  height: var(--ps-line);
+  background: linear-gradient(90deg, transparent, var(--oi-app-text));
+  transform-origin: left;
+  opacity: 0;
+  animation: pd-write var(--ps-loop) linear infinite backwards;
+  animation-delay: calc((var(--i, 0) * var(--pd-gap) + var(--pd-at)) * var(--ps-loop));
+}
+
+.pd .ps-file-name {
+  color: var(--oi-app-text);
+}
+
+/* The tag: a turning ring while the file is written, then New, lit. */
+.pd .ps-file-state {
+  position: relative;
+  width: 3.3em;
+  height: 1.75em;
+  padding: 0;
+  background: none;
+  font: 600 var(--pd-tag) / 1 var(--oi-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pd .ps-file-state::before,
+.pd .ps-file-state::after {
+  position: absolute;
+  inset: 0;
+}
+
+.pd .ps-file-state::before {
+  content: '';
+  width: 1.2em;
+  height: 1.2em;
+  margin: auto;
+  border: calc(var(--ps-line) * 1.4) solid var(--oi-app-border-strong);
+  border-top-color: var(--oi-app-text);
+  border-radius: 50%;
+  opacity: 0;
+  animation:
+    ps-spin 0.9s linear infinite,
+    pd-wip var(--ps-loop) linear infinite backwards;
+  animation-delay: 0s, calc((var(--i, 0) * var(--pd-gap) + var(--pd-at)) * var(--ps-loop));
+}
+
+.pd .ps-file-state::after {
+  content: var(--pd-say-new, 'New');
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: var(--oi-app-text);
+  color: var(--oi-paper-strong);
+  animation: pd-new var(--ps-loop) var(--oi-ease) infinite backwards;
+  animation-delay: calc((var(--i, 0) * var(--pd-gap) + var(--pd-at)) * var(--ps-loop));
+}
+
+/* The hero's closing light, across the window. */
+[data-product='desktop'][data-cut='hero'] .pd-app::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 55%;
+  background: linear-gradient(
+    105deg,
+    transparent 15%,
+    rgba(var(--oi-fg-rgb), 0.04) 38%,
+    rgba(var(--oi-fg-rgb), 0.09) 50%,
+    rgba(var(--oi-fg-rgb), 0.04) 62%,
+    transparent 85%
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: pd-sweep var(--ps-loop) ease-in-out var(--pd-t0) infinite;
+}
+
+/* The header's preview: cropped in on the chat and the Workspace, no sidebar, so every word
+   that tells the story is at least 1.6u (10px on the 628px card). ------------------------ */
+
+[data-product='desktop'][data-cut='menu'] .pd-side,
+[data-product='desktop'][data-cut='menu'] .pd-steps::before {
+  display: none;
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-cam {
+  transform-origin: 62% 40%;
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-glow {
+  left: calc(var(--u) * 42);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-app {
+  top: calc(var(--u) * 9);
+  left: calc(var(--u) * 3.5);
+  width: calc(var(--u) * 57);
+  height: calc(var(--u) * 45);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-body {
+  grid-template-columns: calc(var(--u) * 46) 1fr;
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-chat {
+  gap: calc(var(--u) * 1.8);
+  padding: calc(var(--u) * 3) calc(var(--u) * 2.4) calc(var(--u) * 2.4);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-ask {
+  max-width: calc(var(--u) * 40);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.5);
+  font-size: calc(var(--u) * 2);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-status {
+  font-size: calc(var(--u) * 1.7);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-status .ps-icon {
+  width: calc(var(--u) * 1.6);
+  height: calc(var(--u) * 1.6);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-chips {
+  gap: calc(var(--u) * 0.8);
+  margin-top: calc(var(--u) * 2.2);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-chips .ps-chip {
+  padding: calc(var(--u) * 0.55) calc(var(--u) * 1);
+  font-size: calc(var(--u) * 1.6);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-chips .ps-icon {
+  width: calc(var(--u) * 1.4);
+  height: calc(var(--u) * 1.4);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-input {
+  --pd-pad: calc(var(--u) * 1.5);
+
+  height: calc(var(--u) * 4.8);
+  font-size: calc(var(--u) * 1.7);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-send {
+  width: calc(var(--u) * 3);
+  height: calc(var(--u) * 3);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-ws {
+  top: calc(var(--u) * 6.5);
+  left: calc(var(--u) * 52);
+  width: calc(var(--u) * 44.5);
+  padding: calc(var(--u) * 2.2);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-ws::after {
+  font-size: calc(var(--u) * 1.6);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-ws-head {
+  font-size: calc(var(--u) * 2);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-ws-head .ps-icon {
+  width: calc(var(--u) * 1.8);
+  height: calc(var(--u) * 1.8);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-steps {
+  gap: calc(var(--u) * 1.1);
+  font-size: calc(var(--u) * 1.85);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-steps li {
+  gap: calc(var(--u) * 1.1);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-steps li::before,
+[data-product='desktop'][data-cut='menu'] .pd-steps li::after,
+[data-product='desktop'][data-cut='menu'] .pd-steps .ps-tick {
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 2);
+}
+
+[data-product='desktop'][data-cut='menu'] .pd-files {
+  gap: calc(var(--u) * 0.7);
+  padding-top: calc(var(--u) * 1.6);
+}
+
+[data-product='desktop'][data-cut='menu'] .ps-file {
+  --pd-tag: calc(var(--u) * 1.6);
+
+  font-size: calc(var(--u) * 1.75);
+}
+
+[data-product='desktop'][data-cut='menu'] .ps-file-icon {
+  width: calc(var(--u) * 2.7);
+  height: calc(var(--u) * 2.7);
+}
+
+/* Narrow cards ----------------------------------------------------------------------------- */
+
+@container ps (max-width: 480px) {
+  /* The phone menu's card (about 330px, 260px on the smallest phones): cropped in further,
+     the picture in the card's middle, every word max(9px, ...). No status line, no typing:
+     the composer is too narrow for the ask, so it is sent and rises as a bubble. */
+  [data-product='desktop'][data-cut='menu'] .ps-scene {
+    --u: max(calc(var(--ps-u) * 1.6), 4.5px);
+  }
+
+  [data-product='desktop'][data-cut='menu'] :is(.pd-status, .pd-typed, .ps-caret),
+  [data-product='desktop'][data-cut='menu'] .pd-chips .ps-chip:nth-child(n + 2) {
+    display: none;
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-input::before {
+    animation: none;
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-cam {
+    transform-origin: 55% 45%;
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-glow {
+    top: calc(50% - var(--u) * 26);
+    left: calc(50% - var(--u) * 14);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-app {
+    top: calc(50% - var(--u) * 15.5);
+    left: calc(50% - var(--u) * 27.5);
+    width: calc(var(--u) * 29.5);
+    height: calc(var(--u) * 31);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-body {
+    grid-template-columns: calc(var(--u) * 25.5) 1fr;
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-chat {
+    gap: calc(var(--u) * 1.2);
+    padding: calc(var(--u) * 1.8) calc(var(--u) * 1.4) calc(var(--u) * 1.4);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-ask {
+    max-width: calc(var(--u) * 22);
+    padding: calc(var(--u) * 0.8) calc(var(--u) * 1.1);
+    font-size: max(9px, calc(var(--u) * 1.85));
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-reply {
+    gap: calc(var(--u) * 0.7);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-chips {
+    margin-top: calc(var(--u) * 1.2);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-chips .ps-chip {
+    padding: calc(var(--u) * 0.45) calc(var(--u) * 0.9);
+    font-size: max(9px, calc(var(--u) * 1.7));
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-input {
+    --pd-pad: calc(var(--u) * 1.2);
+
+    height: calc(var(--u) * 3.8);
+    font-size: max(9px, calc(var(--u) * 1.7));
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-send {
+    width: calc(var(--u) * 2.6);
+    height: calc(var(--u) * 2.6);
+  }
+
+  /* Held in the card's middle, whatever height the words give it. */
+  [data-product='desktop'][data-cut='menu'] .pd-ws {
+    top: 0;
+    bottom: 0;
+    left: calc(50% - var(--u) * 1.5);
+    gap: calc(var(--u) * 0.9);
+    width: calc(var(--u) * 28.5);
+    height: fit-content;
+    margin: auto 0;
+    padding: calc(var(--u) * 1.3) calc(var(--u) * 1.4);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-ws::after {
+    font-size: max(9px, calc(var(--u) * 1.7));
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-ws-head {
+    font-size: max(9px, calc(var(--u) * 1.9));
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-steps {
+    gap: calc(var(--u) * 0.45);
+    font-size: max(9px, calc(var(--u) * 1.8));
+    line-height: 1.2;
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-steps li {
+    gap: calc(var(--u) * 0.9);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-steps li::before,
+  [data-product='desktop'][data-cut='menu'] .pd-steps li::after,
+  [data-product='desktop'][data-cut='menu'] .pd-steps .ps-tick {
+    width: calc(var(--u) * 1.9);
+    height: calc(var(--u) * 1.9);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .pd-files {
+    gap: calc(var(--u) * 0.35);
+    padding-top: calc(var(--u) * 1);
+  }
+
+  [data-product='desktop'][data-cut='menu'] .ps-file {
+    --pd-tag: max(9px, calc(var(--u) * 1.6));
+
+    padding: calc(var(--u) * 0.3) calc(var(--u) * 0.6);
+    font-size: max(9px, calc(var(--u) * 1.75));
+  }
+
+  [data-product='desktop'][data-cut='menu'] .ps-file-state {
+    height: 1.6em;
+  }
+
+  [data-product='desktop'][data-cut='menu'] .ps-file-icon {
+    width: calc(var(--u) * 2.3);
+    height: calc(var(--u) * 2.3);
+  }
+
+  /* A phone's hero stands tall (4:5, set by the page): the chat on top, the Workspace below
+     it, a step closer, so both stay big. The unit never goes under 6px (words 9px or more). */
+  [data-product='desktop'][data-cut='hero'] .ps-scene {
+    --u: max(calc(var(--ps-u) * 1.8), 6px);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-side,
+  [data-product='desktop'][data-cut='hero'] .pd-steps::before {
+    display: none;
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-cam {
+    transform-origin: 50% 55%;
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-app {
+    top: calc(var(--u) * 3);
+    right: calc(var(--u) * 2.5);
+    left: calc(var(--u) * 2.5);
+    width: auto;
+    height: calc(var(--u) * 29);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-body {
+    grid-template-columns: 1fr;
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-chat {
+    padding: calc(var(--u) * 1.8);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-ask {
+    max-width: calc(var(--u) * 40);
+  }
+
+  [data-product='desktop'][data-cut='hero'] :is(.pd-status, .pd-input, .ps-file) {
+    font-size: calc(var(--u) * 1.5);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-chips .ps-chip {
+    font-size: max(9px, calc(var(--u) * 1.45));
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-ws {
+    top: calc(var(--u) * 32.5);
+    right: calc(var(--u) * 2.5);
+    left: calc(var(--u) * 8);
+    gap: calc(var(--u) * 1.1);
+    width: auto;
+    padding: calc(var(--u) * 1.6);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-steps {
+    gap: calc(var(--u) * 0.8);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-files {
+    gap: calc(var(--u) * 0.3);
+    padding-top: calc(var(--u) * 1);
+  }
+
+  [data-product='desktop'][data-cut='hero'] .pd-glow {
+    top: calc(var(--u) * 16);
+    left: 0;
+    width: 100%;
+  }
+}
+
+/* Keyframes (the page's own are in desktop-page.css) -------------------------------------- */
+
+@keyframes pd-cam {
+  0% {
+    transform: none;
+  }
+  90% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pd-glow {
+  0%,
+  30% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  62%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes pd-sink {
+  to {
+    translate: 0 0.33em;
+  }
+}
+
+@keyframes pd-float {
+  to {
+    translate: 0 -0.73em;
+  }
+}
+
+/* The cover steps off the typed words, 4-21%, and is back over them the moment the ask is
+   sent (23%: one step of the clock, so it clears at once, not letter by letter). */
+@keyframes pd-type {
+  0%,
+  4% {
+    translate: 0;
+  }
+  21%,
+  22.95% {
+    translate: 100%;
+  }
+  23%,
+  100% {
+    translate: 0;
+  }
+}
+
+/* The caret along the same steps, gone from the send (23%) until the next ask. */
+@keyframes pd-caret {
+  0%,
+  4% {
+    translate: 0;
+    scale: 1;
+  }
+  21%,
+  22.95% {
+    translate: 15.3em;
+    scale: 1;
+  }
+  23%,
+  100% {
+    translate: 0;
+    scale: 0;
+  }
+}
+
+@keyframes pd-hint {
+  0%,
+  3.5% {
+    opacity: 1;
+  }
+  4%,
+  23.5% {
+    opacity: 0;
+  }
+  26%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pd-send {
+  0%,
+  4% {
+    opacity: 0.4;
+    transform: none;
+  }
+  5%,
+  21.5% {
+    opacity: 1;
+    transform: none;
+  }
+  22.5% {
+    opacity: 1;
+    transform: scale(0.8);
+  }
+  24% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  27%,
+  100% {
+    opacity: 0.4;
+    transform: none;
+  }
+}
+
+@keyframes pd-ask {
+  0%,
+  22.5% {
+    opacity: 0;
+    transform: translateY(5.88em) scale(0.92);
+  }
+  27%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pd-out {
+  0%,
+  5% {
+    opacity: 0;
+  }
+  6%,
+  92% {
+    opacity: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pd-status {
+  0%,
+  26% {
+    opacity: 0;
+    transform: translateY(0.593em);
+  }
+  29%,
+  63% {
+    opacity: 1;
+    transform: none;
+  }
+  66%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pd-breathe {
+  50% {
+    opacity: 0.35;
+    transform: rotate(90deg) scale(0.8);
+  }
+}
+
+@keyframes pd-draw {
+  0%,
+  66% {
+    transform: scaleX(0);
+  }
+  73%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pd-orb {
+  0%,
+  20% {
+    opacity: 0.55;
+  }
+  24%,
+  96% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes pd-empty {
+  0%,
+  23% {
+    opacity: 1;
+  }
+  27%,
+  96% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pd-chip {
+  0%,
+  71% {
+    opacity: 0;
+    transform: translateY(0.667em) scale(0.9);
+  }
+  75%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pd-gate {
+  0%,
+  26% {
+    opacity: 0;
+  }
+  30%,
+  92% {
+    opacity: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pd-now {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  31%,
+  37% {
+    opacity: 1;
+  }
+  38%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pd-tick {
+  0%,
+  37% {
+    transform: scale(0);
+  }
+  39.5% {
+    transform: scale(1.18);
+  }
+  42%,
+  95% {
+    transform: none;
+  }
+  99%,
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes pd-land {
+  0%,
+  41% {
+    opacity: 0;
+    transform: translateX(-0.923em);
+  }
+  44%,
+  95% {
+    opacity: 1;
+    transform: none;
+  }
+  99%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pd-write {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  44% {
+    opacity: 1;
+  }
+  51% {
+    opacity: 1;
+    transform: none;
+  }
+  53%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* The ring while the file is written, then the lit New in its place; both go with the row. */
+@keyframes pd-wip {
+  0%,
+  41% {
+    opacity: 0;
+  }
+  44%,
+  51% {
+    opacity: 1;
+  }
+  52%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pd-new {
+  0%,
+  51% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  53% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  55%,
+  95% {
+    opacity: 1;
+    transform: none;
+  }
+  99%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pd-sweep {
+  0%,
+  77% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  79% {
+    opacity: 1;
+  }
+  87% {
+    opacity: 1;
+  }
+  89%,
+  100% {
+    opacity: 0;
+    transform: translateX(260%);
+  }
+}

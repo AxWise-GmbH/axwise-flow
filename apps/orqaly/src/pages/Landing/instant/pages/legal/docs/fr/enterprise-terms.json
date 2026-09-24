@@ -1,0 +1,469 @@
+{
+  "meta": {
+    "slug": "enterprise-terms",
+    "title": "Conditions Entreprise",
+    "summary": "Les conditions applicables aux entreprises qui confient à Orqanix la conception, l’exploitation de solutions d’IA ou le conseil en IA, avec nos agents et nos experts.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Première version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1).",
+        "Order / statement-of-work template does not exist yet. Every order must set scope, deliverables, timeline, price, acceptance criteria and testing period, hosting region, notice periods for monthly services and any third-party components (FACTS open point 12).",
+        "Third-party software: the automation tool used in builds is not named here because its commercial licence is still open (FACTS open point 12). No order may include it until that licence is settled.",
+        "Hosting region: the text says an EU Google Cloud region agreed per project and named in the order; the unapplied infrastructure template defaults to a different EU region than the site. Confirm per order.",
+        "Ownership: the text transfers rights in deliverables once paid, with an exclusive licence where rights cannot be transferred (for example under German copyright law). Lawyer to confirm under the chosen governing law.",
+        "AI Act roles: the customer is the deployer; it may become the provider if it puts a system into service under its own name. For high-risk uses the order must split duties. Lawyer to confirm (critique point 7).",
+        "Data Act: managed agent operations and hosting are likely data processing services; custom-built services may fall under the lighter rules of Data Act Art. 31. Lawyer to decide per offer; export must be done by hand (no export code).",
+        "Liability cap (fees paid or payable under the order in the 12 months before the event) and the EU liability wording are drafts for lawyer review.",
+        "US: HIPAA stance is 'no protected health information, no business associate agreements'. Owner to confirm, given the healthcare marketing (us.md must-have 7).",
+        "Late-payment interest is left to the law; payment periods are set per invoice or order.",
+        "Mailboxes: hello@ and privacy@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: every service, pricing model, process step, approval setting and hosting statement matches FACTS §8 and the Enterprise page. Role-based access and the agent record are page claims (FACTS §8); each order must confirm they are part of that build.",
+        "Legal review 2026-09-21: fixed an orphan sentence on third-party licences; AI literacy duty reworded to the softened AI Act Art. 4 (effort, not result; verify.md row 5); added the 30-day data-retrieval period (Data Act Art. 25(2)); US courts clause now states no arbitration and a small-claims option (owner decision); US warranty disclaimer shown as a highlighted note for conspicuousness (lawyer to confirm).",
+        "Data Act Art. 26 pre-contract information (switching procedure, data formats) must go into each order for managed services; no template exists yet.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026) covers software; the EU liability clause keeps mandatory product liability, lawyer to confirm the wording for deliverables that are software (verify.md, missed requirement 1).",
+        "FTC Health Breach Notification Rule and US state breach laws: the terms say no HIPAA data, but Enterprise marketing names healthcare; owner to decide whether healthcare builds are offered at all (verify.md, missed requirements 2-3)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "À propos des présentes conditions"
+    },
+    {
+      "type": "p",
+      "text": "Les présentes Conditions Entreprise s’appliquent lorsque votre entreprise confie à Orqanix la conception ou l’exploitation de solutions d’IA, ou une mission de conseil en IA. Elles couvrent notamment les audits de maturité IA, les projets pilotes, les unités métier automatisées, les nouveaux rôles IA, les connecteurs sur mesure, l’exploitation d’agents gérée par nos soins et la formation des équipes."
+    },
+    {
+      "type": "p",
+      "text": "Elles complètent nos [Conditions d’utilisation](/instant/legal/terms) et notre [Politique d’utilisation acceptable](/instant/legal/acceptable-use). Lorsque nous traitons des données personnelles pour votre compte, l’[Avenant relatif au traitement des données](/instant/legal/dpa) (le « DPA ») s’applique également et fait partie intégrante des présentes conditions. Lorsque la prestation inclut l’API Orqanix, par exemple une API de raisonnement en marque blanche, les [Conditions de l’API](/instant/legal/api-terms) s’appliquent aussi à cette partie."
+    },
+    {
+      "type": "p",
+      "text": "« Vous » désigne l’entreprise qui fait appel à nous. La personne qui accepte les présentes conditions ou signe une commande confirme qu’elle est habilitée à engager cette entreprise. « Nous » désigne Orqanix."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix est exploitée par {company.legalName}, {company.address}, qui est partie aux présentes conditions et à chaque commande.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Les prestations Entreprise sont réservées aux entreprises. Toute personne qui travaille avec nous pour votre compte doit être âgée d’au moins 18 ans."
+    },
+    {
+      "type": "h2",
+      "id": "orders",
+      "text": "Commandes"
+    },
+    {
+      "type": "p",
+      "text": "Nous convenons de chaque prestation dans une commande ou un cahier des charges écrit (une « commande ») avant le début des travaux. Chaque commande précise :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "le périmètre : ce que nous ferons et ce qui n’est pas inclus ;",
+        "les livrables : ce que vous recevrez ;",
+        "le calendrier et les éventuelles étapes clés ;",
+        "le prix et le mode de facturation : un prix forfaitaire par projet, un abonnement mensuel, une rémunération au résultat, ou une combinaison de ces formules ;",
+        "les critères de réception et le délai dont vous disposez pour les tests ;",
+        "le lieu d’hébergement des travaux, y compris la région Google Cloud de l’UE concernée ;",
+        "les logiciels ou services tiers sur lesquels reposent les travaux, ainsi que leurs conditions."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Une commande nous engage tous les deux dès que nous l’avons signée ou confirmée par écrit. Un e-mail suffit. Plusieurs commandes peuvent être exécutées en même temps, et chacune est indépendante des autres."
+    },
+    {
+      "type": "p",
+      "text": "Nos travaux vont en général de la phase de découverte et d’un plan écrit (le « plan directeur ») à la conception avec vos données et au lancement, puis à l’exploitation et à l’amélioration. La commande précise les étapes qu’elle couvre."
+    },
+    {
+      "type": "p",
+      "text": "En cas de contradiction entre les documents, ils prévalent dans l’ordre suivant : la commande relative aux travaux, puis le DPA pour les données personnelles, puis les présentes conditions, puis les Conditions d’utilisation."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-work",
+      "text": "Notre façon de travailler"
+    },
+    {
+      "type": "p",
+      "text": "Nous réalisons les travaux avec nos agents IA, nos spécialistes (ingénieurs et consultants), ou les deux, comme le prévoit la commande. Nous pouvons faire appel à des sous-traitants. Nous restons responsables de leur travail et leur imposons les mêmes obligations de confidentialité et de protection des données que les nôtres."
+    },
+    {
+      "type": "p",
+      "text": "Les agents que nous concevons et exploitons pour vous agissent dans le cadre des règles que vous fixez : une autorisation pour chaque action (Autoriser une fois, Toujours autoriser ou Refuser), des accès selon les rôles et un historique de ce que chaque agent a fait. Nous convenons de ces paramètres avec vous dans la commande ou avant le lancement."
+    },
+    {
+      "type": "h2",
+      "id": "cooperation",
+      "text": "Votre collaboration"
+    },
+    {
+      "type": "p",
+      "text": "Vous vous engagez à :"
+    },
+    {
+      "type": "list",
+      "items": [
+        "nous donner à temps l’accès aux personnes, systèmes, données et décisions nécessaires aux travaux ;",
+        "vous assurer que vous avez le droit de nous communiquer ces données et de nous donner ces accès, y compris pour les données personnelles et les licences de vos propres systèmes et outils ;",
+        "désigner un interlocuteur habilité à prendre des décisions ;",
+        "examiner rapidement les plans et les livrables ;",
+        "conserver vos propres sauvegardes des systèmes et données sur lesquels nous travaillons ;",
+        "nous informer des règles qui ont une incidence sur les travaux, comme celles propres à votre secteur."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Si vous prenez du retard, ou si un élément que vous nous avez fourni est erroné, et que cela nous retarde, le calendrier est décalé d’autant. Tout effort supplémentaire qui en résulte est traité comme une [modification](#changes)."
+    },
+    {
+      "type": "h2",
+      "id": "acceptance",
+      "text": "Réception"
+    },
+    {
+      "type": "p",
+      "text": "Lorsqu’une commande fixe des critères de réception, nous vous informons quand un livrable est prêt. Vous le testez au regard de ces critères dans le délai fixé par la commande. S’il y répond, vous le réceptionnez. Dans le cas contraire, vous nous indiquez par écrit ce qui n’est pas conforme, et nous le corrigeons avant de vous le présenter à nouveau."
+    },
+    {
+      "type": "p",
+      "text": "Un livrable est réputé réceptionné lorsque vous le confirmez, lorsque le délai de test expire sans refus écrit et motivé, ou lorsque vous commencez à l’utiliser dans votre activité réelle à d’autres fins que des tests. Les défauts mineurs qui n’empêchent pas son utilisation ne font pas obstacle à la réception. Nous les corrigeons au titre de [nos engagements](#warranties)."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Modifications"
+    },
+    {
+      "type": "p",
+      "text": "Chacun de nous peut demander une modification du périmètre. Nous vous indiquons l’incidence de la modification sur le calendrier et le prix. Une modification s’applique dès que nous l’avons tous deux acceptée par écrit. D’ici là, nous poursuivons les travaux selon la commande en vigueur."
+    },
+    {
+      "type": "h2",
+      "id": "fees",
+      "text": "Prix et paiement"
+    },
+    {
+      "type": "p",
+      "text": "Vous payez les prix fixés dans la commande. Pour une rémunération au résultat, la commande définit ce qui constitue un résultat et la manière dont il est mesuré."
+    },
+    {
+      "type": "p",
+      "text": "Nous facturons comme le prévoit la commande. Vous payez dans le délai indiqué dans la commande ou sur la facture. Les prix s’entendent hors TVA et autres taxes, que vous payez lorsqu’elles s’appliquent. Nous ne facturons de frais que si la commande le permet."
+    },
+    {
+      "type": "p",
+      "text": "Si vous contestez une partie d’une facture, signalez-le-nous de bonne foi et payez le reste. Si un montant reste impayé après une relance, nous pouvons suspendre les travaux jusqu’à son paiement. Les retards de paiement donnent lieu à des intérêts dans la mesure permise par la loi."
+    },
+    {
+      "type": "h2",
+      "id": "ownership",
+      "text": "Qui détient quoi"
+    },
+    {
+      "type": "h3",
+      "id": "your-material",
+      "text": "Vos éléments"
+    },
+    {
+      "type": "p",
+      "text": "Vous conservez tous les droits sur les données, contenus, systèmes et autres éléments que vous nous fournissez. Vous nous autorisez à les utiliser uniquement pour réaliser les travaux."
+    },
+    {
+      "type": "h3",
+      "id": "deliverables",
+      "text": "Livrables"
+    },
+    {
+      "type": "p",
+      "text": "Dès que vous avez payé intégralement un livrable, vous êtes propriétaire de ce que nous avons créé spécifiquement pour vous au titre de la commande, comme des configurations d’agents, des flux de travail, des connecteurs, des documents et du code. Nous vous cédons les droits que nous détenons sur ces éléments. Lorsque la loi ne permet pas la cession d’un droit, nous vous concédons une licence exclusive, mondiale et perpétuelle, que vous pouvez transmettre. Tant que vous n’avez pas payé, vous pouvez utiliser un livrable pour l’examiner et le tester."
+    },
+    {
+      "type": "h3",
+      "id": "our-material",
+      "text": "Nos éléments"
+    },
+    {
+      "type": "p",
+      "text": "Nous conservons tous les droits sur nos outils, notre plateforme, nos logiciels, agents, modèles, instructions, méthodes et savoir-faire, ainsi que sur tout ce que nous avons créé avant la commande ou en dehors de celle-ci. Lorsque nos éléments font partie d’un livrable, vous bénéficiez, une fois le paiement effectué, d’une licence non exclusive, mondiale et perpétuelle pour les utiliser, les copier et les modifier dans le cadre de ce livrable, pour les besoins de votre propre activité. Vous ne pouvez pas vendre nos éléments ni en concéder de licence séparément."
+    },
+    {
+      "type": "h3",
+      "id": "other-parts",
+      "text": "Services, composants tiers et résultats produits par l’IA"
+    },
+    {
+      "type": "p",
+      "text": "Lorsque nous exploitons quelque chose pour vous, comme l’exploitation d’agents gérée par nos soins ou une API de raisonnement hébergée, il s’agit d’un service et non d’un livrable. Votre accès à ce service dure aussi longtemps que la commande."
+    },
+    {
+      "type": "p",
+      "text": "Les composants tiers et open source d’un livrable restent soumis à leurs propres licences. Nous vous indiquons ceux qu’un livrable contient."
+    },
+    {
+      "type": "p",
+      "text": "Certaines parties d’un livrable peuvent être créées par l’IA. Dans certains pays, les éléments créés par l’IA sans apport créatif humain suffisant ne sont pas protégés par le droit d’auteur. Nous vous cédons les droits qui existent, mais nous ne garantissons pas qu’il en existe."
+    },
+    {
+      "type": "p",
+      "text": "Chacun de nous peut continuer à utiliser les compétences et l’expérience générales acquises au cours des travaux, sans utiliser les informations confidentielles de l’autre."
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "Confidentialité"
+    },
+    {
+      "type": "p",
+      "text": "Chacun de nous aura accès aux informations confidentielles de l’autre : les informations non publiques signalées comme confidentielles ou dont on doit raisonnablement comprendre qu’elles le sont."
+    },
+    {
+      "type": "p",
+      "text": "La partie qui les reçoit ne les utilise que pour les travaux, les protège avec un soin raisonnable et ne les communique qu’aux personnes qui en ont besoin et sont tenues de les garder confidentielles. Cette obligation ne couvre pas les informations publiques, déjà connues du destinataire, développées par lui de manière indépendante ou reçues légalement d’un tiers. Si la loi impose une divulgation, le destinataire peut divulguer ce qui est exigé et, lorsque c’est permis, en informe d’abord l’autre partie. Nous ne vous citons comme client qu’avec votre autorisation."
+    },
+    {
+      "type": "h2",
+      "id": "data-protection",
+      "text": "Données et hébergement"
+    },
+    {
+      "type": "p",
+      "text": "Lorsque nous traitons des données personnelles pour votre compte, nous sommes votre sous-traitant : nous ne les traitons que sur vos instructions, et le DPA s’applique. Pour nos propres dossiers vous concernant, comme vos interlocuteurs et vos factures, nous agissons pour notre propre compte, et notre [Politique de confidentialité](/instant/legal/privacy) s’applique."
+    },
+    {
+      "type": "p",
+      "text": "Nous hébergeons vos travaux dans une région Google Cloud de l’UE convenue avec vous et indiquée dans la commande. Certains prestataires auxquels nous faisons appel, comme Google Gemini pour le modèle d’IA, peuvent traiter des données en dehors de l’UE. La page [Sous-traitants](/instant/legal/subprocessors) en donne la liste."
+    },
+    {
+      "type": "p",
+      "text": "Nous n’entraînons pas nos propres modèles d’IA sur vos données, et nous ne les vendons pas."
+    },
+    {
+      "type": "p",
+      "text": "Ne nous transmettez pas d’informations de santé protégées relevant de HIPAA. Nous ne signons pas de business associate agreements (accords de partenaire commercial au sens de HIPAA).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "ai-act",
+      "text": "Réglementation de l’IA et votre rôle"
+    },
+    {
+      "type": "p",
+      "text": "Vous décidez de l’utilisation des systèmes que nous concevons au sein de votre entreprise. Au sens du règlement européen sur l’intelligence artificielle (RIA), vous êtes le « déployeur » de ce que nous concevons pour vous : l’organisation qui utilise un système d’IA sous sa propre autorité. Si vous mettez un système en service sous votre propre nom, vous pouvez aussi en être le « fournisseur »."
+    },
+    {
+      "type": "p",
+      "text": "Informez-nous avant le début des travaux si un système est susceptible d’être utilisé dans un domaine à haut risque, comme le recrutement et l’emploi, l’éducation, le crédit ou l’accès aux services essentiels. La commande précise alors la répartition des tâches. Pour ces usages, vos obligations de déployeur s’appliquent à partir du 2 décembre 2027 (RIA, art. 26 et annexe III). Elles comprennent le contrôle humain, l’utilisation du système conformément à sa notice, la surveillance de son fonctionnement et la conservation de ses journaux."
+    },
+    {
+      "type": "p",
+      "text": "Lorsque la loi l’exige, vous veillez à ce que les personnes qui interagissent avec un système que vous exploitez sachent qu’elles ont affaire à une IA, et vous prenez des mesures pour développer la maîtrise de l’IA parmi vos collaborateurs qui l’utilisent (RIA, art. 4 et 50). Notre formation des équipes peut vous y aider, mais ces obligations restent les vôtres."
+    },
+    {
+      "type": "p",
+      "text": "Les lois des États américains sur l’IA utilisée dans des décisions aux conséquences importantes s’appliquent à vous en tant qu’entreprise qui prend ces décisions. Par exemple, la loi du Colorado entre en vigueur le 1er janvier 2027.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "results",
+      "text": "Résultats commerciaux"
+    },
+    {
+      "type": "p",
+      "text": "Nous œuvrons à atteindre les objectifs fixés dans la commande. Mais les résultats commerciaux dépendent de vos données, de vos équipes, de vos processus et de vos marchés, que nous ne maîtrisons pas. Sauf mention expresse dans la commande, nous ne garantissons ni économies, ni chiffre d’affaires, ni aucun autre résultat commercial. Une rémunération au résultat est un mode de tarification des travaux, et non la promesse qu’un résultat sera atteint."
+    },
+    {
+      "type": "p",
+      "text": "Les résultats produits par l’IA peuvent être erronés, et les agents peuvent commettre des erreurs. Maintenez une vérification humaine pour les décisions importantes et choisissez des paramètres d’autorisation adaptés au risque. La page [Comment fonctionne notre IA](/instant/legal/ai) donne plus de détails."
+    },
+    {
+      "type": "h2",
+      "id": "warranties",
+      "text": "Nos engagements"
+    },
+    {
+      "type": "p",
+      "text": "Nous nous engageons à réaliser les travaux avec une compétence et un soin raisonnables, en faisant appel à des personnes dûment qualifiées. Nous nous engageons également à ce que chaque livrable, une fois réceptionné, soit conforme à la commande sur tous les points importants."
+    },
+    {
+      "type": "p",
+      "text": "Si un livrable ne respecte pas cet engagement, informez-nous-en par écrit. Nous le corrigerons ou referons les travaux. Si nous ne pouvons pas le faire dans un délai raisonnable, vous pouvez mettre fin à cette partie de la commande et obtenir le remboursement des sommes que vous avez payées pour celle-ci."
+    },
+    {
+      "type": "note",
+      "text": "Il s’agit de votre seul recours pour un livrable qui ne respecte pas notre engagement. En dehors des engagements prévus par les présentes conditions et la commande, et dans la mesure permise par la loi, nous ne donnons aucune autre garantie, expresse ou implicite, notamment de qualité marchande, d’adéquation à un usage particulier et d’absence de contrefaçon.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Vos droits légaux en cas de défaut continuent de s’appliquer, mais vous devez d’abord nous laisser une possibilité raisonnable de corriger le défaut.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilité",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Dans la mesure permise par la loi, aucun de nous n’est responsable des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs, ni des pertes de bénéfices, de chiffre d’affaires, de données ou de clientèle.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "La responsabilité totale de chaque partie au titre d’une commande est limitée aux sommes payées et dues au titre de cette commande au cours des 12 mois précédant le fait à l’origine de la réclamation.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Ces limites ne s’appliquent pas à votre obligation de payer les prix, à une violation de la confidentialité, à la fraude, ni à la responsabilité que la loi ne permet pas de limiter.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilité",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nous sommes entièrement responsables des dommages que nous causons intentionnellement ou par négligence grave, des atteintes à la vie, à l’intégrité physique ou à la santé, ainsi qu’au titre du droit impératif de la responsabilité du fait des produits.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "En cas de négligence légère, nous ne sommes responsables que si nous manquons à une obligation essentielle : une obligation qui rend possible la bonne exécution de la commande et sur le respect de laquelle vous pouvez normalement compter. Même dans ce cas, nous ne sommes responsables que des dommages typiques et prévisibles pour ce type de contrat, et au total dans la limite des sommes payées et dues au titre de cette commande au cours des 12 mois précédant le fait. Au-delà, notre responsabilité pour négligence légère est exclue.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Vous nous garantissez contre les réclamations de tiers qui découlent des éléments que vous nous avez fournis ou d’une violation des présentes conditions de votre part, ainsi que contre les frais raisonnables engagés pour y faire face. Nous vous informons rapidement de toute réclamation de ce type et vous permettons de participer à son traitement."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Durée et fin"
+    },
+    {
+      "type": "p",
+      "text": "Les présentes conditions s’appliquent de votre première commande jusqu’à la fin de votre dernière commande. Chaque commande court pendant la durée qu’elle indique. Les services mensuels se poursuivent de mois en mois jusqu’à ce que l’un de nous y mette fin en respectant le préavis fixé par la commande."
+    },
+    {
+      "type": "p",
+      "text": "Chacun de nous peut mettre fin à une commande immédiatement, par écrit, si l’autre la viole gravement et ne remédie pas à la violation dans un délai raisonnable après en avoir été informé, ou si l’autre devient insolvable. Vous pouvez également mettre fin à une commande de manière anticipée lorsque la commande le permet."
+    },
+    {
+      "type": "p",
+      "text": "À la fin d’une commande, vous payez les travaux réalisés jusqu’à cette date et, si vous y avez mis fin de manière anticipée, les frais que nous ne pouvons pas annuler. Nous vous remettons vos données et les livrables que vous avez payés, arrêtons les services que nous exploitions pour vous et traitons les données personnelles comme le prévoit le DPA. Les parties des présentes conditions qui, par leur nature, doivent perdurer, comme la propriété, la confidentialité, la responsabilité et le droit applicable, continuent de s’appliquer."
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "Changement de fournisseur",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Lorsque nous exploitons pour vous un service de traitement de données, comme l’exploitation d’agents gérée par nos soins ou l’hébergement, le règlement européen sur les données (Data Act) vous donne le droit de passer à un autre fournisseur ou à vos propres systèmes (Data Act, art. 23 à 31). Pour ces services :",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Vous pouvez lancer un changement de fournisseur, ou mettre fin au service et récupérer vos données, en nous en informant par écrit. Le préavis est de deux mois au maximum, et vous pouvez choisir un délai plus court.",
+        "Nous vous remettons vos données, ainsi que les actifs numériques que nous avons créés pour vous et auxquels vous avez droit, dans un format courant et lisible par machine.",
+        "La période de transition dure jusqu’à 30 jours. Si cela n’est pas techniquement possible, nous vous indiquons pourquoi et de combien de temps nous avons besoin, dans les limites permises par le Data Act.",
+        "Pendant la transition, nous maintenons le service comme convenu et vous aidons de bonne foi, vous et votre nouveau fournisseur.",
+        "À la fin de la transition, vous disposez d’au moins 30 jours supplémentaires pour récupérer vos données.",
+        "Une fois le changement terminé, nous supprimons vos données comme le prévoit le DPA.",
+        "Jusqu’au 12 janvier 2027, nous ne pouvons facturer que nos coûts directs liés au changement, et uniquement s’ils figurent dans la commande. À partir du 12 janvier 2027, nous ne facturons rien pour un changement de fournisseur."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Lorsqu’un service est conçu sur mesure pour vous, certaines de ces règles peuvent ne s’appliquer qu’en partie (Data Act, art. 31). Dans ce cas, la commande précise lesquelles, et nous vous en informons avant que vous ne la signiez.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "Localisation et accès des autorités publiques",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nous hébergeons vos travaux dans la région Google Cloud de l’UE indiquée dans la commande. La page [Sous-traitants](/instant/legal/subprocessors) indique chaque prestataire et le lieu où il opère (Data Act, art. 28).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Si une autorité publique d’un pays hors de l’UE nous demande vos données à caractère non personnel, nous ne les lui transmettons que si le droit de l’Union ou d’un État membre le permet. Nous vous en informons au préalable, sauf si la loi l’interdit (Data Act, art. 32).",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "Droit applicable et litiges"
+    },
+    {
+      "type": "p",
+      "text": "Les présentes conditions et chaque commande sont régies par le droit de {company.law}, à l’exclusion de ses règles de conflit de lois. Les tribunaux de {company.law} sont compétents pour trancher les litiges, sauf si la loi impose une autre juridiction.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Avant que l’un de nous ne saisisse un tribunal, nos interlocuteurs s’efforcent de régler le différend de bonne foi. Écrivez à {company.email} en décrivant le problème."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Les présentes conditions ne contiennent pas de clause d’arbitrage. Chacun de nous peut porter une réclamation devant une juridiction des petits litiges (small claims court) si la réclamation y est recevable."
+    },
+    {
+      "type": "p",
+      "text": "Vous confirmez que vous ne figurez pas sur une liste de sanctions des États-Unis ou de l’UE et que vous n’êtes pas établi dans un pays soumis à un embargo des États-Unis ou de l’UE. Aucun de nous n’utilisera les travaux en violation des sanctions ou des règles d’exportation des États-Unis ou de l’UE."
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Dispositions générales"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Nous pouvons mettre à jour les présentes conditions. Une commande déjà conclue reste soumise aux conditions applicables au moment de sa conclusion, sauf accord contraire entre nous.",
+        "Aucun de nous ne peut céder les présentes conditions ou une commande sans le consentement écrit de l’autre, sauf à une société qui reprend l’activité concernée.",
+        "Aucun de nous n’est responsable des retards causés par des événements échappant à son contrôle raisonnable.",
+        "Si une partie des présentes conditions est invalide, le reste continue de s’appliquer.",
+        "Les notifications qui nous sont destinées sont envoyées à {company.email}. Celles qui vous sont destinées sont envoyées à l’interlocuteur indiqué dans la commande."
+      ]
+    }
+  ]
+}

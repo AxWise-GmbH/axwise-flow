@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "Voorwaarden computerapp",
+    "summary": "Deze voorwaarden gaan over het installeren en gebruiken van de Orqanix-app op uw Mac, inclusief de echte handelingen die de AI-agents van de app kunnen uitvoeren.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Over deze voorwaarden"
+    },
+    {
+      "type": "p",
+      "text": "Deze voorwaarden vullen onze [Servicevoorwaarden](/instant/legal/terms) aan voor de Orqanix-app voor Mac (de \"Computerapp\"). Samen met de Servicevoorwaarden, ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use) en ons [Privacybeleid](/instant/legal/privacy) vormen zij één overeenkomst. Als deze voorwaarden en de Servicevoorwaarden elkaar tegenspreken over de Computerapp, gelden deze voorwaarden."
+    },
+    {
+      "type": "p",
+      "text": "De Computerapp is gratis zolang onze producten in een vroeg stadium zijn. Voordat een betaald abonnement ingaat, publiceren wij de prijs en de regels voor betalen en opzeggen."
+    },
+    {
+      "type": "p",
+      "text": "Voor die tijd publiceren wij ook de regels voor het herroepen van een aankoop, zoals het EU-recht vereist.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Uw licentie"
+    },
+    {
+      "type": "p",
+      "text": "Zolang u deze voorwaarden naleeft, geven wij u een persoonlijke, niet-exclusieve, niet-overdraagbare licentie om de Computerapp te downloaden, te installeren en te gebruiken op Macs die u bezit of beheert. Wij kunnen deze licentie beëindigen zoals beschreven in [Opschorting en beëindiging](/instant/legal/terms#ending) in de Servicevoorwaarden."
+    },
+    {
+      "type": "p",
+      "text": "Het is u niet toegestaan:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "de Computerapp te verkopen, te verhuren, uit te lenen of in sublicentie te geven;",
+        "onze vermeldingen of de licentievermeldingen van anderen te verwijderen of te wijzigen;",
+        "de aanmelding of een limiet die wij in de app instellen te omzeilen;",
+        "de Computerapp te gebruiken om een concurrerend product te bouwen, of onze productinstructies daarvoor te kopiëren."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Deze beperkingen gelden niet voor de opensourceonderdelen van de app, zoals Goose (Apache 2.0), die onder hun eigen licenties blijven vallen (zie [Opensourcevermeldingen](/instant/legal/open-source)). Evenmin ontnemen zij u iets wat de wet u toestaat te doen met software die u rechtmatig gebruikt, zoals bestuderen hoe die werkt of die laten samenwerken met andere programma's."
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "Wat u nodig hebt"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Een Mac met Apple silicon (M1 of nieuwer). De app werkt niet op Intel-Macs of andere systemen.",
+        "Een internetverbinding en een Orqanix-account om mee aan te melden. Het standaardmodel vereist geen sleutel van een AI-aanbieder.",
+        "U moet 18 jaar of ouder zijn."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Download de Computerapp alleen via de link op orqanix.com. Wij zijn niet verantwoordelijk voor exemplaren die ergens anders vandaan komen."
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "Eerste keer openen"
+    },
+    {
+      "type": "p",
+      "text": "Apple heeft de Computerapp niet genotariseerd (notarisatie is de geautomatiseerde controle door Apple van apps die buiten de App Store worden aangeboden). Daarom kan macOS de app blokkeren wanneer u die voor het eerst opent. Om de app toe te staan, kiest u \"Open toch\" in Systeeminstellingen > Privacy en beveiliging. Doe dit alleen voor een exemplaar van orqanix.com."
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Handelingen van agents"
+    },
+    {
+      "type": "p",
+      "text": "De Computerapp laat AI-agents werken op uw Mac. Een agent is software die een AI-model gebruikt om stappen te kiezen en uit te voeren. Wanneer u de app een taak geeft, kunnen de agents echte handelingen op uw Mac uitvoeren, bijvoorbeeld:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "bestanden lezen, maken, wijzigen, verplaatsen en verwijderen;",
+        "opdrachten uitvoeren in de terminal van de Mac (de shell), waarmee software kan worden geïnstalleerd, instellingen kunnen worden gewijzigd of verbinding met internet kan worden gemaakt;",
+        "de tools, extensies en gekoppelde diensten gebruiken die u inschakelt, die mogelijk handelingen verrichten in uw accounts elders;",
+        "opgeslagen taken (recepten) volgens een schema uitvoeren, maar alleen zolang de Computerapp geopend is."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "De shell- en bestandstools zijn ingeschakeld wanneer u de app voor het eerst installeert."
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "Wanneer agents eerst vragen"
+    },
+    {
+      "type": "p",
+      "text": "Standaard handelen agents zonder u eerst iets te vragen. Deze standaardmodus heet \"Automatically approve tool calls\" (toolaanroepen automatisch goedkeuren). U kunt dit in de instellingen van de app wijzigen in:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "vragen vóór elke handeling;",
+        "alleen vragen vóór handelingen die de app als gevoelig beschouwt;",
+        "alleen chatten, zonder handelingen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wanneer de app het vraagt, kunt u antwoorden met Allow Once (eenmaal toestaan), Always Allow (altijd toestaan) of Deny (weigeren). Na Always Allow vraagt de agent niet opnieuw om toestemming voor dat soort handeling."
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "Uw verantwoordelijkheid"
+    },
+    {
+      "type": "p",
+      "text": "U bepaalt wat de agents mogen doen: de taak, de goedkeuringsmodus en de mappen, tools en accounts die zij mogen gebruiken. U geeft toestemming voor de handelingen die zij binnen die grenzen uitvoeren, en u bent daarvoor verantwoordelijk alsof u ze zelf had uitgevoerd."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Richt agents alleen op bestanden, systemen en accounts die u mag gebruiken en die u software namens u mag laten gebruiken.",
+        "Leef de voorwaarden na van elke dienst waarin een agent handelt, en ons [Beleid voor aanvaardbaar gebruik](/instant/legal/acceptable-use).",
+        "Gebruik agents niet om zonder toestemming toegang te krijgen tot de systemen of gegevens van anderen.",
+        "Als u voor een bedrijf werkt, zorg er dan voor dat het bedrijf u toestaat de Computerapp te gebruiken op zijn bestanden en systemen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "Menselijke controle"
+    },
+    {
+      "type": "p",
+      "text": "AI maakt fouten. Een agent kan een taak verkeerd begrijpen, het verkeerde bestand kiezen, een schadelijke opdracht uitvoeren of melden dat iets gelukt is terwijl het mislukt is. Resultaten kunnen onjuist, onvolledig of verouderd zijn, en zij vormen geen juridisch, medisch, financieel of ander professioneel advies. Zie [Hoe onze AI werkt](/instant/legal/ai)."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Maak een back-up van alles wat belangrijk is voordat u agents ermee laat werken. Wij kunnen bestanden die een agent heeft verwijderd of gewijzigd niet herstellen.",
+        "Gebruik een [goedkeuringsmodus](#approval-modes) die eerst om toestemming vraagt voor werk dat raakt aan belangrijke bestanden, geld, andere mensen of live systemen.",
+        "Controleer wat de agents hebben gemaakt voordat u erop vertrouwt, het verstuurt of het publiceert."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "Aansprakelijkheid"
+    },
+    {
+      "type": "p",
+      "text": "Handelingen van agents op uw Mac of in uw gekoppelde accounts kunnen echte gevolgen hebben die moeilijk of onmogelijk ongedaan te maken zijn, zoals verloren gegevens, gewijzigde instellingen, verzonden berichten of kosten bij andere aanbieders."
+    },
+    {
+      "type": "p",
+      "text": "Voor zover de wet dat toestaat, zijn wij niet verantwoordelijk voor verlies of schade als gevolg van handelingen die u een agent hebt laten uitvoeren, uw keuze van goedkeuringsmodus of ontbrekende back-ups. De Computerapp wordt geleverd \"in de huidige staat\" (\"as is\") en \"zoals beschikbaar\" (\"as available\"), zonder enige garantie, zoals uiteengezet in [Uitsluiting van garanties](/instant/legal/terms#warranty) en [Aansprakelijkheid](/instant/legal/terms#liability) in de Servicevoorwaarden. Niets in deze voorwaarden beperkt aansprakelijkheid die wij volgens de wet niet mogen beperken.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Volgens het recht van uw land zijn wij aansprakelijk als de Computerapp niet voldoet aan onze overeenkomst, en voor schade die wij veroorzaken. Wij zijn niet verantwoordelijk voor schade die uitsluitend het gevolg is van handelingen die u een agent hebt laten uitvoeren, uw keuze van goedkeuringsmodus of ontbrekende back-ups, tenzij wij die schade hebben veroorzaakt door onze verplichtingen te schenden. Niets in deze voorwaarden beperkt uw wettelijke rechten als consument, of aansprakelijkheid voor opzet, grove nalatigheid, letsel aan leven, lichaam of gezondheid, of op grond van de wetgeving inzake productaansprakelijkheid. [Aansprakelijkheid](/instant/legal/terms#liability) in de Servicevoorwaarden regelt de rest.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Waar uw gegevens naartoe gaan"
+    },
+    {
+      "type": "p",
+      "text": "Dit is een samenvatting. Het [Privacybeleid](/instant/legal/privacy) bevat alle details."
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "Op uw Mac"
+    },
+    {
+      "type": "list",
+      "items": [
+        "De app bewaart zijn gegevens in een map in de Bibliotheek van uw Mac die alleen uw macOS-gebruikersaccount kan lezen.",
+        "Uw chatgeschiedenis wordt bewaard in een lokaal databasebestand, zonder andere versleuteling dan de bescherming die uw Mac biedt.",
+        "Sleutels voor AI-aanbieders die u koppelt en geheimen voor extensies die u toevoegt, worden opgeslagen in een tekstbestand zonder versleuteling in de map van de app, niet in de macOS-sleutelhanger. Iedereen en alles wat uw bestanden kan lezen, kan ze lezen.",
+        "Uw Orqanix-aanmelding wordt opgeslagen in de macOS-sleutelhanger. Door af te melden wordt deze ingetrokken.",
+        "Bestanden die de agents maken, komen in de projectmap die u kiest.",
+        "De app houdt logbestanden bij op uw Mac en ruimt oude logbestanden zelf op. De app stuurt ons geen gebruiksstatistieken en heeft geen crashrapportage."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "Verzonden vanaf uw Mac"
+    },
+    {
+      "type": "p",
+      "text": "Met het standaardmodel stuurt elke stap van een taak het volledige gesprek tot dan toe naar het AI-model: wat u hebt geschreven, inhoud van bestanden die de agents hebben gelezen, uitvoer van opdrachten en onze productinstructies. Dit gaat via onze servers in de EU (Google Cloud, Nederland) naar Google Gemini. Onze servers geven het door en slaan het niet op. Google kan het buiten de EU verwerken onder zijn [Gemini API-voorwaarden](https://ai.google.dev/gemini-api/terms)."
+    },
+    {
+      "type": "p",
+      "text": "Spraakdicteren is standaard ingeschakeld. Als u het gebruikt, wordt uw stem naar de modelaanbieder gestuurd."
+    },
+    {
+      "type": "p",
+      "text": "Wanneer een agent onze onderzoekstool gebruikt, stuurt die een vraag naar uw Orqanix-cloudwerkruimte, samen met fragmenten van maximaal vijf van uw clouddocumenten als de agent die kiest. De vraag, de fragmenten en het resultaat met de bronnen worden daar opgeslagen als een vast record. Het onderzoek kan op het web zoeken en openbare handelsregisters raadplegen. Het [Privacybeleid](/instant/legal/privacy) legt uit hoe u om een kopie of verwijdering kunt vragen."
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "Andere AI-aanbieders en tools"
+    },
+    {
+      "type": "p",
+      "text": "U kunt andere AI-aanbieders koppelen, zoals OpenAI, Anthropic of modellen die op uw Mac draaien, en tools en extensies van anderen toevoegen. Als u dat doet:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ontvangt die aanbieder uw gesprek en de resultaten van tools rechtstreeks, onder zijn eigen voorwaarden en privacybeleid;",
+        "is uw overeenkomst met die aanbieder, inclusief eventuele kosten die hij in rekening brengt, een zaak tussen u en die aanbieder;",
+        "hebben wij geen zeggenschap over andere aanbieders, tools of extensies, controleren wij ze niet en staan wij er niet voor in, noch voor wat zij met uw gegevens doen."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Updates en wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "De Computerapp werkt zichzelf niet bij. Elke nieuwe versie is een nieuwe download van orqanix.com die u over de oude versie heen installeert. Beveiligingsoplossingen komen in nieuwere versies, dus gebruik de nieuwste versie. Wij hanteren geen vaste periode waarin oudere versies nog oplossingen krijgen."
+    },
+    {
+      "type": "p",
+      "text": "Wij kunnen functies in nieuwe versies wijzigen of verwijderen. De regels voor wijzigingen staan in [Wijzigingen in de Diensten en deze voorwaarden](/instant/legal/terms#changes).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Als u de Computerapp gebruikt als consument (buiten uw handel, bedrijf of beroep), hebt u de rechten die het EU-recht consumenten geeft voor digitale inhoud. Die gelden ook al is de app gratis, omdat u ons persoonsgegevens verstrekt om de app te gebruiken (Richtlijn (EU) 2019/770). De app moet werken zoals beschreven in deze voorwaarden en op onze website. Zolang de wet dat vereist, stellen wij de updates beschikbaar, inclusief beveiligingsupdates, die nodig zijn om dat zo te houden, en vermelden wij op orqanix.com wanneer er een update beschikbaar is en wat die oplost. Als u een update waarover wij u hebben geïnformeerd niet binnen een redelijke termijn installeert, zijn wij niet verantwoordelijk voor een gebrek dat die update zou hebben verholpen, tenzij onze installatie-instructies gebrekkig waren.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Buiten wat nodig is om de app werkend te houden, wijzigen wij de Computerapp alleen om een geldige reden, zoals nieuwe wetgeving, beveiliging of verbeteringen, en zonder kosten voor u. Als een wijziging uw toegang tot of gebruik van de app meer dan in geringe mate nadelig beïnvloedt, sturen wij u tijdig vóór de wijziging een e-mail. U kunt deze overeenkomst dan kosteloos beëindigen binnen 30 dagen na onze kennisgeving of na de wijziging, afhankelijk van wat later is, tenzij wij u de ongewijzigde versie zonder extra kosten laten behouden.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sancties en export"
+    },
+    {
+      "type": "p",
+      "text": "U mag de Computerapp niet downloaden of gebruiken waar sancties of exportregels van de VS of de EU dat verbieden, of als u op een sanctielijst van de VS of de EU staat. Zie [Sancties en export](/instant/legal/terms#sanctions) in de Servicevoorwaarden."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Gebruik beëindigen"
+    },
+    {
+      "type": "p",
+      "text": "U kunt op elk moment stoppen met het gebruik van de Computerapp. Meld u eerst af; daarmee wordt uw Orqanix-aanmelding ingetrokken. Verwijder daarna de app uit uw map Programma's. Om uw lokale chatgeschiedenis, instellingen, logbestanden en opgeslagen sleutels te verwijderen, verwijdert u ook de map van de app in de Bibliotheek van uw Mac (onder Application Support). Bestanden die de agents in uw projectmappen hebben gemaakt, blijven bestaan totdat u ze verwijdert."
+    },
+    {
+      "type": "p",
+      "text": "Het verwijderen van de app verwijdert niet uw Orqanix-account of uw cloudwerkruimte. Om uw account op te heffen of ons te vragen uw gegevens te verwijderen, raadpleegt u de [Servicevoorwaarden](/instant/legal/terms) en het [Privacybeleid](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Als uw licentie eindigt, moet u stoppen met het gebruik van de Computerapp en deze verwijderen. [Opschorting en beëindiging](/instant/legal/terms#ending) in de Servicevoorwaarden beschrijft wat er met uw account gebeurt."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contact"
+    },
+    {
+      "type": "p",
+      "text": "Vragen over deze voorwaarden: {company.email}. Beveiligingsproblemen: {company.securityEmail}. Privacyverzoeken: {company.privacyEmail}."
+    }
+  ]
+}

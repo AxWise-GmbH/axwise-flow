@@ -45,7 +45,7 @@
     90deg,
     transparent,
     var(--oi-hairline-strong) 22%,
-    rgba(255, 255, 255, 0.5) 50%,
+    rgba(var(--oi-fg-rgb), 0.5) 50%,
     var(--oi-hairline-strong) 78%,
     transparent
   );
@@ -99,7 +99,7 @@
   display: inline-block;
   color: var(--oi-ink);
   font-weight: 500;
-  animation: ouc-tick 600ms var(--oi-ease) both;
+  animation: ouc-tick 300ms var(--oi-ease) both;
 }
 
 .ouc-nav {
@@ -170,15 +170,16 @@
   --ouc-gap: 24px;
   --ouc-top: 40px;
   --ouc-bottom: 72px;
-  /* How long a request waits before it types; longer the first time, while the row arrives. */
-  --ouc-wait: 480ms;
+  /* How long a request waits before it types; longer the first time, while the row arrives.
+     Both, like the letters below, run at the doubled pace the owner asked for (2026-09-21). */
+  --ouc-wait: 240ms;
   position: relative;
   max-width: 1760px;
   margin-inline: auto;
 }
 
 .ouc-stage[data-fresh='true'] {
-  --ouc-wait: 1500ms;
+  --ouc-wait: 750ms;
 }
 
 .ouc-row {
@@ -198,10 +199,10 @@
   /* The gradient is its own softness: a blur filter here would cost a full-width layer. */
   background: radial-gradient(
     ellipse 50% 50% at 50% 50%,
-    rgba(var(--oi-accent-rgb), 0.4),
-    rgba(var(--oi-glow-rgb), 0.3) 22%,
-    rgba(var(--oi-glow-rgb), 0.16) 40%,
-    rgba(var(--oi-deep-rgb), 0.07) 56%,
+    rgba(var(--oi-accent-rgb), calc(0.4 * var(--oi-halo-k))),
+    rgba(var(--oi-glow-rgb), calc(0.3 * var(--oi-halo-k))) 22%,
+    rgba(var(--oi-glow-rgb), calc(0.16 * var(--oi-halo-k))) 40%,
+    rgba(var(--oi-deep-rgb), calc(0.07 * var(--oi-halo-k))) 56%,
     transparent 70%
   );
   opacity: 0;
@@ -226,7 +227,7 @@
     90deg,
     transparent,
     rgba(var(--oi-accent-rgb), 0.7) 22%,
-    rgba(255, 255, 255, 0.85) 50%,
+    rgba(var(--oi-fg-rgb), 0.85) 50%,
     rgba(var(--oi-accent-rgb), 0.7) 78%,
     transparent
   );
@@ -248,8 +249,8 @@
   height: 9px;
   background: radial-gradient(
     ellipse 50% 50% at 50% 50%,
-    #ffffff,
-    rgba(var(--oi-accent-rgb), 0.6) 40%,
+    rgb(var(--oi-fg-rgb)),
+    rgba(var(--oi-accent-rgb), calc(0.6 * var(--oi-halo-k))) 40%,
     transparent 72%
   );
   opacity: 0;
@@ -266,12 +267,12 @@
   border-radius: 50%;
   background: radial-gradient(
     ellipse 50% 50% at 50% 50%,
-    rgba(var(--oi-pale-rgb), 0.85),
-    rgba(var(--oi-accent-rgb), 0.35) 40%,
+    rgba(var(--oi-pale-rgb), calc(0.85 * var(--oi-halo-k))),
+    rgba(var(--oi-accent-rgb), calc(0.35 * var(--oi-halo-k))) 40%,
     transparent 70%
   );
   opacity: 0;
-  animation: ouc-pulse 1100ms var(--oi-ease) both;
+  animation: ouc-pulse 550ms var(--oi-ease) both;
 }
 
 /* Both edges of the row dissolve into the page. */
@@ -365,7 +366,7 @@
   background: var(--oi-app-surface);
   box-shadow:
     inset 0 0 0 1px var(--oi-app-edge),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
   overflow: hidden;
   isolation: isolate;
 }
@@ -386,7 +387,7 @@
   z-index: -1;
   background: radial-gradient(
     380px circle at var(--mx, 50%) var(--my, 0%),
-    rgba(var(--oi-pale-rgb), 0.16),
+    rgba(var(--oi-pale-rgb), calc(0.16 * var(--oi-halo-k))),
     transparent 62%
   );
   opacity: 0;
@@ -404,8 +405,8 @@
     0deg,
     rgba(var(--oi-pale-rgb), 0.95),
     rgba(var(--oi-accent-rgb), 0.5) 26%,
-    rgba(255, 255, 255, 0.16) 62%,
-    rgba(255, 255, 255, 0.3)
+    rgba(var(--oi-fg-rgb), 0.16) 62%,
+    rgba(var(--oi-fg-rgb), 0.3)
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -415,7 +416,7 @@
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
   opacity: 0;
-  transition: opacity 700ms ease;
+  transition: opacity 350ms ease;
   pointer-events: none;
 }
 
@@ -445,14 +446,20 @@
   left: 0;
   width: 46%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--oi-accent) 40%, #ffffff 70%, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--oi-accent) 40%,
+    rgb(var(--oi-fg-rgb)) 70%,
+    transparent
+  );
   translate: -100% 0;
   opacity: 0;
   pointer-events: none;
 }
 
 .ouc-stage[data-seen='true'] .ouc-slide[data-current='true'] .ouc-streak {
-  animation: ouc-streak 1500ms var(--oi-ease) 250ms both;
+  animation: ouc-streak 750ms var(--oi-ease) 125ms both;
 }
 
 /* Glyphs: a crisp one in the tile, the same one large and faint behind the title. */
@@ -485,7 +492,7 @@
   color: var(--oi-ink);
   opacity: 0.06;
   overflow: visible;
-  transition: opacity 700ms ease;
+  transition: opacity 350ms ease;
   -webkit-mask-image: linear-gradient(205deg, #000 34%, transparent 72%);
   mask-image: linear-gradient(205deg, #000 34%, transparent 72%);
   pointer-events: none;
@@ -500,11 +507,11 @@
 }
 
 .ouc-stage[data-seen='true'] .ouc-slide[data-current='true'] .ouc-icon path {
-  animation: ouc-draw 1100ms var(--oi-ease) calc(200ms + var(--n) * 130ms) both;
+  animation: ouc-draw 550ms var(--oi-ease) calc(100ms + var(--n) * 65ms) both;
 }
 
 .ouc-stage[data-seen='true'] .ouc-slide[data-current='true'] .ouc-ghost path {
-  animation: ouc-draw 1600ms var(--oi-ease) calc(var(--n) * 140ms) both;
+  animation: ouc-draw 800ms var(--oi-ease) calc(var(--n) * 70ms) both;
 }
 
 .ouc-top {
@@ -521,13 +528,13 @@
   width: 56px;
   height: 56px;
   border-radius: 17px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(160deg, rgba(var(--oi-fg-rgb), 0.1), rgba(var(--oi-fg-rgb), 0.02));
   box-shadow:
     inset 0 0 0 1px var(--oi-hairline),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.12);
   color: var(--oi-muted);
   position: relative;
-  transition: color 600ms ease;
+  transition: color 300ms ease;
 }
 
 .ouc-tile::after {
@@ -536,9 +543,9 @@
   inset: -14px;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), 0.3), transparent 68%);
+  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), calc(0.3 * var(--oi-halo-k))), transparent 68%);
   opacity: 0;
-  transition: opacity 600ms ease;
+  transition: opacity 300ms ease;
   pointer-events: none;
 }
 
@@ -564,8 +571,8 @@
   text-transform: uppercase;
   white-space: nowrap;
   transition:
-    color 600ms ease,
-    border-color 600ms ease;
+    color 300ms ease,
+    border-color 300ms ease;
 }
 
 .ouc-slide[data-current='true'] .ouc-pill {
@@ -596,7 +603,7 @@
   margin-top: auto;
   padding: 14px 16px 16px;
   border-radius: 18px 18px 18px 6px;
-  background: rgba(0, 0, 0, 0.46);
+  background: rgba(var(--oi-shadow-rgb), calc(0.46 * var(--oi-shadow-k)));
   box-shadow: inset 0 0 0 1px var(--oi-hairline);
 }
 
@@ -618,7 +625,7 @@
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 500ms var(--oi-ease),
+    opacity 250ms var(--oi-ease),
     color 200ms ease;
 }
 
@@ -720,15 +727,15 @@
 }
 
 .ouc-stage[data-seen='true'] .ouc-ch {
-  animation: ouc-on 1ms linear calc(var(--ouc-wait) + var(--i) * 26ms) both;
+  animation: ouc-on 1ms linear calc(var(--ouc-wait) + var(--i) * 13ms) both;
 }
 
 .ouc-stage[data-seen='true'] .ouc-ch::after {
-  animation: ouc-hop 26ms linear calc(var(--ouc-wait) + var(--i) * 26ms) both;
+  animation: ouc-hop 13ms linear calc(var(--ouc-wait) + var(--i) * 13ms) both;
 }
 
 .ouc-stage[data-seen='true'] .ouc-caret {
-  animation: ouc-blink 1100ms steps(1) calc(var(--ouc-wait) + var(--i) * 26ms) infinite;
+  animation: ouc-blink 1100ms steps(1) calc(var(--ouc-wait) + var(--i) * 13ms) infinite;
 }
 
 /* Foot: pagination on a rail, with a light that slides to the current card ---------- */
@@ -747,12 +754,14 @@
   isolation: isolate;
 }
 
+/* The line runs from the first dot's centre to the last one's: half a slot in from each end.
+   UseCases.jsx sets --ouc-count to the number of cards. */
 .ouc-dots::before {
   content: '';
   position: absolute;
   top: 50%;
-  right: 6.25%;
-  left: 6.25%;
+  right: calc(50% / var(--ouc-count, 10));
+  left: calc(50% / var(--ouc-count, 10));
   z-index: -2;
   height: 1px;
   background: var(--oi-hairline);
@@ -789,9 +798,9 @@
   background: var(--oi-muted);
   opacity: 0.55;
   transition:
-    opacity 500ms ease,
-    scale 500ms var(--oi-ease),
-    background-color 500ms ease;
+    opacity 250ms ease,
+    scale 250ms var(--oi-ease),
+    background-color 250ms ease;
 }
 
 .ouc-dot[aria-current='true']::before {
@@ -813,13 +822,14 @@
   border-radius: 50%;
 }
 
-/* UseCases.jsx sets --pos to the scroll position measured in cards, fractions included. */
+/* UseCases.jsx sets --pos to the scroll position measured in cards, fractions included.
+   The bead is one dot's slot wide, so each step of --pos lands it on the next dot. */
 .ouc-bead {
   position: absolute;
   top: 0;
   left: 0;
   z-index: -1;
-  width: 12.5%;
+  width: calc(100% / var(--ouc-count, 10));
   height: 100%;
   transform: translate3d(calc(var(--pos, 0) * 100%), 0, 0);
   pointer-events: none;
@@ -838,14 +848,14 @@
   height: 40px;
   margin: -20px 0 0 -20px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), 0.6), transparent 66%);
+  background: radial-gradient(circle, rgba(var(--oi-accent-rgb), calc(0.6 * var(--oi-halo-k))), transparent 66%);
 }
 
 .ouc-bead::after {
   width: 34px;
   height: 1px;
   margin-left: -17px;
-  background: linear-gradient(90deg, transparent, #ffffff 50%, transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--oi-fg-rgb)) 50%, transparent);
 }
 
 .ouc-note {

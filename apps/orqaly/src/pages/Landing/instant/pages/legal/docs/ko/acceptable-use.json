@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "허용 가능한 사용 정책",
+    "summary": "본 정책은 Orqanix 제품이나 그 에이전트로 해서는 안 되는 행위와, 규칙을 위반하는 콘텐츠 또는 활동을 신고하는 방법을 규정합니다.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "최초 버전."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "본 정책의 적용 범위"
+    },
+    {
+      "type": "p",
+      "text": "본 정책은 모든 Orqanix 제품, 즉 데스크톱 앱, 모바일 앱, 어시스턴트 봇, API, 당사의 엔터프라이즈 서비스 및 당사 웹사이트(이하 통칭하여 \"서비스\")의 사용에 관한 규칙을 정합니다. 본 정책은 개인과 기업 모두에게 동일하게 적용되며 당사 [서비스 약관](/instant/legal/terms)의 일부를 구성합니다."
+    },
+    {
+      "type": "p",
+      "text": "본 정책은 귀하가 요청하는 내용, 귀하가 결과물로 하는 행위 및 귀하의 에이전트가 하는 행위에 적용됩니다. 예를 들어 API를 통해 다른 사람에게 접근 권한을 제공하는 경우, 그들도 본 정책을 준수하도록 하십시오."
+    },
+    {
+      "type": "note",
+      "text": "요약하면, 법을 위반하거나, 사람에게 해를 끼치거나, 시스템을 공격하거나, 상대방이 누구 또는 무엇을 상대하고 있는지에 관해 누군가를 속이는 데 Orqanix를 사용하지 마십시오."
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "불법적이고 유해한 사용"
+    },
+    {
+      "type": "p",
+      "text": "다음 목적으로 서비스를 사용하지 마십시오."
+    },
+    {
+      "type": "list",
+      "items": [
+        "법률을 위반하거나 다른 사람의 법률 위반을 돕는 행위;",
+        "누군가를 위협, 괴롭힘, 따돌림 또는 스토킹하거나, 사람들의 정체성을 이유로 그들에 대한 폭력이나 증오를 조장하는 행위;",
+        "테러, 폭력적 극단주의 또는 대량 피해를 일으킬 수 있는 무기 제조를 계획하거나 지원하는 행위;",
+        "사기, 금융 사기 또는 신원 도용을 저지르거나, 금전을 목적으로 사람들을 속이는 행위;",
+        "법적 근거 없이 사람들을 수집, 추적 또는 프로파일링하거나, 동의 없이 그들의 사적인 정보를 공개하는 행위;",
+        "주거, 고용, 신용 또는 서비스 등에서 사람들을 불법적으로 차별하는 행위;",
+        "자해, 자살 또는 섭식 장애를 조장하는 행위."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "금지된 AI 관행"
+    },
+    {
+      "type": "p",
+      "text": "EU 법률이 AI 시스템에 대해 금지하는 관행에 서비스를 사용하지 마십시오. 당사는 이 목록을 전 세계적으로 적용합니다. (EU AI Act 제5조)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "사람들이 인식하지 못하는 기법이나 기만을 통해, 그들의 결정을 왜곡하고 그들에게 중대한 피해를 줄 가능성이 있는 방식으로 사람들을 조종하는 행위;",
+        "연령, 장애 또는 사회적·경제적 상황으로 인한 사람들의 취약성을 악용하는 행위;",
+        "사회적 점수 매기기: 사람들의 사회적 행동이나 개인적 특성에 따라 이들을 평가하여 부당하거나 무관한 대우로 이어지게 하는 행위;",
+        "프로파일링이나 성격 특성만을 근거로 누군가가 범죄를 저지를지 예측하는 행위;",
+        "특정 대상 없이 인터넷이나 CCTV 영상에서 얼굴 이미지를 수집하여 얼굴 인식 데이터베이스를 구축하거나 확장하는 행위;",
+        "의료 또는 안전상의 이유를 제외하고, 직장이나 교육 현장에서 사람들의 감정을 인식하는 행위;",
+        "인종, 정치적 견해, 노동조합 가입 여부, 종교나 신념, 성생활 또는 성적 지향을 추론하기 위해 생체 데이터에 따라 사람들을 분류하는 행위;",
+        "법 집행을 목적으로 공공장소에서 생체 정보를 이용하여 실시간으로 원격에서 사람들을 식별하는 행위."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "아동 성착취물을 제작, 공유 또는 탐색하거나, 실존 인물의 동의 없이 그 인물의 은밀한 이미지나 성적 이미지(가짜 이미지 포함)를 제작하거나 공유하는 데 절대로 서비스를 사용하지 마십시오."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "아동"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 성인(만 18세 이상)을 위한 것입니다. 아동이 귀하의 계정을 사용하도록 하지 마십시오. 18세 미만을 대상으로 하거나 18세 미만이 사용할 가능성이 있는 어떠한 것에도 서비스(API 포함)를 사용하지 마십시오."
+    },
+    {
+      "type": "p",
+      "text": "아동을 성적 대상화하거나, 그루밍하거나, 착취하거나, 위험에 빠뜨리는 데 절대로 서비스를 사용하지 마십시오. 당사는 법률이 요구하는 바에 따라 아동 성착취물을 당국에 신고하고, 관련 계정을 폐쇄합니다."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "보안 및 남용"
+    },
+    {
+      "type": "p",
+      "text": "귀하와 귀하의 에이전트 모두 다음 목적으로 서비스를 사용해서는 안 됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "멀웨어, 랜섬웨어 또는 기타 유해한 코드를 제작, 유포 또는 실행하는 행위;",
+        "소유자의 허락 없이 컴퓨터, 네트워크 또는 계정에 침입하거나, 이를 탐색하거나, 방해하는 행위;",
+        "귀하가 사용할 권한이 없는 컴퓨터, 계정 또는 시스템에서 에이전트를 실행하거나, 에이전트가 가져서는 안 되는 접근 권한을 에이전트에게 부여하는 행위;",
+        "당사 또는 귀하가 연결한 서비스의 보안, 로그인, 제한 또는 안전 조치를 우회하는 행위;",
+        "서비스 또는 다른 사람들의 서비스 사용에 과부하를 주거나, 공격하거나, 방해하는 행위;",
+        "당사의 서면 동의 없이 귀하의 계정 또는 서비스에 대한 접근 권한을 공유, 판매 또는 재판매하는 행위;",
+        "법률이나 오픈 소스 라이선스가 허용하는 경우를 제외하고, 당사의 코드나 프롬프트 또는 당사가 사용하는 모델을 추출하는 행위."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사의 [보안 및 취약점 공개](/instant/legal/security) 정책을 따르는 경우, 당사 시스템에 대한 보안 연구를 환영합니다."
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "AI에 관한 정직성"
+    },
+    {
+      "type": "list",
+      "items": [
+        "누군가를 오도할 수 있는 상황에서 AI를 사람인 것처럼 가장하거나, AI 결과물을 사람이 작성하거나 만든 것처럼 가장하지 마십시오.",
+        "에이전트나 봇이 귀하를 대신하여 다른 사람에게 메시지나 이메일을 보내거나 대화하는 경우, 늦어도 첫 번째 메시지에서 자신이 AI임을 명확히 밝혀야 합니다.",
+        "실존 인물이나 조직을 사칭하거나, 가짜 리뷰, 기록 또는 신원을 만드는 데 서비스를 사용하지 마십시오.",
+        "실존 인물, 장소 또는 사건에 관한 사실적인 AI 생성 이미지, 오디오 또는 동영상(딥페이크)을 게시하는 경우, 그것이 AI로 생성되거나 변경되었음을 명확히 밝히십시오.",
+        "허위 정보 캠페인을 벌이거나 선거에 개입하는 데 서비스를 사용하지 마십시오."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "공익에 관한 사안에 대해 대중에게 정보를 제공할 목적으로 AI가 생성한 텍스트를 게시하는 경우, 사람이 이를 검토하고 편집상의 책임을 지는 경우가 아니라면 그것이 AI로 생성되었음을 밝히십시오. (EU AI Act 제50조 제4항)",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "당사가 지원하지 않는 용도"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix는 업무를 위해 만들어졌습니다. 다음 용도로 사용하지 마십시오."
+    },
+    {
+      "type": "list",
+      "items": [
+        "AI와의 교제, 우정, 연애 또는 모든 형태의 정서적 관계;",
+        "심리 치료, 상담 또는 정신 건강 치료. 위기 상황에 처해 있다면 해당 지역의 응급 서비스나 위기 상담 전화에 연락하십시오;",
+        "자격을 갖춘 전문가가 검토하고 책임을 지는 경우가 아니라면, 다른 사람에게 전문적인 의료, 법률, 세무 또는 재무 조언을 제공하는 것;",
+        "환자를 진단하거나, 치료하거나, 환자에 관한 결정을 내리는 것."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "당사가 귀하와 서면으로 합의한 경우가 아니라면, 건강 개인정보 보호법으로 보호되는 환자 건강 정보를 서비스에 제공하지 마십시오."
+    },
+    {
+      "type": "p",
+      "text": "미국 건강 개인정보 보호법인 HIPAA에 따르면 이를 위해서는 비즈니스 어소시에이트 계약(business associate agreement)이 필요하며, 당사는 이러한 계약을 체결하지 않습니다. 당사의 [소비자 건강 데이터 개인정보 보호 정책](/instant/legal/health-data)은 당사가 그 밖의 건강 데이터를 처리하는 방법을 설명합니다.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "고위험 결정"
+    },
+    {
+      "type": "p",
+      "text": "일부 용도는 사람들의 삶에 중대한 영향을 미칠 수 있습니다. 귀하는 귀하에게 적용되는 모든 법률을 준수하고, 각 결정에 대해 자격을 갖춘 사람이 책임을 맡게 하며, 법률이 요구하는 경우 영향을 받는 사람들에게 알리는 경우에만 이러한 용도를 지원하는 데 서비스를 사용할 수 있습니다. 이러한 용도에는 다음이 포함됩니다."
+    },
+    {
+      "type": "list",
+      "items": [
+        "근로자의 채용, 승진, 관리 또는 해고;",
+        "학생의 입학 허가, 성적 평가 또는 모니터링, 또는 시험 부정행위 탐지;",
+        "신용, 보험, 주거 또는 공공 급여나 필수 서비스에 대한 접근에 관한 결정;",
+        "사람들에 대한 생체 인식 식별 또는 분류;",
+        "에너지, 수도 또는 교통 등 핵심 기반 시설의 관리;",
+        "법 집행, 이민, 망명, 국경 통제, 법원 또는 선거."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EU에서 이러한 용도의 대부분은 AI Act상 \"고위험\" 용도에 해당하며, AI Act는 이러한 용도에 AI를 사용하는 모든 자에게 추가 의무를 부과합니다. 귀하는 귀하에게 적용되는 범위에서 그러한 의무를 이행할 책임이 있습니다. (EU AI Act 제26조 및 부속서 III)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "결과물을 사람에게 법적 효과 또는 그와 유사하게 중대한 효과를 미치는 결정의 유일한 근거로 사용하지 마십시오.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "스팸, 권리 및 스크래핑"
+    },
+    {
+      "type": "list",
+      "items": [
+        "스팸, 즉 대량 메시지나 원치 않는 메시지, 또는 스팸 방지법이나 마케팅 관련 법률을 위반하는 메시지를 보내지 마십시오. 에이전트나 봇이 귀하를 대신하여 메시지를 보내는 경우, 발신자는 귀하입니다.",
+        "귀하가 사용할 권리가 있는 메시징 앱, 이메일 계정 및 연락처 목록만 연결하고, 법률이 허용하는 경우에만 다른 사람의 데이터를 처리하십시오.",
+        "저작권, 상표, 영업 비밀 또는 기타 권리를 침해하지 말고, 유료 콘텐츠 차단벽이나 복제 방지 조치를 우회하는 데 서비스를 사용하지 마십시오.",
+        "에이전트가 웹사이트의 약관, 접근 규칙 또는 robots.txt 지시를 위반하여, 또는 웹사이트에 해를 끼치는 속도로 웹사이트에서 데이터를 수집하도록 하지 마십시오."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "Google의 규칙"
+    },
+    {
+      "type": "p",
+      "text": "당사의 기본 AI 모델은 Google Gemini입니다. Orqanix를 통해 이를 사용하는 경우, 귀하는 Google의 [생성형 AI 금지된 사용 정책](https://policies.google.com/terms/generative-ai/use-policy)도 준수해야 합니다. [Google의 Gemini API 약관](https://ai.google.dev/gemini-api/terms)이 금지하는 경우, 귀하는 Google과 경쟁하는 AI 모델을 개발하는 데 서비스를 사용해서는 안 됩니다. 데스크톱 앱에서 다른 모델 제공업체를 연결하는 경우, 그 사용에는 해당 제공업체의 규칙이 적용됩니다. 당사가 어떤 모델을 사용하는지는 [AI 작동 방식](/instant/legal/ai)에 설명되어 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "위반 신고"
+    },
+    {
+      "type": "p",
+      "text": "서비스에서 불법이거나 본 정책을 위반한다고 생각되는 콘텐츠나 활동을 발견한 경우, 제목을 \"Report\"로 하여 {company.email}로 연락하십시오. 계정 보유 여부와 관계없이 누구나 신고할 수 있습니다. (EU 디지털서비스법(DSA) 제16조)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "서비스에서 불법이거나 본 정책을 위반한다고 생각되는 콘텐츠나 활동을 발견한 경우, 제목을 \"Report\"로 하여 {company.email}로 연락하십시오. 계정 보유 여부와 관계없이 누구나 신고할 수 있습니다.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "누군가의 생명이나 안전이 즉각적인 위험에 처해 있다면, 먼저 경찰이나 응급 서비스에 연락하십시오."
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "포함할 내용"
+    },
+    {
+      "type": "list",
+      "items": [
+        "콘텐츠의 위치(가능한 한 정확하게): 링크, 봇 또는 계정 이름, 메시지, 날짜 및 시간;",
+        "해당 콘텐츠가 불법이거나 본 정책을 위반한다고 생각하는 이유와, 불법 콘텐츠의 경우 어떤 법률에 위반되는지;",
+        "당사가 회신할 수 있도록 귀하의 이름과 이메일 주소. 아동 성착취물에 관한 신고인 경우에는 이를 생략할 수 있습니다;",
+        "귀하의 신고가 정확하고 완전하다고 선의로 믿는다는 진술."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "당사의 결정 방식"
+    },
+    {
+      "type": "p",
+      "text": "당사는 귀하의 신고를 받았음을 확인합니다. 사람이 신고를 검토하고 적시에 신중하고 객관적인 방식으로 결정합니다. 검토자는 콘텐츠, 맥락, 그리고 표현의 자유를 포함한 모든 관련자의 권리를 살펴봅니다. 이후 당사는 귀하에게 결정 내용과 그 이유를 알려 드립니다."
+    },
+    {
+      "type": "p",
+      "text": "당사가 콘텐츠나 계정에 대해 조치를 취하는 경우, 영향을 받는 사용자에게 이유서를 제공합니다. 이유서에는 당사가 취한 조치, 그 근거가 된 사실, 자동화된 수단의 사용 여부, 당사가 근거로 삼은 규칙 또는 법률, 그리고 결정에 이의를 제기하는 방법이 포함됩니다. 법률이 요구하지 않는 한, 당사는 누가 신고했는지 그들에게 알리지 않습니다. (EU 디지털서비스법(DSA) 제17조)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "당사가 콘텐츠나 계정에 대해 조치를 취하는 경우, 법률이 금지하거나 알리는 것이 해를 끼칠 경우가 아니라면 영향을 받는 사용자에게 당사가 취한 조치와 그 이유를 알립니다. 법률이 요구하지 않는 한, 당사는 누가 신고했는지 그들에게 알리지 않습니다.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "이의가 있는 경우"
+    },
+    {
+      "type": "p",
+      "text": "신고자와 영향을 받는 사용자 모두 당사의 결정에 이의를 제기할 수 있습니다. 당사의 메시지에 회신하거나 {company.email}로 연락하여 그 이유를 설명하십시오. 가능한 경우 최초 결정을 내리지 않은 사람이 이를 재검토하며, 당사는 그 결과를 귀하에게 알려 드립니다."
+    },
+    {
+      "type": "p",
+      "text": "또한 귀하는 법원에 소를 제기하거나, 귀하가 거주하는 EU 국가의 디지털 서비스 조정관(Digital Services Coordinator)에게 불만을 제기할 수 있습니다.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "명백히 근거 없는 신고를 자주 하는 사람에 대해서는, 당사가 경고한 후 그 사람의 신고 처리를 중단할 수 있습니다."
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "집행"
+    },
+    {
+      "type": "p",
+      "text": "귀하가 본 정책을 위반하는 경우, 당사는 위반의 심각성에 따라 귀하에게 경고하거나, 콘텐츠를 삭제 또는 비활성화하거나, 에이전트나 봇을 중지하거나, 기능을 제한하거나, 귀하의 계정을 정지 또는 폐쇄할 수 있습니다. 아동 성착취물과 같은 가장 심각한 경우에는 당사는 경고 없이 즉시 조치를 취하며, 법률이 요구하거나 허용하는 경우 당국에 알립니다."
+    },
+    {
+      "type": "p",
+      "text": "당사는 발생한 일에 비례하여 조치를 취하며, [당사의 결정 방식](#how-we-decide)에 기재된 바에 따라 결정을 설명합니다. 계정 정지 및 폐쇄에 관한 자세한 내용은 당사의 [서비스 약관](/instant/legal/terms#ending)에 설명되어 있습니다."
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "chapters": {
+    "story": "Kisah",
+    "goal": "Tujuan",
+    "mission": "Misi",
+    "founders": "Pendiri"
+  },
+  "story": {
+    "tag": "Kisah kami",
+    "title": "Dua jalan yang bertemu.",
+    "lede": "Dua product manager, dua produk, satu ide. Begitulah Orqanix lahir.",
+    "steps": [
+      {
+        "when": "Nov 2024",
+        "who": "Vitaly · AxWise",
+        "title": "Lapisan berpikir",
+        "text": "Vitaly mulai memetakan industri AI baru yang sedang terbentuk: model, penyedia, dan layanannya. Idenya adalah lapisan kognitif, sebuah AI yang memikirkan masalah secara menyeluruh sebelum menjawab, sehingga hasil akhirnya langsung siap dipakai."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Dari 40 menit jadi hitungan detik",
+        "text": "Proses pertama memakan waktu 30 hingga 40 menit. Lalu modelnya makin baik, dan lapisan itu ikut membaik. Setiap putaran kembali lebih cepat dan lebih tajam, sampai pekerjaan yang sama hanya butuh beberapa detik."
+      },
+      {
+        "when": "Feb 2026",
+        "who": "Viktor · Orqaly",
+        "title": "Satu orang, kerja satu tim penuh",
+        "text": "Viktor mengikuti perkembangan AI selama bertahun-tahun. Saat model unggulan baru muncul, ia melihat bahwa ia bisa membangun produk nyata sendirian, tanpa tim front-end, back-end, DevOps, atau desain. Jadi ia membangun platform tempat agen AI berbagi pekerjaan, tanpa serah terima yang memperlambat."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Bagian yang hilang",
+        "text": "Banyak eksperimen gagal, dan masing-masing mengajarkan sesuatu. Akhirnya platform itu berhasil, tapi satu bagian masih hilang: agen yang cukup andal untuk menjadi lapisan terakhirnya."
+      },
+      {
+        "when": "",
+        "who": "",
+        "title": "Telepon itu",
+        "text": "Lalu Viktor menelepon Vitaly, teman kuliahnya. Dalam panggilan itu mereka sadar sedang membangun hal yang sama dari dua arah berlawanan: lapisan berpikir, dan orkestrasi di sekelilingnya."
+      },
+      {
+        "when": "Sep 2026",
+        "who": "AxWise + Orqaly",
+        "title": "Satu produk",
+        "text": "Berbulan-bulan menyatukan satu produk ke produk lain, disertai riset dan benchmark di sepanjang jalan, menjadi satu platform: Orqanix. Platform ini membantu orang merencanakan bisnis, meneliti pertanyaan sederhana maupun mendalam, dan membangun hal nyata lebih cepat."
+      }
+    ],
+    "close": "Riset, rencanakan, dan bangun. Dalam hitungan menit."
+  },
+  "goal": {
+    "tag": "Tujuan kami",
+    "title": "AI Anda. Mesin Anda. Pilihan Anda.",
+    "lede": "AI seharusnya berjalan di tempat yang Anda inginkan, dengan model pilihan Anda, dan pengetahuan Anda tetap milik Anda saat Anda berpindah.",
+    "core": "Pengetahuan Anda",
+    "orbit": [
+      "Model lokal",
+      "Model cloud",
+      "Agen Anda"
+    ],
+    "caption": "Model berubah. Pengetahuan Anda tetap ada.",
+    "points": [
+      {
+        "title": "Jalankan model secara lokal",
+        "text": "Jalankan model bahasa lokal, atau jenis AI lainnya, langsung di komputer Anda sendiri."
+      },
+      {
+        "title": "Gunakan penyedia mana pun",
+        "text": "Pilih layanan apa pun yang bekerja dengan AI. Tidak terikat pada satu cloud atau vendor."
+      },
+      {
+        "title": "Bawa atau buat agen",
+        "text": "Impor agen yang sudah Anda pakai, atau buat sendiri untuk tugas tersebut."
+      },
+      {
+        "title": "Satu basis pengetahuan",
+        "text": "Simpan semuanya di satu tempat, agar tidak ada yang hilang saat Anda beralih model."
+      }
+    ],
+    "close": "Pilih yang sesuai dengan tugas hari ini dan perangkat Anda. Itulah kebebasan menjalankan AI dengan cara Anda sendiri."
+  },
+  "mission": {
+    "tag": "Misi kami",
+    "statement": [
+      "Ruang AI yang tumbuh bersama Anda.",
+      "Dibangun berdasarkan siapa Anda dan apa yang ingin Anda ciptakan."
+    ],
+    "stages": [
+      {
+        "title": "Mengenal Anda",
+        "text": "Ia membaca apa yang Anda ceritakan, file dan bisnis Anda, lalu memahami apa yang Anda butuhkan."
+      },
+      {
+        "title": "Membentuk ruang Anda",
+        "text": "Ia membangun ruang kerja pribadi di sekitar tujuan Anda, bukan chat serba sama untuk semua orang."
+      },
+      {
+        "title": "Menyempurnakan diri",
+        "text": "Seperti makhluk hidup, ia terus membaik: lebih andal, lebih aman, lebih mudah digunakan."
+      }
+    ],
+    "loopLabel": "Lingkaran",
+    "loop": [
+      "Bayar tagihan",
+      "Pergi bekerja",
+      "Terima gaji",
+      "Ulangi"
+    ],
+    "pathLabel": "Jalan Anda",
+    "path": "Berpikirlah besar. Temukan hal yang Anda kuasai. Bangun kehidupan yang Anda inginkan.",
+    "text": "Kami ingin siapa pun yang ingin ikut dalam perlombaan ini punya jalannya sendiri, melampaui cara-cara umum bekerja dengan AI. Cara baru untuk berkarya, belajar, dan menyimpan apa yang Anda ketahui."
+  },
+  "founders": {
+    "tag": "Pendiri",
+    "title": "Orang-orang di balik Orqanix.",
+    "people": [
+      {
+        "name": "Vitaly",
+        "role": "Program Manager",
+        "years": "Pengalaman 10+ tahun",
+        "since": "Membangun AxWise sejak November 2024",
+        "place": "Berlin",
+        "text": "Memimpin lapisan kognitif: bagaimana Orqanix memikirkan tugas secara menyeluruh sebelum menjawab.",
+        "href": "https://www.linkedin.com/in/vitalijs-visnevskis"
+      },
+      {
+        "name": "Viktor",
+        "role": "Product Manager",
+        "years": "Pengalaman 10+ tahun",
+        "since": "Membangun Orqaly sejak Februari 2026",
+        "place": "",
+        "text": "Memimpin orkestrasi: bagaimana agen AI berbagi pekerjaan dan mengubahnya menjadi file nyata.",
+        "href": "https://www.linkedin.com/in/viktors-ivanovs"
+      }
+    ]
+  }
+}

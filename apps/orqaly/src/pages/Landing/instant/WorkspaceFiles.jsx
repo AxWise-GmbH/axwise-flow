@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useT } from './i18n/useT';
 import { fileStatus } from './watchItWorkMachine';
 
 /*
@@ -32,7 +33,6 @@ const TYPES = {
 
 export const FILE_TYPES = Object.keys(TYPES);
 
-const BADGES = { writing: 'WRITING', done: 'NEW' };
 
 function FileTile({ type }) {
   const { path, tag } = TYPES[type];
@@ -54,7 +54,16 @@ function FileTile({ type }) {
 }
 
 export default function WorkspaceFiles({ files, state, arrived }) {
+  const { t } = useT();
   const labelId = useId();
+  const badges = { writing: t('wiw.files.writing', 'WRITING'), done: t('wiw.files.new', 'NEW') };
+  const typeLabels = {
+    document: t('wiw.files.type.document', 'Document'),
+    pdf: t('wiw.files.type.pdf', 'PDF'),
+    spreadsheet: t('wiw.files.type.spreadsheet', 'Spreadsheet'),
+    image: t('wiw.files.type.image', 'Image'),
+    web: t('wiw.files.type.web', 'Web page'),
+  };
   return (
     <section
       className="wiw-ws-files"
@@ -64,10 +73,10 @@ export default function WorkspaceFiles({ files, state, arrived }) {
     >
       <div className="wiw-ws-head">
         <p className="wiw-label" id={labelId}>
-          Files
+          {t('wiw.files.title', 'Files')}
         </p>
         <span className="wiw-ws-all" aria-hidden="true">
-          All {files.length}
+          {t('wiw.files.all', 'All {count}', { count: files.length })}
         </span>
       </div>
       <ul className="wiw-ws-list" aria-labelledby={labelId}>
@@ -82,13 +91,13 @@ export default function WorkspaceFiles({ files, state, arrived }) {
                     here is narrower, and a badge that wrapped would make rows jump. */}
                 <span className="wiw-ws-meta">
                   <span className="wiw-ws-type">
-                    {TYPES[file.type].label}
+                    {typeLabels[file.type] ?? TYPES[file.type].label}
                     <span className="wiw-ws-folder"> · {file.folder}</span>
                   </span>
-                  {BADGES[status] && (
+                  {badges[status] && (
                     // Keyed by state, so WRITING -> NEW mounts afresh and fades in.
                     <span className="wiw-ws-badge" data-state={status} key={status}>
-                      {BADGES[status]}
+                      {badges[status]}
                     </span>
                   )}
                 </span>

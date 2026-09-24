@@ -14,6 +14,8 @@ import GcpInviteCallback from './pages/Auth/GcpInviteCallback';
 import GcpNotFound from './pages/Public/GcpNotFound';
 import GcpPublicPage from './pages/Public/GcpPublicPage';
 import LandingPageSimple from './pages/Landing/LandingPageSimple';
+import { getTheme } from './pages/Landing/instant/themeMode';
+import { pageBackground } from './pages/Landing/instant/palette';
 
 /* eslint-disable react-refresh/only-export-components -- route components and the exported route table must stay together so tests exercise the production manifest. */
 
@@ -22,6 +24,10 @@ const InstantSubPage = lazy(() => import('./pages/Landing/instant/pages/InstantS
 const InstantSolutionPage = lazy(
   () => import('./pages/Landing/instant/pages/InstantSolutionPage.jsx')
 );
+const InstantProductPage = lazy(
+  () => import('./pages/Landing/instant/pages/products/InstantProductPage.jsx')
+);
+const NewsArticle = lazy(() => import('./pages/Landing/instant/pages/news/NewsArticle.jsx'));
 const WorkflowV2 = lazy(() => import('./pages/WorkflowV2/WorkflowV2.jsx'));
 const GcpClerkSettings = lazy(() => import('./pages/Settings/GcpClerkSettings.jsx'));
 const HomePage = lazy(() => import('./pages/GcpWorkspace/HomePage.jsx'));
@@ -108,10 +114,12 @@ function LazyPage({ children }) {
   return <Suspense fallback={<Loading />}>{children}</Suspense>;
 }
 // The landing pages open on their own entrance, so while their code arrives the screen is
-// just their black page: no spinner flashing before the first words rise.
+// just their page, black or (the visitor's footer pick) light: no spinner flashing before the
+// first words rise, and no black flash between two light pages.
 function LazyLandingPage({ children }) {
+  const ground = pageBackground(getTheme());
   return (
-    <Suspense fallback={<Box aria-hidden="true" sx={{ minHeight: '100vh', bgcolor: '#000000' }} />}>
+    <Suspense fallback={<Box aria-hidden="true" sx={{ minHeight: '100vh', bgcolor: ground }} />}>
       {children}
     </Suspense>
   );
@@ -288,10 +296,27 @@ export const gcpRouter = createBrowserRouter([
     ),
   },
   {
+    path: '/instant/news/:slug',
+    element: (
+      <LazyLandingPage>
+        <NewsArticle />
+      </LazyLandingPage>
+    ),
+  },
+  {
     path: '/instant/solutions/:slug',
     element: (
       <LazyLandingPage>
         <InstantSolutionPage />
+      </LazyLandingPage>
+    ),
+  },
+  // A bare /instant/products (or an unknown product) lands on the Desktop App page.
+  {
+    path: '/instant/products/:slug?',
+    element: (
+      <LazyLandingPage>
+        <InstantProductPage />
       </LazyLandingPage>
     ),
   },

@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "服务条款",
+    "summary": "本条款是适用于所有 Orqanix 产品的主合同，涵盖您的账户、您的内容、智能体、责任和争议。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "我们是谁"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 是一系列 AI 产品：桌面应用、移动应用、助理机器人、API 以及我们的企业版服务。这些产品连同本网站和您的 Orqanix 账户，统称为“服务”。"
+    },
+    {
+      "type": "p",
+      "text": "本服务条款是您与运营 Orqanix 的公司（“Orqanix”或“我们”）之间的合同。"
+    },
+    {
+      "type": "p",
+      "text": "该公司为 {company.legalName}，地址：{company.address}。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "该公司的注册信息为 {company.register}，增值税号为 {company.vatId}。",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "您可以通过 {company.email} 联系我们。我们的[隐私政策](/instant/legal/privacy)说明了我们如何处理个人数据。隐私政策不属于本合同的一部分，但请您阅读。"
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "接受本条款"
+    },
+    {
+      "type": "p",
+      "text": "当您创建账户，或下载或使用任何服务时，即表示您接受本条款。如果您不同意，请不要使用这些服务。"
+    },
+    {
+      "type": "p",
+      "text": "如果您代表公司或其他组织接受本条款，即表示您确认自己有权使该组织受本条款约束。此时，“您”指该组织，而您作为使用服务的个人，也必须遵守本条款。"
+    },
+    {
+      "type": "p",
+      "text": "在本条款中，“消费者”是指主要出于其贸易、商业、手工业或职业以外目的使用服务的自然人。“企业用户”是指其他任何人。下文部分规则对消费者有所不同，因为法律为消费者提供了更多保护。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "下文部分规则取决于您是为自己使用服务还是为企业使用服务。“企业用户”是指为贸易、商业或职业目的，或代表某一组织使用服务的任何人。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "谁可以使用 Orqanix"
+    },
+    {
+      "type": "p",
+      "text": "无论您身在何处，您都必须年满 18 周岁才能使用服务。服务并非面向儿童，您也不得使用服务构建任何面向 18 岁以下人群的内容。"
+    },
+    {
+      "type": "p",
+      "text": "如果法律禁止您使用服务（包括根据[制裁与出口](#sanctions)中的规则），或者我们曾因您严重违反本条款而关闭您此前的账户，您也不得使用服务。"
+    },
+    {
+      "type": "p",
+      "text": "API 和企业版服务仅面向企业用户。"
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "您的账户"
+    },
+    {
+      "type": "p",
+      "text": "大多数服务需要 Orqanix 账户。登录由一家登录服务提供商为我们运行，您也可以使用 Google 登录。请向我们提供准确的信息，并保持及时更新。"
+    },
+    {
+      "type": "p",
+      "text": "请妥善保管您的登录信息，不要与他人共用账户。您需要对您账户下发生的一切负责，除非这是由于我们的过错造成的。如果您认为有他人使用了您的账户，请立即通过 {company.email} 告知我们。"
+    },
+    {
+      "type": "p",
+      "text": "如需关闭账户或获取您的数据副本，请发送邮件至 {company.privacyEmail}。我们的[隐私政策](/instant/legal/privacy)说明了我们保留哪些数据以及原因。"
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "我们的产品"
+    },
+    {
+      "type": "p",
+      "text": "本条款适用于所有服务。每个产品还有各自的条款，为该产品补充规则："
+    },
+    {
+      "type": "list",
+      "items": [
+        "[桌面应用条款](/instant/legal/desktop-app-terms)：macOS 应用，AI 智能体在您的 Mac 上进行调研、制定计划并生成真实文件。",
+        "[移动应用条款](/instant/legal/mobile-app-terms)：作为桌面应用遥控器使用的手机应用。",
+        "[助理机器人条款](/instant/legal/assistant-bot-terms)：您可以通过所连接的即时通讯应用和电子邮件账户使用的业务助理。",
+        "[API 条款](/instant/legal/api-terms)：面向其他产品的推理层（仅限企业用户）。",
+        "[企业版条款](/instant/legal/enterprise-terms)：由我们的智能体和专家为您构建解决方案的服务（仅限企业用户）。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当您使用某一产品时，该产品的条款和本条款同时适用。如有冲突，就该产品而言，以产品条款为准。您与我们签署的书面协议（例如企业版订单）在其涵盖范围内优先于上述两者。"
+    },
+    {
+      "type": "p",
+      "text": "当 API、企业版服务或助理机器人的企业用户向我们提供个人数据、由我们代其处理时，我们的[数据处理附录](/instant/legal/dpa)同样适用。"
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "价格"
+    },
+    {
+      "type": "p",
+      "text": "在当前早期阶段，服务是免费的。除非您同意付费方案，否则我们不会向您收取任何费用。"
+    },
+    {
+      "type": "p",
+      "text": "在任何付费方案开始之前，我们会公布其价格以及付款和取消的规则。届时您可以决定是否需要。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "在任何付费方案开始之前，我们会公布其价格（含税）以及付款、取消和撤回的规则。届时我们会说明您作为消费者享有的撤回权。之后您可以决定是否需要。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "由于服务是免费的，您可以随时终止本合同，无需支付任何费用，也无需说明理由。这比欧盟法律赋予消费者的 14 天撤回权范围更广。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "您的内容"
+    },
+    {
+      "type": "p",
+      "text": "“输入”是指您提供给服务的内容：提示、消息、文件、语音、指令，以及智能体经您许可读取的任何内容。“输出”是指服务返回的内容：回答、报告、文件及其他结果。两者合称为“您的内容”。"
+    },
+    {
+      "type": "p",
+      "text": "在您与我们之间，您的内容归您所有。我们不主张对其拥有所有权。如果我们对您的输出享有任何权利，我们将这些权利授予您。"
+    },
+    {
+      "type": "p",
+      "text": "为运行服务，我们需要您许可我们使用您的内容。您授予我们一项全球范围内、非独占、免版税的许可，以托管、存储、复制、处理、发送和展示您的内容。我们仅将此许可用于为您提供、保护和支持服务，确保服务合法，以及执行本条款。当您的内容从我们的系统中删除时，此许可即告终止，但我们依法必须保留的副本或我们的[隐私政策](/instant/legal/privacy)中说明的副本除外。"
+    },
+    {
+      "type": "p",
+      "text": "我们不会使用您的内容训练我们自己的 AI 模型。我们不会出售您的个人数据，也不展示任何广告。"
+    },
+    {
+      "type": "p",
+      "text": "您需要对您的输入负责。您确认您拥有向我们提供这些输入的权利和许可（包括来自其个人数据包含在其中的人士的许可），并且将其用于服务不违反法律或本条款。"
+    },
+    {
+      "type": "p",
+      "text": "AI 模型可能会向不同的人提供相似的输出。他人获得的输出不属于您的内容，即使看起来与您的相似。"
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "AI 可能出错"
+    },
+    {
+      "type": "p",
+      "text": "服务使用人工智能。AI 输出可能是错误的、不完整的、过时的或冒犯性的，即使听起来十分肯定。每次提问时，输出也可能不同。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "在依赖或分享输出之前，请先进行核实，对于任何重要事项尤其如此。",
+        "输出不构成法律、医疗、财务、税务或其他专业建议，也不能取代具备资质的专业人士。",
+        "请勿将输出作为影响他人权利、健康、金钱或工作的决定的唯一依据。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[我们的 AI 如何运作](/instant/legal/ai)说明了我们使用哪些模型以及如何使用。"
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "智能体"
+    },
+    {
+      "type": "p",
+      "text": "部分服务使用 AI 智能体。智能体不仅会回答问题，还会采取行动。根据产品和您的设置，智能体可以读取和修改文件、在您的电脑上运行命令、搜索网络以及使用您连接的工具，其中可能包括代您发送消息或电子邮件。"
+    },
+    {
+      "type": "p",
+      "text": "智能体根据您的指令并在您授予的权限范围内行事。默认情况下，桌面应用会自动批准智能体的操作。您可以更改此设置，使其先征求您的同意、仅对敏感操作征求同意，或仅进行对话。[桌面应用条款](/instant/legal/desktop-app-terms)对这些设置作了说明。"
+    },
+    {
+      "type": "p",
+      "text": "您需要对您允许的操作负责，无论您是逐一批准还是事先批准。特别是："
+    },
+    {
+      "type": "list",
+      "items": [
+        "仅允许智能体使用您有权使用的电脑、账户、文件和系统。",
+        "在重要时刻，请查看智能体即将执行的操作；当您让其自行运行时，请留意其工作情况。",
+        "请备份所有重要内容。智能体可能会误改或误删文件。",
+        "智能体向他人发送消息时，是以您的名义发送的。您需要对这些消息负责，并且在我们的[可接受使用政策](/instant/legal/acceptable-use)或法律要求时，告知对方这些消息来自 AI。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "这并不免除我们在服务本身存在缺陷时应承担的责任。请参阅[责任](#liability)。"
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "连接的服务"
+    },
+    {
+      "type": "p",
+      "text": "我们的默认 AI 模型是 Google Gemini。当您的内容发送给该模型时，Google 针对该服务的条款也适用于 Google 如何处理这些内容。[我们的 AI 如何运作](/instant/legal/ai)和我们的[隐私政策](/instant/legal/privacy)说明了发送的内容。您还必须遵守 Google 的规则，我们的[可接受使用政策](/instant/legal/acceptable-use)列出了这些规则。"
+    },
+    {
+      "type": "p",
+      "text": "在部分产品中，您可以自行连接其他服务，例如来自 OpenAI、Anthropic 或其他提供商的 AI 模型、即时通讯应用、电子邮件账户或其他工具。当您这样做时："
+    },
+    {
+      "type": "list",
+      "items": [
+        "您与该服务之间的关系仅存在于您与其提供商之间，适用其条款和价格；",
+        "该服务会收到完成任务所需的内容，例如您的对话；",
+        "您需要对您在该服务中的密钥和账户以及其收取的任何费用负责；",
+        "我们不控制该服务，也不对其行为负责，但法律规定由我们负责的情况除外。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "可接受使用"
+    },
+    {
+      "type": "p",
+      "text": "您必须遵守我们的[可接受使用政策](/instant/legal/acceptable-use)，该政策是本条款的一部分。简而言之：不得从事任何违法行为，不得伤害他人，不得攻击我们或他人，不得欺骗，也不得进行该政策仅在特别协议下才允许的用途。"
+    },
+    {
+      "type": "p",
+      "text": "未经我们书面同意，您也不得复制、出售或转售服务，不得规避我们的限制或安全措施，也不得以危及服务安全或其他用户的方式使用服务。"
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "反馈"
+    },
+    {
+      "type": "p",
+      "text": "我们欢迎您提出想法和建议。如果您向我们发送反馈，我们可以自由地使用这些反馈来改进服务，无需向您付费，也不对您承担任何义务。未经您的许可，我们不会连同反馈一起公布您的姓名。"
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "我们的权利"
+    },
+    {
+      "type": "p",
+      "text": "服务（包括我们的软件、设计、名称和标志）归我们或我们的许可方所有，并受法律保护。本条款授予您按照其描述使用服务的权利，期限为您可以使用服务的期间。本条款不授予您任何其他权利。"
+    },
+    {
+      "type": "p",
+      "text": "服务的部分内容为开源软件。这些部分受其各自许可证的约束，就这些部分而言，其许可证优先于本条款。请参阅[开源声明](/instant/legal/open-source)。"
+    },
+    {
+      "type": "p",
+      "text": "您不得拆解、反编译或对服务进行逆向工程，但法律或开源许可证允许的情况除外。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "暂停与终止"
+    },
+    {
+      "type": "p",
+      "text": "您可以随时停止使用服务，并要求我们关闭您的账户，具体方式见[您的账户](#your-account)。"
+    },
+    {
+      "type": "p",
+      "text": "在以下情况下，我们可以暂停或限制您的访问、删除内容或关闭您的账户："
+    },
+    {
+      "type": "list",
+      "items": [
+        "您严重或多次违反本条款或[可接受使用政策](/instant/legal/acceptable-use)；",
+        "法律或主管机关要求如此；",
+        "您的使用使他人、服务或我们面临损害或法律责任的风险；或",
+        "您的账户已长期未使用，且我们已事先通知您。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "在可能的情况下，我们会先向您发出警告，并给您纠正问题的机会。我们会根据所发生情况的严重程度采取相应措施。采取措施时，我们会告知您我们做了什么以及原因，除非法律禁止或告知您会造成损害。"
+    },
+    {
+      "type": "p",
+      "text": "我们也可以停止提供某项服务或全部服务。如果我们这样做，我们会提前合理时间通知您，并给您时间申请获取您的数据副本，除非出于法律或安全原因我们必须更早停止。"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "如需将您的数据转移到其他提供商或您自己的系统，请发送邮件至 {company.privacyEmail}。我们会以结构化、常用和机器可读的格式向您提供您的内容和数据副本，并免费协助您完成转移。您可以随时终止合同。（欧盟《数据法》第 23 条和第 25 条）"
+    },
+    {
+      "type": "p",
+      "text": "如果您不同意有关您账户的决定，请回复我们的消息或发送邮件至 {company.email}。我们将由专人重新审查。"
+    },
+    {
+      "type": "p",
+      "text": "本条款中按其性质应继续有效的部分，例如有关内容、责任、赔偿和争议的部分，在合同终止后继续有效。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "服务和本条款的变更"
+    },
+    {
+      "type": "p",
+      "text": "服务尚处于早期阶段，将会不断变化。我们会添加、改进和移除功能，并更换我们使用的 AI 模型。"
+    },
+    {
+      "type": "p",
+      "text": "我们可能会修改本条款，例如在服务、法律或我们的业务发生变化时。页面顶部的日期显示当前版本的生效时间。变更不适用于过去的使用，也不适用于已经存在的争议。"
+    },
+    {
+      "type": "p",
+      "text": "对于与您相关的重要变更，我们会通过电子邮件或在服务中提前通知您。如果您在变更生效后继续使用服务，则适用新条款。如果您不同意，请停止使用服务并关闭您的账户。",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "我们进行变更时您的权利",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们仅在有正当理由时才会以影响您的方式变更服务：为适应新技术或我们所依赖的模型提供商的变化、为保障服务安全、为履行法律义务，或为改进或重组服务。任何变更都不会给您带来额外费用。（指令 (EU) 2019/770 第 19 条）",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果某项变更对您访问或使用服务造成的不利影响超出轻微程度，我们会通过电子邮件等持久介质提前清楚地告知您。届时，您可以在通知之日或变更之日（以较晚者为准）起 30 天内免费终止合同。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于影响您的本条款变更，我们会在变更生效前至少 30 天通过电子邮件通知您，并说明变更内容。在法律要求征得您同意的情况下，我们会征求您的同意。我们不会将您的沉默视为同意。如果您不同意，您可以在变更生效前免费关闭您的账户。我们绝不会利用变更剥夺法律赋予您的权利。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们会在法律要求的期限内，提供为使服务按所述方式运行而依法必须提供的更新，包括安全更新。对于桌面应用，新版本以新下载的形式提供，具体见[桌面应用条款](/instant/legal/desktop-app-terms)。如果我们已告知您某项更新以及不安装该更新的后果，对于安装该更新本可修复的问题，我们不承担责任。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "免责声明",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "服务尚处于早期阶段，并免费提供。服务可能会变化、出现故障或停止运行，输出也可能是错误的。",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "在法律允许的范围内，服务及所有输出均按“现状”和“现有”基础提供。我们不作任何形式的保证，无论是明示、默示还是法定的保证，包括对适销性、特定用途适用性、所有权、不侵权和准确性的保证。我们不保证服务不会中断、安全或没有错误，不保证内容不会丢失，也不保证任何输出或智能体操作是正确或安全的。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "某些地区不允许排除某些保证。在这些地区，上述排除条款仅在法律允许的范围内适用。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "法定保证",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您是消费者，欧盟法律为数字内容和数字服务赋予您法定保证。服务必须符合本条款和产品条款的描述，如果不符合，由我们承担责任。本条款中的任何内容均不限制该保证。（指令 (EU) 2019/770）",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "服务尚处于早期阶段，功能可能会按照[服务和本条款的变更](#changes)中的说明发生变化。在您注册之前，我们会告知您 AI 输出可能是错误的（参见[AI 可能出错](#ai-limits)）。此类错误输出是当今 AI 服务运作方式的一部分。服务本身的缺陷仍由我们负责。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您是企业用户，我们按现状提供服务，除法律要求且不允许我们排除的保证外，不作任何保证。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "在法律允许的范围内：（A）我们不对任何间接、附带、特殊、后果性、惩戒性或惩罚性损害承担责任，也不对利润、收入、数据或商誉的损失承担责任，即使我们已被告知可能发生此类损害；以及（B）我们对与服务或本条款相关的所有索赔承担的全部责任，以下列两者中的较高者为限：您在引起索赔的事件发生前 12 个月内为服务向我们支付的金额，或 100 美元。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "无论依据何种法律理论，无论是合同、保证、侵权（包括过失）还是其他理论，本条均适用。本条不限制法律不允许我们限制的责任，例如对欺诈的责任，或对因我们的过失造成的死亡或人身伤害的责任。某些地区不允许这些限制。在这些地区，这些限制仅在法律允许的范围内适用。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "您需要对您允许智能体采取的操作以及您如何使用输出负责，具体见[智能体](#agents)。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "责任",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "在以下情况下，我们承担无限责任：",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "对于我们故意或因重大过失造成的损害；",
+        "对于生命、身体或健康的伤害；",
+        "根据产品责任法，以及根据我们作出的任何担保；",
+        "在法律不允许限制责任的任何其他情况下。"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "除此之外，如果我们仅有轻微过失，则仅在我们违反基本义务时承担责任。基本义务是指使合同得以履行的前提、且您通常可以信赖的义务。此时，我们的责任仅限于此类合同的典型损害，以及您接受合同时可以预见的损害。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于您本可以通过自己采取合理措施避免的损害，例如备份数据、核实输出或在批准操作前进行审查（参见[智能体](#agents)），我们不承担责任。如果法律保护您免受此类规则的约束，则本条不适用。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "这些规则同样保护我们的员工以及为我们工作的人员。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "赔偿"
+    },
+    {
+      "type": "p",
+      "text": "如果您是企业用户，对于因您的内容、您违反本条款或法律使用服务，或您允许智能体采取的操作而引起的第三方索赔，您将为我们抗辩并向我们作出赔偿。“赔偿”是指您承担我们的合理费用、损失和律师费。我们会及时告知您此类索赔，让您主导抗辩，并在您承担费用的前提下向您提供合理协助。未经我们同意，您不得以代表我们承认过错或对我们具有约束力的方式和解索赔。"
+    },
+    {
+      "type": "p",
+      "text": "如果您是消费者，本节不适用于您。您仍需依法对您造成的损害负责。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您仅为自己而非为企业使用服务，本节不适用于您。您仍需依法对您造成的损害负责。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "制裁与出口"
+    },
+    {
+      "type": "p",
+      "text": "我们遵守美国和欧盟的制裁及出口规则，您也必须遵守。在以下情况下，您不得使用服务："
+    },
+    {
+      "type": "list",
+      "items": [
+        "您位于或通常居住在受美国或欧盟全面制裁的国家或地区；",
+        "您被列入美国或欧盟的制裁名单，或由被列入名单者拥有或控制；或",
+        "您的使用将违反美国或欧盟的制裁或出口规则，例如向此类人员提供服务或将服务用于被禁止的目的。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "为遵守这些规则，我们可以阻止访问、关闭账户或拒绝提供服务。"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "争议与适用法律",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如果您在使用服务时遇到问题，请先发送邮件至 {company.email}。大多数问题都可以通过这种方式迅速解决，我们会本着诚信尽力解决。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "本条款以及与本条款或服务有关的任何争议，均受 {company.law} 法律管辖，不考虑其法律冲突规则。",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "争议提交法院解决，而非仲裁。在法律允许的情况下，您不放弃参加集体诉讼或群体诉讼的权利。索赔应提交至根据适用法律具有管辖权的法院，如果当地法律赋予您该权利，也包括您所在地的法院。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如果索赔符合条件，我们任何一方均可改为在您所在地或我们所在地的小额索赔法院提起个人索赔。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如果您所在地的消费者保护法律不允许排除您依该法律享有的权利，本条款中的任何内容均不剥夺这些权利。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "争议与适用法律",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您在使用服务时遇到问题，请先发送邮件至 {company.email}。大多数问题都可以通过这种方式迅速解决，我们会本着诚信尽力解决。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "本条款受 {company.law} 法律管辖。《联合国国际货物销售合同公约》不适用。",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如果您是消费者，无论本条款选择何种法律，您都继续享有您居住国强制性法律的保护。您可以在您居住地的法院对我们提起索赔。我们只能在您居住地的法院对您提起索赔。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您是企业用户，在法律允许的范围内，由我们注册地的法院管辖。我们也可以在您的所在地提起索赔。",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "不存在仲裁，本条款中的任何内容均不限制您在法律允许的情况下参加代表诉讼或集体诉讼的权利。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们不参加、也不愿意参加消费者仲裁机构的争议解决程序。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "联络点与内容审核",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "欧盟《数字服务法》（DSA）要求我们告知您如何联系我们以及我们如何处理内容。",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "联络点",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们面向用户以及欧盟成员国主管机关、欧盟委员会和欧洲数字服务委员会的单一联络点为 {company.email}。您可以用英语给我们写信，并且您始终可以联系到真人，而不仅仅是自动化系统。（DSA 第 11 条和第 12 条）",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们在欧盟的法定代表为 {company.euRepresentative}。您可以就 DSA 下的任何事项与其联系。（DSA 第 13 条）",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "我们托管的内容以及我们如何审核",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "当您使用我们的云端工作区、桌面应用的云端调研、助理机器人或 API 时，我们会应您的要求存储内容，例如您的聊天、调研问题、目标、文件和报告。我们不会公开这些内容，也不会与其他用户共享。我们一般不监控这些内容，也不对内容进行排名或推荐。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "我们的内容规则载于本条款和[可接受使用政策](/instant/legal/acceptable-use)。当我们得知存在非法内容或违反这些规则的情况时（主要通过举报），我们会采取行动。",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "任何人都可以举报其认为违法或违反我们规则的内容，具体方式见[举报违规行为](/instant/legal/acceptable-use#report)。",
+        "每一份举报都由专人审查并作出决定。我们会及时、审慎、客观地采取行动，并尊重所有相关方的权利，包括言论自由。",
+        "措施可包括删除内容或禁止访问内容、限制功能，以及暂停或关闭账户。我们会选择有效且最不严厉的措施。",
+        "我们会向受影响的用户提供理由说明：我们采取了什么措施、相关事实、是否使用了任何自动化手段、我们所依据的规则或法律，以及如何对该决定提出异议。（DSA 第 17 条）",
+        "如果我们得知有威胁他人生命或安全的犯罪行为，我们会通知主管机关。（DSA 第 18 条）"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您不同意某项决定，请回复我们的消息或发送邮件至 {company.email}，我们将由专人重新审查。您也可以向法院起诉，或向您居住国的数字服务协调员投诉。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "通知"
+    },
+    {
+      "type": "p",
+      "text": "我们会将通知发送至您账户中的电子邮件地址，或在服务中显示通知。请保持您的电子邮件地址为最新。您可以发送通知至 {company.email}。"
+    },
+    {
+      "type": "p",
+      "text": "正式法律通知也可以邮寄至 {company.legalName}，地址：{company.address}。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "一般条款"
+    },
+    {
+      "type": "list",
+      "items": [
+        "本条款、产品条款以及其中链接的政策构成您与我们之间关于服务的完整协议。您与我们另行签署的书面协议在其涵盖范围内优先适用。",
+        "如果法院认定本条款的某一部分无效，其余部分仍然适用。无效部分将由法律规定的规则取代。",
+        "如果我们没有立即行使某项权利，并不代表我们放弃该权利。",
+        "未经我们书面同意，您不得转让您在本条款下的权利或义务。如果您的权利不会因此减少，我们可以将合同转让给接管服务的公司。我们会提前通知您，届时您可以随时终止合同。",
+        "对于因超出我们合理控制范围的事件（例如我们所依赖的提供商发生服务中断、自然灾害或政府行为）造成的延误或失败，我们不承担责任。这不会减少您作为消费者享有的权利。",
+        "除您和我们之外，任何人均不享有本条款下的权利。",
+        "本条款以英语撰写。如果我们提供译本，当两者存在差异时，以英文版本为准，法律另有规定的除外。"
+      ]
+    }
+  ]
+}

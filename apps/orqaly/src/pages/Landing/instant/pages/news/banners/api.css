@@ -1,0 +1,886 @@
+/*
+ * The api banner: a request, the decision that streams back, and the customer's product.
+ * Three windows in a row (a column on phones) joined by two wires. Clock (--nb-loop):
+ *    3-14%  the route is typed; 16-27% the task
+ *      28%  send is pressed; 29-35% a pulse runs to the response, which wakes
+ *   36-62%  the decision streams in line by line; ~45% the #1 pick lights up
+ *   64-70%  a pulse carries the pick into "Your product"
+ *   71-76%  the task card turns to "Assigned: research agent"
+ *   92-99%  what landed fades out and the card waits again
+ */
+
+/* How many response lines are in (0-11); every line reads it and fades itself in. */
+@property --nb-api-shown {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 11;
+}
+
+/* Where a wire's pulse is (0% start, 100% end, 170% gone); the lit line follows it. */
+@property --nb-api-at {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 170%;
+}
+
+.nb-api {
+  --nb-api-key: #a3a3a3;
+  --nb-api-punct: #6e6e6e;
+  /* The small dash in the code gutter. */
+  --nb-api-gutter: #3a3a3a;
+}
+
+/* Light: the same order of ink (verb, text, key, punctuation, gutter), darkest first. */
+[data-oi-theme='light'] .nb-api {
+  --nb-api-key: #5e5e5e;
+  --nb-api-punct: #9e9e9e;
+  --nb-api-gutter: #d2d2d2;
+}
+
+/* The light behind whichever window is busy. g1-g3 place it on each window's centre. */
+.nb-api-glow {
+  --nb-api-g1: calc(var(--u) * -2.9) calc(var(--u) * 4.9);
+  --nb-api-g2: calc(var(--u) * 30.5) calc(var(--u) * 4.9);
+  --nb-api-g3: calc(var(--u) * 61.4) calc(var(--u) * 4.9);
+
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      closest-side,
+      rgba(var(--oi-fg-rgb), calc(0.1 * var(--oi-halo-k))),
+      transparent
+    )
+    no-repeat;
+  background-position: var(--nb-api-g3);
+  background-size: calc(var(--u) * 44) calc(var(--u) * 34);
+  animation: nb-api-glow var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Light: the light behind the busy window is white, not a grey shade. */
+[data-oi-theme='light'] .nb-api-glow {
+  background-image: radial-gradient(closest-side, rgba(var(--oi-lift-rgb), 0.95), transparent);
+}
+
+.nb-api-flow {
+  /* The shared stroke token needs --u, which only exists from .nb-scene down. */
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 calc(var(--u) * 3);
+}
+
+.nb-api .nb-api-win {
+  position: relative;
+  flex: none;
+}
+
+.nb-api-req {
+  width: calc(var(--u) * 30);
+}
+
+/* The response window is a ghost until the request reaches it. */
+.nb-api-res {
+  width: calc(var(--u) * 26);
+  animation: nb-api-wake var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-app {
+  width: calc(var(--u) * 25);
+}
+
+.nb-window-bar .nb-api-label {
+  margin-left: calc(var(--u) * 0.5);
+  font-size: calc(var(--u) * 0.95);
+}
+
+/* A rim of light when a pulse arrives. */
+.nb-api-res::after,
+.nb-api-app::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--oi-fg-rgb), 0.5),
+    inset 0 0 calc(var(--u) * 3) rgba(var(--oi-fg-rgb), 0.07);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nb-api-res::after {
+  animation: nb-api-rim-res var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-app::after {
+  animation: nb-api-rim-app var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* Code ------------------------------------------------------------------------------- */
+
+.nb-api-code {
+  margin: 0;
+  padding: calc(var(--u) * 1.1) 0 calc(var(--u) * 1.2);
+  list-style: none;
+  color: var(--nb-api-punct);
+}
+
+.nb-api-code > li {
+  position: relative;
+  height: calc(var(--u) * 1.65);
+  padding: 0 calc(var(--u) * 1.2) 0 calc(var(--u) * 3 + var(--in, 0) * 2ch);
+  line-height: calc(var(--u) * 1.65);
+  white-space: nowrap;
+}
+
+.nb-api-code > li::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(var(--u) * 1.1);
+  width: calc(var(--u) * 0.8);
+  height: calc(var(--u) * 0.3);
+  border-radius: 999px;
+  background: var(--nb-api-gutter);
+  translate: 0 -50%;
+}
+
+.nb-api-key {
+  color: var(--nb-api-key);
+}
+
+.nb-api-str {
+  color: var(--nb-text);
+}
+
+.nb-api-verb {
+  color: var(--nb-ink);
+  font-weight: 600;
+}
+
+/* Typed text steps open one character at a time, then leaves with the rest. */
+.nb-api-type-a {
+  color: var(--nb-text);
+  animation:
+    nb-api-type-a var(--nb-loop) linear infinite,
+    nb-api-out var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-type-b {
+  animation:
+    nb-api-type-b var(--nb-loop) linear infinite,
+    nb-api-out var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The caret sits on the line being typed and leaves once the request is sent. */
+.nb-api-caret {
+  display: inline-block;
+  opacity: 0;
+}
+
+.nb-api-caret-a {
+  animation: nb-api-caret-a var(--nb-loop) linear infinite;
+}
+
+.nb-api-caret-b {
+  animation: nb-api-caret-b var(--nb-loop) linear infinite;
+}
+
+/* The drawn send button in the request bar. */
+.nb-api-send {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 3.2);
+  height: calc(var(--u) * 1.7);
+  margin-left: auto;
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: calc(var(--u) * 5);
+  background: var(--nb-panel-2);
+  color: var(--nb-text);
+  animation: nb-api-press var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-send .nb-icon {
+  width: calc(var(--u) * 1.1);
+  height: calc(var(--u) * 1.1);
+  stroke-width: 1.8;
+}
+
+.nb-api-send::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--nb-stroke) * -1);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.7);
+  border-radius: inherit;
+  opacity: 0;
+  animation: nb-api-ring var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The response streams: each line fades in as --nb-api-shown passes its index. */
+.nb-api-progress {
+  position: absolute;
+  top: calc(var(--u) * 2.6);
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--nb-ink));
+  opacity: 0;
+  transform-origin: left;
+  animation: nb-api-progress var(--nb-loop) linear infinite;
+}
+
+.nb-api-stream {
+  --nb-api-shown: 11;
+
+  animation:
+    nb-api-stream var(--nb-loop) linear infinite,
+    nb-api-out var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-stream > li {
+  --nb-api-k: clamp(0, calc((var(--nb-api-shown) - var(--i)) / 1.4), 1);
+
+  opacity: var(--nb-api-k);
+  filter: blur(calc((1 - var(--nb-api-k)) * var(--u) * 0.3));
+  transform: translateX(calc((1 - var(--nb-api-k)) * var(--u) * -0.8));
+}
+
+/* The #1 candidate: the line the product receives. */
+.nb-api-stream > .nb-api-pick {
+  background: rgba(var(--oi-fg-rgb), 0.08);
+  box-shadow: inset calc(var(--u) * 0.22) 0 0 var(--nb-ink);
+  animation: nb-api-pick var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-pick .nb-api-str {
+  color: var(--nb-ink);
+  font-weight: 600;
+}
+
+/* Wires ------------------------------------------------------------------------------ */
+
+.nb-api-wire {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  width: calc(var(--u) * 5.5);
+  height: calc(var(--u) * 2);
+}
+
+.nb-api-wire-send {
+  animation: nb-api-send var(--nb-loop) linear infinite;
+}
+
+/* The pick's wire starts inside the response, at the end of the #1 line. */
+.nb-api-wire-pass {
+  --nb-api-inside: calc(var(--u) * 7.5);
+
+  top: calc(var(--u) * -2.87);
+  width: calc(var(--u) * 5.5 + var(--nb-api-inside));
+  margin-left: calc(var(--nb-api-inside) * -1);
+  animation: nb-api-pass var(--nb-loop) linear infinite;
+}
+
+.nb-api-wire::before,
+.nb-api-wire::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(var(--oi-fg-rgb), 0.16);
+}
+
+/* Inside the response the pick's wire only shows once lit. */
+.nb-api-wire-pass::before {
+  right: 0;
+  left: var(--nb-api-inside);
+  width: auto;
+}
+
+/* The lit line grows behind the pulse. */
+.nb-api-wire::after {
+  width: min(100%, var(--nb-api-at));
+  background: rgba(var(--oi-fg-rgb), 0.6);
+  animation: nb-api-out var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-streak {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--nb-api-at) - 70%);
+  width: 70%;
+  height: calc(var(--u) * 0.22);
+  border-radius: calc(var(--u) * 5);
+  background: linear-gradient(90deg, transparent, var(--nb-ink));
+  transform: translateY(-50%);
+}
+
+.nb-api-streak::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: calc(var(--u) * 0.7);
+  height: calc(var(--u) * 0.7);
+  border-radius: 50%;
+  background: rgb(var(--oi-fg-rgb));
+  box-shadow: 0 0 calc(var(--u) * 0.8) calc(var(--u) * 0.2) rgba(var(--oi-fg-rgb), 0.6);
+  transform: translate(50%, -50%);
+}
+
+/* Light: the pulse's head is a dark point; a faint halo is enough. */
+[data-oi-theme='light'] .nb-api-streak::after {
+  box-shadow: 0 0 calc(var(--u) * 0.6) rgba(var(--oi-fg-rgb), 0.2);
+}
+
+/* Your product ----------------------------------------------------------------------- */
+
+.nb-api-app-body {
+  display: flex;
+  gap: calc(var(--u) * 1.2);
+  padding: calc(var(--u) * 1.2);
+}
+
+.nb-api-nav {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.8);
+  width: calc(var(--u) * 3.4);
+  padding-top: calc(var(--u) * 0.5);
+}
+
+.nb-api-nav b {
+  height: calc(var(--u) * 0.5);
+  border-radius: calc(var(--u) * 5);
+  background: rgba(var(--oi-fg-rgb), 0.12);
+}
+
+.nb-api-nav b:first-child {
+  width: 70%;
+  background: rgba(var(--oi-fg-rgb), 0.32);
+}
+
+.nb-api-cards {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.8);
+  min-width: 0;
+}
+
+.nb-api-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.6);
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: calc(var(--u) * 0.8);
+  background: var(--nb-panel-2);
+  animation: nb-api-card var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-task {
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.05);
+  white-space: nowrap;
+}
+
+.nb-api-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: calc(var(--u) * 1.6);
+}
+
+/* Waiting: a shimmering bar where the assignee will go. */
+.nb-api-skel {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 75%;
+  height: calc(var(--u) * 0.6);
+  border-radius: calc(var(--u) * 5);
+  background: linear-gradient(
+      90deg,
+      rgba(var(--oi-fg-rgb), 0.08) 35%,
+      rgba(var(--oi-fg-rgb), 0.24) 50%,
+      rgba(var(--oi-fg-rgb), 0.08) 65%
+    )
+    0 0 / 300% 100%;
+  opacity: 0;
+  transform: translateY(-50%);
+  animation: nb-api-skel var(--nb-loop) linear infinite;
+}
+
+.nb-api-assigned {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.55);
+  color: var(--nb-text);
+  font-size: calc(var(--u) * 1);
+  white-space: nowrap;
+  animation: nb-api-assigned var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-assigned .nb-tick {
+  position: relative;
+  animation: nb-api-tick var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-assigned .nb-tick::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--nb-ink);
+  border-radius: 50%;
+  opacity: 0;
+  animation: nb-api-tick-ring var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-api-ghost {
+  height: calc(var(--u) * 3);
+  border: var(--nb-stroke) solid var(--nb-line);
+  border-radius: calc(var(--u) * 0.8);
+  background:
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.1), rgba(var(--oi-fg-rgb), 0.1)) calc(var(--u) * 1)
+      calc(var(--u) * 0.9) / 55% calc(var(--u) * 0.45) no-repeat,
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.06), rgba(var(--oi-fg-rgb), 0.06)) calc(var(--u) * 1)
+      calc(var(--u) * 1.8) / 35% calc(var(--u) * 0.45) no-repeat,
+    rgba(var(--oi-fg-rgb), 0.02);
+}
+
+/* Phone: the same story, stacked. ------------------------------------------------------ */
+
+@container nb (max-width: 600px) {
+  .nb-api-glow {
+    --nb-api-g1: calc(var(--u) * -1.2) calc(var(--u) * -7.7);
+    --nb-api-g2: calc(var(--u) * -1.2) calc(var(--u) * 9.5);
+    --nb-api-g3: calc(var(--u) * -1.2) calc(var(--u) * 28.3);
+
+    background-size: calc(var(--u) * 44) calc(var(--u) * 30);
+  }
+
+  .nb-api-flow {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 calc(var(--u) * 2);
+  }
+
+  .nb-api-req,
+  .nb-api-res,
+  .nb-api-app {
+    width: auto;
+  }
+
+  .nb-api-code {
+    padding: calc(var(--u) * 0.8) 0 calc(var(--u) * 0.9);
+    font-size: calc(var(--u) * 1.1);
+  }
+
+  .nb-api-code > li {
+    height: calc(var(--u) * 1.6);
+    line-height: calc(var(--u) * 1.6);
+  }
+
+  .nb-api-wire {
+    align-self: center;
+    width: calc(var(--u) * 2);
+    height: calc(var(--u) * 3.2);
+  }
+
+  .nb-api-wire-pass {
+    top: 0;
+    margin-left: 0;
+  }
+
+  .nb-api-wire::before,
+  .nb-api-wire::after {
+    top: 0;
+    right: auto;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+  }
+
+  .nb-api-wire::after {
+    width: 1px;
+    height: min(100%, var(--nb-api-at));
+  }
+
+  .nb-api-streak {
+    top: calc(var(--nb-api-at) - 70%);
+    left: 50%;
+    width: calc(var(--u) * 0.22);
+    height: 70%;
+    background: linear-gradient(180deg, transparent, var(--nb-ink));
+    transform: translateX(-50%);
+  }
+
+  .nb-api-streak::after {
+    top: 100%;
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .nb-api-task {
+    font-size: calc(var(--u) * 1.15);
+  }
+
+  .nb-api-assigned {
+    font-size: calc(var(--u) * 1.1);
+  }
+
+  .nb-api-ghost {
+    display: none;
+  }
+}
+
+/* Keyframes ------------------------------------------------------------------------------ */
+
+@keyframes nb-api-glow {
+  0% {
+    background-position: var(--nb-api-g1);
+    opacity: 0;
+  }
+  5%,
+  26% {
+    background-position: var(--nb-api-g1);
+    opacity: 1;
+  }
+  38%,
+  60% {
+    background-position: var(--nb-api-g2);
+  }
+  72%,
+  92% {
+    background-position: var(--nb-api-g3);
+    opacity: 1;
+  }
+  98% {
+    background-position: var(--nb-api-g3);
+    opacity: 0;
+  }
+  100% {
+    background-position: var(--nb-api-g1);
+    opacity: 0;
+  }
+}
+
+/* Landed things leave together at the end of the loop. */
+@keyframes nb-api-out {
+  0%,
+  92% {
+    opacity: 1;
+  }
+  98%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-api-type-a {
+  0%,
+  3% {
+    max-width: 0;
+    animation-timing-function: steps(32, end);
+  }
+  14%,
+  100% {
+    max-width: calc(var(--n) * var(--nb-ch));
+  }
+}
+
+@keyframes nb-api-type-b {
+  0%,
+  16% {
+    max-width: 0;
+    animation-timing-function: steps(38, end);
+  }
+  27%,
+  100% {
+    max-width: calc(var(--n) * var(--nb-ch));
+  }
+}
+
+@keyframes nb-api-caret-a {
+  0%,
+  14.8% {
+    opacity: 1;
+  }
+  15%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-api-caret-b {
+  0%,
+  14.8% {
+    opacity: 0;
+  }
+  15%,
+  27.8% {
+    opacity: 1;
+  }
+  28%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-api-press {
+  0%,
+  27% {
+    background-color: var(--nb-panel-2);
+    color: var(--nb-text);
+    transform: scale(1);
+  }
+  28.5% {
+    background-color: var(--nb-ink);
+    color: rgb(var(--oi-bg-rgb));
+    transform: scale(0.86);
+  }
+  31% {
+    background-color: var(--nb-ink);
+    color: rgb(var(--oi-bg-rgb));
+    transform: scale(1);
+  }
+  38%,
+  100% {
+    background-color: var(--nb-panel-2);
+    color: var(--nb-text);
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-api-ring {
+  0%,
+  28.5% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  29% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  36%,
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes nb-api-send {
+  0%,
+  29% {
+    --nb-api-at: -25%;
+  }
+  35%,
+  100% {
+    --nb-api-at: 170%;
+  }
+}
+
+@keyframes nb-api-pass {
+  0%,
+  64% {
+    --nb-api-at: -25%;
+  }
+  70%,
+  100% {
+    --nb-api-at: 170%;
+  }
+}
+
+@keyframes nb-api-wake {
+  0%,
+  31% {
+    opacity: 0.45;
+  }
+  36%,
+  93% {
+    opacity: 1;
+  }
+  99%,
+  100% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes nb-api-rim-res {
+  0%,
+  33% {
+    opacity: 0;
+  }
+  36% {
+    opacity: 1;
+  }
+  48%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-api-rim-app {
+  0%,
+  68% {
+    opacity: 0;
+  }
+  71% {
+    opacity: 1;
+  }
+  84%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nb-api-progress {
+  0%,
+  35% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  62% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  66%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes nb-api-stream {
+  0%,
+  36% {
+    --nb-api-shown: 0;
+  }
+  62%,
+  100% {
+    --nb-api-shown: 11;
+  }
+}
+
+@keyframes nb-api-pick {
+  0%,
+  44% {
+    background-color: rgba(var(--oi-fg-rgb), 0);
+    box-shadow: inset 0 0 0 var(--nb-ink);
+  }
+  47% {
+    background-color: rgba(var(--oi-fg-rgb), 0.18);
+    box-shadow: inset calc(var(--u) * 0.22) 0 0 var(--nb-ink);
+  }
+  58%,
+  92% {
+    background-color: rgba(var(--oi-fg-rgb), 0.08);
+    box-shadow: inset calc(var(--u) * 0.22) 0 0 var(--nb-ink);
+  }
+  98%,
+  100% {
+    background-color: rgba(var(--oi-fg-rgb), 0);
+    box-shadow: inset 0 0 0 var(--nb-ink);
+  }
+}
+
+@keyframes nb-api-card {
+  0%,
+  69% {
+    border-color: var(--nb-line);
+    box-shadow: 0 0 0 rgba(var(--oi-fg-rgb), 0);
+  }
+  72% {
+    border-color: rgba(var(--oi-fg-rgb), 0.75);
+    box-shadow: 0 0 calc(var(--u) * 2.5) rgba(var(--oi-fg-rgb), 0.2);
+  }
+  86%,
+  92% {
+    border-color: var(--nb-line-strong);
+    box-shadow: 0 0 0 rgba(var(--oi-fg-rgb), 0);
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    box-shadow: 0 0 0 rgba(var(--oi-fg-rgb), 0);
+  }
+}
+
+@keyframes nb-api-skel {
+  0% {
+    background-position: 0 0;
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  73%,
+  93% {
+    opacity: 0;
+  }
+  99% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -600% 0;
+    opacity: 1;
+  }
+}
+
+@keyframes nb-api-assigned {
+  0%,
+  71% {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 0.6));
+  }
+  75%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes nb-api-tick {
+  0%,
+  72% {
+    transform: scale(0);
+  }
+  76% {
+    transform: scale(1.18);
+  }
+  79%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes nb-api-tick-ring {
+  0%,
+  74% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  84%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}

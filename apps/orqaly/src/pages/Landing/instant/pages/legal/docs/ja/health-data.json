@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "slug": "health-data",
+    "title": "消費者健康データ プライバシーポリシー",
+    "summary": "本ポリシーでは、ワシントン州、ネバダ州およびコネチカット州の法律に基づき、Orqanix が消費者健康データをどのように収集、利用および共有するか、ならびにお客様がそれに関する権利をどのように行使できるかについて説明します。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'Orqanix is run by' line is hidden until filled (FACTS §14.1).",
+        "geminiPaidTier: the paid-tier sentence stays hidden until the owner confirms Google's paid Gemini tier and DPA; until then Google's use is described only by linking Google's terms (FACTS §14.3).",
+        "Lawyer: under MHMDA, do search queries sent to public search engines (which may contain health terms) count as 'sharing' that needs separate consent? The policy discloses them and treats them as part of the service requested.",
+        "Lawyer: MHMDA deletion duty vs. the immutable workspace tables (messages, artifacts, events). The text promises 'delete or anonymise, or tell you why'; a working deletion process is still missing (FACTS §3, §14.5).",
+        "Lawyer: confirm the response-time wording meets WA/NV/CT rules: requests \"within one month\" (the laws allow 45 days), appeals \"within 45 days\" (MHMDA); Attorney General contact given.",
+        "Consent UX: the policy now relies on \"necessary to provide the requested service\" (MHMDA) for collection and sharing, and promises consent for anything else; no in-product consent screen exists. Decide whether one is needed (FACTS §14.16).",
+        "Email: privacy@orqanix.com must receive mail (no MX record today, FACTS §14.2).",
+        "Keep a prominent footer/home-page link to this policy (Washington), unless health marketing is removed and the AUP bans health data (FACTS §14.16).",
+        "Lawyer/owner: Gemini tier. On Google's unpaid Gemini terms Google may use prompts for its own purposes, so Google would be a third party, not a processor; sending health data there may be \"sharing\" beyond what is necessary, and a free-service-for-data exchange could be argued to be a \"sale\". Confirm the paid tier before publishing (FACTS §14.3).",
+        "Lawyer: FTC Health Breach Notification Rule (16 CFR 318) may apply given the healthcare marketing; the text only says we notify where the law requires (verify.md, missing requirement 2).",
+        "Lawyer: HIPAA. Healthcare solution pages imply clinic use; this policy covers consumers only. A BAA or a \"no PHI\" clause is needed before clinics use it (us.md row 9)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "本ポリシーについて"
+    },
+    {
+      "type": "p",
+      "text": "米国のいくつかの州は「消費者健康データ」を保護しています。これは、お客様を特定する、またはお客様と合理的に結び付けられ得る個人情報であって、お客様の過去、現在または将来の身体的または精神的な健康について何かを示すものをいいます。これには、たとえばお客様が尋ねた内容から、お客様について推測された情報も含まれます。主な法律は、ワシントン州の My Health My Data Act、ネバダ州の消費者健康データ法、およびコネチカット州の消費者健康データに関する規則です。"
+    },
+    {
+      "type": "p",
+      "text": "本ポリシーでは、Orqanix（以下「当社」）が消費者健康データをどのように取り扱うかを説明します。本ポリシーは米国内の方に適用され、その他すべての個人データを対象とする当社の[プライバシーポリシー](/instant/legal/privacy)を補足するものです。"
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Orqanix は {company.legalName}（{company.address}）が運営しています。"
+    },
+    {
+      "type": "note",
+      "text": "要約：当社はお客様の健康データを求めません。健康データが当社に届くのは、お客様がそれを入力し、話し、アップロードし、または接続した場合に限られます。当社はそれを、お客様が依頼したことを行うためにのみ利用します。当社はそれを決して販売せず、広告にも利用しません。"
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "当社に届く可能性があるもの"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix は汎用の AI アシスタントであり、ヘルスケアサービスではありません。当社は健康情報を求めず、センサー、デバイスまたは健康アプリから健康情報を収集することもありません。消費者健康データが当社に届くのは、お客様がそれを含めることを選択した場合に限られます。たとえば次のようなものです。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様がリクエストの中で言及した症状、疾患、診断、医薬品または治療。",
+        "お客様がアップロードした、またはエージェントに読み取らせた健康関連の書類（検査結果、各種書式、医師からの手紙など）。",
+        "お客様が当社に提供したファイルやメッセージに含まれる予約、請求書または保険の詳細。",
+        "デスクトップアプリで音声入力を使用中にお客様が健康について話した場合の、お客様の音声。",
+        "お客様がアシスタントボットに接続したアカウントのメッセージ、連絡先およびファイルに含まれる健康情報。",
+        "AI がお客様の尋ねた内容からお客様の健康について導き出し、回答に含めたあらゆる情報。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当社は、お客様の健康について知るために正確な位置情報を利用することはなく、医療が提供される場所の周囲に仮想境界（ジオフェンス）を設定することもありません。"
+    },
+    {
+      "type": "h2",
+      "id": "sources",
+      "text": "取得元"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様が何かを入力し、話し、またはアップロードしたときに、お客様から。",
+        "お客様がアシスタントボットに接続したメッセージングアプリおよびメールアカウントから、ならびにお客様がエージェントに読み取らせたファイルから。",
+        "お客様が調査を依頼したときに当社の調査で見つかった公開のウェブページから。",
+        "お客様のリクエストに対する AI モデルの回答から。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "利用目的"
+    },
+    {
+      "type": "p",
+      "text": "当社は、お客様が依頼したサービスを提供するために必要な範囲でのみ、消費者健康データを収集し利用します。具体的には次のとおりです。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "お客様のリクエストを AI モデルに送信し、お客様に回答を提供すること。",
+        "調査、書類の整理、ファイルの作成など、お客様が依頼した作業を行うこと。",
+        "当社の[プライバシーポリシー](/instant/legal/privacy#what-we-collect)に記載のとおり、後で作業に戻れるよう、お客様の作業内容をクラウドワークスペースまたはお客様の Mac 上に保持すること。",
+        "サービスの安全を保ち、当社の法的義務を履行すること。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "当社は、消費者健康データを広告に利用せず、それに基づいてプロファイルを作成せず、それを用いて当社独自の AI モデルをトレーニングすることもありません。"
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "提供先"
+    },
+    {
+      "type": "p",
+      "text": "当社は、サービスの提供を支援するプロバイダーとのみ、その目的のためにのみ、消費者健康データを共有します。当社は、お客様のリクエストと会話に含まれる健康データ（[当社に届く可能性があるもの](#what-we-collect)に記載の種類）を、次の者と共有します。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud：当社のサーバー、データベースおよびファイルを EU（オランダ）でホストしています。",
+        "Google：その Gemini API が、デフォルトでお客様に回答する AI モデルを提供しています。Google はお客様のリクエストと会話を受け取り、EU 域外でそれらを処理する場合があります。",
+        "公開の検索エンジン（Google、Bing、Brave および DuckDuckGo）：お客様が調査を依頼した場合。当社の検索サービスはお客様のリクエストから作成したクエリをこれらに送信するため、クエリにはお客様が使用した健康に関する用語が含まれる場合があります。当社が送信するのはクエリのみであり、お客様のお名前やアカウント情報ではありません。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Google が Gemini API を通じて受け取るデータをどのように利用できるかは、[Google の Gemini API 利用規約](https://ai.google.dev/gemini-api/terms)で定められています。"
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "当社は Google の有料 Gemini API サービスを利用しています。Google の有料サービスの規約に基づき、Google は当社のためにお客様のリクエストを処理し、それらを自社製品の改善に利用しません。"
+    },
+    {
+      "type": "p",
+      "text": "お客様がデスクトップアプリで OpenAI や Anthropic など別の AI プロバイダーを接続した場合、そのプロバイダーは、お客様の指示により、お客様とそのプロバイダーとの間の契約に基づいて、お客様の会話を受け取ります。また当社は、法律で求められる場合にデータを開示することがあります。当社のプロバイダーの完全な一覧は、[サブプロセッサ](/instant/legal/subprocessors)のページに記載しています。"
+    },
+    {
+      "type": "h2",
+      "id": "no-sale",
+      "text": "販売は一切行いません"
+    },
+    {
+      "type": "p",
+      "text": "当社は消費者健康データを販売しません。ワシントン州法では、いかなる販売の前にもお客様の署名入りの書面による承認が必要とされますが、当社はそれを求めません。"
+    },
+    {
+      "type": "h2",
+      "id": "consent",
+      "text": "同意"
+    },
+    {
+      "type": "p",
+      "text": "当社は、お客様が依頼したサービスを提供するために必要な範囲でのみ、消費者健康データを収集し共有します。これは、法律上、個別の同意なしに認められています。当社は、事前にお客様の同意を求めることなく、その他の目的でそれを収集もしくは利用し、または[提供先](#who-gets-it)に記載のプロバイダー以外と共有することはありません。お客様が同意した場合、{company.privacyEmail} までご連絡いただくことで、いつでも同意を撤回できます。また、いつでも健康データの共有をやめることができます。当社に提供する内容から健康データを除き、[お客様の権利](#your-rights)に記載のとおり削除してください。"
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "お客様の権利"
+    },
+    {
+      "type": "p",
+      "text": "お住まいの州にかかわらず、お客様は当社に次のことを求めることができます。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "当社がお客様の消費者健康データを収集、共有または販売しているかどうかを確認すること。",
+        "そのデータへのアクセスを提供すること。これには、当社がそれを共有した第三者および関連会社の一覧とその連絡方法が含まれます。",
+        "当社の記録および当社のためにそれを保持するプロバイダーからのものを含め、それを削除すること。",
+        "その収集または共有に対するお客様の同意を撤回すること。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "お客様が削除を求めた場合、当社はお客様のクラウドワークスペース内のデータを削除または匿名化し、当社のためにそれを保持するプロバイダーにも同様の対応を求めます。当社のバックアップ内の複製は、そのバックアップの有効期限が切れた時点、約 7 日以内に消去されます。記録を保持しなければならない場合は、その理由をお伝えします。デスクトップアプリがお客様の Mac 上に保持するデータはお客様の管理下にあり、いつでもそこで削除できます。"
+    },
+    {
+      "type": "p",
+      "text": "お客様が権利を行使したことを理由に、サービスの提供を拒否したりその品質を変更したりするなど、当社がお客様を異なって扱うことはありません。"
+    },
+    {
+      "type": "h2",
+      "id": "how-to",
+      "text": "権利の行使"
+    },
+    {
+      "type": "p",
+      "text": "{company.privacyEmail} までご連絡のうえ、どの権利を行使したいかをお知らせください。当社は、たとえばお客様のアカウントに登録されたメールアドレスから連絡していただくなどの方法で、本人確認をお願いすることがあります。お客様が権限を与えた方が、お客様に代わってご請求を行うことができます。当社は、お客様がその方に権限を与えたことの証明を求めることがあります。権利の行使は無料です。当社は 1 か月以内に回答します。"
+    },
+    {
+      "type": "h3",
+      "id": "appeal",
+      "text": "不服申立て"
+    },
+    {
+      "type": "p",
+      "text": "当社がお客様のご請求を拒否した場合、件名を「Appeal」として当社の回答に返信することで、不服を申し立てることができます。当社は 45 日以内に、何を決定したかとその理由を書面でお知らせします。それでもご納得いただけない場合は、お住まいの州の司法長官に連絡することができます。ワシントン州の場合は、[司法長官の健康データに関するページ](https://www.atg.wa.gov/protecting-washingtonians-personal-health-data-and-privacy)をご覧ください。"
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "セキュリティ"
+    },
+    {
+      "type": "p",
+      "text": "当社は、当社の[プライバシーポリシー](/instant/legal/privacy#security)に記載のとおり消費者健康データを保護しています。データは暗号化された状態で送信され、当社のクラウドプロバイダーが保存時にも暗号化し、EU 内でホストされています。デスクトップアプリは、独自の追加の暗号化を行わずにチャット履歴をお客様の Mac 上に保持するため、Mac をロックした状態に保ってください。消費者健康データが権限なくアクセスまたは開示された場合、当社は法律で求められるところに従い、お客様および当局に通知します。"
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "変更"
+    },
+    {
+      "type": "p",
+      "text": "本ポリシーが変更される場合、当社はこのページで更新し、冒頭の日付を変更します。消費者健康データを新たな方法で利用する前に、当社はお客様の同意を求めます。ご質問：{company.privacyEmail}。"
+    }
+  ]
+}

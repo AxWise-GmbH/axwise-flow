@@ -1,0 +1,325 @@
+{
+  "meta": {
+    "slug": "desktop-app-terms",
+    "title": "Termos do Aplicativo para Computador",
+    "summary": "Estes termos tratam da instalação e do uso do aplicativo Orqanix no seu Mac, incluindo as ações reais que os agentes de IA dele podem executar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Support period: no automatic updates in code and no stated support period. The text says fixes come in newer versions and that there is no fixed support period for old versions. Owner to decide a support period (EU Cyber Resilience Act: support-period end date shown at purchase from 11 Dec 2027; CRA vulnerability reporting applies since 11 Sep 2026).",
+        "EU update duty (Dir. 2019/770 Art. 8): the EU text promises to say on orqanix.com when an update is available and what it fixes. Owner must set up that notice (download page or News) before publishing; lawyer to confirm a manual download without auto-update meets Art. 8.",
+        "EU change notice (Dir. 2019/770 Art. 19): the EU text promises notice by email before a change that harms use. Needs working email (no MX record, FACTS open point #2) and the account email from Clerk.",
+        "Defaults disclosed as they are in code: Auto-approve (agents act without asking), shell and file editing on, voice dictation on, provider keys in a plain-text file. If the owner changes any default (FACTS open point #8), update the agent-action and data sections. A DPIA is advisable for these defaults (critique #19).",
+        "Voice dictation: whether it works end to end is uncertain; the text only says that if you use it, your voice is sent to the model provider.",
+        "App not notarized: the text tells users macOS may block the first open. Update if the app is signed and notarized (FACTS open point #14).",
+        "Governing law and contracting company: follow the Terms of Service; no company name is printed here (FACTS open point #1).",
+        "Download location: the file is served from Google Cloud Storage via the link on orqanix.com; bucket region unknown (FACTS open point #7). Not stated here. The stale local download link should be fixed.",
+        "Research tool: records are immutable in the cloud database; deletion wording defers to the Privacy Policy (FACTS open point #5). The text says research may search the web and look up company registers (search engines and OpenRegister per FACTS §7/§10); the Privacy Policy and Sub-processors page list them (cross-check 2026-09-21).",
+        "AI Act Art. 50(2): outputs, including text files the agents make, are not machine-marked and nothing here claims marking. Owner to confirm the Desktop App's first EU market date; if after 2 Aug 2026, marking applies now (FACTS open point #10).",
+        "Gemini paid tier (FACTS open point #3): serving EEA/UK/CH users needs Google's paid Gemini tier; this document does not state Google's data terms.",
+        "Age 18+: sign-in asks no age; needs a self-declaration and an acceptance record at sign-up, including the Desktop App's first-run sign-in (FACTS open point #9). California AB 1043 age signals also cover Mac apps from 1 Jan 2027.",
+        "Consumer licence limits: the text keeps rights the law gives to study software and make it interoperable (EU Software Directive 2009/24 Art. 5(3), 6). Lawyer to confirm the \"no competing product\" limit is fair for EU consumers.",
+        "Lawyer review of the liability wording in both regions, including the EU Product Liability Directive (EU) 2024/2853 (applies to products placed on the market after 9 Dec 2026; missing security updates can make software defective)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Sobre estes termos"
+    },
+    {
+      "type": "p",
+      "text": "Estes termos complementam os nossos [Termos de Serviço](/instant/legal/terms) para o aplicativo Orqanix para Mac (o \"Aplicativo para Computador\"). Junto com os Termos de Serviço, a nossa [Política de Uso Aceitável](/instant/legal/acceptable-use) e a nossa [Política de Privacidade](/instant/legal/privacy), eles formam um único contrato. Se estes termos e os Termos de Serviço divergirem sobre o Aplicativo para Computador, prevalecem estes termos."
+    },
+    {
+      "type": "p",
+      "text": "O Aplicativo para Computador é gratuito enquanto os nossos produtos estão em fase inicial. Antes do início de qualquer plano pago, publicaremos o preço e as regras de pagamento e cancelamento."
+    },
+    {
+      "type": "p",
+      "text": "Antes disso, publicaremos também as regras para o direito de arrependimento de uma compra, conforme exige a legislação da UE.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "A sua licença"
+    },
+    {
+      "type": "p",
+      "text": "Enquanto você cumprir estes termos, concedemos a você uma licença pessoal, não exclusiva e intransferível para baixar, instalar e usar o Aplicativo para Computador em Macs que você possua ou controle. Podemos encerrá-la conforme descrito em [Suspensão e encerramento](/instant/legal/terms#ending) nos Termos de Serviço."
+    },
+    {
+      "type": "p",
+      "text": "Você não pode:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "vender, alugar, emprestar ou sublicenciar o Aplicativo para Computador;",
+        "remover ou alterar os nossos avisos ou os avisos de licença de terceiros;",
+        "contornar o login ou qualquer limite que definimos no aplicativo;",
+        "usar o Aplicativo para Computador para criar um produto concorrente, nem copiar as nossas instruções de produto para esse fim."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Esses limites não se aplicam às partes de código aberto do aplicativo, como o Goose (Apache 2.0), que continuam sujeitas às suas próprias licenças (veja [Avisos de Código Aberto](/instant/legal/open-source)). Tampouco retiram qualquer coisa que a lei permita que você faça com um software que usa de forma lícita, como estudar como ele funciona ou fazê-lo funcionar com outros programas."
+    },
+    {
+      "type": "h2",
+      "id": "system-needs",
+      "text": "Do que você precisa"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Um Mac com Apple silicon (M1 ou mais recente). O aplicativo não funciona em Macs com Intel nem em outros sistemas.",
+        "Uma conexão com a internet e uma conta Orqanix para fazer login. O modelo padrão não precisa de nenhuma chave de um provedor de IA.",
+        "Você deve ter 18 anos ou mais."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Baixe o Aplicativo para Computador somente pelo link em orqanix.com. Não somos responsáveis por cópias obtidas em qualquer outro lugar."
+    },
+    {
+      "type": "h2",
+      "id": "first-open",
+      "text": "Primeira abertura"
+    },
+    {
+      "type": "p",
+      "text": "A Apple não notarizou o Aplicativo para Computador (a notarização é a verificação automatizada da Apple para aplicativos oferecidos fora da App Store), por isso o macOS pode bloqueá-lo na primeira vez que você o abrir. Para permiti-lo, escolha Abrir Mesmo Assim em Ajustes do Sistema > Privacidade e Segurança. Faça isso somente com uma cópia obtida em orqanix.com."
+    },
+    {
+      "type": "h2",
+      "id": "agentic-actions",
+      "text": "Ações dos agentes"
+    },
+    {
+      "type": "p",
+      "text": "O Aplicativo para Computador executa agentes de IA no seu Mac. Um agente é um software que usa um modelo de IA para escolher etapas e executá-las. Quando você dá uma tarefa ao aplicativo, os agentes dele podem executar ações reais no seu Mac, por exemplo:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ler, criar, alterar, mover e apagar arquivos;",
+        "executar comandos no terminal do Mac (o shell), o que pode instalar software, alterar configurações ou acessar a internet;",
+        "usar as ferramentas, extensões e serviços conectados que você ativar, que podem agir nas suas contas em outros lugares;",
+        "executar tarefas salvas (receitas) de forma agendada, mas somente enquanto o Aplicativo para Computador estiver aberto."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "As ferramentas de shell e de arquivos vêm ativadas quando você instala o aplicativo pela primeira vez."
+    },
+    {
+      "type": "h3",
+      "id": "approval-modes",
+      "text": "Quando os agentes pedem permissão antes"
+    },
+    {
+      "type": "p",
+      "text": "Por padrão, os agentes agem sem perguntar a você antes. Esse modo padrão se chama \"Aprovar automaticamente chamadas de ferramentas\". Você pode alterá-lo nas configurações do aplicativo para:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "perguntar antes de cada ação;",
+        "perguntar somente antes das ações que o aplicativo considera sensíveis;",
+        "apenas conversar, sem nenhuma ação."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Quando o aplicativo perguntar, você pode responder Permitir uma vez, Sempre permitir ou Negar. Depois de Sempre permitir, o agente não perguntará novamente para esse tipo de ação."
+    },
+    {
+      "type": "h2",
+      "id": "authorization",
+      "text": "A sua responsabilidade"
+    },
+    {
+      "type": "p",
+      "text": "Você decide o que os agentes podem fazer: a tarefa, o modo de aprovação e as pastas, ferramentas e contas que eles podem usar. Você autoriza as ações que eles executam dentro desses limites e é responsável por elas como se você mesmo as tivesse executado."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Direcione os agentes somente para arquivos, sistemas e contas que você tem permissão para usar e para deixar que um software use por você.",
+        "Cumpra os termos de qualquer serviço em que um agente atue e a nossa [Política de Uso Aceitável](/instant/legal/acceptable-use).",
+        "Não use agentes para acessar sistemas ou dados de terceiros sem a permissão deles.",
+        "Se você trabalha para uma empresa, certifique-se de que ela permite que você use o Aplicativo para Computador nos arquivos e sistemas dela."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-review",
+      "text": "Revisão humana"
+    },
+    {
+      "type": "p",
+      "text": "A IA comete erros. Um agente pode interpretar mal uma tarefa, escolher o arquivo errado, executar um comando prejudicial ou informar sucesso quando falhou. Os resultados podem estar errados, incompletos ou desatualizados e não constituem aconselhamento jurídico, médico, financeiro ou de outra natureza profissional. Veja [Como Nossa IA Funciona](/instant/legal/ai)."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Faça backup de tudo o que for importante antes de deixar os agentes trabalharem nisso. Não podemos restaurar arquivos que um agente apagou ou alterou.",
+        "Use um [modo de aprovação](#approval-modes) que pergunte antes em trabalhos que envolvam arquivos importantes, dinheiro, outras pessoas ou sistemas em produção.",
+        "Confira o que os agentes criaram antes de confiar nisso, enviar ou publicar."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "consequences",
+      "text": "Responsabilidade"
+    },
+    {
+      "type": "p",
+      "text": "Ações dos agentes no seu Mac ou nas suas contas conectadas podem ter efeitos reais difíceis ou impossíveis de desfazer, como perda de dados, configurações alteradas, mensagens enviadas ou cobranças de outros provedores."
+    },
+    {
+      "type": "p",
+      "text": "Na medida máxima permitida por lei, não somos responsáveis por perdas ou danos resultantes de ações que você permitiu que um agente executasse, da sua escolha de modo de aprovação ou da falta de backups. O Aplicativo para Computador é fornecido \"no estado em que se encontra\" e \"conforme disponível\", sem garantias de qualquer tipo, conforme estabelecido em [Isenções de garantia](/instant/legal/terms#warranty) e [Responsabilidade](/instant/legal/terms#liability) nos Termos de Serviço. Nada nestes termos limita uma responsabilidade que a lei não nos permite limitar.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "De acordo com a lei do seu país, somos responsáveis se o Aplicativo para Computador não estiver em conformidade com o nosso contrato e pelos danos que causarmos. Não somos responsáveis por danos resultantes apenas de ações que você permitiu que um agente executasse, da sua escolha de modo de aprovação ou da falta de backups, a menos que os tenhamos causado ao descumprir os nossos deveres. Nada nestes termos limita os seus direitos legais como consumidor, nem a responsabilidade por dolo, culpa grave, lesão à vida, ao corpo ou à saúde, ou nos termos da legislação de responsabilidade pelo produto. [Responsabilidade](/instant/legal/terms#liability) nos Termos de Serviço estabelece o restante.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "Para onde vão os seus dados"
+    },
+    {
+      "type": "p",
+      "text": "Este é um resumo. A [Política de Privacidade](/instant/legal/privacy) traz todos os detalhes."
+    },
+    {
+      "type": "h3",
+      "id": "on-your-mac",
+      "text": "No seu Mac"
+    },
+    {
+      "type": "list",
+      "items": [
+        "O aplicativo guarda os dados dele em uma pasta na Biblioteca do seu Mac que só a sua conta de usuário do macOS pode ler.",
+        "O seu histórico de conversas é guardado em um arquivo de banco de dados local, sem nenhuma criptografia além da proteção que o seu Mac oferece.",
+        "As chaves dos provedores de IA que você conecta e os segredos das extensões que você adiciona são armazenados em um arquivo de texto simples na pasta do aplicativo, e não nas Chaves do macOS. Qualquer pessoa ou programa que consiga ler os seus arquivos pode lê-los.",
+        "O seu login do Orqanix é armazenado nas Chaves do macOS. Sair da conta o cancela.",
+        "Os arquivos que os agentes criam vão para a pasta de projeto que você escolher.",
+        "O aplicativo mantém registros (logs) no seu Mac e apaga os antigos automaticamente. Ele não nos envia estatísticas de uso e não tem um relator de falhas."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "sent-to-the-cloud",
+      "text": "Enviado do seu Mac"
+    },
+    {
+      "type": "p",
+      "text": "Com o modelo padrão, cada etapa de uma tarefa envia toda a conversa até aquele momento para o modelo de IA: o que você escreveu, o conteúdo de arquivos que os agentes leem, a saída de comandos e as nossas instruções de produto. Isso passa pelos nossos servidores na UE (Google Cloud, Países Baixos) até o Google Gemini. Os nossos servidores repassam esses dados e não os armazenam. O Google pode tratá-los fora da UE nos termos dos seus [termos da API do Gemini](https://ai.google.dev/gemini-api/terms)."
+    },
+    {
+      "type": "p",
+      "text": "O ditado por voz vem ativado por padrão. Se você o usar, a sua voz é enviada ao provedor do modelo."
+    },
+    {
+      "type": "p",
+      "text": "Quando um agente usa a nossa ferramenta de pesquisa, ele envia uma pergunta para o seu espaço de trabalho na nuvem do Orqanix, além de trechos de até cinco dos seus documentos na nuvem, se o agente os escolher. A pergunta, os trechos e o resultado com as fontes são armazenados lá como um registro fixo. A pesquisa pode buscar na web e consultar registros públicos de empresas. A [Política de Privacidade](/instant/legal/privacy) explica como pedir uma cópia ou a exclusão."
+    },
+    {
+      "type": "h2",
+      "id": "third-party-services",
+      "text": "Outros provedores de IA e ferramentas"
+    },
+    {
+      "type": "p",
+      "text": "Você pode conectar outros provedores de IA, como OpenAI, Anthropic ou modelos que rodam no seu Mac, e adicionar ferramentas e extensões feitas por terceiros. Quando você faz isso:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "esse provedor recebe a sua conversa e os resultados das ferramentas diretamente, nos termos e na política de privacidade dele;",
+        "o seu contrato com esse provedor, incluindo as taxas que ele cobrar, é entre você e ele;",
+        "não controlamos, não verificamos e não respondemos por outros provedores, ferramentas ou extensões, nem pelo que eles fazem com os seus dados."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Atualizações e alterações"
+    },
+    {
+      "type": "p",
+      "text": "O Aplicativo para Computador não se atualiza sozinho. Cada nova versão é um novo download em orqanix.com que você instala sobre a anterior. As correções de segurança vêm nas versões mais recentes, portanto use a mais atual. Não definimos um prazo fixo durante o qual as versões anteriores continuam recebendo correções."
+    },
+    {
+      "type": "p",
+      "text": "Podemos alterar ou remover funcionalidades em novas versões. As regras sobre alterações estão em [Alterações nos Serviços e nestes termos](/instant/legal/terms#changes).",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Se você usa o Aplicativo para Computador como consumidor (fora da sua atividade comercial ou profissional), você tem os direitos que a legislação da UE confere aos consumidores de conteúdo digital. Eles se aplicam mesmo que o aplicativo seja gratuito, porque você nos fornece dados pessoais para usá-lo (Dir. (UE) 2019/770). O aplicativo deve funcionar conforme descrito nestes termos e no nosso site. Pelo tempo que a lei exigir, disponibilizaremos as atualizações, incluindo as de segurança, necessárias para mantê-lo assim, e informaremos em orqanix.com quando uma estiver disponível e o que ela corrige. Se você não instalar, dentro de um prazo razoável, uma atualização sobre a qual informamos, não seremos responsáveis por um defeito que ela teria corrigido, a menos que as nossas instruções de instalação tenham sido falhas.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Além do necessário para mantê-lo funcionando, só alteraremos o Aplicativo para Computador por um motivo válido, como novas leis, segurança ou melhorias, e sem custo para você. Se uma alteração prejudicar mais do que minimamente o seu acesso ao aplicativo ou o uso dele, enviaremos um e-mail a você com antecedência razoável. Você poderá então encerrar este contrato sem custo dentro de 30 dias a partir do nosso aviso ou da alteração, o que ocorrer por último, a menos que permitamos que você mantenha a versão inalterada sem custo adicional.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanções e exportação"
+    },
+    {
+      "type": "p",
+      "text": "Você não pode baixar nem usar o Aplicativo para Computador onde sanções ou regras de exportação dos EUA ou da UE o proíbam, nem se o seu nome constar de uma lista de sanções dos EUA ou da UE. Veja [Sanções e exportação](/instant/legal/terms#sanctions) nos Termos de Serviço."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Encerramento do uso"
+    },
+    {
+      "type": "p",
+      "text": "Você pode parar de usar o Aplicativo para Computador a qualquer momento. Primeiro, saia da conta, o que cancela o seu login do Orqanix. Depois, apague o aplicativo da sua pasta Aplicativos. Para remover o seu histórico de conversas local, as configurações, os registros e as chaves armazenadas, apague também a pasta dele na Biblioteca do seu Mac (em Application Support). Os arquivos que os agentes criaram nas suas pastas de projeto permanecem até que você os apague."
+    },
+    {
+      "type": "p",
+      "text": "Apagar o aplicativo não apaga a sua conta Orqanix nem o seu espaço de trabalho na nuvem. Para encerrar a sua conta ou nos pedir que apaguemos os seus dados, veja os [Termos de Serviço](/instant/legal/terms) e a [Política de Privacidade](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Se a sua licença terminar, você deve parar de usar o Aplicativo para Computador e apagá-lo. [Suspensão e encerramento](/instant/legal/terms#ending) nos Termos de Serviço informa o que acontece com a sua conta."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contato"
+    },
+    {
+      "type": "p",
+      "text": "Dúvidas sobre estes termos: {company.email}. Problemas de segurança: {company.securityEmail}. Solicitações de privacidade: {company.privacyEmail}."
+    }
+  ]
+}

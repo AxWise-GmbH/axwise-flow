@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import UseCases from './UseCases';
 
@@ -89,6 +89,21 @@ const dots = () => screen.getAllByRole('button', { name: /^Go to case \d+$/ });
 const currentDot = () => dots().findIndex((dot) => dot.getAttribute('aria-current') === 'true');
 const slides = () => screen.getAllByRole('group');
 
+// jsdom has no IntersectionObserver, so the row never knows it is on screen and never turns.
+// This one reports every observed element as visible (or not) at once.
+function stubInView(visible) {
+  globalThis.IntersectionObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe(target) {
+      this.callback([{ target, isIntersecting: visible, intersectionRatio: visible ? 1 : 0 }]);
+    }
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 beforeEach(() => {
   // jsdom has no element scrolling; the carousel must not depend on it to move its state.
   Element.prototype.scrollTo = vi.fn();
@@ -97,6 +112,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  delete globalThis.IntersectionObserver;
+  vi.useRealTimers();
   delete Element.prototype.scrollTo;
   delete Element.prototype.scrollIntoView;
 });
@@ -136,17 +153,69 @@ describe('UseCases', () => {
     });
   });
 
-  it('starts on the first case and never moves on its own', () => {
+  it('starts on the first case and stays there while it is off screen', () => {
     vi.useFakeTimers();
-    try {
-      renderCases();
-      expect(currentDot()).toBe(0);
-      vi.advanceTimersByTime(60000);
-      expect(currentDot()).toBe(0);
-      expect(slides()[0]).toHaveAttribute('data-current', 'true');
-    } finally {
-      vi.useRealTimers();
+    stubInView(false);
+    renderCases();
+    expect(currentDot()).toBe(0);
+    act(() => vi.advanceTimersByTime(60000));
+    expect(currentDot()).toBe(0);
+    expect(slides()[0]).toHaveAttribute('data-current', 'true');
+  });
+
+  it('turns by itself on screen, one card every 2.5 s, and loops back after the last', () => {
+    // Owner, 2026-09-21: twice the old 5 s pace.
+    vi.useFakeTimers();
+    stubInView(true);
+    renderCases();
+    act(() => vi.advanceTimersByTime(2499));
+    expect(currentDot()).toBe(0);
+    act(() => vi.advanceTimersByTime(1));
+    expect(currentDot()).toBe(1);
+    for (let card = 2; card < 10; card += 1) {
+      act(() => vi.advanceTimersByTime(2500));
+      expect(currentDot()).toBe(card);
     }
+    act(() => vi.advanceTimersByTime(2500));
+    expect(currentDot()).toBe(0);
+  });
+
+  it('holds still while a pointer rests on a card, and turns again once it leaves', () => {
+    vi.useFakeTimers();
+    stubInView(true);
+    const { container } = renderCases();
+    const track = screen.getByRole('region', { name: 'Use cases' });
+    // Beside the cards (the row, the dots) the turning goes on.
+    fireEvent.pointerOver(container.querySelector('.ouc-dots'));
+    fireEvent.pointerOver(track);
+    act(() => vi.advanceTimersByTime(2500));
+    expect(currentDot()).toBe(1);
+    fireEvent.pointerOver(slides()[1].querySelector('.ouc-card'));
+    act(() => vi.advanceTimersByTime(30000));
+    expect(currentDot()).toBe(1);
+    fireEvent.pointerLeave(track);
+    act(() => vi.advanceTimersByTime(2500));
+    expect(currentDot()).toBe(2);
+  });
+
+  it('starts the wait again after a move by hand', () => {
+    vi.useFakeTimers();
+    stubInView(true);
+    renderCases();
+    act(() => vi.advanceTimersByTime(1500));
+    fireEvent.click(screen.getByRole('button', { name: 'Next case' }));
+    expect(currentDot()).toBe(1);
+    act(() => vi.advanceTimersByTime(2499));
+    expect(currentDot()).toBe(1);
+    act(() => vi.advanceTimersByTime(1));
+    expect(currentDot()).toBe(2);
+  });
+
+  it('sizes the light under the dots by the number of cards, so it sits on the current dot', () => {
+    const { container } = renderCases();
+    const rail = container.querySelector('.ouc-dots');
+    expect(rail.style.getPropertyValue('--ouc-count')).toBe(String(dots().length));
+    expect(rail.querySelector('.ouc-bead')).not.toBeNull();
   });
 
   it('moves the current case with the previous and next buttons', () => {

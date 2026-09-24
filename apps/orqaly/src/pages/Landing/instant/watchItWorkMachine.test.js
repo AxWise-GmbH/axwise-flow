@@ -13,12 +13,15 @@ import {
   activeStep,
   answeredCount,
   fileStatus,
+  filmOption,
+  finishedState,
   initialState,
   introBeat,
   reducer,
   typedCount,
   workspaceStatus,
 } from './watchItWorkMachine';
+import { SCENES } from './watchItWork.scenes';
 
 const run = (state, ...actions) => actions.reduce(reducer, state);
 const tick = (node, elapsed, requestLength = 80) => ({
@@ -306,5 +309,32 @@ describe('watchItWorkMachine', () => {
 
   it('returns the same state for an unknown action', () => {
     expect(reducer(first, { type: 'NOPE' })).toBe(first);
+  });
+});
+
+describe('the film on the landing', () => {
+  it('answers each question with a chip that exists, and not always the first one', () => {
+    for (const scene of SCENES) {
+      const chosen = scene.questions.map((question, index) => filmOption(scene, index));
+      scene.questions.forEach((question, index) => {
+        expect(question.options[chosen[index]]).toBeDefined();
+      });
+      expect(chosen.some((option) => option !== 0)).toBe(true);
+    }
+  });
+
+  it('ends a scene the way the film does: asked, every question answered, the pack shown', () => {
+    for (const scene of SCENES) {
+      const state = finishedState(scene);
+      expect(state).toMatchObject({
+        sceneId: scene.id,
+        node: 'complete',
+        playback: 'complete',
+        choice: 'ask',
+        assumptions: false,
+      });
+      expect(state.answers).toEqual(scene.questions.map((_, index) => filmOption(scene, index)));
+      expect(answeredCount(state)).toBe(scene.questions.length);
+    }
   });
 });

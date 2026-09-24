@@ -1,6 +1,8 @@
 import { Seen } from '../SpeedStrip';
 import { CheckGlyph } from '../ui/Glyphs';
-import { DEEP_DIVE_IDS, FEATURES } from './features.data';
+import { DEEP_DIVE_IDS, FEATURES, localizeFeature } from './features.data';
+import { localeWords, localize } from '../i18n/localize';
+import { useT } from '../i18n/useT';
 import './FeatureDeepDives.css';
 import { DropboxMark, GoogleDriveMark, NotionMark, ObsidianMark } from '../brandMarks';
 
@@ -52,13 +54,34 @@ const SOURCES = [
 ];
 
 // The flow chart: five boxes (x, y, label) and the six lines between them, in drawing order.
+// The label is a roadmap step, by its place in ROADMAP.
 const NODES = [
-  [86, 6, ROADMAP[0]],
-  [4, 84, ROADMAP[1]],
-  [86, 84, ROADMAP[2]],
-  [168, 84, ROADMAP[3]],
-  [86, 162, ROADMAP[4]],
+  [86, 6, 0],
+  [4, 84, 1],
+  [86, 84, 2],
+  [168, 84, 3],
+  [86, 162, 4],
 ];
+
+// The mocks' words in other languages, by their place in the lists above (pg.dd.*).
+// Brand names and file names stay as written.
+const MOCK_WORDS = {
+  menu: MENU,
+  roadmap: ROADMAP,
+  filetag: FILES.map(([, tag]) => tag),
+  board: BOARD,
+  sourceLine: SOURCES.map(([, line]) => line),
+};
+
+/** The mocks' lists in the current language. */
+function useMockWords() {
+  const { t } = useT('pg');
+  return { t, ...localize(MOCK_WORDS, 'pg.dd', t) };
+}
+
+export function deepDiveWords() {
+  return localeWords(MOCK_WORDS, 'pg.dd');
+}
 
 const EDGES = [
   'M120 34V60H38V84',
@@ -70,10 +93,6 @@ const EDGES = [
 ];
 
 const STORIES = DEEP_DIVE_IDS.map((id) => FEATURES.find((feature) => feature.id === id));
-
-function twoDigits(value) {
-  return String(value).padStart(2, '0');
-}
 
 // A story only re-cuts the feature's own words: its sentences, then the note, then the second line.
 function storyLines(feature) {
@@ -124,6 +143,7 @@ function Ghost({ width }) {
 
 /** The app window: a title bar, the left menu when the story needs it, and the part on show. */
 function AppWindow({ title, menu, children }) {
+  const words = useMockWords();
   return (
     <>
       <div className="ofd-bar">
@@ -135,9 +155,9 @@ function AppWindow({ title, menu, children }) {
       <div className="ofd-body">
         {menu && (
           <ul className="ofd-menu">
-            {MENU.map((item) => (
+            {MENU.map((item, index) => (
               <li key={item} data-on={item === menu}>
-                {item}
+                {words.menu[index]}
               </li>
             ))}
           </ul>
@@ -149,6 +169,7 @@ function AppWindow({ title, menu, children }) {
 }
 
 function WorkspaceMock() {
+  const { t, filetag } = useMockWords();
   return (
     <AppWindow title="Orqanix" menu="New Chat">
       <div className="ofd-chat">
@@ -159,28 +180,28 @@ function WorkspaceMock() {
         <Ghost width={88} />
         <Ghost width={72} />
         <Ghost width={80} />
-        <span className="ofd-composer">Ask whatever&apos;s on your mind.</span>
+        <span className="ofd-composer">{t('pg.dd.composer', "Ask whatever's on your mind.")}</span>
       </div>
       <div className="ofd-panel">
         <div className="ofd-panel-head ofd-in" style={{ '--i': 0 }}>
-          <span>Workspace</span>
+          <span>{t('pg.dd.workspace', 'Workspace')}</span>
           <span className="ofd-pills">
-            <Pill state="working">Working</Pill>
-            <Pill state="waiting">Needs you</Pill>
-            <Pill state="done">Done</Pill>
+            <Pill state="working">{t('pg.dd.working', 'Working')}</Pill>
+            <Pill state="waiting">{t('pg.dd.needsyou', 'Needs you')}</Pill>
+            <Pill state="done">{t('pg.dd.done', 'Done')}</Pill>
           </span>
         </div>
         <div className="ofd-progress ofd-in" style={{ '--i': 1 }}>
           <i />
         </div>
         <span className="ofd-label ofd-in" style={{ '--i': 2 }}>
-          FILES
+          {t('pg.dd.files', 'FILES')}
         </span>
-        {FILES.map(([name, tag], index) => (
+        {FILES.map(([name], index) => (
           <div key={name} className="ofd-row ofd-in" style={{ '--i': index + 3 }}>
             <FileGlyph />
             <span className="ofd-row-name">{name}</span>
-            <span className="ofd-filetag">{tag}</span>
+            <span className="ofd-filetag">{filetag[index]}</span>
           </div>
         ))}
       </div>
@@ -189,11 +210,12 @@ function WorkspaceMock() {
 }
 
 function FlowMock() {
+  const { t, roadmap } = useMockWords();
   return (
-    <AppWindow title="Workspace">
+    <AppWindow title={t('pg.dd.workspace', 'Workspace')}>
       <div className="ofd-panel ofd-road-pane">
         <span className="ofd-label ofd-in" style={{ '--i': 0 }}>
-          ROADMAP
+          {t('pg.dd.roadmap.label', 'ROADMAP')}
         </span>
         <div className="ofd-road-wrap">
           <ol className="ofd-road">
@@ -210,7 +232,7 @@ function FlowMock() {
                   {index < ROADMAP_NOW && <CheckGlyph className="ofd-marker-check" />}
                   {index === ROADMAP_NOW && <i />}
                 </span>
-                <span className="ofd-step-name">{title}</span>
+                <span className="ofd-step-name">{roadmap[index]}</span>
               </li>
             ))}
           </ol>
@@ -219,18 +241,18 @@ function FlowMock() {
       </div>
       <div className="ofd-panel ofd-chart-pane">
         <span className="ofd-label ofd-in" style={{ '--i': 1 }}>
-          FLOW CHART
+          {t('pg.dd.flowchart', 'FLOW CHART')}
         </span>
         <svg viewBox="0 0 240 196" className="ofd-chart" aria-hidden="true" focusable="false">
           {EDGES.map((d, index) => (
             <path key={d} className="ofd-edge" d={d} pathLength="1" style={{ '--i': index }} />
           ))}
           <path className="ofd-pulse" d="M120 34V162" pathLength="1" />
-          {NODES.map(([x, y, label], index) => (
-            <g key={label} className="ofd-node" style={{ '--i': index }}>
+          {NODES.map(([x, y, step], index) => (
+            <g key={step} className="ofd-node" style={{ '--i': index }}>
               <rect x={x} y={y} width="68" height="28" rx="9" pathLength="1" />
               <text x={x + 34} y={y + 17.5} textAnchor="middle">
-                {label}
+                {roadmap[step]}
               </text>
             </g>
           ))}
@@ -243,21 +265,23 @@ function FlowMock() {
 // A kanban board: what is waiting, what the agents are on right now, what is finished.
 // The lanes arrive left to right, then their cards top to bottom.
 function TrackerMock() {
+  const { t, board } = useMockWords();
   let turn = 1;
   return (
-    <AppWindow title="Task tracker">
+    <AppWindow title={t('pg.dd.tracker', 'Task tracker')}>
       <div className="ofd-panel ofd-board-panel">
         <div className="ofd-panel-head ofd-in" style={{ '--i': 0 }}>
-          <Pill state="working">Working</Pill>
-          <span className="ofd-board-count">7 tasks</span>
+          <Pill state="working">{t('pg.dd.working', 'Working')}</Pill>
+          <span className="ofd-board-count">{t('pg.dd.count', '7 tasks')}</span>
         </div>
         <div className="ofd-board">
-          {BOARD.map(({ lane, cards }) => {
+          {BOARD.map(({ lane }, laneIndex) => {
             const state = lane === 'Working' ? 'live' : lane === 'Done' ? 'done' : 'todo';
+            const { cards } = board[laneIndex];
             return (
               <div key={lane} className="ofd-lane" data-state={state}>
                 <span className="ofd-lane-head ofd-in" style={{ '--i': turn++ }}>
-                  <span className="ofd-label">{lane}</span>
+                  <span className="ofd-label">{board[laneIndex].lane}</span>
                   <b>{cards.length}</b>
                 </span>
                 {cards.map(([name, kind], index) => (
@@ -284,16 +308,19 @@ function TrackerMock() {
 
 // Knowledge storage: drop files in, or connect the places your knowledge already lives.
 function KnowledgeMock() {
+  const { t, sourceLine: source } = useMockWords();
   return (
-    <AppWindow title="Knowledge storage">
+    <AppWindow title={t('pg.dd.knowledge', 'Knowledge storage')}>
       <div className="ofd-panel ofd-kb">
         <div className="ofd-drop ofd-in" style={{ '--i': 0 }}>
           <svg viewBox="0 0 24 24" className="ofd-drop-glyph" aria-hidden="true" focusable="false">
             <path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96 5.75 5.75 0 0 1 11.2 0A4.5 4.5 0 0 1 17 18.5" />
             <path d="M12 19v-7.5M9 14l3-3 3 3" />
           </svg>
-          <span className="ofd-drop-title">Drop files here, or click to browse</span>
-          <span className="ofd-drop-note">Up to 20 files, 5 MB each</span>
+          <span className="ofd-drop-title">
+            {t('pg.dd.drop', 'Drop files here, or click to browse')}
+          </span>
+          <span className="ofd-drop-note">{t('pg.dd.dropnote', 'Up to 20 files, 5 MB each')}</span>
           {/* Three files fly in and land, over and over: the drop zone shows what it is for. */}
           <span className="ofd-drop-files" aria-hidden="true">
             <i />
@@ -302,19 +329,19 @@ function KnowledgeMock() {
           </span>
         </div>
         <span className="ofd-label ofd-in" style={{ '--i': 1 }}>
-          Connected sources
+          {t('pg.dd.sources', 'Connected sources')}
         </span>
-        {SOURCES.map(([name, line, Logo, linked], index) => (
+        {SOURCES.map(([name, , Logo, linked], index) => (
           <div key={name} className="ofd-source ofd-in" style={{ '--i': index + 2 }}>
             <span className="ofd-source-logo">
               <Logo />
             </span>
             <span className="ofd-source-text">
               <span className="ofd-row-name">{name}</span>
-              <span className="ofd-source-line">{line}</span>
+              <span className="ofd-source-line">{source[index]}</span>
             </span>
             <span className="ofd-connect" data-linked={linked || undefined}>
-              {linked ? 'Connected' : 'Connect'}
+              {linked ? t('pg.dd.connected', 'Connected') : t('pg.dd.connect', 'Connect')}
             </span>
           </div>
         ))}
@@ -331,8 +358,10 @@ const MOCKS = {
 };
 
 function Story({ feature, index }) {
+  const { t } = useT('pg');
   const Mock = MOCKS[feature.id];
-  const [lead, ...rest] = storyLines(feature);
+  const words = localizeFeature(feature, t);
+  const [lead, ...rest] = storyLines(words);
   const headingId = `deep-${feature.id}-heading`;
   return (
     <Seen
@@ -344,25 +373,22 @@ function Story({ feature, index }) {
     >
       <div className="oi-container ofd-story">
         <div className="ofd-words">
-          <p className="oi-tag oi-tag-bracket ofd-rise" style={{ '--i': 0 }}>
-            {twoDigits(index + 1)} / {twoDigits(STORIES.length)}
-          </p>
-          <h2 id={headingId} className="oi-h2 ofd-title ofd-rise" style={{ '--i': 1 }}>
-            {feature.name}
+          <h2 id={headingId} className="oi-h2 ofd-title ofd-rise" style={{ '--i': 0 }}>
+            {words.name}
           </h2>
-          <p className="ofd-lead ofd-rise" style={{ '--i': 2 }}>
+          <p className="ofd-lead ofd-rise" style={{ '--i': 1 }}>
             {lead}
           </p>
           <ul className="ofd-lines">
             {rest.map((line, lineIndex) => (
-              <li key={line} className="ofd-line ofd-rise" style={{ '--i': lineIndex + 3 }}>
+              <li key={line} className="ofd-line ofd-rise" style={{ '--i': lineIndex + 2 }}>
                 {line}
               </li>
             ))}
           </ul>
         </div>
         <Seen className="ofd-visual" threshold={0.3} aria-hidden="true">
-          <div className="ofd-mock" data-mock={feature.id} onPointerMove={trackPointer}>
+          <div className="ofd-mock" data-mock={feature.id} dir="ltr" onPointerMove={trackPointer}>
             <Mock />
           </div>
         </Seen>

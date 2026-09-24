@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "slug": "security",
+    "title": "Güvenlik ve Güvenlik Açığı Bildirimi",
+    "summary": "Bu sayfa, Orqanix'i nasıl koruduğumuzu, verilerinizi nasıl güvende tutabileceğinizi ve bir güvenlik sorununu nasıl bildirebileceğinizi açıklar.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "security@orqanix.com probably receives no mail today: orqanix.com has no MX record (open point #2). Reports cannot reach us until this is fixed.",
+        "CRA Art. 14 reporting has applied since 11 Sep 2026: we need an internal runbook (ENISA Single Reporting Platform; 24 h / 72 h / 14 days / 1 month) and to know which national CSIRT is ours, which depends on the company (open point #1).",
+        "Supported versions: the page says only the newest Desktop App version gets security fixes. The owner must confirm this policy, and set a CRA support period (with its end date shown at download) before 11 Dec 2027.",
+        "Desktop defaults disclosed here as they are: Auto-approve on, shell and file tools on, provider keys stored in a plain-text file, chat history not additionally encrypted, app not notarized (open points #8 and #14). Update this page if any of them change.",
+        "'We aim to acknowledge within 5 working days' is a target the owner must be able to meet.",
+        "Safe-harbour promise: lawyer to confirm the wording for the company's home country (no promise can bind third parties or authorities).",
+        "Incident notice to users: the page promises to tell affected users. A breach runbook (GDPR 72 h, US state breach laws) is needed as an internal document.",
+        "Safe harbour now says we do not report researchers to the authorities 'unless the law requires us to' (for example a GDPR breach report). Lawyer to confirm.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): failing to provide security updates can make software defective, and consumer liability cannot be excluded. Decide the update and support policy before then (see supported versions).",
+        "Dir. 2019/770 Art. 8(2): EU consumers are owed security updates for the period they can reasonably expect. 'Newest version only, by manual download' must be squared with this in the Desktop App Terms.",
+        "The page says the shell and file tools can reach anything the macOS account can (no sandbox found in the Desktop App code). Update if a sandbox is added.",
+        "US: if health data is processed (health marketing, open point #16), the FTC Health Breach Notification Rule (16 CFR 318) adds notice duties to the FTC. Not written here; covered in the Health Data policy if needed.",
+        "CRA Art. 13(17) single point of contact (from 11 Dec 2027): security@ serves it once the mailbox works."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "overview",
+      "text": "Genel bakış"
+    },
+    {
+      "type": "p",
+      "text": "Bu sayfa web sitesini, web uygulamasını, Masaüstü Uygulamasını, Mobil Uygulamayı, Asistan Botunu, API'yi ve Kurumsal çalışmalarımızı kapsar."
+    },
+    {
+      "type": "p",
+      "text": "Hiçbir sistem kusursuz derecede güvenli değildir ve {company.name} ürününün güvenlik açıklarından arınmış olduğunu garanti etmiyoruz. Aşağıda, buna güvenmeden önce bilmeniz gereken sınırlar da dahil olmak üzere, bugün fiilen neler yaptığımızı açıklıyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-protect",
+      "text": "Orqanix'i nasıl koruyoruz"
+    },
+    {
+      "type": "h3",
+      "id": "cloud",
+      "text": "Bulut hizmetleri"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Barındırma: bulut hizmetlerimiz ve veritabanımız AB'de, Hollanda'da (europe-west4 bölgesi) Google Cloud üzerinde çalışır. Kullandığımız şirketler [Alt İşleyenler](/instant/legal/subprocessors) sayfasında listelenmiştir.",
+        "Şifreleme: veriler aktarım sırasında şifrelenir (HTTPS) ve bulut sağlayıcımız verileri depolama sırasında şifreler.",
+        "Oturum açma: uzman bir oturum açma sağlayıcısı olan Clerk hesapları yönetir ve kayıt sayfasında bot koruması kullanır. Parolanızı saklamayız.",
+        "Anahtarlar ve gizli bilgiler: sistemlerimizin hizmet anahtarları Google Cloud'un gizli bilgi deposunda tutulur. Otomasyonlara ait uygulama anahtarları yalnızca karma (hash) değerleri olarak saklanır; bu nedenle anahtarın kendisi veritabanımızdan geri okunamaz.",
+        "Model istekleri: Masaüstü Uygulaması bir konuşmayı hizmetimiz aracılığıyla yapay zekâ modeline gönderdiğinde, hizmetimiz onu saklamadan iletir. İstemlerinizin veya mesajlarınızın içeriğini sunucu günlük kayıtlarımıza yazmayız.",
+        "Kayıtlar: ajanların yaptıklarına ilişkin bazı kayıtlar (mesajlar, dosyalar, onaylar ve olaylar) değiştirilemez bir günlük olarak tutulur. Sistemlerimiz bu kayıtların sonradan değiştirilmesine izin vermez. Bu, tam olarak ne olduğunu görmenize yardımcı olur.",
+        "Yedekler: veritabanı her gün yedeklenir ve silme koruması açıktır."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "desktop",
+      "text": "Masaüstü Uygulaması"
+    },
+    {
+      "type": "list",
+      "items": [
+        "{company.name} oturum açma belirteciniz macOS Anahtar Zinciri'nde saklanır. Oturumu kapatmak onu iptal eder.",
+        "Uygulama, verilerini yalnızca macOS kullanıcı hesabınızın okuyabildiği bir profil klasöründe tutar.",
+        "Uygulama kullanım istatistiği göndermez ve bir çökme raporlayıcısı yoktur.",
+        "Ajanlar, oluşturdukları dosyaları seçtiğiniz proje klasörüne kaydeder. Ayrıca sormadan ne kadarını yapabileceklerini de siz seçersiniz (bkz. [Size düşenler](#your-part))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bilmeniz gereken sınırlar:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Varsayılan olarak uygulama, ajanların eylemlerini otomatik olarak onaylar ve kabuk ile dosya düzenleme araçları açıktır. Dolayısıyla ajanlar, önce sormadan Mac'inizdeki dosyaları okuyabilir, değiştirebilir ve komut çalıştırabilir. Bu araçlar proje klasörünüzle sınırlı değildir: macOS hesabınızın erişebildiği her şeye erişebilirler.",
+        "Kendiniz bağladığınız yapay zekâ sağlayıcılarına (OpenAI veya Anthropic gibi) ait anahtarlar ve uzantılara ait gizli bilgiler, Anahtar Zinciri'nde değil, uygulamanın klasöründeki düz metin bir ayar dosyasında saklanır.",
+        "Sohbet geçmişi, uygulamanın kendisinin şifrelemediği yerel bir veritabanı dosyasında tutulur. Bu dosya, macOS hesabınızın dosya izinleriyle ve açmanız halinde FileVault disk şifrelemesiyle korunur.",
+        "Uygulama Apple tarafından noter onayından geçirilmemiştir. Uygulamayı ilk açtığınızda macOS, \"Yine de Aç\" ile onaylamanızı ister.",
+        "Uygulama kendini güncellemez. Güvenlik düzeltmeleri, indirdiğiniz yeni bir sürüm olarak gelir (bkz. [Güvenlik güncellemeleri](#updates))."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-part",
+      "text": "Size düşenler"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Masaüstü Uygulamasını yalnızca orqanix.com üzerindeki bağlantıdan indirin.",
+        "macOS'u güncel tutun, FileVault disk şifrelemesini ve ekran kilidini açın.",
+        "İşinize uygun onay modunu seçin. Uygulama her eylemden önce sorabilir, yalnızca hassas eylemler için sorabilir veya yalnızca sohbet edebilir. Önemli dosyalarla çalışırken daha sıkı bir mod kullanın.",
+        "Ajanları yalnızca ihtiyaç duydukları şeyleri içeren bir proje klasörüne yönlendirin ve önem verdiğiniz dosyaların yedeklerini tutun. Kabuk ve dosya araçlarının bu klasörün ötesine erişebileceğini unutmayın.",
+        "Diğer yapay zekâ sağlayıcıları için eklediğiniz anahtarları koruyun. macOS hesabınıza erişimi olan herkes veya her program bunları okuyabilir. Bir anahtarın sızdığını düşünüyorsanız, onu sağlayıcı nezdinde iptal edin.",
+        "Uygulamanın yeni bir sürümünü yayımladığımızda en yeni sürümü kurun.",
+        "Başkalarının da kullandığı bir Mac'te oturumu kapatın ve oturum açtığınız hesabı güvende tutun.",
+        "Ajanların ne yaptığını kontrol edin. Web'den veya dosyalardan getirdikleri içeriği güvenilmez kabul edin: bu içerik, ajanı yanıltmaya yönelik talimatlar barındırabilir."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Güvenlik açığı bildirme"
+    },
+    {
+      "type": "p",
+      "text": "{company.name} ürününde bir güvenlik sorunu bulursanız, lütfen {company.securityEmail} adresinden bize bildirin. Lütfen şunları ekleyin:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Hangi ürünün, sayfanın veya sürümün etkilendiği.",
+        "Sorunun ne olduğu ve bir saldırganın bununla neler yapabileceği.",
+        "Sorunu yeniden oluşturma adımları; varsa ekran görüntüleri veya kısa bir kavram kanıtı ile birlikte.",
+        "Size nasıl ulaşabileceğimiz ve sorunu düzelttiğimizde adınızın anılmasını isteyip istemediğiniz."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bildiriminizi 5 iş günü içinde teyit etmeyi, incelememiz sırasında sizi bilgilendirmeyi ve sorun düzeltildiğinde size haber vermeyi hedefliyoruz."
+    },
+    {
+      "type": "p",
+      "text": "Güvenlik iletişim bilgilerimiz, standart makine tarafından okunabilir biçimde [orqanix.com/.well-known/security.txt](https://orqanix.com/.well-known/security.txt) adresinde de yayımlanmaktadır."
+    },
+    {
+      "type": "h3",
+      "id": "rules",
+      "text": "Araştırma kuralları"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Yalnızca size ait hesaplar ve verilerle test yapın. Başka birine ait verilere ulaşırsanız derhal durun, bu verileri saklamayın ve bize bildirin.",
+        "Hizmetlerimizi veya diğer kullanıcıları aksatmayın: hizmet engelleme testleri, istenmeyen mesajlar ve büyük çaplı otomatik taramalar yapmayın.",
+        "Çalışanlarımıza veya sağlayıcılarımıza karşı sosyal mühendislik, oltalama (phishing) veya fiziksel saldırılar kullanmayın.",
+        "Google veya Clerk gibi sağlayıcılarımızın sistemlerini test etmeyin. Onların hizmetlerindeki sorunları kendilerine bildirin.",
+        "Bir sorunu, düzeltilene kadar veya sizinle bir tarih üzerinde anlaşana kadar kamuya açıklamayın."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "safe-harbour",
+      "text": "Yasal güvence"
+    },
+    {
+      "type": "p",
+      "text": "İyi niyetle hareket eder ve bu kurallara uyarsanız, araştırmanızı yetkilendirilmiş kabul ederiz. Bu nedenle size karşı hukuki işlem başlatmayız ve hukuk bizi zorunlu kılmadıkça sizi yetkililere bildirmeyiz. Bu kurallara uygun bir araştırma nedeniyle başka biri size karşı işlem başlatırsa, araştırmaya bizim yetki verdiğimizi açıkça belirtiriz. Ücretli bir hata ödül programı yürütmüyoruz."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Güvenlik güncellemeleri"
+    },
+    {
+      "type": "p",
+      "text": "Güvenlik sorunlarını Masaüstü Uygulamasının en yeni sürümünde düzeltiriz. Eski sürümlere yama yapmayız; bu nedenle lütfen her zaman en yeni sürümü kullanın. Uygulama kendini güncellemez: bir düzeltme yayımladığımızda yeni sürümü orqanix.com'dan indirin ve eskisinin üzerine kurun."
+    },
+    {
+      "type": "p",
+      "text": "Web sitemize, web uygulamamıza, API'mize ve diğer bulut hizmetlerimize yönelik düzeltmeler, sizin herhangi bir işlem yapmanıza gerek kalmadan size ulaşır."
+    },
+    {
+      "type": "h2",
+      "id": "incidents",
+      "text": "Güvenlik olayları"
+    },
+    {
+      "type": "p",
+      "text": "Bir güvenlik olayı kişisel verilerinizi etkilerse, hukukun gerektirdiği şekilde yetkilileri ve etkilenen kişileri bilgilendiririz. Size bildirdiğimizde ne olduğunu, hangi verilerin söz konusu olduğunu, bu konuda ne yaptığımızı ve sizin neler yapabileceğinizi belirtiriz."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "GDPR'ın gerektirdiği durumlarda, kişisel veri ihlalini 72 saat içinde veri koruma otoritesine bildiririz ve etkilenen kişiler için risk yüksek olduğunda onları bilgilendiririz (GDPR Art. 33 and 34)."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "EU Cyber Resilience Act kapsamında, uygulamalarımızı etkileyen aktif olarak istismar edilen güvenlik açıklarını ve ciddi güvenlik olaylarını, hukukun belirlediği süreler içinde yetkililere bildiririz. Ayrıca etkilenen kullanıcıları sorun ve atmaları gereken adımlar hakkında bilgilendiririz (Regulation (EU) 2024/2847, Art. 14)."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "ABD eyaletlerinin veri ihlali bildirim yasalarının uygulandığı durumlarda, etkilenen kişileri ve gerektiğinde eyalet yetkililerini bu yasaların belirlediği süreler içinde bilgilendiririz."
+    }
+  ]
+}

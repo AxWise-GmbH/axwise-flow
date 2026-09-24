@@ -6,6 +6,8 @@
  *   also   optional: a second capability line, shown under a small "Also" tag
  */
 
+import { SKIP_KEYS, localeWords, localize } from '../i18n/localize';
+
 export const FEATURES_CHECKED_ON = '2026-09-19';
 
 // The four features that get a full story of their own on the page, in page order.
@@ -115,4 +117,69 @@ export const FEATURES = [
     today: 'Save any job as a recipe, run it again, or let it run on a schedule.',
     evidence: 'crates/goose/src/scheduler.rs',
   },
+  {
+    id: 'local',
+    icon: 'chip',
+    name: 'Local inference',
+    today:
+      'Run open-source models right on your Mac. Search Hugging Face from the app, download a model and chat with it locally.',
+    note: 'Each model is a one-time download in setup before its first use.',
+    evidence: 'crates/goose-local-inference',
+  },
+  {
+    id: 'prompts',
+    icon: 'prompt',
+    name: 'Editable system prompts',
+    today:
+      'Read and rewrite the instructions the AI follows, in plain words, in Settings. Reset any of them to the default at any time.',
+    evidence: 'ui/desktop/src/components/settings/PromptsSettingsSection.tsx',
+  },
+  {
+    id: 'providers',
+    icon: 'layers',
+    name: 'Configurable model providers',
+    today:
+      'Choose the AI behind the work: Anthropic, OpenAI, Google, OpenRouter, Ollama and more, or add your own provider. Your API keys are encrypted and kept on your Mac.',
+    evidence: 'ui/desktop/src/components/settings/providers/ProviderGrid.tsx',
+  },
+  {
+    id: 'scheduler',
+    icon: 'calendar',
+    name: 'Scheduler',
+    today:
+      'Pick when a job runs: every morning, every Monday or on your own timetable. It starts on time without you.',
+    evidence: 'ui/desktop/src/components/schedule/CronPicker.tsx',
+  },
+  {
+    id: 'sandbox',
+    icon: 'box',
+    name: 'Sandbox for apps',
+    today:
+      'Ask for a small app and it builds one. Each app runs in its own sandboxed window with strict security rules.',
+    evidence: 'crates/goose/src/agents/platform_extensions/apps.rs',
+  },
+  {
+    id: 'skills',
+    icon: 'spark',
+    name: 'Skills library',
+    today:
+      'Skills teach the AI how to do a job your way. Browse them in one place, add your own, and it uses the right one when the job needs it.',
+    evidence: 'ui/desktop/src/components/skills/SkillsView.tsx',
+  },
 ];
+
+// Words in other languages: pg.feature.<id>.<field>. The source paths stay as written.
+const FEATURE_SKIP = new Set([...SKIP_KEYS, 'evidence']);
+const featurePrefix = (feature) => `pg.feature.${feature.id}`;
+
+/** One feature in the current language; `english` keeps the original for logic on the words. */
+export function localizeFeature(feature, t) {
+  return { ...localize(feature, featurePrefix(feature), t, FEATURE_SKIP), english: feature };
+}
+
+export function featureWords() {
+  return Object.assign(
+    {},
+    ...FEATURES.map((feature) => localeWords(feature, featurePrefix(feature), FEATURE_SKIP))
+  );
+}

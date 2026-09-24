@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "slug": "accessibility",
+    "title": "Declaração de Acessibilidade",
+    "summary": "Esta declaração explica o quanto o site da Orqanix é acessível, em que pontos ainda deixa a desejar e como relatar uma barreira.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primeira versão."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The statement rests on a code review of the landing pages on 21 Sep 2026 (reduced-motion handling in the animated sections, focus-visible styles, aria labels, decorative SVGs hidden, Escape closes menus, lang=\"en\"). No full WCAG 2.1 AA audit or screen-reader test has been done; do one and update the known gaps.",
+        "Known gaps found in code: many labels inside illustrations are 9-11 px; the dim grey token (#6b6b6b on black) is about 3.9:1, below the 4.5:1 WCAG needs for small text. Fix or keep listed.",
+        "EAA / BFSG: whether Orqanix is a microenterprise (fewer than 10 staff and at most EUR 2m turnover) decides whether the EAA applies to its consumer services. Owner to confirm headcount and turnover. Once a paid consumer checkout exists, the EAA Annex V information may be required.",
+        "EU enforcement contact: the page names no authority because it depends on the company's country (Germany: the market surveillance authority for the BFSG). Add it once the company is chosen.",
+        "Feedback goes to hello@orqanix.com, which probably receives no mail today (no MX record, open point #2).",
+        "The page targets WCAG 2.1 AA. EN 301 549 (the EAA benchmark) now points to WCAG 2.1; if the owner wants to aim for WCAG 2.2, change the target line.",
+        "US: no ADA-specific text is needed; a working feedback channel (hello@, open point #2) is the main risk reducer for demand letters."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "our-aim",
+      "text": "Nosso objetivo"
+    },
+    {
+      "type": "p",
+      "text": "Queremos que todas as pessoas possam usar o site da {company.name}, incluindo quem usa teclado, leitor de tela, zoom ou outra tecnologia assistiva. Nossa meta é o nível AA das Diretrizes de Acessibilidade para Conteúdo Web (WCAG) 2.1, o padrão internacional mais comum."
+    },
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Abrangência"
+    },
+    {
+      "type": "p",
+      "text": "Esta declaração abrange o site orqanix.com: a página inicial, as páginas de produtos e de soluções, a página de Notícias e a Central Jurídica. Ela não abrange o aplicativo web, o Aplicativo para Computador nem as páginas de login fornecidas pela Clerk, nosso provedor de login."
+    },
+    {
+      "type": "h2",
+      "id": "status",
+      "text": "Situação atual"
+    },
+    {
+      "type": "p",
+      "text": "O site atende parcialmente ao nível AA das WCAG 2.1. Ele ainda não passou por uma auditoria completa, e não afirmamos conformidade total. As falhas que conhecemos estão listadas em [Falhas conhecidas](#known-gaps)."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-did",
+      "text": "O que já fizemos"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Teclado: você pode acessar links, botões e menus pelo teclado, e a tecla Esc fecha os menus abertos.",
+        "Foco visível: links e botões exibem um estilo de foco visível quando você chega até eles pelo teclado.",
+        "Menos movimento: se o seu dispositivo estiver configurado para reduzir o movimento, as cenas animadas param de se mover e o conteúdo aparece sem animação.",
+        "Contraste: o texto principal e os títulos são quase brancos sobre fundo preto.",
+        "Alternativas em texto: menus, controles e cenas que transmitem significado têm rótulos de texto para leitores de tela. Os gráficos puramente decorativos ficam ocultos para eles.",
+        "Estrutura: as páginas usam títulos, uma área de conteúdo principal, um menu principal rotulado e um menu de rodapé rotulado, e o idioma da página está definido como inglês.",
+        "Telas pequenas: o layout se adapta a celulares e janelas estreitas."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "known-gaps",
+      "text": "Falhas conhecidas"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Algumas ilustrações contêm texto pequeno, como rótulos dentro das cenas animadas dos produtos. Ele pode ser difícil de ler, mesmo com zoom.",
+        "Alguns rótulos secundários usam um cinza escuro com contraste menor do que as WCAG exigem para texto pequeno.",
+        "As cenas animadas podem ser difíceis de acompanhar para algumas pessoas. Elas param de se mover se o seu dispositivo estiver configurado para reduzir o movimento."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Pretendemos corrigir essas falhas. Se alguma delas impedir você de obter informações de que precisa, [avise-nos](#feedback) e tentaremos fornecê-las de outra forma."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Comentários"
+    },
+    {
+      "type": "p",
+      "text": "Se encontrar uma barreira em nosso site, informe-nos pelo e-mail {company.email}. Diga em qual página ela estava, o que você tentou fazer e, se quiser, qual navegador e tecnologia assistiva você usa. Procuramos responder rapidamente e corrigir o que for possível."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Se você mora na UE e nossa resposta não resolver o problema, pode entrar em contato com a autoridade do seu país responsável pela fiscalização da acessibilidade."
+    },
+    {
+      "type": "h2",
+      "id": "about-this-statement",
+      "text": "Sobre esta declaração"
+    },
+    {
+      "type": "p",
+      "text": "Preparamos esta declaração em 21 de setembro de 2026, com base em nossa própria análise do site. Vamos atualizá-la quando corrigirmos uma falha ou concluirmos uma auditoria."
+    }
+  ]
+}

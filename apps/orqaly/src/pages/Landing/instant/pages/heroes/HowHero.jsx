@@ -3,6 +3,7 @@ import { Seen } from '../../SpeedStrip';
 import { CheckGlyph } from '../../ui/Glyphs';
 import HeroFrame from './HeroFrame';
 import { TRACKS, stationPlace, stepAnchor } from './howHeroTrack';
+import { useT } from '../../i18n/useT';
 import './HowHero.css';
 
 // One loop of the picture. The light travels to a station, the station plays its scene,
@@ -136,6 +137,12 @@ const STATIONS = [
   { label: 'Review', Scene: ReviewScene },
 ];
 
+export function howHeroWords() {
+  return Object.fromEntries(
+    STATIONS.map((station, index) => [`pg.howhero.station.${index}`, station.label])
+  );
+}
+
 // Without a real browser (tests) or with reduced motion the journey is simply finished.
 function journeyIsStill() {
   if (typeof IntersectionObserver === 'undefined') return true;
@@ -262,13 +269,20 @@ function OrbLines({ lit = false }) {
 }
 
 function Station({ step, index, total, state }) {
-  const { label, Scene } = STATIONS[index];
+  const { t } = useT('pg');
+  const { Scene } = STATIONS[index];
+  const label = t(`pg.howhero.station.${index}`, STATIONS[index].label);
   return (
     <li className="ohw-station" data-state={state} style={stationPlace(index)}>
       <a
         className="ohw-link"
         href={`#${stepAnchor(step.number)}`}
-        aria-label={`${label}. Step ${index + 1} of ${total}: ${step.title}`}
+        aria-label={t('pg.howhero.link', '{label}. Step {n} of {total}: {title}', {
+          label,
+          n: index + 1,
+          total,
+          title: step.title,
+        })}
         onClick={glideToStep}
       >
         <span className="ohw-orb">
@@ -295,6 +309,7 @@ function Station({ step, index, total, state }) {
 }
 
 function Journey({ steps }) {
+  const { t } = useT('pg');
   const [still] = useState(journeyIsStill);
   const [beat, setBeat] = useState(still ? steps.length * 2 : 0);
   const { phase, reached, leg, ms } = readBeat(beat, steps.length);
@@ -303,7 +318,8 @@ function Journey({ steps }) {
     <Seen
       as="nav"
       className="ohw-stage"
-      aria-label="The five steps"
+      dir="ltr"
+      aria-label={t('pg.howhero.nav', 'The five steps')}
       data-still={still}
       data-phase={phase}
       style={{ '--ohw-travel': `${TRAVEL_MS}ms` }}

@@ -109,7 +109,9 @@ const explicitTopLevelPatterns = [
   '/standart',
   '/instant',
   '/instant/:page',
+  '/instant/news/:slug',
   '/instant/solutions/:slug',
+  '/instant/products/:slug?',
   '/login',
   '/signup',
   '/auth/callback',
@@ -363,7 +365,7 @@ describe('GCP launch route allowlist', () => {
     expect(gcpRoutePaths).not.toContain('/instant');
   });
 
-  it.each(['/instant/how-it-works', '/instant/features', '/instant/speed'])(
+  it.each(['/instant/how-it-works', '/instant/features', '/instant/speed', '/instant/news'])(
     'serves the preview sub-page %s publicly through one parameterised route',
     (location) => {
       const routeMatches = matches(location);
@@ -381,6 +383,57 @@ describe('GCP launch route allowlist', () => {
       expect(routeMatches[0].route.path).toBe('/instant/solutions/:slug');
       expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
       expect(gcpRoutePaths).not.toContain('/instant/solutions/:slug');
+    }
+  );
+
+  it.each(['/instant/products/desktop', '/instant/products/assistant-bot', '/instant/products'])(
+    'serves the product page %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/products/:slug?');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
+      expect(gcpRoutePaths).not.toContain('/instant/products/:slug?');
+    }
+  );
+
+  it.each([
+    '/instant/legal',
+    '/instant/legal/eu',
+    '/instant/legal/us/privacy',
+    '/instant/legal/terms',
+  ])('does not serve the unpublished Legal Center at %s', (location) => {
+    const routeMatches = matches(location);
+    expect(routeMatches).toHaveLength(1);
+    expect(routeMatches[0].route.path).not.toBe('/instant/legal/*');
+    expect(gcpRoutePaths).not.toContain('/instant/legal/*');
+  });
+
+  it.each([
+    [
+      '/privacy',
+      'Privacy',
+      'The production privacy notice will describe Clerk authentication, GCP hosting, durable workflow data, retention, and user rights before launch.',
+    ],
+    ['/terms', 'Terms', 'Production terms will be published before public launch.'],
+    [
+      '/cookies',
+      'Cookies',
+      'The launch build uses the cookies and browser storage required by Clerk authentication and essential application operation.',
+    ],
+  ])('preserves the existing %s notice unchanged', (path, title, body) => {
+    const route = leaf(path);
+    expect(route.element.type).not.toBe(Navigate);
+    expect(route.element.props).toMatchObject({ eyebrow: 'Legal', title, body });
+  });
+
+  it.each(['/instant/news/orqaly-and-axwise-merge', '/instant/news/business-api'])(
+    'serves the news article %s publicly through one parameterised route',
+    (location) => {
+      const routeMatches = matches(location);
+      expect(routeMatches).toHaveLength(1);
+      expect(routeMatches[0].route.path).toBe('/instant/news/:slug');
+      expect(routeMatches[0].route.element.type).not.toBe(GcpClerkGate);
     }
   );
 

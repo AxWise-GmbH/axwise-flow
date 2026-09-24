@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Open-Source-Hinweise",
+    "summary": "Diese Seite listet die Open-Source-Software in der Orqanix Desktop-App und auf unserer Website auf, nennt ihre Lizenzen und erklärt, wie Sie die Lizenztexte erhalten.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "Über diese Seite"
+    },
+    {
+      "type": "p",
+      "text": "Teile unserer Produkte sind Open-Source-Software: Software, deren Urheber jedem erlauben, sie unter einer veröffentlichten Lizenz zu nutzen, zu ändern und weiterzugeben. Diese Seite listet die wichtigsten Open-Source-Bestandteile auf und erklärt, wie Sie deren Lizenztexte erhalten."
+    },
+    {
+      "type": "p",
+      "text": "Jeder Bestandteil unterliegt weiterhin seiner eigenen Lizenz. Nichts in unseren [Nutzungsbedingungen](/instant/legal/terms) oder den [Bedingungen Desktop-App](/instant/legal/desktop-app-terms) schränkt die Rechte ein, die Ihnen diese Lizenzen gewähren. Soweit eine Lizenz bestimmt, dass ihre Urheber keine Gewährleistung übernehmen, gilt dies für deren Werk. Unsere eigenen Zusagen zu unseren Produkten finden Sie in unseren Bedingungen."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "Die Desktop-App"
+    },
+    {
+      "type": "p",
+      "text": "Die Orqanix-App für den Mac enthält Open-Source-Software wie:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Software",
+        "Aufgabe in der App",
+        "Lizenz"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "Das Agenten-Framework, auf dem die Agenten der App laufen",
+          "Apache License 2.0"
+        ],
+        [
+          "Eine optionale, mit der App ausgelieferte Entwicklungs-Laufzeitumgebung",
+          "Führt die Entwicklungswerkzeuge der App aus",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "Das Fenster und die Desktop-Hülle der App",
+          "MIT License"
+        ],
+        [
+          "Chromium (in Electron enthalten)",
+          "Stellt die Bildschirme der App dar",
+          "Eine BSD-artige Lizenz und weitere"
+        ],
+        [
+          "Node.js",
+          "Führt Teile der App aus",
+          "MIT License, wobei einige mitgelieferte Bestandteile anderen Lizenzen unterliegen"
+        ],
+        [
+          "Viele kleinere npm- und Rust-Pakete",
+          "Bausteine, die in der gesamten App verwendet werden",
+          "Verschiedene Open-Source-Lizenzen, etwa MIT, Apache 2.0 und BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Die App enthält die Lizenztexte und Hinweise für Goose, die Entwicklungs-Laufzeitumgebung, Electron, Chromium und Node.js. Um sie anzuzeigen, klicken Sie im Finder bei gedrückter Ctrl-Taste auf die App, wählen „Paketinhalt zeigen“ und öffnen dann „Contents“ und anschließend „Resources“. Diese Dateien sind die maßgeblichen Texte; diese Tabelle ist nur eine Zusammenfassung. Für die kleineren Pakete wenden Sie sich an uns wie unter [Lizenztexte und Quellcode](#get-the-texts) beschrieben."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Unsere Website"
+    },
+    {
+      "type": "p",
+      "text": "Unsere Website verwendet die Schriftarten Geist, Geist Mono und Inter, die alle unter der [SIL Open Font License 1.1](https://openfontlicense.org) lizenziert sind."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Namen und Marken"
+    },
+    {
+      "type": "p",
+      "text": "Die Namen von Open-Source-Projekten gehören ihren Inhabern. Dass wir ihre Software nutzen, bedeutet nicht, dass diese Projekte oder ihre Inhaber Orqanix empfehlen oder unterstützen, und die Lizenzen gewähren niemandem Rechte an ihren Namen oder Logos."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Lizenztexte und Quellcode"
+    },
+    {
+      "type": "p",
+      "text": "Um eine Kopie eines Lizenztextes anzufordern oder Quellcode, soweit Ihnen eine Lizenz ein Recht darauf gibt, schreiben Sie an {company.email} mit dem Betreff „Open Source“. Teilen Sie uns mit, welche Version der Desktop-App Sie verwenden."
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie meinen, dass wir einen Hinweis vergessen oder Open-Source-Software in einer Weise genutzt haben, die ihre Lizenz nicht erlaubt, teilen Sie uns dies unter derselben Adresse mit, und wir gehen der Sache nach."
+    }
+  ]
+}

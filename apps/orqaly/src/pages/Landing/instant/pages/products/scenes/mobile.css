@@ -1,0 +1,1504 @@
+/*
+ * Mobile App scene (class prefix pmo-; every rule starts from [data-product='mobile']): a phone
+ * in front, the Mac it drives behind, a dotted line between them. The same parts make every
+ * cut; [data-cut] says which show and play. This file holds the parts and the header's cuts
+ * (menu, hero). The page's own cuts (check, rerun, start, online) live in mobile-page.css,
+ * which ships with the page, so the header never carries them.
+ *
+ * menu, hero: tap Run again, a pulse carries it to the Mac, the Mac ticks three steps, the
+ * pulse comes back, the row reads "Done · just now" and the island opens to say so.
+ *
+ * Every cut opens on its payoff: --pmo-at starts the clock at 75%, so the first frame is the
+ * finished one, held while the card fades in; then the story plays from the top.
+ *
+ * Plain styles are the finished frame. Every beat is a % of the kit's clock (--ps-loop):
+ * 8-13% tap, 12-25% pulse out, 23-28% the Mac wakes, 27-54% three steps, 57-70% pulse back,
+ * 69-71% done, 71-93% the island speaks, 93-100% back to the start.
+ *
+ * Sizes: --u is 1% of the card. The phone counts in --k (it is 30k wide), the Mac in --m (its
+ * lid is --mw wide); the layout variables place them per cut and card width. Words the story
+ * needs never drop below 9px; the Mac's words are drawn as lines (the phone says them).
+ * Motion is transform and opacity only.
+ */
+
+[data-product='mobile'] {
+  --pmo-ink: var(--oi-app-text);
+  --pmo-glass: rgba(255, 255, 255, 0.06);
+  --pmo-rim: rgba(255, 255, 255, 0.1);
+  /* The phone's screen: its ground, the composer's field (and the cover over its untyped
+     words), the arrow on the send disc, the tick on a done step. */
+  --pmo-screen: radial-gradient(120% 60% at 50% 0, #1d1d1d, #0b0b0b 70%);
+  --pmo-field: #1a1a1a;
+  --pmo-send-ink: #0e0e0e;
+  --pmo-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.4l2.7 2.6L12 5.6'/%3E%3C/svg%3E");
+  /* The Mac's screen: the window's dots, and the ground under the app's surface. */
+  --pmo-dots: #5a5a5a;
+  --pmo-disp-ground: #111111;
+  /* Hardware, the same in both looks: the phone's body, bezel and island, the Mac's lid,
+     camera and base, a screen asleep. */
+  --pmo-hw-black: #000000;
+  --pmo-hw-lid: #050505;
+  --pmo-hw-rim: #3a3a3a;
+  --pmo-hw-cam: #262626;
+  --pmo-hw-base:
+    radial-gradient(50% 100% at 50% 0, #151515 30%, transparent 32%) 50% 0 / 18% 45% no-repeat,
+    linear-gradient(#5c5c5c, #262626 55%, #121212);
+  --pmo-hw-edge: #474747;
+  --pmo-hw-body: linear-gradient(150deg, #353535, #0a0a0a 36%, #161616 70%, #2a2a2a);
+
+  text-align: left;
+}
+
+/* Light: both screens show the app's light theme (white cards on a pale ground, a white
+   field, a dark send disc with a white arrow, dark done-discs with white ticks). The
+   hardware stays dark, like the real thing. */
+[data-product='mobile']:is([data-oi-theme='light'] *) {
+  --pmo-glass: #ffffff;
+  --pmo-rim: rgba(0, 0, 0, 0.08);
+  --pmo-screen: radial-gradient(120% 60% at 50% 0, #f8f8f8, #ededed 70%);
+  --pmo-field: #ffffff;
+  --pmo-send-ink: #ffffff;
+  --pmo-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.4l2.7 2.6L12 5.6'/%3E%3C/svg%3E");
+  --pmo-dots: #c4c4c4;
+  --pmo-disp-ground: #ffffff;
+}
+
+/* The island is hardware, black in both looks, and the news it opens into keeps the dark
+   look's inks (a live activity on a phone in light mode is black too). */
+[data-product='mobile']:is([data-oi-theme='light'] *) :is(.pmo-isl, .pmo-note) {
+  --oi-fg-rgb: 255, 255, 255;
+  --oi-app-text: #f5f5f5;
+  --oi-paper-strong: #0e0e0e;
+  --pmo-ink: #f5f5f5;
+}
+
+/* The menu's layout, the default. */
+[data-product='mobile'] .ps-scene {
+  --pk: calc(var(--u) * 1.42);
+  --px: calc(var(--u) * 4);
+  --py: calc(var(--u) * 5.5);
+  --mk: calc(var(--u) * 1.04);
+  --mw: calc(var(--u) * 35);
+  --mx: calc(var(--u) * 55.5);
+  --my: calc(var(--u) * 15);
+  --lx: calc(var(--u) * 47.6);
+  --ly: calc(var(--u) * 23);
+  --lw: calc(var(--u) * 7.4);
+  --on: 1.6;
+  --gx: 76%;
+  --gy: 42%;
+  --pmo-at: calc(var(--ps-loop) * -0.75);
+
+  -webkit-mask: linear-gradient(#000 80%, transparent 99%);
+  mask: linear-gradient(#000 80%, transparent 99%);
+}
+
+[data-product='mobile'] :where(p) {
+  margin: 0;
+}
+
+[data-product='mobile'] :where(em) {
+  font-style: normal;
+}
+
+/* Parts a cut does not use stay out of it. */
+[data-product='mobile']
+  :is(.pmo-mac, .pmo-link, .pmo-go, .pmo-note, .pmo-new, .pmo-plan, .pmo-off, .pmo-ask, .pmo-mini) {
+  display: none;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) :is(.pmo-mac, .pmo-link, .pmo-go) {
+  display: block;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) :is(.pmo-note, .pmo-mini),
+[data-product='mobile'][data-cut='hero'] .pmo-ask {
+  display: flex;
+}
+
+[data-product='mobile'][data-cut='hero'] .pmo-new {
+  display: grid;
+}
+
+/* The light ------------------------------------------------------------------------------ */
+
+[data-product='mobile'] .pmo-glow {
+  position: absolute;
+  top: var(--gy);
+  left: var(--gx);
+  width: calc(var(--u) * 70);
+  aspect-ratio: 1.3;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.13 * var(--oi-halo-k))),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* The Mac -------------------------------------------------------------------------------- */
+
+[data-product='mobile'] .pmo-mac {
+  --m: var(--mk);
+
+  position: absolute;
+  top: var(--my);
+  left: var(--mx);
+  width: var(--mw);
+  transform: perspective(calc(var(--m) * 90)) rotateY(-14deg);
+  transform-origin: 0 50%;
+}
+
+[data-product='mobile'] .pmo-lid {
+  position: relative;
+  aspect-ratio: 16 / 10.2;
+  padding: calc(var(--m) * 0.8);
+  border: calc(var(--m) * 0.15) solid var(--pmo-hw-rim);
+  border-radius: calc(var(--m) * 1.8) calc(var(--m) * 1.8) calc(var(--m) * 0.4) calc(var(--m) * 0.4);
+  background: var(--pmo-hw-lid);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.2),
+    0 calc(var(--m) * 2) calc(var(--m) * 5) calc(var(--m) * -1.5)
+      rgba(var(--oi-shadow-rgb), calc(0.9 * var(--oi-shadow-k)));
+  transform-origin: 50% 100%;
+}
+
+/* A rim of light when work arrives (the Mac's lid, the phone). */
+[data-product='mobile'] .pmo-lid::after,
+[data-product='mobile'] .pmo-phone::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.75);
+  border-radius: inherit;
+  box-shadow: 0 0 calc(var(--u) * 3) rgba(var(--oi-fg-rgb), calc(0.16 * var(--oi-halo-k)));
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-product='mobile'] .pmo-phone::after {
+  inset: calc(var(--k) * -0.16);
+}
+
+/* The camera. */
+[data-product='mobile'] .pmo-lid::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--m) * 0.25);
+  left: 50%;
+  width: calc(var(--m) * 0.35);
+  aspect-ratio: 1;
+  margin-left: calc(var(--m) * -0.17);
+  border-radius: 50%;
+  background: var(--pmo-hw-cam);
+}
+
+[data-product='mobile'] .pmo-disp {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--m) * 0.75);
+  height: 100%;
+  padding: calc(var(--m) * 3) calc(var(--m) * 2) 0 calc(var(--m) * 8.6);
+  overflow: hidden;
+  border-radius: calc(var(--m) * 0.5);
+  /* The app: a sidebar of drawn lines beside the job. */
+  background:
+    repeating-linear-gradient(
+        transparent 0 calc(var(--m) * 1.2),
+        rgba(var(--oi-fg-rgb), 0.13) 0 calc(var(--m) * 1.75)
+      )
+      calc(var(--m) * 1.4) calc(var(--m) * 1.8) / calc(var(--m) * 4.6) calc(var(--m) * 11) no-repeat,
+    linear-gradient(90deg, rgba(var(--oi-fg-rgb), 0.045) calc(var(--m) * 7.2), transparent 0),
+    var(--oi-app-surface),
+    var(--pmo-disp-ground);
+  font-size: calc(var(--m) * 1.2);
+  line-height: 1.3;
+}
+
+/* The window's three dots. */
+[data-product='mobile'] .pmo-disp > b::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--m) * 0.9);
+  left: calc(var(--m) * 1.1);
+  width: calc(var(--m) * 0.55);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--pmo-dots);
+  box-shadow:
+    calc(var(--m) * 0.9) 0 0 var(--pmo-dots),
+    calc(var(--m) * 1.8) 0 0 var(--pmo-dots);
+}
+
+/* The Mac's words, drawn as lines as long as the words. */
+[data-product='mobile'] :is(.pmo-disp > b, .pmo-disp span) {
+  width: fit-content;
+  height: 0.5em;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(var(--oi-fg-rgb), 0.28);
+  color: transparent;
+  line-height: 0.5em;
+  white-space: nowrap;
+}
+
+[data-product='mobile'] .pmo-disp > b {
+  margin-bottom: calc(var(--m) * 0.5);
+  background: rgba(var(--oi-fg-rgb), 0.5);
+  font-size: calc(var(--m) * 1.35);
+}
+
+[data-product='mobile'] .pmo-disp p {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+}
+
+/* A light sweeps the screen as it wakes; a dark cover is the screen asleep. */
+[data-product='mobile'] .pmo-disp::before,
+[data-product='mobile'] .pmo-disp::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+[data-product='mobile'] .pmo-disp::before {
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(var(--oi-fg-rgb), 0.12) 48%,
+    transparent 66%
+  );
+  opacity: 0;
+  translate: -100% 0;
+}
+
+[data-product='mobile'] .pmo-disp::after {
+  background: var(--pmo-hw-lid);
+  opacity: 0;
+}
+
+/* The job's progress, under its steps. */
+[data-product='mobile'] :is(.pmo-bar, .pmo-prog) {
+  display: block;
+  height: calc(var(--m) * 0.45);
+  margin-top: calc(var(--m) * 0.4);
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(var(--oi-fg-rgb), 0.1);
+}
+
+[data-product='mobile'] :is(.pmo-bar, .pmo-prog)::after {
+  content: '';
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pmo-ink);
+  transform-origin: 0 50%;
+}
+
+/* The base under the lid, and its shadow on the floor. */
+[data-product='mobile'] .pmo-mac::after {
+  content: '';
+  display: block;
+  width: 118%;
+  height: calc(var(--m) * 1.2);
+  margin-left: -9%;
+  border-radius: 0 0 calc(var(--m) * 1.6) calc(var(--m) * 1.6) / 0 0 calc(var(--m) * 1)
+    calc(var(--m) * 1);
+  background: var(--pmo-hw-base);
+  box-shadow: 0 calc(var(--m) * 1.4) calc(var(--m) * 2.4)
+    rgba(var(--oi-shadow-rgb), calc(0.75 * var(--oi-shadow-k)));
+}
+
+[data-product='mobile'] .pmo-on {
+  position: absolute;
+  top: calc(100% + var(--m) * 1.8);
+  left: 50%;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0 0.6em;
+  translate: -50% 0;
+  color: var(--oi-app-soft);
+  font-size: max(9px, calc(var(--m) * var(--on)));
+  white-space: nowrap;
+}
+
+[data-product='mobile'] .pmo-on span {
+  grid-area: 1 / 2;
+}
+
+[data-product='mobile'] .pmo-on span + span {
+  opacity: 0;
+}
+
+[data-product='mobile'] .ps-dot {
+  width: 0.62em;
+  height: 0.62em;
+}
+
+/* The line between them, and the pulse that runs along it ------------------------------- */
+
+[data-product='mobile'] .pmo-link {
+  --rest: 0.5;
+
+  position: absolute;
+  top: var(--ly);
+  left: var(--lx);
+  width: var(--lw);
+  height: auto;
+  overflow: visible;
+  opacity: 0.5;
+  fill: none;
+  stroke: var(--pmo-ink);
+  stroke-dasharray: 0 0.8;
+  stroke-linecap: round;
+  stroke-width: 0.3;
+}
+
+/* The line is part of a circle (radius 8.5 of its 14 units), so the pulse rides it by turning
+   about that circle's centre: a transform, not a redrawn stroke. Out on ::before, home on
+   ::after, each lit at its head. */
+[data-product='mobile'] .pmo-go {
+  --s: calc(var(--lw) / 14);
+
+  position: absolute;
+  top: var(--ly);
+  left: var(--lx);
+  width: var(--lw);
+  aspect-ratio: 14 / 5;
+  pointer-events: none;
+}
+
+[data-product='mobile'] .pmo-go::before,
+[data-product='mobile'] .pmo-go::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--s) * 1.21);
+  left: calc(50% - var(--s) * 1.5);
+  width: calc(var(--s) * 3);
+  height: calc(var(--s) * 0.62);
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, var(--pmo-ink) 75%);
+  box-shadow: 0 0 calc(var(--s) * 0.9) rgba(var(--oi-fg-rgb), calc(0.28 * var(--oi-halo-k)));
+  opacity: 0;
+  transform-origin: 50% calc(var(--s) * 8.81);
+  rotate: -45deg;
+}
+
+[data-product='mobile'] .pmo-go::after {
+  background: linear-gradient(-90deg, transparent, var(--pmo-ink) 75%);
+  rotate: 45deg;
+}
+
+/* The phone ------------------------------------------------------------------------------ */
+
+[data-product='mobile'] .pmo-phone {
+  --k: var(--pk);
+
+  position: absolute;
+  top: var(--py);
+  left: var(--px);
+  width: calc(var(--k) * 30);
+  height: calc(var(--k) * 64);
+  padding: calc(var(--k) * 0.7);
+  border: calc(var(--k) * 0.16) solid var(--pmo-hw-edge);
+  border-radius: calc(var(--k) * 5);
+  background: var(--pmo-hw-body);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.3),
+    inset 0 0 0 calc(var(--k) * 0.2) var(--pmo-hw-black),
+    calc(var(--k) * -2) calc(var(--k) * 4) calc(var(--k) * 8) calc(var(--k) * -2)
+      rgba(var(--oi-shadow-rgb), calc(0.95 * var(--oi-shadow-k)));
+}
+
+[data-product='mobile'] .pmo-scr {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--k) * 1.1);
+  height: 100%;
+  padding: calc(var(--k) * 5.6) calc(var(--k) * 1.4) calc(var(--k) * 3);
+  overflow: hidden;
+  border-radius: calc(var(--k) * 4.3);
+  background: var(--pmo-screen);
+  color: var(--oi-app-muted);
+  font-size: max(9px, calc(var(--k) * 1.2));
+  line-height: 1.25;
+}
+
+/* The battery, and the home bar. */
+[data-product='mobile'] .pmo-scr::before,
+[data-product='mobile'] .pmo-scr::after {
+  content: '';
+  position: absolute;
+}
+
+[data-product='mobile'] .pmo-scr::before {
+  top: calc(var(--k) * 1.75);
+  right: calc(var(--k) * 2.4);
+  width: calc(var(--k) * 2.3);
+  height: calc(var(--k) * 1.1);
+  padding: 1px;
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.55);
+  border-radius: calc(var(--k) * 0.35);
+  background: linear-gradient(90deg, var(--pmo-ink) 76%, transparent 0) content-box;
+}
+
+[data-product='mobile'] .pmo-scr::after {
+  bottom: calc(var(--k) * 0.8);
+  left: 50%;
+  width: calc(var(--k) * 10);
+  height: calc(var(--k) * 0.4);
+  margin-left: calc(var(--k) * -5);
+  border-radius: 99px;
+  background: rgba(var(--oi-fg-rgb), 0.5);
+}
+
+[data-product='mobile'] .pmo-time {
+  position: absolute;
+  top: calc(var(--k) * 1.5);
+  left: calc(var(--k) * 2.8);
+  color: var(--pmo-ink);
+  font-size: max(9px, calc(var(--k) * 1.25));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+[data-product='mobile'] .pmo-isl {
+  position: absolute;
+  top: calc(var(--k) * 1.05);
+  left: 50%;
+  width: calc(var(--k) * 9);
+  height: calc(var(--k) * 2.6);
+  margin-left: calc(var(--k) * -4.5);
+  border-radius: 99px;
+  background: var(--pmo-hw-black);
+}
+
+/* While the Mac works the island shows it: a turning ring at its right end. */
+[data-product='mobile'] .pmo-isl::after {
+  content: '';
+  position: absolute;
+  top: 22%;
+  right: 7%;
+  width: calc(var(--k) * 1.45);
+  aspect-ratio: 1;
+  border: calc(var(--k) * 0.22) solid rgba(var(--oi-fg-rgb), 0.2);
+  border-top-color: var(--pmo-ink);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+/* The island opens into the news: the black bubble grows out of it (::before), the tick and
+   words fade in over it, and the clock and battery step aside while it speaks. */
+[data-product='mobile'] .pmo-note {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--k) * 0.9);
+  right: calc(var(--k) * 1.1);
+  left: calc(var(--k) * 1.1);
+  align-items: center;
+  gap: calc(var(--k) * 1);
+  padding: calc(var(--k) * 1.05) calc(var(--k) * 1.3);
+  border-radius: calc(var(--k) * 2.8);
+  color: var(--pmo-ink);
+  font-size: max(9px, calc(var(--k) * 1.22));
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+[data-product='mobile'] .pmo-note::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--pmo-hw-black);
+  box-shadow: 0 calc(var(--k) * 1.2) calc(var(--k) * 3)
+    rgba(var(--oi-shadow-rgb), calc(0.7 * var(--oi-shadow-k)));
+  transform-origin: 50% calc(var(--k) * 1.45);
+}
+
+[data-product='mobile'] :is(.pmo-note .ps-tick, .pmo-scr .ps-icon) {
+  width: calc(var(--k) * 2);
+  height: calc(var(--k) * 2);
+}
+
+[data-product='mobile'] .pmo-hd {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  font-size: max(9px, calc(var(--k) * 1.15));
+}
+
+/* Rows ----------------------------------------------------------------------------------- */
+
+[data-product='mobile'] .pmo-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--k) * 0.3);
+}
+
+/* :where keeps a row below the rule that hides the new job's row where a cut leaves it out. */
+[data-product='mobile'] :where(.pmo-row) {
+  position: relative;
+  display: grid;
+  grid-template-columns: calc(var(--k) * 3.4) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(var(--k) * 0.3) calc(var(--k) * 1.1);
+  padding: calc(var(--k) * 1.1);
+  border-radius: calc(var(--k) * 2);
+}
+
+/* The icon's tile. */
+[data-product='mobile'] .pmo-row::before {
+  content: '';
+  grid-area: 1 / 1 / 3 / 2;
+  height: calc(var(--k) * 3.4);
+  border: 1px solid var(--pmo-rim);
+  border-radius: calc(var(--k) * 1);
+  background: var(--pmo-glass);
+}
+
+[data-product='mobile'] .pmo-row .ps-icon {
+  grid-area: 1 / 1 / 3 / 2;
+  justify-self: center;
+  width: calc(var(--k) * 1.7);
+  height: calc(var(--k) * 1.7);
+  color: var(--oi-app-soft);
+}
+
+[data-product='mobile'] .pmo-row > b {
+  overflow: hidden;
+  color: var(--pmo-ink);
+  font-size: max(10px, calc(var(--k) * 1.42));
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-product='mobile'] .pmo-row > b + * {
+  grid-column: 2;
+}
+
+[data-product='mobile'] .pmo-r1 {
+  border: 1px solid var(--pmo-rim);
+  background: var(--pmo-glass);
+}
+
+[data-product='mobile'] .pmo-row + .pmo-row::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--k) * -0.15);
+  right: calc(var(--k) * 1.1);
+  left: calc(var(--k) * 5.6);
+  border-top: 1px solid rgba(var(--oi-fg-rgb), 0.07);
+}
+
+[data-product='mobile'] .pmo-r1 + .pmo-row::after {
+  content: none;
+}
+
+/* The status changes in place: yesterday, working, just now. */
+[data-product='mobile'] .pmo-st {
+  display: grid;
+}
+
+[data-product='mobile'] .pmo-st span {
+  grid-area: 1 / 1;
+}
+
+[data-product='mobile'] .pmo-st span:not(:last-child) {
+  opacity: 0;
+}
+
+[data-product='mobile'] .pmo-btn {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  place-items: center;
+  height: calc(var(--k) * 3.5);
+  margin-top: calc(var(--k) * 0.9);
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(var(--oi-fg-rgb), 0.11);
+  color: var(--pmo-ink);
+  font-size: max(9px, calc(var(--k) * 1.25));
+  font-weight: 500;
+}
+
+/* A thumb's tap: the ripple. */
+[data-product='mobile'] .pmo-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--k) * 9);
+  aspect-ratio: 1;
+  margin: calc(var(--k) * -4.5) 0 0 calc(var(--k) * -4.5);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.55 * var(--oi-halo-k))),
+    transparent
+  );
+  opacity: 0;
+}
+
+/* The job's steps, live on the phone as the Mac works through them. */
+[data-product='mobile'] .pmo-mini {
+  grid-column: 2;
+  flex-direction: column;
+  gap: calc(var(--k) * 0.55);
+  margin: calc(var(--k) * 0.7) 0 calc(var(--k) * 0.1);
+  color: var(--oi-app-soft);
+  font-size: max(9px, calc(var(--k) * 1.15));
+}
+
+[data-product='mobile'] .pmo-mini p {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+}
+
+[data-product='mobile'] .pmo-mini .pmo-tk {
+  width: 1.35em;
+  height: 1.35em;
+}
+
+[data-product='mobile'] .pmo-row .pmo-prog {
+  grid-column: 2;
+  height: calc(var(--k) * 0.35);
+  margin: calc(var(--k) * 0.3) 0 0;
+}
+
+[data-product='mobile'] .pmo-row .pmo-prog::after {
+  width: 40%;
+  translate: 60% 0;
+  background: linear-gradient(90deg, transparent, var(--pmo-ink));
+}
+
+/* A new job's row: the small Mac mark lights at its right. */
+[data-product='mobile'] .pmo-new {
+  grid-template-columns: calc(var(--k) * 3.4) minmax(0, 1fr) auto;
+}
+
+/* The mark leans into the row's padding, so the job's words get the room to read in full. */
+[data-product='mobile'] .pmo-new .pmo-mg {
+  grid-area: 1 / 3 / 3 / 4;
+  margin-right: calc(var(--k) * -0.5);
+}
+
+[data-product='mobile'] .pmo-mg {
+  position: relative;
+  display: block;
+  width: calc(var(--k) * 2.4);
+  height: calc(var(--k) * 1.6);
+  border: calc(var(--k) * 0.2) solid currentColor;
+  border-radius: calc(var(--k) * 0.3) calc(var(--k) * 0.3) 0 0;
+  color: var(--pmo-ink);
+}
+
+[data-product='mobile'] .pmo-mg::after {
+  content: '';
+  position: absolute;
+  right: calc(var(--k) * -0.7);
+  bottom: calc(var(--k) * -0.55);
+  left: calc(var(--k) * -0.7);
+  height: calc(var(--k) * 0.3);
+  border-radius: 0 0 99px 99px;
+  background: currentColor;
+}
+
+/* A step's mark: a ring waiting, a turning ring working, a white tick done. */
+[data-product='mobile'] .pmo-tk {
+  position: relative;
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: 50%;
+}
+
+[data-product='mobile'] .pmo-tk::before,
+[data-product='mobile'] .pmo-tk::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  border-radius: 50%;
+}
+
+[data-product='mobile'] .pmo-tk::before {
+  border: calc(var(--ps-line) * 1.6) solid transparent;
+  border-top-color: var(--pmo-ink);
+  opacity: 0;
+  animation:
+    ps-spin 0.9s linear infinite,
+    var(--now, none) var(--ps-loop) linear var(--pmo-at) infinite;
+}
+
+[data-product='mobile'] .pmo-tk::after {
+  background:
+    var(--pmo-tick) center / 78% no-repeat,
+    var(--pmo-ink);
+  animation: var(--done, none) var(--ps-loop) var(--oi-ease) var(--pmo-at) infinite;
+}
+
+/* The composer (the hero shows it at rest; the page's start cut types into it) ------------ */
+
+[data-product='mobile'] .pmo-ask {
+  position: relative;
+  align-items: center;
+  height: calc(var(--k) * 4.4);
+  margin-top: auto;
+  padding: 0 calc(var(--k) * 0.7) 0 calc(var(--k) * 1.6);
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.16);
+  border-radius: 99px;
+  background: var(--pmo-field);
+  color: var(--pmo-ink);
+  font-size: max(9px, calc(var(--k) * 1.3));
+  white-space: nowrap;
+}
+
+/* The hint rests in the field; typed words write over it. */
+[data-product='mobile'] .pmo-ask > span:first-child {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--k) * 1.6);
+  color: var(--oi-app-dim);
+}
+
+[data-product='mobile'] .pmo-tp {
+  position: relative;
+  opacity: 0;
+}
+
+/* Send: a white disc behind the arrow, turned to point up. */
+[data-product='mobile'] .pmo-ask::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(var(--k) * 0.6);
+  width: calc(var(--k) * 3.2);
+  aspect-ratio: 1;
+  margin-top: calc(var(--k) * -1.6);
+  border-radius: 50%;
+  background: var(--pmo-ink);
+}
+
+[data-product='mobile'] .pmo-ask .ps-icon {
+  position: relative;
+  z-index: 1;
+  width: calc(var(--k) * 1.7);
+  height: calc(var(--k) * 1.7);
+  margin: 0 calc(var(--k) * 0.75) 0 auto;
+  color: var(--pmo-send-ink);
+  rotate: -90deg;
+}
+
+/* Layouts -------------------------------------------------------------------------------- */
+
+/* Hero: a square card, the whole phone, composer and all, and the Mac beside it. */
+[data-product='mobile'][data-cut='hero'] .ps-scene {
+  --px: calc(var(--u) * 3);
+  --py: calc(var(--u) * 4.5);
+  --mw: calc(var(--u) * 34);
+  --mx: calc(var(--u) * 53.5);
+  --my: calc(var(--u) * 28);
+  --lx: calc(var(--u) * 46.4);
+  --ly: calc(var(--u) * 36);
+  --lw: calc(var(--u) * 6.4);
+
+  -webkit-mask: none;
+  mask: none;
+}
+
+/* Narrow cards (the phone menu, phone screens): the phone up close, the Mac drawn simpler. */
+@container ps (max-width: 480px) {
+  [data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .ps-scene {
+    --pk: calc(var(--u) * 2.05);
+    --px: calc(var(--u) * 3.5);
+    --py: calc(var(--u) * 5);
+    --mk: calc(var(--u) * 1.3);
+    --mw: calc(var(--u) * 24.5);
+    --mx: calc(var(--u) * 71.5);
+    --my: calc(var(--u) * 12);
+    --lx: calc(var(--u) * 64.6);
+    --ly: calc(var(--u) * 16.5);
+    --lw: calc(var(--u) * 7.6);
+    --on: 2;
+    --gx: 85%;
+  }
+
+  [data-product='mobile'][data-cut='hero'] .ps-scene {
+    --pk: calc(var(--u) * 1.95);
+    --py: calc(var(--u) * 8);
+    --my: calc(var(--u) * 24);
+    --ly: calc(var(--u) * 28.5);
+
+    -webkit-mask: linear-gradient(#000 84%, transparent 99%);
+    mask: linear-gradient(#000 84%, transparent 99%);
+  }
+
+  [data-product='mobile'][data-cut='hero'] .pmo-ask,
+  [data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-mini {
+    display: none;
+  }
+
+  [data-product='mobile'] .pmo-mac {
+    transform: none;
+  }
+
+  [data-product='mobile'] .pmo-disp {
+    gap: calc(var(--m) * 0.5);
+    padding: calc(var(--m) * 2.1) calc(var(--m) * 1.4) 0;
+    background: var(--oi-app-surface), var(--pmo-disp-ground);
+  }
+
+  [data-product='mobile'] .pmo-disp .pmo-tk {
+    width: 1.3em;
+    height: 1.3em;
+  }
+
+  [data-product='mobile'] .pmo-disp > b {
+    width: 70%;
+    margin-bottom: calc(var(--m) * 0.4);
+  }
+
+  [data-product='mobile'] .pmo-disp > b::before {
+    top: calc(var(--m) * 0.65);
+  }
+
+  [data-product='mobile'] .pmo-bar {
+    display: none;
+  }
+
+  /* The note keeps its words on one line on the smallest cards. */
+  [data-product='mobile'] .pmo-note {
+    right: calc(var(--k) * 0.8);
+    left: calc(var(--k) * 0.8);
+    gap: calc(var(--k) * 0.7);
+    padding-inline: calc(var(--k) * 0.8);
+    letter-spacing: -0.01em;
+  }
+
+  [data-product='mobile'] .pmo-note .ps-tick {
+    width: calc(var(--k) * 1.8);
+    height: calc(var(--k) * 1.8);
+  }
+}
+
+/* Motion ---------------------------------------------------------------------------------- */
+
+[data-product='mobile'] .pmo-phone {
+  animation: pmo-float var(--ps-loop) ease-in-out infinite;
+}
+
+[data-product='mobile'] .pmo-mac {
+  animation: pmo-float var(--ps-loop) ease-in-out infinite reverse;
+}
+
+/* The stories share one timing: the clock's length, eased, from the cut's starting point. */
+[data-product='mobile']
+  :is(
+    .pmo-glow,
+    .pmo-lid,
+    .pmo-link,
+    .pmo-on span,
+    .pmo-on .ps-dot,
+    .pmo-time,
+    .pmo-note > *,
+    .pmo-st span,
+    .pmo-btn,
+    .pmo-hd,
+    .pmo-list,
+    .pmo-new,
+    .pmo-mg
+  ),
+[data-product='mobile'] :is(.pmo-lid, .pmo-phone, .pmo-disp, .pmo-bar, .pmo-go, .pmo-btn)::after,
+[data-product='mobile'] :is(.pmo-disp, .pmo-go, .pmo-note, .pmo-scr)::before {
+  animation-duration: var(--ps-loop);
+  animation-timing-function: var(--oi-ease);
+  animation-delay: var(--pmo-at);
+  animation-iteration-count: infinite;
+}
+
+/* Progress moves at an even pace. */
+[data-product='mobile'] .pmo-bar::after {
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* The Launch plan row keeps working, off the story: a light runs along its bar. */
+[data-product='mobile'] .pmo-row .pmo-prog::after {
+  animation: pmo-run calc(var(--ps-loop) / 4) ease-in-out infinite;
+}
+
+/* Menu and hero: the phone's side. */
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-btn::after {
+  animation-name: pmo-tap;
+  animation-timing-function: ease-out;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-btn {
+  animation-name: pmo-press;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-st span:nth-child(1) {
+  animation-name: pmo-was;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-st span:nth-child(2) {
+  animation-name: pmo-busy;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-st span:nth-child(3) {
+  animation-name: pmo-now;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-isl::after {
+  animation:
+    ps-spin 0.9s linear infinite,
+    pmo-busy var(--ps-loop) var(--oi-ease) var(--pmo-at) infinite;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-note::before {
+  animation-name: pmo-bubble;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-note > * {
+  animation-name: pmo-note-words;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-time,
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-scr::before {
+  animation-name: pmo-hush;
+}
+
+/* Menu and hero: the Mac's side. */
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-lid::after,
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-phone::after {
+  animation-name: pmo-flash;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-phone::after {
+  animation-delay: calc(var(--pmo-at) + var(--ps-loop) * 0.46);
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-glow {
+  animation-name: pmo-glow;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-disp::after {
+  animation-name: pmo-wake;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-disp::before {
+  animation-name: pmo-sheen;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-bar::after {
+  animation-name: pmo-fill;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-disp p:nth-of-type(1) {
+  --now: pmo-now1;
+  --done: pmo-done1;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-mini p:nth-of-type(1) {
+  --now: pmo-now1;
+  --done: pmo-mdone1;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-disp p:nth-of-type(2) {
+  --now: pmo-now2;
+  --done: pmo-done2;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-mini p:nth-of-type(2) {
+  --now: pmo-now2;
+  --done: pmo-mdone2;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-disp p:nth-of-type(3) {
+  --now: pmo-now3;
+  --done: pmo-done3;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-mini p:nth-of-type(3) {
+  --now: pmo-now3;
+  --done: pmo-mdone3;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-link {
+  animation-name: pmo-line;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-go::before {
+  animation-name: pmo-out;
+}
+
+[data-product='mobile']:is([data-cut='menu'], [data-cut='hero']) .pmo-go::after {
+  animation-name: pmo-back;
+}
+
+/* Keyframes (the menu's, the hero's and those the page's cuts share) -------------------- */
+
+@keyframes pmo-float {
+  50% {
+    translate: 0 calc(var(--u) * -0.7);
+  }
+}
+
+@keyframes pmo-glow {
+  0%,
+  20%,
+  97%,
+  100% {
+    opacity: 0.35;
+    scale: 0.9;
+  }
+  30%,
+  62% {
+    opacity: 1;
+    scale: 1.04;
+  }
+}
+
+@keyframes pmo-flash {
+  0%,
+  23% {
+    opacity: 0;
+  }
+  24.5% {
+    opacity: 1;
+  }
+  32%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-tap {
+  0%,
+  7.5% {
+    opacity: 0;
+    scale: 0.15;
+  }
+  8% {
+    opacity: 1;
+    scale: 0.15;
+  }
+  14%,
+  100% {
+    opacity: 0;
+    scale: 1.8;
+  }
+}
+
+@keyframes pmo-press {
+  0%,
+  7.5%,
+  71%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  9% {
+    scale: 0.94;
+  }
+  12% {
+    opacity: 1;
+    scale: 1;
+  }
+  15%,
+  68% {
+    opacity: 0.42;
+  }
+}
+
+@keyframes pmo-was {
+  0%,
+  9.5%,
+  99%,
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  11.5%,
+  96% {
+    opacity: 0;
+    translate: 0 -30%;
+  }
+}
+
+@keyframes pmo-busy {
+  0%,
+  10.5%,
+  70.5%,
+  100% {
+    opacity: 0;
+  }
+  12.5%,
+  68.5% {
+    opacity: 1;
+  }
+}
+
+@keyframes pmo-now {
+  0%,
+  69% {
+    opacity: 0;
+    translate: 0 40%;
+  }
+  71.5%,
+  95% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  97.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-bubble {
+  0%,
+  71% {
+    opacity: 0;
+    scale: 0.34 0.6;
+  }
+  72% {
+    opacity: 1;
+  }
+  75.5% {
+    scale: 1.02 1.03;
+  }
+  78%,
+  92% {
+    opacity: 1;
+    scale: 1;
+  }
+  95.5%,
+  100% {
+    opacity: 0;
+    scale: 0.34 0.6;
+  }
+}
+
+@keyframes pmo-note-words {
+  0%,
+  72.5%,
+  93%,
+  100% {
+    opacity: 0;
+  }
+  74.5%,
+  92% {
+    opacity: 1;
+  }
+}
+
+@keyframes pmo-hush {
+  0%,
+  70%,
+  96.5%,
+  100% {
+    opacity: 1;
+  }
+  71%,
+  95.5% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-line {
+  0%,
+  10%,
+  74%,
+  100% {
+    opacity: 0.5;
+  }
+  14%,
+  70% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes pmo-out {
+  0%,
+  12% {
+    opacity: 0;
+    rotate: -45deg;
+  }
+  13%,
+  23% {
+    opacity: 1;
+  }
+  25%,
+  100% {
+    opacity: 0;
+    rotate: 45deg;
+  }
+}
+
+@keyframes pmo-back {
+  0%,
+  57% {
+    opacity: 0;
+    rotate: 45deg;
+  }
+  58%,
+  68% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    opacity: 0;
+    rotate: -45deg;
+  }
+}
+
+@keyframes pmo-wake {
+  0%,
+  22.5%,
+  98%,
+  100% {
+    opacity: 0.72;
+  }
+  27.5%,
+  93% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-sheen {
+  0%,
+  23.5% {
+    opacity: 0;
+    translate: -100% 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  31%,
+  100% {
+    opacity: 0;
+    translate: 100% 0;
+  }
+}
+
+@keyframes pmo-fill {
+  0%,
+  27% {
+    transform: scaleX(0);
+  }
+  54%,
+  94% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  97% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+}
+
+/* A step: turning while it is worked on, then the tick lands; all clear at the reset. */
+@keyframes pmo-now1 {
+  0%,
+  27% {
+    opacity: 0;
+  }
+  28%,
+  35.5% {
+    opacity: 1;
+  }
+  36.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-now2 {
+  0%,
+  36% {
+    opacity: 0;
+  }
+  37%,
+  44.5% {
+    opacity: 1;
+  }
+  45.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-now3 {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  46%,
+  53.5% {
+    opacity: 1;
+  }
+  54.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pmo-done1 {
+  0%,
+  35.5% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  37% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  39%,
+  94% {
+    opacity: 1;
+    scale: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+@keyframes pmo-done2 {
+  0%,
+  44.5% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  46% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  48%,
+  94% {
+    opacity: 1;
+    scale: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+@keyframes pmo-done3 {
+  0%,
+  53.5% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  55% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  57%,
+  94% {
+    opacity: 1;
+    scale: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+@keyframes pmo-mdone1 {
+  0%,
+  9.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  11.5%,
+  35.5% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  37% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  39%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pmo-mdone2 {
+  0%,
+  9.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  11.5%,
+  44.5% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  46% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  48%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pmo-mdone3 {
+  0%,
+  9.5% {
+    opacity: 1;
+    scale: 1;
+  }
+  11.5%,
+  53.5% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  55% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  57%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes pmo-run {
+  0% {
+    translate: -100% 0;
+  }
+  100% {
+    translate: 250% 0;
+  }
+}

@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "slug": "dpa",
+    "title": "Veri İşleme Eki",
+    "summary": "İşletmeniz API’yi, Kurumsal hizmetleri veya Asistan Botunu kullandığında, kişisel verileri veri işleyeniniz olarak nasıl işlediğimiz.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "İlk sürüm."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the party block (legalName, address) and the SCC governing-law sentence (law) stay hidden until company.js is filled (FACTS open point 1).",
+        "SCC structure depends on the entity (critique point 13): with an EU processor serving EU controllers no SCCs are needed between the parties; non-EU customers need Module Four; a non-EU entity needs Modules Two and Three and an EU representative (euRepresentative). The text covers all cases; lawyer to confirm, and to confirm the Clause 17/18 fallback.",
+        "Google Gemini: the processor promises only hold once the paid Gemini tier and Google's data processing terms apply (geminiPaidTier). Until then Google may use content under its free-tier terms, which conflicts with this DPA and with the US service-provider promises (FACTS open point 3; us.md). Do not offer this DPA to customers before that.",
+        "Google Cloud: accept Google's Cloud data processing terms for both projects (site and API) and record it.",
+        "Roles split (processor for customer data; controller for account data, logs, web searches and OpenRegister lookups) needs lawyer confirmation (FACTS open point 11; critique point 14).",
+        "Deletion at the end: the workspace database refuses deletion of some records (immutable tables) and there is no deletion, export or retention code. The text promises deletion or anonymisation, or an explanation where a record must be kept. A working process is needed before the first customer (FACTS open point 5).",
+        "Backups: the workspace database keeps 7 daily backups plus point-in-time recovery (about 7 days); the API database's backup settings were not checked, so the annex states backups only for the cloud workspace.",
+        "Sub-processor changes: the notice period is 'before the change takes effect', with no fixed number. Owner to set one (commonly 30 days) and a way to notify customers (needs working email).",
+        "Breach notice: 'without undue delay' only; an internal breach runbook is needed (critique point 19).",
+        "Assistant Bot: no code exists; the DPA only names it in scope and makes no feature or data claims (FACTS open point 13).",
+        "Security annex lists only measures FACTS supports; encryption is stated only as 'in transit (HTTPS) and at rest by our cloud provider'. Download-bucket region is unknown and not mentioned.",
+        "Mailboxes: privacy@ and security@ need MX records (FACTS open point 2).",
+        "Fact check 2026-09-21: 'Where' row and the transfers section now say the cloud workspace, the API and Enterprise hosting store data in the EU, instead of all customer data, because where the Assistant Bot keeps messages and tokens is unknown (FACTS §6). Secret Manager checked in both deploy scripts. Added a 'Frequency' row for SCC Annex I.",
+        "Legal review 2026-09-21: added the EU representative block (needs euRepresentative; required if the entity is outside the EU, GDPR Art. 27); instructions now cover transfers and we tell you 'at once' about unlawful instructions (GDPR Art. 28(3)(a) and last sentence); connected messaging and email accounts named as the customer's own providers, not our sub-processors (lawyer to confirm).",
+        "SCC Clause 9(a) Option 2 needs a fixed advance-notice period for sub-processor changes; the DPA only says 'before the change takes effect'. Owner to set a number of days before the DPA is used with non-EEA transfers.",
+        "SCC Clause 17/18 fallback: if company.law is not an EU member state and the customer is outside the EU, no governing law is named. Lawyer to pick a fallback member state.",
+        "Scope: business use of the Desktop App and the cloud workspace (outside the Assistant Bot) is not covered by this DPA. Owner to decide whether business users of those products can rely on it (the Terms of Service already point business users here)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "Bu ek hakkında"
+    },
+    {
+      "type": "p",
+      "text": "Bu Veri İşleme Eki (“VİE”), iş müşterileri adına işlediğimiz kişisel verilere ilişkin kuralları belirler. Bu ek, [API Koşulları](/instant/legal/api-terms), [Kurumsal Koşullar](/instant/legal/enterprise-terms) ve Asistan Botunu işiniz için kullandığınızda [Asistan Botu Koşulları](/instant/legal/assistant-bot-terms) belgelerinin bir parçasını oluşturur. Bunlardan hangisi sizin için geçerliyse ona “ana sözleşme” diyoruz."
+    },
+    {
+      "type": "p",
+      "text": "VİE, ana sözleşmeyi kabul ettiğinizde otomatik olarak geçerli olur. İmza gerekmez. Kayıtlarınız için imzalı bir nüshaya ihtiyacınız varsa {company.privacyEmail} adresine yazın."
+    },
+    {
+      "type": "p",
+      "text": "Bu VİE ile ana sözleşme kişisel veriler konusunda çelişirse bu VİE geçerli olur. Standart Sözleşme Maddelerinin uygulandığı durumlarda (bkz. [Uluslararası aktarımlar](#transfers)) bu maddeler her ikisine de üstün gelir."
+    },
+    {
+      "type": "h2",
+      "id": "parties",
+      "text": "Taraflar"
+    },
+    {
+      "type": "p",
+      "text": "Bu VİE, iş müşterisi olarak siz (“siz”) ile Orqanix (“biz”) arasındadır."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix, bu VİE’nin tarafı olan {company.legalName}, {company.address} tarafından işletilmektedir.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "AB’deki temsilcimiz {company.euRepresentative} şeklindedir.",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Veri koruma irtibat adresimiz {company.privacyEmail} şeklindedir. Bu VİE ile ilgili olarak size ulaşabilmemiz için irtibat kişinizi bize bildirin."
+    },
+    {
+      "type": "h2",
+      "id": "words",
+      "text": "Kullandığımız terimler"
+    },
+    {
+      "type": "list",
+      "items": [
+        "“Kişisel veri”, kimliği belirli veya belirlenebilir bir kişiye ilişkin her türlü bilgi anlamına gelir.",
+        "“İşleme”, kişisel verilerle yapılan saklama, okuma, gönderme veya silme gibi her türlü işlem anlamına gelir.",
+        "“Veri sorumlusu”, kişisel verilerin neden ve nasıl işleneceğine karar verir. “Veri işleyen”, kişisel verileri bir veri sorumlusu adına ve onun talimatları doğrultusunda işler. “Alt işleyen”, bizim kullandığımız bir veri işleyendir.",
+        "“Müşteri kişisel verileri”, ana sözleşme kapsamında sizin adınıza işlediğimiz kişisel veriler anlamına gelir.",
+        "“Veri koruma mevzuatı”, AB Genel Veri Koruma Tüzüğü (GDPR), Birleşik Krallık GDPR’ı (UK GDPR), İsviçre Federal Veri Koruma Kanunu (FADP) ve ABD eyaletlerinin gizlilik yasaları gibi, işlemeye uygulanan tüm gizlilik yasaları anlamına gelir."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "roles",
+      "text": "Rollerimiz"
+    },
+    {
+      "type": "p",
+      "text": "Müşteri kişisel verilerinin veri sorumlusu sizsiniz ya da kendi müşterileriniz adına hareket eden bir veri işleyensiniz. Biz sizin veri işleyeniniz veya alt işleyeniniziz. Bazı verileri kendi amaçlarımız için işleriz; bu veriler bakımından veri sorumlusu biziz:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Veri",
+        "Rolümüz",
+        "Uygulanan belge"
+      ],
+      "rows": [
+        [
+          "Sizin veya kullanıcılarınızın API’ye gönderdiği içerikteki, Kurumsal çalışmalardaki ya da işletmeye ait bir Asistan Botunun çalışma alanındaki ve bağlı hesaplarındaki kişisel veriler",
+          "Sizin adınıza veri işleyen",
+          "Bu VİE"
+        ],
+        [
+          "Çalışanlarınızın hesap ve oturum açma verileri, irtibat kişileriniz ve sözleşme ile faturalara ilişkin kayıtlarımız",
+          "Veri sorumlusu",
+          "[Gizlilik Politikamız](/instant/legal/privacy)"
+        ],
+        [
+          "Hizmet ve güvenlik kayıtları (IP adresi, tarayıcı, zaman, istenen adres)",
+          "Veri sorumlusu",
+          "Gizlilik Politikamız"
+        ],
+        [
+          "Kendi arama hizmetimizin bir görevi yanıtlamak için web arama motorlarına gönderdiği arama sorguları",
+          "Veri sorumlusu",
+          "Gizlilik Politikamız"
+        ],
+        [
+          "Sonuçları yönetici adlarını içerebilen, OpenRegister üzerinden yapılan ticaret sicili sorguları",
+          "Veri sorumlusu",
+          "Gizlilik Politikamız"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Aramalarımızın ve sicil sorgularımızın nasıl işleyeceğine biz karar veririz; bu nedenle bunlar için kendi adımıza hareket ederiz (GDPR Art. 4(7)). Arama sorguları görevinizden oluşturulur; bu yüzden görev gerektirmedikçe görev metnine kişisel veri koymayın."
+    },
+    {
+      "type": "h2",
+      "id": "details",
+      "text": "İşlemeye ilişkin ayrıntılar"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Konu",
+        "Ayrıntılar"
+      ],
+      "rows": [
+        [
+          "Konu",
+          "Ana sözleşmedeki hizmetin sunulması: API, Kurumsal çalışmalar veya işiniz için kullanılan Asistan Botu."
+        ],
+        [
+          "Süre",
+          "Ana sözleşme sürdüğü müddetçe ve sonrasında, müşteri kişisel verilerini bu VİE’de belirtildiği şekilde silene veya iade edene kadar."
+        ],
+        [
+          "Nitelik",
+          "Alma, saklama, düzenleme, okuma, yapay zekâ modelleriyle analiz etme, yanıt ve dosya üretme, size ve sistemlerinize gönderme ve silme."
+        ],
+        [
+          "Amaç",
+          "Yalnızca hizmeti size sunmak, güvenliğini sağlamak ve yasal yükümlülüklerimizi yerine getirmek."
+        ],
+        [
+          "Kişisel veri türleri",
+          "Bize göndermeyi veya bağlamayı seçtiğiniz her şey. Genellikle adlar, iletişim bilgileri, görev unvanları, iş ilişkileri ve görevlerin, mesajların, belgelerin ve dosyaların içeriği."
+        ],
+        [
+          "İlgili kişiler",
+          "Çalışanlarınız, müşterileriniz ve son kullanıcılarınız, tedarikçileriniz ve iş bağlantılarınız ile işletmeye ait bir Asistan Botuna bağladığınız e-posta ve mesajlaşma hesaplarındaki kişiler dahil, gönderdiğiniz veya bağladığınız verilerde adı geçen diğer herkes."
+        ],
+        [
+          "Özel nitelikli veriler",
+          "Yazılı olarak aksini kararlaştırmadıkça yoktur. Böyle bir anlaşma olmadan bize sağlık verisi, biyometrik veri veya başka özel nitelikli veriler ya da ceza mahkûmiyetlerine ilişkin veriler göndermeyin."
+        ],
+        [
+          "Sıklık",
+          "Sürekli; siz veya kullanıcılarınız hizmeti her kullandığında."
+        ],
+        [
+          "Yer",
+          "Bulut çalışma alanımız ve API, verileri AB’de (Hollanda) Google Cloud üzerinde saklar. Kurumsal çalışmalar, siparişte belirtilen AB Google Cloud bölgesinde barındırılır. Alt işleyenler, [Alt İşleyenler](/instant/legal/subprocessors) sayfasında gösterildiği gibi verileri başka yerlerde işleyebilir."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-duties",
+      "text": "Taahhütlerimiz"
+    },
+    {
+      "type": "p",
+      "text": "Bu taahhütler, bir veri işleyenin yükümlülüklerini sade bir dille ifade eder (GDPR Art. 28(3); UK GDPR Art. 28(3); FADP Art. 9)."
+    },
+    {
+      "type": "h3",
+      "id": "instructions",
+      "text": "Talimatlarınız"
+    },
+    {
+      "type": "p",
+      "text": "Müşteri kişisel verilerini, başka ülkelere gönderilmesine ilişkin talimatlar dahil, yalnızca belgelenmiş talimatlarınız doğrultusunda işleriz. Talimatlarınız; ana sözleşme, bu VİE ve hizmeti kurma ve kullanma biçiminizdir. Hizmete uygun olmaları koşuluyla ek yazılı talimatlar verebilirsiniz. Verileri talimatınız olmadan yalnızca yasanın gerektirdiği durumlarda işleyebiliriz. Bu durumda, ilgili yasa yasaklamadıkça size önceden bildiririz. Bir talimatın veri koruma mevzuatını ihlal ettiğini düşünürsek bunu size derhal bildiririz."
+    },
+    {
+      "type": "h3",
+      "id": "confidentiality",
+      "text": "Gizlilik yükümlülüğü"
+    },
+    {
+      "type": "p",
+      "text": "Müşteri kişisel verilerine yalnızca işleri için bu verilere ihtiyaç duyan kişiler erişebilir ve bu kişilerin her biri verileri gizli tutmakla yükümlüdür."
+    },
+    {
+      "type": "h3",
+      "id": "security",
+      "text": "Güvenlik"
+    },
+    {
+      "type": "p",
+      "text": "Müşteri kişisel verilerini kazara veya hukuka aykırı kayba, değiştirilmeye, ifşaya veya erişime karşı korumak için riske uygun teknik ve idari tedbirler alırız (GDPR Art. 32). Bu VİE’nin sonundaki [güvenlik eki](#security-measures) bu tedbirleri açıklar. Tedbirleri zaman içinde değiştirebiliriz, ancak genel koruma düzeyini düşürmeyiz."
+    },
+    {
+      "type": "h3",
+      "id": "sub-processors",
+      "text": "Alt işleyenler"
+    },
+    {
+      "type": "p",
+      "text": "Alt işleyen kullanmamıza izin vermektesiniz. [Alt İşleyenler](/instant/legal/subprocessors) sayfası, bugün kullandıklarımızı, ne yaptıklarını ve nerede olduklarını listeler. Kurumsal çalışmalar için sipariş başka alt işleyenler de belirtebilir."
+    },
+    {
+      "type": "p",
+      "text": "Bir alt işleyen eklemeden veya değiştirmeden önce bu sayfayı günceller ve size bildiririz; böylece değişiklik yürürlüğe girmeden önce itiraz edebilirsiniz. Veri korumaya ilişkin makul gerekçelerle itiraz ederseniz sizinle birlikte bir çözüm ararız. Çözüm bulamazsak hizmetin ilgili bölümünü sona erdirebilirsiniz."
+    },
+    {
+      "type": "p",
+      "text": "Her alt işleyeni, en az bu VİE kadar koruyucu veri koruma yükümlülükleriyle yazılı olarak bağlarız. Onların çalışmalarından size karşı sorumlu olmaya devam ederiz."
+    },
+    {
+      "type": "p",
+      "text": "Bağladığınız mesajlaşma uygulamaları, e-posta hesapları ve diğer hizmetler, sizin seçtiğiniz kendi sağlayıcılarınızdır. Bunlar bizim alt işleyenlerimiz değildir ve verilerle yaptıkları işlemlere kendi koşulları uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "Yapay zekâ modeli olarak Google Gemini kullanırız; bu nedenle görevlerin ve konuşmaların içeriği Google’a gönderilir. Google bu içeriği AB dışında işleyebilir."
+    },
+    {
+      "type": "p",
+      "text": "Google’ın ücretli Gemini API’sini kullanırız. Burada Google, kendi veri işleme koşulları kapsamında bizim veri işleyenimiz olarak hareket eder ve içeriği ürünlerini geliştirmek için kullanmaz.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "rights-requests",
+      "text": "Kişilerin hakları"
+    },
+    {
+      "type": "p",
+      "text": "Kişiler verilerini görmeyi, düzeltmeyi, silmeyi veya taşımayı ya da kullanılmasına itiraz etmeyi talep edebilir. Müşteri kişisel verileriyle ilgili böyle bir talep alırsak talebi size iletiriz ve siz istemedikçe kendimiz yanıtlamayız. Hizmetin niteliğinin izin verdiği ölçüde talepleri yanıtlamanızda size yardımcı oluruz (GDPR Art. 12-23)."
+    },
+    {
+      "type": "h3",
+      "id": "breaches",
+      "text": "Veri ihlalleri"
+    },
+    {
+      "type": "p",
+      "text": "Müşteri kişisel verilerini etkileyen bir güvenlik ihlalinden haberdar olursak bunu size gecikmeksizin bildiririz. Bildiklerimizi size iletir, yeni bilgi edindikçe paylaşırız (GDPR Art. 33(2) ve (3)):"
+    },
+    {
+      "type": "list",
+      "items": [
+        "ne olduğu;",
+        "hangi tür verilerin ve kişilerin etkilendiği ve yaklaşık sayıları;",
+        "olası sonuçları;",
+        "bu konuda ne yaptığımız ve ne yapmayı planladığımız;",
+        "kiminle görüşebileceğiniz."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Size bildirimde bulunmamız kusur kabulü anlamına gelmez."
+    },
+    {
+      "type": "h3",
+      "id": "other-help",
+      "text": "Diğer yardımlar"
+    },
+    {
+      "type": "p",
+      "text": "Hizmetin niteliği ve elimizdeki bilgiler el verdiği ölçüde, güvenlik yükümlülükleriniz, veri koruma etki değerlendirmeleri ve veri koruma makamınıza danışma konularında size yardımcı oluruz (GDPR Art. 32-36)."
+    },
+    {
+      "type": "h3",
+      "id": "end",
+      "text": "İade ve silme"
+    },
+    {
+      "type": "p",
+      "text": "Ana sözleşme sona erdiğinde müşteri kişisel verilerini sileriz. Bundan önce talep ederseniz verileri önce size iade ederiz. Bir kopyayı yalnızca yasanın gerektirdiği durumlarda, yalnızca yasanın gerektirdiği süre boyunca ve bu VİE’de belirtildiği şekilde korunarak saklarız. Yedeklerimizdeki kopyalar, bu yedeklerin süresi doldukça ortadan kalkar."
+    },
+    {
+      "type": "p",
+      "text": "Ajanların yaptıklarına ilişkin bazı kayıtlar, değiştirilemeyen sabit bir kayıt günlüğü olarak tutulur. Böyle bir kayıt müşteri kişisel verisi içeriyorsa bunu siler veya anonim hâle getiririz ya da saklamak zorunda olduğumuz durumlarda nedenini size bildiririz."
+    },
+    {
+      "type": "h3",
+      "id": "audits",
+      "text": "Denetimler"
+    },
+    {
+      "type": "p",
+      "text": "Bu yükümlülükleri yerine getirdiğimizi göstermek için makul ölçüde ihtiyaç duyduğunuz bilgileri size sağlarız. Bu yeterli olmazsa siz veya gizlilik yükümlülüğü altındaki bağımsız bir denetçi bizi denetleyebilir. Bize makul bir süre önceden bildirimde bulunursunuz; denetim hizmetimizi aksatmamalı veya diğer müşterilerin verilerini riske atmamalıdır. Kendi denetim masraflarınızı siz karşılarsınız. Bir veri koruma makamı, yasanın izin verdiği şekilde bizi her zaman denetleyebilir."
+    },
+    {
+      "type": "h2",
+      "id": "your-duties",
+      "text": "Taahhütleriniz"
+    },
+    {
+      "type": "list",
+      "items": [
+        "İşleme için hukuki bir dayanağınız vardır ve bizi kullandığınız bilgisi dahil, yasanın gerektirdiği gizlilik bilgilerini kişilere verirsiniz.",
+        "Talimatlarınız veri koruma mevzuatına uygundur.",
+        "Bize yalnızca hizmetin ihtiyaç duyduğu kişisel verileri gönderirsiniz; yazılı olarak kabul etmediğimiz sürece özel nitelikli veri göndermezsiniz.",
+        "Erişim anahtarlarını ve oturum açma bilgilerini güvende tutmak ve ajanlar için uygun onay ayarlarını seçmek dahil, hizmeti kendi tarafınızda güvenli bir şekilde kurarsınız."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Uluslararası aktarımlar"
+    },
+    {
+      "type": "p",
+      "text": "Bulut çalışma alanımız, API ve Kurumsal barındırma, müşteri kişisel verilerini AB’de saklar. Bazı alt işleyenler, [Alt İşleyenler](/instant/legal/subprocessors) sayfasında gösterildiği gibi bu verileri başka ülkelerde işleyebilir."
+    },
+    {
+      "type": "p",
+      "text": "Kişisel verileri AEA, Birleşik Krallık veya İsviçre dışına yalnızca veri koruma mevzuatının izin verdiği durumlarda aktarırız. Örneğin verileri, AB’nin verileri yeterli düzeyde koruduğunu tespit ettiği bir ülkeye, AB-ABD Veri Gizliliği Çerçevesi kapsamında sertifikalı bir ABD şirketine veya Standart Sözleşme Maddeleri kapsamında aktarırız."
+    },
+    {
+      "type": "h3",
+      "id": "sccs",
+      "text": "Standart Sözleşme Maddeleri"
+    },
+    {
+      "type": "p",
+      "text": "Sizinle bizim aramızdaki bir aktarım bunları gerektirdiğinde, Avrupa Komisyonu tarafından onaylanan Standart Sözleşme Maddeleri (Decision (EU) 2021/914, “SCC’ler”) bu VİE’nin bir parçasını oluşturur. SCC’lerin hangi bölümünün (“modül”) uygulanacağı, her birimizin nerede yerleşik olduğuna bağlıdır:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Veri sorumlusu siz olduğunuzda ve verileri AEA dışındaki bize gönderdiğinizde Modül İki (veri sorumlusundan veri işleyene).",
+        "Kendi müşterileriniz için veri işleyen konumunda olduğunuzda ve verileri AEA dışındaki bize gönderdiğinizde Modül Üç (veri işleyenden veri işleyene).",
+        "Biz AEA’da bulunduğumuzda ve verileri AEA dışındaki size iade ettiğimizde Modül Dört (veri işleyenden veri sorumlusuna)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "SCC’ler için şu seçimleri yapıyoruz:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Madde 7: İsteğe bağlı katılım maddesi uygulanır.",
+        "Madde 9: Seçenek 2 (alt işleyenler için genel yetkilendirme), [Alt işleyenler](#sub-processors) bölümünde belirtilen bildirimle birlikte uygulanır.",
+        "Madde 11: İsteğe bağlı ifade uygulanmaz.",
+        "Madde 13: Denetim makamı, veri ihracatçısı olarak sizden sorumlu olan makamdır.",
+        "Ekler: [Rollerimiz](#roles) ve [İşlemeye ilişkin ayrıntılar](#details) Ek I’i, [güvenlik eki](#security-measures) Ek II’yi, Alt İşleyenler sayfası ise Ek III’ü doldurur."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Madde 17 ve 18 uyarınca SCC’ler, yerleşik olduğunuz AB üye devletinin hukukuna tabidir ve uyuşmazlıklar o devletin mahkemelerinde görülür. AB’de yerleşik değilseniz, AB üye devleti olması koşuluyla {company.law} hukukuna ve mahkemelerine tabidir.",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Birleşik Krallık ve İsviçre"
+    },
+    {
+      "type": "p",
+      "text": "Birleşik Krallık’tan yapılan aktarımlar için, Birleşik Krallık Bilgi Komiseri (Information Commissioner) tarafından yayımlanan SCC’lere ilişkin Uluslararası Veri Aktarımı Eki (“UK Eki”), bu VİE’deki ayrıntılarla doldurulmuş olarak uygulanır."
+    },
+    {
+      "type": "p",
+      "text": "İsviçre’den yapılan aktarımlar için SCC’ler şu değişikliklerle uygulanır: FADP kapsamındaki aktarımlar için denetim makamı İsviçre Federal Veri Koruma ve Bilgi Komiseri’dir; GDPR’a yapılan atıflar FADP’yi de kapsar; ve oradaki kişilerin yaşadıkları yerde dava açabilmeleri için “üye devlet” kavramı İsviçre’yi de içerir."
+    },
+    {
+      "type": "h3",
+      "id": "onward",
+      "text": "Alt işleyenlerin yaptığı aktarımlar"
+    },
+    {
+      "type": "p",
+      "text": "Bir alt işleyen müşteri kişisel verilerini AEA, Birleşik Krallık veya İsviçre dışına aktardığında, bu aktarımın Veri Gizliliği Çerçevesi ya da o alt işleyenle yaptığımız sözleşmedeki SCC’ler gibi geçerli bir dayanağa sahip olmasını sağlarız."
+    },
+    {
+      "type": "h2",
+      "id": "us-state-law",
+      "text": "ABD eyaletlerinin gizlilik yasaları",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "California Consumer Privacy Act kapsamında bir “business” veya başka bir ABD eyaleti gizlilik yasası kapsamında bir veri sorumlusu olduğunuz durumlarda, müşteri kişisel verileri bakımından sizin “service provider”, “contractor” veya “processor” konumunuzdayız. Bu kapsamda:",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "müşteri kişisel verilerini, bu kavramların ilgili yasalarda tanımlandığı anlamda satmayız veya paylaşmayız;",
+        "bu verileri yalnızca ana sözleşmede ve bu VİE’de belirtilen iş amaçları için işler, başka hiçbir ticari amaçla işlemeyiz;",
+        "bu verileri sizinle doğrudan iş ilişkimiz dışında saklamaz, kullanmaz veya ifşa etmeyiz;",
+        "ilgili yasaların izin verdiği durumlar dışında, bu verileri başkalarından aldığımız veya kendimiz topladığımız kişisel verilerle birleştirmeyiz;",
+        "ilgili yasalara uyar ve bu yasaların gerektirdiği düzeyde gizlilik koruması sağlarız;",
+        "bu yükümlülükleri artık yerine getiremeyeceğimize karar verirsek size bildiririz."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Müşteri kişisel verilerini bu yasalara uygun şekilde kullandığımızdan emin olmak ve izin verilmeyen herhangi bir kullanımı durdurup düzeltmek için makul ve uygun adımlar atabilirsiniz. Bu kısıtlamaları anlıyor ve bunlara uyacağımızı taahhüt ediyoruz.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Sorumluluk"
+    },
+    {
+      "type": "p",
+      "text": "Her bir tarafın bu VİE kapsamındaki sorumluluğu, veri koruma mevzuatının izin verdiği ölçüde ana sözleşmedeki sınırlara tabidir. Bu sınırlar, kişilerin doğrudan veri koruma mevzuatından doğan haklarını azaltmaz."
+    },
+    {
+      "type": "h2",
+      "id": "term",
+      "text": "Süre ve güncellemeler"
+    },
+    {
+      "type": "p",
+      "text": "Bu VİE, ana sözleşme sona ermiş olsa bile sizin adınıza müşteri kişisel verilerini işlediğimiz sürece geçerliliğini korur."
+    },
+    {
+      "type": "p",
+      "text": "Bu VİE’yi mevzuattaki, alt işleyenlerimizdeki veya hizmetlerimizdeki değişiklikleri yansıtmak için güncelleyebiliriz. Değişiklik yasa gereği zorunlu olmadıkça, müşteri kişisel verilerinin korumasını azaltacak şekilde bu VİE’yi sizin onayınız olmadan değiştirmeyiz."
+    },
+    {
+      "type": "h2",
+      "id": "security-measures",
+      "text": "Ek: güvenlik tedbirleri"
+    },
+    {
+      "type": "p",
+      "text": "Bunlar bugün aldığımız başlıca teknik ve idari tedbirlerdir. [Güvenlik ve Güvenlik Açığı Bildirimi](/instant/legal/security) sayfası, bir güvenlik sorununu {company.securityEmail} adresine nasıl bildireceğinizi açıklar."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Alan",
+        "Yaptıklarımız"
+      ],
+      "rows": [
+        [
+          "Barındırma",
+          "Bulut hizmetlerimiz ve veritabanlarımız AB’de (Hollanda) Google Cloud üzerinde çalışır. Kurumsal çalışmalar, siparişte belirtilen AB Google Cloud bölgesinde barındırılır."
+        ],
+        [
+          "Şifreleme",
+          "Veriler aktarım sırasında (HTTPS) ve bulut sağlayıcımız tarafından depolamada şifrelenir."
+        ],
+        [
+          "Hesaplara erişim",
+          "Kişiler Orqanix çalışma alanında, oturum açma sağlayıcımız Clerk aracılığıyla oturum açar; kayıt sırasında bot kontrolü yapılır. API’ye yalnızca bizim verdiğimiz gizli bir erişim anahtarıyla ulaşılabilir."
+        ],
+        [
+          "Saklanan anahtarlar ve gizli bilgiler",
+          "Otomasyonlar için uygulama anahtarları okunabilir biçimde değil, yalnızca karma (hash) olarak saklanır. Hizmetlerimizin kullandığı gizli bilgiler kodumuzda değil, Google Cloud Secret Manager’da tutulur."
+        ],
+        [
+          "Saklanan dosyalar",
+          "Bulut çalışma alanının ürettiği dosyalar, AB’deki özel bir Google Cloud Storage kovasında (bucket) tutulur."
+        ],
+        [
+          "Çalışan erişimi",
+          "Erişim yalnızca işleri için buna ihtiyaç duyan kişilere verilir ve bu kişiler gizlilik yükümlülüğü altındadır."
+        ],
+        [
+          "Ajan eylemlerinin kayıtları",
+          "Ajanların ne yaptığı, neyin onaylandığı ve oluşturdukları dosyalar, sonradan değiştirilemeyen bir kayıt günlüğüne kaydedilir. Kurumsal müşteriler onayları (Bir Kez İzin Ver, Her Zaman İzin Ver, Reddet) ve rol tabanlı erişimi belirler."
+        ],
+        [
+          "Kayıt günlükleri",
+          "İstek kayıtları IP adresini, tarayıcıyı, zamanı, istenen adresi ve sonucu içerir. İstemlerin (prompt) veya mesajların içeriğini kaydetmeyiz."
+        ],
+        [
+          "Yedekler",
+          "Bulut çalışma alanı veritabanında günlük otomatik yedekleme, belirli bir ana geri dönme (point-in-time recovery) ve kazara silinmeye karşı koruma bulunur."
+        ],
+        [
+          "Modeller",
+          "Kendi yapay zekâ modellerimizi müşteri verileriyle eğitmeyiz."
+        ],
+        [
+          "Olaylar",
+          "Kişisel veri ihlallerini, [Veri ihlalleri](#breaches) bölümünde belirtildiği şekilde, etkilenen müşterilere gecikmeksizin bildiririz."
+        ]
+      ]
+    }
+  ]
+}

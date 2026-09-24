@@ -23,9 +23,11 @@ export default function HeroFrame({
       <div className="oi-container">
         <div className="oph-grid">
           <div className="oph-text">
-            <p className="oi-tag oi-tag-bracket oph-rise" style={{ '--i': 0 }}>
-              {tag}
-            </p>
+            {tag && (
+              <p className="oi-tag oi-tag-bracket oph-rise" style={{ '--i': 0 }}>
+                {tag}
+              </p>
+            )}
             <h1 id={id} className="oph-title oph-rise" style={{ '--i': 1 }}>
               {title}
             </h1>

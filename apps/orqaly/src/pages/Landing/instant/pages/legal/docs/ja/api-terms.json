@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "slug": "api-terms",
+    "title": "API 利用規約",
+    "summary": "Orqanix API を自社の製品やシステムに組み込む企業に適用される追加の規定です。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company not chosen: the contracting party (legalName, address) and governing law (law) blocks stay hidden until company.js is filled (FACTS open point 1 and 11).",
+        "Roles: we say we are the customer's processor for personal data they send, and act for ourselves (controller) for our own web searches and OpenRegister lookups. A lawyer must confirm this split (FACTS open point 11).",
+        "Access keys: the code uses one shared machine key, not one key per customer. The text only says 'the key we give you'. Per-customer keys are needed before a second customer gets access, or the confidentiality and 'you are responsible for use of the key' clauses do not work.",
+        "Google Gemini: until the paid Gemini tier and Google's data processing terms are in place (geminiPaidTier), Google may use API content under its free-tier terms, which conflicts with our processor role and must not be offered to EEA/UK/CH customers (FACTS open point 3).",
+        "Data Act export: there is no export code. A manual process that produces the customer's data in a machine-readable format within the 30-day transition is needed before the first EU customer.",
+        "Retention period for API records (decisions, outcomes, scope records) is unknown; the text says 'while you use the API and then as the DPA sets out' (FACTS open point 5).",
+        "US liability cap is 'what you paid in the 12 months before the claim', which is zero while the API is free. Owner and lawyer should decide whether to add a fixed minimum amount.",
+        "Data Act Art. 31 (lighter rules for trial versions and custom services) may apply while the API is free and early; lawyer to decide. The government-access promise (Data Act Art. 32) is a commitment the owner must be able to keep.",
+        "Notice of changes to these terms is 'in advance' without a fixed period; owner to set one if wanted.",
+        "Mailboxes: hello@, privacy@ and security@ need MX records before anyone can reach us (FACTS open point 2).",
+        "Fact check 2026-09-21: added Google Search grounding (FACTS §7/§12), the Gemini paid-tier processor sentence under needs geminiPaidTier, and the under-18 flow-down required by the Gemini API terms (us.md row 12). 'The key stops working' changed to 'we end your access', because one shared key cannot be switched off for one customer.",
+        "US liability cap now reads 'the greater of US$100 and the amounts paid in 12 months' so the cap is not zero while the API is free (us.md row 27). Owner and lawyer to confirm the amount; the US warranty disclaimer is shown as a highlighted note for conspicuousness, lawyer to confirm this is enough (capitals are the usual form).",
+        "Data Act switching: added the 30-day data-retrieval period after the transition (Data Act Art. 25(2)). Still missing: the pre-contract information on switching and the register of data formats (Data Act Art. 26); owner to publish before the first EU customer.",
+        "Research tools not in FACTS: the API code also contains other research services (for example a Eurostat trade-data service). If any of them receive task data in production, they must be added to the Sub-processors page and here; owner to confirm.",
+        "Contracting party for the API (the API runs in a separate Google Cloud project) must be the same entity as for the rest of Orqanix, or these terms need their own party block (FACTS open point 11)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about",
+      "text": "本規約について"
+    },
+    {
+      "type": "p",
+      "text": "本 API 利用規約は、企業が Orqanix API を利用する場合に適用されます。本規約は、当社の[利用規約](/instant/legal/terms)および[利用ポリシー](/instant/legal/acceptable-use)に追加して適用されます。個人データについては、[データ処理補遺](/instant/legal/dpa)（以下「DPA」）も適用され、本規約の一部を構成します。API に関して本規約と利用規約とが矛盾する場合は、本規約が優先します。双方が署名した別途の書面による契約は、そのいずれにも優先します。"
+    },
+    {
+      "type": "p",
+      "text": "「お客様」とは、API を利用する企業をいいます。本規約に同意する者は、当該企業を拘束する権限を有することを確認するものとします。「当社」とは Orqanix をいいます。"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix は {company.legalName}（{company.address}）が運営しており、同社が本規約の当事者となります。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "who-may-use",
+      "text": "API を利用できる方"
+    },
+    {
+      "type": "p",
+      "text": "API は企業のみを対象とします。消費者として、すなわちお客様の商売、事業または職業以外の目的で利用しないでください。お客様のために API を利用する方は、全員 18 歳以上でなければなりません。"
+    },
+    {
+      "type": "p",
+      "text": "API が初期段階にある間は、申請制で利用を認めます。件名を「API access」として {company.email} 宛てにご連絡いただき、お客様の事業と構築したいものをお知らせください。利用を認めるかどうかは当社が決定し、当社はお断りすること、または条件を付けることがあります。"
+    },
+    {
+      "type": "p",
+      "text": "API は初期段階にある間は無料です。有料プランを開始する前に、当社は価格と支払条件についてお客様と書面で合意します。その合意なしに料金を請求することはありません。"
+    },
+    {
+      "type": "h2",
+      "id": "what-it-does",
+      "text": "API の機能"
+    },
+    {
+      "type": "p",
+      "text": "API は、お客様自身の製品のための推論レイヤーです。お客様は、タスクを、お客様が保有するエージェント、ツールおよび予算とあわせて送信します。API は、誰がその作業を行うべきか（エージェント、チームまたは人）、検討した各要素のスコア、コンテキスト、ガードレール、代替策、そして規模の大きい作業についてはチーム計画を回答します。"
+    },
+    {
+      "type": "p",
+      "text": "API は判断のみを行い、作業そのものは行いません。各回答に基づいて行動するかどうか、またどのように行動するかはお客様のシステムが選択し、その後お客様のシステムが行うことについてはお客様が責任を負います。"
+    },
+    {
+      "type": "p",
+      "text": "時間のかかる作業については、後から結果を取得するか、署名付きの Webhook で受け取ることができます。利用を認められたお客様には、API の技術ドキュメントを提供します。"
+    },
+    {
+      "type": "p",
+      "text": "回答は AI によって作成されます。回答は誤っていたり、不完全であったり、古くなっていたりすることがあります。特に誤りが人に害を及ぼすおそれがある場合は、依拠する前に回答を確認してください。詳しくは[AI の仕組み](/instant/legal/ai)をご覧ください。"
+    },
+    {
+      "type": "h2",
+      "id": "keys",
+      "text": "アクセスキー"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、当社が発行する秘密鍵を用いて API にアクセスします。秘密鍵はパスワードと同様に取り扱ってください。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "秘密に保ち、お客様自身のサーバーにのみ保存してください。アプリ、ウェブページ、または他者が閲覧できるコードには絶対に含めないでください。",
+        "お客様の連携のために必要とする人とシステムにのみ共有してください。",
+        "漏えいした、または許可なく使用されたと思われる場合は、直ちに {company.securityEmail} 宛てに当社にお知らせください。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "お客様は、鍵が侵害されたおそれがある旨を当社に通知するまで、当社が発行した鍵のすべての使用について責任を負います。当社は、不正使用やセキュリティ上のリスクを確認した場合など、いつでも鍵を変更、制限または取り消すことができます。可能な場合は、お客様にお知らせします。"
+    },
+    {
+      "type": "h2",
+      "id": "your-users",
+      "text": "お客様の製品と利用者"
+    },
+    {
+      "type": "p",
+      "text": "お客様が API を自社の製品に組み込む場合も、その製品はお客様のものです。お客様は、その製品について、またその製品を利用する人（以下「エンドユーザー」）の取扱いについて責任を負います。お客様は、次のことを行わなければなりません。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "文脈から明らかな場合を除き、エンドユーザーが AI とやり取りしていることをエンドユーザーに伝えること（EU AI Act Art. 50(1)、一部の米国州法）。",
+        "18 歳未満の人を対象とする製品、または 18 歳未満の人に利用される可能性が高い製品に API を使用しないこと。",
+        "エンドユーザーにお客様自身のプライバシー通知を提供すること。その通知では、お客様の製品がエンドユーザーのデータをどのように使用するか（当社にデータを送信することを含みます）を説明しなければなりません。当社の[プライバシーポリシー](/instant/legal/privacy)はお客様の製品には適用されません。",
+        "誰かの個人データを当社に送信する前に、法的根拠および必要な同意を得ておくこと。",
+        "エンドユーザーに当社の[利用ポリシー](/instant/legal/acceptable-use)と同等以上に厳格な規則を守らせ、違反した者の利用を停止すること。",
+        "当社が書面で別段の合意をしない限り、お客様の製品を、Orqanix が作成または推奨したものではなく、お客様自身のものとして提示すること。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EU AI 法のもとでは、お客様は API を用いて構築した AI システムの提供者または導入者であり、その役割に伴う義務を負います。当社はお客様のシステムの一部を提供するものであり、その提供者ではありません。"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "高リスクの用途"
+    },
+    {
+      "type": "p",
+      "text": "一部の意思決定は、採用・労働、教育、信用、保険、住宅、医療、公共サービスへのアクセス、法執行、移民および司法に関する意思決定など、人に対して法的またはそれに類する重大な影響を及ぼします。お客様自身で法的検討を行い、法律が求める保護措置を講じるまでは、API の回答をそのような意思決定を行うため、または支援するために使用しないでください。そうした保護措置には、意思決定が効力を生じる前の、人間による実質的な確認が含まれます。"
+    },
+    {
+      "type": "p",
+      "text": "これらの義務は、お客様に適用される法律のもとでお客様が負うものです。これには、2027 年 12 月 2 日から適用される高リスク AI システムに関する EU AI 法の規定（AI Act Annex III）、および自動化された意思決定に関する GDPR の規定（GDPR Art. 22）が含まれます。"
+    },
+    {
+      "type": "p",
+      "text": "また、自動化された意思決定に関する米国の州法も含まれます。たとえば、重大な意思決定に使用される AI に関するコロラド州の法律は、2027 年 1 月 1 日に施行されます。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "your-data",
+      "text": "お客様のデータ"
+    },
+    {
+      "type": "p",
+      "text": "お客様のデータとは、お客様が API に送信するもの（タスク、お客様のエージェントおよびツールの説明、予算ならびにコンテキスト）と、API がお客様に返す回答をいいます。当社は、判断、その結果、および各タスクの範囲の記録を、EU（オランダ）の Google Cloud 上で稼働する API 専用のデータベースに保存します。当社はお客様が API を利用している間これらを保管し、その後は DPA の定めに従って取り扱います。"
+    },
+    {
+      "type": "p",
+      "text": "タスクに回答するため、当社はタスクを当社が使用する AI モデルである Google Gemini に送信します。Gemini は Google 検索でウェブを検索することもあります。Google は EU 域外でタスクを処理することがあります。API の運用を支援するすべての事業者は[サブプロセッサ](/instant/legal/subprocessors)のページに掲載しています。"
+    },
+    {
+      "type": "p",
+      "text": "当社は Google の有料 Gemini API を使用しています。この場合、Google は同社のデータ処理条件に基づき当社の処理者として行動し、お客様のタスクを同社の製品の改善に使用しません。",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "for-you",
+      "text": "当社がお客様のために行動する場合"
+    },
+    {
+      "type": "p",
+      "text": "お客様が当社に送信する個人データについて、当社はお客様の処理者です。すなわち、当社は DPA に基づき、お客様の指示に従ってのみ、かつお客様のために API を運用する目的に限り、それを取り扱います。"
+    },
+    {
+      "type": "h3",
+      "id": "for-ourselves",
+      "text": "当社が自らのために行動する場合"
+    },
+    {
+      "type": "p",
+      "text": "API の処理の一部は、お客様のためではなく当社自身のために行われます。タスクのためにウェブを検索する際、当社独自の検索サービスは、お客様のタスクから作成したクエリを検索エンジン（Google、Bing、Brave および DuckDuckGo）に送信します。企業を調べる際、API は企業登記情報サービスの OpenRegister に問い合わせ、その結果には取締役の氏名が含まれることがあります。これらの検索および照会の方法は当社が決定します。これらについて当社は自らのために（「管理者」として）行動し、DPA ではなく当社の[プライバシーポリシー](/instant/legal/privacy)が適用されます。"
+    },
+    {
+      "type": "p",
+      "text": "タスクの一部が検索クエリに含まれる可能性があるため、タスクに必要な場合を除き、タスクの文面に個人データを含めないでください。"
+    },
+    {
+      "type": "h3",
+      "id": "what-we-dont-do",
+      "text": "当社が行わないこと"
+    },
+    {
+      "type": "list",
+      "items": [
+        "当社は、お客様のデータを当社独自の AI モデルの学習に使用しません。",
+        "当社は、お客様のデータを販売せず、広告にも使用しません。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "what-not-to-send",
+      "text": "送信してはならないもの"
+    },
+    {
+      "type": "p",
+      "text": "当社が書面で合意した場合を除き、特別な種類の個人データ（健康、宗教、性的指向、生体データなど）または犯罪歴に関するデータを当社に送信しないでください。"
+    },
+    {
+      "type": "p",
+      "text": "HIPAA の対象となる保護対象保健情報を当社に送信しないでください。当社は事業提携契約（BAA）を締結しません。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "rights",
+      "text": "権利の帰属"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、当社に送信したものに関するすべての権利を保持します。当事者間において、API がお客様に返す回答は、そこに何らかの権利が存在する範囲でお客様に帰属します。お客様は、お客様のために API を運用する目的でお客様の入力を使用するために必要な権利を当社に付与します。当社は、API、当社のソフトウェア、当社の指示および当社の手法に関するすべての権利を保持します。お客様が当社にアイデアやフィードバックを送信した場合、当社はそれらを自由に使用することができます。"
+    },
+    {
+      "type": "h2",
+      "id": "limits",
+      "text": "上限および制限"
+    },
+    {
+      "type": "p",
+      "text": "当社は、お客様のリクエストの件数、サイズおよび総量について上限を設定し、変更することができます。当社は、上限を超えるリクエストを遅延させ、または拒否することがあります。複数の鍵やアカウントを使用するなどして、上限を回避しようとしないでください。"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、次のことを行ってはなりません。"
+    },
+    {
+      "type": "list",
+      "items": [
+        "法律で認められる場合を除き、API を複製し、分解し、またはリバースエンジニアリングすること",
+        "API を使用して競合する推論サービスを構築すること",
+        "当社の許可なく API のセキュリティをテストすること（問題の報告方法は当社の[セキュリティおよび脆弱性の開示](/instant/legal/security)のページに記載しています）",
+        "マルウェア、または API に過負荷をかけ、もしくは損害を与えることを目的としたトラフィックを送信すること"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "no-service-levels",
+      "text": "可用性および変更"
+    },
+    {
+      "type": "p",
+      "text": "API にはサービスレベル契約はありません。当社は、可用性、稼働率または応答速度について、いかなる水準も約束しません。API は、保守、変更、または当社の管理外の理由により中断されることがあります。API が遅い場合や利用できない場合にも安全に動作し続けるよう、お客様独自の代替手段を用意するなどしてお客様の製品を構築してください。"
+    },
+    {
+      "type": "p",
+      "text": "API は、当社の開発に伴って変更されます。当社は、稼働中の連携を損なう変更については事前にお知らせするよう努めます。セキュリティ上の問題を迅速に修正しなければならない場合など、常にそうできるとは限りません。"
+    },
+    {
+      "type": "h2",
+      "id": "confidentiality",
+      "text": "秘密保持"
+    },
+    {
+      "type": "p",
+      "text": "各当事者は、相手方の秘密情報、すなわち秘密である旨が表示されているか、または秘密であると合理的に理解されるべき非公開の情報に接することがあります。お客様にとっては、これにはお客様の入力が含まれます。当社にとっては、これには API のドキュメントおよび鍵が含まれます。"
+    },
+    {
+      "type": "p",
+      "text": "秘密情報を受領した当事者は、それを本規約のためにのみ使用し、合理的な注意をもって保護し、それを必要とし、かつ守秘義務を負う者にのみ共有します。この義務は、公知の情報、受領者が既に知っていた情報、独自に開発した情報、または第三者から適法に受領した情報には及びません。法律により開示が求められる場合、受領者は求められる範囲で開示することができ、許される場合は事前に相手方に通知します。"
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "利用停止および終了"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、いつでも API の利用をやめることができます。API が無料である間は、いずれの当事者も、電子メールによりいつでも本規約を終了することができます。"
+    },
+    {
+      "type": "p",
+      "text": "お客様が本規約もしくは利用ポリシーに違反した場合、お客様の利用が API、他の顧客その他の者を危険にさらす場合、または法律で求められる場合、当社は直ちにお客様のアクセスを停止または終了することができます。可能な場合は、事前にお客様にお知らせし、問題を是正する機会を提供します。"
+    },
+    {
+      "type": "p",
+      "text": "本規約が終了した場合、お客様の API 利用権は終了し、当社はお客様のアクセスを終了します。その後、当社は DPA の定めに従ってお客様のデータを取り扱います。秘密保持、責任、準拠法など、その性質上存続すべき本規約の条項は、引き続き適用されます。"
+    },
+    {
+      "type": "h2",
+      "id": "switching",
+      "text": "事業者の切り替え",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU データ法により、クラウドその他のデータ処理サービスの法人顧客は、ロックインされることなく、他の事業者または自社のシステムに切り替えることができます（Data Act Art. 23-31）。API については、次のとおりとします。",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "お客様は、書面で当社に通知することにより、切り替えを開始し、または API の利用を終了してデータを持ち出すことができます。予告期間は最長 2 か月で、お客様はより短い期間を選択できます。",
+        "当社は、お客様のデータ、すなわちお客様の入力、ならびに当社がお客様のために保存している判断、結果および範囲の記録を、一般的な機械可読形式でお客様に提供します。",
+        "移行期間は最長 30 日です。技術的にそれが不可能な場合、当社は、データ法で認められる範囲内で、その理由と必要な期間をお客様にお知らせします。",
+        "移行期間中、当社は合意どおりにお客様のために API の運用を継続し、誠実にお客様に協力します。",
+        "移行期間の終了後も、お客様は少なくとも 30 日間、データを取り出すことができます。",
+        "切り替えが完了した時点で、当社は DPA の定めに従ってお客様のデータを削除します。",
+        "2027 年 1 月 12 日までは、当社は切り替えに要する直接費用のみを請求することができます。2027 年 1 月 12 日以降は、切り替えに料金は一切かかりません。API が無料である間は、一切料金を請求しません。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "infrastructure",
+      "text": "所在地および政府によるアクセス",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "API とそのデータベースは、EU（オランダ）の Google Cloud 上で稼働します。Google Gemini は EU 域外でタスクを処理することがあり、検索エンジンおよび OpenRegister はそれぞれが選択する場所でクエリを処理します。[サブプロセッサ](/instant/legal/subprocessors)のページには、各事業者とその所在地を掲載しています（Data Act Art. 28）。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU 域外の政府からお客様の非個人データの提供を求められた場合、当社は EU 法または加盟国の法律で認められる場合に限りこれを提供します。法律で禁じられていない限り、当社は事前にお客様にお知らせします（Data Act Art. 32）。",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "保証および責任",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "API は「現状有姿」かつ「提供可能な範囲」で提供されます。法律で認められる範囲において、当社は、商品性、特定目的への適合性、権原および権利非侵害の保証を含め、明示または黙示を問わず、いかなる種類の保証も行いません。当社は、回答が正確であること、完全であること、またはお客様の用途に適していることを保証しません。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "法律で認められる範囲において、いずれの当事者も、間接的、付随的、特別、結果的または懲罰的な損害、ならびに逸失利益、売上、データまたはのれんの喪失について責任を負いません。本規約に基づく当社の責任の総額は、100 米ドルと、請求の原因となった事象の前 12 か月間にお客様が API について当社に支払った金額のいずれか大きい方を上限とします。これらの制限は、法律上制限が認められない責任には適用されません。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "責任",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "当社は、故意または重大な過失により生じさせた損害、生命・身体・健康の侵害、および強行法規である製造物責任法に基づく責任について、全面的に責任を負います。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "軽過失については、当社は本質的義務、すなわち本規約の適切な履行を可能にし、お客様が通常信頼してよい義務に違反した場合に限り責任を負います。その場合でも、当社は、この種の契約において典型的かつ予見可能な損害についてのみ責任を負います。それ以外の場合、軽過失に対する当社の責任は免除されます。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、お客様の製品、お客様が当社に送信したデータ、またはお客様による本規約の違反に起因する第三者（お客様のエンドユーザーを含みます）からの請求、およびその対応に要する合理的な費用について、当社を補償するものとします。当社は、そのような請求があった場合は速やかにお客様に通知し、お客様がその対応に参加できるようにします。"
+    },
+    {
+      "type": "h2",
+      "id": "law",
+      "text": "準拠法および紛争"
+    },
+    {
+      "type": "p",
+      "text": "本規約は、抵触法の規定を除き、{company.law}の法律に準拠します。法律で別の裁判所が求められない限り、紛争は{company.law}の裁判所が解決します。",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "いずれかの当事者が訴訟を提起する前に、双方は誠実に問題の解決を図ります。{company.email} 宛てに、問題の内容を記載してご連絡ください。"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "本規約には仲裁条項はありません。いずれの当事者も、請求が要件を満たす場合は、少額裁判所に請求を提起することができます。"
+    },
+    {
+      "type": "p",
+      "text": "お客様は、米国または EU の制裁対象者リストに掲載されておらず、米国または EU の禁輸対象国に所在していないこと、また、お客様の知る限り、お客様のエンドユーザーについても同様であることを確認します。お客様は、米国または EU の制裁規則または輸出規則に違反して API を使用してはなりません。"
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "一般条項"
+    },
+    {
+      "type": "list",
+      "items": [
+        "当社は本規約を更新することがあります。お客様に不利な変更については、事前にお知らせします。変更の発効後もお客様が API の利用を継続した場合は、新しい規約が適用されます。同意されない場合は、利用を中止してください。",
+        "お客様は、当社の書面による同意なしに本規約を譲渡することはできません。当社は、API を承継する会社に本規約を譲渡することができます。",
+        "本規約の一部が無効とされた場合でも、その他の部分は引き続き適用されます。",
+        "当社への通知は {company.email} 宛てに行ってください。お客様への通知は、お客様が当社に提供した電子メールアドレス宛てに行います。"
+      ]
+    }
+  ]
+}

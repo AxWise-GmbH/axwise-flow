@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Open-Source Notices",
+    "summary": "This page lists the open-source software in the Orqanix Desktop App and on our website, its licences and how to get the licence texts.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "First version."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "About this page"
+    },
+    {
+      "type": "p",
+      "text": "Parts of our products are open-source software: software whose authors let anyone use, change and share it under a published licence. This page lists the main open-source parts and how to get their licence texts."
+    },
+    {
+      "type": "p",
+      "text": "Each part stays under its own licence. Nothing in our [Terms of Service](/instant/legal/terms) or [Desktop App Terms](/instant/legal/desktop-app-terms) limits the rights those licences give you. Where a licence says its authors give no warranty, that applies to their work. Our own promises about our products are in our terms."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "The Desktop App"
+    },
+    {
+      "type": "p",
+      "text": "The Orqanix app for Mac includes open-source software such as:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Software",
+        "What it does in the app",
+        "Licence"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "The agent framework the app's agents run on",
+          "Apache License 2.0"
+        ],
+        [
+          "An optional engineering runtime bundled with the app",
+          "Runs the app's engineering tools",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "The app's window and desktop shell",
+          "MIT License"
+        ],
+        [
+          "Chromium (included in Electron)",
+          "Shows the app's screens",
+          "A BSD-style licence and others"
+        ],
+        [
+          "Node.js",
+          "Runs parts of the app",
+          "MIT License, with some bundled parts under other licences"
+        ],
+        [
+          "Many smaller npm and Rust packages",
+          "Building blocks used across the app",
+          "Various open-source licences, such as MIT, Apache 2.0 and BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The app includes the licence texts and notices for Goose, the engineering runtime, Electron, Chromium and Node.js. To see them, Control-click the app in Finder, choose Show Package Contents, then open Contents and then Resources. Those files are the authoritative texts; this table is only a summary. For the smaller packages, ask us as described in [Licence texts and source code](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Our website"
+    },
+    {
+      "type": "p",
+      "text": "Our website uses the Geist, Geist Mono and Inter typefaces, all licensed under the [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Names and trademarks"
+    },
+    {
+      "type": "p",
+      "text": "The names of open-source projects belong to their owners. Our use of their software does not mean those projects or their owners endorse Orqanix, and the licences give no one rights to their names or logos."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Licence texts and source code"
+    },
+    {
+      "type": "p",
+      "text": "To ask for a copy of a licence text, or for source code where a licence gives you a right to it, write to {company.email} with the subject \"Open source\". Tell us which version of the Desktop App you have."
+    },
+    {
+      "type": "p",
+      "text": "If you think we missed a notice or used open-source software in a way its licence does not allow, tell us at the same address and we will look into it."
+    }
+  ]
+}

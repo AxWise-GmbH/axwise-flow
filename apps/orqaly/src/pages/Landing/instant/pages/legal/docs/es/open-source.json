@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "Avisos de código abierto",
+    "summary": "Esta página enumera el software de código abierto incluido en la App de escritorio de Orqanix y en nuestro sitio web, sus licencias y cómo obtener los textos de dichas licencias.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primera versión."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "Acerca de esta página"
+    },
+    {
+      "type": "p",
+      "text": "Algunas partes de nuestros productos son software de código abierto: software cuyos autores permiten que cualquier persona lo utilice, modifique y comparta conforme a una licencia publicada. Esta página enumera las principales partes de código abierto y cómo obtener los textos de sus licencias."
+    },
+    {
+      "type": "p",
+      "text": "Cada parte sigue sujeta a su propia licencia. Nada de lo dispuesto en nuestros [Términos del servicio](/instant/legal/terms) o en los [Términos de la App de escritorio](/instant/legal/desktop-app-terms) limita los derechos que esas licencias le otorgan. Cuando una licencia indique que sus autores no ofrecen ninguna garantía, ello se aplica a su obra. Nuestros propios compromisos sobre nuestros productos figuran en nuestros términos."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "La App de escritorio"
+    },
+    {
+      "type": "p",
+      "text": "La aplicación Orqanix para Mac incluye software de código abierto como el siguiente:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Software",
+        "Qué hace en la aplicación",
+        "Licencia"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "El marco de agentes sobre el que funcionan los agentes de la aplicación",
+          "Apache License 2.0"
+        ],
+        [
+          "Un entorno de ejecución de ingeniería opcional incluido con la aplicación",
+          "Ejecuta las herramientas de ingeniería de la aplicación",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "La ventana y el entorno de escritorio de la aplicación",
+          "MIT License"
+        ],
+        [
+          "Chromium (incluido en Electron)",
+          "Muestra las pantallas de la aplicación",
+          "Una licencia de tipo BSD y otras"
+        ],
+        [
+          "Node.js",
+          "Ejecuta partes de la aplicación",
+          "MIT License, con algunas partes incluidas sujetas a otras licencias"
+        ],
+        [
+          "Numerosos paquetes npm y Rust más pequeños",
+          "Componentes básicos utilizados en toda la aplicación",
+          "Diversas licencias de código abierto, como MIT, Apache 2.0 y BSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "La aplicación incluye los textos de las licencias y los avisos de Goose, del entorno de ejecución de ingeniería, de Electron, de Chromium y de Node.js. Para consultarlos, haga Control-clic en la aplicación en el Finder, elija Mostrar contenido del paquete y, a continuación, abra Contents y luego Resources. Esos archivos constituyen los textos autorizados; esta tabla es solo un resumen. Para los paquetes más pequeños, solicítenoslo como se describe en [Textos de las licencias y código fuente](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "Nuestro sitio web"
+    },
+    {
+      "type": "p",
+      "text": "Nuestro sitio web utiliza los tipos de letra Geist, Geist Mono e Inter, todos ellos con licencia [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "Nombres y marcas comerciales"
+    },
+    {
+      "type": "p",
+      "text": "Los nombres de los proyectos de código abierto pertenecen a sus titulares. El uso que hacemos de su software no significa que dichos proyectos o sus titulares respalden a Orqanix, y las licencias no otorgan a nadie derechos sobre sus nombres o logotipos."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "Textos de las licencias y código fuente"
+    },
+    {
+      "type": "p",
+      "text": "Para solicitar una copia del texto de una licencia, o el código fuente cuando una licencia le otorgue derecho a él, escriba a {company.email} con el asunto \"Código abierto\". Indíquenos qué versión de la App de escritorio tiene."
+    },
+    {
+      "type": "p",
+      "text": "Si considera que hemos omitido algún aviso o que hemos utilizado software de código abierto de una forma que su licencia no permite, comuníquenoslo en la misma dirección y lo examinaremos."
+    }
+  ]
+}

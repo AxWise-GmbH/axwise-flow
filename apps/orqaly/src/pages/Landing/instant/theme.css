@@ -1,0 +1,117 @@
+/*
+ * Light and dark. Dark is the base: every token in instant.css holds its dark value. The switch
+ * in the footer (ui/ThemeSwitch.jsx) sets data-oi-theme="light" on the landing root, and the
+ * block below swaps every colour for its light twin. Components never ask which look is on;
+ * they only use tokens.
+ *
+ * Channel tokens, for colours that used to be written out as literals:
+ *   --oi-fg-rgb      the light that draws: lines, borders, soft fills, the brightest ink
+ *   --oi-bg-rgb      the ground: fades into the page, scrims, ink on a bright chip
+ *   --oi-lift-rgb    the thin highlight along a card's top edge (white in both looks)
+ *   --oi-shadow-rgb  shadows and sunk wells; --oi-shadow-k scales their strength
+ *   --oi-halo-k      soft glows (zero-offset blurs, radial light spots) scale by this
+ * Their dark values equal the literals they replaced, so the dark page did not change.
+ * Write new colours with these (rgba(var(--oi-fg-rgb), 0.1)) or any --oi-* token; a colour
+ * literal belongs only in a custom property (themeTokens.test.js checks it).
+ */
+
+[data-landing-variant='instant'] {
+  --oi-fg-rgb: 255, 255, 255;
+  --oi-bg-rgb: 0, 0, 0;
+  --oi-lift-rgb: 255, 255, 255;
+  --oi-shadow-rgb: 0, 0, 0;
+  --oi-shadow-k: 1;
+  --oi-halo-k: 1;
+  /* Ink on a fill of --oi-ink: the "Try For Free" pill, an open FAQ chevron. */
+  --oi-on-ink: #060a08;
+}
+
+[data-landing-variant='instant'][data-oi-theme='light'] {
+  --oi-fg-rgb: 0, 0, 0;
+  --oi-bg-rgb: 246, 246, 246;
+  --oi-lift-rgb: 255, 255, 255;
+  --oi-shadow-rgb: 0, 0, 0;
+  --oi-shadow-k: 0.3;
+  --oi-halo-k: 0.4;
+  --oi-on-ink: #ffffff;
+
+  --oi-page: #f6f6f6;
+  --oi-paper: rgba(0, 0, 0, 0.028);
+  --oi-paper-strong: #ffffff;
+  --oi-ink: #0a0a0a;
+  --oi-muted: #5c5c5c;
+  --oi-dim: #707070;
+  --oi-accent: #111111;
+  --oi-accent-dark: #6e6e6e;
+  --oi-accent-deep: #d2d2d2;
+  --oi-accent-rgb: 17, 17, 17;
+  --oi-glow-rgb: 115, 115, 115;
+  /* Light has nothing to glow against: the shared glow is a faint shade, not a grey haze. */
+  --oi-glow: rgba(var(--oi-glow-rgb), 0.2);
+  --oi-deep-rgb: 205, 205, 205;
+  --oi-pale-rgb: 0, 0, 0;
+  --oi-ambient-rgb: 222, 222, 222;
+  --oi-accent-soft: #4d4d4d;
+  /* On light the orb paints normally: a dark ink, and crossings darken toward black. */
+  --oi-orb: #4a4a4a;
+
+  --oi-hairline: rgba(0, 0, 0, 0.09);
+  --oi-hairline-strong: rgba(0, 0, 0, 0.2);
+  --oi-good: #111111;
+  --oi-control: #e2e2e2;
+  --oi-control-hover: #d6d6d6;
+
+  /* The app's own light theme (the desktop app has one), in neutral greys. Opaque, so the
+     page-coloured underlays some cards carry never grey it. */
+  --oi-app-surface: linear-gradient(180deg, #ffffff, #fbfbfb);
+  --oi-app-edge: rgba(0, 0, 0, 0.1);
+  --oi-app-text: #141414;
+  --oi-app-soft: #3d3d3d;
+  --oi-app-muted: #5f5f5f;
+  --oi-app-dim: #737373;
+  --oi-app-border: #e3e3e3;
+  --oi-app-border-strong: #cfcfcf;
+  --oi-app-fill: rgba(0, 0, 0, 0.045);
+  --oi-app-light: #1a1a1a;
+  --oi-app-sunk: rgba(0, 0, 0, 0.035);
+
+  --oi-stage: #f6f6f6;
+  --oi-stage-panel: #ffffff;
+  --oi-stage-hairline: rgba(0, 0, 0, 0.09);
+  --oi-stage-text: #0a0a0a;
+  --oi-stage-muted: #5c5c5c;
+  --oi-stage-focus: #111111;
+
+  --oi-sheet: #ffffff;
+  --oi-sheet-ink: #1a1a1a;
+}
+
+/* The ground behind the page (overscroll, the moment before a lazy part arrives). The web
+   app's baseline paints the body near-black, which is right for dark only. */
+html[data-oi-theme='light'] {
+  --oi-ground: #f6f6f6;
+  background-color: var(--oi-ground);
+}
+
+html[data-oi-theme='light'] body {
+  background-color: var(--oi-ground);
+}
+
+/*
+ * The swap. While the look changes, every CSS transition waits, so each colour lands at
+ * once rather than fading at its own speed; the switch's own morph is the exception. With
+ * the View Transitions API the new look then spreads from the switch as a growing circle
+ * (the clip-path animation is started from ThemeSwitch.jsx); this only removes the default
+ * cross-fade. Scoped to the swap class, so the web app's own view transitions keep theirs.
+ */
+html.oi-theme-swap *:not(.oi-theme-switch, .oi-theme-switch *),
+html.oi-theme-swap *::before,
+html.oi-theme-swap *::after {
+  transition: none !important;
+}
+
+html.oi-theme-swap::view-transition-old(root),
+html.oi-theme-swap::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}

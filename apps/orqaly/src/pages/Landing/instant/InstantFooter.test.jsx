@@ -6,8 +6,12 @@ import InfoPage from './pages/InfoPage';
 import { INSTANT_PAGES } from './pages/instantPages';
 import { INFO_PAGES } from './pages/info/info.data';
 import { SOLUTIONS_MENU, solutionPath } from './pages/solutions/solutionsMenu';
+import { NAV_PRODUCTS, PRODUCT_SLUGS, productPath } from './pages/products/productsMenu';
+import { PUBLIC_LEGAL_LINKS } from './pages/publicLegalLinks';
 
 const INFO_SLUGS = INSTANT_PAGES.filter((page) => page.info).map((page) => page.slug);
+// Personalised Models keeps its page but stays out of the footer (nav: false).
+const NAV_HREFS = NAV_PRODUCTS.map((item) => productPath(item.slug));
 
 function renderFooter() {
   render(
@@ -16,6 +20,13 @@ function renderFooter() {
     </MemoryRouter>
   );
 }
+
+// The long Solutions column keeps its tail under More.
+const columnOf = (name) => screen.getByRole('list', { name }).parentElement;
+const openAllMore = (nav) =>
+  within(nav)
+    .getAllByRole('button', { name: 'More' })
+    .forEach((button) => fireEvent.click(button));
 
 describe('InstantFooter', () => {
   it('shows five solutions in one column and keeps the other five under More', () => {
@@ -28,31 +39,64 @@ describe('InstantFooter', () => {
         .filter((label) => SOLUTIONS_MENU.some((item) => item.label === label));
 
     expect(shown()).toEqual(SOLUTIONS_MENU.slice(0, 5).map((item) => item.label));
-    fireEvent.click(within(nav).getByRole('button', { name: 'More' }));
+    fireEvent.click(within(columnOf('Solutions')).getByRole('button', { name: 'More' }));
     expect(shown()).toEqual(SOLUTIONS_MENU.map((item) => item.label));
   });
 
-  it('links the product, every solution and every text page, and only pages that exist', () => {
+  it('links every shown product, every solution and every text page, and only pages that exist', () => {
     renderFooter();
     const nav = screen.getByRole('navigation', { name: 'Footer' });
-    fireEvent.click(within(nav).getByRole('button', { name: 'More' }));
+    openAllMore(nav);
     const hrefs = within(nav)
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'));
 
     const expected = [
+      ...NAV_HREFS,
       '/instant/how-it-works',
       '/instant/features',
       ...SOLUTIONS_MENU.map((item) => solutionPath(item.slug)),
       ...INFO_SLUGS.map((slug) => `/instant/${slug}`),
+      // Owner: News lives in the footer only (Company column), not in the header.
+      '/instant/news',
+      ...PUBLIC_LEGAL_LINKS.map((link) => link.to),
     ];
     expect([...hrefs].sort()).toEqual([...expected].sort());
 
     const known = new Set([
       ...INSTANT_PAGES.map((page) => page.path),
+      ...PRODUCT_SLUGS.map(productPath),
       ...SOLUTIONS_MENU.map((item) => solutionPath(item.slug)),
+      ...PUBLIC_LEGAL_LINKS.map((link) => link.to),
     ]);
     expect(hrefs.filter((href) => !known.has(href))).toEqual([]);
+  });
+
+  it('opens the Product column with the shown products, then the two app pages, no pill', () => {
+    renderFooter();
+    const column = screen.getByRole('list', { name: 'Product' });
+    const hrefs = within(column)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    expect(hrefs).toEqual([...NAV_HREFS, '/instant/how-it-works', '/instant/features']);
+    expect(hrefs).not.toContain(productPath('personalised-models'));
+    expect(column.textContent).not.toMatch(/soon|Personalised/i);
+  });
+
+  it('links only the existing legal pages, never the unpublished Legal Center drafts', () => {
+    renderFooter();
+    const column = columnOf('Legal');
+    const links = within(column).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual(
+      PUBLIC_LEGAL_LINKS.map((link) => link.label)
+    );
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/privacy',
+      '/terms',
+      '/cookies',
+    ]);
+    expect(within(column).queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    expect(column).not.toHaveTextContent(/Legal Center|Health Data|Enterprise Terms/);
   });
 
   it('keeps the makers line and drops the two lines the owner removed', () => {
@@ -60,6 +104,28 @@ describe('InstantFooter', () => {
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveTextContent('Made by a group of AI product engineers and consultants');
     expect(footer).not.toHaveTextContent(/pronounced|Built on Goose|Powered by Gemini/);
+  });
+
+  it('puts one light/dark switch beside the language button, by the logo (owner, 2026-09-22)', () => {
+    renderFooter();
+    const footer = screen.getByRole('contentinfo');
+    const switches = within(footer).getAllByRole('button', { name: /Switch to (light|dark) mode/ });
+    expect(switches).toHaveLength(1);
+    const brandRow = footer.querySelector('.oi-footer-brand-row');
+    expect(brandRow).toContainElement(switches[0]);
+    expect(brandRow.lastElementChild).toBe(switches[0]);
+    // The bottom row is the © and the makers line again, nothing else.
+    expect(footer.querySelector('.oi-footer-base')).not.toContainElement(switches[0]);
+  });
+
+  it('keeps the mail pill in the panel bottom-left corner, after the link columns (owner, 2026-09-22)', () => {
+    renderFooter();
+    const footer = screen.getByRole('contentinfo');
+    const mail = within(footer).getByRole('link', { name: /hello@orqanix\.com/ });
+    expect(mail).toHaveAttribute('href', 'mailto:hello@orqanix.com');
+    const panel = footer.querySelector('.oi-footer-panel');
+    expect(panel.lastElementChild).toBe(mail);
+    expect(footer.querySelector('.oi-footer-brand')).not.toContainElement(mail);
   });
 });
 
@@ -73,21 +139,6 @@ describe('InfoPage', () => {
     const [h1, ...rest] = screen.getAllByRole('heading', { level: 1 });
     expect(rest).toHaveLength(0);
     expect(h1).toHaveTextContent(INFO_PAGES[slug].title);
-  });
-
-  it.each(['privacy', 'terms'])('gives every section of %s its own heading', (slug) => {
-    render(<InfoPage slug={slug} />);
-    for (const { title } of INFO_PAGES[slug].sections) {
-      expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument();
-    }
-  });
-
-  it('points every entry of the privacy index at a section on the page', () => {
-    const { container } = render(<InfoPage slug="privacy" />);
-    const index = screen.getByRole('navigation', { name: 'On this page' });
-    for (const link of within(index).getAllByRole('link')) {
-      expect(container.querySelector(link.getAttribute('href'))).not.toBeNull();
-    }
   });
 
   it('makes every contact card a mail link', () => {

@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "slug": "mobile-app-terms",
+    "title": "Términos de la Aplicación móvil",
+    "summary": "Estos términos regulan el uso de la aplicación de Orqanix para teléfono como mando a distancia de Orqanix en su Mac, incluidos los términos que exigen las tiendas de aplicaciones.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Primera versión."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Platforms and stores are unknown (no Mobile App code exists). The app-store sections are written as conditions (\"if you got the Mobile App from...\") and name no platform as fact. Remove the section for any store the app is not offered in.",
+        "How the phone reaches the Mac, whether the phone signs in with an Orqanix account, what is stored on the phone or in our cloud, and the push-notification provider are unknown. The document makes no data claims (removed \"same account on both\" and \"signing out\", which the product page does not support) and defers to the Privacy Policy, which must cover them before release.",
+        "Voice input: the product page says you can say what you need; how voice is processed is unknown and is not described here.",
+        "Apple standard EULA point \"developer name and address\" needs the company's legal name and address (needs block, FACTS open point #1). App-store DSA trader details (address, phone, email, shown publicly) must match the Legal Notice.",
+        "Apple App Store Guideline 5.1.1(v) and Google Play require in-app account deletion (and a web deletion path for Google Play). No self-service deletion exists (FACTS open point #5); the text does not promise one.",
+        "Apple 5.1.2(i): a consent screen naming Google Gemini before data is first shared with third-party AI is needed in the app; Google Play AI-generated content policy needs in-app reporting. Not document items.",
+        "US app-store age laws (Texas SB 2420 enforceable now; Utah May 2027; Louisiana 1 Jul 2027; California AB 1043 from 1 Jan 2027): the app must use store age signals. The document states 18+ only.",
+        "EU change notice by email (Dir. 2019/770 Art. 19) needs working mailboxes (no MX record, FACTS open point #2).",
+        "Product pages present the Mobile App as available while no code exists (FACTS open point #13); these terms cannot cure that. Consider holding this document until the app ships.",
+        "Lawyer review of the Apple and Google clauses (including the US-embargo representation Apple requires, shown in both regions) and of the EU consumer wording."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-these-terms",
+      "text": "Acerca de estos términos"
+    },
+    {
+      "type": "p",
+      "text": "Estos términos complementan nuestros [Términos del servicio](/instant/legal/terms) para la aplicación de Orqanix para su teléfono (la \"Aplicación móvil\"). Junto con los Términos del servicio, los [Términos de la Aplicación de escritorio](/instant/legal/desktop-app-terms), nuestra [Política de uso aceptable](/instant/legal/acceptable-use) y nuestra [Política de privacidad](/instant/legal/privacy), forman un único acuerdo. Si estos términos y los Términos del servicio discrepan en lo relativo a la Aplicación móvil, prevalecen estos términos."
+    },
+    {
+      "type": "p",
+      "text": "La Aplicación móvil es gratuita mientras nuestros productos se encuentran en una fase inicial. Antes de que comience cualquier plan de pago, publicaremos el precio y las normas de pago y cancelación."
+    },
+    {
+      "type": "p",
+      "text": "Antes de ese momento, también publicaremos las normas para desistir de una compra, tal como exige el Derecho de la UE.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "a-remote-for-your-mac",
+      "text": "Un mando a distancia para su Mac"
+    },
+    {
+      "type": "p",
+      "text": "La Aplicación móvil es un mando a distancia de Orqanix en su Mac. Cuando la usa:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "necesita la aplicación Orqanix en su Mac (la Aplicación de escritorio). Empiece por la aplicación para Mac y después añada su teléfono;",
+        "todo el trabajo se ejecuta en su Mac, con sus archivos, herramientas y ajustes. El teléfono muestra lo que está ocurriendo y le permite encargar el siguiente trabajo;",
+        "los archivos se crean en su Mac y permanecen en su carpeta de proyecto. El teléfono muestra lo que se ha creado; el Mac conserva los originales;",
+        "la Aplicación móvil solo funciona mientras su Mac está conectado y tiene Orqanix abierto. Cuando el Mac entra en reposo o se desconecta, el teléfono lo indica y espera hasta que vuelva a estar disponible."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "No garantizamos que su teléfono pueda comunicarse siempre con su Mac. Las redes, los ajustes de reposo y sus dispositivos escapan a nuestro control."
+    },
+    {
+      "type": "h2",
+      "id": "work-from-your-phone",
+      "text": "Trabajar desde el teléfono"
+    },
+    {
+      "type": "p",
+      "text": "Puede consultar un trabajo en curso, leer resultados, volver a ejecutar tareas guardadas (recetas) e iniciar un trabajo nuevo escribiendo o diciendo lo que necesita. La Aplicación de escritorio de su Mac lleva a cabo ese trabajo, conforme a los [Términos de la Aplicación de escritorio](/instant/legal/desktop-app-terms). Esto significa que:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "los agentes de su Mac pueden realizar acciones reales, como modificar archivos y ejecutar comandos. De forma predeterminada, lo hacen sin preguntar antes, salvo que usted haya [cambiado ese ajuste](/instant/legal/desktop-app-terms#approval-modes) en su Mac;",
+        "usted es responsable del trabajo que inicie desde el teléfono como si lo hubiera iniciado en su Mac;",
+        "usted no está delante de su Mac para supervisarlo, así que elija con cuidado lo que solicita y revise los resultados antes de confiar en ellos."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "La IA comete errores. Los resultados pueden ser erróneos, incompletos o estar desactualizados. Consulte [Cómo funciona nuestra IA](/instant/legal/ai)."
+    },
+    {
+      "type": "h2",
+      "id": "notifications",
+      "text": "Notificaciones"
+    },
+    {
+      "type": "p",
+      "text": "La Aplicación móvil puede avisarle cuando termina un trabajo. Puede desactivar las notificaciones en los ajustes de su teléfono. Pueden aparecer en su pantalla de bloqueo, así que configure las previsualizaciones de notificaciones como le convenga. No garantizamos que todas las notificaciones lleguen, ni que lleguen a tiempo."
+    },
+    {
+      "type": "h2",
+      "id": "account-and-security",
+      "text": "Su cuenta y su teléfono"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Debe tener 18 años o más para usar la Aplicación móvil.",
+        "Cualquier persona que pueda usar su teléfono desbloqueado podría iniciar trabajos en su Mac a través de la Aplicación móvil. Mantenga su teléfono bloqueado. Si lo pierde o lo regala, elimine la Aplicación móvil si puede y avísenos.",
+        "Avísenos en {company.email} si cree que otra persona ha usado su cuenta."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "La [Política de privacidad](/instant/legal/privacy) explica qué recopilamos cuando usa la Aplicación móvil y por qué."
+    },
+    {
+      "type": "h2",
+      "id": "licence",
+      "text": "Su licencia"
+    },
+    {
+      "type": "p",
+      "text": "Mientras cumpla estos términos, le concedemos una licencia personal, no exclusiva e intransferible para instalar y usar la Aplicación móvil en los teléfonos que sean de su propiedad o que estén bajo su control. No puede venderla, alquilarla, prestarla ni sublicenciarla, eludir sus medidas de seguridad o sus límites, ni copiarla para crear un producto competidor."
+    },
+    {
+      "type": "h2",
+      "id": "updates",
+      "text": "Actualizaciones y cambios"
+    },
+    {
+      "type": "p",
+      "text": "Podemos publicar nuevas versiones de la Aplicación móvil y modificar o eliminar funciones. Si la obtuvo en una tienda de aplicaciones, las actualizaciones llegan a través de esa tienda conforme a sus normas. Las normas sobre cambios figuran en [Cambios en los Servicios y en estos términos](/instant/legal/terms#changes)."
+    },
+    {
+      "type": "p",
+      "text": "Si usa la Aplicación móvil como consumidor (fuera de su actividad comercial, empresarial o profesional), tiene los derechos que el Derecho de la UE concede a los consumidores en materia de contenidos digitales. Se aplican aunque la aplicación sea gratuita, porque usted nos facilita datos personales para usarla (Directiva (UE) 2019/770). Durante el tiempo que exija la ley, pondremos a su disposición las actualizaciones, incluidas las de seguridad, necesarias para que siga funcionando según lo descrito.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Más allá de eso, solo modificaremos la Aplicación móvil por un motivo válido y sin coste alguno para usted. Si un cambio de ese tipo perjudica de forma no meramente menor su uso de la aplicación, se lo notificaremos por correo electrónico con antelación suficiente. En ese caso, podrá resolver este acuerdo sin coste alguno en un plazo de 30 días desde nuestra notificación o desde el cambio, lo que ocurra más tarde, salvo que le permitamos conservar la versión sin cambios sin coste adicional.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Responsabilidad"
+    },
+    {
+      "type": "p",
+      "text": "En la medida en que la ley lo permita, la Aplicación móvil se proporciona \"tal cual\" y \"según disponibilidad\", sin garantías de ningún tipo. Se le aplican las secciones [Exenciones de garantía](/instant/legal/terms#warranty) y [Responsabilidad](/instant/legal/terms#liability) de los Términos del servicio.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Respondemos de la Aplicación móvil conforme a la legislación de su país, según lo establecido en [Responsabilidad](/instant/legal/terms#liability) de los Términos del servicio. Nada de lo dispuesto en estos términos ni en los términos de una tienda de aplicaciones limita sus derechos legales como consumidor.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "app-stores",
+      "text": "Términos de las tiendas de aplicaciones"
+    },
+    {
+      "type": "p",
+      "text": "Esta sección se aplica si obtuvo la Aplicación móvil en una tienda de aplicaciones. Los propios términos de la tienda también se aplican a su descarga y uso. Debe cumplirlos, así como los términos de su red móvil, como su plan de datos."
+    },
+    {
+      "type": "h3",
+      "id": "apple",
+      "text": "Apple App Store"
+    },
+    {
+      "type": "p",
+      "text": "Si obtuvo la Aplicación móvil en la App Store de Apple, usted y nosotros acordamos que:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "estos términos se celebran únicamente entre usted y nosotros, no con Apple. Nosotros, y no Apple, somos los únicos responsables de la Aplicación móvil y de su contenido;",
+        "su licencia abarca el uso en productos de la marca Apple que sean de su propiedad o que estén bajo su control, según lo permitido por las Normas de uso de los [Términos y condiciones de los Servicios multimedia](https://www.apple.com/legal/internet-services/itunes/) de Apple. Otras personas vinculadas a su cuenta mediante En familia o compras por volumen también pueden usarla en la medida en que dichas normas lo permitan;",
+        "solo nosotros somos responsables del mantenimiento y el soporte de la Aplicación móvil. Apple no tiene obligación alguna de prestarlos;",
+        "si la Aplicación móvil no cumple una garantía que le sea aplicable, puede comunicárselo a Apple, y Apple le reembolsará el precio que haya pagado por la aplicación, en su caso. En la medida en que la ley lo permita, Apple no tiene ninguna otra obligación de garantía respecto de la Aplicación móvil. Cualesquiera otras reclamaciones, pérdidas, responsabilidades, daños, costes o gastos causados por dicho incumplimiento son responsabilidad nuestra, en la medida en que estos términos y la ley así lo establezcan;",
+        "nosotros, y no Apple, atenderemos cualquier reclamación suya o de terceros relativa a la Aplicación móvil o a su uso, incluidas las reclamaciones por responsabilidad por productos, las reclamaciones por incumplimiento de un requisito legal o reglamentario y las reclamaciones basadas en la legislación de protección de los consumidores, de privacidad o similar;",
+        "si alguien alega que la Aplicación móvil o su uso infringe su propiedad intelectual, nosotros, y no Apple, somos responsables de investigar, defender, transigir y resolver dicha reclamación, en la medida en que estos términos nos atribuyan esa responsabilidad;",
+        "usted no se encuentra en un país sujeto a un embargo del Gobierno de EE. UU. ni designado por el Gobierno de EE. UU. como país \"que apoya el terrorismo\", y no figura en ninguna lista del Gobierno de EE. UU. de partes prohibidas o restringidas;",
+        "Apple y sus filiales son terceros beneficiarios de estos términos. Una vez que usted acepte estos términos, Apple tendrá el derecho, y se considerará que lo ha aceptado, de exigirle su cumplimiento como tercero beneficiario."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Envíenos las preguntas, quejas o reclamaciones sobre la Aplicación móvil a {company.email}, no a Apple."
+    },
+    {
+      "type": "p",
+      "text": "El desarrollador de la Aplicación móvil es {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "google-play",
+      "text": "Google Play"
+    },
+    {
+      "type": "p",
+      "text": "Si obtuvo la Aplicación móvil en Google Play, usted y nosotros acordamos que:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "estos términos se celebran únicamente entre usted y nosotros, no con Google. Google no es responsable de la Aplicación móvil, de su contenido, de su soporte ni de ninguna reclamación relativa a ella;",
+        "los [Términos del Servicio de Google Play](https://play.google.com/about/play-terms/) también se aplican a su descarga y uso. Cuando entren en conflicto con estos términos en lo relativo a su relación con Google, prevalecen los Términos del Servicio de Google Play;",
+        "los reembolsos de cualquier compra realizada a través de Google Play se rigen por las normas de Google Play."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sanciones y exportación"
+    },
+    {
+      "type": "p",
+      "text": "No puede descargar ni usar la Aplicación móvil donde las sanciones o las normas de exportación de EE. UU. o de la UE lo prohíban, ni si figura en una lista de sanciones de EE. UU. o de la UE. Consulte [Sanciones y exportación](/instant/legal/terms#sanctions) en los Términos del servicio."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Dejar de usar la aplicación"
+    },
+    {
+      "type": "p",
+      "text": "Puede dejar de usar la Aplicación móvil en cualquier momento eliminándola de su teléfono. Esto no detiene la Aplicación de escritorio, no elimina archivos de su Mac ni cierra su cuenta de Orqanix. Para cerrar su cuenta o solicitarnos que eliminemos sus datos, consulte los [Términos del servicio](/instant/legal/terms) y la [Política de privacidad](/instant/legal/privacy)."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Contacto"
+    },
+    {
+      "type": "p",
+      "text": "Preguntas sobre estos términos: {company.email}. Solicitudes de privacidad: {company.privacyEmail}."
+    }
+  ]
+}

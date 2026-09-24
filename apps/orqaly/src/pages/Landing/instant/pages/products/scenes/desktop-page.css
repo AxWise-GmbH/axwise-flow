@@ -1,0 +1,776 @@
+/*
+ * Desktop App scene, the page's own cuts: the ask, plan and files close-ups, the schedule and
+ * the approval. DesktopPage.jsx imports this file, so it ships with the page and never rides
+ * the header's scenes chunk. The parts, the shared keyframes and the menu and hero cuts are
+ * in desktop.css; every rule here starts from [data-product='desktop'], so it outranks the
+ * parts whichever file arrives first.
+ *
+ * schedule: the week passes left to right; Monday 9:00 fires at 5%, the recipe runs 8-36%,
+ * its file lands at 41%. approve: the pointer comes 4-26%, picks Allow Once at 30%, the
+ * written file lands at 41%.
+ *
+ * A cut plays from the moment it scrolls into view, so each one opens on a full frame: one
+ * negative delay for the whole cut (--pd-t0, and --pd-at for the file rows and steps).
+ * ask opens on its answer, which rests before the next ask types; plan on two steps done
+ * and the third running; files on a New file and one being written; schedule on the run
+ * just done; approve on the pointer gliding in to Allow Once.
+ */
+
+/* The close-ups' own surfaces, and their light twins (the app's light theme): white cards, a
+   white Monday, a pale face on Allow Once. The pointer is the same in both: it rests on the
+   lit Allow Once, which is white in dark and near-black in light. */
+[data-product='desktop'] {
+  --pd-day: #2c2c2c;
+  --pd-job-bg: linear-gradient(180deg, #1d1d1d, #121212);
+  --pd-card-bg: linear-gradient(180deg, #1f1f1f, #131313);
+  --pd-face: #262626;
+  --pd-ptr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 1.5v12l3.2-3 2.1 4.6 2-.9-2.1-4.5H12.6z' fill='white' stroke='black' stroke-width='1' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+[data-product='desktop']:is([data-oi-theme='light'] *) {
+  --pd-day: #ffffff;
+  --pd-job-bg: linear-gradient(180deg, #ffffff, #f8f8f8);
+  --pd-card-bg: linear-gradient(180deg, #ffffff, #f8f8f8);
+  --pd-face: #f1f1f1;
+}
+
+/* Close-ups ------------------------------------------------------------------------------- */
+
+[data-product='desktop'][data-cut='ask'] :is(.pd-side, .pd-ws),
+[data-product='desktop'][data-cut='plan'] :is(.pd-app, .pd-files),
+[data-product='desktop'][data-cut='files'] :is(.pd-app, .pd-steps),
+[data-product='desktop']:is([data-cut='schedule'], [data-cut='approve']) .pd-cam,
+[data-product='desktop']:is([data-cut='plan'], [data-cut='files']) .pd-ws::after {
+  display: none;
+}
+
+[data-product='desktop']:is([data-cut='ask'], [data-cut='plan'], [data-cut='files']) .pd-cam {
+  display: grid;
+  place-items: center;
+  animation: none;
+}
+
+[data-product='desktop']:is([data-cut='ask'], [data-cut='plan'], [data-cut='files'])
+  :is(.pd-app, .pd-ws) {
+  position: relative;
+  inset: auto;
+}
+
+[data-product='desktop'][data-cut='ask'] .ps-scene {
+  --u: calc(var(--ps-u) * 2.3);
+  --pd-t0: calc(var(--ps-loop) * -0.7);
+}
+
+/* The close-up has no Workspace to watch, so the wait is short: "working on it" 26-45%, the
+   reply draws 45-51%, its files attach 50-54%, and the answer rests until the clear. */
+[data-product='desktop'][data-cut='ask'] .pd-status {
+  animation-name: pd-q-status;
+}
+
+[data-product='desktop'][data-cut='ask'] .pd-reply i {
+  animation-name: pd-q-draw;
+}
+
+[data-product='desktop'][data-cut='ask'] .pd-chips .ps-chip {
+  animation-name: pd-q-chip;
+}
+
+[data-product='desktop'][data-cut='ask'] .pd-app {
+  width: calc(var(--u) * 38);
+  height: calc(var(--u) * 36);
+}
+
+[data-product='desktop'][data-cut='ask'] .pd-body {
+  grid-template-columns: 1fr;
+}
+
+[data-product='desktop']:is([data-cut='ask'], [data-cut='plan'], [data-cut='files']) .pd-glow {
+  inset: 0;
+  width: auto;
+  height: auto;
+}
+
+[data-product='desktop']:is([data-cut='plan'], [data-cut='files']) .ps-scene {
+  --u: calc(var(--ps-u) * 2.9);
+}
+
+[data-product='desktop']:is([data-cut='plan'], [data-cut='files']) .pd-ws {
+  width: calc(var(--u) * 29);
+  gap: calc(var(--u) * 2);
+}
+
+[data-product='desktop']:is([data-cut='plan'], [data-cut='files']) :is(.pd-steps, .pd-files) {
+  animation: none;
+}
+
+[data-product='desktop'][data-cut='plan'] .ps-scene {
+  --pd-gap: 0.09;
+  --pd-at: -0.52;
+}
+
+[data-product='desktop'][data-cut='plan'] .pd-steps {
+  gap: calc(var(--u) * 1.7);
+}
+
+[data-product='desktop'][data-cut='files'] .ps-scene {
+  --pd-gap: 0.12;
+  --pd-at: -0.6;
+}
+
+[data-product='desktop'][data-cut='files'] .pd-files {
+  gap: calc(var(--u) * 1);
+  padding-top: 0;
+  border: 0;
+}
+
+/* Schedule: a week strip, Monday 9:00 fires, the recipe runs, its file lands. ------------ */
+
+[data-product='desktop'][data-cut='schedule'] .ps-scene {
+  --u: calc(var(--ps-u) * 1.2);
+  --pd-at: -0.42;
+  --pd-t0: calc(var(--ps-loop) * -0.42);
+}
+
+[data-product='desktop'][data-cut='schedule'] .pd-sched {
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  align-content: center;
+  align-items: center;
+  gap: calc(var(--u) * 4.5) calc(var(--u) * 5);
+  padding: 0 calc(var(--u) * 5);
+}
+
+[data-product='desktop'][data-cut='schedule'] .pd-glow {
+  top: auto;
+  bottom: calc(var(--u) * -30);
+  left: calc(var(--u) * 5);
+  width: calc(var(--u) * 70);
+}
+
+[data-product='desktop'] .pd-week {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(7, 1fr);
+  gap: calc(var(--u) * 1);
+}
+
+[data-product='desktop'] .pd-week span {
+  position: relative;
+  height: calc(var(--u) * 8);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.1);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1.1);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-muted);
+  font-size: calc(var(--u) * 1.3);
+}
+
+/* Monday: its 9:00 mark, and the light and ring when the job fires. */
+[data-product='desktop'] .pd-week span:first-child {
+  z-index: 1;
+  border-color: var(--oi-app-border-strong);
+  background: var(--pd-day);
+  color: var(--oi-app-text);
+}
+
+[data-product='desktop'] .pd-week span:first-child::after {
+  content: '9:00';
+  position: absolute;
+  bottom: calc(var(--u) * 0.9);
+  left: calc(var(--u) * 1.1);
+  padding: calc(var(--u) * 0.1) calc(var(--u) * 0.5);
+  border-radius: 999px;
+  background: var(--oi-app-text);
+  color: var(--oi-paper-strong);
+  font: 500 max(9px, calc(var(--u) * 0.95)) / 1.3 var(--oi-mono);
+  animation: pd-fire var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+[data-product='desktop'] .pd-week span:first-child::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  border: calc(var(--ps-line) * 1.5) solid var(--oi-app-text);
+  border-radius: inherit;
+  opacity: 0;
+  animation: pd-ring var(--ps-loop) ease-out var(--pd-t0) infinite;
+}
+
+/* Now: a hairline that crosses the week, one week per loop. */
+[data-product='desktop'] .pd-week::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--u) * -1.2);
+  bottom: calc(var(--u) * -1.2);
+  left: 0;
+  z-index: 2;
+  width: 100%;
+  border-left: calc(var(--ps-line) * 1.4) solid var(--oi-app-text);
+  transform: translateX(5.4%);
+  pointer-events: none;
+  animation: pd-now-line var(--ps-loop) linear var(--pd-t0) infinite;
+}
+
+[data-product='desktop'] .pd-job {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: calc(var(--u) * 1.4);
+  padding: calc(var(--u) * 2) calc(var(--u) * 2.2);
+  overflow: hidden;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 1.6);
+  background: var(--pd-job-bg);
+  box-shadow: 0 calc(var(--u) * 2) calc(var(--u) * 6) calc(var(--u) * -2)
+    rgba(var(--oi-shadow-rgb), calc(0.8 * var(--oi-shadow-k)));
+}
+
+[data-product='desktop'] .pd-job-icon {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 3.6);
+  height: calc(var(--u) * 3.6);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 1);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-text);
+}
+
+[data-product='desktop'] .pd-job-icon .ps-icon {
+  width: 55%;
+  height: 55%;
+}
+
+[data-product='desktop'] .pd-job p {
+  display: grid;
+  gap: calc(var(--u) * 0.3);
+  min-width: 0;
+  margin: 0;
+  color: var(--oi-app-muted);
+  font-size: max(9px, calc(var(--u) * 1.2));
+  white-space: nowrap;
+}
+
+[data-product='desktop'] .pd-job b {
+  overflow: hidden;
+  color: var(--oi-app-text);
+  font-size: max(10px, calc(var(--u) * 1.6));
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+[data-product='desktop'] .pd-job .ps-chip {
+  font-size: max(9px, calc(var(--u) * 1.1));
+}
+
+[data-product='desktop'] .pd-job .ps-tick {
+  width: calc(var(--u) * 2.2);
+  height: calc(var(--u) * 2.2);
+  animation: pd-done var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+/* The run: a bar along the card's foot. */
+[data-product='desktop'] .pd-run {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(var(--u) * 0.35);
+  background: linear-gradient(90deg, var(--oi-app-muted), var(--oi-app-text));
+  transform-origin: left;
+  animation: pd-run var(--ps-loop) linear var(--pd-t0) infinite;
+}
+
+/* The line from the recipe to the file it made; it draws just before the file lands. */
+[data-product='desktop'] .pd-sched .ps-file::after {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: calc(var(--u) * -5);
+  width: calc(var(--u) * 5);
+  background: linear-gradient(90deg, var(--oi-app-border-strong), var(--oi-app-text));
+  opacity: 1;
+  animation: pd-link var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+[data-product='desktop'] .pd-sched .ps-file {
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 1.2);
+  font-size: max(9px, calc(var(--u) * 1.4));
+}
+
+/* Approve: the tool call waits for a yes; the pointer picks Allow Once. ------------------ */
+
+[data-product='desktop'][data-cut='approve'] .ps-scene {
+  --u: calc(var(--ps-u) * 1.3);
+  --pd-at: -0.2;
+  --pd-t0: calc(var(--ps-loop) * -0.2);
+}
+
+[data-product='desktop'][data-cut='approve'] .pd-ok {
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: calc(var(--u) * 2.4);
+  padding: 0 calc(var(--u) * 6);
+}
+
+/* The chat it sits in: the agent's last words, drawn, above the question. */
+[data-product='desktop'] .pd-ok::before {
+  content: '';
+  width: calc(var(--u) * 30);
+  height: calc(var(--u) * 0.8);
+  margin: 0 0 calc(var(--u) * 2.6) calc(var(--u) * 4.2);
+  border-radius: calc(var(--u) * 0.4);
+  background: color-mix(in srgb, var(--oi-app-muted) 35%, transparent);
+  box-shadow: 0 calc(var(--u) * 1.7) 0 color-mix(in srgb, var(--oi-app-muted) 22%, transparent);
+}
+
+[data-product='desktop'][data-cut='approve'] .pd-glow {
+  top: calc(var(--u) * -10);
+  left: calc(var(--u) * 5);
+  width: calc(var(--u) * 80);
+  height: calc(var(--u) * 80);
+}
+
+[data-product='desktop'] .pd-card {
+  position: relative;
+  width: 100%;
+  padding: calc(var(--u) * 3);
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: calc(var(--u) * 2);
+  background: var(--pd-card-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.1),
+    0 calc(var(--u) * 3) calc(var(--u) * 8) calc(var(--u) * -2)
+      rgba(var(--oi-shadow-rgb), calc(0.85 * var(--oi-shadow-k)));
+}
+
+[data-product='desktop'] .pd-card p {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--u) * 1.4);
+  margin: 0;
+  color: var(--oi-app-text);
+  font-size: calc(var(--u) * 2.1);
+  line-height: 1.4;
+}
+
+[data-product='desktop'] .pd-card p > .ps-icon {
+  box-sizing: content-box;
+  padding: calc(var(--u) * 0.7);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: calc(var(--u) * 0.8);
+  background: var(--oi-app-fill);
+  color: var(--oi-app-soft);
+}
+
+[data-product='desktop'] .pd-card .ps-mono {
+  padding: 0 calc(var(--u) * 0.5);
+  border-radius: calc(var(--u) * 0.5);
+  background: var(--oi-app-fill);
+  font-size: 0.9em;
+}
+
+[data-product='desktop'] .pd-choices {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.2);
+  margin-top: calc(var(--u) * 2.8);
+  padding-left: calc(var(--u) * 4.2);
+}
+
+[data-product='desktop'] .pd-choices span {
+  position: relative;
+  order: 2;
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1.8);
+  border: var(--ps-line) solid var(--oi-app-border);
+  border-radius: 999px;
+  color: var(--oi-app-soft);
+  font-size: calc(var(--u) * 1.6);
+  white-space: nowrap;
+  opacity: 0.45;
+  animation: pd-dim var(--ps-loop) ease var(--pd-t0) infinite;
+}
+
+/* Allow Once: lit when picked. Until then a plain face covers it. */
+[data-product='desktop'] .pd-choices span:first-child {
+  order: 0;
+  border-color: transparent;
+  background: var(--oi-app-text);
+  color: var(--oi-paper-strong);
+  opacity: 1;
+  animation: pd-press var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+[data-product='desktop'] .pd-choices span:first-child::before {
+  content: var(--pd-say-allow, 'Allow Once');
+  position: absolute;
+  inset: calc(var(--ps-line) * -1);
+  display: grid;
+  place-items: center;
+  border: var(--ps-line) solid var(--oi-app-border-strong);
+  border-radius: inherit;
+  background: var(--pd-face);
+  color: var(--oi-app-text);
+  opacity: 0;
+  animation: pd-cover var(--ps-loop) ease var(--pd-t0) infinite;
+}
+
+[data-product='desktop'] .pd-choices .ps-tick {
+  position: absolute;
+  left: calc(var(--u) * 0.6);
+  width: calc(var(--u) * 2.4);
+  height: calc(var(--u) * 2.4);
+  animation: pd-yes var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+/* The pointer, drawn: white with a dark edge, resting on Allow Once. Its keyframes move it
+   in em, the scene's 1.5u, so they need no var() and run on the compositor. */
+[data-product='desktop'] .pd-ptr {
+  position: absolute;
+  top: 55%;
+  left: calc(var(--u) * 11);
+  z-index: 2;
+  width: calc(var(--u) * 2.8);
+  height: calc(var(--u) * 2.8);
+  background: var(--pd-ptr) center / contain no-repeat;
+  animation: pd-ptr var(--ps-loop) var(--oi-ease) var(--pd-t0) infinite;
+}
+
+[data-product='desktop'] .pd-ok > .ps-file {
+  width: min(100%, calc(var(--u) * 38));
+  margin-left: calc(var(--u) * 4.2);
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1);
+  font-size: max(9px, calc(var(--u) * 1.6));
+}
+
+/* Small cards (a phone, or the three close-ups side by side on a tablet): every word stays
+   9px or more. The compact week shows Monday to Friday, a size up. */
+@container ps (max-width: 560px) {
+  [data-product='desktop'][data-cut='ask'] .pd-ask {
+    font-size: max(9px, calc(var(--u) * 1.7));
+  }
+
+  [data-product='desktop'][data-cut='ask'] :is(.pd-status, .pd-input) {
+    font-size: max(9px, calc(var(--u) * 1.35));
+  }
+
+  [data-product='desktop'][data-cut='schedule'] .ps-scene {
+    --u: calc(var(--ps-u) * 2);
+  }
+
+  [data-product='desktop'][data-cut='schedule'] .pd-sched {
+    grid-template-columns: 1fr;
+    gap: calc(var(--u) * 3);
+    padding: 0 calc(var(--u) * 4);
+  }
+
+  [data-product='desktop'] .pd-week {
+    grid-template-columns: repeat(5, 1fr);
+    gap: calc(var(--u) * 0.6);
+  }
+
+  [data-product='desktop'] .pd-week span {
+    height: calc(var(--u) * 7.4);
+    padding: calc(var(--u) * 0.7);
+    font-size: max(9px, calc(var(--u) * 1.4));
+  }
+
+  [data-product='desktop'] .pd-week span:nth-child(n + 6) {
+    display: none;
+  }
+
+  /* At rest the line waits just past Monday, clear of its words. */
+  [data-product='desktop'] .pd-week::after {
+    transform: translateX(19.6%);
+  }
+
+  [data-product='desktop'] .pd-sched .ps-file::after {
+    display: none;
+  }
+
+  [data-product='desktop'] .pd-week span:first-child::after {
+    left: calc(var(--u) * 0.6);
+  }
+
+  [data-product='desktop'][data-cut='approve'] .ps-scene {
+    --u: calc(var(--ps-u) * 2);
+  }
+
+  [data-product='desktop'][data-cut='approve'] .pd-ok {
+    padding: 0 calc(var(--u) * 3.5);
+  }
+
+  [data-product='desktop'] .pd-card {
+    padding: calc(var(--u) * 2.2);
+  }
+
+  [data-product='desktop'] .pd-card p {
+    font-size: max(10px, calc(var(--u) * 1.8));
+  }
+
+  [data-product='desktop'] .pd-choices {
+    gap: calc(var(--u) * 0.8);
+    padding-left: calc(var(--u) * 3.4);
+  }
+
+  [data-product='desktop'] .pd-choices span {
+    padding: calc(var(--u) * 0.8) calc(var(--u) * 1.2);
+    font-size: max(9px, calc(var(--u) * 1.35));
+  }
+
+  [data-product='desktop'] .pd-ptr {
+    left: calc(var(--u) * 8.5);
+  }
+
+  [data-product='desktop'] .pd-ok::before {
+    width: calc(var(--u) * 22);
+    margin-left: calc(var(--u) * 3.4);
+  }
+
+  [data-product='desktop'] .pd-ok > .ps-file {
+    margin-left: calc(var(--u) * 3.4);
+  }
+}
+
+/* Keyframes (the shared ones are in desktop.css) ------------------------------------------ */
+
+@keyframes pd-q-status {
+  0%,
+  26% {
+    opacity: 0;
+    transform: translateY(0.593em);
+  }
+  29%,
+  42% {
+    opacity: 1;
+    transform: none;
+  }
+  45%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes pd-q-draw {
+  0%,
+  45% {
+    transform: scaleX(0);
+  }
+  51%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pd-q-chip {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translateY(0.667em) scale(0.9);
+  }
+  54%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pd-now-line {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  1.5%,
+  97% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pd-fire {
+  0%,
+  4.5% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  6.5% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  9%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes pd-ring {
+  0%,
+  5% {
+    opacity: 0;
+    transform: none;
+  }
+  6% {
+    opacity: 0.9;
+    transform: none;
+  }
+  18%,
+  100% {
+    opacity: 0;
+    transform: scale(1.35, 1.5);
+  }
+}
+
+@keyframes pd-run {
+  0%,
+  7% {
+    transform: scaleX(0);
+  }
+  36%,
+  95% {
+    transform: none;
+    opacity: 1;
+  }
+  99%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes pd-done {
+  0%,
+  36% {
+    transform: scale(0);
+  }
+  38.5% {
+    transform: scale(1.18);
+  }
+  41%,
+  95% {
+    transform: none;
+  }
+  99%,
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes pd-link {
+  0%,
+  37% {
+    transform: scaleX(0);
+  }
+  41%,
+  95% {
+    transform: none;
+    opacity: 1;
+  }
+  99%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes pd-ptr {
+  0%,
+  4% {
+    opacity: 0;
+    transform: translate(10.67em, 8em);
+  }
+  8% {
+    opacity: 1;
+  }
+  26% {
+    transform: none;
+  }
+  29% {
+    transform: none;
+  }
+  30.5% {
+    transform: scale(0.82);
+  }
+  32%,
+  38% {
+    opacity: 1;
+    transform: none;
+  }
+  48%,
+  100% {
+    opacity: 0;
+    transform: translate(4em, 3.33em);
+  }
+}
+
+@keyframes pd-press {
+  0%,
+  29.5% {
+    transform: none;
+  }
+  31% {
+    transform: scale(0.94);
+  }
+  33%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pd-cover {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  32%,
+  92% {
+    opacity: 0;
+  }
+  97%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pd-dim {
+  0%,
+  31% {
+    opacity: 1;
+  }
+  36%,
+  92% {
+    opacity: 0.45;
+  }
+  97%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pd-yes {
+  0%,
+  32% {
+    transform: scale(0);
+  }
+  34.5% {
+    transform: scale(1.18);
+  }
+  37%,
+  92% {
+    transform: none;
+  }
+  97%,
+  100% {
+    transform: scale(0);
+  }
+}

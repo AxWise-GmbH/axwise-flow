@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { ChevronGlyph } from './Glyphs';
+import { useT } from '../i18n/useT';
 
 /**
  * The page's one disclosure. Closed content stays in the DOM (hidden) so another
@@ -7,12 +8,13 @@ import { ChevronGlyph } from './Glyphs';
  */
 export default function More({
   id,
-  label = 'More',
-  openLabel = 'Less',
+  label,
+  openLabel,
   defaultOpen = false,
   row = false,
   children,
 }) {
+  const { t } = useT();
   const autoId = useId();
   const regionId = id ?? autoId;
   const [open, setOpen] = useState(defaultOpen);
@@ -26,7 +28,7 @@ export default function More({
         aria-controls={regionId}
         onClick={() => setOpen((value) => !value)}
       >
-        <span>{open ? openLabel : label}</span>
+        <span>{open ? (openLabel ?? t('more.less', 'Less')) : (label ?? t('more.more', 'More'))}</span>
         <ChevronGlyph className="oi-more-chevron" />
       </button>
       <div id={regionId} className="oi-more-region" hidden={!open}>

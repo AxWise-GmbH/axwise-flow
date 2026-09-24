@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "slug": "ai",
+    "title": "Cara Kerja AI Kami",
+    "summary": "Panduan sederhana tentang AI di Orqanix: model mana yang kami gunakan, apa yang dilakukan agen, data apa yang dilihat model, dan bagaimana Anda tetap memegang kendali.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "EU AI Act Art. 50(2): outputs are not machine-marked today, and the page says so. The 2 Dec 2026 grace period applies only if the Desktop App was on the EU market before 2 Aug 2026; if not, marking of text and files applies now (FACTS.md open point 10; critique item 11). Owner to decide on marking and give the first EU market date.",
+        "geminiPaidTier is empty: the paid-tier statement about Google's use of data stays hidden until the owner confirms Google's paid Gemini tier and data processing terms (FACTS.md open point 3). Google's terms require the paid tier for users in the EEA, UK and Switzerland.",
+        "Google's processing location is not pinned in our code; the page says Google may process data outside the EU.",
+        "Desktop defaults (auto-approve on, shell and file tools on, dictation on) are disclosed as they are. Owner may change them (FACTS.md open point 8); update this page if so.",
+        "Whether dictation works end to end is uncertain; the page only says that, if you use it, your voice goes to the model provider.",
+        "The Assistant Bot has no code yet; its AI disclosure to other people is a rule in the Assistant Bot Terms and must be built before launch.",
+        "US state chatbot rules are summarised in plain words without listing each law. Colorado HB 26-1263 (from 2027-01-01) and California SB 243 / SB 1119 positioning need lawyer review.",
+        "Research questions sent from the Desktop App to the cloud research tool are stored in our cloud (FACTS.md §4). The page says so, and the Privacy Policy, Desktop App Terms and Sub-processors page say the same (cross-check 2026-09-21).",
+        "The claim 'No one at Orqanix reads along' was removed because FACTS.md does not cover staff access to cloud data (support, abuse, legal requests). Owner to define staff access and state it in the Privacy Policy.",
+        "Art. 50(1) disclosure for third parties: Desktop agents can message or email other people through tools the user connects. The page leaves that duty with the user and the bot rule; lawyer to confirm whether we, as provider, must add an AI label to agent-sent messages from the Desktop App too.",
+        "Art. 50(4) deployer duties are passed to users for non-personal use; lawyer to confirm the wording and whether the Code of Practice on marking should be signed.",
+        "EU Product Liability Directive 2024/2853 (applies to products placed on the market after 9 Dec 2026): AI output errors are described as a known limit; lawyer to confirm this does not read as a liability exclusion for consumers (liability is in the Terms of Service).",
+        "Mailboxes: orqanix.com has no MX record, so hello@ may not receive reports today (FACTS.md open point 2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "working-with-ai",
+      "text": "Bekerja dengan AI"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix adalah produk AI. Saat Anda mengobrol dengan Orqanix, memberinya tujuan, atau menggunakan Bot Asisten, Anda bekerja dengan agen AI, bukan dengan manusia. Agen AI adalah perangkat lunak yang menggunakan model AI untuk memahami tugas, merencanakan langkah, dan melaksanakannya dengan alat, seperti membaca file atau menelusuri web."
+    },
+    {
+      "type": "p",
+      "text": "Jawaban dan tindakan agen berasal dari AI, bukan dari siapa pun di Orqanix. Tim kami ikut serta dalam pekerjaan Anda hanya jika Anda menghubungi kami, misalnya melalui email, atau dalam proyek Korporat yang kami sepakati dengan Anda secara tertulis."
+    },
+    {
+      "type": "h2",
+      "id": "models",
+      "text": "Model kami"
+    },
+    {
+      "type": "p",
+      "text": "Secara bawaan, agen kami menggunakan Google Gemini, model AI buatan Google, melalui Gemini API. Di asisten cloud dan API, agen juga dapat menggunakan Google Search melalui Gemini untuk menemukan informasi terkini. Kami memilih versi model dan dapat mengubahnya saat versi yang lebih baik tersedia."
+    },
+    {
+      "type": "p",
+      "text": "Di Aplikasi Desktop, Anda dapat menghubungkan penyedia model lain sebagai gantinya, seperti OpenAI atau Anthropic, atau menjalankan model lokal di Mac Anda. Jika Anda menghubungkan penyedia, percakapan Anda dikirim ke penyedia tersebut berdasarkan perjanjian Anda sendiri dengan mereka, dan ketentuan mereka yang berlaku. Jika Anda menjalankan model lokal, percakapan tetap berada pada model tersebut di Mac Anda."
+    },
+    {
+      "type": "p",
+      "text": "Perusahaan-perusahaan ini membuat modelnya. Kami membangun agennya: instruksi, alat, dan konteks yang kami berikan kepada model agar dapat mengerjakan pekerjaan Anda."
+    },
+    {
+      "type": "h2",
+      "id": "what-agents-do",
+      "text": "Apa yang dilakukan agen"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Produk",
+        "Apa yang dilakukan AI",
+        "Siapa yang melaksanakan hasilnya"
+      ],
+      "rows": [
+        [
+          "Aplikasi Desktop",
+          "Melakukan riset, merencanakan, dan membuat file nyata di Mac Anda. Dapat membaca dan menulis file serta menjalankan perintah.",
+          "Agen, di Mac Anda, dalam batas pengaturan yang Anda pilih."
+        ],
+        [
+          "Aplikasi Seluler",
+          "Memungkinkan Anda memeriksa pekerjaan, membaca hasil, dan memulai pekerjaan di Mac Anda dari ponsel.",
+          "Aplikasi Desktop di Mac Anda."
+        ],
+        [
+          "Bot Asisten",
+          "Bekerja dalam peran yang Anda berikan: membuat draf pesan, memilah file, mengumpulkan kontak, dan menjalankan pekerjaan terjadwal melalui akun yang Anda hubungkan.",
+          "Bot, dalam batas akses yang Anda berikan. Lihat [Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms)."
+        ],
+        [
+          "API",
+          "Merekomendasikan siapa yang sebaiknya mengerjakan suatu tugas (agen, tim, atau orang), beserta alasan, batasan pengaman, dan rencana.",
+          "Sistem Anda sendiri. API hanya memberi saran; API tidak mengerjakan pekerjaannya."
+        ],
+        [
+          "Korporat",
+          "Agen dan spesialis membangun dan menjalankan alur kerja AI untuk bisnis Anda.",
+          "Sesuai kesepakatan dalam pesanan tertulis Anda."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Agen tidak membuat keputusan tentang Anda yang memiliki akibat hukum atau akibat serupa yang penting, seperti memutuskan tentang kredit, pekerjaan, atau kontrak. Agen tidak menggunakan data Anda untuk menargetkan iklan, dan Orqanix tidak memiliki iklan."
+    },
+    {
+      "type": "h2",
+      "id": "ai-can-be-wrong",
+      "text": "AI bisa salah"
+    },
+    {
+      "type": "p",
+      "text": "Model AI memprediksi jawaban yang paling mungkin. Jawaban tersebut dapat salah, tidak lengkap, atau usang, dan model dapat menyatakan hal yang keliru dengan penuh keyakinan. Agen dapat salah memahami tugas, memilih file yang salah, atau mengambil langkah yang tidak Anda duga."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Periksa hasil sebelum Anda mengandalkannya, membagikannya, atau bertindak berdasarkan hasil tersebut.",
+        "Periksa fakta, angka, nama, sumber, dan kutipan dalam apa pun yang ditulis oleh agen.",
+        "Keluaran AI bukan merupakan nasihat profesional, seperti nasihat hukum, medis, pajak, atau keuangan. Untuk itu, tanyakan kepada orang yang berkualifikasi.",
+        "Simpan salinan file penting sebelum Anda membiarkan agen mengubahnya."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "human-control",
+      "text": "Kendali manusia"
+    },
+    {
+      "type": "p",
+      "text": "Di Aplikasi Desktop, Anda memilih seberapa banyak yang boleh dilakukan agen secara mandiri:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Mode",
+        "Apa yang terjadi"
+      ],
+      "rows": [
+        [
+          "Setujui otomatis (bawaan)",
+          "Agen melaksanakan langkah-langkahnya, seperti mengedit file atau menjalankan perintah, tanpa meminta izin Anda terlebih dahulu."
+        ],
+        [
+          "Minta izin hanya untuk langkah sensitif",
+          "Agen meminta izin sebelum langkah yang dianggapnya sensitif dan melaksanakan sisanya. Anda memilih Allow Once, Always Allow, atau Deny."
+        ],
+        [
+          "Minta izin sebelum setiap langkah",
+          "Agen meminta izin sebelum setiap tindakan. Anda memilih Allow Once, Always Allow, atau Deny."
+        ],
+        [
+          "Hanya obrolan",
+          "Agen menjawab tetapi tidak melakukan tindakan."
+        ]
+      ]
+    },
+    {
+      "type": "note",
+      "text": "Bawaannya adalah bertindak tanpa meminta izin. Jika Anda ingin menyetujui setiap langkah, ubah mode sebelum Anda mulai bekerja."
+    },
+    {
+      "type": "p",
+      "text": "Anda dapat menghentikan agen kapan saja dan melihat apa yang telah dilakukannya. File yang dibuatnya masuk ke folder proyek yang Anda pilih. Untuk bot, [Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms) menjelaskan cara Anda mengatur peran dan aksesnya."
+    },
+    {
+      "type": "h2",
+      "id": "data-models-see",
+      "text": "Data yang dilihat model"
+    },
+    {
+      "type": "p",
+      "text": "Untuk melakukan pekerjaannya, model memerlukan konteks. Pada setiap langkah, agen mengirimkan percakapan sejauh ini kepada penyedia model: apa yang Anda tulis, isi file yang dibaca agen, hasil perintah yang dijalankannya, dan instruksi kami. Jika Anda menggunakan dikte, suara Anda dikirim ke penyedia model."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Di Aplikasi Desktop, permintaan ke model bawaan melewati cloud kami di UE dalam perjalanannya ke Google. Kami tidak menyimpan isinya di sana.",
+        "Saat agen menelusuri web, kueri penelusuran yang disusun dari tugas Anda dikirim ke mesin telusur. Sebagian riset juga dapat mencari di daftar perusahaan.",
+        "Jika agen Desktop menggunakan riset cloud Orqanix, pertanyaan yang dikirimnya dan kutipan file cloud apa pun yang disertakannya disimpan di ruang kerja cloud Anda.",
+        "Cloud kami menyimpan obrolan cloud, tujuan, dan file yang dibuat agen di sana. Cloud ini di-hosting di UE (Google Cloud, Belanda). Aplikasi Desktop menyimpan riwayat obrolannya dalam file di Mac Anda.",
+        "Google dapat memproses data yang diterimanya di luar UE."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "[Kebijakan Privasi](/instant/legal/privacy) menjelaskan secara lengkap apa yang kami kumpulkan, ke mana data itu pergi, berapa lama kami menyimpannya, dan hak-hak Anda. Daftar [Subpemroses](/instant/legal/subprocessors) kami menyebutkan perusahaan-perusahaan yang terlibat."
+    },
+    {
+      "type": "h2",
+      "id": "training",
+      "text": "Pelatihan model"
+    },
+    {
+      "type": "p",
+      "text": "Kami tidak melatih model AI kami sendiri dengan konten Anda. Kami tidak menjual data pribadi Anda."
+    },
+    {
+      "type": "p",
+      "text": "Apa yang boleh dilakukan Google dengan data yang diterimanya bergantung pada [ketentuan Gemini API](https://ai.google.dev/gemini-api/terms) Google. Google menyimpan sebagian data untuk waktu terbatas, misalnya untuk mendeteksi penyalahgunaan, sebagaimana dijelaskan dalam kebijakannya sendiri."
+    },
+    {
+      "type": "p",
+      "text": "Kami menggunakan layanan Gemini API berbayar dari Google. Berdasarkan ketentuan Google untuk layanan berbayar, Google tidak menggunakan prompt Anda atau jawabannya untuk meningkatkan produknya. Google memprosesnya berdasarkan ketentuan pemrosesan datanya.",
+      "needs": [
+        "geminiPaidTier"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda menghubungkan OpenAI, Anthropic, atau penyedia lain di Aplikasi Desktop, ketentuan penyedia tersebut yang menentukan cara penggunaan data Anda."
+    },
+    {
+      "type": "h2",
+      "id": "ai-made-content",
+      "text": "Konten buatan AI"
+    },
+    {
+      "type": "p",
+      "text": "File, teks, laporan, dan pesan yang dibuat oleh agen adalah buatan AI, bahkan ketika tampak seperti ditulis oleh manusia. Saat ini konten tersebut tidak membawa tanda air tersembunyi atau label yang dapat dibaca mesin yang menyatakan hal itu."
+    },
+    {
+      "type": "p",
+      "text": "Anda yang memutuskan apa yang Anda lakukan dengan konten buatan AI, dan Anda bertanggung jawab atasnya. Jika Anda memublikasikannya, pastikan konten tersebut akurat dan sah menurut hukum, dan nyatakan bahwa AI yang membuatnya jika kejujuran atau hukum mengharuskannya."
+    },
+    {
+      "type": "p",
+      "text": "Di UE, Anda mungkin harus melabeli sendiri konten buatan AI jika Anda menggunakannya untuk tujuan yang lebih dari sekadar pribadi. Jika Anda memublikasikan teks buatan AI untuk memberi informasi kepada publik tentang hal-hal yang menyangkut kepentingan umum, Anda harus menyatakan bahwa AI yang membuatnya, kecuali seseorang telah meninjau dan menyuntingnya serta memikul tanggung jawab redaksional. Jika Anda membuat atau membagikan deepfake (gambar, audio, atau video yang tampak nyata tetapi dibuat atau diubah oleh AI), Anda harus menyatakannya (EU AI Act Art. 50(4)).",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Sejumlah undang-undang dan aturan banyak platform meminta Anda melabeli konten buatan AI, misalnya dalam iklan politik. Patuhi aturan tersebut jika berlaku bagi Anda.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jangan gunakan Orqanix untuk membuat konten yang menipu orang tentang siapa atau apa yang membuatnya. [Kebijakan Penggunaan Wajar](/instant/legal/acceptable-use) kami menetapkan apa yang tidak diizinkan."
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "Hukum AI",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "EU AI Act menetapkan aturan untuk AI. Untuk produk seperti Orqanix, aturan utamanya adalah transparansi: orang harus tahu ketika mereka berhadapan dengan AI, dan konten buatan AI harus dapat dikenali. Halaman ini merupakan bagian dari cara kami memenuhi aturan tersebut (EU AI Act Art. 50, yang berlaku sejak 2 Agustus 2026).",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Kami memberi tahu Anda bahwa Anda bekerja dengan AI, di dalam produk dan di halaman ini.",
+        "Saat Bot Asisten menulis kepada orang lain, bot tersebut harus memberi tahu mereka bahwa dirinya adalah AI. [Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms) mewajibkan hal ini.",
+        "Jika Anda membangun sistem AI sendiri dengan API kami dan menawarkannya kepada orang lain, Anda bertanggung jawab atas kewajiban AI Act yang berlaku bagi sistem Anda, termasuk memberi tahu pengguna Anda bahwa mereka berhadapan dengan AI.",
+        "Kami tidak menggunakan AI untuk praktik yang dilarang oleh AI Act, dan Anda juga tidak boleh menggunakan Orqanix untuk praktik tersebut."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "laws",
+      "text": "Hukum AI",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Beberapa negara bagian AS memiliki aturan untuk chatbot AI. Singkatnya, orang tidak boleh disesatkan sehingga mengira mereka berbicara dengan manusia, dan AI harus menyatakan bahwa dirinya adalah AI ketika seseorang menanyakannya. Beberapa negara bagian menambahkan aturan untuk chatbot yang digunakan oleh publik dan untuk chatbot pendamping yang membangun hubungan pribadi.",
+      "only": "us"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Kami memberi tahu Anda bahwa Anda bekerja dengan AI, di dalam produk dan di halaman ini.",
+        "Saat Bot Asisten menulis kepada orang lain, bot tersebut harus memberi tahu mereka bahwa dirinya adalah AI, termasuk ketika mereka menanyakannya. [Ketentuan Bot Asisten](/instant/legal/assistant-bot-terms) mewajibkan hal ini.",
+        "Orqanix dibuat untuk bekerja. Orqanix bukan chatbot pendamping, dan Anda tidak boleh mengaturnya sebagai chatbot pendamping.",
+        "Jika Anda membangun sistem AI sendiri dengan API kami dan menawarkannya kepada orang lain, Anda bertanggung jawab atas kewajiban pengungkapan dan kewajiban lain yang berlaku bagi sistem Anda."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "report-a-problem",
+      "text": "Laporkan masalah"
+    },
+    {
+      "type": "p",
+      "text": "Jika agen memberikan hasil yang merugikan, melanggar hukum, atau sangat keliru, atau melakukan sesuatu yang seharusnya tidak dilakukannya, beri tahu kami. Kami menggunakan laporan untuk memperbaiki masalah serta meningkatkan instruksi dan pengaman kami."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Konten ilegal atau penyalahgunaan: kirim email ke {company.email} dengan subjek “Report”. Jelaskan apa yang terjadi dan kapan, dan sertakan salinan atau tautan jika memungkinkan. Kami meninjaunya, memutuskan, dan memberi tahu Anda dan pengguna yang terdampak alasan kami. [Laporkan pelanggaran](/instant/legal/acceptable-use#report) memuat detailnya.",
+        "Hasil AI yang salah atau merugikan, dan pertanyaan lain tentang AI kami: {company.email}.",
+        "Pertanyaan tentang data Anda: {company.privacyEmail}.",
+        "Kelemahan keamanan: {company.securityEmail}."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Titik kontak tunggal kami bagi pihak berwenang dan pengguna berdasarkan EU Digital Services Act adalah {company.email}, dalam bahasa Inggris.",
+      "only": "eu"
+    }
+  ]
+}

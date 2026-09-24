@@ -1,0 +1,202 @@
+{
+  "meta": {
+    "slug": "legal-notice",
+    "title": "कानूनी सूचना",
+    "summary": "यह पृष्ठ बताता है कि Orqanix को कौन चलाता है और हमसे कैसे संपर्क करें (Impressum)।",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "पहला संस्करण।"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The whole page stays hidden until legalName and address are filled (legal.links.js). If the company is German, § 5 DDG requires an Impressum on the live site now; that makes choosing the company a blocker (open point #1).",
+        "Fill representative, phone (or another fast contact channel besides email), register, vatId and newsResponsible. § 5 DDG needs a second fast contact channel besides email; without phone the page shows email only.",
+        "The legal form (e.g. GmbH, UG) must be part of legalName.",
+        "euRepresentative only applies if the company sits outside the EU; leave empty otherwise.",
+        "Consumer dispute resolution (§ 36 VSBG): the page now says only that we do not take part and are not willing to (no claim about being \"not obliged\", which depends on headcount). Owner to confirm this choice; the block appears automatically once legalName is filled. Remove it if the company is not German.",
+        "No link to the EU ODR platform: it closed on 20 Jul 2025.",
+        "If the company holds a licence that needs a supervisory authority, or states share capital, add those lines.",
+        "Mail to hello@orqanix.com probably does not arrive today (no MX record, open point #2); § 5 DDG requires a working email address.",
+        "The headings use German terms and the provider line cites § 5 DDG, which assumes a German company. The VAT line no longer cites § 27a UStG. Adjust if the company is elsewhere.",
+        "DSA Art. 11(3): the contact point must also accept an official language of the Member State where the company is established (German, if German). \"We communicate in English\" alone may not be enough; lawyer to confirm and add the language.",
+        "Added the DSA illegal-content reporting route (subject \"Report\") per the owner decision; it must match the Terms of Service and Acceptable Use Policy.",
+        "Removed \"product pages are not binding\" wording: for EU consumers, public statements about a product count toward what it must do (Dir. 2019/770 Art. 8(1)(b)), so disclaiming them is risky."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "provider",
+      "text": "प्रदाता (Anbieter)"
+    },
+    {
+      "type": "p",
+      "text": "यह वेबसाइट और {company.name} उत्पाद {company.legalName}, {company.address} द्वारा प्रदान किए जाते हैं (§ 5 DDG के अंतर्गत जानकारी)।",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "represented-by",
+      "text": "प्रतिनिधि (Vertreten durch)",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.representative}",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "संपर्क (Kontakt)"
+    },
+    {
+      "type": "p",
+      "text": "ईमेल: {company.email}"
+    },
+    {
+      "type": "p",
+      "text": "फ़ोन: {company.phone}",
+      "needs": [
+        "phone"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "गोपनीयता से जुड़े प्रश्नों के लिए {company.privacyEmail} पर लिखें। किसी सुरक्षा समस्या की रिपोर्ट करने के लिए {company.securityEmail} पर लिखें।"
+    },
+    {
+      "type": "h2",
+      "id": "register",
+      "text": "कंपनी रजिस्टर (Registereintrag)",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.register} में पंजीकृत।",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "vat",
+      "text": "VAT आईडी (Umsatzsteuer-Identifikationsnummer)",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "VAT पहचान संख्या: {company.vatId}",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "content-responsible",
+      "text": "सामग्री के लिए उत्तरदायी (Verantwortlich für den Inhalt)",
+      "needs": [
+        "newsResponsible"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "इस वेबसाइट की पत्रकारीय सामग्री के लिए उत्तरदायी, जिसमें समाचार पृष्ठ भी शामिल है: {company.newsResponsible}, {company.address} (§ 18 (2) MStV)।",
+      "needs": [
+        "newsResponsible",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "eu-representative",
+      "text": "EU प्रतिनिधि",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EU में हमारा प्रतिनिधि: {company.euRepresentative} (GDPR Art. 27 और Digital Services Act Art. 13)।",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "authorities",
+      "text": "प्राधिकरणों और उपयोगकर्ताओं के लिए संपर्क (DSA)"
+    },
+    {
+      "type": "p",
+      "text": "EU Digital Services Act के अंतर्गत प्राधिकरणों और उपयोगकर्ताओं के लिए हमारा एकल संपर्क बिंदु {company.email} है। हम अंग्रेज़ी में संवाद करते हैं।"
+    },
+    {
+      "type": "p",
+      "text": "अवैध सामग्री की रिपोर्ट करने के लिए {company.email} पर \"Report\" विषय के साथ लिखें। हम प्रत्येक रिपोर्ट पर निर्णय लेते हैं और रिपोर्ट करने वाले व्यक्ति तथा प्रभावित उपयोगकर्ता को अपने कारण बताते हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "consumer-disputes",
+      "text": "उपभोक्ता विवाद समाधान (Verbraucherstreitbeilegung)",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.legalName} किसी उपभोक्ता मध्यस्थता बोर्ड के समक्ष विवाद समाधान कार्यवाही में भाग नहीं लेती है और भाग लेने के लिए इच्छुक भी नहीं है (§ 36 VSBG)।",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-content",
+      "text": "हमारी सामग्री"
+    },
+    {
+      "type": "p",
+      "text": "हम यह वेबसाइट सावधानी से लिखते हैं, लेकिन हम यह वादा नहीं कर सकते कि इस पर मौजूद सब कुछ हर समय पूर्ण, सही और अद्यतन होगा। हमारे उत्पादों के उपयोग के नियम हमारी [सेवा की शर्तें](/instant/legal/terms) में दिए गए हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "links",
+      "text": "अन्य वेबसाइटों के लिंक"
+    },
+    {
+      "type": "p",
+      "text": "हमारी वेबसाइट दूसरों द्वारा संचालित वेबसाइटों से लिंक करती है। उन पर हमारा कोई नियंत्रण नहीं है और हम उनकी सामग्री के लिए ज़िम्मेदार नहीं हैं। यदि हमें पता चलता है कि कोई लिंक किया गया पृष्ठ कानून का उल्लंघन करता है, तो हम वह लिंक हटा देते हैं।"
+    },
+    {
+      "type": "h2",
+      "id": "privacy",
+      "text": "गोपनीयता"
+    },
+    {
+      "type": "p",
+      "text": "हम व्यक्तिगत डेटा को कैसे संभालते हैं, यह हमारी [गोपनीयता नीति](/instant/legal/privacy) में समझाया गया है।"
+    }
+  ]
+}

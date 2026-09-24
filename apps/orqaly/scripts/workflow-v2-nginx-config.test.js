@@ -26,6 +26,36 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).toContain('Cache-Control "public, max-age=31536000, immutable"');
   });
 
+  it('allows the explicit Orqanix production Clerk hosts without a domain wildcard', () => {
+    const headers = readFileSync('deploy/workflow-v2/security-headers.conf', 'utf8');
+    const csp = headers.match(/Content-Security-Policy "([^"]+)"/)?.[1];
+    const directives = Object.fromEntries(csp.split(';').filter((value) => value.trim()).map((value) => {
+      const [name, ...sources] = value.trim().split(/\s+/);
+      return [name, sources];
+    }));
+    for (const name of ['script-src', 'connect-src', 'frame-src', 'form-action']) {
+      expect(directives[name]).toEqual(expect.arrayContaining([
+        'https://clerk.orqanix.com', 'https://accounts.orqanix.com',
+      ]));
+      expect(directives[name]).not.toContain('https://*.axwise.de');
+      expect(directives[name]).not.toContain('https://*.orqanix.com');
+    }
+  });
+
+  it('validates explicit Clerk/API build environments and keeps preview build defaults', () => {
+    const dockerfile = readFileSync('deploy/workflow-v2/Dockerfile.web', 'utf8');
+    const cloudBuild = readFileSync('deploy/workflow-v2/cloudbuild.web.yaml', 'utf8');
+    expect(dockerfile).toContain('ARG VITE_CLERK_ENVIRONMENT=preview');
+    expect(dockerfile).toContain('ARG VITE_ORQALY_API_ENVIRONMENT=preview');
+    expect(dockerfile.indexOf('clerkBrowserOptionsFromEnvironment(process.env)'))
+      .toBeLessThan(dockerfile.indexOf('npm run build:gcp'));
+    expect(cloudBuild).toContain('secrets/$_CLERK_PUBLISHABLE_KEY_SECRET/versions/');
+    expect(cloudBuild).toContain('_CLERK_PUBLISHABLE_KEY_SECRET: "orqaly-v2-preview-001-clerk-publishable-key"');
+    for (const field of ['CLERK_ENVIRONMENT', 'ORQALY_API_ENVIRONMENT']) {
+      expect(cloudBuild).toContain(`VITE_${field}=$_${field}`);
+    }
+  });
+
   it('allows native editor frames and launch forms only at the exact preview API origin', () => {
     const headers = readFileSync('deploy/workflow-v2/security-headers.conf', 'utf8');
     const csp = headers.match(/Content-Security-Policy "([^"]+)"/)?.[1];

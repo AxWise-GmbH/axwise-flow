@@ -1,0 +1,257 @@
+{
+  "tiny-llms-under-a-cent": [
+    "We werken aan een nieuwe manier om je verzoeken te beantwoorden. In plaats van elk verzoek naar één gigantisch AI-model te sturen, zou Orqanix het verdelen over veel kleine modellen. Ons doel: een volledig verzoek, goed uitgevoerd, voor minder dan $0.01.",
+    "Dit is nog in ontwikkeling. Het zit nog niet in de app en we hebben nog geen resultaten om te delen. Maar het idee is duidelijk, en het deel dat bepaalt wie welke taak doet, is al gebouwd. Hieronder het idee, stap voor stap.",
+    {
+      "h": "Waarom klein groot kan verslaan"
+    },
+    "LLM's zijn de AI-modellen achter chatapps. De grootste kunnen bijna alles. Maar de meeste alledaagse verzoeken hebben geen bijna-alles nodig. Ze hebben een paar eenvoudige taken nodig die goed worden gedaan: een bestand lezen, de belangrijkste feiten eruit halen, ze ordenen, ze controleren en een helder antwoord schrijven.",
+    "Eén gigantisch model dat allemaal laten doen, is als je meest ervaren expert elke kleine klus op kantoor laten doen. Het werk komt af, maar je betaalt een seniortarief voor het sorteren van de post.",
+    "Wij denken dat kleine modellen, elk met één taak waar ze goed in zijn, minder kunnen kosten en sneller kunnen antwoorden. Samen zou een team van zulke modellen de gigant kunnen evenaren bij alledaags werk, voor veel minder.",
+    {
+      "h": "Opsplitsen, oplossen, weer samenvoegen"
+    },
+    "Dit is de werkwijze die we aan het bouwen zijn. Niets hiervan is al live:",
+    {
+      "list": [
+        "Opsplitsen: Orqanix leest je verzoek en deelt het op in kleine taken.",
+        "Koppelen: elke taak gaat naar het kleine model dat er het best bij past.",
+        "Uitvoeren: taken die niet van elkaar afhangen, lopen naast elkaar. De rest loopt op volgorde.",
+        "Samenvoegen: Orqanix controleert de delen en voegt ze weer samen tot één antwoord."
+      ]
+    },
+    "Stel dat je vraagt om een korte samenvatting van de klantmails van vorige week. Eén klein model zou de mails kunnen lezen, een ander de hoofdpunten eruit halen en een derde de samenvatting schrijven.",
+    "Je zou nog steeds één antwoord krijgen, geen stapel losse stukken. En als een taak te moeilijk is voor een klein model, willen we dat Orqanix alleen dat deel aan een groter model geeft. Zo betaal je alleen meer waar het ertoe doet.",
+    {
+      "h": "De kiezer die we al hebben"
+    },
+    "We hebben al een redeneerlaag gebouwd. Die bepaalt wie een taak moet doen, en waarom. Vandaag kiest hij tussen AI-agents. We leren hem nu ook kiezen tussen kleine modellen.",
+    "Als hij vandaag een agent kiest, weegt hij kosten en snelheid al mee. Eerst komen harde regels. Als een agent meer zou kosten dan het vastgestelde budget, of langer zou duren dan toegestaan, wordt hij helemaal niet gekozen. Daarna krijgen de overgebleven agents een score. De juiste vaardigheden tellen het zwaarst. Kosten en snelheid tellen ook mee, dus een goedkopere, snellere agent scoort beter. Maar de prijs wint nooit alleen: een goedkope agent zonder de benodigde vaardigheden valt af.",
+    "Bij elke keuze worden de redenen uitgeschreven. En als een stap mislukt of het antwoord wordt afgewezen, kan de redeneerlaag een nieuw plan maken.",
+    "Voor kleine modellen willen we dat het budget het hele verzoek dekt: minder dan één cent, verdeeld over alle kleine taken. Dat is het doel waar we naartoe werken.",
+    "Heb je een alledaagse taak die je graag goedkoper zou zien? Deel hem met ons via hello@orqanix.com."
+  ],
+  "connect-any-agent": [
+    "Er zijn nu veel goede AI-agents: Grok, Meta Muse, OpenClaw, Manus, Hermes Agents, CrewAI en meer. Elk is ergens goed in. Maar elk woont ook in een eigen app, met een eigen login, een eigen scherm en een eigen manier van werken.",
+    "Dus doe jij uiteindelijk het werk tussen ze in. Je gokt welke agent je moet gebruiken. Je kopieert je vraag van het ene tabblad naar het volgende. Je plakt de antwoorden met de hand aan elkaar. Een week later weet je niet meer welke agent wat heeft gedaan.",
+    "We bouwen een oplossing. Ons doel is deze agents te koppelen aan Orqanix, zodat je ze allemaal vanaf één plek kunt gebruiken.",
+    {
+      "h": "Wat we willen veranderen"
+    },
+    "Het idee is eenvoudig. Je vraagt het één keer, in gewone woorden, zoals je het een collega zou vragen. Orqanix zoekt uit wat de taak nodig heeft, kiest de agent die past en geeft hem de juiste context. Het resultaat komt terug in je chat.",
+    {
+      "list": [
+        "Eén plek om te vragen, niet één app per agent.",
+        "De juiste agent voor elke taak, met een korte uitleg waarom.",
+        "Eén plek om elk resultaat te zien, en wie het heeft gemaakt."
+      ]
+    },
+    "Sommige taken hebben meer dan één agent nodig. Dan kan het plan een klein team zijn, met één agent per stap: de een zoekt de feiten op, een ander schrijft en weer een ander controleert het werk. Ze kunnen om de beurt werken of naast elkaar.",
+    {
+      "h": "Hoe Orqanix de agent kiest"
+    },
+    "De agent kiezen is het moeilijke deel, dus dat krijgt een eigen laag. We noemen het de redeneerlaag: het deel dat bepaalt wie wat doet. Het werkt in drie stappen.",
+    "Eerst sluit hij agents uit. Een agent blijft alleen in de race als hij de vaardigheden en tools heeft die de taak nodig heeft, tijd heeft om te werken, dit soort gegevens mag zien en binnen je budget voor kosten en tijd past. Faalt hij op één regel, dan ligt hij eruit. Een topscore op een ander punt kan hem niet terugbrengen.",
+    "Daarna rangschikt hij de agents die over zijn. Vaardigheden tellen het zwaarst. Tools, eerdere successen, kosten, snelheid en de klik met de betrokken mensen tellen ook mee. Elk punt komt met een eenvoudige reden, en elke keuze wordt bewaard, zodat altijd vastligt waarom een agent heeft gewonnen.",
+    "Ten slotte voegt hij vangrails toe. Als een taak riskant is of niet ongedaan kan worden gemaakt, krijgt het plan een controlepunt waar een mens moet goedkeuren. Als geen enkele agent past, gaat de taak naar een mens in plaats van naar een gok. Elke stap heeft ook een terugvaloptie: nog een keer proberen na een storing, een andere agent inzetten als er een niet beschikbaar is, een nieuw plan maken als een tool kapotgaat, of het aan een mens overdragen als een goedkeuring wordt geweigerd. En voordat er iets draait, controleert Orqanix nog een keer of de agent nog steeds beschikbaar is, het mag en binnen het budget blijft.",
+    {
+      "h": "Waar we nu staan"
+    },
+    "De redeneerlaag bestaat al in onze code, met tests die hem laten draaien op heel verschillende taken, van klantenservice tot financiën. Hij is in de app nog niet ingeschakeld. Externe agents eraan koppelen is het deel waar we nu aan werken. Live verbindingen met deze agents zijn nog niet klaar, en die bouwen we zelf.",
+    "We delen hier elke stap zodra die klaar is.",
+    "Welke agent moeten we als eerste koppelen? Laat het ons weten via hello@orqanix.com."
+  ],
+  "assistant-bot-for-business": [
+    "Niet iedereen in een team gaat een nieuwe app openen. Bij veel teams wordt er op twee plekken over werk gepraat: in de chat en in de mail. Daar worden vragen gesteld, en daar wachten mensen op antwoord.",
+    "Daarom bouwen we een assistent-bot voor bedrijven. Je team stelt vragen aan Orqanix vanuit de messenger en de mail die ze al gebruiken. Het werk loopt in Orqanix, en het antwoord komt terug in dezelfde thread. Ons doel: geen nieuw venster om te openen en geen nieuwe gewoonte om aan te leren.",
+    {
+      "h": "Vraag het waar je al praat"
+    },
+    "Dit is de werkwijze die we voor ogen hebben. Iemand in je team schrijft een bericht, net als elk ander bericht in de chat. Orqanix pikt het op, maakt een plan en werkt de stappen af. Als het werk klaar is, komt het antwoord in de thread waar de vraag begon.",
+    "Mail werkt op dezelfde manier: je stuurt een korte opdracht, en het resultaat komt terug in je inbox.",
+    "Achter dat antwoord is ons doel dat Orqanix de agent of het team kiest dat bij de taak past, en het alles geeft wat het moet weten. Sommig werk moet wachten tot een mens ja zegt, dus we bouwen goedkeuringen in de werkwijze in.",
+    {
+      "h": "Waar je team om kan vragen"
+    },
+    "We vormen de bot rond de alledaagse taken die een week vullen:",
+    {
+      "list": [
+        "Onderzoek: verdiep je in een markt, een concurrent of een vraag vóór een vergadering.",
+        "Plannen: maak van een doel duidelijke stappen.",
+        "Concepten: een eerste versie van een mail, een post of een voorstel.",
+        "Lijsten: verzamel leads, taken of ideeën in één overzichtelijke lijst."
+      ]
+    },
+    "Geen van deze taken is op zich moeilijk. Maar ze tellen op, en ze houden mensen af van het werk dat alleen zij kunnen doen. Ze in één bericht overdragen moet die tijd teruggeven.",
+    {
+      "h": "Waarom de thread ertoe doet"
+    },
+    "Een nieuwe tool helpt alleen als mensen hem gebruiken. Een heel team naar een andere app verhuizen is lastig, en sommige mensen stappen nooit over. Als hulp in de chat zit die ze toch al open hebben, valt er heel weinig nieuws te leren.",
+    "Daarom willen we het antwoord ook in de thread. De vraag, het antwoord en de vervolgvraag staan naast elkaar. De volgende persoon kan zien wat er gevraagd is en wat er terugkwam, zonder naar een link te zoeken.",
+    "De bot wordt nog een manier om Orqanix te bereiken vanaf waar je al bent, naast de Mac-app met zijn volledige werkplek. Hij wordt nog gebouwd.",
+    "Waar praat jouw team? Laat het ons weten via hello@orqanix.com."
+  ],
+  "building-the-mobile-app": [
+    "Goede ideeën wachten zelden tot je weer aan je bureau zit. Ze komen in de trein, in de rij voor koffie of vlak na een gesprek met een klant. Tegen de tijd dat je je laptop openklapt, is de helft van de gedachte weg.",
+    "Daarom bouwen we een Orqanix-app voor je telefoon. Die is nog in ontwikkeling. Vandaag draait Orqanix als preview-app op Macs met Apple silicon. Je logt in, typt in gewone woorden wat je nodig hebt, en de Werkplek naast de chat laat de stappen en de bestanden zien terwijl ze worden gemaakt. Met de telefoonapp willen we dat je bij datzelfde werk kunt als je niet bij je Mac bent.",
+    {
+      "h": "De momenten waarvoor hij is"
+    },
+    "Denk aan de kleine gaatjes in een gewone dag. Daar moet de telefoonapp helpen. Stel je er een paar voor.",
+    "Je loopt een vergadering uit met een helder idee. Voordat het vervaagt, open je de app en zeg je het hardop: wat je nodig hebt en waarvoor. Praten is makkelijker dan typen als je onderweg bent, dus ons doel is dat allebei even goed werken.",
+    "Je zit in de trein en denkt aan de offerte die je nog moest uitwerken. Je typt één regel en laat Orqanix beginnen terwijl je reist.",
+    "Het is laat, en je wilt morgenochtend een eerste versie klaar hebben. Je start de taak vanaf de bank en legt je telefoon weg.",
+    "Elke keer is het doel hetzelfde: het werk begint op het moment zelf, niet uren later.",
+    {
+      "h": "Volg het zonder ernaar te kijken"
+    },
+    "Je hoeft niet naar je scherm te staren terwijl Orqanix werkt. Op de Mac laat de Werkplek het werk al stap voor stap zien. We brengen die weergave naar de telefoon, gemaakt voor een klein scherm. Eén blik moet je vertellen:",
+    {
+      "list": [
+        "welke stap nu loopt",
+        "welke stappen klaar zijn",
+        "wanneer Orqanix een kort antwoord van je nodig heeft"
+      ]
+    },
+    "Als er een detail nodig is, is het idee dat je daar meteen in een paar woorden antwoordt en het werk doorgaat. Daarna gaat de telefoon weer in je zak.",
+    {
+      "h": "Je bestanden wachten op je Mac"
+    },
+    "Een telefoon is ideaal om iets te starten en te checken. Het is niet waar je een lang document wilt lezen of een plan wilt herschrijven. Daarom is ons doel dat de bestanden die Orqanix maakt in je Werkplek terechtkomen, dezelfde plek waar ze nu staan. Als je aan je Mac gaat zitten, open je het gesprek en vind je alles terug: de chat, de stappen, de documenten en de resultaten.",
+    "Daar werken we naartoe: geen bestanden meer naar jezelf mailen, geen gezoek in je downloads. Eén gesprek, onderweg begonnen en aan je bureau afgerond.",
+    "Wil je vandaag al beginnen? Haal Orqanix voor Mac via de downloadknop op deze site."
+  ],
+  "orqanix-for-mac": [
+    "Orqanix draait nu als echte app op je Mac. Deze eerste preview is gemaakt voor Macs met Apple silicon, en is gratis zolang we in deze vroege versie zitten.",
+    "We hebben hem gebouwd voor mensen die het werk gedaan willen hebben, niet nog een tool om te leren. Je zegt wat je nodig hebt en ziet het plan en de bestanden samenkomen in één venster.",
+    {
+      "h": "Log in en vraag het gewoon"
+    },
+    "De eerste keer dat je Orqanix opent, stuurt het je naar je browser om in te loggen. Daarna ga je direct terug naar de app. Je hebt geen AI-sleutel nodig en er hoeft verder niets geïnstalleerd te worden.",
+    "Daarna typ je wat je nodig hebt, in gewone woorden. Orqanix kan de taak opdelen in een kort plan en dat stap voor stap afwerken. Als het een antwoord van je nodig heeft, stopt het en vraagt het. Als het een bestand op je Mac wil lezen of wijzigen, kan het eerst om je toestemming vragen.",
+    "Elke chat bewaart zijn eigen werk, en een nieuwe chat begint schoon. Sluit de app af, open hem opnieuw, en je chats staan er nog.",
+    {
+      "h": "Eén paneel voor al het werk"
+    },
+    "Naast de chat zit het Werkplek-paneel. Het laat zien wat Orqanix aan het doen is, zodat je niet door een lange chat hoeft te spitten om het te vinden.",
+    {
+      "list": [
+        "Status: Bezig, Jij bent nodig, Klaar of Gestopt, met een balk die stap voor stap volloopt en hoe lang het al duurt.",
+        "Stappenplan: het plan, één stap tegelijk. Is er geen uitgeschreven plan, dan maakt het van wat Orqanix deed eenvoudige stappen. Open een stap om de bestanden te zien die hij heeft gemaakt.",
+        "Bestanden: alles wat is gemaakt of gewijzigd. Doorzoek ze, filter op type en open webpagina's, notities, eenvoudige tabellen (CSV) en code direct in het paneel. Bij een gewijzigd bestand zie je welke regels zijn veranderd.",
+        "Activiteit: elke actie, eenvoudig beschreven, met alles wat mislukte in het rood."
+      ]
+    },
+    "Heb je een bestand ergens anders nodig? Sla een kopie op, sla er meerdere tegelijk op als één ZIP-bestand, of toon het in Finder. Vraag om onderzoek, en het resultaat opent in hetzelfde paneel, met de bronnen erbij.",
+    {
+      "h": "Zo krijg je het"
+    },
+    "Klik op deze site op Download voor macOS. Je hebt een Mac met een M1-chip of nieuwer nodig. Weet je het niet zeker? Open het Apple-menu, kies Over deze Mac en kijk bij Chip.",
+    "Open het gedownloade bestand en sleep Orqanix Preview naar je map Apps, en open het daarna. Deze preview is niet genotariseerd (de eigen veiligheidscontrole van Apple), dus macOS kan hem de eerste keer blokkeren. Gebeurt dat, ga dan naar Systeeminstellingen, daarna Privacy en beveiliging, en klik op Toch openen. Log daarna in met je Orqanix-account.",
+    "Werk je op Windows of een Intel-Mac? Daar draait de desktopapp nog niet, maar je kunt de webversie proberen.",
+    "Dit is een vroege preview, en we blijven hem verbeteren. Heb je hem geprobeerd, vertel ons dan wat werkt en wat niet via hello@orqanix.com.",
+    "Haal de gratis preview via de knop Download voor macOS op deze site."
+  ],
+  "orqaly-and-axwise-merge": [
+    "Orqaly en AxWise begonnen als twee losse projecten. Op 13 september 2026 verhuisden ze naar één codebase, één gedeeld thuis voor hun code. Beide worden nu gebouwd vanuit dezelfde versie van de code en gaan samen uit als één release.",
+    "De afspraak tussen hen is kort: AxWise beslist, Orqaly doet het werk. De ene kant denkt na over de taak. De andere kant voert hem uit en geeft jou het resultaat.",
+    "De verhuizing zelf veranderde niets aan hoe alles werkt. We gaven de code één thuis, en elk deel draait nog steeds als eigen dienst, met een eigen taak.",
+    {
+      "h": "Twee kanten, elk één taak"
+    },
+    "AxWise is het deel dat nadenkt voordat er werk begint. Als er een taak binnenkomt, zoekt het uit:",
+    {
+      "list": [
+        "Wie het moet doen: een agent, een team van agents of een mens",
+        "Waarom die keuze bij deze taak past",
+        "Welke context en feiten erbij moeten",
+        "Welke controles en goedkeuringen nodig zijn",
+        "Wat te doen als een stap mislukt"
+      ]
+    },
+    "AxWise is gebouwd om alleen extra onderzoek te doen als dat het antwoord kan veranderen, zodat een duidelijke taak direct naar de juiste helper kan. Elke keuze komt met de redenen erbij.",
+    "Orqaly is de app eromheen. Het is wat je ziet en gebruikt: je account, de chat, de agents en tools, het budget en de goedkeuringen. Het voert het werk stap voor stap uit, houdt bij waar alles staat, probeert een mislukte stap opnieuw en geeft je aan het eind de bestanden.",
+    {
+      "h": "Eén product voor jou"
+    },
+    "Je hoeft niet te weten welk deel aan het werk is. Je hebt te maken met één product: Orqanix.",
+    "Je begint met een bericht, niet met een lang formulier. Is er iets belangrijks onduidelijk, dan stelt Orqanix hooguit één vraag. Daarna laat het zien wat het heeft begrepen en vraagt het je dat te bevestigen. Vervolgens laat het het plan zien en vraagt het opnieuw. Pas na jouw ja begint het werk.",
+    "Terwijl het loopt, zie je waar het is. Als het klaar is, wordt het resultaat bewaard in je geschiedenis, klaar om te openen en te downloaden. Konden sommige feiten niet worden onderbouwd, dan markeert Orqanix die gaten in het resultaat in plaats van ze te verbergen. Als er iets misgaat, vertelt het je dat, in duidelijke woorden waar je iets mee kunt.",
+    {
+      "h": "Veiliger en duidelijker door het ontwerp"
+    },
+    "Een suggestie is geen toestemming. AxWise kan aanraden wie een taak moet doen, maar krijgt door het ontwerp je sleutels of wachtwoorden niet, kan geen toegang uitdelen en kan niets doen in je andere apps. Die taken horen bij Orqaly.",
+    "Voordat er iets draait, controleert Orqaly het nog een keer. Is deze agent beschikbaar? Mag hij dit? Past de taak binnen het budget en de tools die hij mag gebruiken? Pas dan voert het het plan uit dat jij hebt goedgekeurd.",
+    "Elke beslissing wordt bewaard zoals hij is genomen, met de redenen erbij, zodat hij later kan worden nagekeken. En elk deel heeft één duidelijke taak: AxWise gaat over het denken, Orqaly over het doen.",
+    "We hebben de overstap zorgvuldig gecontroleerd. Beide apps slaagden voor hun tests, en na de overstap opende een eerder gemaakt resultaat nog precies hetzelfde, downloadknop inbegrepen. Dit is onze preview, geen productielancering, en we blijven testen terwijl het groeit.",
+    "Benieuwd hoe de twee delen in elkaar passen? Vraag het ons via hello@orqanix.com."
+  ],
+  "business-api": [
+    "Veel teams hebben al hun eigen apps, agents en mensen. Wij denken dat het moeilijke deel is bepalen wie elke taak moet doen, en waarom. Dat denkwerk wilden we los aanbieden, zonder extra scherm.",
+    "We hebben een API gebouwd voor onze redeneerlaag, AxWise. Met een API kunnen twee programma's met elkaar praten. Vandaag is hij gekoppeld aan ons eigen platform. Met hetzelfde ontwerp kan het systeem van een ander bedrijf een taak sturen en een beslissing terugkrijgen, en we willen die toegang team voor team openstellen.",
+    {
+      "h": "Wat je stuurt, wat je krijgt"
+    },
+    "Een taak is een korte beschrijving van het werk: het doel, het resultaat dat je wilt, de deadline, hoe riskant het is en of het ongedaan kan worden gemaakt. Daarbij stuur je de agents en tools die je nu hebt, je goedkeuringsregels en je grenzen voor kosten en tijd.",
+    "Wat terugkomt is een volledige beslissing, niet alleen een naam:",
+    {
+      "list": [
+        "Gerangschikte kandidaten, elk met eenvoudige redenen",
+        "Harde uitsluitingen, zoals een ontbrekende vaardigheid of een geblokkeerde tool, die geen score kan opheffen",
+        "Een contextpakket: de feiten die de taak nodig heeft",
+        "Vangrails: de grenzen waarbinnen het werk moet blijven",
+        "Goedkeuringsmomenten, waar een mens ja moet zeggen",
+        "Terugvalopties: een reserveplan als er iets misgaat"
+      ]
+    },
+    "Als er gegevens ontbreken, zegt de beslissing dat in plaats van te gokken. Dezelfde invoer, met dezelfde versie van de rangschikking, geeft hetzelfde antwoord. Elke beslissing wordt bewaard en nooit herschreven.",
+    "De API doet alleen aanbevelingen. Door het ontwerp toetst jouw systeem elke beslissing aan wat op dat moment klopt, en beslist het daarna wat er draait. Als een taak riskanter is dan je regels toestaan, niet ongedaan kan worden gemaakt of een handtekening nodig heeft, voegt de beslissing een goedkeuringsstap door een mens toe. Past geen enkele agent, dan gaat de taak naar een mens in plaats van een gedwongen match.",
+    {
+      "h": "Gebouwd voor grotere klussen"
+    },
+    "Daarbovenop zitten drie grotere onderdelen, ook in onze code.",
+    "Ten eerste: feiten zoeken vóór het kiezen. Het controleert of het genoeg weet. Het kan direct doorgaan, bewijs gebruiken dat je al hebt, een mens om verduidelijking vragen of, alleen als jij dat toestaat, beperkt onderzoek doen binnen je grenzen voor tijd en geld. Een duidelijke taak wacht nooit op onderzoek, en zwak onderzoek wordt nooit een stellig antwoord.",
+    "Ten tweede: teamplannen en herstel. Het kan plannen voor een team van agents: na elkaar, naast elkaar, met een controleur aan het eind, of met een mens die elke stap goedkeurt. Elke stap krijgt een eigenaar, een duidelijke eindstreep en een reserveplan. Als een agent afhaakt, een tool faalt, het budget verandert of een mens ingrijpt, maakt het een nieuw plan en bewaart het het oude.",
+    "Ten derde: voorzichtig leren van resultaten. Je systeem kan terugmelden hoe het werk ging: kwaliteit, kosten, tijd en herstelwerk. Leren staat standaard uit. Een nieuwe manier om agents te rangschikken gaat pas live nadat een mens het bewijs heeft bekeken en goedgekeurd, en kan worden teruggedraaid.",
+    {
+      "h": "Waar het nu staat"
+    },
+    "We testen het op vijf verschillende voorbeeldtaken: een software-incident, een klantescalatie, een compliancecontrole, campagnevoorbereiding en een financiële analyse.",
+    "De API is niet openbaar, en we hebben in echte pilots nog niet aangetoond dat hij beter werkt dan eenvoudigere manieren om werk te verdelen. Heb je echte teams en echte taken om hem op te testen, dan horen we graag van je.",
+    "Wil je toegang aanvragen? Schrijf naar hello@orqanix.com."
+  ],
+  "opening-the-source": [
+    "De motor in Orqanix heeft één grote taak. Hij is gebouwd om uit te zoeken wie elke taak moet doen, waarom die past en wanneer een mens moet ingrijpen.",
+    "Wij vinden dat zo'n motor open moet zijn, zodat iedereen hem kan lezen. Daarom maken we de broncode openbaar.",
+    "De motor heet AxWise Flow. Het is de redeneerlaag van Orqanix, en hij valt nu onder de Apache 2.0-licentie, een opensourcelicentie. De installatiestappen om hem te draaien zijn uitgeschreven en klaar. Vandaag is de code nog privé, en alleen ons team kan hem zien.",
+    {
+      "h": "Waarom een open motor ertoe doet"
+    },
+    "Werk overdragen aan AI vraagt vertrouwen. Je wilt weten waarom de ene agent de taak kreeg en de andere niet.",
+    "AxWise Flow legt zijn keuzes uit. Hij zegt wie een taak moet doen, waarom die past en welke context, controles en reserveplannen erbij horen. Als een keuze meer feiten nodig heeft, kan hij kort onderzoek doen, zoals interviews met gesimuleerde klanten. Elke bevinding verwijst terug naar de precieze woorden waar hij vandaan komt.",
+    "Open code gaat nog een stap verder. Zodra we hem openstellen, kun jij, of iemand die je vertrouwt, de regels achter elk antwoord lezen en ze zelf controleren. Je hoeft ons dan niet op ons woord te geloven.",
+    "Met open code zie je ook een duidelijke grens tussen denken en doen. De motor doet alleen aanbevelingen. Het deel van Orqanix dat het werk uitvoert, controleert rechten, budgetten en tools opnieuw voordat er iets gebeurt.",
+    {
+      "h": "Wat bouwers kunnen doen"
+    },
+    "Open code is ook voor mensen die bouwen. Als we hem openstellen, kan een team:",
+    {
+      "list": [
+        "De motor op hun eigen computer draaien.",
+        "De API, de manier waarop andere apps ermee praten, testen vanaf een ingebouwde pagina in de browser.",
+        "Klantinterviews uploaden en de resultaten verkennen in een webapp.",
+        "Hem aanpassen en uitbreiden voor hun eigen soort werk.",
+        "Verbeteringen terugsturen, zodat de motor voor iedereen beter kan worden."
+      ]
+    },
+    "Zodra de code open is, is de installatie kort. De handleiding vraagt om Docker, een tool die apps draait, en je eigen AI-sleutel van Google. Je kopieert één instellingenbestand, voegt je sleutel en een lang willekeurig geheim toe en start alles met één commando.",
+    {
+      "h": "Wat Apache 2.0 je toestaat"
+    },
+    "Licenties zijn lastig te lezen, dus hier is de korte versie.",
+    "Met Apache 2.0 mag je de motor gratis gebruiken, in een persoonlijk project of in een bedrijf. Je mag hem kopiëren, aanpassen en je aangepaste versie delen. Je mag hem in je eigen product inbouwen en dat product verkopen. Mensen die code toevoegen, geven je ook een gratis recht om hun octrooien te gebruiken die op die code van toepassing zijn.",
+    "In ruil vraagt de licentie een paar redelijke dingen. Bewaar de licentie en de oorspronkelijke vermeldingen bij elke kopie die je deelt. Markeer de bestanden die je hebt gewijzigd.",
+    "Er gelden ook een paar grenzen. De licentie geeft je niet onze naam of ons merk. Als je iemand voor de rechter daagt omdat de motor een van jouw octrooien zou schenden, vervallen de octrooirechten die de licentie je gaf. En de code komt zoals hij is, zonder garantie.",
+    "Wil je voortbouwen op de motor? Stuur ons een berichtje via hello@orqanix.com."
+  ]
+}

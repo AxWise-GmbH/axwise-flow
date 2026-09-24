@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "slug": "cookies",
+    "title": "Cookies en opslag",
+    "summary": "Deze pagina noemt de cookies en browseropslag die de website en de webapp van Orqanix gebruiken, waarom elk ervan nodig is, hoe lang het blijft bestaan en hoe u het wist.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Eerste versie."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Describes the state AFTER this build: marketing/legal pages with self-hosted fonts, no Clerk code and no cookies. Publish only once that build is live (critique #31).",
+        "Clerk: __clerk_db_jwt exists only while sign-in runs on Clerk's development instance; remove the row after the move to the live instance (FACTS §14.4).",
+        "__session lifetime is written as 'short-lived, renewed' (about 1 minute per Clerk, not confirmed in our project).",
+        "Cloudflare __cf_bm (30 min) and _cfuvid (session, rate limiting) lifetimes and purposes are quoted 'according to Cloudflare' from Cloudflare's docs; not measured on our sign-in pages. Clerk's sign-in domain name not printed.",
+        "Clerk development instances may send usage events to Clerk's telemetry host (uncertain); not mentioned. Confirm it is off after the Clerk move.",
+        "Cloudflare Turnstile: whether it stores anything in the browser is not listed; confirm and add a row if it does.",
+        "Lawyer: confirm the no-banner reasoning (ePrivacy Art. 5(3), § 25(2) no. 2 TDDDG, UK PECR) for the menu-layout keys and the router sessionStorage key.",
+        "Fact check: the Desktop App (Electron) does use its own built-in local storage on the Mac (theme, navigation, pinned chats, recent typed messages kept up to 30 days); the old \"does not use browser cookies\" line was replaced with a no-tracking statement. Whether the Desktop sign-in flow sets cookies inside the app was not checked.",
+        "Sign in with Google: Google's cookies on Google's pages are mentioned generically, not listed.",
+        "Fonts: the \"no files from other companies\" statement depends on self-hosted fonts shipping in this build (eu.md row 10, LG München I risk)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "in-short",
+      "text": "In het kort"
+    },
+    {
+      "type": "note",
+      "text": "Onze marketing- en juridische pagina's plaatsen geen cookies. Het enige wat ze mogelijk opslaan, zijn uw keuzes: de taal, de lichte of donkere weergave, en de Amerikaanse of EU-versie van onze juridische pagina's, elk pas nadat u erop klikt. Cookies verschijnen alleen op de aanmeldpagina's en in de webapp, omdat aanmelden zonder cookies niet werkt. We gebruiken geen advertentie-, analyse- of trackingcookies."
+    },
+    {
+      "type": "h2",
+      "id": "what-this-covers",
+      "text": "Cookies en opslag"
+    },
+    {
+      "type": "p",
+      "text": "Een cookie is een klein tekstbestand dat een website in uw browser opslaat. Uw browser stuurt het bij latere bezoeken terug. Lokale opslag (local storage) en sessieopslag (session storage) zijn vergelijkbare plaatsen in uw browser waar een website kleine stukjes informatie kan bewaren. Lokale opslag bewaart ze totdat ze worden gewist; sessieopslag bewaart ze totdat u het tabblad sluit. Deze pagina behandelt alle drie, op orqanix.com en in de webapp van Orqanix."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-store",
+      "text": "Wat we opslaan"
+    },
+    {
+      "type": "table",
+      "head": [
+        "Naam",
+        "Waar",
+        "Geplaatst door",
+        "Waarom",
+        "Hoe lang"
+      ],
+      "rows": [
+        [
+          "orqanix_legal_region",
+          "Lokale opslag, op onze juridische pagina's. Wordt alleen geschreven wanneer u op de regioschakelaar of de regiosuggestie klikt.",
+          "Orqanix",
+          "Onthoudt of u de Amerikaanse of de EU-versie van onze juridische pagina's hebt gekozen.",
+          "Totdat u het wist"
+        ],
+        [
+          "orqanix_lang",
+          "Lokale opslag, op onze marketingpagina's. Wordt alleen geschreven wanneer u in de voettekst een taal kiest.",
+          "Orqanix",
+          "Onthoudt de taal die u voor onze pagina's hebt gekozen.",
+          "Totdat u het wist"
+        ],
+        [
+          "orqanix_theme",
+          "Lokale opslag, op onze marketingpagina's. Wordt alleen geschreven wanneer u in de voettekst op de schakelaar licht/donker drukt.",
+          "Orqanix",
+          "Onthoudt of u de lichte of de donkere weergave hebt gekozen.",
+          "Totdat u het wist"
+        ],
+        [
+          "__client_uat (en een kopie met een achtervoegsel)",
+          "Cookie op orqanix.com en de subdomeinen daarvan, op de aanmeldpagina's en in de webapp",
+          "Clerk, onze aanbieder voor aanmelden",
+          "Legt vast of, en sinds wanneer, u bent aangemeld.",
+          "Ongeveer 1 jaar"
+        ],
+        [
+          "__clerk_db_jwt (en een kopie met een achtervoegsel)",
+          "Cookie op orqanix.com, op de aanmeldpagina's en in de webapp",
+          "Clerk",
+          "Koppelt uw browser aan uw aanmeldsessie in onze huidige Clerk-configuratie.",
+          "Ongeveer 1 jaar"
+        ],
+        [
+          "__session (en een kopie met een achtervoegsel)",
+          "Cookie op orqanix.com, zodra u bent aangemeld",
+          "Clerk",
+          "Bevat een kortlevend aanmeldtoken dat tegenover onze servers bewijst wie u bent.",
+          "Kortlevend, wordt vernieuwd zolang u aangemeld blijft"
+        ],
+        [
+          "__cf_bm",
+          "Cookie op het domein van Clerk, op de aanmeldpagina's",
+          "Cloudflare, voor Clerk",
+          "Onderscheidt mensen van bots, om het aanmelden tegen misbruik te beschermen.",
+          "Ongeveer 30 minuten, volgens Cloudflare"
+        ],
+        [
+          "_cfuvid",
+          "Cookie op het domein van Clerk, op de aanmeldpagina's",
+          "Cloudflare, voor Clerk",
+          "Helpt redelijke limieten op verzoeken toe te passen, om het aanmelden tegen misbruik te beschermen.",
+          "Totdat u uw browser sluit, volgens Cloudflare"
+        ],
+        [
+          "__clerk_environment",
+          "Lokale opslag op orqanix.com, op de aanmeldpagina's en in de webapp",
+          "Clerk",
+          "Bewaart een kopie van de instellingen van Clerk, zodat het aanmelden sneller laadt.",
+          "Totdat u het wist"
+        ],
+        [
+          "Menu-indeling",
+          "Lokale opslag in de webapp, één item per account",
+          "Orqanix",
+          "Onthoudt welke onderdelen van het menu u hebt verborgen, anders gerangschikt of vastgezet.",
+          "Totdat u het wist"
+        ],
+        [
+          "Menu ingeklapt",
+          "Lokale opslag in de webapp, één item per account",
+          "Orqanix",
+          "Onthoudt of u het zijmenu hebt ingeklapt.",
+          "Totdat u het wist"
+        ],
+        [
+          "remix-router-transitions",
+          "Sessieopslag in de webapp, alleen als die wordt gebruikt",
+          "De bibliotheek voor paginanavigatie van de webapp",
+          "Onthoudt de status van paginawissels, zodat terug- en vooruitgaan werkt.",
+          "Totdat u het tabblad sluit"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wanneer u zich registreert, voert Cloudflare Turnstile ook een korte controle uit in uw browser om te bevestigen dat u een mens bent en geen bot. Dit maakt deel uit van het aanmelden en wordt uitgevoerd voor Clerk."
+    },
+    {
+      "type": "h2",
+      "id": "where-it-applies",
+      "text": "Waar elk ervan van toepassing is"
+    },
+    {
+      "type": "h3",
+      "id": "marketing-pages",
+      "text": "Marketing- en juridische pagina's"
+    },
+    {
+      "type": "p",
+      "text": "De startpagina, de productpagina's en deze juridische pagina's laden geen aanmeldcode, plaatsen geen cookies en maken geen verbinding met andere bedrijven. Hun lettertypen komen van onze eigen server. Het enige wat ze mogelijk opslaan, zijn uw keuzes voor taal, weergave en regio, elk pas nadat u erop klikt. Onze hostingpartij, Google Cloud, houdt van elk bezoek gewone serverlogs bij (IP-adres, browser, tijdstip en pagina), zoals ons [Privacybeleid](/instant/legal/privacy#website) uitlegt. Deze logs blijven op de server; daarvoor wordt niets in uw browser opgeslagen. Als u op Downloaden klikt, komt de Computerapp van Google Cloud Storage, zodat Google uw IP-adres ziet."
+    },
+    {
+      "type": "h3",
+      "id": "sign-in-pages",
+      "text": "Aanmeldpagina's en de webapp"
+    },
+    {
+      "type": "p",
+      "text": "De aanmeld- en registratiepagina's en de webapp laden Clerk, dat ons aanmelden verzorgt. Clerk, en Cloudflare in opdracht van Clerk, plaatsen de cookies en opslag voor het aanmelden die worden genoemd in [Wat we opslaan](#what-we-store). In de webapp slaan we ook uw menu-indeling op, zodat die er zo uitziet als u hem hebt achtergelaten. Als u kiest voor Aanmelden met Google, openen de eigen pagina's van Google, en daar gelden de cookies en voorwaarden van Google."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Geen cookiebanner",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "De wetgeving van de EU en het VK staat een website alleen toe zonder voorafgaande vraag informatie op uw apparaat op te slaan of uit te lezen wanneer dat strikt noodzakelijk is om een dienst te leveren waarom u uitdrukkelijk hebt gevraagd (artikel 5, lid 3, van de e-privacyrichtlijn; in Duitsland § 25 lid 2 nr. 2 TDDDG; in het VK de Privacy and Electronic Communications Regulations). Alles wat we opslaan, voldoet aan die toets. Uw keuzes voor taal, weergave en regio worden opgeslagen omdat u ervoor hebt geklikt. Aanmelden heeft zijn cookies en botbescherming nodig. De webapp onthoudt de menu-indeling die u hebt ingesteld. We gebruiken niets voor advertenties, analyse of tracking, dus er is niets waarvoor we uw toestemming hoeven te vragen, en geen banner."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Als we ooit opslag willen gebruiken die niet strikt noodzakelijk is, vragen we eerst om uw toestemming en werken we deze pagina bij."
+    },
+    {
+      "type": "h2",
+      "id": "no-banner",
+      "text": "Geen cookiebanner",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Alles wat we opslaan, is nodig voor iets waarom u hebt gevraagd: uw regiokeuze, aanmelden, het aanmelden beschermen tegen bots en het onthouden van uw menu-indeling. We gebruiken geen advertentie-, analyse- of trackingcookies, en we laten geen ander bedrijf u op onze site volgen. Er is dus niets om u voor af te melden, en geen banner. Als uw browser een Global Privacy Control-signaal verstuurt, behandelen we dat als een verzoek om u af te melden voor de verkoop en het delen van uw persoonsgegevens. We doen geen van beide, dus er verandert niets."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Als we ooit opslag voor een ander doel willen gebruiken, werken we eerst deze pagina bij en geven we u de keuzes die de wet vereist."
+    },
+    {
+      "type": "h2",
+      "id": "not-used",
+      "text": "Wat we niet gebruiken"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Geen advertentiecookies of advertentienetwerken.",
+        "Geen analyse- of trackingtools, en geen trackingpixels.",
+        "Geen lettertypen of andere bestanden die van andere bedrijven worden geladen op onze marketing- en juridische pagina's.",
+        "Geen opslag die u volgt over andere websites."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "clear-it",
+      "text": "Wissen en blokkeren"
+    },
+    {
+      "type": "list",
+      "items": [
+        "U kunt cookies en sitegegevens bekijken, verwijderen en blokkeren in de instellingen van uw browser, meestal onder Privacy of Sitegegevens. Door de sitegegevens voor orqanix.com en voor het aanmelddomein van Clerk te verwijderen, verwijdert u alles in de tabel.",
+        "Om uw regiokeuze te wijzigen, gebruikt u de schakelaar VS / EU op een willekeurige juridische pagina. Om die te verwijderen, wist u de sitegegevens van uw browser voor orqanix.com.",
+        "Afmelden beëindigt uw aanmeldsessie.",
+        "Als u de cookies voor het aanmelden of de controle van Cloudflare blokkeert, kunt u onze website nog steeds lezen, maar werken aanmelden en de webapp niet."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "De Computerapp"
+    },
+    {
+      "type": "p",
+      "text": "De Computerapp is geen website. Hij gebruikt geen cookies of opslag voor advertenties, analyse of tracking. Hij bewaart zijn gegevens op uw Mac: uw chatgeschiedenis, instellingen, logbestanden, uw Orqanix-aanmelding (in de macOS-sleutelhanger) en kleine items in de eigen ingebouwde opslag van de app, zoals uw thema, menu-indeling, vastgezette chats en een lijst met berichten die u onlangs hebt getypt. Ons [Privacybeleid](/instant/legal/privacy#desktop-app) legt uit wat op uw Mac blijft en wat uw Mac verlaat."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Wijzigingen"
+    },
+    {
+      "type": "p",
+      "text": "Wanneer er iets verandert in wat we opslaan, werken we deze pagina en de datum bovenaan bij. Vragen: {company.privacyEmail}."
+    }
+  ]
+}

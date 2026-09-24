@@ -24,7 +24,7 @@ function Pill({ pillar, index }) {
  */
 export default function SolutionHeroVisual({ pillars, scene }) {
   return (
-    <Seen className="osl-hv" aria-hidden="true" threshold={0.05}>
+    <Seen className="osl-hv" aria-hidden="true" threshold={0.05} dir="ltr">
       <svg className="osl-hv-orbit" viewBox="0 0 600 600" aria-hidden="true" focusable="false">
         <g className="osl-hv-meridians">
           {MERIDIANS.map((share) => (

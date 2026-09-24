@@ -1,0 +1,1203 @@
+/*
+ * Swarm: one request splits into six small jobs, six tiny models work one after another,
+ * their parts stack into one answer, and the cost bar stops below the $0.01 goal.
+ *
+ * Loop: 2-15% the request types, 17% it is sent, 18-27% the pieces flow out to the models,
+ * 28-63% the models work in turn (the first at 28%, then one every 6%) and each sends its
+ * part down, 36-66% the parts stack in the card, 67% the answer is done, 92-100% it resets.
+ */
+
+/* --nb-stroke is set on .nb, above where --u lives; resolve it again inside the scene. */
+.nb-swarm .nb-scene {
+  --nb-stroke: max(1px, calc(var(--u) * 0.14));
+  /* What sits under the request's glass; the send button before it is ready; the fade of a
+     part in the answer (the first part strongest); the cost bar's fade (strongest on top). */
+  --nb-swarm-under: #111;
+  --nb-swarm-idle: #3a3a3a;
+  --nb-swarm-row-a: #d6d6d6;
+  --nb-swarm-row-b: #7a7a7a;
+  --nb-swarm-first-a: #fafafa;
+  --nb-swarm-first-b: #9a9a9a;
+  --nb-swarm-fill-a: #6e6e6e;
+  --nb-swarm-fill-b: #f4f4f4;
+}
+
+/* Light: strongest means darkest, so every fade turns over: the first part and the top of
+   the cost bar are the darkest. */
+[data-oi-theme='light'] .nb-swarm .nb-scene {
+  --nb-swarm-under: #ffffff;
+  --nb-swarm-idle: #e4e4e4;
+  --nb-swarm-row-a: #4a4a4a;
+  --nb-swarm-row-b: #b0b0b0;
+  --nb-swarm-first-a: #111111;
+  --nb-swarm-first-b: #7a7a7a;
+  --nb-swarm-fill-a: #b5b5b5;
+  --nb-swarm-fill-b: #111111;
+}
+
+.nb-swarm *,
+.nb-swarm *::before,
+.nb-swarm *::after {
+  box-sizing: border-box;
+}
+
+/* Wires: one SVG per canvas, drawn in banner units (1 SVG unit = 1u). */
+.nb-swarm-wires {
+  display: block;
+}
+
+.nb-swarm-phone {
+  display: none;
+}
+
+.nb-swarm-split,
+.nb-swarm-merge {
+  stroke: rgba(var(--oi-fg-rgb), 0.2);
+}
+
+.nb-swarm-split {
+  animation: nb-swarm-split var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* A travelling dot: a tiny round dash that the offset carries along the wire (length 100),
+   at an even speed so it reads as flow. */
+.nb-swarm-pieces path,
+.nb-swarm-parts path {
+  opacity: 0;
+  vector-effect: none;
+  stroke: var(--nb-ink);
+  stroke-width: 0.85;
+  stroke-linecap: round;
+  stroke-dasharray: 0.5 150;
+  stroke-dashoffset: -100;
+  animation: nb-swarm-piece var(--nb-loop) linear infinite;
+}
+
+.nb-swarm-parts path {
+  stroke-width: 0.7;
+}
+
+.nb-swarm-parts path:nth-child(1) {
+  animation-name: nb-swarm-part-1;
+}
+
+.nb-swarm-parts path:nth-child(2) {
+  animation-name: nb-swarm-part-2;
+}
+
+.nb-swarm-parts path:nth-child(3) {
+  animation-name: nb-swarm-part-3;
+}
+
+.nb-swarm-parts path:nth-child(4) {
+  animation-name: nb-swarm-part-4;
+}
+
+.nb-swarm-parts path:nth-child(5) {
+  animation-name: nb-swarm-part-5;
+}
+
+.nb-swarm-parts path:nth-child(6) {
+  animation-name: nb-swarm-part-6;
+}
+
+/* The request ---------------------------------------------------------------------------- */
+
+.nb-swarm-ask {
+  position: absolute;
+  top: calc(var(--u) * 3.7);
+  left: calc(var(--u) * 28.5);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  width: calc(var(--u) * 27);
+  height: calc(var(--u) * 4.6);
+  padding: 0 calc(var(--u) * 0.7) 0 calc(var(--u) * 1.8);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: 999px;
+  background: var(--oi-app-surface), var(--nb-swarm-under);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.14),
+    0 0 calc(var(--u) * 3) calc(var(--u) * -0.6) rgba(var(--oi-fg-rgb), 0.1);
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.3);
+  animation: nb-swarm-ask var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-swarm-ask-text {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.nb-swarm-type {
+  animation: nb-swarm-type var(--nb-loop) linear infinite;
+}
+
+/* Sent: the caret goes, as it would in the app. */
+.nb-swarm-caret {
+  visibility: hidden;
+  animation:
+    nb-blink 1s steps(1) infinite,
+    nb-swarm-caret var(--nb-loop) linear infinite;
+}
+
+.nb-swarm-send {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--u) * 3.2);
+  height: calc(var(--u) * 3.2);
+  border-radius: 50%;
+  background: var(--nb-ink);
+  color: rgb(var(--oi-bg-rgb));
+  animation: nb-swarm-send var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-swarm-send .nb-icon {
+  width: 55%;
+  height: 55%;
+  stroke-width: 2;
+}
+
+/* The six tiny models -------------------------------------------------------------------- */
+
+.nb-swarm-nodes {
+  position: absolute;
+  top: calc(var(--u) * 14.8);
+  left: calc(var(--u) * 10.8);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  justify-items: center;
+  width: calc(var(--u) * 62.4);
+}
+
+.nb-swarm-node {
+  --nb-swarm-size: calc(var(--u) * 4.2);
+  --nb-swarm-calm: 0 0 0 0 rgba(255, 255, 255, 0);
+  --nb-swarm-halo: 0 0 calc(var(--u) * 2.6) calc(var(--u) * 0.2) rgba(255, 255, 255, 0.3);
+  --nb-swarm-wave: calc(var(--u) * 2.2);
+  /* The model's glossy shell: its lit top and its body. */
+  --nb-swarm-orb-a: #3b3b3b;
+  --nb-swarm-orb-b: #151515;
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--nb-swarm-size);
+  height: var(--nb-swarm-size);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 30%, var(--nb-swarm-orb-a), var(--nb-swarm-orb-b) 72%);
+  outline: var(--nb-stroke) solid rgba(var(--oi-fg-rgb), 0);
+  outline-offset: 0;
+  box-shadow: var(--nb-swarm-calm);
+  color: var(--nb-ink);
+  animation: nb-swarm-node-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+/* The model's core: lit in the model's colour. */
+.nb-swarm-node::before {
+  content: '';
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 calc(var(--u) * 0.9) currentColor;
+}
+
+/* Light: the same glossy shell in white, resting on a soft shadow. Its core and word turn
+   dark as it works; a lit model shows a soft ring instead of a white glow. */
+[data-oi-theme='light'] .nb-swarm-node {
+  --nb-swarm-orb-a: #ffffff;
+  --nb-swarm-orb-b: #dedede;
+  --nb-swarm-calm: 0 calc(var(--u) * 0.35) calc(var(--u) * 0.9) rgba(0, 0, 0, 0.12);
+  --nb-swarm-halo:
+    0 calc(var(--u) * 0.35) calc(var(--u) * 0.9) rgba(0, 0, 0, 0.12),
+    0 0 0 calc(var(--u) * 0.55) rgba(0, 0, 0, 0.08);
+}
+
+[data-oi-theme='light'] .nb-swarm-node::before {
+  box-shadow: none;
+}
+
+.nb-swarm-node:nth-child(2) {
+  animation-name: nb-swarm-node-2;
+}
+
+.nb-swarm-node:nth-child(3) {
+  animation-name: nb-swarm-node-3;
+}
+
+.nb-swarm-node:nth-child(4) {
+  animation-name: nb-swarm-node-4;
+}
+
+.nb-swarm-node:nth-child(5) {
+  animation-name: nb-swarm-node-5;
+}
+
+.nb-swarm-node:nth-child(6) {
+  animation-name: nb-swarm-node-6;
+}
+
+.nb-swarm-label {
+  position: absolute;
+  top: calc(100% + var(--u) * 0.7);
+  left: 50%;
+  translate: -50% 0;
+  color: inherit;
+  font-size: calc(var(--u) * 1.05);
+  white-space: nowrap;
+}
+
+/* A soft light that walks along the row, reaching each model as it starts: one column wide. */
+.nb-swarm-spot {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 0;
+  width: calc(100% / 6);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.16 * var(--oi-halo-k))),
+    transparent
+  );
+  opacity: 0;
+  animation: nb-swarm-spot var(--nb-loop) linear infinite;
+}
+
+/* Light: the walking light is white, not a grey shade. */
+[data-oi-theme='light'] .nb-swarm-spot {
+  background: radial-gradient(closest-side, rgba(var(--oi-lift-rgb), 0.95), transparent);
+}
+
+/* The answer ----------------------------------------------------------------------------- */
+
+.nb-swarm-card {
+  top: calc(var(--u) * 27.3);
+  left: calc(var(--u) * 30);
+  width: calc(var(--u) * 24);
+  animation: nb-swarm-card var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-swarm-card-name {
+  margin-left: calc(var(--u) * 0.5);
+  color: var(--nb-text);
+}
+
+.nb-swarm-tick {
+  width: calc(var(--u) * 1.25);
+  height: calc(var(--u) * 1.25);
+  margin-left: auto;
+  animation: nb-swarm-tick var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-swarm-rows {
+  display: grid;
+  gap: calc(var(--u) * 0.45);
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 1.3) calc(var(--u) * 1.3);
+}
+
+/* One part per model: a dot and a line of text. */
+.nb-swarm-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.6);
+  height: calc(var(--u) * 0.9);
+  transform-origin: left center;
+  animation: nb-swarm-row-1 var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-swarm-row::before {
+  content: '';
+  flex: none;
+  width: calc(var(--u) * 0.5);
+  height: calc(var(--u) * 0.5);
+  border-radius: 50%;
+  background: var(--nb-muted);
+}
+
+.nb-swarm-row::after {
+  content: '';
+  width: var(--w);
+  height: calc(var(--u) * 0.5);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--nb-swarm-row-a), var(--nb-swarm-row-b));
+}
+
+.nb-swarm-row:first-child::after {
+  background: linear-gradient(90deg, var(--nb-swarm-first-a), var(--nb-swarm-first-b));
+}
+
+.nb-swarm-row:nth-child(2) {
+  animation-name: nb-swarm-row-2;
+}
+
+.nb-swarm-row:nth-child(3) {
+  animation-name: nb-swarm-row-3;
+}
+
+.nb-swarm-row:nth-child(4) {
+  animation-name: nb-swarm-row-4;
+}
+
+.nb-swarm-row:nth-child(5) {
+  animation-name: nb-swarm-row-5;
+}
+
+.nb-swarm-row:nth-child(6) {
+  animation-name: nb-swarm-row-6;
+}
+
+/* The cost ------------------------------------------------------------------------------- */
+
+.nb-swarm-meter {
+  position: absolute;
+  top: calc(var(--u) * 8.5);
+  left: calc(var(--u) * 76.3);
+  width: calc(var(--u) * 1.4);
+  height: calc(var(--u) * 28);
+  border: var(--nb-stroke) solid var(--nb-line-strong);
+  border-radius: 999px;
+  background: rgba(var(--oi-fg-rgb), 0.04);
+}
+
+/* It fills in small steps as each model works and stops well below the goal line. */
+.nb-swarm-fill {
+  position: absolute;
+  right: calc(var(--u) * 0.22);
+  bottom: calc(var(--u) * 0.22);
+  left: calc(var(--u) * 0.22);
+  height: 58%;
+  border-radius: 999px;
+  background: linear-gradient(0deg, var(--nb-swarm-fill-a), var(--nb-swarm-fill-b));
+  clip-path: inset(0 0 0 0 round 999px);
+  animation: nb-swarm-fill var(--nb-loop) var(--nb-ease) infinite;
+}
+
+.nb-swarm-goal {
+  position: absolute;
+  top: 16%;
+  right: calc(var(--u) * -2);
+  left: calc(var(--u) * -2);
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--nb-ink) 0 calc(var(--u) * 0.55),
+    transparent 0 calc(var(--u) * 0.95)
+  );
+}
+
+.nb-swarm-goal-label {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--u) * 1);
+  display: flex;
+  gap: calc(var(--u) * 0.6);
+  translate: 0 -50%;
+  color: var(--nb-ink);
+  font-size: calc(var(--u) * 1.05);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.nb-swarm-cost {
+  position: absolute;
+  top: calc(100% + var(--u) * 1);
+  left: 50%;
+  translate: -50% 0;
+  color: var(--nb-muted);
+}
+
+/*
+ * banners.css makes the banner 4:5 below a 600px viewport but switches --u on a 600px
+ * container, so between them (about 601-650px) the banner is still wide. Keep the wide unit
+ * there, and play the phone layout only when the banner is really 4:5.
+ */
+@media (min-width: 601px) {
+  .nb-swarm .nb-scene {
+    --u: 1cqi;
+  }
+}
+
+/* Phone: the same story, taller. The card moves left so the cost bar fits beside it. */
+@media (max-width: 600px) {
+  @container nb (max-width: 600px) {
+    .nb-swarm-wide {
+      display: none;
+    }
+
+    .nb-swarm-phone {
+      display: block;
+    }
+
+    .nb-swarm-ask {
+      top: calc(var(--u) * 4);
+      left: calc(var(--u) * 3.3);
+      width: calc(var(--u) * 35.1);
+      height: calc(var(--u) * 5);
+      padding-left: calc(var(--u) * 1.7);
+      font-size: calc(var(--u) * 1.35);
+    }
+
+    .nb-swarm-send {
+      width: calc(var(--u) * 3.5);
+      height: calc(var(--u) * 3.5);
+    }
+
+    .nb-swarm-nodes {
+      top: calc(var(--u) * 16.8);
+      left: calc(var(--u) * 1.63);
+      width: calc(var(--u) * 38.4);
+    }
+
+    .nb-swarm-node {
+      --nb-swarm-size: calc(var(--u) * 3.8);
+      --nb-swarm-wave: calc(var(--u) * 1.6);
+    }
+
+    .nb-swarm-label {
+      top: calc(100% + var(--u) * 0.6);
+      font-size: calc(var(--u) * 1.1);
+    }
+
+    .nb-swarm-card {
+      top: calc(var(--u) * 29.5);
+      left: calc(var(--u) * 3.3);
+      width: calc(var(--u) * 24);
+    }
+
+    .nb-swarm-card .nb-window-bar {
+      height: calc(var(--u) * 2.8);
+      font-size: calc(var(--u) * 1.05);
+    }
+
+    .nb-swarm-rows {
+      gap: calc(var(--u) * 0.7);
+      padding: calc(var(--u) * 1.4) calc(var(--u) * 1.4) calc(var(--u) * 1.5);
+    }
+
+    .nb-swarm-row {
+      height: calc(var(--u) * 1.1);
+    }
+
+    .nb-swarm-meter {
+      top: calc(var(--u) * 29.5);
+      left: calc(var(--u) * 31.9);
+      height: calc(var(--u) * 15.9);
+    }
+
+    .nb-swarm-goal {
+      right: calc(var(--u) * -1.6);
+      left: calc(var(--u) * -1.6);
+    }
+
+    .nb-swarm-goal-label {
+      left: calc(100% + var(--u) * 0.7);
+      flex-direction: column;
+      gap: 0;
+      font-size: calc(var(--u) * 1.1);
+    }
+
+    .nb-swarm-cost {
+      font-size: calc(var(--u) * 1.05);
+    }
+  }
+}
+
+/* Motion --------------------------------------------------------------------------------- */
+
+@keyframes nb-swarm-type {
+  0%,
+  2% {
+    max-width: 0;
+    opacity: 1;
+    animation-timing-function: steps(25, end);
+  }
+  15%,
+  92% {
+    max-width: calc(var(--n) * var(--nb-ch));
+    opacity: 1;
+  }
+  97% {
+    max-width: calc(var(--n) * var(--nb-ch));
+    opacity: 0;
+  }
+  98%,
+  100% {
+    max-width: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-caret {
+  0%,
+  16% {
+    visibility: visible;
+  }
+  16.5%,
+  100% {
+    visibility: hidden;
+  }
+}
+
+@keyframes nb-swarm-send {
+  0%,
+  13% {
+    transform: scale(1);
+    background-color: var(--nb-swarm-idle);
+    color: var(--nb-muted);
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0);
+  }
+  15.5% {
+    transform: scale(1);
+    background-color: var(--nb-ink);
+    color: rgb(var(--oi-bg-rgb));
+    box-shadow: 0 0 0 0 rgba(var(--oi-fg-rgb), 0.55);
+  }
+  17% {
+    transform: scale(0.84);
+  }
+  20.5% {
+    transform: scale(1);
+    box-shadow: 0 0 0 calc(var(--u) * 1.6) rgba(var(--oi-fg-rgb), 0);
+  }
+  92% {
+    background-color: var(--nb-ink);
+    color: rgb(var(--oi-bg-rgb));
+  }
+  98%,
+  100% {
+    background-color: var(--nb-swarm-idle);
+    color: var(--nb-muted);
+  }
+}
+
+@keyframes nb-swarm-ask {
+  0%,
+  16.5% {
+    border-color: var(--nb-line-strong);
+  }
+  18.5% {
+    border-color: rgba(var(--oi-fg-rgb), 0.62);
+  }
+  28%,
+  100% {
+    border-color: var(--nb-line-strong);
+  }
+}
+
+@keyframes nb-swarm-split {
+  0%,
+  17% {
+    stroke: rgba(var(--oi-fg-rgb), 0.2);
+  }
+  19%,
+  25% {
+    stroke: rgba(var(--oi-fg-rgb), 0.55);
+  }
+  31%,
+  100% {
+    stroke: rgba(var(--oi-fg-rgb), 0.2);
+  }
+}
+
+@keyframes nb-swarm-piece {
+  0%,
+  17.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  18% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  27% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  27.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-swarm-spot {
+  0%,
+  26% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  27.5%,
+  31% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  34%,
+  37% {
+    transform: translateX(100%);
+  }
+  40%,
+  43% {
+    transform: translateX(200%);
+  }
+  46%,
+  49% {
+    transform: translateX(300%);
+  }
+  52%,
+  55% {
+    transform: translateX(400%);
+  }
+  58%,
+  62% {
+    transform: translateX(500%);
+    opacity: 1;
+  }
+  66%,
+  100% {
+    transform: translateX(500%);
+    opacity: 0;
+  }
+}
+
+/* Model n: lit at its start, a ring leaves it, then it rests lit until the reset. */
+@keyframes nb-swarm-node-1 {
+  0%,
+  27% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  28% {
+    border-color: var(--nb-accent);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-halo);
+    outline-color: rgba(var(--oi-fg-rgb), 0.8);
+    outline-offset: 0;
+  }
+  32% {
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: var(--nb-swarm-wave);
+  }
+  34%,
+  92% {
+    border-color: var(--nb-line-strong);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+}
+
+@keyframes nb-swarm-node-2 {
+  0%,
+  33% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  34% {
+    border-color: var(--nb-accent);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-halo);
+    outline-color: rgba(var(--oi-fg-rgb), 0.8);
+    outline-offset: 0;
+  }
+  38% {
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: var(--nb-swarm-wave);
+  }
+  40%,
+  92% {
+    border-color: var(--nb-line-strong);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+}
+
+@keyframes nb-swarm-node-3 {
+  0%,
+  39% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  40% {
+    border-color: var(--nb-accent);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-halo);
+    outline-color: rgba(var(--oi-fg-rgb), 0.8);
+    outline-offset: 0;
+  }
+  44% {
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: var(--nb-swarm-wave);
+  }
+  46%,
+  92% {
+    border-color: var(--nb-line-strong);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+}
+
+@keyframes nb-swarm-node-4 {
+  0%,
+  45% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  46% {
+    border-color: var(--nb-accent);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-halo);
+    outline-color: rgba(var(--oi-fg-rgb), 0.8);
+    outline-offset: 0;
+  }
+  50% {
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: var(--nb-swarm-wave);
+  }
+  52%,
+  92% {
+    border-color: var(--nb-line-strong);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+}
+
+@keyframes nb-swarm-node-5 {
+  0%,
+  51% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  52% {
+    border-color: var(--nb-accent);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-halo);
+    outline-color: rgba(var(--oi-fg-rgb), 0.8);
+    outline-offset: 0;
+  }
+  56% {
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: var(--nb-swarm-wave);
+  }
+  58%,
+  92% {
+    border-color: var(--nb-line-strong);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+}
+
+@keyframes nb-swarm-node-6 {
+  0%,
+  57% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  58% {
+    border-color: var(--nb-accent);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-halo);
+    outline-color: rgba(var(--oi-fg-rgb), 0.8);
+    outline-offset: 0;
+  }
+  62% {
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: var(--nb-swarm-wave);
+  }
+  64%,
+  92% {
+    border-color: var(--nb-line-strong);
+    color: var(--nb-ink);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+  98%,
+  100% {
+    border-color: var(--nb-line);
+    color: var(--nb-muted);
+    box-shadow: var(--nb-swarm-calm);
+    outline-color: rgba(var(--oi-fg-rgb), 0);
+    outline-offset: 0;
+  }
+}
+
+/* Part n: leaves its model 3% after the model starts and reaches the card 5% later. */
+@keyframes nb-swarm-part-1 {
+  0%,
+  30.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  31% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  36% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  36.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-swarm-part-2 {
+  0%,
+  36.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  37% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  42% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  42.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-swarm-part-3 {
+  0%,
+  42.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  43% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  48% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  48.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-swarm-part-4 {
+  0%,
+  48.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  49% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  54% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  54.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-swarm-part-5 {
+  0%,
+  54.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  55% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  60% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  60.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes nb-swarm-part-6 {
+  0%,
+  60.5% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  61% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  66% {
+    opacity: 1;
+    stroke-dashoffset: -100;
+  }
+  66.5%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+
+/* Row n: lands as its part arrives and stays until the reset. */
+@keyframes nb-swarm-row-1 {
+  0%,
+  35.5% {
+    transform: translateY(calc(var(--u) * -0.8)) scaleX(0.3);
+    opacity: 0;
+  }
+  38.5%,
+  92% {
+    transform: none;
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-row-2 {
+  0%,
+  41.5% {
+    transform: translateY(calc(var(--u) * -0.8)) scaleX(0.3);
+    opacity: 0;
+  }
+  44.5%,
+  92% {
+    transform: none;
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-row-3 {
+  0%,
+  47.5% {
+    transform: translateY(calc(var(--u) * -0.8)) scaleX(0.3);
+    opacity: 0;
+  }
+  50.5%,
+  92% {
+    transform: none;
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-row-4 {
+  0%,
+  53.5% {
+    transform: translateY(calc(var(--u) * -0.8)) scaleX(0.3);
+    opacity: 0;
+  }
+  56.5%,
+  92% {
+    transform: none;
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-row-5 {
+  0%,
+  59.5% {
+    transform: translateY(calc(var(--u) * -0.8)) scaleX(0.3);
+    opacity: 0;
+  }
+  62.5%,
+  92% {
+    transform: none;
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-row-6 {
+  0%,
+  65.5% {
+    transform: translateY(calc(var(--u) * -0.8)) scaleX(0.3);
+    opacity: 0;
+  }
+  68.5%,
+  92% {
+    transform: none;
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+@keyframes nb-swarm-card {
+  0%,
+  66% {
+    border-color: var(--oi-app-edge);
+  }
+  69% {
+    border-color: rgba(var(--oi-fg-rgb), 0.6);
+  }
+  80%,
+  100% {
+    border-color: var(--oi-app-edge);
+  }
+}
+
+@keyframes nb-swarm-tick {
+  0%,
+  66.5% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  69.5%,
+  92% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  97%,
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* One small step per model; the last one still ends far below the goal line. */
+@keyframes nb-swarm-fill {
+  0%,
+  28% {
+    clip-path: inset(100% 0 0 0 round 999px);
+  }
+  32%,
+  34% {
+    clip-path: inset(83.3% 0 0 0 round 999px);
+  }
+  38%,
+  40% {
+    clip-path: inset(66.7% 0 0 0 round 999px);
+  }
+  44%,
+  46% {
+    clip-path: inset(50% 0 0 0 round 999px);
+  }
+  50%,
+  52% {
+    clip-path: inset(33.3% 0 0 0 round 999px);
+  }
+  56%,
+  58% {
+    clip-path: inset(16.7% 0 0 0 round 999px);
+  }
+  62%,
+  92% {
+    clip-path: inset(0 0 0 0 round 999px);
+  }
+  98%,
+  100% {
+    clip-path: inset(100% 0 0 0 round 999px);
+  }
+}

@@ -18,6 +18,8 @@
 .oh-hero {
   --oh-accent: var(--oi-accent);
   --oh-light: #ffffff;
+  /* The pills' glass: dark on the black page, milk-white on the light one. */
+  --oh-glass: rgba(6, 6, 6, 0.88);
   position: relative;
   padding-block: var(--oi-s4) var(--oi-s5);
   /* The orb and rings are wider than the page. Clipping sideways here, not on the
@@ -26,6 +28,12 @@
   overflow-x: hidden;
   overflow-x: clip;
   isolation: isolate;
+}
+
+/* On the light page the streaks are ink and the pills are milk glass. */
+[data-oi-theme='light'] .oh-hero {
+  --oh-light: #2b2b2b;
+  --oh-glass: rgba(255, 255, 255, 0.9);
 }
 
 /* The light is taller than the hero. It fades to black before it reaches the top
@@ -44,13 +52,13 @@
 .oh-hero::before {
   top: -70px;
   height: 170px;
-  background: linear-gradient(#000 38%, transparent);
+  background: linear-gradient(rgb(var(--oi-bg-rgb)) 38%, transparent);
 }
 
 .oh-hero::after {
   bottom: -100px;
   height: 190px;
-  background: linear-gradient(transparent, #000 50%);
+  background: linear-gradient(transparent, rgb(var(--oi-bg-rgb)) 50%);
 }
 
 .oh-grid {
@@ -153,7 +161,7 @@
       100deg,
       var(--oi-accent-dark) 0%,
       var(--oh-accent) 22%,
-      #ffffff 46%,
+      rgb(var(--oi-fg-rgb)) 46%,
       var(--oh-accent) 70%,
       var(--oi-accent-dark) 100%
     )
@@ -188,6 +196,16 @@
   animation: oh-arrive 1100ms var(--oi-ease) 540ms backwards;
 }
 
+.oh-lead-break {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .oh-lead-break {
+    display: inline;
+  }
+}
+
 .oh-more {
   animation: oh-arrive 1100ms var(--oi-ease) 620ms backwards;
 }
@@ -212,6 +230,20 @@
 
 /* Download: the theme's white pill, with light passing over it ------------- */
 
+/* Which Macs it runs on, in small type under the button. */
+.oh-silicon {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin: 14px 0 0 30px;
+  color: var(--oi-muted);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: oh-arrive 1100ms var(--oi-ease) 900ms backwards;
+}
+
 .oh-cta {
   position: relative;
   animation: oh-arrive 1100ms var(--oi-ease) 820ms backwards;
@@ -224,7 +256,11 @@
   inset: 30% -6% -40%;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.55), transparent);
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.55 * var(--oi-halo-k))),
+    transparent
+  );
   filter: blur(18px);
   opacity: 0.55;
   pointer-events: none;
@@ -258,7 +294,7 @@
     100deg,
     transparent,
     rgba(var(--oi-glow-rgb), 0.5) 45%,
-    rgba(255, 255, 255, 0.9) 50%,
+    rgba(var(--oi-fg-rgb), 0.9) 50%,
     rgba(var(--oi-glow-rgb), 0.5) 55%,
     transparent
   );
@@ -271,7 +307,7 @@
 .oh-hero .oh-cta .MuiButton-root:focus-visible {
   box-shadow:
     0 0 0 1px rgba(var(--oi-accent-rgb), 0.6),
-    0 0 48px rgba(var(--oi-glow-rgb), 0.7);
+    0 0 48px rgba(var(--oi-glow-rgb), calc(0.7 * var(--oi-halo-k)));
   transform: translate3d(0, -2px, 0);
 }
 
@@ -334,9 +370,9 @@
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(255, 255, 255, 0.5),
-    rgba(var(--oi-deep-rgb), 0.26) 38%,
-    rgba(255, 255, 255, 0.1) 62%,
+    rgba(var(--oi-fg-rgb), calc(0.5 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.26 * var(--oi-halo-k))) 38%,
+    rgba(var(--oi-fg-rgb), calc(0.1 * var(--oi-halo-k))) 62%,
     transparent 78%
   );
   animation: oh-breathe 12s ease-in-out infinite alternate;
@@ -401,8 +437,8 @@
   border-radius: 28px;
   /* A shadow is painted once; a blur filter under a looping opacity is re-run every frame. */
   box-shadow:
-    0 0 68px 18px rgba(var(--oi-glow-rgb), 0.58),
-    0 0 130px 34px rgba(var(--oi-deep-rgb), 0.32);
+    0 0 68px 18px rgba(var(--oi-glow-rgb), calc(0.58 * var(--oi-halo-k))),
+    0 0 130px 34px rgba(var(--oi-deep-rgb), calc(0.32 * var(--oi-halo-k)));
   opacity: 0.62;
   pointer-events: none;
   animation: oh-backlight 12s ease-in-out infinite alternate;
@@ -456,7 +492,7 @@
   height: 640px;
   margin: -320px 0 0 -320px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(var(--oi-pale-rgb), 0.11), transparent);
+  background: radial-gradient(closest-side, rgba(var(--oi-pale-rgb), calc(0.11 * var(--oi-halo-k))), transparent);
   transform: translate3d(calc(var(--oh-px, 0) * 300px), calc(var(--oh-py, 0) * 210px), 0);
   transition: transform 500ms var(--oi-ease);
 }
@@ -505,7 +541,7 @@
      word on them still has to pass AA. */
   /* No backdrop blur: the orb behind is redrawn every frame and each pill would re-blur it. */
   background:
-    linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), rgba(6, 6, 6, 0.88);
+    linear-gradient(rgba(var(--oi-fg-rgb), 0.05), rgba(var(--oi-fg-rgb), 0.05)), var(--oh-glass);
   color: var(--oi-ink);
   font: inherit;
   text-align: left;
@@ -530,8 +566,8 @@
   border-color: rgba(var(--oi-accent-rgb), 0.8);
   box-shadow:
     0 0 0 1px rgba(var(--oi-accent-rgb), 0.22),
-    0 0 36px rgba(var(--oi-glow-rgb), 0.45),
-    inset 0 0 24px rgba(var(--oi-glow-rgb), 0.14);
+    0 0 36px rgba(var(--oi-glow-rgb), calc(0.45 * var(--oi-halo-k))),
+    inset 0 0 24px rgba(var(--oi-glow-rgb), calc(0.14 * var(--oi-halo-k)));
 }
 
 /* The icon sits in its own small light: the pill's one bright point. */
@@ -543,13 +579,13 @@
   border-radius: 50%;
   background: radial-gradient(
     circle at 35% 30%,
-    rgba(var(--oi-pale-rgb), 0.34),
-    rgba(var(--oi-deep-rgb), 0.16)
+    rgba(var(--oi-pale-rgb), calc(0.34 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.16 * var(--oi-halo-k)))
   );
   box-shadow:
     inset 0 0 0 1px rgba(var(--oi-pale-rgb), 0.32),
-    0 0 18px rgba(var(--oi-glow-rgb), 0.35);
-  color: #ffffff;
+    0 0 18px rgba(var(--oi-glow-rgb), calc(0.35 * var(--oi-halo-k)));
+  color: rgb(var(--oi-fg-rgb));
   transition:
     box-shadow 500ms ease,
     transform 600ms var(--oi-ease);
@@ -569,8 +605,8 @@
 .oh-label[aria-pressed='true'] .oh-label-icon {
   transform: scale(1.08);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
-    0 0 28px rgba(var(--oi-accent-rgb), 0.8);
+    inset 0 0 0 1px rgba(var(--oi-fg-rgb), 0.6),
+    0 0 28px rgba(var(--oi-accent-rgb), calc(0.8 * var(--oi-halo-k)));
 }
 
 .oh-hero .oh-label-tag {
@@ -642,7 +678,7 @@
   border-radius: var(--oh-region-radius, 8px);
   box-shadow:
     0 0 0 4px rgba(var(--oi-glow-rgb), 0.12),
-    0 0 30px 6px rgba(var(--oi-glow-rgb), 0.45);
+    0 0 30px 6px rgba(var(--oi-glow-rgb), calc(0.45 * var(--oi-halo-k)));
 }
 
 /* The microphone sits inside the message box, so the box stays lit while the mic is ringed. */
@@ -689,7 +725,7 @@
 
   .oh-ring {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.3);
+    stroke: rgba(var(--oi-fg-rgb), 0.3);
     stroke-width: 1;
     stroke-dasharray: 1000;
     stroke-dashoffset: 0;
@@ -698,7 +734,7 @@
   }
 
   .oh-ring-track {
-    stroke: rgba(0, 0, 0, 0.42);
+    stroke: rgba(var(--oi-bg-rgb), 0.42);
     stroke-width: 5;
   }
 
@@ -788,11 +824,11 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #ffffff;
+    background: rgb(var(--oi-fg-rgb));
     box-shadow:
-      0 0 6px 1px #ffffff,
-      0 0 14px 3px rgba(var(--oi-accent-rgb), 0.95),
-      0 0 34px 8px rgba(255, 255, 255, 0.55);
+      0 0 6px 1px rgba(var(--oi-fg-rgb), calc(1 * var(--oi-halo-k))),
+      0 0 14px 3px rgba(var(--oi-accent-rgb), calc(0.95 * var(--oi-halo-k))),
+      0 0 34px 8px rgba(var(--oi-fg-rgb), calc(0.55 * var(--oi-halo-k)));
     pointer-events: none;
     transform: scale(1, calc(1 / var(--oh-squash)));
   }
@@ -939,7 +975,7 @@
     display: block;
     width: 1px;
     height: 58px;
-    background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.22));
+    background: linear-gradient(rgba(var(--oi-fg-rgb), 0), rgba(var(--oi-fg-rgb), 0.22));
     z-index: 2;
     pointer-events: none;
     animation: oh-fade 1600ms ease-out 2600ms backwards;
@@ -952,8 +988,8 @@
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 0 10px 2px rgba(var(--oi-accent-rgb), 0.9);
+    background: rgb(var(--oi-fg-rgb));
+    box-shadow: 0 0 10px 2px rgba(var(--oi-accent-rgb), calc(0.9 * var(--oi-halo-k)));
     opacity: 0;
     animation: oh-cue 2.8s var(--oi-ease) 2600ms infinite;
   }
@@ -1185,7 +1221,7 @@
     padding: 6px;
     border-radius: 23px;
     column-gap: 0;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 28px rgba(var(--oi-shadow-rgb), calc(0.5 * var(--oi-shadow-k)));
   }
 
   .oh-hero .oh-label:not([aria-pressed='true']) .oh-label-tag,
@@ -1303,6 +1339,9 @@
     display: flex;
     justify-content: center;
     width: 100%;
+  }
+  .oh-hero .oh-silicon {
+    margin-left: 0;
   }
 }
 

@@ -1,0 +1,202 @@
+{
+  "meta": {
+    "slug": "legal-notice",
+    "title": "Nota prawna",
+    "summary": "Ta strona informuje, kto prowadzi Orqanix i jak się z nami skontaktować (Impressum).",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Pierwsza wersja."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The whole page stays hidden until legalName and address are filled (legal.links.js). If the company is German, § 5 DDG requires an Impressum on the live site now; that makes choosing the company a blocker (open point #1).",
+        "Fill representative, phone (or another fast contact channel besides email), register, vatId and newsResponsible. § 5 DDG needs a second fast contact channel besides email; without phone the page shows email only.",
+        "The legal form (e.g. GmbH, UG) must be part of legalName.",
+        "euRepresentative only applies if the company sits outside the EU; leave empty otherwise.",
+        "Consumer dispute resolution (§ 36 VSBG): the page now says only that we do not take part and are not willing to (no claim about being \"not obliged\", which depends on headcount). Owner to confirm this choice; the block appears automatically once legalName is filled. Remove it if the company is not German.",
+        "No link to the EU ODR platform: it closed on 20 Jul 2025.",
+        "If the company holds a licence that needs a supervisory authority, or states share capital, add those lines.",
+        "Mail to hello@orqanix.com probably does not arrive today (no MX record, open point #2); § 5 DDG requires a working email address.",
+        "The headings use German terms and the provider line cites § 5 DDG, which assumes a German company. The VAT line no longer cites § 27a UStG. Adjust if the company is elsewhere.",
+        "DSA Art. 11(3): the contact point must also accept an official language of the Member State where the company is established (German, if German). \"We communicate in English\" alone may not be enough; lawyer to confirm and add the language.",
+        "Added the DSA illegal-content reporting route (subject \"Report\") per the owner decision; it must match the Terms of Service and Acceptable Use Policy.",
+        "Removed \"product pages are not binding\" wording: for EU consumers, public statements about a product count toward what it must do (Dir. 2019/770 Art. 8(1)(b)), so disclaiming them is risky."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "provider",
+      "text": "Usługodawca (Anbieter)"
+    },
+    {
+      "type": "p",
+      "text": "Niniejsza strona internetowa i produkty {company.name} są udostępniane przez {company.legalName}, {company.address} (informacje zgodnie z § 5 DDG).",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "represented-by",
+      "text": "Reprezentowana przez (Vertreten durch)",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.representative}",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontakt (Kontakt)"
+    },
+    {
+      "type": "p",
+      "text": "E-mail: {company.email}"
+    },
+    {
+      "type": "p",
+      "text": "Telefon: {company.phone}",
+      "needs": [
+        "phone"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "W sprawach dotyczących ochrony prywatności prosimy pisać na adres {company.privacyEmail}. Aby zgłosić problem z bezpieczeństwem, prosimy pisać na adres {company.securityEmail}."
+    },
+    {
+      "type": "h2",
+      "id": "register",
+      "text": "Wpis do rejestru (Registereintrag)",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Zarejestrowana w {company.register}.",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "vat",
+      "text": "Numer VAT (Umsatzsteuer-Identifikationsnummer)",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Numer identyfikacyjny VAT: {company.vatId}",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "content-responsible",
+      "text": "Odpowiedzialny za treść (Verantwortlich für den Inhalt)",
+      "needs": [
+        "newsResponsible"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Odpowiedzialny za treści dziennikarskie na tej stronie internetowej, w tym na stronie Aktualności: {company.newsResponsible}, {company.address} (§ 18 ust. 2 MStV).",
+      "needs": [
+        "newsResponsible",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "eu-representative",
+      "text": "Przedstawiciel w UE",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nasz przedstawiciel w UE: {company.euRepresentative} (RODO art. 27 i akt o usługach cyfrowych art. 13).",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "authorities",
+      "text": "Kontakt dla organów i użytkowników (DSA)"
+    },
+    {
+      "type": "p",
+      "text": "Naszym pojedynczym punktem kontaktowym dla organów i użytkowników na podstawie unijnego aktu o usługach cyfrowych jest {company.email}. Komunikujemy się w języku angielskim."
+    },
+    {
+      "type": "p",
+      "text": "Aby zgłosić nielegalne treści, prosimy napisać na adres {company.email}, wpisując w temacie „Report”. Rozstrzygamy każde zgłoszenie i przekazujemy uzasadnienie osobie zgłaszającej oraz użytkownikowi, którego zgłoszenie dotyczy."
+    },
+    {
+      "type": "h2",
+      "id": "consumer-disputes",
+      "text": "Pozasądowe rozwiązywanie sporów konsumenckich (Verbraucherstreitbeilegung)",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.legalName} nie uczestniczy i nie jest gotowa uczestniczyć w postępowaniach w sprawie rozstrzygania sporów przed konsumenckim sądem polubownym (§ 36 VSBG).",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-content",
+      "text": "Nasze treści"
+    },
+    {
+      "type": "p",
+      "text": "Starannie przygotowujemy treści tej strony internetowej, ale nie możemy zagwarantować, że wszystko, co się na niej znajduje, jest zawsze kompletne, poprawne i aktualne. Zasady korzystania z naszych produktów określa nasz [Regulamin](/instant/legal/terms)."
+    },
+    {
+      "type": "h2",
+      "id": "links",
+      "text": "Linki do innych stron internetowych"
+    },
+    {
+      "type": "p",
+      "text": "Nasza strona internetowa zawiera linki do stron prowadzonych przez inne podmioty. Nie mamy nad nimi kontroli i nie odpowiadamy za ich treść. Jeśli dowiemy się, że strona, do której prowadzi link, narusza prawo, usuwamy ten link."
+    },
+    {
+      "type": "h2",
+      "id": "privacy",
+      "text": "Prywatność"
+    },
+    {
+      "type": "p",
+      "text": "Sposób, w jaki postępujemy z danymi osobowymi, wyjaśnia nasza [Polityka prywatności](/instant/legal/privacy)."
+    }
+  ]
+}

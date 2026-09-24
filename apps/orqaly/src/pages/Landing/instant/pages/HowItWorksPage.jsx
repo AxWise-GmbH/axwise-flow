@@ -5,6 +5,7 @@ import { Seen } from '../SpeedStrip';
 import More from '../ui/More';
 import Reveal from '../ui/Reveal';
 import { CheckGlyph, OrqanixMark } from '../ui/Glyphs';
+import { useT } from '../i18n/useT';
 import './HowItWorksPage.css';
 
 // How far down the window the travelling light rides while the story is being read.
@@ -23,6 +24,7 @@ const ICON_PATHS = {
   stop: 'M5.5 5.5h5v5h-5z',
 };
 
+// The same steps as the Features page's mocks, so they share its words (pg.dd.roadmap.<n>).
 const ROADMAP = [
   ['done', 'Your idea'],
   ['now', 'Market'],
@@ -67,6 +69,7 @@ function Pill({ state, children }) {
 }
 
 function ComposerMock() {
+  const { t } = useT('pg');
   return (
     <>
       <div className="hiw-newchat hiw-in" style={{ '--i': 0 }}>
@@ -79,7 +82,9 @@ function ComposerMock() {
         </span>
         <div className="hiw-composer-row">
           <i className="hiw-caret" />
-          <span className="hiw-placeholder">Ask whatever&apos;s on your mind.</span>
+          <span className="hiw-placeholder">
+            {t('pg.dd.composer', "Ask whatever's on your mind.")}
+          </span>
           <span className="hiw-wave">
             {[0, 1, 2, 3, 4].map((bar) => (
               <i key={bar} style={{ '--b': bar }} />
@@ -95,16 +100,19 @@ function ComposerMock() {
 }
 
 function RoadmapMock() {
+  const { t } = useT('pg');
   return (
     <>
       <div className="hiw-panel-head hiw-in" style={{ '--i': 0 }}>
-        <span>Workspace</span>
+        <span>{t('pg.dd.workspace', 'Workspace')}</span>
         <Icon name="close" />
       </div>
       <div className="hiw-status hiw-in" style={{ '--i': 1 }}>
         <div className="hiw-status-row">
-          <Pill state="working">Working</Pill>
-          <span className="hiw-quiet">Step 2 of 5</span>
+          <Pill state="working">{t('pg.dd.working', 'Working')}</Pill>
+          <span className="hiw-quiet">
+            {t('pg.how.mock.step', 'Step {n} of {total}', { n: 2, total: 5 })}
+          </span>
         </div>
         <div className="hiw-progress">
           {PROGRESS.map((fill, index) => (
@@ -115,7 +123,7 @@ function RoadmapMock() {
         </div>
       </div>
       <span className="hiw-label hiw-in" style={{ '--i': 2 }}>
-        ROADMAP
+        {t('pg.dd.roadmap.label', 'ROADMAP')}
       </span>
       <ol className="hiw-roadmap">
         {ROADMAP.map(([state, title], index) => (
@@ -128,7 +136,7 @@ function RoadmapMock() {
               {state === 'done' && <CheckGlyph className="hiw-marker-check" />}
               {state === 'now' && <i />}
             </span>
-            {title}
+            {t(`pg.dd.roadmap.${index}`, title)}
           </li>
         ))}
       </ol>
@@ -137,24 +145,29 @@ function RoadmapMock() {
 }
 
 function QuestionMock() {
+  const { t } = useT('pg');
   return (
     <>
       <div className="hiw-status-row hiw-in" style={{ '--i': 0 }}>
-        <Pill state="waiting">Needs you</Pill>
-        <span className="hiw-quiet">Step 3 of 5</span>
+        <Pill state="waiting">{t('pg.dd.needsyou', 'Needs you')}</Pill>
+        <span className="hiw-quiet">
+          {t('pg.how.mock.step', 'Step {n} of {total}', { n: 3, total: 5 })}
+        </span>
       </div>
       <div className="hiw-question hiw-in" style={{ '--i': 1 }}>
         <div className="hiw-question-head">
-          <span className="hiw-strong">Your Turn to Answer</span>
-          <span className="hiw-quiet">0 of 3 answered</span>
+          <span className="hiw-strong">{t('pg.how.mock.turn', 'Your Turn to Answer')}</span>
+          <span className="hiw-quiet">
+            {t('pg.how.mock.answered', '{n} of {total} answered', { n: 0, total: 3 })}
+          </span>
         </div>
         <p className="hiw-question-text hiw-in" style={{ '--i': 2 }}>
           <span className="hiw-question-number">1</span>
-          Where will you register?
+          {t('pg.how.mock.where', 'Where will you register?')}
         </p>
         <div className="hiw-chips hiw-in" style={{ '--i': 3 }}>
-          <span className="hiw-chip hiw-chip-tap">Latvia</span>
-          <span className="hiw-chip">Estonia</span>
+          <span className="hiw-chip hiw-chip-tap">{t('pg.how.mock.latvia', 'Latvia')}</span>
+          <span className="hiw-chip">{t('pg.how.mock.estonia', 'Estonia')}</span>
         </div>
         {[2, 3].map((number) => (
           <p key={number} className="hiw-question-text hiw-in" style={{ '--i': number + 2 }}>
@@ -163,7 +176,7 @@ function QuestionMock() {
           </p>
         ))}
         <div className="hiw-question-foot hiw-in" style={{ '--i': 6 }}>
-          <span className="hiw-send">Send 3 answers</span>
+          <span className="hiw-send">{t('pg.how.mock.send', 'Send 3 answers')}</span>
         </div>
       </div>
     </>
@@ -171,22 +184,25 @@ function QuestionMock() {
 }
 
 function ActivityMock() {
+  const { t } = useT('pg');
   return (
     <>
       <div className="hiw-status-row hiw-in" style={{ '--i': 0 }}>
-        <Pill state="working">Working</Pill>
+        <Pill state="working">{t('pg.dd.working', 'Working')}</Pill>
         <span className="hiw-stop">
           <Icon name="stop" />
         </span>
       </div>
       <div className="hiw-action hiw-in" style={{ '--i': 1 }}>
         <Icon name="file" />
-        <span className="hiw-action-name">Wrote business-plan.md</span>
+        <span className="hiw-action-name">
+          {t('pg.how.mock.wrote', 'Wrote {file}', { file: 'business-plan.md' })}
+        </span>
         <CheckGlyph className="hiw-action-check" />
       </div>
       <div className="hiw-action hiw-action-live hiw-in" style={{ '--i': 2 }}>
         <Icon name="terminal" />
-        <span className="hiw-action-name">Ran a command</span>
+        <span className="hiw-action-name">{t('pg.how.mock.ran', 'Ran a command')}</span>
         <span className="hiw-spinner" />
         <div className="hiw-output">
           {[72, 48, 60].map((width, index) => (
@@ -204,11 +220,14 @@ function ActivityMock() {
 }
 
 function ReviewMock() {
+  const { t } = useT('pg');
   return (
     <>
       <div className="hiw-status-row hiw-in" style={{ '--i': 0 }}>
-        <Pill state="done">Done</Pill>
-        <span className="hiw-quiet">Step 5 of 5</span>
+        <Pill state="done">{t('pg.dd.done', 'Done')}</Pill>
+        <span className="hiw-quiet">
+          {t('pg.how.mock.step', 'Step {n} of {total}', { n: 5, total: 5 })}
+        </span>
       </div>
       <div className="hiw-filerow hiw-filerow-open hiw-in" style={{ '--i': 1 }}>
         <Icon name="file" />
@@ -216,7 +235,7 @@ function ReviewMock() {
         <span className="hiw-diffcount">
           <span className="hiw-added">+12</span> <span className="hiw-removed">−3</span>
         </span>
-        <span className="hiw-filetag">EDITED</span>
+        <span className="hiw-filetag">{t('pg.dd.filetag.0', 'EDITED')}</span>
       </div>
       <div className="hiw-diff hiw-in" style={{ '--i': 2 }}>
         {DIFF_LINES.map(([kind, width], index) => (
@@ -228,7 +247,7 @@ function ReviewMock() {
       <div className="hiw-filerow hiw-in" style={{ '--i': 3 }}>
         <Icon name="file" />
         <span className="hiw-action-name">landing-a.html</span>
-        <span className="hiw-filetag">NEW</span>
+        <span className="hiw-filetag">{t('pg.dd.filetag.1', 'NEW')}</span>
       </div>
     </>
   );
@@ -289,6 +308,21 @@ const RULES = [
   },
 ];
 
+// Words in other languages: pg.how.step.<number>.* and pg.how.rule.<level>.*.
+const stepKey = (step, field) => `pg.how.step.${step.number}.${field}`;
+const ruleKey = (rule, field) => `pg.how.rule.${rule.level}.${field}`;
+
+export function howWords() {
+  return Object.fromEntries([
+    ...STEPS.flatMap((step) =>
+      ['title', 'line'].map((field) => [stepKey(step, field), step[field]])
+    ),
+    ...RULES.flatMap((rule) =>
+      ['tag', 'title', 'line'].map((field) => [ruleKey(rule, field), rule[field]])
+    ),
+  ]);
+}
+
 const DIAL_STOPS = [-80, 0, 80];
 const DIAL_SWEEP = 120;
 
@@ -332,6 +366,7 @@ function stepState(index, reached) {
 }
 
 function Story() {
+  const { t } = useT('pg');
   const railRef = useRef(null);
   const nodeRefs = useRef([]);
   const [still] = useState(storyIsStill);
@@ -402,8 +437,8 @@ function Story() {
                 <span className="hiw-num" data-n={step.number} aria-hidden="true">
                   {step.number}
                 </span>
-                <h3 className="hiw-step-title">{step.title}</h3>
-                <p className="hiw-step-line">{step.line}</p>
+                <h3 className="hiw-step-title">{t(stepKey(step, 'title'), step.title)}</h3>
+                <p className="hiw-step-line">{t(stepKey(step, 'line'), step.line)}</p>
               </div>
               <span
                 ref={(node) => {
@@ -416,7 +451,7 @@ function Story() {
                 <i className="hiw-node-ping" />
                 <i className="hiw-node-link" />
               </span>
-              <div className="hiw-step-mock" aria-hidden="true">
+              <div className="hiw-step-mock" aria-hidden="true" dir="ltr">
                 <i className="hiw-mock-bloom" />
                 <div
                   className="hiw-mock"
@@ -485,6 +520,7 @@ function Dial({ level }) {
 // under it and the "From request to result" tag, so the page starts at the story and its
 // heading is the page's h1. HowHero stays in heroes/, unused, with its own tests.
 export default function HowItWorksPage() {
+  const { t } = useT('pg');
   return (
     <>
       <Seen
@@ -498,7 +534,7 @@ export default function HowItWorksPage() {
         <div className="oi-container">
           <Seen className="ois-gate ois-head hiw-head">
             <Reveal as="h1" id="how-steps-heading" className="oi-h2">
-              Five steps, one chat
+              {t('pg.how.title', 'Five steps, one chat')}
             </Reveal>
           </Seen>
           <Story />
@@ -507,11 +543,23 @@ export default function HowItWorksPage() {
               <More>
                 <ul>
                   <li>
-                    The plan sits in a side panel beside the chat, with the status, the files and
-                    the results.
+                    {t(
+                      'pg.how.more.panel',
+                      'The plan sits in a side panel beside the chat, with the status, the files and the results.'
+                    )}
                   </li>
-                  <li>It previews the pages and files it builds, inside the app.</li>
-                  <li>What it makes are drafts to review, not legal or financial advice.</li>
+                  <li>
+                    {t(
+                      'pg.how.more.preview',
+                      'It previews the pages and files it builds, inside the app.'
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'pg.how.more.drafts',
+                      'What it makes are drafts to review, not legal or financial advice.'
+                    )}
+                  </li>
                 </ul>
               </More>
             </Reveal>
@@ -530,15 +578,15 @@ export default function HowItWorksPage() {
         <div className="oi-container">
           <Seen className="ois-gate ois-head ois-head-split">
             <div className="ois-head-main">
-              <Reveal as="p" className="oi-tag oi-tag-bracket">
-                Control
-              </Reveal>
-              <Reveal as="h2" id="how-control-heading" className="oi-h2" delay={90}>
-                You set the rules
+              <Reveal as="h2" id="how-control-heading" className="oi-h2">
+                {t('pg.how.control.title', 'You set the rules')}
               </Reveal>
             </div>
-            <Reveal as="p" className="oi-line" delay={180}>
-              Choose how much it may do without asking. Change it any time in Settings.
+            <Reveal as="p" className="oi-line" delay={90}>
+              {t(
+                'pg.how.control.line',
+                'Choose how much it may do without asking. Change it any time in Settings.'
+              )}
             </Reveal>
           </Seen>
           <div className="hiw-rules">
@@ -550,18 +598,18 @@ export default function HowItWorksPage() {
                   className="oi-card hiw-rule"
                   delay={index * 140}
                   tabIndex={0}
-                  aria-label={rule.title}
+                  aria-label={t(ruleKey(rule, 'title'), rule.title)}
                   onPointerMove={trackPointer}
                 >
                   <p className="oi-tag hiw-rule-tag">
-                    <span>{rule.tag}</span>
+                    <span>{t(ruleKey(rule, 'tag'), rule.tag)}</span>
                     <span className="hiw-rule-index" aria-hidden="true">
                       0{index + 1}
                     </span>
                   </p>
                   <Dial level={rule.level} />
-                  <h3 className="hiw-rule-title">{rule.title}</h3>
-                  <p className="oi-line hiw-rule-line">{rule.line}</p>
+                  <h3 className="hiw-rule-title">{t(ruleKey(rule, 'title'), rule.title)}</h3>
+                  <p className="oi-line hiw-rule-line">{t(ruleKey(rule, 'line'), rule.line)}</p>
                 </Reveal>
               </Seen>
             ))}
@@ -571,7 +619,7 @@ export default function HowItWorksPage() {
               <span className="hiw-stop" aria-hidden="true">
                 <Icon name="stop" />
               </span>
-              You can stop any run at any moment.
+              {t('pg.how.stop', 'You can stop any run at any moment.')}
             </Reveal>
           </Seen>
         </div>

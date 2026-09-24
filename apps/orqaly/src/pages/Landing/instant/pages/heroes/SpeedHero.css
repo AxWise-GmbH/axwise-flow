@@ -263,8 +263,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(var(--oi-pale-rgb), 0.5),
-    rgba(var(--oi-accent-rgb), 0.2) 34%,
+    rgba(var(--oi-pale-rgb), calc(0.5 * var(--oi-halo-k))),
+    rgba(var(--oi-accent-rgb), calc(0.2 * var(--oi-halo-k))) 34%,
     transparent 68%
   );
   animation: ohs-breathe 5200ms ease-in-out infinite alternate;

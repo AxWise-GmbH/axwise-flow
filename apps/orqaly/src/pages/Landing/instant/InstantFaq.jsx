@@ -1,39 +1,78 @@
 import More from './ui/More';
 import Reveal from './ui/Reveal';
 import { Seen } from './SpeedStrip';
+import { useT } from './i18n/useT';
 import './sections.css';
 
 const ROW_WAVE_MS = 80;
 
-const QUESTIONS = [
+/** The translation key of a question's `q` (question) or `a` (answer). */
+export function faqKey(id, field) {
+  return `faq.${id}.${field}`;
+}
+
+export const QUESTIONS = [
   {
-    question: 'Do I need to code?',
+    id: 'chatgpt',
+    question: 'How is this different from ChatGPT?',
     answer:
-      'No. You describe what you need in plain words. Orqanix writes the files and shows you each change to review.',
+      'ChatGPT gives you an answer. Orqanix does the work: AI agents research, plan and make the real files on your Mac, like documents, plans, replies and code.',
   },
   {
+    id: 'uses',
+    question: 'What can I use it for?',
+    answer:
+      'Anything that ends in a file or a finished task: a business plan, a campaign, client replies, reports, a website. Save any job as a recipe and run it again, or put it on a schedule.',
+  },
+  {
+    id: 'skills',
+    question: 'Do I need technical skills?',
+    answer:
+      'No. Type or say what you need in plain words. It asks you when it needs something, and you review the result.',
+  },
+  {
+    id: 'safety',
+    question: 'Can it change or break things on my Mac?',
+    answer:
+      'You set the rules: approve every action, approve only the risky ones, or let it run. It starts in “let it run”, and you can stop any run at any moment.',
+  },
+  {
+    id: 'data',
+    question: 'Where does my data go?',
+    answer:
+      'Your files and chat history stay on your Mac. Only your conversation and what the AI needs to answer go to the cloud AI. No ads, no tracking, and we don’t sell your data.',
+  },
+  {
+    id: 'models',
+    question: 'Which AI does it use?',
+    answer: 'Google Gemini by default. You can connect other models, such as OpenAI or Anthropic.',
+  },
+  {
+    id: 'tools',
+    question: 'Does it work with my other tools?',
+    answer:
+      'Yes. You can switch on 50+ connectors one at a time, and it works alongside your code editor.',
+  },
+  {
+    id: 'ownership',
+    question: 'Who owns what it makes?',
+    answer: 'You do. AI can make mistakes, so check the results before you rely on them.',
+  },
+  {
+    id: 'cost',
     question: 'What does it cost?',
-    answer:
-      'Orqanix is free during the early version. Commercial terms will be published before paid access begins.',
+    answer: 'It’s free during the early version. We’ll publish prices before any paid plan starts.',
   },
   {
-    question: 'Is my data safe?',
+    id: 'start',
+    question: 'What do I need to start?',
     answer:
-      'Your files, commands and chat history stay on your Mac. Your conversation and the results the AI needs are sent to the cloud AI to get an answer. Your sign-in is stored in the macOS Keychain. Chat history is saved on your Mac in a normal file; Orqanix does not add its own encryption.',
-  },
-  {
-    question: 'Will it work on my Mac?',
-    answer:
-      'It needs a Mac with an Apple M1 chip or newer. To check: Apple menu > About This Mac > Chip. Intel Macs and Windows are not supported yet; the web version works in any browser.',
-  },
-  {
-    question: 'What does early version mean?',
-    answer:
-      'It is a preview build. It works, but it is not notarized by Apple yet, so macOS asks you to confirm the first time you open it. Expect changes.',
+      'A Mac with Apple M1 or newer, an internet connection and a free account. The first time you open it, macOS may block it. Go to System Settings › Privacy & Security › Open Anyway. You only do this once.',
   },
 ];
 
 export default function InstantFaq() {
+  const { t } = useT();
   return (
     <Seen
       as="section"
@@ -44,21 +83,24 @@ export default function InstantFaq() {
       <div className="oi-container ois-faq-layout">
         <Seen className="ois-gate ois-faq-head">
           <Reveal as="h2" id="questions-heading" className="oi-h2">
-            Questions
+            {t('faq.title', 'Questions')}
           </Reveal>
         </Seen>
         <Seen className="ois-gate ois-faq">
-          {QUESTIONS.map(({ question, answer }, index) => (
-            <Reveal key={question} className="ois-faq-row" delay={index * ROW_WAVE_MS}>
-              {/* Outside the button, so the question stays the row's whole name and text. */}
-              <span className="ois-faq-index" aria-hidden="true">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <More row label={question} openLabel={question}>
-                <p>{answer}</p>
-              </More>
-            </Reveal>
-          ))}
+          {QUESTIONS.map(({ id, question: english, answer }, index) => {
+            const question = t(faqKey(id, 'q'), english);
+            return (
+              <Reveal key={id} className="ois-faq-row" delay={index * ROW_WAVE_MS}>
+                {/* Outside the button, so the question stays the row's whole name and text. */}
+                <span className="ois-faq-index" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <More row label={question} openLabel={question}>
+                  <p>{t(faqKey(id, 'a'), answer)}</p>
+                </More>
+              </Reveal>
+            );
+          })}
         </Seen>
       </div>
     </Seen>

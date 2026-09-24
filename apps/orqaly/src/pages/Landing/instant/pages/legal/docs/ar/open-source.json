@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "slug": "open-source",
+    "title": "إشعارات البرمجيات مفتوحة المصدر",
+    "summary": "تسرد هذه الصفحة البرمجيات مفتوحة المصدر المضمَّنة في تطبيق Orqanix لسطح المكتب وفي موقعنا الإلكتروني، وتراخيصها، وكيفية الحصول على نصوص تلك التراخيص.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "الإصدار الأول."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Checked in the app build: the app bundles the Goose Apache 2.0 licence and a NOTICE file, the engineering runtime's MIT licence and third-party notices, and the Electron, Chromium and Node.js licence files. The licences of the other npm and Rust packages are NOT collected into the app. Owner: add a generated third-party licence file (or SBOM) to the build, then update the \"For the smaller packages\" sentence.",
+        "Apache 2.0 section 4 (Goose): the bundled NOTICE file describes the Orqanix changes. Lawyer to confirm this meets the \"prominent notice in changed files\" duty for the modified source. The in-app NOTICE file says \"Built on Goose\", a phrase the website avoids; owner to decide whether to reword it.",
+        "The engineering runtime is not named on this page (the in-app notice names it). Owner to decide whether to name it.",
+        "Licence names for Electron (MIT) and Node.js (MIT with other bundled parts) match the bundled files; Chromium (BSD-style and others) is general knowledge. Confirm with a licence scan or SBOM of the shipped app.",
+        "Whether any bundled component is under a licence that gives a right to source code (for example LGPL parts of Chromium). The page offers source on request by email; the owner must be able to fulfil it.",
+        "Mailbox hello@orqanix.com may not receive mail yet (no MX record, FACTS open point #2)."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "about-this-page",
+      "text": "عن هذه الصفحة"
+    },
+    {
+      "type": "p",
+      "text": "بعض أجزاء منتجاتنا برمجيات مفتوحة المصدر، أي برمجيات يسمح مؤلفوها لأي شخص باستخدامها وتعديلها ومشاركتها بموجب ترخيص منشور. تسرد هذه الصفحة الأجزاء الرئيسية مفتوحة المصدر وكيفية الحصول على نصوص تراخيصها."
+    },
+    {
+      "type": "p",
+      "text": "يظل كل جزء خاضعًا لترخيصه الخاص. ولا يوجد في [شروط الخدمة](/instant/legal/terms) أو [شروط تطبيق سطح المكتب](/instant/legal/desktop-app-terms) ما يقيّد الحقوق التي تمنحك إياها تلك التراخيص. وحيثما ينص ترخيص على أن مؤلفيه لا يقدّمون أي ضمان، فإن ذلك يسري على عملهم. أما التزاماتنا نحن بشأن منتجاتنا فهي واردة في شروطنا."
+    },
+    {
+      "type": "h2",
+      "id": "desktop-app",
+      "text": "تطبيق سطح المكتب"
+    },
+    {
+      "type": "p",
+      "text": "يتضمن تطبيق Orqanix لأجهزة Mac برمجيات مفتوحة المصدر، مثل:"
+    },
+    {
+      "type": "table",
+      "head": [
+        "البرنامج",
+        "وظيفته في التطبيق",
+        "الترخيص"
+      ],
+      "rows": [
+        [
+          "Goose",
+          "إطار عمل الوكلاء الذي تعمل عليه وكلاء التطبيق",
+          "Apache License 2.0"
+        ],
+        [
+          "بيئة تشغيل هندسية اختيارية مضمَّنة في التطبيق",
+          "تشغّل الأدوات الهندسية في التطبيق",
+          "MIT License"
+        ],
+        [
+          "Electron",
+          "نافذة التطبيق وواجهته على سطح المكتب",
+          "MIT License"
+        ],
+        [
+          "Chromium (مضمَّن في Electron)",
+          "يعرض شاشات التطبيق",
+          "ترخيص على نمط BSD وتراخيص أخرى"
+        ],
+        [
+          "Node.js",
+          "يشغّل أجزاءً من التطبيق",
+          "MIT License، مع بعض الأجزاء المضمَّنة الخاضعة لتراخيص أخرى"
+        ],
+        [
+          "العديد من حزم npm وRust الأصغر حجمًا",
+          "مكوّنات أساسية مستخدمة في أنحاء التطبيق",
+          "تراخيص مفتوحة المصدر متنوعة، مثل MIT وApache 2.0 وBSD"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "يتضمن التطبيق نصوص التراخيص والإشعارات الخاصة بـ Goose وبيئة التشغيل الهندسية وElectron وChromium وNode.js. للاطلاع عليها، انقر على التطبيق في Finder مع الضغط على مفتاح Control، واختر «إظهار محتويات الحزمة» (Show Package Contents)، ثم افتح Contents ثم Resources. هذه الملفات هي النصوص المعتمدة، وهذا الجدول مجرد ملخص. أما بالنسبة إلى الحزم الأصغر، فاطلبها منا على النحو الموضح في [نصوص التراخيص والشيفرة المصدرية](#get-the-texts)."
+    },
+    {
+      "type": "h2",
+      "id": "website",
+      "text": "موقعنا الإلكتروني"
+    },
+    {
+      "type": "p",
+      "text": "يستخدم موقعنا الإلكتروني الخطوط Geist وGeist Mono وInter، وجميعها مرخّصة بموجب [SIL Open Font License 1.1](https://openfontlicense.org)."
+    },
+    {
+      "type": "h2",
+      "id": "names",
+      "text": "الأسماء والعلامات التجارية"
+    },
+    {
+      "type": "p",
+      "text": "تعود أسماء المشاريع مفتوحة المصدر إلى مالكيها. ولا يعني استخدامنا لبرمجياتها أن تلك المشاريع أو مالكيها يؤيدون Orqanix، ولا تمنح التراخيص أي أحد حقوقًا في أسمائها أو شعاراتها."
+    },
+    {
+      "type": "h2",
+      "id": "get-the-texts",
+      "text": "نصوص التراخيص والشيفرة المصدرية"
+    },
+    {
+      "type": "p",
+      "text": "لطلب نسخة من نص ترخيص، أو من الشيفرة المصدرية حيثما يمنحك ترخيصٌ حقًا فيها، راسلنا على {company.email} مع كتابة \"Open source\" في موضوع الرسالة. وأخبرنا بإصدار تطبيق سطح المكتب الذي لديك."
+    },
+    {
+      "type": "p",
+      "text": "إذا كنت تعتقد أننا أغفلنا إشعارًا أو استخدمنا برمجيات مفتوحة المصدر بطريقة لا يسمح بها ترخيصها، فأخبرنا على العنوان نفسه وسننظر في الأمر."
+    }
+  ]
+}

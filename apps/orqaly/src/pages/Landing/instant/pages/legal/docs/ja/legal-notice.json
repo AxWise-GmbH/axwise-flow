@@ -1,0 +1,202 @@
+{
+  "meta": {
+    "slug": "legal-notice",
+    "title": "法的表示",
+    "summary": "このページでは、Orqanixの運営者および当社への連絡方法（Impressum）を記載しています。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "初版。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "The whole page stays hidden until legalName and address are filled (legal.links.js). If the company is German, § 5 DDG requires an Impressum on the live site now; that makes choosing the company a blocker (open point #1).",
+        "Fill representative, phone (or another fast contact channel besides email), register, vatId and newsResponsible. § 5 DDG needs a second fast contact channel besides email; without phone the page shows email only.",
+        "The legal form (e.g. GmbH, UG) must be part of legalName.",
+        "euRepresentative only applies if the company sits outside the EU; leave empty otherwise.",
+        "Consumer dispute resolution (§ 36 VSBG): the page now says only that we do not take part and are not willing to (no claim about being \"not obliged\", which depends on headcount). Owner to confirm this choice; the block appears automatically once legalName is filled. Remove it if the company is not German.",
+        "No link to the EU ODR platform: it closed on 20 Jul 2025.",
+        "If the company holds a licence that needs a supervisory authority, or states share capital, add those lines.",
+        "Mail to hello@orqanix.com probably does not arrive today (no MX record, open point #2); § 5 DDG requires a working email address.",
+        "The headings use German terms and the provider line cites § 5 DDG, which assumes a German company. The VAT line no longer cites § 27a UStG. Adjust if the company is elsewhere.",
+        "DSA Art. 11(3): the contact point must also accept an official language of the Member State where the company is established (German, if German). \"We communicate in English\" alone may not be enough; lawyer to confirm and add the language.",
+        "Added the DSA illegal-content reporting route (subject \"Report\") per the owner decision; it must match the Terms of Service and Acceptable Use Policy.",
+        "Removed \"product pages are not binding\" wording: for EU consumers, public statements about a product count toward what it must do (Dir. 2019/770 Art. 8(1)(b)), so disclaiming them is risky."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "provider",
+      "text": "提供者（Anbieter）"
+    },
+    {
+      "type": "p",
+      "text": "本ウェブサイトおよび{company.name}の製品は、{company.legalName}（{company.address}）により提供されています（§ 5 DDGに基づく表示）。",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "represented-by",
+      "text": "代表者（Vertreten durch）",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.representative}",
+      "needs": [
+        "representative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "連絡先（Kontakt）"
+    },
+    {
+      "type": "p",
+      "text": "メール：{company.email}"
+    },
+    {
+      "type": "p",
+      "text": "電話：{company.phone}",
+      "needs": [
+        "phone"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "プライバシーに関するご質問は、{company.privacyEmail}までご連絡ください。セキュリティ上の問題の報告は、{company.securityEmail}までご連絡ください。"
+    },
+    {
+      "type": "h2",
+      "id": "register",
+      "text": "商業登記（Registereintrag）",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.register}に登記されています。",
+      "needs": [
+        "register"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "vat",
+      "text": "付加価値税ID（Umsatzsteuer-Identifikationsnummer）",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "付加価値税識別番号：{company.vatId}",
+      "needs": [
+        "vatId"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "content-responsible",
+      "text": "コンテンツ責任者（Verantwortlich für den Inhalt）",
+      "needs": [
+        "newsResponsible"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "ニュースページを含む本ウェブサイトの報道的コンテンツの責任者：{company.newsResponsible}（{company.address}）（§ 18 (2) MStV）。",
+      "needs": [
+        "newsResponsible",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "eu-representative",
+      "text": "EU代理人",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "EUにおける当社の代理人：{company.euRepresentative}（GDPR第27条およびデジタルサービス法第13条）。",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "authorities",
+      "text": "当局およびユーザーのための連絡窓口（DSA）"
+    },
+    {
+      "type": "p",
+      "text": "EUデジタルサービス法に基づく当局およびユーザーのための当社の単一連絡窓口は、{company.email}です。当社は英語で対応します。"
+    },
+    {
+      "type": "p",
+      "text": "違法なコンテンツを報告する場合は、件名を「Report」として{company.email}までご連絡ください。当社は各報告について判断し、報告者および影響を受けるユーザーにその理由をお知らせします。"
+    },
+    {
+      "type": "h2",
+      "id": "consumer-disputes",
+      "text": "消費者紛争解決（Verbraucherstreitbeilegung）",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "{company.legalName}は、消費者仲裁機関における紛争解決手続に参加しておらず、参加する意思もありません（§ 36 VSBG）。",
+      "needs": [
+        "legalName"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "our-content",
+      "text": "当社のコンテンツ"
+    },
+    {
+      "type": "p",
+      "text": "当社は本ウェブサイトを注意深く作成していますが、その内容が常に完全、正確かつ最新であることを約束することはできません。当社の製品の利用に関する規則は、当社の[利用規約](/instant/legal/terms)に定められています。"
+    },
+    {
+      "type": "h2",
+      "id": "links",
+      "text": "他のウェブサイトへのリンク"
+    },
+    {
+      "type": "p",
+      "text": "当社のウェブサイトには、第三者が運営するウェブサイトへのリンクが含まれています。当社はそれらを管理しておらず、その内容について責任を負いません。リンク先のページが法律に違反していることを知った場合、当社はそのリンクを削除します。"
+    },
+    {
+      "type": "h2",
+      "id": "privacy",
+      "text": "プライバシー"
+    },
+    {
+      "type": "p",
+      "text": "当社による個人データの取扱いについては、当社の[プライバシーポリシー](/instant/legal/privacy)で説明しています。"
+    }
+  ]
+}

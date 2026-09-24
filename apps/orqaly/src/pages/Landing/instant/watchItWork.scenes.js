@@ -267,3 +267,66 @@ export const SCENES = [
     callouts: CALLOUTS,
   },
 ].map(withFittedLine);
+
+/*
+ * The scene in the visitor's language: the agent answers in the language it was asked in.
+ * `say(key, english)` is useT's t. Names that look like real files (business-plan.md) and
+ * the Workspace's folder names stay as they are; everything else that shows is said. One walk
+ * serves the page and the word list (i18n/words/watch.js), so both use the same keys.
+ * Pack items become { name, kind }: the icon is picked from the English, so a translated
+ * "Banner layouts (HTML/SVG)" keeps its code icon.
+ */
+export const sceneKey = (sceneId, path) => `wiw.${sceneId}.${path}`;
+
+const REAL_FILE = /^[\w.-]+\.(md|csv|html|svg|txt|json|docx|pdf)$/;
+
+export function packItemKind(name) {
+  if (/\.csv$/.test(name)) return 'table';
+  if (/\.md$/.test(name)) return 'doc';
+  return /HTML|SVG/.test(name) ? 'code' : 'list';
+}
+
+export function localScene(scene, say) {
+  const at = (path, english) => say(sceneKey(scene.id, path), english);
+  return {
+    ...scene,
+    label: at('label', scene.label),
+    chatTitle: at('chat', scene.chatTitle),
+    request: at('request', scene.request),
+    planReply: say('wiw.reply.plan', scene.planReply),
+    askLine: say('wiw.reply.ask', scene.askLine),
+    steps: scene.steps.map((step, index) => at(`step.${index}`, step)),
+    questions: scene.questions.map((question, index) => ({
+      label: at(`q.${index}.label`, question.label),
+      options: question.options.map((option, optionIndex) =>
+        at(`q.${index}.option.${optionIndex}`, option)
+      ),
+    })),
+    pack: {
+      title: at('pack.title', scene.pack.title),
+      columns: scene.pack.columns.map((column, index) => ({
+        title: say(`wiw.column.${column.title.toLowerCase()}`, column.title),
+        items: column.items.map((item, itemIndex) => ({
+          name: REAL_FILE.test(item) ? item : at(`pack.${index}.item.${itemIndex}`, item),
+          kind: packItemKind(item),
+        })),
+      })),
+    },
+    files: scene.files.map((file, index) => ({ ...file, name: at(`file.${index}`, file.name) })),
+    callouts: Object.fromEntries(
+      Object.entries(scene.callouts).map(([name, text]) => [name, say(`wiw.callout.${name}`, text)])
+    ),
+  };
+}
+
+/** Every key -> English pair localScene asks for, across the four scenes. */
+export function sceneWords() {
+  const words = {};
+  SCENES.forEach((scene) =>
+    localScene(scene, (key, english) => {
+      words[key] = english;
+      return english;
+    })
+  );
+  return words;
+}

@@ -20,8 +20,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(var(--oi-glow-rgb), 0.34),
-    rgba(var(--oi-deep-rgb), 0.12) 46%,
+    rgba(var(--oi-glow-rgb), calc(0.34 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.12 * var(--oi-halo-k))) 46%,
     transparent 70%
   );
   pointer-events: none;

@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "可接受使用政策",
+    "summary": "本政策列明您不得利用 Orqanix 产品或其智能体从事的行为，以及如何举报违反规则的内容或活动。",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "首个版本。"
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "本政策涵盖的范围"
+    },
+    {
+      "type": "p",
+      "text": "本政策规定了使用所有 Orqanix 产品的规则：桌面应用、移动应用、助理机器人、API、我们的企业版服务以及我们的网站（统称“服务”）。本政策同样适用于个人和企业，并构成我们[服务条款](/instant/legal/terms)的一部分。"
+    },
+    {
+      "type": "p",
+      "text": "本政策涵盖您提出的请求、您对输出内容的使用以及您的智能体所做的事情。如果您向他人提供访问权限（例如通过 API），请确保他们也遵守本政策。"
+    },
+    {
+      "type": "note",
+      "text": "简而言之：不得利用 Orqanix 违反法律、伤害他人、攻击系统，或就他人所打交道的对象是谁或是什么进行欺骗。"
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "非法和有害用途"
+    },
+    {
+      "type": "p",
+      "text": "不得利用服务："
+    },
+    {
+      "type": "list",
+      "items": [
+        "违反任何法律，或帮助他人违反法律；",
+        "威胁、骚扰、欺凌或跟踪任何人，或基于他人的身份宣扬针对他们的暴力或仇恨；",
+        "策划或支持恐怖主义、暴力极端主义，或制造可造成大规模伤害的武器；",
+        "实施欺诈、诈骗或身份盗窃，或为牟利而欺骗他人；",
+        "在没有法律依据的情况下收集、追踪他人信息或对他人进行画像，或未经他人同意泄露其私人信息；",
+        "非法歧视他人，例如在住房、工作、信贷或服务方面；",
+        "鼓励自残、自杀或饮食失调。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "被禁止的 AI 做法"
+    },
+    {
+      "type": "p",
+      "text": "不得将服务用于欧盟法律禁止 AI 系统从事的做法。我们在全球范围内适用这一清单。（欧盟《人工智能法》第 5 条）"
+    },
+    {
+      "type": "list",
+      "items": [
+        "通过他人未察觉的技术或通过欺骗手段操纵他人，从而扭曲其决定并可能对其造成重大伤害；",
+        "利用他人因年龄、残疾或社会或经济状况而存在的弱点；",
+        "社会评分：根据他人的社会行为或个人特征对其进行评级，从而导致不公平或不相关的对待；",
+        "仅根据画像或个人性格特征预测某人是否会犯罪；",
+        "通过无针对性地从互联网或监控录像中抓取人脸图像来建立或扩充人脸识别数据库；",
+        "在工作场所或教育机构中识别他人的情绪，但出于医疗或安全原因的除外；",
+        "根据生物特征数据对他人进行分类，以推断其种族、政治观点、工会会员身份、宗教或信仰、性生活或性取向；",
+        "为执法目的在公共场所通过生物特征对他人进行实时远程识别。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "绝不得利用服务制作、分享或寻求儿童性虐待材料，也不得未经本人同意制作或分享真实人物的私密或色情图像，包括伪造的图像。"
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "儿童"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 面向成年人（年满 18 周岁）。不得让儿童使用您的账户。不得将服务（包括 API）用于任何面向 18 岁以下人士或可能被其使用的产品或内容。"
+    },
+    {
+      "type": "p",
+      "text": "绝不得利用服务对儿童进行性化、诱骗、剥削或使其陷入危险。我们会按照法律要求向有关当局举报儿童性虐待材料，并关闭涉事账户。"
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "安全与滥用"
+    },
+    {
+      "type": "p",
+      "text": "您和您的智能体均不得利用服务："
+    },
+    {
+      "type": "list",
+      "items": [
+        "制作、传播或运行恶意软件、勒索软件或其他有害代码；",
+        "未经所有者许可，侵入、探测或干扰计算机、网络或账户；",
+        "在您无权使用的计算机、账户或系统上运行智能体，或向其提供其无权拥有的访问权限；",
+        "规避我们的安全措施、登录、限制或保护措施，或您所连接服务的上述措施；",
+        "使服务过载、攻击服务，或干扰服务或他人对服务的使用；",
+        "未经我们书面同意，共享、出售或转售对您账户或服务的访问权限；",
+        "提取我们的代码或提示词，或我们使用的模型，但法律或开源许可允许的情况除外。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "我们欢迎针对我们自身系统的安全研究，前提是您遵守我们的[安全与漏洞披露](/instant/legal/security)政策。"
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "如实说明 AI"
+    },
+    {
+      "type": "list",
+      "items": [
+        "在可能误导他人的情况下，不得假装 AI 是人类，或假装 AI 输出内容是由人撰写或制作的。",
+        "如果智能体或机器人代表您向他人发送消息、电子邮件或与他人交谈，它必须最迟在第一条消息中明确说明自己是 AI。",
+        "不得利用服务冒充真实的个人或组织，或制作虚假的评价、记录或身份。",
+        "如果您发布涉及真实人物、地点或事件的逼真 AI 生成图像、音频或视频（深度伪造），请明确说明这些内容是由 AI 生成或修改的。",
+        "不得利用服务开展虚假信息活动或干预选举。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "如果您发布 AI 生成的文本以就公共利益事项向公众提供信息，请说明该文本由 AI 生成，除非已有人对其进行审核并承担编辑责任。（欧盟《人工智能法》第 50(4) 条）",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "我们不支持的用途"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix 是为工作而打造的。不得将其用于："
+    },
+    {
+      "type": "list",
+      "items": [
+        "陪伴、友谊、恋爱或与 AI 建立任何情感关系；",
+        "心理治疗、心理咨询或精神健康治疗。如果您正处于危机之中，请联系当地紧急服务或危机热线；",
+        "向他人提供专业的医疗、法律、税务或财务建议，除非有合格的专业人士对其进行审核并承担责任；",
+        "对患者进行诊断、治疗或作出相关决定。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "除非我们已与您书面约定，否则不得向服务提供受健康隐私法保护的患者健康信息。"
+    },
+    {
+      "type": "p",
+      "text": "根据美国健康隐私法 HIPAA，这需要签订业务伙伴协议（business associate agreement），而我们不签署此类协议。我们的[消费者健康数据隐私政策](/instant/legal/health-data)说明了我们如何处理其他健康数据。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "高风险决定"
+    },
+    {
+      "type": "p",
+      "text": "某些用途可能会严重影响他人的生活。只有在您遵守适用于您的所有法律、由合格人员负责每一项决定，并在法律要求时告知受影响者的情况下，您才可以使用服务协助这些用途。这些用途包括："
+    },
+    {
+      "type": "list",
+      "items": [
+        "招聘、晋升、管理或解雇员工；",
+        "录取、评分或监控学生，或检测考试作弊；",
+        "就信贷、保险、住房或获得公共福利或基本服务作出决定；",
+        "对他人进行生物特征识别或分类；",
+        "管理能源、水或交通等关键基础设施；",
+        "执法、移民、庇护、边境管控、法院或选举。"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "在欧盟，上述大多数用途属于《人工智能法》规定的“高风险”用途，该法为将 AI 用于这些用途的任何人规定了额外义务。您有责任履行适用于您的这些义务。（欧盟《人工智能法》第 26 条及附件三）",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "不得将输出内容作为对个人产生法律效力或类似重大影响的决定的唯一依据。",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "垃圾信息、权利和数据抓取"
+    },
+    {
+      "type": "list",
+      "items": [
+        "不得发送垃圾信息：即批量或不请自来的消息，或违反反垃圾信息或营销法律的消息。当智能体或机器人代表您发送消息时，您即为发送者。",
+        "仅连接您有权使用的即时通讯应用、电子邮件账户和联系人列表，并仅在法律允许的情况下处理他人的数据。",
+        "不得侵犯版权、商标、商业秘密或其他权利，也不得利用服务规避付费墙或复制保护措施。",
+        "不得让智能体违反网站的条款、访问规则或 robots.txt 指令从网站收集数据，也不得以损害网站的频率收集数据。"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "Google 的规则"
+    },
+    {
+      "type": "p",
+      "text": "我们的默认 AI 模型是 Google Gemini。当您通过 Orqanix 使用该模型时，您还必须遵守 Google 的[生成式 AI 禁止使用政策](https://policies.google.com/terms/generative-ai/use-policy)。在[Google 的 Gemini API 条款](https://ai.google.dev/gemini-api/terms)禁止的情况下，您不得利用服务开发与 Google 竞争的 AI 模型。如果您在桌面应用中连接其他模型提供商，则该提供商的规则适用于该使用。[我们的 AI 如何运作](/instant/legal/ai)说明了我们使用哪些模型。"
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "举报违规行为"
+    },
+    {
+      "type": "p",
+      "text": "如果您在服务中发现您认为违法或违反本政策的内容或活动，请发送电子邮件至 {company.email}，主题注明“Report”。任何人均可举报，无论是否拥有账户。（欧盟《数字服务法》第 16 条）",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果您在服务中发现您认为违法或违反本政策的内容或活动，请发送电子邮件至 {company.email}，主题注明“Report”。任何人均可举报，无论是否拥有账户。",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "如果有人的生命或安全正面临迫在眉睫的危险，请先联系警方或紧急服务。"
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "举报应包含的内容"
+    },
+    {
+      "type": "list",
+      "items": [
+        "内容所在的位置，尽可能准确：链接、机器人或账户名称、消息、日期和时间；",
+        "您认为该内容违法或违反本政策的理由，如为违法内容，请注明所违反的法律；",
+        "您的姓名和电子邮件地址，以便我们回复您。如果您举报的是儿童性虐待材料，可以不提供这些信息；",
+        "一份声明，表明您善意地相信您的举报准确且完整。"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "我们如何作出决定"
+    },
+    {
+      "type": "p",
+      "text": "我们会确认已收到您的举报。由人工对举报进行审核，并以及时、审慎和客观的方式作出决定。审核人员会考虑内容、背景以及所有相关方的权利，包括言论自由。随后，我们会告知您我们的决定及其理由。"
+    },
+    {
+      "type": "p",
+      "text": "如果我们对内容或账户采取措施，我们会向受影响的用户提供理由说明：我们采取了什么措施、所依据的事实、是否使用了任何自动化手段、我们所依据的规则或法律，以及如何对该决定提出异议。除非法律要求，我们不会告知其举报人是谁。（欧盟《数字服务法》第 17 条）",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "如果我们对内容或账户采取措施，我们会告知受影响的用户我们采取了什么措施及其理由，除非法律禁止或告知会造成损害。除非法律要求，我们不会告知其举报人是谁。",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "如果您不同意"
+    },
+    {
+      "type": "p",
+      "text": "举报人和受影响的用户均可对我们的决定提出异议。请回复我们的消息，或发送电子邮件至 {company.email} 并说明理由。在可能的情况下，由未参与初次决定的人员进行复核，并将结果告知您。"
+    },
+    {
+      "type": "p",
+      "text": "您也可以向法院提起诉讼，或向您居住的欧盟国家的数字服务协调员投诉。",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "对于经常提交明显无根据举报的人，我们可以在发出警告后停止处理其举报。"
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "执行"
+    },
+    {
+      "type": "p",
+      "text": "如果您违反本政策，我们可以视情节严重程度，向您发出警告、移除或禁用内容、停止智能体或机器人、限制功能，或暂停或关闭您的账户。在最严重的情况下（例如儿童性虐待材料），我们会立即采取行动且不另行警告，并在法律要求或允许时通知有关当局。"
+    },
+    {
+      "type": "p",
+      "text": "我们会根据所发生的情况采取相称的措施，并按照[我们如何作出决定](#how-we-decide)所述说明我们的决定。我们的[服务条款](/instant/legal/terms#ending)对暂停和关闭账户作了更详细的说明。"
+    }
+  ]
+}

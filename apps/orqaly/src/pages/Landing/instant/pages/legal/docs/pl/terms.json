@@ -1,0 +1,725 @@
+{
+  "meta": {
+    "slug": "terms",
+    "title": "Regulamin",
+    "summary": "Niniejszy regulamin jest główną umową obejmującą wszystkie produkty Orqanix i dotyczy Państwa konta, Państwa treści, agentów, odpowiedzialności oraz sporów.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Pierwsza wersja."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company: legal name, address, register, VAT number and governing law are empty, so \"Who we are\", the governing-law sentences (US and EU), the business-user venue (EU) and the postal notice address stay hidden. Owner to fill company.js.",
+        "EU representative (DSA Art. 13; also GDPR Art. 27) needed only if the company is outside the EU; the sentence is hidden until {company.euRepresentative} is set.",
+        "Mailboxes: hello@, privacy@ and security@ orqanix.com have no MX record, so the DSA contact point, reports and account requests probably receive nothing today (FACTS open point 2). Must be fixed before publishing.",
+        "US liability cap \"the greater of 12 months of fees or 100 US dollars\" is a drafting choice (US market norm), not an owner decision. Owner and lawyer to confirm the amount.",
+        "EU liability clause uses the essential-obligation (cardinal duty) model from German law; lawyer to adapt once the governing law is chosen. Product Liability Directive 2024/2853 carve-out included.",
+        "EU withdrawal: text says the free service can be ended at any time at no cost, which goes further than the 14-day right. Lawyer to confirm whether withdrawal information is still required for free contracts where the consumer provides personal data (CRD Art. 3(1a)).",
+        "EU update duty (Dir. 2019/770 Art. 8): terms say updates come as a new Desktop download because auto-update is off. Owner needs a way to tell users about required updates (FACTS open point 8/critique 18).",
+        "DSA moderation text states that a person reviews each report and that we do not proactively scan or recommend content. Owner to confirm this matches practice. If public sharing or a marketplace ever ships, online-platform duties (Art. 20 complaints system etc.) apply.",
+        "Account closure and data copy are by email to privacy@ (no self-service deletion or export, records partly immutable). Terms say \"ask us\"; matches FACTS §3.",
+        "Age 18+ and \"region at sign-up\" need a self-declaration and an acceptance record at sign-up (FACTS open point 9).",
+        "Consumer arbitration board statement (EU) follows the German VSBG pattern and now uses the same wording as the Legal Notice (\"do not take part, and are not willing to\"; no claim about being \"not obliged\", which depends on headcount). Keep, change or remove once the company country is known.",
+        "Indemnity applies to business users only (both regions); consumers excluded.",
+        "EU changes clause: 30 days notice by email, explicit agreement where the law requires it, no consent by silence (German BGH 2021 line on deemed consent). Needs a notice process, the account email and an acceptance record (FACTS open points 2, 9). Drafting choice; lawyer to confirm.",
+        "EU Data Act switching (Art. 23, 25): an EU-only paragraph promises a free copy in a machine-readable format and help with moving, on request to privacy@. No export code exists (FACTS §3, open point 5), so this is a manual process the owner must be able to run. Full Art. 25 terms (2-month notice, 30-day transition, data-format list) and the Art. 28 jurisdiction and government-access statement belong in the API and Enterprise terms or the Security / Sub-processors page; lawyer to confirm whether the free cloud workspace counts as a data processing service.",
+        "EU conformity (Dir. 2019/770 Art. 8(5)): the \"AI can be wrong\" paragraph in \"Legal guarantee\" is written as a description, not a deviation. If a lawyer treats it as a deviation from objective conformity, sign-up needs a separate, express acceptance tick.",
+        "E-commerce information (Dir. 2000/31 Art. 10): Terms say the language (English) and how you accept, but not whether we store the contract text for the user. Past versions are not shown on the page (meta.history is not rendered), so the old sentence \"earlier versions are listed with it\" was removed. Owner to decide whether to show the version archive or email a copy at sign-up.",
+        "Removed \"notices by email count as received on the day they are sent\" (deemed-receipt fictions are unfair against EU consumers). Business-user deemed receipt can go into the API/Enterprise terms if wanted.",
+        "Severability now says the invalid part is replaced by the rule the law provides (no \"closest valid rule\" salvage, which EU unfair-terms law rejects for consumers). Assignment now lets the user end the contract after a transfer. Lawyer to confirm both once the governing law is chosen."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Kim jesteśmy"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix to rodzina produktów AI: Aplikacja desktopowa, Aplikacja mobilna, Bot-asystent, API oraz nasze usługi Dla firm. Łącznie z tą stroną internetową i Państwa kontem Orqanix nazywamy je „Usługami”."
+    },
+    {
+      "type": "p",
+      "text": "Niniejszy Regulamin jest umową między Państwem a spółką prowadzącą Orqanix („Orqanix”, „my” lub „nas”)."
+    },
+    {
+      "type": "p",
+      "text": "Tą spółką jest {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Spółka jest zarejestrowana w {company.register}. Jej numer VAT to {company.vatId}.",
+      "only": "eu",
+      "needs": [
+        "register",
+        "vatId"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Mogą się Państwo z nami skontaktować pod adresem {company.email}. Nasza [Polityka prywatności](/instant/legal/privacy) wyjaśnia, jak postępujemy z danymi osobowymi. Nie stanowi ona części niniejszej umowy, ale prosimy się z nią zapoznać."
+    },
+    {
+      "type": "h2",
+      "id": "accepting",
+      "text": "Akceptacja regulaminu"
+    },
+    {
+      "type": "p",
+      "text": "Akceptują Państwo niniejszy regulamin, zakładając konto albo pobierając lub używając którejkolwiek z Usług. Jeśli nie zgadzają się Państwo z regulaminem, prosimy nie korzystać z Usług."
+    },
+    {
+      "type": "p",
+      "text": "Jeśli akceptują Państwo regulamin w imieniu spółki lub innej organizacji, potwierdzają Państwo, że są uprawnieni do jej zobowiązywania. „Państwo” oznacza wówczas tę organizację, a Państwo jako osoba korzystająca z Usług również muszą przestrzegać niniejszego regulaminu."
+    },
+    {
+      "type": "p",
+      "text": "W niniejszym regulaminie „konsument” to osoba, która korzysta z Usług głównie w celach niezwiązanych ze swoją działalnością handlową, gospodarczą, rzemieślniczą ani zawodową. „Użytkownik biznesowy” to każda inna osoba. Niektóre z poniższych zasad są inne dla konsumentów, ponieważ prawo zapewnia im większą ochronę.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Niektóre z poniższych zasad zależą od tego, czy korzystają Państwo z Usług na własny użytek, czy dla firmy. „Użytkownik biznesowy” to każdy, kto korzysta z Usług w ramach działalności handlowej, gospodarczej lub zawodowej albo w imieniu organizacji.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "eligibility",
+      "text": "Kto może korzystać z Orqanix"
+    },
+    {
+      "type": "p",
+      "text": "Aby korzystać z Usług, muszą Państwo mieć ukończone 18 lat, niezależnie od miejsca zamieszkania. Usługi nie są przeznaczone dla dzieci i nie wolno Państwu używać ich do tworzenia czegokolwiek skierowanego do osób poniżej 18. roku życia."
+    },
+    {
+      "type": "p",
+      "text": "Nie mogą Państwo również korzystać z Usług, jeśli zabrania tego prawo, w tym na podstawie zasad opisanych w części [Sankcje i eksport](#sanctions), ani jeśli zamknęliśmy Państwa wcześniejsze konto z powodu poważnego naruszenia niniejszego regulaminu."
+    },
+    {
+      "type": "p",
+      "text": "API i usługi Dla firm są przeznaczone wyłącznie dla użytkowników biznesowych."
+    },
+    {
+      "type": "h2",
+      "id": "your-account",
+      "text": "Państwa konto"
+    },
+    {
+      "type": "p",
+      "text": "Większość Usług wymaga konta Orqanix. Logowanie obsługuje w naszym imieniu dostawca usług logowania; mogą się Państwo również zalogować przez Google. Prosimy podawać nam prawdziwe dane i dbać o ich aktualność."
+    },
+    {
+      "type": "p",
+      "text": "Prosimy chronić swoje dane logowania i nie udostępniać konta innym osobom. Ponoszą Państwo odpowiedzialność za to, co dzieje się na Państwa koncie, chyba że dzieje się to z naszej winy. Jeśli podejrzewają Państwo, że ktoś inny użył Państwa konta, prosimy niezwłocznie poinformować nas pod adresem {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Aby zamknąć konto lub otrzymać kopię swoich danych, prosimy napisać na adres {company.privacyEmail}. Nasza [Polityka prywatności](/instant/legal/privacy) wyjaśnia, co przechowujemy i dlaczego."
+    },
+    {
+      "type": "h2",
+      "id": "products",
+      "text": "Nasze produkty"
+    },
+    {
+      "type": "p",
+      "text": "Niniejszy regulamin dotyczy wszystkich Usług. Każdy produkt ma ponadto własne warunki, które dodają zasady dotyczące tego produktu:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "[Warunki aplikacji desktopowej](/instant/legal/desktop-app-terms): aplikacja na macOS, w której agenci AI prowadzą badania, planują i tworzą prawdziwe pliki na Państwa Macu.",
+        "[Warunki aplikacji mobilnej](/instant/legal/mobile-app-terms): aplikacja na telefon, która działa jak pilot do Aplikacji desktopowej.",
+        "[Warunki Bota-asystenta](/instant/legal/assistant-bot-terms): asystent biznesowy dostępny z podłączonych przez Państwa komunikatorów i kont e-mail.",
+        "[Warunki API](/instant/legal/api-terms): warstwa rozumowania dla innych produktów (wyłącznie dla użytkowników biznesowych).",
+        "[Warunki dla firm](/instant/legal/enterprise-terms): usługi, w ramach których nasi agenci i eksperci budują dla Państwa rozwiązania (wyłącznie dla użytkowników biznesowych)."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Gdy korzystają Państwo z produktu, zastosowanie mają zarówno jego warunki, jak i niniejszy regulamin. W razie sprzeczności w odniesieniu do danego produktu pierwszeństwo mają warunki produktu. Pisemna umowa podpisana z nami, na przykład zamówienie w ramach usług Dla firm, ma pierwszeństwo przed obydwoma dokumentami w zakresie, którego dotyczy."
+    },
+    {
+      "type": "p",
+      "text": "Gdy użytkownicy biznesowi API, naszych usług Dla firm lub Bota-asystenta przekazują nam dane osobowe do przetwarzania w ich imieniu, zastosowanie ma również nasza [Umowa powierzenia danych](/instant/legal/dpa)."
+    },
+    {
+      "type": "h2",
+      "id": "price",
+      "text": "Cena"
+    },
+    {
+      "type": "p",
+      "text": "Na obecnym, wczesnym etapie Usługi są bezpłatne. Nie pobierzemy od Państwa żadnych opłat, chyba że zgodzą się Państwo na płatny plan."
+    },
+    {
+      "type": "p",
+      "text": "Zanim zacznie obowiązywać jakikolwiek płatny plan, opublikujemy jego cenę oraz zasady płatności i rezygnacji. Będą Państwo mogli wtedy zdecydować, czy chcą z niego skorzystać.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Zanim zacznie obowiązywać jakikolwiek płatny plan, opublikujemy jego cenę wraz z podatkami oraz zasady płatności, rezygnacji i odstąpienia od umowy. Wówczas wyjaśnimy też Państwa prawo konsumenta do odstąpienia od umowy. Będą Państwo mogli wtedy zdecydować, czy chcą z niego skorzystać.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ponieważ Usługi są bezpłatne, mogą Państwo rozwiązać niniejszą umowę w każdej chwili, bez kosztów i bez podawania przyczyny. To więcej niż 14-dniowe prawo odstąpienia od umowy, które prawo UE przyznaje konsumentom.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "your-content",
+      "text": "Państwa treści"
+    },
+    {
+      "type": "p",
+      "text": "„Dane wejściowe” to to, co przekazują Państwo Usługom: polecenia, wiadomości, pliki, głos, instrukcje oraz wszystko, co agenci odczytują za Państwa zgodą. „Wyniki” to to, co zwracają Usługi: odpowiedzi, raporty, pliki i inne rezultaty. Łącznie stanowią one „Państwa treści”."
+    },
+    {
+      "type": "p",
+      "text": "W stosunkach między Państwem a nami Państwa treści należą do Państwa. Nie rościmy sobie do nich praw własności. Jeśli przysługują nam jakiekolwiek prawa do Państwa wyników, przekazujemy je Państwu."
+    },
+    {
+      "type": "p",
+      "text": "Aby świadczyć Usługi, potrzebujemy Państwa zgody na korzystanie z Państwa treści. Udzielają nam Państwo ogólnoświatowej, niewyłącznej, nieodpłatnej licencji na ich hostowanie, przechowywanie, kopiowanie, przetwarzanie, przesyłanie i wyświetlanie. Korzystamy z tej licencji wyłącznie po to, aby świadczyć Państwu Usługi, zabezpieczać je i zapewniać wsparcie, dbać o ich zgodność z prawem oraz egzekwować niniejszy regulamin. Licencja wygasa z chwilą usunięcia Państwa treści z naszych systemów, z wyjątkiem kopii, które musimy zachować na mocy prawa lub zgodnie z opisem w naszej [Polityce prywatności](/instant/legal/privacy)."
+    },
+    {
+      "type": "p",
+      "text": "Nie trenujemy własnych modeli AI na Państwa treściach. Nie sprzedajemy Państwa danych osobowych i nie wyświetlamy reklam."
+    },
+    {
+      "type": "p",
+      "text": "Ponoszą Państwo odpowiedzialność za swoje dane wejściowe. Potwierdzają Państwo, że mają prawa i zgody potrzebne do przekazania ich nam, w tym od osób, których dane osobowe się w nich znajdują, oraz że korzystanie z nich w Usługach nie narusza prawa ani niniejszego regulaminu."
+    },
+    {
+      "type": "p",
+      "text": "Modele AI mogą dawać podobne wyniki różnym osobom. Wyniki otrzymywane przez inne osoby nie są Państwa treściami, nawet jeśli wyglądają podobnie do Państwa wyników."
+    },
+    {
+      "type": "h2",
+      "id": "ai-limits",
+      "text": "AI może się mylić"
+    },
+    {
+      "type": "p",
+      "text": "Usługi wykorzystują sztuczną inteligencję. Wyniki AI mogą być błędne, niepełne, nieaktualne lub obraźliwe, nawet jeśli brzmią pewnie. Mogą też różnić się za każdym razem, gdy zadają Państwo pytanie."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Prosimy sprawdzać wyniki, zanim zaczną Państwo na nich polegać lub je udostępnią, zwłaszcza w każdej ważnej sprawie.",
+        "Wyniki nie stanowią porady prawnej, medycznej, finansowej, podatkowej ani innej porady specjalistycznej i nie zastępują wykwalifikowanej osoby.",
+        "Prosimy nie traktować wyników jako jedynej podstawy decyzji wpływających na prawa, zdrowie, pieniądze lub pracę innych osób."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Dokument [Jak działa nasze AI](/instant/legal/ai) wyjaśnia, jakich modeli używamy i w jaki sposób."
+    },
+    {
+      "type": "h2",
+      "id": "agents",
+      "text": "Agenci"
+    },
+    {
+      "type": "p",
+      "text": "Niektóre Usługi wykorzystują agentów AI. Agent nie tylko odpowiada — podejmuje działania. W zależności od produktu i Państwa ustawień agenci mogą odczytywać i zmieniać pliki, uruchamiać polecenia na Państwa komputerze, przeszukiwać internet i korzystać z podłączonych przez Państwa narzędzi, co może obejmować wysyłanie wiadomości lub e-maili w Państwa imieniu."
+    },
+    {
+      "type": "p",
+      "text": "Agenci działają zgodnie z Państwa instrukcjami i w granicach udzielonych im uprawnień. Domyślnie Aplikacja desktopowa zatwierdza działania agentów automatycznie. Mogą Państwo to zmienić, tak aby aplikacja najpierw pytała Państwa o zgodę, pytała tylko przy działaniach wrażliwych albo tylko prowadziła rozmowę. [Warunki aplikacji desktopowej](/instant/legal/desktop-app-terms) wyjaśniają te ustawienia."
+    },
+    {
+      "type": "p",
+      "text": "Ponoszą Państwo odpowiedzialność za działania, na które Państwo pozwalają, niezależnie od tego, czy zatwierdzają je Państwo pojedynczo, czy z góry. W szczególności:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Prosimy pozwalać agentom korzystać wyłącznie z komputerów, kont, plików i systemów, z których sami mają Państwo prawo korzystać.",
+        "Gdy ma to znaczenie, prosimy sprawdzać, co agent zamierza zrobić, a gdy pozwalają mu Państwo działać samodzielnie — obserwować jego pracę.",
+        "Prosimy przechowywać kopie zapasowe wszystkiego, co ważne. Agenci mogą przez pomyłkę zmienić lub usunąć pliki.",
+        "Agent, który wysyła wiadomości do innych osób, robi to w Państwa imieniu. Ponoszą Państwo odpowiedzialność za te wiadomości oraz za informowanie odbiorców, że pochodzą one od AI, jeśli wymagają tego nasze [Zasady dozwolonego użytku](/instant/legal/acceptable-use) lub prawo."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nie zwalnia to nas z odpowiedzialności, gdy wadliwe są same Usługi. Zob. [Odpowiedzialność](#liability)."
+    },
+    {
+      "type": "h2",
+      "id": "third-party",
+      "text": "Podłączone usługi"
+    },
+    {
+      "type": "p",
+      "text": "Naszym domyślnym modelem AI jest Google Gemini. Gdy Państwa treści trafiają do tego modelu, sposób, w jaki Google z nimi postępuje, podlega również warunkom Google dotyczącym tej usługi. Dokument [Jak działa nasze AI](/instant/legal/ai) oraz nasza [Polityka prywatności](/instant/legal/privacy) wyjaśniają, co jest przesyłane. Muszą Państwo również przestrzegać zasad Google, które wymieniają nasze [Zasady dozwolonego użytku](/instant/legal/acceptable-use)."
+    },
+    {
+      "type": "p",
+      "text": "W niektórych produktach mogą Państwo samodzielnie podłączać inne usługi, takie jak modele AI od OpenAI, Anthropic lub innych dostawców, komunikatory, konta e-mail czy inne narzędzia. W takim przypadku:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Państwa relacja z daną usługą jest sprawą między Państwem a jej dostawcą i obowiązują jej warunki oraz ceny;",
+        "usługa ta otrzymuje treści potrzebne do wykonania zadania, na przykład Państwa rozmowę;",
+        "ponoszą Państwo odpowiedzialność za swoje klucze i konta w tej usłudze oraz za wszelkie pobierane przez nią opłaty;",
+        "nie kontrolujemy tej usługi i nie odpowiadamy za jej działanie, z wyjątkiem przypadków, w których odpowiedzialność nakłada na nas prawo."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "acceptable-use",
+      "text": "Dozwolony użytek"
+    },
+    {
+      "type": "p",
+      "text": "Muszą Państwo przestrzegać naszych [Zasad dozwolonego użytku](/instant/legal/acceptable-use), które stanowią część niniejszego regulaminu. W skrócie: nic niezgodnego z prawem, nic, co szkodzi ludziom, żadnych ataków na nas ani na innych, żadnego wprowadzania w błąd i żadnych zastosowań, na które zasady te zezwalają tylko na podstawie odrębnej umowy."
+    },
+    {
+      "type": "p",
+      "text": "Nie mogą Państwo również bez naszej pisemnej zgody kopiować, sprzedawać ani odsprzedawać Usług, obchodzić naszych limitów lub zabezpieczeń ani korzystać z Usług w sposób zagrażający ich bezpieczeństwu lub innym użytkownikom."
+    },
+    {
+      "type": "h2",
+      "id": "feedback",
+      "text": "Opinie"
+    },
+    {
+      "type": "p",
+      "text": "Chętnie przyjmujemy pomysły i sugestie. Jeśli przekażą nam Państwo opinię, możemy swobodnie wykorzystać ją do ulepszania Usług, bez wynagrodzenia dla Państwa i bez żadnych zobowiązań wobec Państwa. Nie opublikujemy jej wraz z Państwa nazwiskiem bez Państwa zgody."
+    },
+    {
+      "type": "h2",
+      "id": "our-rights",
+      "text": "Nasze prawa"
+    },
+    {
+      "type": "p",
+      "text": "Usługi, w tym nasze oprogramowanie, projekty, nazwy i logotypy, należą do nas lub do naszych licencjodawców i są chronione prawem. Niniejszy regulamin daje Państwu prawo do korzystania z Usług w opisany w nim sposób, tak długo, jak mogą Państwo z nich korzystać. Nie daje Państwu żadnych innych praw."
+    },
+    {
+      "type": "p",
+      "text": "Niektóre części Usług stanowią oprogramowanie open source. Części te są objęte własnymi licencjami, które w odniesieniu do nich mają pierwszeństwo przed niniejszym regulaminem. Zob. [Otwarte oprogramowanie](/instant/legal/open-source)."
+    },
+    {
+      "type": "p",
+      "text": "Nie mogą Państwo rozkładać Usług na części, dekompilować ich ani poddawać ich inżynierii wstecznej, z wyjątkiem przypadków, w których zezwala na to prawo lub licencja open source."
+    },
+    {
+      "type": "h2",
+      "id": "ending",
+      "text": "Zawieszenie i zakończenie"
+    },
+    {
+      "type": "p",
+      "text": "Mogą Państwo w każdej chwili przestać korzystać z Usług i poprosić nas o zamknięcie konta, jak wyjaśniono w części [Państwa konto](#your-account)."
+    },
+    {
+      "type": "p",
+      "text": "Możemy zawiesić lub ograniczyć Państwa dostęp, usunąć treści lub zamknąć Państwa konto, jeśli:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "w poważny sposób lub wielokrotnie naruszają Państwo niniejszy regulamin lub [Zasady dozwolonego użytku](/instant/legal/acceptable-use);",
+        "wymaga tego prawo lub organ władzy;",
+        "Państwa sposób korzystania naraża inne osoby, Usługi lub nas na szkodę lub odpowiedzialność prawną; lub",
+        "Państwa konto nie było używane przez długi czas, a my uprzedziliśmy Państwa o tym z wyprzedzeniem."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jeśli to możliwe, najpierw Państwa ostrzeżemy i damy szansę na usunięcie problemu. Działamy proporcjonalnie do tego, co się wydarzyło. Gdy podejmujemy działanie, informujemy Państwa, co zrobiliśmy i dlaczego, chyba że zabrania tego prawo lub poinformowanie Państwa wyrządziłoby szkodę."
+    },
+    {
+      "type": "p",
+      "text": "Możemy również zaprzestać oferowania jednej Usługi lub wszystkich Usług. W takim przypadku powiadomimy Państwa z rozsądnym wyprzedzeniem i damy czas na zwrócenie się o kopię Państwa danych, chyba że ze względów prawnych lub bezpieczeństwa musimy zakończyć działanie wcześniej."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Aby przenieść swoje dane do innego dostawcy lub do własnych systemów, prosimy napisać na adres {company.privacyEmail}. Bezpłatnie przekażemy Państwu kopię Państwa treści i danych w ustrukturyzowanym, powszechnie używanym formacie nadającym się do odczytu maszynowego i pomożemy w przeniesieniu. Mogą Państwo rozwiązać umowę w każdej chwili. (Akt w sprawie danych UE, art. 23 i 25)"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli nie zgadzają się Państwo z decyzją dotyczącą Państwa konta, prosimy odpowiedzieć na naszą wiadomość lub napisać na adres {company.email}. Sprawa zostanie ponownie rozpatrzona przez człowieka."
+    },
+    {
+      "type": "p",
+      "text": "Postanowienia niniejszego regulaminu, które ze swojej natury powinny obowiązywać nadal, takie jak postanowienia dotyczące treści, odpowiedzialności, zwolnienia z odpowiedzialności i sporów, obowiązują także po zakończeniu umowy."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Zmiany Usług i niniejszego regulaminu"
+    },
+    {
+      "type": "p",
+      "text": "Usługi są na wczesnym etapie i będą się zmieniać. Dodajemy, ulepszamy i usuwamy funkcje oraz zmieniamy używane modele AI."
+    },
+    {
+      "type": "p",
+      "text": "Możemy zmieniać niniejszy regulamin, na przykład gdy zmieniają się Usługi, prawo lub nasza działalność. Data na górze strony wskazuje, od kiedy obowiązuje aktualna wersja. Zmiany nie dotyczą wcześniejszego korzystania z Usług ani już istniejących sporów."
+    },
+    {
+      "type": "p",
+      "text": "O zmianach, które mają dla Państwa znaczenie, poinformujemy z wyprzedzeniem e-mailem lub w Usługach. Jeśli po wejściu zmiany w życie nadal korzystają Państwo z Usług, obowiązuje nowy regulamin. Jeśli nie zgadzają się Państwo ze zmianą, prosimy zaprzestać korzystania z Usług i zamknąć konto.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "changes-eu",
+      "text": "Państwa prawa w przypadku zmian",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Zmieniamy Usługi w sposób, który wpływa na Państwa, wyłącznie z uzasadnionej przyczyny: aby dostosować je do nowych technologii lub zmian u dostawców modeli, z których korzystamy, aby zapewnić ich bezpieczeństwo, aby spełnić obowiązki prawne albo aby je ulepszyć lub zreorganizować. Każda zmiana następuje bez dodatkowych kosztów dla Państwa. (Dyrektywa (UE) 2019/770, art. 19)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli zmiana w więcej niż nieznacznym stopniu negatywnie wpływa na Państwa dostęp do Usług lub korzystanie z nich, poinformujemy Państwa o tym jasno i z wyprzedzeniem na trwałym nośniku, takim jak e-mail. Mogą Państwo wtedy bezpłatnie rozwiązać umowę w ciągu 30 dni od powiadomienia lub od zmiany, w zależności od tego, co nastąpi później.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "O zmianach niniejszego regulaminu, które Państwa dotyczą, informujemy e-mailem co najmniej 30 dni przed ich wejściem w życie i wyjaśniamy, co się zmienia. Jeśli prawo wymaga Państwa zgody, prosimy o nią. Nie traktujemy Państwa milczenia jako zgody. Jeśli nie zgadzają się Państwo ze zmianą, mogą Państwo bezpłatnie zamknąć konto przed jej wejściem w życie. Nigdy nie wykorzystujemy zmian do odbierania praw, które przyznaje Państwu prawo.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Dostarczamy aktualizacje, w tym aktualizacje zabezpieczeń, których wymaga prawo, aby Usługi działały zgodnie z opisem, tak długo, jak wymaga tego prawo. W przypadku Aplikacji desktopowej nowe wersje są udostępniane do ponownego pobrania, jak wyjaśniają [Warunki aplikacji desktopowej](/instant/legal/desktop-app-terms). Jeśli poinformowaliśmy Państwa o aktualizacji i o skutkach jej niezainstalowania, nie odpowiadamy za problemy, które jej instalacja by usunęła.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Wyłączenia gwarancji",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Usługi są na wczesnym etapie i są udostępniane bezpłatnie. Mogą się zmieniać, psuć lub przestać działać, a wyniki mogą być błędne.",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "W ZAKRESIE DOZWOLONYM PRZEZ PRAWO USŁUGI I WSZYSTKIE WYNIKI SĄ UDOSTĘPNIANE „W STANIE, W JAKIM SĄ” („AS IS”) I „W MIARĘ DOSTĘPNOŚCI” („AS AVAILABLE”). NIE UDZIELAMY ŻADNYCH GWARANCJI, WYRAŹNYCH, DOROZUMIANYCH ANI USTAWOWYCH, W TYM GWARANCJI PRZYDATNOŚCI HANDLOWEJ, PRZYDATNOŚCI DO OKREŚLONEGO CELU, TYTUŁU PRAWNEGO, NIENARUSZANIA PRAW OSÓB TRZECICH I DOKŁADNOŚCI. NIE GWARANTUJEMY, ŻE USŁUGI BĘDĄ DZIAŁAĆ BEZ PRZERW, BEZPIECZNIE LUB BEZBŁĘDNIE, ŻE TREŚCI NIE ZOSTANĄ UTRACONE ANI ŻE JAKIKOLWIEK WYNIK LUB DZIAŁANIE AGENTA BĘDZIE PRAWIDŁOWE LUB BEZPIECZNE.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "W niektórych miejscach wyłączenie niektórych gwarancji jest niedozwolone. Tam powyższe wyłączenia obowiązują tylko w zakresie dozwolonym przez prawo.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "warranty",
+      "text": "Rękojmia ustawowa",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo konsumentem, prawo UE zapewnia Państwu ustawową odpowiedzialność za zgodność treści cyfrowych i usług cyfrowych z umową. Usługi muszą odpowiadać temu, co opisują niniejszy regulamin i warunki produktów, a jeśli tak nie jest, ponosimy za to odpowiedzialność. Żadne postanowienie niniejszego regulaminu nie ogranicza tej odpowiedzialności. (Dyrektywa (UE) 2019/770)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Usługi są na wczesnym etapie, a funkcje mogą się zmieniać, jak opisano w części [Zmiany Usług i niniejszego regulaminu](#changes). Zanim się Państwo zarejestrują, informujemy, że wyniki AI mogą być błędne (zob. [AI może się mylić](#ai-limits)). Tego rodzaju błędne wyniki są częścią tego, jak dziś działają usługi AI. Za wady samych Usług nadal odpowiadamy my.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo użytkownikiem biznesowym, świadczymy Usługi w stanie, w jakim są, bez gwarancji, z wyjątkiem tych, których wymaga prawo i których wyłączenia prawo nam nie zezwala.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Odpowiedzialność",
+      "only": "us"
+    },
+    {
+      "type": "note",
+      "text": "W ZAKRESIE DOZWOLONYM PRZEZ PRAWO: (A) NIE PONOSIMY ODPOWIEDZIALNOŚCI ZA JAKIEKOLWIEK SZKODY POŚREDNIE, PRZYPADKOWE, SZCZEGÓLNE, WYNIKOWE, ODSZKODOWANIA O CHARAKTERZE PRZYKŁADOWYM LUB KARNYM ANI ZA UTRACONE ZYSKI, PRZYCHODY, DANE LUB RENOMĘ, NAWET JEŚLI POINFORMOWANO NAS O MOŻLIWOŚCI ICH WYSTĄPIENIA; ORAZ (B) NASZA ŁĄCZNA ODPOWIEDZIALNOŚĆ Z TYTUŁU WSZYSTKICH ROSZCZEŃ DOTYCZĄCYCH USŁUG LUB NINIEJSZEGO REGULAMINU JEST OGRANICZONA DO WYŻSZEJ Z DWÓCH KWOT: KWOTY ZAPŁACONEJ NAM PRZEZ PAŃSTWA ZA USŁUGI W CIĄGU 12 MIESIĘCY PRZED ZDARZENIEM, KTÓRE SPOWODOWAŁO ROSZCZENIE, ALBO 100 DOLARÓW AMERYKAŃSKICH.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Obowiązuje to niezależnie od podstawy prawnej, czy będzie to umowa, gwarancja, czyn niedozwolony (w tym zaniedbanie), czy jakakolwiek inna podstawa. Nie ogranicza to odpowiedzialności, której prawo nie pozwala nam ograniczyć, na przykład odpowiedzialności za oszustwo albo za śmierć lub uszkodzenie ciała spowodowane naszym zaniedbaniem. W niektórych miejscach takie ograniczenia są niedozwolone. Tam obowiązują one tylko w zakresie dozwolonym przez prawo.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Ponoszą Państwo odpowiedzialność za działania, na które pozwalają Państwo agentom, oraz za sposób wykorzystania wyników, jak wyjaśniono w części [Agenci](#agents).",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "liability",
+      "text": "Odpowiedzialność",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Ponosimy odpowiedzialność bez ograniczeń:",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "za szkody wyrządzone przez nas umyślnie lub wskutek rażącego niedbalstwa;",
+        "za szkody na życiu, ciele lub zdrowiu;",
+        "na podstawie przepisów o odpowiedzialności za produkt oraz na podstawie każdej udzielonej przez nas gwarancji;",
+        "w każdym innym przypadku, w którym prawo nie pozwala na ograniczenie odpowiedzialności."
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Poza tym, jeśli dopuścimy się jedynie lekkiego niedbalstwa, odpowiadamy tylko wtedy, gdy naruszymy istotny obowiązek. Jest to obowiązek, którego wykonanie w ogóle umożliwia realizację umowy i na którego wykonaniu mogą Państwo zwykle polegać. Nasza odpowiedzialność jest wówczas ograniczona do szkody typowej dla tego rodzaju umowy, którą można było przewidzieć w chwili, gdy zaakceptowali Państwo umowę.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nie odpowiadamy za szkody, których mogli Państwo uniknąć, podejmując rozsądne działania we własnym zakresie, takie jak tworzenie kopii zapasowych, sprawdzanie wyników lub przeglądanie działań przed ich zatwierdzeniem (zob. [Agenci](#agents)). Nie dotyczy to sytuacji, w których prawo chroni Państwa przed taką zasadą.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Zasady te chronią również naszych pracowników oraz osoby, które dla nas pracują.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "indemnity",
+      "text": "Zwolnienie z odpowiedzialności"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo użytkownikiem biznesowym, będą Państwo bronić nas i zwolnią nas z odpowiedzialności w związku z roszczeniami osób trzecich wynikającymi z Państwa treści, z korzystania przez Państwa z Usług z naruszeniem niniejszego regulaminu lub prawa albo z działań, na które pozwolili Państwo agentom. „Zwolnienie z odpowiedzialności” oznacza, że pokrywają Państwo nasze uzasadnione koszty, straty i koszty obsługi prawnej. Niezwłocznie poinformujemy Państwa o takim roszczeniu, pozwolimy Państwu kierować obroną i w rozsądnym zakresie udzielimy Państwu pomocy na Państwa koszt. Nie mogą Państwo zawrzeć ugody w sprawie roszczenia w sposób, który oznacza przyznanie się przez nas do winy lub wiąże nas bez naszej zgody."
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo konsumentem, niniejsza część Państwa nie dotyczy. Nadal ponoszą Państwo odpowiedzialność na podstawie przepisów prawa za wyrządzone przez siebie szkody.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli korzystają Państwo z Usług wyłącznie na własny użytek, a nie dla firmy, niniejsza część Państwa nie dotyczy. Nadal ponoszą Państwo odpowiedzialność na podstawie przepisów prawa za wyrządzone przez siebie szkody.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "sanctions",
+      "text": "Sankcje i eksport"
+    },
+    {
+      "type": "p",
+      "text": "Przestrzegamy przepisów dotyczących sankcji i kontroli eksportu Stanów Zjednoczonych i Unii Europejskiej i Państwo również muszą ich przestrzegać. Nie mogą Państwo korzystać z Usług, jeśli:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "przebywają Państwo lub zwykle mieszkają w kraju lub regionie objętym kompleksowymi sankcjami USA lub UE;",
+        "figurują Państwo na liście sankcyjnej USA lub UE albo są Państwo własnością lub pozostają pod kontrolą osoby, która na takiej liście figuruje; lub",
+        "korzystanie przez Państwa z Usług naruszałoby sankcje lub przepisy eksportowe USA lub UE, na przykład poprzez udostępnianie Usług takiej osobie lub w zakazanym celu."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Aby przestrzegać tych przepisów, możemy blokować dostęp, zamykać konta lub odmawiać świadczenia usług."
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Spory i prawo właściwe",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli mają Państwo problem z Usługami, prosimy najpierw napisać na adres {company.email}. Większość problemów można w ten sposób szybko rozwiązać i w dobrej wierze się o to postaramy.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Niniejszy regulamin oraz wszelkie spory dotyczące regulaminu lub Usług podlegają prawu {company.law}, z wyłączeniem jego norm kolizyjnych.",
+      "only": "us",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Spory rozstrzygają sądy, a nie arbitraż. Nie zrzekają się Państwo prawa do przyłączenia się do pozwu zbiorowego lub grupowego, jeśli prawo na to zezwala. Roszczenia rozpatrują sądy właściwe na podstawie mającego zastosowanie prawa, w tym sądy właściwe dla Państwa miejsca zamieszkania, jeśli lokalne prawo przyznaje Państwu takie uprawnienie.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Każda ze stron może zamiast tego wnieść indywidualne roszczenie do sądu ds. drobnych roszczeń, jeśli roszczenie spełnia odpowiednie warunki, w miejscu Państwa zamieszkania lub w miejscu naszej siedziby.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Żadne postanowienie niniejszego regulaminu nie odbiera Państwu praw przysługujących na podstawie przepisów o ochronie konsumentów w miejscu Państwa zamieszkania, jeśli przepisy te nie pozwalają na ich wyłączenie.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "disputes",
+      "text": "Spory i prawo właściwe",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli mają Państwo problem z Usługami, prosimy najpierw napisać na adres {company.email}. Większość problemów można w ten sposób szybko rozwiązać i w dobrej wierze się o to postaramy.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Niniejszy regulamin podlega prawu {company.law}. Konwencja Narodów Zjednoczonych o umowach międzynarodowej sprzedaży towarów nie ma zastosowania.",
+      "only": "eu",
+      "needs": [
+        "law"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo konsumentem, zachowują Państwo ochronę wynikającą z bezwzględnie obowiązujących przepisów prawa kraju Państwa zamieszkania, niezależnie od prawa wybranego w niniejszym regulaminie. Mogą Państwo wnieść przeciwko nam powództwo do sądów właściwych dla Państwa miejsca zamieszkania. My możemy wnieść powództwo przeciwko Państwu wyłącznie do sądów właściwych dla Państwa miejsca zamieszkania.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli są Państwo użytkownikiem biznesowym, w zakresie dozwolonym przez prawo właściwe są sądy miejsca naszej siedziby. Możemy również wnieść powództwo do sądu właściwego dla Państwa siedziby.",
+      "only": "eu",
+      "needs": [
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Nie ma arbitrażu, a żadne postanowienie niniejszego regulaminu nie ogranicza Państwa prawa do udziału w powództwie przedstawicielskim lub zbiorowym, jeśli prawo na to zezwala.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nie uczestniczymy i nie jesteśmy gotowi uczestniczyć w postępowaniach w sprawie rozstrzygania sporów przed konsumenckim sądem polubownym.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "dsa",
+      "text": "Punkty kontaktowe i moderacja",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Unijny akt o usługach cyfrowych (DSA) wymaga od nas poinformowania Państwa, jak się z nami skontaktować i jak postępujemy z treściami.",
+      "only": "eu"
+    },
+    {
+      "type": "h3",
+      "id": "contact-points",
+      "text": "Punkty kontaktowe",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Naszym pojedynczym punktem kontaktowym dla użytkowników oraz dla organów państw członkowskich UE, Komisji Europejskiej i Europejskiej Rady ds. Usług Cyfrowych jest {company.email}. Mogą Państwo pisać do nas po angielsku i zawsze mogą Państwo skontaktować się z człowiekiem, a nie tylko z systemem automatycznym. (DSA art. 11 i 12)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Naszym przedstawicielem prawnym w UE jest {company.euRepresentative}. Mogą się Państwo z nim kontaktować we wszystkich sprawach objętych DSA. (DSA art. 13)",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "moderation",
+      "text": "Co przechowujemy i jak moderujemy",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Gdy korzystają Państwo z naszej chmurowej przestrzeni roboczej, badań w chmurze w Aplikacji desktopowej, Bota-asystenta lub API, przechowujemy treści na Państwa żądanie, takie jak Państwa czaty, pytania badawcze, cele, pliki i raporty. Nie publikujemy ich ani nie udostępniamy innym użytkownikom. Co do zasady ich nie monitorujemy i nie klasyfikujemy ani nie rekomendujemy treści.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Nasze zasady dotyczące treści znajdują się w niniejszym regulaminie oraz w [Zasadach dozwolonego użytku](/instant/legal/acceptable-use). Podejmujemy działania, gdy dowiadujemy się o nielegalnych treściach lub naruszeniu tych zasad, głównie na podstawie zgłoszeń.",
+      "only": "eu"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Każdy może zgłosić treści, które uważa za nielegalne lub naruszające nasze zasady, jak wyjaśniono w części [Zgłoś naruszenie](/instant/legal/acceptable-use#report).",
+        "Każde zgłoszenie rozpatruje i rozstrzyga człowiek. Działamy terminowo, starannie i obiektywnie oraz szanujemy prawa wszystkich zainteresowanych, w tym wolność wypowiedzi.",
+        "Środki mogą obejmować usunięcie treści lub uniemożliwienie dostępu do nich, ograniczenie funkcji oraz zawieszenie lub zamknięcie konta. Wybieramy najłagodniejszy skuteczny środek.",
+        "Użytkownikowi, którego to dotyczy, przekazujemy uzasadnienie: co zrobiliśmy, jakie są fakty, czy zastosowano środki zautomatyzowane, na jakiej zasadzie lub przepisie prawa się oparliśmy oraz jak można zakwestionować decyzję. (DSA art. 17)",
+        "Jeśli dowiemy się o przestępstwie zagrażającym czyjemuś życiu lub bezpieczeństwu, informujemy o tym organy. (DSA art. 18)"
+      ],
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jeśli nie zgadzają się Państwo z decyzją, prosimy odpowiedzieć na naszą wiadomość lub napisać na adres {company.email}, a sprawa zostanie ponownie rozpatrzona przez człowieka. Mogą Państwo również wystąpić do sądu lub złożyć skargę do koordynatora ds. usług cyfrowych w kraju Państwa zamieszkania.",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "notices",
+      "text": "Zawiadomienia"
+    },
+    {
+      "type": "p",
+      "text": "Zawiadomienia wysyłamy na adres e-mail powiązany z Państwa kontem lub wyświetlamy je w Usługach. Prosimy dbać o aktualność swojego adresu e-mail. Zawiadomienia do nas mogą Państwo wysyłać na adres {company.email}."
+    },
+    {
+      "type": "p",
+      "text": "Formalne zawiadomienia prawne można również wysyłać pocztą na adres {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "general",
+      "text": "Postanowienia ogólne"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Niniejszy regulamin, warunki produktów oraz zasady, do których się one odwołują, stanowią całość porozumienia między Państwem a nami w sprawie Usług. Odrębna pisemna umowa podpisana z nami ma pierwszeństwo w zakresie, którego dotyczy.",
+        "Jeśli sąd uzna część niniejszego regulaminu za nieważną, pozostała część nadal obowiązuje. Nieważną część zastępuje zasada przewidziana przez prawo.",
+        "Jeśli nie egzekwujemy jakiegoś prawa od razu, nie oznacza to, że się go zrzekamy.",
+        "Nie mogą Państwo przenieść swoich praw ani obowiązków wynikających z niniejszego regulaminu bez naszej pisemnej zgody. Możemy przenieść umowę na spółkę, która przejmie Usługi, jeśli nie ograniczy to Państwa praw. Poinformujemy Państwa o tym z wyprzedzeniem, a Państwo będą mogli wtedy w każdej chwili rozwiązać umowę.",
+        "Nie odpowiadamy za opóźnienia ani niewykonanie zobowiązań spowodowane zdarzeniami pozostającymi poza naszą rozsądną kontrolą, takimi jak awarie u dostawców, na których polegamy, klęski żywiołowe lub działania władz. Nie ogranicza to Państwa praw jako konsumenta.",
+        "Nikt poza Państwem i nami nie ma praw wynikających z niniejszego regulaminu.",
+        "Niniejszy regulamin został sporządzony w języku angielskim. Jeśli udostępniamy tłumaczenie, w razie rozbieżności obowiązuje wersja angielska, chyba że prawo stanowi inaczej."
+      ]
+    }
+  ]
+}

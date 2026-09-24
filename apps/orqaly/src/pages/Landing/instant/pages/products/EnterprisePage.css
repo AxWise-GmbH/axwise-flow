@@ -1,0 +1,883 @@
+/*
+ * Enterprise page (class prefix pen-, shared with its scene in scenes/enterprise.css). The
+ * page's own names are pen-hero/cta/art/list/cut/glyph and the section names
+ * pen-ways/build/runs/more/pay/rules/faq/end; the hero's words, a section's paragraph and the
+ * questions' numbers are reached by their place, so the markup carries few class names. Every
+ * rule reaches its items with ">" from .pen-list, or names a tag the scenes never draw (h1),
+ * so nothing here restyles the scene inside a card. Motion is transform and opacity only, off
+ * under reduced motion.
+ */
+
+/* The first block --------------------------------------------------------------------------- */
+
+.pen-hero {
+  position: relative;
+  padding-block: clamp(112px, 15vh, 156px) clamp(48px, 8vh, 96px);
+  overflow: clip;
+}
+
+/* A still pool of light behind the picture. */
+.pen-hero::before {
+  content: '';
+  position: absolute;
+  top: 52%;
+  right: -12%;
+  width: min(72vw, 1040px);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--oi-glow-rgb), calc(0.28 * var(--oi-halo-k))),
+    rgba(var(--oi-deep-rgb), calc(0.1 * var(--oi-halo-k))) 45%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.pen-hero .oi-container {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: center;
+}
+
+.pen-hero h1 {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: clamp(3rem, 6.2vw, 6rem);
+  font-weight: 400;
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.pen-hero h1 + p {
+  max-width: 34ch;
+  margin: 28px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
+}
+
+.pen-hero h1 + p + p {
+  margin: 40px 0 0;
+}
+
+.pen-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 26px;
+  border-radius: var(--oi-radius-pill);
+  background: var(--oi-ink);
+  color: var(--oi-page);
+  font-family: var(--oi-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    box-shadow 400ms ease,
+    translate 400ms var(--oi-ease);
+}
+
+.pen-cta:hover {
+  box-shadow: 0 0 36px rgba(var(--oi-accent-rgb), calc(0.55 * var(--oi-halo-k)));
+  translate: 0 -1px;
+}
+
+.pen-cta:focus-visible {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: 4px;
+}
+
+/* The graphite: the hero picture and every card on the page. */
+.pen-ways .pen-list > li,
+.pen-build .pen-list > li,
+.pen-more .pen-list > li,
+.pen-art {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background: var(--oi-app-surface), var(--oi-page);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+}
+
+.pen-art {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 24px;
+  animation: pen-rise 1500ms var(--oi-ease) 180ms backwards;
+}
+
+/* The words arrive first, then the picture. */
+.pen-hero h1,
+.pen-hero h1 ~ p {
+  animation: pen-rise 1100ms var(--oi-ease) backwards;
+}
+
+.pen-hero h1 + p {
+  animation-delay: 120ms;
+}
+
+.pen-hero h1 + p + p {
+  animation-delay: 240ms;
+}
+
+@keyframes pen-rise {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+  }
+}
+
+/* No heading ends on one lonely word. */
+.ois-gate[class*='pen-'] > .oi-container > .oi-h2 {
+  text-wrap: balance;
+}
+
+/* A section's paragraph, right under its heading. */
+.ois-gate[class*='pen-'] > .oi-container > .oi-h2 + p {
+  max-width: 62ch;
+  margin: 24px 0 0;
+  color: var(--oi-muted);
+  font-size: clamp(1.05rem, 1.35vw, 1.2rem);
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+
+/* Every list: a title and a line per item. */
+.pen-list {
+  display: grid;
+  gap: clamp(16px, 2vw, 24px);
+  margin: clamp(44px, 5.5vw, 76px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pen-list > li > h3 {
+  margin: 0;
+  color: var(--oi-ink);
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.pen-list > li > p {
+  max-width: 44ch;
+  margin: 10px 0 0;
+  color: var(--oi-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* A small drawn glyph in a ring. */
+.pen-glyph {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: 50%;
+  background: rgba(var(--oi-fg-rgb), 0.03);
+  color: var(--oi-ink);
+}
+
+.pen-glyph .ps-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Three ways: tall cards, the glyph on top, the words at the foot ---------------------------- */
+
+.pen-ways .pen-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pen-ways .pen-list > li {
+  display: flex;
+  flex-direction: column;
+  min-height: clamp(340px, 29vw, 420px);
+  padding: clamp(26px, 2.6vw, 36px);
+}
+
+/* Light gathers in the corner behind each glyph. */
+.pen-ways .pen-list > li::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 110%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--oi-fg-rgb), calc(0.07 * var(--oi-halo-k))),
+    transparent
+  );
+  pointer-events: none;
+  transition: opacity 600ms ease;
+  opacity: 0.7;
+}
+
+.pen-ways .pen-list > li:hover::before {
+  opacity: 1;
+}
+
+/* A slow orbit around each glyph: one dot on a thin ring. */
+.pen-ways .pen-glyph {
+  width: 56px;
+  height: 56px;
+}
+
+.pen-ways .pen-glyph::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 1px solid rgba(var(--oi-fg-rgb), 0.08);
+  border-radius: 50%;
+  background: radial-gradient(
+      circle at 50% 3px,
+      rgb(var(--oi-fg-rgb)) 1.6px,
+      rgba(var(--oi-fg-rgb), calc(0.35 * var(--oi-halo-k))) 2.6px,
+      transparent 4px
+    )
+    border-box no-repeat;
+  animation: pen-orbit 12s linear infinite;
+}
+
+.pen-ways .pen-list > li:nth-child(2) .pen-glyph::after {
+  animation-delay: -4s;
+}
+
+.pen-ways .pen-list > li:nth-child(3) .pen-glyph::after {
+  animation-delay: -8s;
+}
+
+@keyframes pen-orbit {
+  to {
+    rotate: 1turn;
+  }
+}
+
+.pen-ways .pen-list > li > h3 {
+  margin-top: auto;
+  padding-top: 48px;
+  font-size: clamp(1.45rem, 2.1vw, 1.9rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
+.pen-ways .pen-list > li > p {
+  margin-top: 12px;
+}
+
+/* What we build: a 2 x 2 bento, each card its own cut of the scene --------------------------- */
+
+.pen-build .pen-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pen-build .pen-list > li {
+  padding-bottom: clamp(26px, 2.6vw, 34px);
+}
+
+.pen-cut {
+  aspect-ratio: 16 / 10;
+  border-bottom: 1px solid var(--oi-hairline);
+}
+
+.pen-build .pen-list > li > h3,
+.pen-build .pen-list > li > p {
+  padding-inline: clamp(24px, 2.6vw, 34px);
+}
+
+.pen-build .pen-list > li > h3 {
+  margin-top: clamp(22px, 2.2vw, 28px);
+  font-size: clamp(1.3rem, 1.8vw, 1.6rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+
+/* How it runs: five steps on a line; light runs along it and each step glows as it passes ---- */
+
+.pen-runs .pen-list {
+  --pen-beam: 10s;
+
+  position: relative;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 28px;
+  padding-top: 48px;
+  overflow-x: clip;
+}
+
+.pen-runs .pen-list::before,
+.pen-runs .pen-list::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 0;
+  pointer-events: none;
+}
+
+.pen-runs .pen-list::before {
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--oi-hairline-strong),
+    var(--oi-hairline-strong) 85%,
+    transparent
+  );
+}
+
+/* The light: a bright head with a long tail, crossing once per 10 s. */
+.pen-runs .pen-list::after {
+  top: 12px;
+  width: 30%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--oi-fg-rgb), 0.28) 70%,
+    rgb(var(--oi-fg-rgb))
+  );
+  box-shadow: 8px 0 18px rgba(var(--oi-fg-rgb), 0.35);
+  translate: -110% 0;
+  animation: pen-beam var(--pen-beam) linear infinite;
+}
+
+.pen-runs .pen-list > li {
+  position: relative;
+}
+
+/* The node: a ring on the line that flares as the light reaches it. */
+.pen-runs .pen-list > li::before {
+  content: '';
+  position: absolute;
+  top: -42px;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 1px solid var(--oi-hairline-strong);
+  border-radius: 50%;
+  background: var(--oi-page);
+  box-shadow: 0 0 0 5px var(--oi-page);
+}
+
+.pen-runs .pen-list > li::after {
+  content: '';
+  position: absolute;
+  top: -42px;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--oi-ink);
+  box-shadow: 0 0 16px rgba(var(--oi-fg-rgb), calc(0.8 * var(--oi-halo-k)));
+  opacity: 0;
+  animation: pen-flare var(--pen-beam) ease-out infinite;
+  animation-delay: calc(var(--pen-at, 0) * var(--pen-beam));
+}
+
+.pen-runs .pen-list > li:nth-child(2) {
+  --pen-at: 0.1;
+}
+
+.pen-runs .pen-list > li:nth-child(3) {
+  --pen-at: 0.2;
+}
+
+.pen-runs .pen-list > li:nth-child(4) {
+  --pen-at: 0.3;
+}
+
+.pen-runs .pen-list > li:nth-child(5) {
+  --pen-at: 0.4;
+}
+
+.pen-runs .pen-list > li > h3 {
+  font-size: clamp(1.15rem, 1.5vw, 1.35rem);
+}
+
+.pen-runs .pen-list > li > p {
+  font-size: 0.97rem;
+}
+
+/* The head crosses the line in the first 63 % of the loop (0 to 130 % of its width), so it
+   meets step k, about k / 5 along, at about k / 10 of the loop (--pen-at). */
+@keyframes pen-beam {
+  0% {
+    translate: -100% 0;
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  63%,
+  100% {
+    translate: 333% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes pen-flare {
+  0% {
+    opacity: 1;
+    scale: 1.6;
+  }
+  12% {
+    opacity: 0.55;
+    scale: 1;
+  }
+  40%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+/* More ways we help: six smaller cards ------------------------------------------------------ */
+
+.pen-more .pen-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pen-more .pen-list > li {
+  padding: clamp(24px, 2.4vw, 32px);
+  transition:
+    border-color 400ms ease,
+    translate 500ms var(--oi-ease);
+}
+
+.pen-more .pen-list > li > h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The API card opens the API page from anywhere on it. */
+.pen-more .pen-list > li > h3 a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.pen-more .pen-list > li > h3 a span {
+  display: inline-block;
+  color: var(--oi-muted);
+  transition:
+    color 300ms ease,
+    translate 400ms var(--oi-ease);
+}
+
+.pen-more .pen-list > li:has(a):hover {
+  border-color: var(--oi-hairline-strong);
+  translate: 0 -2px;
+}
+
+.pen-more .pen-list > li:has(a):hover h3 a span {
+  color: var(--oi-ink);
+  translate: 2px -2px;
+}
+
+.pen-more .pen-list > li > h3 a:focus-visible {
+  outline: none;
+}
+
+.pen-more .pen-list > li > h3 a:focus-visible::after {
+  outline: 2px solid var(--oi-accent);
+  outline-offset: -2px;
+}
+
+/* Ways to pay: three plain columns under a hairline that light draws along ----------------- */
+
+.pen-pay .pen-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px clamp(24px, 4vw, 64px);
+}
+
+.pen-pay .pen-list > li {
+  position: relative;
+  padding-top: 30px;
+  border-top: 1px solid var(--oi-hairline-strong);
+}
+
+.pen-pay .pen-list > li::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 42%;
+  height: 1px;
+  background: linear-gradient(90deg, rgb(var(--oi-fg-rgb)), transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1400ms var(--oi-ease) calc(var(--d, 0ms) + 400ms);
+}
+
+.pen-pay .pen-list > li[data-shown='true']::before {
+  transform: scaleX(1);
+}
+
+.pen-pay .pen-list > li > h3 {
+  font-size: clamp(1.9rem, 3.2vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.pen-pay .pen-list > li > p {
+  margin-top: 16px;
+}
+
+/* Your rules: a quiet row of three, split by hairlines -------------------------------------- */
+
+.pen-rules .pen-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+.pen-rules .pen-list > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: 18px;
+  padding: 6px clamp(20px, 2.6vw, 36px);
+  border-left: 1px solid var(--oi-hairline);
+}
+
+.pen-rules .pen-list > li:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.pen-rules .pen-glyph {
+  grid-row: span 2;
+  width: 40px;
+  height: 40px;
+}
+
+.pen-rules .pen-glyph .ps-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.pen-rules .pen-list > li > h3 {
+  align-self: center;
+  font-size: 1.1rem;
+}
+
+.pen-rules .pen-list > li > p {
+  margin-top: 6px;
+}
+
+/* Questions: the home FAQ's rows, the heading beside them ----------------------------------- */
+
+.pen-faq .oi-container {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  column-gap: var(--oi-s4);
+  align-items: start;
+}
+
+/* Each row's number, as the home FAQ draws it, counted here instead of written per row. It
+   sits outside the row's button and is left out of what a screen reader says. */
+.pen-faq .ois-faq {
+  counter-reset: pen-q;
+}
+
+.pen-faq .ois-faq-row::before {
+  content: '0' counter(pen-q);
+  content: '0' counter(pen-q) / '';
+  counter-increment: pen-q;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: 84px;
+  color: var(--oi-dim);
+  font-family: var(--oi-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  pointer-events: none;
+  transition: color 400ms ease;
+}
+
+.pen-faq .ois-faq-row:is(:hover, :focus-within)::before {
+  color: var(--oi-accent);
+}
+
+.pen-faq .oi-h2 {
+  position: sticky;
+  top: 120px;
+}
+
+.pen-faq .oi-more-region p {
+  text-wrap: pretty;
+}
+
+/* The close: the page's own end, a graphite panel with the line and the button side by side.
+   It sits under the questions and leaves a wide dark gap before the site's download block, so
+   the two never read as twin bands. ------------------------------------------------------- */
+
+.pen-end.oi-section {
+  --pen-gut: var(--oi-s3);
+
+  padding-block: 0 calc(var(--oi-s5) * 1.3);
+}
+
+.pen-end .oi-container {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px 48px;
+  padding: clamp(32px, 4.4vw, 56px) calc(var(--pen-gut) + clamp(24px, 4.4vw, 60px));
+  isolation: isolate;
+}
+
+/* The panel, inside the container's gutters, lit softly from the button's side. */
+.pen-end .oi-container::before {
+  content: '';
+  position: absolute;
+  inset: 0 var(--pen-gut);
+  z-index: -1;
+  border: 1px solid var(--oi-app-edge);
+  border-radius: var(--oi-radius-card);
+  background:
+    radial-gradient(
+      70% 160% at 100% 50%,
+      rgba(var(--oi-fg-rgb), calc(0.06 * var(--oi-halo-k))),
+      transparent 70%
+    ),
+    var(--oi-app-surface), var(--oi-page);
+  box-shadow: inset 0 1px 0 rgba(var(--oi-lift-rgb), 0.16);
+  pointer-events: none;
+}
+
+/* The line takes the room the button leaves, on one line when it fits; the button drops under
+   it only on a phone. */
+.pen-end .oi-h2 {
+  flex: 1 1 16ch;
+  font-size: clamp(1.75rem, 3.3vw, 2.8rem);
+  text-wrap: balance;
+}
+
+/* Up to laptops: two columns of offers ------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .pen-more .pen-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tablets: the words over the picture; tall cards become rows; steps and rules stack -------- */
+
+@media (max-width: 1000px) {
+  .pen-hero .oi-container {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+
+  .pen-art {
+    max-width: 760px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pen-ways .pen-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pen-ways .pen-list > li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 24px;
+    min-height: 0;
+  }
+
+  .pen-ways .pen-glyph {
+    grid-row: span 2;
+  }
+
+  .pen-ways .pen-list > li > h3 {
+    align-self: end;
+    padding-top: 0;
+  }
+
+  .pen-ways .pen-list > li > p {
+    max-width: 52ch;
+  }
+
+  /* The line turns and runs down the left of the steps. */
+  .pen-runs .pen-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+    padding: 0 0 0 44px;
+    overflow: visible;
+    overflow-y: clip;
+  }
+
+  .pen-runs .pen-list::before {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    left: 6px;
+    width: 1px;
+    height: auto;
+    background: linear-gradient(
+      180deg,
+      var(--oi-hairline-strong),
+      var(--oi-hairline-strong) 88%,
+      transparent
+    );
+  }
+
+  .pen-runs .pen-list::after {
+    top: 0;
+    left: 5px;
+    width: 3px;
+    height: 30%;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(var(--oi-fg-rgb), 0.28) 70%,
+      rgb(var(--oi-fg-rgb))
+    );
+    box-shadow: 0 8px 18px rgba(var(--oi-fg-rgb), 0.35);
+    translate: 0 -110%;
+    animation-name: pen-beam-down;
+  }
+
+  .pen-runs .pen-list > li::before,
+  .pen-runs .pen-list > li::after {
+    top: 5px;
+    left: -44px;
+  }
+
+  .pen-runs .pen-list > li > p {
+    max-width: 52ch;
+  }
+
+  .pen-rules .pen-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .pen-rules .pen-list > li,
+  .pen-rules .pen-list > li:first-child {
+    padding: 28px 0 0;
+    border-top: 1px solid var(--oi-hairline);
+    border-left: 0;
+  }
+
+  .pen-faq .oi-container {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pen-faq .oi-h2 {
+    position: static;
+    margin-bottom: 32px;
+  }
+}
+
+@keyframes pen-beam-down {
+  0% {
+    translate: 0 -100%;
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  63%,
+  100% {
+    translate: 0 333%;
+    opacity: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .pen-build .pen-list,
+  .pen-pay .pen-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phones: one column, pictures as wide as the screen ---------------------------------------- */
+
+@media (max-width: 600px) {
+  .pen-hero {
+    padding-block: 96px 32px;
+  }
+
+  .pen-hero h1 + p,
+  .ois-gate[class*='pen-'] > .oi-container > .oi-h2 + p {
+    margin-top: 20px;
+  }
+
+  .pen-hero h1 + p + p {
+    margin-top: 28px;
+  }
+
+  .pen-art {
+    border-radius: var(--oi-radius-card);
+  }
+
+  .pen-end.oi-section {
+    --pen-gut: var(--oi-s2);
+  }
+
+  .pen-more .pen-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The glyph over the words, so the sentence gets the card's whole width. */
+  .pen-ways .pen-list > li {
+    display: flex;
+  }
+
+  .pen-ways .pen-list > li > h3 {
+    align-self: auto;
+    padding-top: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pen-hero h1,
+  .pen-hero h1 ~ p,
+  .pen-art,
+  .pen-ways .pen-glyph::after,
+  .pen-runs .pen-list::after,
+  .pen-runs .pen-list > li::after {
+    animation: none;
+  }
+
+  .pen-cta,
+  .pen-more .pen-list > li,
+  .pen-more .pen-list > li > h3 a span,
+  .pen-pay .pen-list > li::before {
+    transition: none;
+  }
+}

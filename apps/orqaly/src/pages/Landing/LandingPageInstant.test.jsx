@@ -34,7 +34,7 @@ describe('LandingPageInstant', () => {
   it('leads with the new headline on its own near-black green stage', async () => {
     const { container } = await renderPage();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Instant Intelligence.On your Apple computers.'
+      'Instant Intelligence.'
     );
     const root = container.querySelector('[data-landing-root]');
     expect(root).toHaveAttribute('data-landing-variant', 'instant');
@@ -76,7 +76,16 @@ describe('LandingPageInstant', () => {
       expect(within(nav).getByRole('link', { name })).toHaveAttribute('href', href);
     }
     expect(within(nav).getAllByRole('link')).toHaveLength(3);
-    // The ten Solutions pages wait behind one button, so the closed bar stays three links long.
+    // The five shown products and the ten Solutions pages wait behind one button each, so the closed
+    // bar stays three links long.
+    const products = within(nav).getByRole('button', { name: 'Products' });
+    expect(products).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(products);
+    expect(within(nav).getAllByRole('link')).toHaveLength(8);
+    expect(within(nav).getByRole('link', { name: /^API/ })).toHaveAttribute(
+      'href',
+      '/instant/products/api'
+    );
     const solutions = within(nav).getByRole('button', { name: 'Solutions' });
     expect(solutions).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(solutions);
@@ -90,38 +99,48 @@ describe('LandingPageInstant', () => {
     expect(container.querySelector('#watch')).not.toBeNull();
   });
 
-  it('gives phones the same three destinations behind one menu button', async () => {
+  it('gives phones the same destinations behind one menu button, as a bento', async () => {
     await renderPage();
     const toggle = screen.getByRole('button', { name: 'Open menu' });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(toggle);
     const menu = screen.getByRole('navigation', { name: 'Menu' });
-    expect(
-      within(menu)
-        .getAllByRole('link')
-        .map((link) => link.getAttribute('href'))
-    ).toEqual(['/instant/how-it-works', '/instant/features', '#download']);
+    const hrefs = within(menu)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    // The picked product's Open link, the two page tiles, the ten solutions laid out in the
+    // wide tile, then Try For Free.
+    expect(hrefs.slice(0, 3)).toEqual([
+      '/instant/products/desktop',
+      '/instant/how-it-works',
+      '/instant/features',
+    ]);
+    expect(hrefs.slice(3, -1)).toHaveLength(10);
+    expect(hrefs.at(-1)).toBe('#download');
+    fireEvent.click(within(menu).getByRole('tab', { name: 'API' }));
+    expect(within(menu).getByRole('link', { name: 'Open API' })).toHaveAttribute(
+      'href',
+      '/instant/products/api'
+    );
     expect(within(menu).getByRole('link', { name: 'Try For Free' })).toHaveAttribute(
       'href',
       '#download'
     );
-    expect(within(menu).getByRole('button', { name: /Solutions/ })).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
-    fireEvent.click(within(menu).getByRole('link', { name: /Features/ }));
+    expect(within(menu).getByRole('list', { name: 'Solutions' })).toBeInTheDocument();
+    fireEvent.click(within(menu).getByRole('link', { name: 'Features' }));
     expect(screen.getByText('Sub-page destination')).toBeInTheDocument();
   });
 
-  it('keeps the release facts attached to every download button even while More is closed', async () => {
+  it('keeps the release facts on the closing download button, and off the hero one', async () => {
     await renderPage();
     const downloads = screen.getAllByRole('link', { name: 'Download for macOS' });
     expect(downloads).toHaveLength(2);
     for (const download of downloads) {
       expect(download).toHaveAttribute('href', DESKTOP_RELEASE.url);
       expect(download).toHaveAttribute('download', DESKTOP_RELEASE.filename);
-      expect(download).toHaveAccessibleDescription(RELEASE_FACTS);
     }
+    expect(downloads[0]).not.toHaveAttribute('aria-describedby');
+    expect(downloads[1]).toHaveAccessibleDescription(RELEASE_FACTS);
   });
 
   it('draws everything in markup, with canvas reserved for the decorative orb', async () => {

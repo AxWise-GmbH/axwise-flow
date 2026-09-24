@@ -1,0 +1,257 @@
+{
+  "tiny-llms-under-a-cent": [
+    "We are working on a new way to answer your requests. Instead of sending every request to one giant AI model, Orqanix would share it among many tiny ones. Our goal is a full request, done well, for under $0.01.",
+    "This is still in the works. It is not in the app yet, and we have no results to share. But the idea is clear, and the part that decides who does each job is already built. Below is the idea, step by step.",
+    {
+      "h": "Why small can beat big"
+    },
+    "LLMs are the AI models behind chat apps. The biggest ones can do almost anything. But most everyday requests do not need almost anything. They need a few plain jobs done well: read a file, pull out the key facts, sort them, check them, and write a clear answer.",
+    "Asking one giant model to do all of that is like asking your most senior expert to do every small task in the office. The work gets done, but you pay senior rates for sorting the mail.",
+    "We believe small models, each given a single job it is good at, can cost less and answer faster. Together, a team of them could match the giant on everyday work, for far less.",
+    {
+      "h": "Split, solve, put back together"
+    },
+    "This is the flow we are building. Nothing here is live yet:",
+    {
+      "list": [
+        "Split: Orqanix reads your request and breaks it into small jobs.",
+        "Match: each job goes to the tiny model that fits it best.",
+        "Run: jobs that do not depend on each other run side by side. The rest run in order.",
+        "Join: Orqanix checks the parts and puts them back into one answer."
+      ]
+    },
+    "Say you ask for a short summary of last week's customer emails. One small model could read the emails, another could pull out the main points, and a third could write the summary.",
+    "You would still get one answer, not a pile of pieces. And when a job is too hard for a small model, we want Orqanix to hand just that part to a bigger one. So you would only pay more where it matters.",
+    {
+      "h": "The picker we already have"
+    },
+    "We have already built a reasoning layer. Its job is to decide who should do a task, and why. Today it picks between AI agents. We are teaching it to pick between tiny models too.",
+    "When it picks an agent today, it already weighs cost and speed. First come hard rules. If an agent would cost more than the set budget, or take longer than allowed, it is not picked at all. Then the rest get a score. The right skills count the most. Cost and speed count too, so a cheaper, quicker agent scores better. But price never wins alone: a cheap agent without the needed skills is left out.",
+    "Every pick comes with its reasons written out. And if a step fails or its answer is rejected, the reasoning layer can make a new plan.",
+    "For tiny models, we want the budget to cover the whole request: under one cent, shared across every small job. That is the goal we are working toward.",
+    "Have an everyday task you wish cost less? Share it with us at hello@orqanix.com."
+  ],
+  "connect-any-agent": [
+    "There are many good AI agents now: Grok, Meta Muse, OpenClaw, Manus, Hermes Agents, CrewAI and more. Each one is good at something. But each one also lives in its own app, with its own login, its own screen and its own way of working.",
+    "So you end up doing the work between them. You guess which agent to use. You copy your question from one tab to the next. You stitch the answers together by hand. A week later, you can't remember which agent did what.",
+    "We are building a fix. Our goal is to connect these agents to Orqanix, so you can use all of them from one place.",
+    {
+      "h": "What we want to change"
+    },
+    "The idea is simple. You ask once, in plain words, the way you would ask a colleague. Orqanix will work out what the job needs, pick the agent that fits, and hand it the right context. The result will come back to your chat.",
+    {
+      "list": [
+        "One place to ask, not one app per agent.",
+        "The right agent for each job, with a short reason why.",
+        "One place to see every result and who made it."
+      ]
+    },
+    "Some jobs need more than one agent. Then the plan can be a small team, with one agent for each step: one finds the facts, another writes, and a different one checks the work. They can take turns or work side by side.",
+    {
+      "h": "How Orqanix will pick the agent"
+    },
+    "Choosing the agent is the hard part, so it gets its own layer. We call it the reasoning layer: the part that decides who does what. It works in three steps.",
+    "First, it rules agents out. An agent stays in the running only if it has the skills and tools the job needs, is free to work, is allowed to see this kind of data, and fits your budget for cost and time. Fail one rule and it is out. A great score somewhere else can't bring it back.",
+    "Second, it ranks the agents that are left. Skills count the most. Tools, past success, cost, speed and fit with the people involved count too. Each point comes with a plain reason, and every choice is saved, so there is always a record of why one agent won.",
+    "Third, it adds safety rails. If a task is risky or can't be undone, the plan gets a checkpoint where a person must approve it. If no agent fits, the job goes to a human instead of a guess. Every step also has a backup: try once more after a glitch, swap in another agent if one is not available, make a new plan if a tool breaks, or hand it to a person if an approval is turned down. And before anything runs, Orqanix will check again that the agent is still free, allowed and within budget.",
+    {
+      "h": "Where this stands today"
+    },
+    "The reasoning layer already exists in our code, with tests that run it on very different jobs, from customer support to finance. It is not yet switched on in the app. Connecting outside agents to it is the part we are working on now. Live connections to these agents are not ready yet, and we are building them ourselves.",
+    "We will share each step here as it comes together.",
+    "Which agent should we connect first? Tell us at hello@orqanix.com."
+  ],
+  "assistant-bot-for-business": [
+    "Not everyone on a team will open a new app. For many teams, work talk happens in two places: chat and email. That is where questions get asked, and where people wait for answers.",
+    "So we are building an assistant bot for businesses. Your team will ask Orqanix from the messenger and email they already use. The work will run in Orqanix, and the answer will come back to the same thread. Our goal is no new window to open, and no new habit to learn.",
+    {
+      "h": "Ask where you already talk"
+    },
+    "This is the flow we have in mind. Someone on your team will write a message, just like any other message in the chat. Orqanix will pick it up, make a plan and work through the steps. When the work is done, the reply will land in the thread where the question started.",
+    "Email will work the same way: you send a short brief, and the result comes back to your inbox.",
+    "Behind that reply, our goal is for Orqanix to pick the agent or team that fits the job and give it what it needs to know. Some work should wait for a person to say yes, so we are building approvals into the flow.",
+    {
+      "h": "What your team can ask for"
+    },
+    "We are shaping the bot around the everyday jobs that fill a week:",
+    {
+      "list": [
+        "Research: look into a market, a competitor or a question before a meeting.",
+        "Plans: turn a goal into clear steps.",
+        "Drafts: a first version of an email, a post or a proposal.",
+        "Lists: gather leads, tasks or ideas into one clean list."
+      ]
+    },
+    "None of these jobs is hard on its own. But they add up, and they pull people away from the work only they can do. Handing them over in one message is meant to give that time back.",
+    {
+      "h": "Why the thread matters"
+    },
+    "A new tool only helps if people use it. Moving a whole team into another app is hard, and some people never make the switch. When help lives in the chat they already have open, there is very little new to learn.",
+    "That is also why we want the answer in the thread. The question, the answer and the follow-up will sit side by side. The next person will be able to see what was asked and what came back, without hunting for a link.",
+    "The bot will be one more way to reach Orqanix from where you already are, next to the Mac app and its full workspace. It is still being built.",
+    "Where does your team talk? Let us know at hello@orqanix.com."
+  ],
+  "building-the-mobile-app": [
+    "Good ideas rarely wait until you are back at your desk. They show up on the train, in the queue for coffee, or right after a call with a customer. By the time you open your laptop, half of the thought is gone.",
+    "So we are building an Orqanix app for your phone. It is still in the works. Today, Orqanix runs as a preview app on Macs with Apple silicon. You sign in, type what you need in plain words, and the Workspace next to the chat shows the steps and the files as they are made. The phone app is how we want you to reach that same work when you are away from your Mac.",
+    {
+      "h": "The moments it is for"
+    },
+    "Think of the small gaps in a normal day. That is where the phone app should help. Picture a few of them.",
+    "You walk out of a meeting with a clear idea. Before it fades, you would open the app and say it out loud: what you need, and what it is for. Talking is easier than typing when you are on the move, so our goal is that both work just as well.",
+    "You are on the train and remember the offer you meant to write up. You could type one line and let Orqanix get started while you ride.",
+    "It is late, and you want a first draft ready for the morning. You could start the task from the sofa and put the phone down.",
+    "Each time, the goal is the same: the work starts in the moment, not hours later.",
+    {
+      "h": "Follow it without watching it"
+    },
+    "You should not have to stare at your screen while Orqanix works. On the Mac, the Workspace already shows the work step by step. We are bringing that view to the phone, made for a small screen. A quick look should tell you:",
+    {
+      "list": [
+        "which step is running now",
+        "which steps are done",
+        "when Orqanix needs a short answer from you"
+      ]
+    },
+    "If it needs a detail, the idea is that you reply right there in a few words and the work keeps going. Then the phone goes back in your pocket.",
+    {
+      "h": "Your files wait on your Mac"
+    },
+    "A phone is great for starting and checking. It is not where you want to read a long document or rework a plan. So our goal is that the files Orqanix makes land in your Workspace, the same place they live today. When you sit down at your Mac, you would open the conversation and find it all there: the chat, the steps, and the documents and results.",
+    "That is what we are building toward: no emailing files to yourself, no hunting through downloads. One conversation, started on the go and finished at your desk.",
+    "Want to start today? Get Orqanix for Mac from the download button on this site."
+  ],
+  "orqanix-for-mac": [
+    "Orqanix now runs as a real app on your Mac. This first preview is made for Macs with Apple silicon, and it is free while we are in this early version.",
+    "We built it for people who want the work done, not another tool to learn. You say what you need, then watch the plan and the files come together in one window.",
+    {
+      "h": "Sign in and just ask"
+    },
+    "The first time you open Orqanix, it takes you to your browser to sign in. When you are done, you go straight back to the app. You do not need an AI key, and there is nothing else to install.",
+    "Then you type what you need, in everyday words. Orqanix can break the job into a short plan and work through it step by step. If it needs an answer from you, it stops and asks. When it wants to read or change a file on your Mac, it can ask for your okay first.",
+    "Each chat keeps its own work, and a new chat starts clean. Quit the app, open it again, and your chats are still there.",
+    {
+      "h": "One panel for all the work"
+    },
+    "Next to the chat sits the Workspace panel. It shows what Orqanix is doing, so you do not have to dig through a long chat to find it.",
+    {
+      "list": [
+        "Status: Working, Needs you, Done or Stopped, with a bar that fills step by step and how long it has taken.",
+        "Roadmap: the plan, one step at a time. If there is no written plan, it turns what Orqanix did into simple steps. Open a step to see the files it made.",
+        "Files: everything made or changed. Search them, filter by type, and open web pages, notes, simple tables (CSV) and code right in the panel. For a changed file, you can see which lines changed.",
+        "Activity: each action, described simply, with anything that failed shown in red."
+      ]
+    },
+    "Need a file somewhere else? Save a copy, save several at once as one ZIP file, or show it in Finder. Ask for research, and the result opens in the same panel, with its sources.",
+    {
+      "h": "How to get it"
+    },
+    "Click Download for macOS on this site. You need a Mac with an M1 chip or newer. Not sure? Open the Apple menu, choose About This Mac, and look at Chip.",
+    "Open the file you downloaded and drag Orqanix Preview into your Applications folder, then open it. This preview is not notarized (Apple's own safety check), so macOS may block it the first time. If it does, go to System Settings, then Privacy & Security, and click Open Anyway. Then sign in with your Orqanix account.",
+    "On Windows or an Intel Mac? The desktop app does not run there yet, but you can try the web version.",
+    "This is an early preview, and we keep improving it. Once you have tried it, tell us what works and what does not at hello@orqanix.com.",
+    "Get the free preview from the Download for macOS button on this site."
+  ],
+  "orqaly-and-axwise-merge": [
+    "Orqaly and AxWise began as two separate projects. On 13 September 2026, they moved into one codebase, a single shared home for their code. Both now build from the same version of the code and go out together as one release.",
+    "The rule between them is short: AxWise decides, Orqaly does the work. One side thinks about the task. The other side carries it out and hands you the result.",
+    "The move itself did not change how anything behaves. We gave the code one home, and each part still runs as its own service, with its own job.",
+    {
+      "h": "Two sides, one job each"
+    },
+    "AxWise is the part that thinks before any work starts. When a task comes in, it works out:",
+    {
+      "list": [
+        "Who should do it: an agent, a team of agents, or a person",
+        "Why that choice fits this task",
+        "What context and facts should go with it",
+        "Which checks and approvals it needs",
+        "What to do if a step fails"
+      ]
+    },
+    "AxWise is built to do extra research only when it could change the answer, so a clear task can go straight to the right helper. Each choice comes with its reasons.",
+    "Orqaly is the app around it. It is what you see and use: your account, the chat, the agents and tools, the budget and the approvals. It runs the work step by step, keeps track of where things are, retries a step that fails, and hands you the files at the end.",
+    {
+      "h": "One product for you"
+    },
+    "You don't need to know which part is working. You meet one product: Orqanix.",
+    "You start with a message, not a long form. If something important is unclear, Orqanix asks at most one question. Then it shows what it understood and asks you to confirm it. Next it shows the plan and asks again. Only after your yes does the work begin.",
+    "While it runs, you can see where it is. When it is done, the result is saved in your history, ready to open and download. If some facts could not be backed up, Orqanix marks the result with those gaps instead of hiding them. If something fails, it tells you so, in clear words you can act on.",
+    {
+      "h": "Safer and clearer by design"
+    },
+    "A suggestion is not permission. AxWise can recommend who should do a task, but by design it does not get your keys or passwords, cannot hand out access, and cannot act in your other apps. Those jobs belong to Orqaly.",
+    "Before anything runs, Orqaly checks again. Is this agent available? Is it allowed? Does the task fit the budget and the tools it may use? Only then does it run the plan you approved.",
+    "Each decision is saved as it was made, with its reasons, so it can be checked later. And each part has one clear job: AxWise owns the thinking, Orqaly owns the doing.",
+    "We checked the switch carefully. Both apps passed their tests, and after the switch a result made earlier still opened the same way, download button included. This is our preview, not a production launch, and we will keep testing as it grows.",
+    "Curious how the two parts fit together? Ask us at hello@orqanix.com."
+  ],
+  "business-api": [
+    "Many teams already run their own apps, agents and people. We think the hard part is deciding who should do each task, and why. We wanted to offer that thinking on its own, with no extra screen.",
+    "We have built an API for our reasoning layer, AxWise. An API lets two programs talk. Today it is wired to our own platform. The same design lets another company's system send a task and get a decision back, and we want to open that access one team at a time.",
+    {
+      "h": "What you send, what you get"
+    },
+    "A task is a short description of the job: the goal, the result you want, the deadline, how risky it is and whether it can be undone. With it go the agents and tools you have right now, your approval rules, and your cost and time limits.",
+    "What comes back is a full decision, not just a name:",
+    {
+      "list": [
+        "Ranked candidates, each with plain reasons",
+        "Hard exclusions, like a missing skill or blocked tool, that no score overrides",
+        "A context package: the facts the task needs",
+        "Guardrails: the limits the work must stay within",
+        "Approval points, where a person must say yes",
+        "Fallbacks: a backup plan if something goes wrong"
+      ]
+    },
+    "If some data is missing, the decision says so instead of guessing. The same inputs, with the same ranking version, give the same answer. Each decision is saved and never rewritten.",
+    "The API only recommends. By design, your system checks each decision against what is true right now, then decides what runs. When a task is riskier than your rules allow, can't be undone or needs sign-off, the decision adds a human approval step. If no agent fits, it hands the task to a person instead of forcing a match.",
+    {
+      "h": "Built for bigger jobs"
+    },
+    "Three bigger pieces sit on top, also in our code.",
+    "First, finding facts before choosing: it checks whether it knows enough. It can go straight ahead, use evidence you already have, ask a person to clarify or, only if you allow it, run limited research within your time and money limits. A clear task never waits on research, and weak research never turns into a confident answer.",
+    "Second, team plans and recovery. It can plan for a team of agents: one after another, side by side, with a reviewer at the end, or with a person approving every step. Each step gets an owner, a clear finish line and a backup plan. If an agent drops out, a tool fails, the budget changes or a person steps in, it makes a new plan and keeps the old one on record.",
+    "Third, careful learning from results. Your system can report how the work went: quality, cost, time and rework. Learning is off by default. A new way of ranking agents goes live only after a person reviews the evidence and signs off, and it can be rolled back.",
+    {
+      "h": "Where it stands"
+    },
+    "We test it on five different sample jobs: a software incident, a customer escalation, a compliance review, campaign prep and a finance analysis.",
+    "The API is not open to the public, and we have not yet shown in real pilots that it beats simpler ways of handing out work. If you have real teams and real tasks to test it on, we'd love to hear from you.",
+    "To ask about access, write to hello@orqanix.com."
+  ],
+  "opening-the-source": [
+    "The engine inside Orqanix has one big job. It is built to work out who should do each task, why they fit, and when a person should step in.",
+    "We think an engine like that should be open to read. So we are opening the source.",
+    "The engine is called AxWise Flow. It is the reasoning layer of Orqanix, and it now carries the Apache 2.0 license, an open-source license. The setup steps for running it are written and ready. Today the code is still private, and only our team can see it.",
+    {
+      "h": "Why an open engine matters"
+    },
+    "Handing work to AI takes trust. You want to know why one agent got the job and not another.",
+    "AxWise Flow explains its choices. It says who should do a task, why they fit, and which context, checks and backup plans go with it. When a choice needs more facts, it can run short research, such as interviews with simulated customers. Each finding links back to the exact words it came from.",
+    "Open code goes one step further. Once we open it, you, or someone you trust, can read the rules behind each answer and check them yourself. You will not have to take our word for it.",
+    "Open code also lets you see a clear line between thinking and doing. The engine only recommends. The part of Orqanix that runs the work checks permissions, budgets and tools again before anything happens.",
+    {
+      "h": "What builders can do"
+    },
+    "Open code is also for people who build. When we open it, a team will be able to:",
+    {
+      "list": [
+        "Run the engine on their own computer.",
+        "Test its API, the way other apps talk to it, from a built-in page in the browser.",
+        "Upload customer interviews and explore the results in a web app.",
+        "Change it and extend it for their own kind of work.",
+        "Send improvements back, so the engine can get better for everyone."
+      ]
+    },
+    "Once the code is open, setup is short. The guide asks for Docker, a tool that runs apps, and your own AI key from Google. You copy one settings file, add your key and a long random secret, and start everything with one command.",
+    {
+      "h": "What Apache 2.0 lets you do"
+    },
+    "Licenses are hard to read, so here is the short version.",
+    "Apache 2.0 lets you use the engine for free, in a personal project or in a business. You can copy it, change it and share your changed version. You can build it into your own product and sell that product. People who add code to it also give you a free right to use their patents that cover that code.",
+    "In return, it asks for a few fair things. Keep the license and the original notices with any copy you share. Mark the files you changed.",
+    "A few limits also apply. The license does not give you our name or brand. If you take anyone to court claiming the engine breaks one of your patents, the patent rights the license gave you end. And the code comes as it is, with no warranty.",
+    "Want to build on the engine? Drop us a line at hello@orqanix.com."
+  ]
+}

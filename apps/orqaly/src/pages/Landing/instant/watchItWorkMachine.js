@@ -6,8 +6,9 @@
  *   gate -> [START proceed] -> build, with assumptions
  *   gate -> [PLAY_INTRO] -> intro (timed) -> gate
  *
- * Only timed nodes play. 'gate' and 'answer' wait for the visitor, so the machine can never
- * answer for them: no action other than START and SEND leaves those nodes forwards.
+ * Only timed nodes play. 'gate' and 'answer' wait for a pick: no action other than START and
+ * SEND leaves those nodes forwards. On the landing the film's director makes those picks
+ * (WatchItWork); the visitor makes none.
  */
 
 export const TICK_MS = 80;
@@ -82,6 +83,31 @@ export function fileStatus(step, state) {
 export function workspaceStatus(state) {
   if (state.node === 'gate' || state.node === 'answer') return 'waiting';
   return state.node === 'results' || state.node === 'complete' ? 'done' : 'working';
+}
+
+/**
+ * How far the film is through its scene, 0 to 1, for the fill on the playing example's tab.
+ * Timed nodes move it smoothly; waiting nodes hold it at their mark.
+ */
+export function sceneProgress(state) {
+  const part = (from, to) =>
+    from + (to - from) * Math.min(state.elapsed / (NODE_MS[state.node] || 1), 1);
+  switch (state.node) {
+    case 'intro':
+      return part(0.04, 0.34);
+    case 'gate':
+      return state.playback === 'idle' ? 0.02 : 0.38;
+    case 'question':
+      return part(0.42, 0.46);
+    case 'answer':
+      return 0.5 + 0.04 * answeredCount(state);
+    case 'build':
+      return part(0.64, 0.9);
+    case 'results':
+      return part(0.9, 1);
+    default:
+      return 1;
+  }
 }
 
 function frameOf(state, requestLength) {
@@ -169,7 +195,30 @@ export function reducer(state, action) {
     case 'RESET':
       return initialState(action.sceneId ?? state.sceneId);
 
+    // Lands on a ready-made state, e.g. another example's finished pack while paused.
+    case 'SHOW':
+      return action.state ?? state;
+
     default:
       return state;
   }
+}
+
+// The film's answer to a question: not always the first chip, so the three questions do not
+// look filled in by rote.
+export function filmOption(scene, question) {
+  return (question + 1) % scene.questions[question].options.length;
+}
+
+/** A scene as the film ends it: "ask me" picked, every question answered, the pack shown. */
+export function finishedState(scene) {
+  let state = reducer(initialState(scene.id), {
+    type: 'START',
+    choice: 'ask',
+    reducedMotion: true,
+  });
+  scene.questions.forEach((_, question) => {
+    state = reducer(state, { type: 'ANSWER', question, option: filmOption(scene, question) });
+  });
+  return reducer(state, { type: 'SEND', reducedMotion: true });
 }

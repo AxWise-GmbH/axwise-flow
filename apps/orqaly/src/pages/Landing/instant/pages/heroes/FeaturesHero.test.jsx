@@ -82,7 +82,7 @@ describe('FeaturesHero (kept, not on a page)', () => {
     });
   });
 
-  it('numbers the tiles 01 to 12 for the eye only', () => {
+  it('numbers the tiles 01 to 18 for the eye only', () => {
     renderHero();
     tiles().forEach((link, index) => {
       const number = link.querySelector('.ohf-number');
@@ -112,7 +112,7 @@ describe('FeaturesHero (kept, not on a page)', () => {
     renderHero();
     const wall = screen.getByRole('navigation', { name: 'Jump to a feature' });
     const names = ITEMS.map((item, index) => `${String(index + 1).padStart(2, '0')}${item.name}`);
-    expect(wall.textContent).toBe(`Jump to01 \u2013 12${names.join('')}`);
+    expect(wall.textContent).toBe(`Jump to01 \u2013 18${names.join('')}`);
     expect(hero().textContent).not.toMatch(
       /planned|beta|\bsoon\b|coming|shield|SOC2|verified|production|guaranteed|Slack|Telegram|Orqaly|AxWise|zero hallucination|(\d|times) faster/i
     );
@@ -122,7 +122,7 @@ describe('FeaturesHero (kept, not on a page)', () => {
     const frames = vi.spyOn(window, 'requestAnimationFrame');
     const intervals = vi.spyOn(window, 'setInterval');
     renderHero();
-    expect(tiles()).toHaveLength(12);
+    expect(tiles()).toHaveLength(18);
     cleanup();
 
     stubMatchMedia((query) => query === '(prefers-reduced-motion: reduce)');

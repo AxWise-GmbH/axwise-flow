@@ -1,0 +1,814 @@
+{
+  "meta": {
+    "slug": "privacy",
+    "title": "Datenschutzerklärung",
+    "summary": "Diese Erklärung beschreibt, welche personenbezogenen Daten Orqanix erhebt, wofür wir sie verwenden, wer sie erhält, wie lange wir sie aufbewahren und welche Rechte Sie haben.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Erste Fassung."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Company identity (legalName, address): the 'run by', controller and postal lines are hidden until filled. Hiding the controller breaks GDPR Art. 13(1)(a) in practice; fill before publishing the EU version (FACTS §14.1).",
+        "euRepresentative (GDPR Art. 27): the section is hidden until filled; needed only if the company is outside the EU. UK Art. 27 and Swiss Art. 14 representatives not addressed (FACTS §14.1).",
+        "geminiPaidTier: paid-tier sentences (Google not using data; Google's DPA covering transfers) stay hidden until confirmed. Without it, Google's own use of Gemini data is only described by linking Google's terms, and the transfer safeguard for Gemini is not named (FACTS §14.3).",
+        "Transfers: Clerk's UK Extension / Swiss-US DPF status, and Cloudflare's safeguards via Clerk, are not confirmed; the UK/Swiss wording is generic ('such as').",
+        "Retention: no periods exist in code for workspace data, API records, the artifact bucket or emails; written as 'as long as your account exists / business relationship lasts'. Server logs are 'a limited time under our cloud provider's standard settings' (30-day default not confirmed, FACTS §14.5, §14.6).",
+        "Deletion/export: no self-service deletion or export and no process that works with the immutable tables; text promises 'delete or anonymise, or tell you why' and an answer within one month (FACTS §3, §14.5).",
+        "Lawyer: legal basis for special-category data (GDPR Art. 9) that users choose to include (e.g. health) is not stated; text says we use it only to do what was asked.",
+        "Lawyer: roles for web searches and OpenRegister lookups (independent recipients vs processors), and for Assistant Bot contacts when used for business (processor under the DPA) (FACTS §7, §14.11).",
+        "Mobile App and Assistant Bot: written as usage rules from their product pages only; no code exists, so what the Mobile App stores on the phone or in our cloud (e.g. for notifications) is unknown (FACTS §5, §6, §14.13).",
+        "Desktop defaults disclosed as they are (auto-approve on, dictation on, provider keys in plain text); update if the owner changes them (FACTS §14.8).",
+        "Age 18+ and 'region at sign-up' need a sign-up self-declaration and an acceptance record (FACTS §14.9).",
+        "Email: privacy@ and hello@ must receive mail (no MX record today); our email provider is not named as a recipient because none is chosen (FACTS §14.2).",
+        "Describes the website AFTER this build (no cookies or third-party calls on marketing pages, self-hosted fonts). Publish only once that build is live.",
+        "US: 'we answer within one month' is used for US requests too; lawyer to confirm it fits CCPA (45 days) and other state deadlines. The US version assumes the CCPA may not apply yet but follows it anyway.",
+        "Lawyer/owner: Gemini tier and \"no sale\". If Google's unpaid Gemini terms apply, Google may use prompts to improve its products; that disclosure could count as a \"sale\" or \"sharing\" under CCPA and other state laws (and makes Google an independent recipient under GDPR), which would make \"we do not sell your data\" and the no-opt-out-link position wrong. Confirm the paid tier before publishing (FACTS §14.3; us.md §Recommendations 2).",
+        "Lawyer: transfer basis for independent recipients outside Europe (public search engines; OpenRegister if relevant) is not named; the text says only that some are outside Europe.",
+        "Lawyer/owner: data protection officer. No DPO is named; whether one is required (GDPR Art. 37, § 38 BDSG at 20+ staff) depends on the company. Add a DPO contact block if one is appointed.",
+        "Lawyer: DSA Art. 13 legal representative and UK Art. 27 / Swiss Art. 14 representatives if the company is not EU/UK/CH-established.",
+        "Desktop App built-in storage (theme, menu layout, pinned chats, recently typed messages, kept by the app on the Mac) is summarised, not listed item by item.",
+        "EU word count is about 3,670 (US about 3,510), above the 3,500 guide, because of the legal-basis table and the Art. 13(2)(e) sentence. The 2026-09-21 edit cut repetition but no content."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "who-we-are",
+      "text": "Wer wir sind"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix („wir“, „uns“) stellt die Website orqanix.com und die Orqanix-Produkte bereit: die Desktop-App für Ihren Mac, die Handy-App, den Assistenz-Bot, die API und unsere Leistungen für Unternehmen. Die Desktop-App und die Web-App nutzen ein gemeinsames Online-Konto und einen gemeinsamen Cloud-Arbeitsbereich. Diese Erklärung beschreibt, welche personenbezogenen Daten wir über all diese Angebote erheben, warum und was Sie dagegen tun können."
+    },
+    {
+      "type": "p",
+      "text": "Orqanix wird betrieben von {company.legalName}, {company.address}.",
+      "needs": [
+        "legalName",
+        "address"
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Bei allen Fragen zu Ihrem Datenschutz schreiben Sie an {company.privacyEmail}."
+    },
+    {
+      "type": "note",
+      "text": "Kurz gesagt: Wir erheben, was wir benötigen, um Ihr Konto zu betreiben und die von Ihnen gewünschte Arbeit zu erledigen. Was Sie die KI fragen, geht für eine Antwort an den Modellanbieter (standardmäßig Google Gemini). Unsere Cloud-Dienste und unsere Datenbank hosten wir in der EU (Google Cloud, Niederlande). Wir verkaufen Ihre Daten nicht, zeigen keine Werbung, verwenden keine Werbe- oder Analyse-Tracker und trainieren unsere eigenen KI-Modelle nicht mit Ihren Inhalten."
+    },
+    {
+      "type": "h3",
+      "id": "controller",
+      "text": "Verantwortlicher",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Für das meiste, was diese Erklärung beschreibt, sind wir der „Verantwortliche“: diejenige Stelle, die entscheidet, warum und wie Ihre personenbezogenen Daten verwendet werden (Art. 4 Nr. 7 DSGVO). Wenn ein Unternehmen unsere API, unsere Leistungen für Unternehmen oder den Assistenz-Bot mit eigenen Daten nutzt, ist dieses Unternehmen der Verantwortliche. Wir sind dann sein „Auftragsverarbeiter“: Wir verarbeiten die Daten in seinem Auftrag, gemäß unserem [Auftragsverarbeitungsvertrag](/instant/legal/dpa). Die eigene Datenschutzerklärung des Unternehmens beschreibt, wie es die Daten verwendet."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Verantwortlicher ist {company.legalName}, {company.address}."
+    },
+    {
+      "type": "h2",
+      "id": "what-we-collect",
+      "text": "Was wir erheben"
+    },
+    {
+      "type": "p",
+      "text": "Was wir erheben, hängt davon ab, welche Teile von Orqanix Sie nutzen. Um ein Konto anzulegen, müssen Sie die Angaben machen, die bei der Anmeldung abgefragt werden, etwa Ihre E-Mail-Adresse. Ohne diese Angaben können wir Ihnen kein Konto bereitstellen. Alles andere ist Ihre Entscheidung, wobei manche Funktionen bestimmte Daten benötigen, um zu funktionieren. Kein Gesetz verpflichtet Sie, uns personenbezogene Daten zu geben."
+    },
+    {
+      "type": "h3",
+      "id": "website",
+      "text": "Die Website"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Unser Hoster, Google Cloud, führt bei Ihrem Besuch übliche Serverprotokolle: Ihre IP-Adresse, Ihren Browser, die Uhrzeit und die aufgerufene Seite. Wir verwenden sie, um die Website sicher zu halten und Probleme zu beheben.",
+        "Unsere Marketing- und Rechtsseiten setzen keine Cookies und stellen keine Verbindungen zu anderen Unternehmen her. Ihre Schriftarten kommen von unserem eigenen Server.",
+        "Wenn Sie auf unseren Rechtsseiten die US- oder EU-Fassung wählen, speichert Ihr Browser diese Auswahl. Sie bleibt in Ihrem Browser und wird nicht an uns gesendet.",
+        "Wenn Sie die Desktop-App herunterladen, kommt die Datei aus Google Cloud Storage, sodass Google Ihre IP-Adresse sieht.",
+        "Die Anmeldeseiten und die Web-App verwenden die Cookies und den Browserspeicher, die sie zum Funktionieren benötigen. [Cookies & Speicher](/instant/legal/cookies) listet jeden einzelnen Eintrag auf."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "account",
+      "text": "Ihr Konto"
+    },
+    {
+      "type": "p",
+      "text": "Sie benötigen ein Orqanix-Konto, um die Desktop-App und die Web-App zu nutzen. Clerk betreibt die Anmeldung für uns. Clerk speichert Ihre E-Mail-Adresse, Ihren Namen, falls Sie ihn angeben, und Ihr Profilbild, falls Sie sich mit Google anmelden. Um Ihr Konto zu schützen, speichert Clerk außerdem Aufzeichnungen über Ihre Anmeldungen und Sitzungen, einschließlich Ihrer IP-Adresse und Geräteangaben. Bei der Registrierung prüft Cloudflare für Clerk anhand von Signalen Ihres Browsers und Geräts, ob Sie ein Mensch und kein Bot sind. Unsere eigene Datenbank speichert die Clerk-Nutzer-ID, die Ihr Konto mit Ihrem Arbeitsbereich verknüpft."
+    },
+    {
+      "type": "h3",
+      "id": "cloud-workspace",
+      "text": "Ihr Cloud-Arbeitsbereich"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie Orqanix online nutzen, speichern wir Ihre Arbeit in unserer Datenbank in der EU, damit Sie darauf zurückgreifen können. Dies umfasst:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Ihre Gespräche mit dem Assistenten: den vollständigen Text dessen, was Sie schreiben, und die Antworten.",
+        "Ihre Ziele, jeden Workflow-Durchlauf sowie die Dateien und Berichte, die die Agenten erstellen, jeweils mit einer Aufzeichnung darüber, wie sie entstanden sind.",
+        "Die Freigaben, die Sie erteilen, und ein Protokoll der Schritte, die die Agenten ausgeführt haben.",
+        "Automatisierungen, die Sie einrichten, etwa Zeitpläne und Webhooks. Von den Anwendungsschlüsseln, die wir ausgeben, speichern wir nur eine verschlüsselte Form (einen „Hash“). Zugangsdaten, die Sie für verbundene Dienste hinzufügen, werden in einem separaten verschlüsselten Speicher aufbewahrt.",
+        "Rechercheanfragen, die die Desktop-App an die Cloud sendet (siehe [Die Desktop-App](#desktop-app))."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Um Ihnen zu antworten, sendet der Cloud-Assistent Ihre Anfrage an das KI-Modell (standardmäßig Google Gemini). Für Recherchen sendet unser eigener Suchdienst Suchanfragen, die aus Ihrer Anfrage gebildet werden, an öffentliche Suchmaschinen (Google, Bing, Brave und DuckDuckGo). Er kann außerdem über OpenRegister Unternehmen in öffentlichen Registern nachschlagen. Wir senden die Suchanfrage, nicht Ihren Namen oder Ihre Kontodaten."
+    },
+    {
+      "type": "p",
+      "text": "Fertige Berichte werden außerdem als Dateien in einem privaten Speicherbereich in der EU gespeichert. Einige Datensätze, etwa Nachrichten und das Protokoll dessen, was die Agenten getan haben, werden als festes Protokoll geführt, das nachträglich nicht bearbeitet wird. [Wie lange wir sie aufbewahren](#retention) erklärt, was geschieht, wenn Sie uns um deren Löschung bitten."
+    },
+    {
+      "type": "h3",
+      "id": "desktop-app",
+      "text": "Die Desktop-App"
+    },
+    {
+      "type": "p",
+      "text": "Vieles von dem, was die Desktop-App verarbeitet, bleibt auf Ihrem Mac. Einiges muss Ihren Mac verlassen, damit die App funktioniert."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Bleibt auf Ihrem Mac",
+        "Verlässt Ihren Mac"
+      ],
+      "rows": [
+        [
+          "Ihr Chatverlauf, in einer lokalen Datenbankdatei. Wir fügen keine eigene Verschlüsselung hinzu.",
+          "Jedes Mal, wenn das KI-Modell antwortet, wird ihm das gesamte bisherige Gespräch übermittelt: Ihre Nachrichten, die Ergebnisse der von den Agenten verwendeten Werkzeuge (etwa die Inhalte gelesener Dateien und die Ausgabe von Befehlen), unsere Produktanweisungen und jeglicher Kontext zu Zielen."
+        ],
+        [
+          "Die Dateien, die die Agenten erstellen, in dem von Ihnen gewählten Projektordner.",
+          "Beim Standardmodell läuft dies über unser Gateway in der EU zu Google Gemini. Unser Gateway leitet die Anfrage weiter und speichert sie nicht."
+        ],
+        [
+          "Einstellungen, Protokolle (alte Protokolle werden automatisch bereinigt), eine Liste der Nachrichten, die Sie kürzlich eingegeben haben, damit Sie sie erneut aufrufen können, und ein App-Ordner, den nur Ihr macOS-Benutzerkonto lesen kann.",
+          "Wenn ein Agent eine Cloud-Recherche anfordert, sendet er eine Frage und bei Bedarf Auszüge aus bis zu fünf Ihrer vorhandenen Cloud-Dateien. Dies wird in Ihrem Cloud-Arbeitsbereich gespeichert."
+        ],
+        [
+          "Ihre Orqanix-Anmeldung, im macOS-Schlüsselbund. Durch das Abmelden wird sie aufgehoben.",
+          "Wenn Sie die Sprachdiktierfunktion nutzen, wird Ihre Stimme an den Modellanbieter gesendet."
+        ],
+        [
+          "Schlüssel für KI-Anbieter, die Sie selbst verbinden (etwa OpenAI oder Anthropic), gespeichert in einer Einstellungsdatei im Klartext im Ordner der App.",
+          "Wenn Sie zu einem anderen KI-Anbieter wechseln, erhält dieser Anbieter das Gespräch nach seinen eigenen Bedingungen und seiner eigenen Datenschutzerklärung."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Die App sendet keine Nutzungsstatistiken und hat keine Absturzberichte. Standardmäßig können die Agenten Dateien lesen und schreiben und Befehle ausführen, ohne Sie vorher zu fragen. Sie können dies so ändern, dass die App vor jeder Aktion oder nur vor sensiblen Aktionen nachfragt. Geplante Abläufe (Rezepte) laufen nur, solange die App geöffnet ist."
+    },
+    {
+      "type": "h3",
+      "id": "mobile-app",
+      "text": "Die Handy-App"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie die Handy-App nutzen, funktioniert sie als Fernbedienung für Orqanix auf Ihrem Mac. Die Arbeit läuft auf Ihrem Mac, daher gilt auch hierfür, was diese Erklärung über [die Desktop-App](#desktop-app) sagt: Dateien werden auf Ihrem Mac erstellt und bleiben in Ihrem Projektordner, und das Telefon zeigt Ihnen, was erstellt wurde. Eine Anfrage vom Telefon wird wie eine Anfrage auf Ihrem Mac behandelt. Die Handy-App kann Sie benachrichtigen, wenn ein Auftrag erledigt ist. Wir verwenden die dafür benötigten Daten nur, um Ihr Telefon mit Ihrem Mac zu verbinden, Ihnen die Ergebnisse anzuzeigen und Ihnen diese Benachrichtigungen zu senden."
+    },
+    {
+      "type": "h3",
+      "id": "assistant-bot",
+      "text": "Der Assistenz-Bot"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie den Assistenz-Bot nutzen, verbinden Sie Messaging-Apps und E-Mail-Konten und weisen jedem Bot eine Rolle zu. Der Bot liest aus diesen Konten, was er für seine Arbeit benötigt: Nachrichten, Anhänge, Kontakte und Dateien. Er erstellt eine Übersicht Ihres Unternehmens (Ihr Team, Ihre Kunden, Lieferanten und Dateien und wie sie zusammenhängen), führt Kontakte aus Ihren E-Mails und Ihrem Telefon in einer Liste zusammen und sortiert Dokumente in Ordner. Seine Dateien werden in Ihrem Orqanix-Arbeitsbereich abgelegt, der Teil Ihres Cloud-Arbeitsbereichs ist. Wenn er das KI-Modell oder Recherchen nutzt, geschieht dies wie unter [Ihr Cloud-Arbeitsbereich](#cloud-workspace) beschrieben."
+    },
+    {
+      "type": "p",
+      "text": "Verbinden Sie nur Konten, zu deren Verbindung Sie berechtigt sind. Die Personen darin, etwa Ihre Kunden und Lieferanten, haben ebenfalls Datenschutzrechte. Wenn Sie den Bot für Ihr Unternehmen nutzen, sind Sie dafür verantwortlich, einen rechtmäßigen Grund für die Verarbeitung ihrer Daten zu haben. Siehe die [Bedingungen Assistenz-Bot](/instant/legal/assistant-bot-terms)."
+    },
+    {
+      "type": "h3",
+      "id": "api",
+      "text": "Die API"
+    },
+    {
+      "type": "p",
+      "text": "Die API richtet sich an Unternehmen. Ein Unternehmen sendet uns eine Aufgabe mit seinen Agenten, Werkzeugen und einem Budget, und wir senden eine Entscheidung zurück: wer die Arbeit erledigen soll und warum. Wir speichern die Entscheidungen, die vom Unternehmen zurückgemeldeten Ergebnisse und Aufzeichnungen über den Umfang jedes Auftrags in der eigenen Datenbank der API in der EU (Google Cloud, Niederlande). Um zu einer Entscheidung zu gelangen, können wir das KI-Modell, die Websuche und Abfragen von Unternehmensregistern nutzen, wie unter [Ihr Cloud-Arbeitsbereich](#cloud-workspace) beschrieben. Registerergebnisse können die Namen von Geschäftsführern oder Vorstandsmitgliedern enthalten. Außerdem speichern wir die Kontaktdaten der Personen, mit denen wir bei dem Unternehmen zu tun haben."
+    },
+    {
+      "type": "h3",
+      "id": "enterprise",
+      "text": "Für Unternehmen"
+    },
+    {
+      "type": "p",
+      "text": "Bei Unternehmensprojekten verarbeiten wir die Daten, die uns der Kunde gibt, um das Bestellte zu erstellen und zu betreiben. Jedes Projekt wird in einer mit dem Kunden vereinbarten Google-Cloud-Region in der EU gehostet. Der schriftliche Auftrag und unser [Auftragsverarbeitungsvertrag](/instant/legal/dpa) legen fest, um welche Daten es geht und was wir mit ihnen tun dürfen. Außerdem speichern wir die Kontaktdaten der Personen, mit denen wir beim Kunden zusammenarbeiten."
+    },
+    {
+      "type": "h3",
+      "id": "contact-us",
+      "text": "E-Mails an uns"
+    },
+    {
+      "type": "p",
+      "text": "Wenn Sie uns eine E-Mail senden, erhalten wir Ihre E-Mail-Adresse, Ihren Namen, falls Sie ihn angeben, und alles, was Sie schreiben. Wir verwenden dies, um Ihnen zu antworten und Ihr Anliegen zu bearbeiten."
+    },
+    {
+      "type": "h3",
+      "id": "other-people",
+      "text": "Andere Personen"
+    },
+    {
+      "type": "p",
+      "text": "Wir können Daten über Personen verarbeiten, die Orqanix nicht selbst nutzen: Personen, die in den Inhalten genannt werden, die uns unsere Nutzer geben, Kontakte in den Konten, die ein Nutzer mit dem Assistenz-Bot verbindet, Personen, die auf von unserer Recherche gefundenen Webseiten genannt werden, und Geschäftsführer oder Vorstandsmitglieder, die in öffentlichen Registern eingetragen sind. Wir verwenden diese Daten nur, um die Arbeit zu erledigen, um die unser Nutzer gebeten hat. Wenn Sie zu diesen Personen gehören, haben Sie die unter [Ihre Rechte](#your-rights) beschriebenen Rechte."
+    },
+    {
+      "type": "h3",
+      "id": "sensitive-data",
+      "text": "Sensible Daten"
+    },
+    {
+      "type": "p",
+      "text": "Wir fragen nicht nach sensiblen Daten, etwa Gesundheitsinformationen, politischen Meinungen oder religiösen Überzeugungen. Wenn Sie sich entscheiden, solche Daten in das aufzunehmen, was Sie eingeben, hochladen oder verbinden, verwenden wir sie nur, um zu tun, worum Sie gebeten haben. Bitte teilen Sie sie nur, wenn Ihre Aufgabe sie erfordert."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Wenn Sie in den USA leben, gilt für alle Gesundheitsinformationen, die zu uns gelangen, außerdem unsere [Datenschutzerklärung für Verbraucher-Gesundheitsdaten](/instant/legal/health-data)."
+    },
+    {
+      "type": "h2",
+      "id": "how-we-use",
+      "text": "Wie wir sie verwenden"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Um Ihr Konto und die von Ihnen genutzten Produkte bereitzustellen und die von Ihnen gewünschte Arbeit zu erledigen.",
+        "Um Ihre Anfragen an das KI-Modell zu senden und seine Antworten zurückzugeben und um die von Ihnen eingerichteten Recherchen und Automatisierungen auszuführen.",
+        "Um Orqanix sicher zu halten: um Missbrauch, Spam und Angriffe zu unterbinden und Probleme zu untersuchen.",
+        "Um Fehler zu beheben und den Dienst funktionsfähig zu halten.",
+        "Um Ihre Nachrichten und Datenschutzanfragen zu beantworten.",
+        "Um unsere gesetzlichen Pflichten zu erfüllen und Rechtsansprüche abzuwehren."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Wir trainieren unsere eigenen KI-Modelle nicht mit Ihren Inhalten. Wir verbessern Antworten, indem wir dem, was wir an das Modell senden, Anweisungen und Kontext hinzufügen. Wir verwenden Ihre Daten nicht für Werbung. Wir treffen über Sie keine automatisierten Entscheidungen, die rechtliche oder ähnlich erhebliche Auswirkungen haben."
+    },
+    {
+      "type": "h2",
+      "id": "legal-bases",
+      "text": "Unsere Rechtsgrundlagen",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Das Datenschutzrecht erlaubt uns die Verwendung personenbezogener Daten nur, wenn wir einen rechtlichen Grund haben, die sogenannte „Rechtsgrundlage“ (Art. 6 DSGVO). Die Tabelle zeigt die Rechtsgrundlage für jeden Zweck."
+    },
+    {
+      "type": "table",
+      "only": "eu",
+      "head": [
+        "Zweck",
+        "Daten",
+        "Rechtsgrundlage"
+      ],
+      "rows": [
+        [
+          "Betrieb der Website und Gewährleistung ihrer Sicherheit",
+          "Serverprotokolle: IP-Adresse, Browser, Uhrzeit, Seite",
+          "Unser berechtigtes Interesse an einer funktionierenden, sicheren Website (Art. 6 Abs. 1 lit. f DSGVO)"
+        ],
+        [
+          "Anlegen Ihres Kontos und Ihre Anmeldung",
+          "E-Mail-Adresse, Name, Profilbild (Google-Anmeldung), Aufzeichnungen über Anmeldungen und Sitzungen",
+          "Vertrag mit Ihnen (Art. 6 Abs. 1 lit. b DSGVO)"
+        ],
+        [
+          "Schutz der Anmeldung vor Bots und Missbrauch",
+          "IP-Adresse, Geräte- und Browsersignale (Clerk, Cloudflare)",
+          "Unser berechtigtes Interesse an Sicherheit (Art. 6 Abs. 1 lit. f DSGVO)"
+        ],
+        [
+          "Bereitstellung des Cloud-Arbeitsbereichs, des Assistenten, der Recherchen und Automatisierungen",
+          "Ihre Nachrichten, Ziele, Dateien, Workflow-Aufzeichnungen, Rechercheanfragen",
+          "Vertrag mit Ihnen (Art. 6 Abs. 1 lit. b DSGVO)"
+        ],
+        [
+          "Abruf von Antworten des KI-Modells in der Desktop-App",
+          "Das Gespräch, Werkzeugergebnisse, Produktanweisungen; Ihre Stimme, wenn Sie diktieren",
+          "Vertrag mit Ihnen (Art. 6 Abs. 1 lit. b DSGVO)"
+        ],
+        [
+          "Betrieb des Assistenz-Bots mit den von Ihnen verbundenen Konten",
+          "Nachrichten, Anhänge, Kontakte und Dateien aus diesen Konten",
+          "Vertrag mit Ihnen (Art. 6 Abs. 1 lit. b DSGVO); für andere Personen in diesen Konten Ihr und unser berechtigtes Interesse an der Erledigung der von Ihnen gewünschten Arbeit (Art. 6 Abs. 1 lit. f DSGVO) oder unsere Verarbeitung in Ihrem Auftrag, wenn Sie den Bot für Ihr Unternehmen nutzen (Art. 28 DSGVO)"
+        ],
+        [
+          "Abfrage öffentlicher Informationen für Recherchen",
+          "Suchanfragen; Einträge in öffentlichen Registern, die Namen von Geschäftsführern oder Vorstandsmitgliedern enthalten können",
+          "Vertrag mit unserem Nutzer (Art. 6 Abs. 1 lit. b DSGVO); für die gefundenen Personen unser berechtigtes Interesse an der Beantwortung der Anfrage (Art. 6 Abs. 1 lit. f DSGVO)"
+        ],
+        [
+          "Umgang mit Geschäftskunden der API und der Leistungen für Unternehmen",
+          "Namen und Kontaktdaten der Personen, mit denen wir zu tun haben",
+          "Unser berechtigtes Interesse an der Führung der Geschäftsbeziehung (Art. 6 Abs. 1 lit. f DSGVO)"
+        ],
+        [
+          "Verarbeitung der eigenen Daten eines Geschäftskunden in der API oder den Leistungen für Unternehmen",
+          "Alles, was der Kunde uns sendet",
+          "Die Rechtsgrundlage des Kunden; wir handeln als sein Auftragsverarbeiter (Art. 28 DSGVO)"
+        ],
+        [
+          "Führung einer verlässlichen Aufzeichnung dessen, was die Agenten getan haben, und Umgang mit Rechtsansprüchen",
+          "Workflow-Ereignisse, Freigaben, Dateien und wie sie entstanden sind",
+          "Unser berechtigtes Interesse an einem vertrauenswürdigen Verlauf und an der Abwehr oder Geltendmachung von Rechtsansprüchen (Art. 6 Abs. 1 lit. f DSGVO)"
+        ],
+        [
+          "Beantwortung Ihrer Nachrichten und Datenschutzanfragen",
+          "Ihre E-Mail-Adresse und was Sie schreiben",
+          "Vertrag oder unser berechtigtes Interesse, Ihnen zu antworten (Art. 6 Abs. 1 lit. b, f DSGVO); rechtliche Verpflichtung bei Datenschutzanfragen (Art. 6 Abs. 1 lit. c DSGVO)"
+        ],
+        [
+          "Erfüllung gesetzlicher Pflichten, etwa steuerliche Aufzeichnungen oder rechtmäßige Anfragen von Behörden",
+          "Was die jeweilige Pflicht verlangt",
+          "Rechtliche Verpflichtung (Art. 6 Abs. 1 lit. c DSGVO)"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Soweit wir uns auf unser berechtigtes Interesse stützen, haben wir es gegen Ihre Interessen und Rechte abgewogen. Sie können jederzeit widersprechen (siehe [Ihre Rechte](#your-rights))."
+    },
+    {
+      "type": "h2",
+      "id": "notice-at-collection",
+      "text": "Hinweis bei der Erhebung",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Diese Tabelle fasst in den Begriffen der Datenschutzgesetze der US-Bundesstaaten zusammen, was wir erheben, woher es stammt, warum und wie lange."
+    },
+    {
+      "type": "table",
+      "only": "us",
+      "head": [
+        "Kategorie",
+        "Beispiele",
+        "Quelle",
+        "Wofür wir sie verwenden",
+        "Wie lange wir sie aufbewahren"
+      ],
+      "rows": [
+        [
+          "Kennungen",
+          "E-Mail-Adresse, Name, Konto-ID, IP-Adresse",
+          "Sie; Clerk; Google, wenn Sie sich mit Google anmelden",
+          "Ihr Konto, Anmeldung, Sicherheit",
+          "Solange Ihr Konto besteht, danach soweit gesetzliche Pflichten es verlangen"
+        ],
+        [
+          "Internet- oder Netzwerkaktivität",
+          "Serverprotokolle, Aufzeichnungen über Anmeldungen und Sitzungen, Browser- und Geräteangaben",
+          "Ihr Browser und Ihr Gerät",
+          "Sicherheit, Fehlerbehebung",
+          "Serverprotokolle für eine begrenzte Zeit (siehe [Wie lange wir sie aufbewahren](#retention)); Anmeldeaufzeichnungen, solange Ihr Konto besteht"
+        ],
+        [
+          "Inhalte, die Sie uns geben",
+          "Nachrichten, Dateien, Ziele, Rechercheanfragen, das an das KI-Modell gesendete Gespräch der Desktop-App",
+          "Sie; die von Ihnen verbundenen Konten",
+          "Erledigung der von Ihnen gewünschten Arbeit",
+          "Solange Ihr Konto besteht; Anfragen, die unser KI-Gateway durchlaufen, werden nicht gespeichert"
+        ],
+        [
+          "Audio",
+          "Ihre Stimme, wenn Sie die Diktierfunktion nutzen",
+          "Sie",
+          "Umwandlung dessen, was Sie sagen, in eine Anfrage",
+          "Wird von unserem Gateway nicht gespeichert; es gelten die eigenen Bedingungen des Modellanbieters"
+        ],
+        [
+          "Berufliche Informationen",
+          "Kontaktdaten von Personen bei Geschäftskunden; Namen von Geschäftsführern oder Vorstandsmitgliedern in öffentlichen Registern",
+          "Sie; öffentliche Unternehmensregister",
+          "API und Leistungen für Unternehmen, Recherchen",
+          "Solange die Geschäftsbeziehung besteht, danach soweit gesetzliche Pflichten es verlangen"
+        ],
+        [
+          "Sensible personenbezogene Informationen",
+          "Ihre Kontoanmeldung (verarbeitet durch Clerk); alles Sensible, das Sie aufnehmen möchten, etwa Gesundheitsangaben",
+          "Sie",
+          "Ihre Anmeldung; Erledigung der von Ihnen gewünschten Arbeit",
+          "Wie für die Kategorie, zu der sie gehören"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Wir verwenden sensible personenbezogene Informationen nur, um den von Ihnen angeforderten Dienst bereitzustellen und sicher zu halten, niemals, um Rückschlüsse über Sie zu ziehen. Wir erstellen keine Profile von Ihnen. Wir legen personenbezogene Informationen zu geschäftlichen Zwecken gegenüber den unter [Wer sie erhält](#who-gets-it) aufgeführten Dienstleistern offen."
+    },
+    {
+      "type": "h2",
+      "id": "who-gets-it",
+      "text": "Wer sie erhält"
+    },
+    {
+      "type": "p",
+      "text": "Wir geben personenbezogene Daten nur so weiter, wie diese Erklärung es beschreibt. Unsere Seite [Unterauftragsverarbeiter](/instant/legal/subprocessors) listet die Anbieter auf, die sie für uns verarbeiten, was sie tun und wo. Die wichtigsten Empfänger sind:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Google Cloud hostet unsere Website, Server, Datenbank, Dateien und Protokolle sowie den Download der Desktop-App.",
+        "Google Gemini ist über die Gemini API von Google das KI-Modell, das Ihnen standardmäßig antwortet. Es erhält, was Sie fragen, das Gespräch und die Werkzeugergebnisse sowie Ihre Stimme, wenn Sie diktieren. Außerdem führt es für einige Recherchen die Google-Suche aus.",
+        "Clerk betreibt die Anmeldung und die Konten. Cloudflare schützt die Anmeldung für Clerk vor Bots. Google ist beteiligt, wenn Sie „Mit Google anmelden“ wählen.",
+        "Öffentliche Suchmaschinen (Google, Bing, Brave und DuckDuckGo) erhalten die Suchanfragen, die unsere Recherche aus Ihren Anfragen bildet. OpenRegister erhält Unternehmensnamen für Registerabfragen. Sie erhalten nur die Suchanfrage und verwenden sie nach ihren eigenen Bedingungen.",
+        "KI-Anbieter, die Sie in der Desktop-App selbst verbinden, etwa OpenAI oder Anthropic, erhalten Ihr Gespräch im Rahmen Ihrer eigenen Vereinbarung mit ihnen.",
+        "Apps, Werkzeuge und Konten, die Sie verbinden, etwa Erweiterungen der Desktop-App oder die Messaging-Apps und E-Mail-Konten, die Sie mit dem Assistenz-Bot verbinden, erhalten, was ein Agent oder Bot ihnen sendet, nach ihren eigenen Bedingungen."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Die [Bedingungen der Gemini API von Google](https://ai.google.dev/gemini-api/terms) legen fest, wie Google die Daten verwenden darf, die es über die Gemini API erhält, einschließlich der Frage, wie lange Google sie zur Missbrauchsüberwachung aufbewahrt."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Wir nutzen den kostenpflichtigen Gemini-API-Dienst von Google. Nach Googles Bedingungen für kostenpflichtige Dienste verwendet Google Ihre Eingaben (Prompts) oder Antworten nicht zur Verbesserung seiner Produkte und verarbeitet sie gemäß seinen Bedingungen zur Datenverarbeitung."
+    },
+    {
+      "type": "p",
+      "text": "Wir können personenbezogene Daten außerdem offenlegen, wenn das Gesetz dies verlangt, um die Sicherheit von Menschen oder unsere Rechte zu schützen, oder im Rahmen einer Fusion oder eines Verkaufs unseres Unternehmens. Bei einer Fusion oder einem Verkauf schützt diese Erklärung Ihre Daten weiterhin."
+    },
+    {
+      "type": "h2",
+      "id": "where-we-process",
+      "text": "Wo wir sie verarbeiten"
+    },
+    {
+      "type": "p",
+      "text": "Unsere Cloud-Dienste und unsere Datenbank hosten wir in der EU (Google Cloud, Niederlande). Unternehmensprojekte laufen in einer mit dem Kunden vereinbarten Google-Cloud-Region in der EU. Einige der von uns genutzten Anbieter, etwa Clerk und Google Gemini, können Daten in den USA oder anderswo verarbeiten."
+    },
+    {
+      "type": "h2",
+      "id": "transfers",
+      "text": "Übermittlungen außerhalb Europas",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Wenn personenbezogene Daten in ein Land übermittelt werden, für das die Europäische Kommission kein angemessenes Schutzniveau festgestellt hat, verwenden wir eine rechtliche Garantie. Diese Garantie ist entweder das EU-US Data Privacy Framework (DPF), sofern der Empfänger danach zertifiziert ist, oder die Standardvertragsklauseln (SCC), also von der Kommission genehmigte Vertragsbedingungen (Art. 45, 46 DSGVO)."
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Clerk (USA): das DPF, hilfsweise die Standardvertragsklauseln, gemäß dem Auftragsverarbeitungsvertrag von Clerk.",
+        "Google Gemini: Google kann Anfragen außerhalb der EU verarbeiten, nach den Bedingungen von Google."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "geminiPaidTier"
+      ],
+      "text": "Für die kostenpflichtige Gemini API legen die Bedingungen von Google zur Datenverarbeitung die Garantien für Daten fest, die die EU verlassen."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Öffentliche Suchmaschinen und OpenRegister erhalten nur Suchanfragen und Unternehmensnamen und verwenden sie nach ihren eigenen Bedingungen. Einige von ihnen befinden sich außerhalb Europas. Um eine Kopie der von uns verwendeten Garantien zu erhalten, schreiben Sie an {company.privacyEmail}."
+    },
+    {
+      "type": "h2",
+      "id": "retention",
+      "text": "Wie lange wir sie aufbewahren"
+    },
+    {
+      "type": "p",
+      "text": "Wir bewahren personenbezogene Daten nur so lange auf, wie wir sie für die in dieser Erklärung genannten Zwecke benötigen, und löschen oder anonymisieren sie dann."
+    },
+    {
+      "type": "table",
+      "head": [
+        "Daten",
+        "Dauer"
+      ],
+      "rows": [
+        [
+          "Konto- und Anmeldedaten",
+          "Solange Ihr Konto besteht, danach soweit zur Erfüllung gesetzlicher Pflichten erforderlich."
+        ],
+        [
+          "Ihr Cloud-Arbeitsbereich",
+          "Solange Ihr Konto besteht, danach soweit zur Erfüllung gesetzlicher Pflichten erforderlich. Wenn Sie uns bitten, Ihr Konto zu löschen, löschen oder anonymisieren wir Ihre Daten oder teilen Ihnen, soweit wir einen Datensatz aufbewahren müssen, den Grund mit."
+        ],
+        [
+          "Datenbank-Backups",
+          "Gelöschte Daten können für einen kurzen Zeitraum, bis zu etwa 7 Tage, in unseren Backups verbleiben."
+        ],
+        [
+          "Serverprotokolle",
+          "Eine begrenzte Zeit gemäß den Standard-Protokolleinstellungen unseres Cloud-Anbieters, danach automatische Löschung. Wir protokollieren nicht den Inhalt Ihrer Eingaben oder Nachrichten."
+        ],
+        [
+          "Anfragen, die unser KI-Gateway durchlaufen",
+          "Werden von uns nicht gespeichert."
+        ],
+        [
+          "Daten der Desktop-App auf Ihrem Mac",
+          "Bis Sie sie löschen. Alte Protokolle werden automatisch bereinigt."
+        ],
+        [
+          "API-Aufzeichnungen",
+          "Solange die Geschäftsbeziehung besteht, danach soweit zur Erfüllung gesetzlicher Pflichten erforderlich."
+        ],
+        [
+          "Daten aus Unternehmensprojekten",
+          "Wie im schriftlichen Auftrag vereinbart."
+        ],
+        [
+          "E-Mails, die Sie uns senden",
+          "Solange wir sie zur Bearbeitung Ihrer Nachricht und etwaiger Rückfragen sowie zur Erfüllung gesetzlicher Pflichten benötigen."
+        ],
+        [
+          "Ihre Regionsauswahl auf den Rechtsseiten",
+          "In Ihrem Browser, bis Sie sie löschen."
+        ],
+        [
+          "Daten, die Google über die Gemini API erhält",
+          "Wie in den Richtlinien von Google festgelegt."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Sicherheit"
+    },
+    {
+      "type": "p",
+      "text": "Wir schützen personenbezogene Daten mit Maßnahmen, die dem Risiko angemessen sind:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Daten werden verschlüsselt übertragen (HTTPS), und unser Cloud-Anbieter verschlüsselt sie im gespeicherten Zustand.",
+        "Unsere Cloud-Dienste und unsere Datenbank laufen in der EU, mit täglichen Backups und Schutz vor versehentlichem Löschen.",
+        "Anwendungsschlüssel speichern wir nur in verschlüsselter (gehashter) Form.",
+        "Die Desktop-App bewahrt Ihre Orqanix-Anmeldung im macOS-Schlüsselbund auf, und ihr App-Ordner kann nur von Ihrem macOS-Benutzerkonto gelesen werden."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Ein Teil des Schutzes liegt in Ihrer Hand. Der Chatverlauf der Desktop-App hat keine eigene zusätzliche Verschlüsselung, und Schlüssel für von Ihnen verbundene KI-Anbieter werden in einer Klartextdatei gespeichert. Jeder, der Ihr macOS-Benutzerkonto nutzen kann, kann sie lesen; halten Sie Ihren Mac daher gesperrt und verwenden Sie FileVault."
+    },
+    {
+      "type": "p",
+      "text": "Kein System ist vollkommen sicher. Wenn eine Datenschutzverletzung Ihre personenbezogenen Daten gefährdet, informieren wir Sie und die Behörden, soweit das Gesetz dies verlangt. Um eine Schwachstelle zu melden, siehe [Sicherheit & Meldung von Schwachstellen](/instant/legal/security)."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Kinder"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix ist nur für Personen ab 18 Jahren bestimmt. Wir erheben nicht wissentlich personenbezogene Daten von Personen unter 18 Jahren. Wenn Sie glauben, dass ein Kind uns personenbezogene Daten gegeben hat, schreiben Sie an {company.privacyEmail}, und wir löschen sie."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Orqanix richtet sich nicht an Kinder unter 13 Jahren, und wir erheben nicht wissentlich deren personenbezogene Informationen (Children's Online Privacy Protection Act, COPPA)."
+    },
+    {
+      "type": "h2",
+      "id": "your-choices",
+      "text": "Ihre Wahlmöglichkeiten"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Legen Sie in der Desktop-App fest, ob Agenten selbstständig handeln oder Sie zuerst fragen, welchen KI-Anbieter Sie verwenden und ob Sie die Diktierfunktion nutzen. Sie können Ihren Chatverlauf auf Ihrem Mac jederzeit löschen.",
+        "Entscheiden Sie, welche Konten Sie, wenn überhaupt, mit dem Assistenz-Bot verbinden.",
+        "Entscheiden Sie, was Sie eingeben, hochladen oder von den Agenten lesen lassen.",
+        "Löschen oder blockieren Sie Cookies und Browserspeicher (siehe [Cookies & Speicher](/instant/legal/cookies)). Ohne die benötigten Cookies funktioniert die Anmeldung nicht.",
+        "Schreiben Sie an {company.privacyEmail}, um die unter [Ihre Rechte](#your-rights) genannten Rechte auszuüben."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Ihre Rechte",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Nach der DSGVO sowie den Datenschutzgesetzen des Vereinigten Königreichs und der Schweiz haben Sie folgende Rechte:"
+    },
+    {
+      "type": "list",
+      "only": "eu",
+      "items": [
+        "Auskunft: eine Kopie Ihrer personenbezogenen Daten und Informationen darüber verlangen, wie wir sie verwenden (Art. 15 DSGVO).",
+        "Berichtigung: verlangen, dass wir unrichtige oder unvollständige Daten berichtigen (Art. 16 DSGVO).",
+        "Löschung: verlangen, dass wir Ihre Daten löschen (Art. 17 DSGVO).",
+        "Einschränkung: verlangen, dass wir die Verwendung Ihrer Daten einschränken, solange eine Frage geklärt wird (Art. 18 DSGVO).",
+        "Datenübertragbarkeit: die Daten, die Sie uns gegeben haben, in einem gängigen maschinenlesbaren Format erhalten oder an einen anderen übermitteln lassen (Art. 20 DSGVO).",
+        "Widerspruch: aus Gründen, die sich aus Ihrer besonderen Situation ergeben, jederzeit jeder Verwendung widersprechen, die auf unserem berechtigten Interesse beruht. Wir beenden sie dann, es sei denn, wir haben zwingende Gründe oder benötigen sie für Rechtsansprüche (Art. 21 DSGVO).",
+        "Einwilligung: soweit wir uns auf Ihre Einwilligung stützen, diese jederzeit widerrufen, ohne dass dies die Rechtmäßigkeit dessen berührt, was wir zuvor getan haben (Art. 7 Abs. 3 DSGVO).",
+        "Beschwerde: sich bei einer Datenschutz-Aufsichtsbehörde beschweren, insbesondere an Ihrem Wohn- oder Arbeitsort oder am Ort des mutmaßlichen Verstoßes (Art. 77 DSGVO)."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Um ein Recht auszuüben, schreiben Sie an {company.privacyEmail}. Wir können Sie bitten, Ihre Identität zu bestätigen, zum Beispiel indem Sie von der E-Mail-Adresse Ihres Kontos schreiben. Wir antworten innerhalb eines Monats. Bei komplexen Anfragen können wir diese Frist um zwei weitere Monate verlängern; in diesem Fall teilen wir es Ihnen mit (Art. 12 Abs. 3 DSGVO). Die Ausübung Ihrer Rechte ist kostenlos."
+    },
+    {
+      "type": "h3",
+      "id": "uk-switzerland",
+      "text": "Vereinigtes Königreich und Schweiz",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Wenn Sie im Vereinigten Königreich leben, gelten die UK GDPR und der Data Protection Act 2018. Sie können sich zunächst bei uns beschweren; wir bestätigen den Eingang von Beschwerden innerhalb von 30 Tagen. Sie können sich auch beim Information Commissioner's Office beschweren ([ico.org.uk](https://ico.org.uk)). Für Daten, die das Vereinigte Königreich verlassen, stützen wir uns auf die Angemessenheitsregeln des Vereinigten Königreichs oder auf die britischen Fassungen der unter [Übermittlungen außerhalb Europas](#transfers) genannten Garantien: die UK Extension zum DPF, sofern der Empfänger danach zertifiziert ist, oder das UK Addendum zu den Standardvertragsklauseln."
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "text": "Wenn Sie in der Schweiz leben, gilt das Bundesgesetz über den Datenschutz (DSG). Sie können sich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten beschweren ([edoeb.admin.ch](https://www.edoeb.admin.ch)). Für Daten, die die Schweiz verlassen, stützen wir uns auf die schweizerischen Angemessenheitsregeln oder auf die schweizerischen Fassungen dieser Garantien: das Swiss-US DPF, sofern der Empfänger danach zertifiziert ist, oder die in der Schweiz anerkannten Standardvertragsklauseln."
+    },
+    {
+      "type": "h3",
+      "id": "eu-representative",
+      "text": "Unser Vertreter in der EU",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ]
+    },
+    {
+      "type": "p",
+      "only": "eu",
+      "needs": [
+        "euRepresentative"
+      ],
+      "text": "Da wir nicht in der EU niedergelassen sind, haben wir dort einen Vertreter benannt (Art. 27 DSGVO): {company.euRepresentative}. Sie können sich zu allen Fragen dieser Erklärung statt an uns auch an ihn wenden."
+    },
+    {
+      "type": "h2",
+      "id": "your-rights",
+      "text": "Ihre Rechte",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Mehrere US-Bundesstaaten gewähren ihren Einwohnern Datenschutzrechte. Wir gewähren allen Personen in den Vereinigten Staaten dieselben Rechte, unabhängig davon, in welchem Bundesstaat Sie leben:"
+    },
+    {
+      "type": "list",
+      "only": "us",
+      "items": [
+        "Auskunft und Zugang: erfragen, welche personenbezogenen Informationen wir über Sie haben, woher sie stammen, warum wir sie verwenden und wem wir sie offengelegt haben, und eine Kopie erhalten.",
+        "Löschung: verlangen, dass wir personenbezogene Informationen löschen, die wir von Ihnen erhoben haben.",
+        "Berichtigung: verlangen, dass wir unrichtige Informationen berichtigen.",
+        "Übertragbarkeit: Ihre Informationen in einem Format erhalten, das Sie anderswo verwenden können.",
+        "Widerspruch (Opt-out): gegen den Verkauf oder die Weitergabe Ihrer personenbezogenen Informationen, gegen gezielte Werbung und gegen Profiling mit rechtlichen oder ähnlich erheblichen Auswirkungen. Wir tun nichts davon, es gibt also nichts abzuschalten.",
+        "Einspruch: wenn wir Ihren Antrag ablehnen, uns bitten, ihn erneut zu prüfen.",
+        "Gleichbehandlung: Wir werden Sie nicht anders behandeln, etwa indem wir den Dienst verweigern oder seine Qualität ändern, weil Sie ein Recht ausgeübt haben."
+      ]
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Um ein Recht auszuüben, schreiben Sie an {company.privacyEmail}. Wir können Sie bitten, Ihre Identität zu bestätigen, zum Beispiel indem Sie von der E-Mail-Adresse Ihres Kontos schreiben. Eine von Ihnen bevollmächtigte Person kann einen Antrag für Sie stellen. Wir können einen Nachweis verlangen, dass Sie ihr diese Befugnis erteilt haben. Die Ausübung Ihrer Rechte ist kostenlos. Wir antworten innerhalb eines Monats."
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Um gegen eine Entscheidung Einspruch einzulegen, antworten Sie auf unsere Antwort mit dem Betreff „Einspruch“. Wir teilen Ihnen das Ergebnis und unsere Gründe mit. Wenn Sie nicht einverstanden sind, können Sie sich an den Attorney General (Generalstaatsanwalt) Ihres Bundesstaates wenden."
+    },
+    {
+      "type": "h3",
+      "id": "no-sale",
+      "text": "Kein Verkauf und keine Weitergabe",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Wir verkaufen keine personenbezogenen Informationen, und wir geben sie nicht im Sinne des kalifornischen Rechts für kontextübergreifende verhaltensbasierte Werbung weiter („sharing“). Wir verwenden sie nicht für gezielte Werbung. Wir haben keine tatsächliche Kenntnis davon, personenbezogene Informationen von Personen unter 16 Jahren zu verkaufen oder weiterzugeben. Da wir nichts davon tun, zeigen wir keinen Link „Do Not Sell or Share“ an. Wir verkaufen auch keine „covered information“ im Sinne des Rechts von Nevada. Sie können uns dennoch einen Widerspruch (Opt-out) an {company.privacyEmail} senden."
+    },
+    {
+      "type": "h3",
+      "id": "privacy-signals",
+      "text": "Datenschutzsignale des Browsers",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Wenn Ihr Browser ein Global-Privacy-Control-Signal (GPC) sendet, behandeln wir es als Widerspruch gegen den Verkauf und die Weitergabe Ihrer personenbezogenen Informationen. Wir tun beides nicht, für Sie ändert sich also nichts. Wir verfolgen Sie nicht im Laufe der Zeit über andere Websites hinweg, und wir erlauben anderen Unternehmen nicht, dies auf unserer Website zu tun. Daher behandeln wir Do-Not-Track-Signale auf dieselbe Weise: Es gibt kein Tracking, das beendet werden müsste."
+    },
+    {
+      "type": "h3",
+      "id": "california",
+      "text": "Kalifornien",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Diese Seite ist unsere Datenschutzerklärung nach dem California Online Privacy Protection Act (CalOPPA) und unser Hinweis nach dem California Consumer Privacy Act (CCPA). Wir legen personenbezogene Informationen nicht gegenüber anderen für deren eigenes Direktmarketing offen, daher gibt es nach dem kalifornischen „Shine the Light“-Gesetz nichts anzufordern. Wir überprüfen diese Erklärung mindestens einmal alle 12 Monate."
+    },
+    {
+      "type": "h3",
+      "id": "health-data",
+      "text": "Gesundheitsdaten",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Washington, Nevada und Connecticut haben besondere Vorschriften für Verbraucher-Gesundheitsdaten. Unsere [Datenschutzerklärung für Verbraucher-Gesundheitsdaten](/instant/legal/health-data) erklärt, welche Gesundheitsinformationen zu uns gelangen können, wie wir sie verwenden und welche Rechte Sie daran haben."
+    },
+    {
+      "type": "h3",
+      "id": "other-countries",
+      "text": "Außerhalb der USA und Europas",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "only": "us",
+      "text": "Wenn Sie außerhalb der Vereinigten Staaten, des EWR, des Vereinigten Königreichs und der Schweiz leben, können Sie dieselben Rechte ausüben, indem Sie an {company.privacyEmail} schreiben. Das Datenschutzrecht Ihres Landes kann Ihnen weitergehende Rechte gewähren, und wir werden diese beachten. Ihre Daten werden in der EU und an den anderen unter [Wo wir sie verarbeiten](#where-we-process) beschriebenen Orten verarbeitet."
+    },
+    {
+      "type": "h2",
+      "id": "changes",
+      "text": "Änderungen"
+    },
+    {
+      "type": "p",
+      "text": "Wir aktualisieren diese Erklärung, wenn sich unsere Produkte oder die Rechtslage ändern. Version und Datum oben zeigen, welcher Text gilt. Wenn eine Änderung für die Verwendung Ihrer Daten von Bedeutung ist, informieren wir Sie im Produkt oder per E-Mail, bevor sie wirksam wird."
+    },
+    {
+      "type": "h2",
+      "id": "contact",
+      "text": "Kontakt"
+    },
+    {
+      "type": "p",
+      "text": "Datenschutzfragen, -anfragen oder -beschwerden: {company.privacyEmail}. Alles andere: {company.email}."
+    },
+    {
+      "type": "p",
+      "needs": [
+        "legalName",
+        "address"
+      ],
+      "text": "Per Post: {company.legalName}, {company.address}."
+    }
+  ]
+}

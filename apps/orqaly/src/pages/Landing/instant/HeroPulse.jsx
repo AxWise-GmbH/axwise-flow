@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckGlyph } from './ui/Glyphs';
+import { useT } from './i18n/useT';
 import './HeroPulse.css';
 
 export const PULSE_LINK_LABEL =
@@ -17,8 +18,9 @@ const ICON_PATHS = {
 
 // Each ask is something a founder would say, and its files are kinds the app really makes:
 // documents, tables and web pages.
-const SCENES = [
+export const SCENES = [
   {
+    id: 'roastery',
     ask: 'Plan my coffee roastery.',
     model: 'Gemini',
     files: [
@@ -29,6 +31,7 @@ const SCENES = [
     ],
   },
   {
+    id: 'proposal',
     ask: 'Prepare a proposal for my new client.',
     model: 'OpenAI',
     files: [
@@ -39,6 +42,7 @@ const SCENES = [
     ],
   },
   {
+    id: 'marketing',
     ask: "Write this week's marketing content.",
     model: 'Anthropic',
     files: [
@@ -50,7 +54,17 @@ const SCENES = [
   },
 ];
 
-const AGENTS = ['Research', 'Plan', 'Build'];
+export const AGENTS = ['Research', 'Plan', 'Build'];
+
+/** The translation key of a scene's ask. */
+export function askKey(id) {
+  return `pulse.ask.${id}`;
+}
+
+/** The translation key of an agent's name. */
+export function agentKey(name) {
+  return `pulse.agent.${name.toLowerCase()}`;
+}
 
 // ask: the words are typed. 1-3: that agent is working. made: the files land. leave: fade.
 const PHASES = ['ask', 1, 2, 3, 'made', 'leave'];
@@ -93,6 +107,7 @@ function agentState(phase, index) {
  * finished scene.
  */
 export default function HeroPulse({ paused = false }) {
+  const { t } = useT();
   const [still, setStill] = useState(reducedMotion);
   const [scene, setScene] = useState(0);
   const [phase, setPhase] = useState('ask');
@@ -106,7 +121,9 @@ export default function HeroPulse({ paused = false }) {
     return () => list.removeEventListener('change', update);
   }, []);
 
-  const { ask, model, files } = SCENES[still ? 0 : scene];
+  const { id, ask: english, model, files } = SCENES[still ? 0 : scene];
+  // The typing runs on the translated words, so its length is theirs.
+  const ask = t(askKey(id), english);
   const shownPhase = still ? 'made' : phase;
   const shownText = still ? ask : ask.slice(0, typed);
 
@@ -133,7 +150,15 @@ export default function HeroPulse({ paused = false }) {
   }, [still, paused, phase, typed, ask]);
 
   return (
-    <a className="hp-link" href="#watch" aria-label={PULSE_LINK_LABEL}>
+    <a
+      className="hp-link"
+      href="#watch"
+      dir="ltr"
+      aria-label={t(
+        'pulse.link',
+        'Orqanix at work: you ask in plain words, AI agents research, plan and build, and the finished files appear on your Mac. Jump to the interactive demo.'
+      )}
+    >
       <div className="hp-scene" data-phase={shownPhase} aria-hidden="true">
         <div className="hp-ask">
           <div className="hp-ask-row" data-region="ready">
@@ -146,7 +171,9 @@ export default function HeroPulse({ paused = false }) {
               ) : (
                 <>
                   <i className="hp-caret" />
-                  <span className="hp-placeholder">Ask whatever&apos;s on your mind.</span>
+                  <span className="hp-placeholder">
+                    {t('pulse.placeholder', "Ask whatever's on your mind.")}
+                  </span>
                 </>
               )}
             </p>
@@ -164,7 +191,7 @@ export default function HeroPulse({ paused = false }) {
             </span>
             <span className="hp-tool" data-region="plugins">
               <Icon name="plug" />
-              50+ plug-ins
+              {t('pulse.plugins', '50+ plug-ins')}
             </span>
           </div>
         </div>
@@ -176,14 +203,14 @@ export default function HeroPulse({ paused = false }) {
                 <span className="hp-node">
                   <CheckGlyph className="hp-node-check" />
                 </span>
-                <span className="hp-agent-name">{name}</span>
+                <span className="hp-agent-name">{t(agentKey(name), name)}</span>
               </li>
             ))}
           </ol>
           <p className="hp-layers" data-region="layering">
-            <span>Thinks in the cloud</span>
+            <span>{t('pulse.cloud', 'Thinks in the cloud')}</span>
             <i />
-            <span>Works on your Mac</span>
+            <span>{t('pulse.mac', 'Works on your Mac')}</span>
           </p>
         </div>
 
@@ -196,7 +223,7 @@ export default function HeroPulse({ paused = false }) {
                   <Icon name={kind} />
                 </span>
                 <span className="hp-file-name">{name}</span>
-                <span className="hp-file-tag">New</span>
+                <span className="hp-file-tag">{t('pulse.new', 'New')}</span>
               </li>
             ))}
           </ul>

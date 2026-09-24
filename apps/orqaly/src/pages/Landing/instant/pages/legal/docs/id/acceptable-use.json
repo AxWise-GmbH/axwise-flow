@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "slug": "acceptable-use",
+    "title": "Kebijakan Penggunaan Wajar",
+    "summary": "Kebijakan ini menetapkan apa yang tidak boleh Anda lakukan dengan produk Orqanix atau agennya, serta cara melaporkan konten atau aktivitas yang melanggar aturan.",
+    "effective": "2026-09-22",
+    "version": "1.0",
+    "history": [
+      {
+        "version": "1.0",
+        "effective": "2026-09-22",
+        "change": "Versi pertama."
+      }
+    ],
+    "review": {
+      "factCheck": "2026-09-21",
+      "legalRisk": "2026-09-21",
+      "edited": "2026-09-21",
+      "lawyer": null,
+      "open": [
+        "Reports go to hello@orqanix.com with the subject \"Report\", but orqanix.com has no MX record, so reports probably cannot arrive today (FACTS open point 2). Must be fixed before publishing (DSA Art. 16).",
+        "The policy promises: confirmation of receipt, review by a person, a statement of reasons to the affected user, and a second review by a different person \"where we can\". Owner to confirm this process can be run (and a template for statements of reasons exists).",
+        "Health data: the AUP bans protected patient health information without a signed agreement but does not ban all health data, so the US Consumer Health Data Privacy Policy and its visible footer link stay needed (FACTS open point 16).",
+        "AI Act Art. 5 new points on non-consensual intimate imagery and CSAM: banned here for all users at once; the providers safeguard date of 2 Dec 2026 (verify.md row 4) is our own duty, not stated in the text.",
+        "Google flow-down links to Google's Generative AI Prohibited Use Policy and the Gemini API terms; lawyer to confirm the competing-models wording matches the current Gemini API terms.",
+        "CSAM reporting to authorities \"as the law requires\" (US: NCMEC under 18 U.S.C. 2258A if applicable); owner to set up the process.",
+        "Agent AI disclosure (AI Act Art. 50(1)) is put on the user here; Desktop/Bot agents that send email or messages may need a built-in label from us as provider (eu.md row 13). Owner decision.",
+        "AI Act Art. 26 deployer duties for Annex III uses apply from 2 Dec 2027 (verify.md row 2); the EU text says \"as they apply to you\" instead of a date. Housing and non-life insurance in the list are not Annex III, so the EU sentence now says \"most of these\".",
+        "AI Act Art. 50(2) output marking is our duty as provider, not the user's; the AUP does not claim any marking (none exists, FACTS §12). Owner to settle the Desktop first EU market date (FACTS open point 10).",
+        "DSA Art. 23 (\"stop handling clearly unfounded reports after a warning\") is an online-platform rule we adopt voluntarily; fine to keep, but the process needs a record of warnings."
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "h2",
+      "id": "scope",
+      "text": "Cakupan kebijakan ini"
+    },
+    {
+      "type": "p",
+      "text": "Kebijakan ini menetapkan aturan penggunaan setiap produk Orqanix: Aplikasi Desktop, Aplikasi Seluler, Bot Asisten, API, layanan Korporat kami, dan situs web kami (secara bersama-sama, “Layanan”). Kebijakan ini berlaku bagi perorangan maupun bisnis dan merupakan bagian dari [Ketentuan Layanan](/instant/legal/terms) kami."
+    },
+    {
+      "type": "p",
+      "text": "Kebijakan ini mencakup apa yang Anda minta, apa yang Anda lakukan dengan keluaran, dan apa yang dilakukan oleh agen Anda. Jika Anda memberi akses kepada orang lain, misalnya melalui API, pastikan mereka juga mematuhinya."
+    },
+    {
+      "type": "note",
+      "text": "Singkatnya: jangan gunakan Orqanix untuk melanggar hukum, merugikan orang, menyerang sistem, atau menipu siapa pun tentang siapa atau apa yang sedang mereka hadapi."
+    },
+    {
+      "type": "h2",
+      "id": "illegal-harm",
+      "text": "Penggunaan ilegal dan berbahaya"
+    },
+    {
+      "type": "p",
+      "text": "Jangan gunakan Layanan untuk:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "melanggar hukum apa pun, atau membantu orang lain melanggarnya;",
+        "mengancam, melecehkan, merundung, atau menguntit siapa pun, atau mempromosikan kekerasan atau kebencian terhadap orang karena jati diri mereka;",
+        "merencanakan atau mendukung terorisme, ekstremisme kekerasan, atau pembuatan senjata yang dapat menimbulkan bahaya massal;",
+        "melakukan penipuan, scam, atau pencurian identitas, atau menipu orang demi uang;",
+        "mengumpulkan, melacak, atau membuat profil orang tanpa dasar hukum, atau mengungkapkan informasi pribadi mereka tanpa persetujuan mereka;",
+        "mendiskriminasi orang secara melawan hukum, misalnya dalam hal perumahan, pekerjaan, kredit, atau layanan;",
+        "mendorong tindakan menyakiti diri sendiri, bunuh diri, atau gangguan makan."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "banned-ai",
+      "text": "Praktik AI yang dilarang"
+    },
+    {
+      "type": "p",
+      "text": "Jangan gunakan Layanan untuk praktik yang dilarang oleh hukum UE bagi sistem AI. Kami menerapkan daftar ini di seluruh dunia. (EU AI Act, Art. 5)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "memanipulasi orang melalui teknik yang tidak mereka sadari, atau melalui penipuan, dengan cara yang mendistorsi keputusan mereka dan kemungkinan besar menimbulkan kerugian signifikan bagi mereka;",
+        "mengeksploitasi kelemahan orang karena usia, disabilitas, atau situasi sosial atau ekonomi mereka;",
+        "penilaian sosial (social scoring): menilai orang berdasarkan perilaku sosial atau ciri pribadi mereka dengan cara yang mengarah pada perlakuan yang tidak adil atau tidak berkaitan;",
+        "memprediksi apakah seseorang akan melakukan kejahatan hanya berdasarkan pembuatan profil atau ciri kepribadiannya;",
+        "membangun atau memperluas basis data pengenalan wajah dengan mengambil gambar wajah secara massal dari internet atau rekaman kamera tanpa target tertentu;",
+        "mengenali emosi orang di tempat kerja atau di lingkungan pendidikan, kecuali untuk alasan medis atau keselamatan;",
+        "mengelompokkan orang berdasarkan data biometrik mereka untuk menyimpulkan ras, pandangan politik, keanggotaan serikat pekerja, agama atau kepercayaan, kehidupan seks, atau orientasi seksual mereka;",
+        "mengidentifikasi orang dari jarak jauh secara waktu nyata berdasarkan biometrik mereka di ruang publik untuk penegakan hukum."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jangan pernah menggunakan Layanan untuk membuat, membagikan, atau mencari materi pelecehan seksual anak, atau untuk membuat atau membagikan gambar intim atau seksual orang sungguhan tanpa persetujuannya, termasuk gambar palsu."
+    },
+    {
+      "type": "h2",
+      "id": "children",
+      "text": "Anak-anak"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix ditujukan bagi orang dewasa (18 tahun ke atas). Jangan biarkan anak-anak menggunakan akun Anda. Jangan gunakan Layanan, termasuk API, dalam apa pun yang ditujukan untuk atau kemungkinan besar digunakan oleh orang di bawah 18 tahun."
+    },
+    {
+      "type": "p",
+      "text": "Jangan pernah menggunakan Layanan untuk menyeksualisasi, melakukan grooming terhadap, mengeksploitasi, atau membahayakan anak-anak. Kami melaporkan materi pelecehan seksual anak kepada pihak berwenang sebagaimana diwajibkan oleh hukum, dan kami menutup akun yang terlibat."
+    },
+    {
+      "type": "h2",
+      "id": "security",
+      "text": "Keamanan dan penyalahgunaan"
+    },
+    {
+      "type": "p",
+      "text": "Baik Anda maupun agen Anda tidak boleh menggunakan Layanan untuk:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "membuat, menyebarkan, atau menjalankan malware, ransomware, atau kode berbahaya lainnya;",
+        "membobol, menyelidiki, atau mengganggu komputer, jaringan, atau akun tanpa izin pemiliknya;",
+        "menjalankan agen di komputer, akun, atau sistem yang tidak boleh Anda gunakan, atau memberi mereka akses yang tidak boleh mereka miliki;",
+        "mengakali keamanan, proses masuk, batasan, atau langkah keselamatan kami, atau milik layanan yang Anda hubungkan;",
+        "membebani secara berlebihan, menyerang, atau mengganggu Layanan atau penggunaannya oleh orang lain;",
+        "membagikan, menjual, atau menjual kembali akses ke akun Anda atau ke Layanan tanpa perjanjian tertulis dengan kami;",
+        "mengekstrak kode atau prompt kami, atau model yang kami gunakan, kecuali jika diizinkan oleh hukum atau lisensi sumber terbuka."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Riset keamanan atas sistem kami sendiri kami sambut baik jika Anda mengikuti kebijakan [Keamanan & Pengungkapan Kerentanan](/instant/legal/security) kami."
+    },
+    {
+      "type": "h2",
+      "id": "honesty",
+      "text": "Kejujuran tentang AI"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Jangan berpura-pura bahwa AI adalah manusia, atau bahwa keluaran AI ditulis atau dibuat oleh seseorang, jika hal itu dapat menyesatkan orang.",
+        "Jika agen atau bot mengirim pesan, mengirim email, atau berbicara kepada orang lain atas nama Anda, agen atau bot tersebut harus dengan jelas menyatakan bahwa dirinya adalah AI, paling lambat dalam pesan pertamanya.",
+        "Jangan gunakan Layanan untuk menyamar sebagai orang atau organisasi sungguhan, atau untuk membuat ulasan, catatan, atau identitas palsu.",
+        "Jika Anda memublikasikan gambar, audio, atau video realistis buatan AI tentang orang, tempat, atau peristiwa nyata (deepfake), nyatakan dengan jelas bahwa konten tersebut dibuat atau diubah oleh AI.",
+        "Jangan gunakan Layanan untuk menjalankan kampanye disinformasi atau untuk mencampuri pemilihan umum."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda memublikasikan teks buatan AI untuk memberi informasi kepada publik tentang hal-hal yang menyangkut kepentingan umum, nyatakan bahwa teks tersebut dibuat oleh AI, kecuali seseorang telah meninjaunya dan memikul tanggung jawab redaksional atasnya. (EU AI Act, Art. 50(4))",
+      "only": "eu"
+    },
+    {
+      "type": "h2",
+      "id": "sensitive-uses",
+      "text": "Penggunaan yang tidak kami dukung"
+    },
+    {
+      "type": "p",
+      "text": "Orqanix dibuat untuk bekerja. Jangan gunakan untuk:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "pertemanan, persahabatan, hubungan romantis, atau hubungan emosional apa pun dengan AI;",
+        "terapi, konseling, atau pengobatan kesehatan mental. Jika Anda sedang dalam krisis, hubungi layanan darurat setempat atau layanan bantuan krisis;",
+        "memberikan nasihat profesional medis, hukum, pajak, atau keuangan kepada orang lain, kecuali seorang profesional yang berkualifikasi meninjaunya dan memikul tanggung jawab atasnya;",
+        "mendiagnosis, merawat, atau membuat keputusan tentang pasien."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Jangan berikan kepada Layanan informasi kesehatan pasien yang dilindungi oleh hukum privasi kesehatan kecuali kami telah menyepakatinya dengan Anda secara tertulis."
+    },
+    {
+      "type": "p",
+      "text": "Berdasarkan HIPAA, hukum privasi kesehatan AS, hal itu memerlukan business associate agreement, dan kami tidak menandatanganinya. [Kebijakan Privasi Data Kesehatan Konsumen](/instant/legal/health-data) kami menjelaskan cara kami menangani data kesehatan lainnya.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "high-risk",
+      "text": "Keputusan berisiko tinggi"
+    },
+    {
+      "type": "p",
+      "text": "Beberapa penggunaan dapat sangat memengaruhi kehidupan orang. Anda boleh menggunakan Layanan untuk membantu hal tersebut hanya jika Anda memenuhi setiap hukum yang berlaku bagi Anda, menugaskan orang yang berkualifikasi untuk bertanggung jawab atas setiap keputusan, dan memberi tahu orang yang terdampak jika diwajibkan oleh hukum. Penggunaan ini meliputi:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "merekrut, mempromosikan, mengelola, atau memberhentikan pekerja;",
+        "menerima, menilai, atau memantau siswa, atau mendeteksi kecurangan dalam ujian;",
+        "memutuskan tentang kredit, asuransi, perumahan, atau akses ke tunjangan publik atau layanan esensial;",
+        "identifikasi atau kategorisasi biometrik terhadap orang;",
+        "mengelola infrastruktur kritis seperti energi, air, atau lalu lintas;",
+        "penegakan hukum, migrasi, suaka, pengawasan perbatasan, pengadilan, atau pemilihan umum."
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Di UE, sebagian besar penggunaan ini merupakan penggunaan “berisiko tinggi” berdasarkan AI Act, yang menetapkan kewajiban tambahan bagi siapa pun yang menggunakan AI untuk hal tersebut. Anda bertanggung jawab untuk memenuhi kewajiban tersebut sejauh berlaku bagi Anda. (EU AI Act, Art. 26 dan Lampiran III)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jangan gunakan keluaran sebagai satu-satunya dasar keputusan yang memiliki akibat hukum atau akibat serupa yang serius terhadap seseorang.",
+      "only": "us"
+    },
+    {
+      "type": "h2",
+      "id": "spam-rights",
+      "text": "Spam, hak, dan scraping"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Jangan mengirim spam: pesan massal atau yang tidak diinginkan, atau pesan yang melanggar undang-undang antispam atau pemasaran. Saat agen atau bot mengirim pesan atas nama Anda, Andalah pengirimnya.",
+        "Hubungkan hanya aplikasi perpesanan, akun email, dan daftar kontak yang berhak Anda gunakan, dan proses data orang lain hanya jika diizinkan oleh hukum.",
+        "Jangan melanggar hak cipta, merek dagang, rahasia dagang, atau hak lainnya, dan jangan gunakan Layanan untuk mengakali paywall atau perlindungan salinan.",
+        "Jangan biarkan agen mengumpulkan data dari situs web bertentangan dengan ketentuan, aturan akses, atau instruksi robots.txt situs tersebut, atau dengan laju yang merugikannya."
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "google",
+      "text": "Aturan Google"
+    },
+    {
+      "type": "p",
+      "text": "Model AI bawaan kami adalah Google Gemini. Saat Anda menggunakannya melalui Orqanix, Anda juga harus mematuhi [Kebijakan Penggunaan Terlarang AI Generatif](https://policies.google.com/terms/generative-ai/use-policy) Google. Anda tidak boleh menggunakan Layanan untuk mengembangkan model AI yang bersaing dengan milik Google apabila [ketentuan Gemini API Google](https://ai.google.dev/gemini-api/terms) melarangnya. Jika Anda menghubungkan penyedia model lain di Aplikasi Desktop, aturan penyedia tersebut berlaku untuk penggunaan itu. [Cara Kerja AI Kami](/instant/legal/ai) menjelaskan model mana yang kami gunakan."
+    },
+    {
+      "type": "h2",
+      "id": "report",
+      "text": "Laporkan pelanggaran"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda melihat konten atau aktivitas di Layanan yang Anda yakini ilegal atau melanggar kebijakan ini, tulis ke {company.email} dengan subjek “Report”. Siapa pun dapat melapor, dengan atau tanpa akun. (EU Digital Services Act, Art. 16)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda melihat konten atau aktivitas di Layanan yang Anda yakini ilegal atau melanggar kebijakan ini, tulis ke {company.email} dengan subjek “Report”. Siapa pun dapat melapor, dengan atau tanpa akun.",
+      "only": "us"
+    },
+    {
+      "type": "p",
+      "text": "Jika nyawa atau keselamatan seseorang berada dalam bahaya langsung, hubungi polisi atau layanan darurat terlebih dahulu."
+    },
+    {
+      "type": "h3",
+      "id": "what-to-include",
+      "text": "Apa yang perlu dicantumkan"
+    },
+    {
+      "type": "list",
+      "items": [
+        "lokasi konten, setepat mungkin: tautan, nama bot atau akun, pesan, tanggal dan waktu;",
+        "alasan Anda meyakini bahwa konten tersebut ilegal atau melanggar kebijakan ini, dan, untuk konten ilegal, hukum mana yang dilanggar;",
+        "nama dan alamat email Anda, agar kami dapat membalas. Anda boleh tidak mencantumkannya jika laporan Anda menyangkut materi pelecehan seksual anak;",
+        "pernyataan bahwa Anda dengan iktikad baik meyakini laporan Anda akurat dan lengkap."
+      ]
+    },
+    {
+      "type": "h3",
+      "id": "how-we-decide",
+      "text": "Cara kami memutuskan"
+    },
+    {
+      "type": "p",
+      "text": "Kami mengonfirmasi bahwa kami telah menerima laporan Anda. Seseorang meninjaunya dan memutuskan secara tepat waktu, cermat, dan objektif. Mereka memperhatikan konten, konteks, dan hak semua pihak yang terlibat, termasuk kebebasan berekspresi. Kami kemudian memberi tahu Anda apa yang kami putuskan dan alasannya."
+    },
+    {
+      "type": "p",
+      "text": "Jika kami mengambil tindakan terhadap konten atau akun, kami memberikan pernyataan alasan kepada pengguna yang terdampak: apa yang kami lakukan, fakta yang mendasarinya, apakah sarana otomatis digunakan, aturan atau hukum yang kami jadikan dasar, dan cara menggugat keputusan tersebut. Kami tidak memberi tahu mereka siapa yang melaporkannya, kecuali diwajibkan oleh hukum. (EU Digital Services Act, Art. 17)",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Jika kami mengambil tindakan terhadap konten atau akun, kami memberi tahu pengguna yang terdampak apa yang kami lakukan dan alasannya, kecuali hukum melarangnya atau pemberitahuan tersebut akan menimbulkan kerugian. Kami tidak memberi tahu mereka siapa yang melaporkannya, kecuali diwajibkan oleh hukum.",
+      "only": "us"
+    },
+    {
+      "type": "h3",
+      "id": "disagree",
+      "text": "Jika Anda tidak setuju"
+    },
+    {
+      "type": "p",
+      "text": "Pelapor dan pengguna yang terdampak sama-sama dapat menggugat keputusan kami. Balas pesan kami, atau tulis ke {company.email} dan jelaskan alasannya. Jika memungkinkan, seseorang yang tidak mengambil keputusan pertama akan meninjaunya, dan kami akan memberi tahu Anda hasilnya."
+    },
+    {
+      "type": "p",
+      "text": "Anda juga dapat mengajukan perkara ke pengadilan, atau mengajukan pengaduan kepada Koordinator Layanan Digital (Digital Services Coordinator) di negara UE tempat Anda tinggal.",
+      "only": "eu"
+    },
+    {
+      "type": "p",
+      "text": "Kami dapat berhenti menangani laporan dari seseorang yang sering mengirimkan laporan yang jelas tidak berdasar, setelah memperingatkannya."
+    },
+    {
+      "type": "h2",
+      "id": "enforcement",
+      "text": "Penegakan"
+    },
+    {
+      "type": "p",
+      "text": "Jika Anda melanggar kebijakan ini, bergantung pada tingkat keseriusannya, kami dapat memperingatkan Anda, menghapus atau menonaktifkan konten, menghentikan agen atau bot, membatasi fitur, atau menangguhkan atau menutup akun Anda. Dalam kasus yang paling serius, seperti materi pelecehan seksual anak, kami bertindak seketika dan tanpa peringatan, dan kami memberi tahu pihak berwenang jika diwajibkan atau diizinkan oleh hukum."
+    },
+    {
+      "type": "p",
+      "text": "Kami bertindak secara proporsional terhadap apa yang terjadi dan menjelaskan keputusan kami sebagaimana diuraikan dalam [Cara kami memutuskan](#how-we-decide). [Ketentuan Layanan](/instant/legal/terms#ending) kami menjelaskan penangguhan dan penutupan akun secara lebih rinci."
+    }
+  ]
+}
