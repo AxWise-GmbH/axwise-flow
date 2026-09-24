@@ -69,6 +69,12 @@ to the same instance, so verify the instance in Clerk.
    publishable key must refer to the new Frontend API. Confirm production OAuth
    provider callbacks and a production native OAuth application with the
    desktop's exact redirect URI, public-client/PKCE behavior and scopes.
+   For Google social sign-in, the Google Cloud OAuth client's authorized
+   redirect list must include `https://clerk.orqanix.com/v1/oauth_callback`.
+   Renaming the Clerk primary domain does not update Google's allowlist.
+   Click the Google button and verify that Google's account-entry/selection
+   screen loads without `redirect_uri_mismatch`; rendering the Clerk form
+   successfully is not this test. Complete an actual user login separately.
 3. Set `ORQALY_ENVIRONMENT=production`, both production Clerk keys and
    `ORQALY_BROWSER_ORIGINS=https://orqanix.com` on the promoted API. Add only other
    intentional production browser origins. This allowlist controls both CORS
@@ -123,3 +129,26 @@ be recorded independently; provider readiness does not establish that they are
 live.
 
 Reference: [Clerk React setup](https://clerk.com/docs/react/getting-started/quickstart).
+
+## Deployment and social-login correction — 24 September 2026
+
+- API production revision: `orqaly-v2-api-preview-prod-99174e77`, serving 100%.
+  `/readyz` reports production and the desktop session endpoint rejects
+  unauthenticated requests with HTTP 401.
+- Account website: source `bd51a8c7`, revision
+  `orqaly-v2-web-preview-prod-bd51a8c7`, serving 100%. Production Clerk forms,
+  signed-out gating, return links, public download links and preview-to-production
+  HTTP 308 redirects were checked on the live domain.
+- Matching desktop: Orqanix 2.3.15, build 5682, source `3656b0241`. The full public
+  DMG SHA-256 matches the verified local installer:
+  `bb80eb00df4954bd0b85e5ec32ca506ba9d4f11708e858ea6be4e0164cbc58e9`.
+- The user's subsequent Google login exposed `redirect_uri_mismatch`. The actual
+  Google client in project `axwise-73425` still listed only Firebase and
+  `https://clerk.axwise.de/v1/oauth_callback`. With explicit owner approval,
+  `https://clerk.orqanix.com/v1/oauth_callback` was added. Google confirmed
+  "OAuth client saved". Existing redirects, client secrets and scopes were
+  preserved. A saved configuration alone does not prove completed user login.
+
+Authenticated post-login browser and desktop model access require an actual
+user sign-in verification. No account/history migration or data deletion was
+performed. The installer remains ad-hoc signed, not Apple-notarized.

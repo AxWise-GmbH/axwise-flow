@@ -95,7 +95,7 @@ AxWise Flow is intended to support domain-neutral orchestration for software eng
 * **Current Status**: Phases 1–4 accept one strict task contract across domains, classify uncertainty and evidence sufficiency, bound research by value/cost/time, construct validated multi-agent plans, link pre-planning context to final assignments, create immutable recovery decisions, store execution receipts, evaluate outcomes, and govern tenant-scoped scorer promotion/rollback. Scheduled production-scale replay and paid-pilot proof remain open.
 
 ### 2. Simulated Stakeholder Profiles
-* **What it does**: Automatically instantiates highly specific, psychologically realistic personas based on raw commercial context. 
+* **What it does**: Automatically instantiates highly specific, psychologically realistic personas based on raw commercial context.
 * **Use Case**: Simulate target stakeholders (e.g., enterprise compliance officers, procurement leads, local craftspeople) and interview them dynamically before writing a single line of code or launching a marketing campaign.
 * **Underlying Tech**: Uses statistical Gaussian sampling to model personality metrics (Big Five OCEAN traits) matching occupational baselines, driving the conversational response profiles of the simulated agents.
 
@@ -367,7 +367,7 @@ Generates 85mm photorealistic headshots or falls back to deterministic gradient 
 ```bash
 curl -X POST http://localhost:8000/api/personas/12/Lukas_Weber/avatar
 ```
-**Output**: 
+**Output**:
 ```json
 {
   "ok": true,
