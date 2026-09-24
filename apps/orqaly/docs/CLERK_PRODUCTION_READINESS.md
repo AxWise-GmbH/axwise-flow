@@ -148,6 +148,8 @@ Reference: [Clerk React setup](https://clerk.com/docs/react/getting-started/quic
   `https://clerk.orqanix.com/v1/oauth_callback` was added. Google confirmed
   "OAuth client saved". Existing redirects, client secrets and scopes were
   preserved. A saved configuration alone does not prove completed user login.
+  A fresh post-save Google attempt reached its normal account-entry screen for
+  `orqanix.com`, with no redirect mismatch. No credentials were entered.
 
 Authenticated post-login browser and desktop model access require an actual
 user sign-in verification. No account/history migration or data deletion was
