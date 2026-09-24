@@ -1,7 +1,7 @@
 # Orqanix 2.3.14 — 24 September 2026
 
-Release candidate: macOS Apple Silicon preview **2.3.14, build 5681**.
-Publication and installer verification are recorded below when complete.
+Published macOS Apple Silicon preview **2.3.14, build 5681**. Both
+`orqanix.com` and `preview.orqanix.com` serve the verified download.
 
 ## What changed
 
@@ -44,6 +44,13 @@ and [expanded pipeline benchmark](../../../packages/axwise-local/EXPANDED_BENCHM
   tests. Desktop release tests used supported Node 24.10.0 with local test-server
   access; preliminary Node 26/sandbox failures were environmental.
 - Website release-metadata and landing checks: 29 tests passed.
+- Final signed-app live integration passed 9/9 stages across all eight tools in
+  86.018 s, plus 1.796 s authenticated setup. Saved JSON/Markdown hashes,
+  references and persona-conversation continuation passed. Personas and analysis
+  used internal repair; the harness did not retry tool requests. The first
+  sandboxed setup could not access the credential store and ran no inference;
+  the approved Keychain/network run passed. Post-run deep/strict signatures
+  still passed. This is explicit integration, not a new routing benchmark.
 - Rust formatting and full-workspace Clippy passed. Local JEV pre-commit review
   skipped because its key was unavailable; no successful JEV review is claimed.
 
@@ -56,6 +63,7 @@ user-visible extension-mount failure indicator remains follow-up work.
 
 - Axwise: `6ad4826a3c976c404bdf34e2db37268213743660`.
 - Desktop/fork: `4f597974e4b448a1e2f10e3170967d99b6f2350b`.
+- Website/build source: `1f1381faff7b0776fdbb43a6fef99a1f0f370d9b`.
 - Branch in both authorized forks: `codex/local-axwise-pipeline-2.3.14`.
 
 The release uses the existing ad-hoc preview signing policy, **not Apple
@@ -73,5 +81,33 @@ Unrelated local files are excluded from release commits.
   version is 2.3.14/build 5681, also verified in the read-only mounted installer.
 - Local installer: `/private/tmp/orqanix-release-2314-5681.hZPa9k/Orqanix-Preview-macOS-arm64.dmg`.
 
-Pending packaged live smoke, public checksum verification, main-branch
-fast-forwards and website rollout.
+Both release branches and remote `main` branches were fast-forwarded on the
+authorized `vitalyvishnevsky` repositories only. Nothing was pushed to
+`AxWise-GmbH/axwise-flow`.
+
+Website build `b776345e-99aa-4de1-86aa-da5bef4b36fc` succeeded in project
+`axwise-v2-preview-001`, region `europe-west4`, from the exact committed
+`apps/orqaly` subtree. Image digest:
+`sha256:677c5a57b7c477b607d736234c535cd0862724589a45f9c3fd725fb34811a890`.
+
+- Public installer: `https://storage.googleapis.com/orqaly-preview-downloads-161074549006/releases/2026-09-24-v2.3.14/Orqanix-Preview-macOS-arm64.dmg`.
+- Public checksum: the same URL plus `.sha256`.
+- Installer streamed back over public HTTPS: HTTP 200, exact `415185124` bytes
+  and SHA-256 above. The public checksum sidecar matched.
+- Cloud Run website revision `orqaly-v2-web-preview-axwise2314-1f1381fa` serves
+  100% of traffic. Its immutable image digest matches the successful build.
+  All ten existing revision tags were retained.
+- The website's runtime configuration (excluding the intentionally changed
+  image) and service account remained unchanged. Before/after configuration
+  SHA-256: `b2adb6ecafa3fa93e42f7686d6ba548e02472d9b42195fd87502d420cef1b060`.
+- Both public domains returned HTTP 200 and served `assets/index-dWhsAcov.js`
+  containing version 2.3.14, the exact installer URL, byte size and checksum-link
+  behavior. Unused checksum-value metadata was tree-shaken; the linked public
+  checksum file was verified independently. Build 5681 was checked in the app
+  plist inside the mounted installer.
+
+Packaged integration report retained locally:
+`/var/folders/18/9fzqvw3s11l5_4bfkfj20f740000gn/T/axwise-pipeline-zhzIJ1/report.json`.
+This temporary report is verification evidence, not a user-artifact retention
+promise. The public installer and committed release/benchmark notes are the
+published release records.
