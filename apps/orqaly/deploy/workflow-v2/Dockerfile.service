@@ -12,5 +12,6 @@ COPY services/agentic-control-plane/src/executors ./services/agentic-control-pla
 COPY infra/n8n/executor-bindings.json ./n8n/executor-bindings.json
 COPY infra/n8n/workflows ./n8n/workflows
 COPY infra/n8n/nodes-orqaly-bounded-http ./infra/n8n/nodes-orqaly-bounded-http
+RUN node --input-type=module -e "await import('./server/workflow-v2/goose-provider-config.js')"
 USER node
 CMD ["node", "server/workflow-v2/api-main.js"]

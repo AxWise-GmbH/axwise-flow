@@ -41,12 +41,12 @@ export const INSTANT_PAGES = [
     nav: false,
     info: true,
   })),
-  // The old Privacy and Terms addresses open their Legal Center documents.
+  // Preserve the existing public notices while the Legal Center stays unpublished.
   ...['Privacy', 'Terms'].map((label) => ({
     slug: label.toLowerCase(),
     label,
     path: `/instant/${label.toLowerCase()}`,
-    redirect: `/instant/legal/${label.toLowerCase()}`,
+    redirect: `/${label.toLowerCase()}`,
     nav: false,
   })),
 ];

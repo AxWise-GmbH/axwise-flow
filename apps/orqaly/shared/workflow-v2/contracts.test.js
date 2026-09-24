@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   AxWiseOperationEnvelopeSchema,
+  AxWiseCompletionResultSchema,
+  AssistantTurnInputV2Schema,
   AssistantContextEnvelopeV1Schema,
   CompletionResultSchema,
   CompileScopeInputV3Schema,
@@ -161,6 +163,111 @@ const artifactRef = {
 };
 
 describe('workflow v2 contracts', () => {
+  it('keeps V1 assistant input bytes stable while adding generation-only V2 image presentations', () => {
+    const v1 = {
+      type: 'AssistantTurnV1',
+      responseMode: 'one_shot',
+      message: 'Compare two bounded options.',
+      conversation: [{ role: 'user', content: 'I care most about reliability.' }],
+    };
+    expect(canonicalHash(v1)).toBe(
+      '3befecdade2f3b709368595b6062b3dad9259c5ab2e90aba6f3072773090dbd3'
+    );
+
+    const data = 'iVBORw0KGgpmaXh0dXJl';
+    const input = AssistantTurnInputV2Schema.parse({
+      type: 'AssistantTurnV2',
+      responseMode: 'direct_answer',
+      message: 'Generate this image.',
+      conversation: [],
+      capability: {
+        kind: 'image_generate',
+        aspectRatio: '16:9',
+        imageSize: '1K',
+      },
+    });
+    const envelope = {
+      operationId: id(931),
+      operationType: 'AssistantTurnV2',
+      owner: { tenantId: id(932), organizationId: null, userId: 'user_assistantcontract123' },
+      workflow: { runId: id(933), stageId: id(934), stageAttemptId: id(935) },
+      contractVersion: 'axwise.operation.v2',
+      canonicalInputHash: canonicalHash(input),
+      input,
+    };
+    expect(AxWiseOperationEnvelopeSchema.parse(envelope)).toEqual(envelope);
+
+    const completed = {
+      resultType: 'assistant_turn_completed',
+      response: {
+        schemaVersion: 'axwise.assistant-turn.v2',
+        markdown: 'Here is the generated image.',
+        sources: [],
+        facts: [],
+        recommendations: [],
+        presentations: [{
+          schemaVersion: 'axwise.presentation.generated-image.v1',
+          kind: 'generated_image',
+          mimeType: 'image/png',
+          data,
+          sha256: 'bd54b02fae14b6b9ed73887ded339b8ef846fbcba0d4e5f9d95470ac23ade242',
+          alt: 'A generated image',
+          model: 'gemini-3.1-flash-image',
+        }],
+      },
+    };
+    expect(AxWiseCompletionResultSchema.parse(completed)).toEqual(completed);
+    expect(() => AxWiseCompletionResultSchema.parse({
+      ...completed,
+      response: {
+        ...completed.response,
+        presentations: [{ ...completed.response.presentations[0], sha256: '0'.repeat(64) }],
+      },
+    })).toThrow(/sha256/);
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      capability: {
+        kind: 'image_edit',
+        imageSize: '1K',
+        media: [{ mimeType: 'image/png', data }],
+      },
+    })).toThrow();
+  });
+
+  it('accepts a strict quick-info capability without duplicating the top-level message', () => {
+    const input = AssistantTurnInputV2Schema.parse({
+      type: 'AssistantTurnV2',
+      responseMode: 'one_shot',
+      message: 'What are the main local headlines in Bremen today?',
+      conversation: [],
+      capability: {
+        kind: 'quick_info',
+        location: 'Bremen',
+        discoveryKind: 'news',
+        routingMode: 'jev',
+      },
+    });
+
+    expect(input.capability).toEqual({
+      kind: 'quick_info',
+      location: 'Bremen',
+      discoveryKind: 'news',
+      routingMode: 'jev',
+    });
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      capability: { ...input.capability, query: input.message },
+    })).toThrow();
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      capability: { ...input.capability, routingMode: 'automatic' },
+    })).toThrow();
+    expect(() => AssistantTurnInputV2Schema.parse({
+      ...input,
+      message: 'x'.repeat(2_001),
+    })).toThrow(/2,000/);
+  });
+
   it('keeps attempt lease credentials out of the public snapshot contract', () => {
     const inputPayload = {
       type: 'CompileScopeV2',

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { canonicalJson, sha256Hex } from '../../lib/workflow-v2/canonical.js';
 import {
+  AssistantCapabilityV2Schema,
+  AssistantPresentationV1Schema,
   AxWiseFailureDiagnosticsSchema,
   ClerkOrganizationIdSchema,
   ClerkUserIdSchema,
@@ -40,6 +42,7 @@ export const AssistantTurnCommandSchema = z
     intent: AssistantComposerIntentSchema.optional(),
     agentLifetime: AssistantAgentLifetimeSchema.optional(),
     agentId: UuidSchema.optional(),
+    capability: AssistantCapabilityV2Schema.optional(),
   })
   .strict()
   .superRefine((command, context) => {
@@ -152,6 +155,20 @@ export const AssistantDelegationRequestPartSchema = z
     type: z.literal('delegation_request'),
     lifetime: AssistantAgentLifetimeSchema,
     agentId: UuidSchema.optional(),
+  })
+  .strict();
+
+export const AssistantCapabilityRequestPartSchema = z
+  .object({
+    type: z.literal('capability_request'),
+    capability: AssistantCapabilityV2Schema,
+  })
+  .strict();
+
+export const AssistantPresentationPartSchema = z
+  .object({
+    type: z.literal('presentation'),
+    presentation: AssistantPresentationV1Schema,
   })
   .strict();
 
@@ -351,6 +368,8 @@ export const AssistantMessagePartSchema = z.discriminatedUnion('type', [
   AssistantOperationStatusPartSchema,
   AssistantFactPartSchema,
   AssistantRecommendationPartSchema,
+  AssistantCapabilityRequestPartSchema,
+  AssistantPresentationPartSchema,
   AssistantDelegationRequestPartSchema,
   AssistantDelegatedAgentPartSchema,
   AssistantGoalLinkPartSchema,
@@ -364,6 +383,8 @@ const AssistantReadMessagePartSchema = z.union([
   AssistantOperationStatusPartSchema,
   AssistantFactPartSchema,
   AssistantRecommendationPartSchema,
+  AssistantCapabilityRequestPartSchema,
+  AssistantPresentationPartSchema,
   AssistantDelegationRequestPartSchema,
   AssistantDelegatedAgentPartSchema,
   LegacyUnverifiedAssistantDelegatedAgentPartSchema,
@@ -432,6 +453,22 @@ export const AssistantMessageSchema = z
     }
     const delegationRequests = message.parts.filter((part) => part.type === 'delegation_request');
     const delegatedAgents = message.parts.filter((part) => part.type === 'delegated_agent');
+    const capabilityRequests = message.parts.filter((part) => part.type === 'capability_request');
+    const presentations = message.parts.filter((part) => part.type === 'presentation');
+    if (capabilityRequests.length > 1 || (capabilityRequests.length && message.role !== 'user')) {
+      context.addIssue({
+        code: 'custom',
+        path: ['parts'],
+        message: 'one capability request may be persisted only on a user message',
+      });
+    }
+    if (presentations.length && message.role !== 'assistant') {
+      context.addIssue({
+        code: 'custom',
+        path: ['parts'],
+        message: 'presentations may be persisted only on an assistant message',
+      });
+    }
     if (delegationRequests.length && (message.role !== 'user' || message.route !== 'START_GOAL')) {
       context.addIssue({
         code: 'custom',

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { posix } from 'node:path';
 import { sha256Hex } from '../../lib/workflow-v2/canonical.js';
 import { DesktopConversationIdSchema } from './desktop-work-service.js';
 
@@ -17,7 +18,18 @@ const ReferenceSchema = z.object({
   requestId: z.uuid(),
   artifactHash: hash,
 }).strict();
-const EvidenceSchema = z.object({
+const ChangedFileSchema = z.object({
+  path: nonempty(1024).refine((value) =>
+    !value.includes('\0')
+    && !value.includes('\ufffd')
+    && !value.startsWith('/')
+    && !/^[A-Za-z]:\//.test(value)
+    && posix.normalize(value) === value
+    && value.split('/').every((part) => part && part !== '.' && part !== '..'),
+  ),
+  change: z.enum(['new', 'edited', 'deleted']),
+}).strict();
+const EvidenceShape = {
   diff: z.object({
     status: z.enum(['captured', 'unavailable']),
     before: z.string().max(MAX_EVIDENCE_CHARACTERS),
@@ -32,7 +44,23 @@ const EvidenceSchema = z.object({
     truncated: z.boolean(),
   }).strict(),
   toolsUsed: z.array(nonempty(200)).max(64),
-}).strict();
+};
+const LegacyEvidenceSchema = z.object(EvidenceShape).strict();
+const CurrentEvidenceSchema = z.object({
+  ...EvidenceShape,
+  changedFilesStatus: z.enum(['captured', 'unavailable']),
+  changedFiles: z.array(ChangedFileSchema).max(256),
+  relevantIgnoredFilesChanged: z.boolean(),
+}).strict().superRefine((evidence, context) => {
+  if (evidence.changedFilesStatus === 'unavailable' && evidence.changedFiles.length) {
+    context.addIssue({ code: 'custom', path: ['changedFiles'], message: 'Unavailable changed-file evidence must be empty.' });
+  }
+  const paths = evidence.changedFiles.map((file) => file.path);
+  if (new Set(paths).size !== paths.length) {
+    context.addIssue({ code: 'custom', path: ['changedFiles'], message: 'Changed-file paths must be unique.' });
+  }
+});
+const EvidenceSchema = z.union([CurrentEvidenceSchema, LegacyEvidenceSchema]);
 export const EngineeringReviewSchema = z.object({
   taskId: DesktopConversationIdSchema,
   conversationId: DesktopConversationIdSchema,
@@ -112,12 +140,6 @@ export function createEngineeringReviewService({ desktopWorkService = null, apiK
       seenReferences.add(identity);
     }
     const started = Date.now();
-    const controller = new AbortController();
-    let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
-    const abort = () => controller.abort();
-    if (signal?.aborted) controller.abort();
-    signal?.addEventListener('abort', abort, { once: true });
     const receipt = (status, reason, evaluated = {}) => ({
       taskId: command.taskId,
       conversationId: command.conversationId,
@@ -130,6 +152,17 @@ export function createEngineeringReviewService({ desktopWorkService = null, apiK
         qualityScore: null, readyProbability: null, ...evaluated,
       },
     });
+    // Older desktop builds cannot attest which repository files changed. Accept their exact payload
+    // shape for compatibility, but never send incomplete evidence to the advisory provider.
+    if (!('changedFilesStatus' in command.evidence)) {
+      return receipt('not_evaluated', 'missing_changed_file_evidence');
+    }
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+    const abort = () => controller.abort();
+    if (signal?.aborted) controller.abort();
+    signal?.addEventListener('abort', abort, { once: true });
     try {
       const research = [];
       for (const reference of command.researchReferences) {
@@ -153,12 +186,16 @@ export function createEngineeringReviewService({ desktopWorkService = null, apiK
           || sha256Hex(artifact.markdown) !== reference.artifactHash) throw invalid('ENGINEERING_RESEARCH_HASH_MISMATCH', 409);
         research.push({ ...reference, markdown: artifact.markdown });
       }
-      const { diff, tests } = command.evidence;
+      const { diff, tests, changedFilesStatus, changedFiles, relevantIgnoredFilesChanged } = command.evidence;
       // A provider cannot overrule observed test failures. These are supplied desktop observations, not server-executed tests.
       if (tests.status === 'failed' || (tests.exitCode !== null && tests.exitCode !== 0)) return receipt('failed', 'tests_failed');
       if (!command.acceptanceCriteria.length) return receipt('not_evaluated', 'missing_acceptance_criteria');
       if (diff.status !== 'captured' || !diff.changed || diff.before === diff.after
         || (!diff.before.trim() && !diff.after.trim())) return receipt('not_evaluated', 'missing_diff_evidence');
+      if (relevantIgnoredFilesChanged) return receipt('not_evaluated', 'ignored_files_changed');
+      if (changedFilesStatus !== 'captured' || !changedFiles.length) {
+        return receipt('not_evaluated', 'missing_changed_file_evidence');
+      }
       if (tests.status !== 'passed' || tests.exitCode !== 0 || !tests.command.length || !tests.output.trim()
         || tests.truncated) return receipt('not_evaluated', 'missing_test_evidence');
       if (typeof apiKey !== 'string' || !apiKey.trim() || /[\r\n]/.test(apiKey)) return receipt('not_evaluated', 'not_configured');

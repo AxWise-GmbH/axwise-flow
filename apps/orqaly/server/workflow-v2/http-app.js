@@ -1,5 +1,6 @@
 import express from 'express';
 import { getAuth, clerkMiddleware } from '@clerk/express';
+import { validateClerkKeyEnvironment } from './clerk-config.js';
 import { z, ZodError } from 'zod';
 import { WorkflowTransitionError } from '../../lib/workflow-v2/state-machine.js';
 import { PublicWorkflowSnapshotSchema } from '../../shared/workflow-v2/contracts.js';
@@ -160,10 +161,16 @@ export function browserOriginsFromEnvironment(environment = process.env) {
 }
 
 export function clerkMiddlewareOptionsFromEnvironment(environment = process.env) {
+  validateClerkKeyEnvironment(environment);
+  if (['preview', 'production'].includes(environment.ORQALY_ENVIRONMENT)
+    && !browserOriginsFromEnvironment(environment).length) {
+    throw new Error('ORQALY_BROWSER_ORIGINS must explicitly list this deployment’s browser origins');
+  }
   return { authorizedParties: browserOriginsFromEnvironment(environment) };
 }
 
 export function isClerkEnvironmentConfigured(environment = process.env) {
+  validateClerkKeyEnvironment(environment);
   return Boolean(
     environment.CLERK_SECRET_KEY &&
     environment.CLERK_PUBLISHABLE_KEY &&
@@ -1137,6 +1144,17 @@ export function createWorkflowHttpApp({
     '/v2/assistant/threads/:threadId/messages',
     asyncRoute(async (req, res) => {
       if (!assistantService) throw new Error('assistant service is not configured');
+      if (
+        req.body !== null &&
+        typeof req.body === 'object' &&
+        Object.prototype.hasOwnProperty.call(req.body, 'capability')
+      ) {
+        throw new WorkflowCommandError(
+          'ASSISTANT_CAPABILITY_DESKTOP_ONLY',
+          'Assistant capabilities are available through the desktop work boundary.',
+          400
+        );
+      }
       const result = await assistantService.send(req.authContext, req.params.threadId, req.body);
       res.status(result.persisted ? (result.idempotent ? 200 : 201) : 202).json(result);
     })
@@ -1145,7 +1163,7 @@ export function createWorkflowHttpApp({
     '/v2/assistant/threads/:threadId/turns/:turnId/retry',
     asyncRoute(async (req, res) => {
       if (!assistantService) throw new Error('assistant service is not configured');
-      const result = await assistantService.retry(
+      const result = await assistantService.retryPublic(
         req.authContext,
         req.params.threadId,
         req.params.turnId,

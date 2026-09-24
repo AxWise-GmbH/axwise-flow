@@ -505,7 +505,8 @@ axwise_worker_db_version="$(ensure_database_url_secret axwise-v2-preview-001-db-
   "${axwise_worker_password_version}" "${AXWISE_DATABASE}")"
 
 for secret_name in orqaly-v2-preview-001-clerk-secret-key \
-  orqaly-v2-preview-001-clerk-publishable-key axwise-v2-preview-001-gemini-api-key; do
+  orqaly-v2-preview-001-clerk-publishable-key axwise-v2-preview-001-gemini-api-key \
+  axwise-v2-preview-001-typesafe-api-key; do
   ensure_secret "${secret_name}"
 done
 
@@ -513,11 +514,14 @@ grant_secret_access orqaly-v2-preview-001-db-identity-url orqaly-v2-api-preview
 grant_secret_access orqaly-v2-preview-001-db-api-url orqaly-v2-api-preview
 grant_secret_access orqaly-v2-preview-001-clerk-secret-key orqaly-v2-api-preview
 grant_secret_access orqaly-v2-preview-001-clerk-publishable-key orqaly-v2-api-preview
+grant_secret_access axwise-v2-preview-001-typesafe-api-key orqaly-v2-api-preview
 grant_secret_access orqaly-v2-preview-001-db-worker-url orqaly-v2-worker-preview
 grant_secret_access axwise-v2-preview-001-db-api-url axwise-v2-api-preview
 grant_secret_access axwise-v2-preview-001-db-worker-url axwise-v2-worker-preview
 grant_secret_access axwise-v2-preview-001-authority-seal axwise-v2-worker-preview
 grant_secret_access axwise-v2-preview-001-gemini-api-key axwise-v2-worker-preview
+grant_secret_access axwise-v2-preview-001-typesafe-api-key axwise-v2-worker-preview
+grant_secret_access axwise-v2-preview-001-gemini-api-key orqaly-v2-api-preview
 grant_secret_access orqaly-v2-preview-001-clerk-publishable-key "${BUILD_ACCOUNT}"
 
 assert_secret_service_accounts orqaly-v2-preview-001-db-identity-url "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -526,13 +530,18 @@ assert_secret_service_accounts orqaly-v2-preview-001-db-worker-url "orqaly-v2-wo
 assert_secret_service_accounts axwise-v2-preview-001-db-api-url "axwise-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_secret_service_accounts axwise-v2-preview-001-db-worker-url "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_secret_service_accounts axwise-v2-preview-001-authority-seal "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
-assert_secret_service_accounts axwise-v2-preview-001-gemini-api-key "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com"
+assert_secret_service_accounts axwise-v2-preview-001-gemini-api-key \
+  "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" \
+  "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_secret_service_accounts orqaly-v2-preview-001-clerk-secret-key "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
+assert_secret_service_accounts axwise-v2-preview-001-typesafe-api-key \
+  "axwise-v2-worker-preview@${PROJECT_ID}.iam.gserviceaccount.com" \
+  "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 assert_secret_service_accounts orqaly-v2-preview-001-clerk-publishable-key \
   "${BUILD_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
   "orqaly-v2-api-preview@${PROJECT_ID}.iam.gserviceaccount.com"
 
-echo "Preview 001 baseline is provisioned. Add external Clerk/Gemini values before build/deploy."
+echo "Preview 001 baseline is provisioned. Add external Clerk/Gemini/TypeSafe values before build/deploy."
 echo "ADMIN_DB_SECRET_VERSION=${admin_password_version}"
 echo "ORQALY_IDENTITY_PASSWORD_SECRET_VERSION=${identity_password_version}"
 echo "ORQALY_API_PASSWORD_SECRET_VERSION=${api_password_version}"

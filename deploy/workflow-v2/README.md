@@ -17,7 +17,13 @@ cancellation. `005_compile_scope_v3.sql` adds the authority-labelled Assistant
 context input and enforces one cognitive operation per tenant stage attempt,
 regardless of contract version. `006_prepare_solution.sql` adds the typed,
 non-executing Solution design operation; it does not add connectors, registration,
-credentials, code execution or runtime authority. Every migration SHA-256 must match
+credentials, code execution or runtime authority. `007_prepare_solution_v2.sql`
+adds its native-JSON successor, `008_capability_analysis.sql` registers bounded
+corpus analysis, and `009_capability_simulation.sql` registers explicit synthetic
+generation. `010_assistant_turn_v2.sql` registers the typed Assistant presentation
+contract used for native image, weather and currency results. These schema entries
+do not themselves enable a provider, grant a role or authorize a side effect.
+Every migration SHA-256 must match
 `SCHEMA_SHA256`; skipping or reordering a migration is unsupported. The login
 roles are provisioned outside
 the chain, then `preview-role-bindings.sql` grants the narrow API and worker
@@ -37,6 +43,18 @@ one bounded transaction, preserves the current database/roles/RLS and never logs
 the existing admin credential. It does not provision or grant anything. API and
 worker readiness now require SQL006, so apply it before updating their image.
 The older baseline helper remains scoped to migrations 001–005.
+
+For the existing Preview database marked through SQL009, run
+`backend/venv/bin/python deploy/workflow-v2/apply-assistant-turn-v2-preview.py
+--admin-secret-version <numeric-version>` for a read-only exact-state inspection.
+Add `--apply` only for the authorized cutover, from a fully committed clean
+checkout, and before promoting any image that can persist `AssistantTurnV2`.
+This Preview-only operator pins the GCP project, Cloud SQL instance, database,
+PostgreSQL major/admin identity and exact SQL001–SQL010 marker checksums. It accepts
+only the exact live SQL009 constraint or an exactly marked SQL010 replay, keeps the
+constraint change and new SQL010 marker in one bounded transaction, preserves
+FORCE RLS, records the applying source commit and never logs the admin credential.
+It does not provision, grant, invoke or deploy anything.
 
 `PrepareSolutionV1` uses the existing shared Google model with a tool-free typed
 output boundary. It returns `needs_input`, `candidate` or `unsupported`; Orqaly
@@ -100,6 +118,6 @@ the canonical endpoint. The coordinated Orqaly deployment owns the worker's
 never mutates the worker service or its container image.
 
 The dedicated image installs `backend/workflow_v2_requirements.lock`. The
-path-scoped workflow-v2 CI gate uses the same lock, verifies the pinned 001-006
+path-scoped workflow-v2 CI gate uses the same lock, verifies the pinned 001-010
 checksums and PostgreSQL invariants, and builds the image without invoking
 deployment.

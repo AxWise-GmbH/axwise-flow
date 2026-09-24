@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import { createServer } from 'node:http';
-import { createGooseProviderRouter, GOOSE_PROVIDER_MODEL } from './goose-provider-http.js';
+import { createGooseProviderRouter, GOOSE_PROVIDER_MODEL, validateGooseChatRequest } from './goose-provider-http.js';
 import { DesktopWorkIdentitySchema, DesktopWorkStartSchema } from './desktop-work-service.js';
 
 const servers = [];
@@ -33,6 +33,9 @@ describe('desktop context and bounded work routes', () => {
         cancel: vi.fn(async (_auth, input) => ({ ...DesktopWorkIdentitySchema.parse(input), status: 'cancel_requested' })),
         events: vi.fn(async () => ({ events: [], cursor: 0 })),
       },
+      informationService: { lookup: vi.fn(async (_auth, input) => ({ ...input, status: 'completed' })) },
+      searchService: { search: vi.fn(async (_auth, input) => ({ ...input, outcome: 'grounded', sources: [] })) },
+      decisionService: { decide: vi.fn(async (_auth, input) => ({ ...input, decision: 'queue' })) },
     };
   }
 
@@ -43,6 +46,8 @@ describe('desktop context and bounded work routes', () => {
       ['/work', '{invalid'], [workPath, null], [`${workPath}/cancel`, {}],
       [`${workPath}/events`, null], [`/goals/${runId}/context`, null],
       [`/goals/${runId}/artifacts/${artifactId}`, null],
+      ['/information', '{invalid'], ['/decisions', '{invalid'],
+      ['/search', '{invalid'],
     ]) {
       const response = await f.call(path, payload, { headers: { 'Content-Type': 'application/json' } });
       expect(response.status).toBe(401);
@@ -59,7 +64,8 @@ describe('desktop context and bounded work routes', () => {
     expect((await f.call('/work', body)).status).toBe(200);
     expect(s.desktopWorkService.start).toHaveBeenCalledWith({ userId: 'user-1' }, body);
     expect((await f.call(workPath, null)).status).toBe(200);
-    expect(s.desktopWorkService.read).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId });
+    expect(s.desktopWorkService.read).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId },
+      { waitMs: 0, signal: expect.any(AbortSignal) });
     expect((await f.call(`${workPath}/cancel`, {})).status).toBe(200);
     expect(s.desktopWorkService.cancel).toHaveBeenCalledWith({ userId: 'user-1' }, { conversationId, requestId });
     expect((await f.call(`${workPath}/events?after=2&limit=10`, null)).status).toBe(200);
@@ -68,6 +74,74 @@ describe('desktop context and bounded work routes', () => {
     expect(s.desktopContextService.read).toHaveBeenCalledWith({ userId: 'user-1' }, runId);
     expect((await f.call(`/goals/${runId}/artifacts/${artifactId}`, null)).status).toBe(200);
     expect(s.desktopContextService.artifact).toHaveBeenCalledWith({ userId: 'user-1' }, runId, artifactId);
+    expect((await f.call('/information', body)).status).toBe(200);
+    expect(s.informationService.lookup).toHaveBeenCalledWith({ userId: 'user-1' }, body,
+      { signal: expect.any(AbortSignal) });
+    expect((await f.call('/search', { query: 'Bremen headlines' })).status).toBe(200);
+    expect(s.searchService.search).toHaveBeenCalledWith({ userId: 'user-1' },
+      { query: 'Bremen headlines' }, { signal: expect.any(AbortSignal) });
+    const decision = { kind: 'message_disposition', incomingMessage: 'Also add a test.' };
+    expect((await f.call('/decisions', decision)).status).toBe(200);
+    expect(s.decisionService.decide).toHaveBeenCalledWith({ userId: 'user-1' }, decision);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('accepts an optional bounded status wait without spending another auth or request-rate budget', async () => {
+    const s = services();
+    const rateLimiter = vi.fn((_req, _res, next) => next());
+    const f = await fixture({ ...s, rateLimiter });
+    for (const waitMs of [0, 8_000]) {
+      expect((await f.call(`${workPath}?waitMs=${waitMs}`, null)).status).toBe(200);
+      expect(s.desktopWorkService.read).toHaveBeenLastCalledWith(
+        { userId: 'user-1' }, { conversationId, requestId }, { waitMs, signal: expect.any(AbortSignal) }
+      );
+    }
+    expect(rateLimiter).toHaveBeenCalledTimes(2);
+    expect(f.verifyDesktopAuth).toHaveBeenCalledTimes(2);
+    expect(f.commandService.session).toHaveBeenCalledTimes(2);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each(['-1', '8001', '1.5', '', 'NaN', 'Infinity', '1e3', '0001', '1&waitMs=2'])('rejects malformed waitMs=%s before a status lookup', async (waitMs) => {
+    const s = services();
+    const f = await fixture(s);
+    const response = await f.call(`${workPath}?waitMs=${waitMs}`, null);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: 'INVALID_DESKTOP_REQUEST' } });
+    expect(s.desktopWorkService.read).not.toHaveBeenCalled();
+  });
+
+  it('authenticates bounded waits before query parsing and rejects a tenant mismatch before work', async () => {
+    const s = services();
+    const commandService = { session: vi.fn().mockResolvedValue({ userId: 'different-owner', tenantBound: true }) };
+    const f = await fixture({ ...s, commandService });
+    expect((await f.call(`${workPath}?waitMs=invalid`, null, { headers: {} })).status).toBe(401);
+    expect(commandService.session).not.toHaveBeenCalled();
+    expect((await f.call(`${workPath}?waitMs=8000`, null)).status).toBe(403);
+    expect(s.desktopWorkService.read).not.toHaveBeenCalled();
+  });
+
+  it('aborts an outstanding status wait on disconnect without cancelling or restarting work', async () => {
+    const s = services();
+    let markStarted;
+    const started = new Promise((resolve) => { markStarted = resolve; });
+    let waitSignal;
+    s.desktopWorkService.read.mockImplementation((_auth, _identity, { signal }) => new Promise((_resolve, reject) => {
+      waitSignal = signal;
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      markStarted();
+    }));
+    const f = await fixture(s);
+    const controller = new AbortController();
+    const request = f.call(`${workPath}?waitMs=8000`, null, { signal: controller.signal });
+    const rejected = expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    await started;
+    controller.abort();
+    await rejected;
+    await vi.waitFor(() => expect(waitSignal.aborted).toBe(true));
+    expect(s.desktopWorkService.read).toHaveBeenCalledOnce();
+    expect(s.desktopWorkService.cancel).not.toHaveBeenCalled();
+    expect(s.desktopWorkService.start).not.toHaveBeenCalled();
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -119,6 +193,20 @@ describe('desktop context and bounded work routes', () => {
 });
 const jsonResponse = (value) => new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 const requestBody = () => ({ model: GOOSE_PROVIDER_MODEL, messages: [{ role: 'user', content: 'Explain the next step.' }] });
+function imageBytes(mime, size = 16) {
+  const bytes = Buffer.alloc(size);
+  if (mime === 'image/jpeg') bytes.set([0xff, 0xd8, 0xff]);
+  else if (mime === 'image/png') bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  else if (mime === 'image/webp') {
+    bytes.write('RIFF', 0, 'ascii');
+    bytes.writeUInt32LE(Math.max(0, size - 8), 4);
+    bytes.write('WEBP', 8, 'ascii');
+  }
+  return bytes;
+}
+const imagePart = (mime, bytes = imageBytes(mime)) => ({
+  type: 'image_url', image_url: { url: `data:${mime};base64,${bytes.toString('base64')}` },
+});
 async function fixture(overrides = {}) {
   const commandService = { session: vi.fn().mockResolvedValue({ userId: 'user-1', tenantBound: true }) };
   const verifyDesktopAuth = vi.fn(async (req) => req.get('authorization') === 'Bearer desktop-token' ? { userId: 'user-1' } : null);
@@ -140,6 +228,72 @@ async function fixture(overrides = {}) {
 }
 
 describe('authenticated Goose provider transport', () => {
+  it('runs thin chat and search with account identity and no workflow session or prompt injection', async () => {
+    const searchService = { search: vi.fn(async () => ({
+      markdown: '- Cited result — [Source](<https://example.com/story>)',
+      sources: [{ title: 'Source', url: 'https://example.com/story' }],
+      outcome: 'grounded', retrievedAt: '2026-09-23T09:00:00.000Z',
+    })) };
+    const f = await fixture({ commandService: undefined, searchService });
+    expect(await (await f.call('/session', null)).json()).toEqual({
+      userId: 'user-1', accountScoped: true,
+      model: GOOSE_PROVIDER_MODEL, input_modalities: ['text', 'image'],
+    });
+    const search = await f.call('/search', { query: 'Bremen headlines' });
+    expect(search.status).toBe(200);
+    expect((await search.json()).outcome).toBe('grounded');
+    expect(searchService.search).toHaveBeenCalledWith({ userId: 'user-1' },
+      { query: 'Bremen headlines' }, { signal: expect.any(AbortSignal) });
+    const body = { model: GOOSE_PROVIDER_MODEL,
+      messages: [{ role: 'system', content: 'Goose controls tool use.' }, { role: 'user', content: 'Hello.' }] };
+    expect((await f.call('/chat/completions', body)).status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(body.messages);
+    expect(f.commandService).toBeUndefined();
+  });
+  it('keeps optional engineering review authenticated and isolated from thin chat', async () => {
+    const engineeringReviewService = { review: vi.fn(async (auth, input) => ({
+      owner: auth.userId, taskId: input.taskId, review: { status: 'passed', advisory: true },
+    })) };
+    const f = await fixture({ commandService: undefined, engineeringReviewService });
+    const reviewBody = { taskId: 'task-1' };
+
+    const unauthenticated = await f.call('/engineering/review', '{private-evidence', {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(unauthenticated.status).toBe(401);
+    expect(engineeringReviewService.review).not.toHaveBeenCalled();
+
+    const accountChanged = await f.call('/engineering/review', reviewBody, {
+      headers: { Authorization: 'Bearer desktop-token', 'Content-Type': 'application/json',
+        'X-Orqaly-Account-Hash': 'wrong-account' },
+    });
+    expect(accountChanged.status).toBe(403);
+    expect(engineeringReviewService.review).not.toHaveBeenCalled();
+
+    expect(await (await f.call('/session', null)).json()).toMatchObject({
+      userId: 'user-1', accountScoped: true,
+    });
+    expect((await f.call('/work', reviewBody)).status).toBe(404);
+    expect((await f.call('/information', reviewBody)).status).toBe(404);
+    expect((await f.call('/goals/any/context', null)).status).toBe(404);
+    expect(engineeringReviewService.review).not.toHaveBeenCalled();
+
+    const review = await f.call('/engineering/review', reviewBody);
+    expect(review.status).toBe(200);
+    expect(await review.json()).toMatchObject({ owner: 'user-1', taskId: 'task-1',
+      review: { status: 'passed', advisory: true } });
+    expect(engineeringReviewService.review).toHaveBeenCalledOnce();
+    expect(engineeringReviewService.review).toHaveBeenCalledWith({ userId: 'user-1' }, reviewBody,
+      { signal: expect.any(AbortSignal) });
+
+    const chat = { model: GOOSE_PROVIDER_MODEL,
+      messages: [{ role: 'system', content: 'Goose decides how to work.' },
+        { role: 'user', content: 'Hello.' }] };
+    expect((await f.call('/chat/completions', chat)).status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(chat.messages);
+    expect(engineeringReviewService.review).toHaveBeenCalledOnce();
+    expect(f.commandService).toBeUndefined();
+  });
   it('rejects unauthenticated input before parsing or tenant/provider work', async () => {
     const f = await fixture();
     const response = await f.call('/chat/completions', 'x'.repeat(2 * 1024 * 1024 + 1), { headers: { 'Content-Type': 'application/json' } });
@@ -168,29 +322,132 @@ describe('authenticated Goose provider transport', () => {
   });
   it('serves authenticated model discovery and session without provider spend', async () => {
     const f = await fixture();
-    expect(await (await f.call('/models', null)).json()).toMatchObject({ data: [{ id: GOOSE_PROVIDER_MODEL }] });
-    expect(await (await f.call('/session', null)).json()).toEqual({ userId: 'user-1', tenantBound: true, model: GOOSE_PROVIDER_MODEL });
+    expect(await (await f.call('/models', null)).json()).toMatchObject({
+      data: [{ id: GOOSE_PROVIDER_MODEL, input_modalities: ['text', 'image'] }],
+    });
+    expect(await (await f.call('/session', null)).json()).toEqual({ userId: 'user-1', tenantBound: true,
+      model: GOOSE_PROVIDER_MODEL, input_modalities: ['text', 'image'] });
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
-  it('enforces the 2MB body limit after authenticating', async () => {
+  it('enforces the 18 MiB authenticated parser envelope', async () => {
     const f = await fixture();
-    const response = await f.call('/chat/completions', { ...requestBody(), messages: [{ role: 'user', content: 'x'.repeat(2 * 1024 * 1024) }] });
+    const response = await f.call('/chat/completions', { ...requestBody(), messages: [{ role: 'user', content: 'x'.repeat(18 * 1024 * 1024) }] });
     expect(response.status).toBe(413);
     expect(f.commandService.session).toHaveBeenCalledOnce();
     expect(f.fetchImpl).not.toHaveBeenCalled();
     expect(await response.json()).toMatchObject({ error: { code: 'CHAT_REQUEST_TOO_LARGE' } });
+  });
+  it('keeps non-image prompt and tool metadata within the prior 2 MiB budget', async () => {
+    const f = await fixture();
+    const response = await f.call('/chat/completions', { ...requestBody(),
+      messages: [{ role: 'user', content: 'x'.repeat(2 * 1024 * 1024) }] });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_REQUEST_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
   });
   it.each([
     { ...requestBody(), model: 'gemini-3.8-flash' },
     { ...requestBody(), upstream: 'https://attacker.invalid' },
     { ...requestBody(), tenantId: 'some-other-tenant' },
     { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'http://169.254.169.254/' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'https://external.invalid/image.png' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'file:///private/etc/passwd' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,not-base64' } }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [imagePart('image/jpeg', imageBytes('image/png'))] }] },
+    { ...requestBody(), messages: [{ role: 'assistant', content: [imagePart('image/jpeg')] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ ...imagePart('image/jpeg'), caption: 'untrusted' }] }] },
+    { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { ...imagePart('image/jpeg').image_url, detail: 'auto' } }] }] },
     { ...requestBody(), messages: [{ role: 'user', content: [{ type: 'file', file: { file_id: 'external-file' } }] }] },
     { ...requestBody(), tools: [{ type: 'url_context' }] },
     { ...requestBody(), messages: [{ role: 'user', content: 'Text', attachments: [{ url: 'https://external.invalid/file' }] }] },
   ])('rejects unsupported model/routing/identity/modalities before upstream spend: %#', async (body) => {
     const f = await fixture();
-    expect((await f.call('/chat/completions', body)).status).toBe(400);
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: 'INVALID_CHAT_REQUEST' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it.each(['image/jpeg', 'image/png', 'image/webp'])('forwards an inline %s Goose image without changing its bytes', async (mime) => {
+    const f = await fixture();
+    const image = imagePart(mime);
+    const content = [
+      { type: 'text', text: 'First instruction.' }, image,
+      { type: 'text', text: 'Second instruction.', extra_content: { keep: true } },
+    ];
+    const body = { ...requestBody(), messages: [{ role: 'user', content }] };
+    expect((await f.call('/chat/completions', body)).status).toBe(200);
+    const sent = JSON.parse(f.fetchImpl.mock.calls[0][1].body);
+    expect(sent.messages[0].content).toEqual(content);
+    expect(sent.messages[0].content[1].image_url.url).toBe(image.image_url.url);
+  });
+  it('accepts an image exactly at the 1 MiB per-image bound', () => {
+    const body = { ...requestBody(), messages: [{ role: 'user',
+      content: [imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024))] }] };
+    expect(validateGooseChatRequest(body)).toBe(true);
+  });
+  it('rejects a decoded image over 1 MiB with a bounded-size error', async () => {
+    const f = await fixture();
+    const body = { ...requestBody(), messages: [{ role: 'user',
+      content: [imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024 + 4))] }] };
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('keeps aggregate decoded image bytes within the upstream request budget', async () => {
+    const f = await fixture();
+    const images = Array.from({ length: 11 }, () =>
+      imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024)));
+    const body = { ...requestBody(), messages: [
+      { role: 'user', content: images.slice(0, 10) },
+      { role: 'assistant', content: 'Continue.' },
+      { role: 'user', content: images.slice(10) },
+    ] };
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('accepts exactly 10 MiB of decoded images', () => {
+    const body = { ...requestBody(), messages: [{ role: 'user',
+      content: Array.from({ length: 10 }, () =>
+        imagePart('image/jpeg', imageBytes('image/jpeg', 1024 * 1024))) }] };
+    expect(validateGooseChatRequest(body)).toBe(true);
+  });
+  it('rejects more than the desktop maximum of 10 images in one user message', async () => {
+    const f = await fixture();
+    const response = await f.call('/chat/completions', { ...requestBody(), messages: [{ role: 'user',
+      content: Array.from({ length: 11 }, () => imagePart('image/png')) }] });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('does not strand a persisted conversation after more than 20 small historical images', async () => {
+    const f = await fixture();
+    const images = Array.from({ length: 21 }, () => imagePart('image/png'));
+    const body = { ...requestBody(), messages: [
+      { role: 'user', content: images.slice(0, 10) },
+      { role: 'assistant', content: 'Continue.' },
+      { role: 'user', content: images.slice(10, 20) },
+      { role: 'assistant', content: 'I reviewed those screenshots.' },
+      { role: 'user', content: [images[20]] },
+      { role: 'assistant', content: 'I reviewed the last screenshot.' },
+      { role: 'user', content: 'Summarize the result.' },
+    ] };
+    const response = await f.call('/chat/completions', body);
+    expect(response.status).toBe(200);
+    expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body).messages).toEqual(body.messages);
+  });
+  it('rejects more than Gemini\'s 3,600-image request ceiling', async () => {
+    const f = await fixture();
+    const messages = Array.from({ length: 361 }, (_value, index) => ({
+      role: 'user',
+      content: Array.from({ length: index === 360 ? 1 : 10 }, () => imagePart('image/png')),
+    }));
+    const response = await f.call('/chat/completions', { ...requestBody(), messages });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: 'CHAT_IMAGES_TOO_LARGE' } });
     expect(f.fetchImpl).not.toHaveBeenCalled();
   });
   it('keeps tool calls, argument strings, thought signatures, usage and response bytes intact', async () => {

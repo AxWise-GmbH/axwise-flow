@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { jsonHash, stableJson, substitute } from './workflow-v2-gcp-attestation.mjs';
+import yaml from 'js-yaml';
+import { expectedBuildDefinition, jsonHash, stableJson, substitute } from './workflow-v2-gcp-attestation.mjs';
 
 const readRepoFile = (relativePath) => readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -25,6 +26,30 @@ describe('workflow v2 GCP structured attestations', () => {
         PROJECT_ID: 'preview-project',
       })
     ).toBe('$CLERK_PUBLISHABLE_KEY|$_IMAGE_NAME|image:commit|preview-project');
+  });
+
+  it('resolves committed web build defaults while preserving explicit attested inputs', () => {
+    const config = yaml.load(readRepoFile('deploy/workflow-v2/cloudbuild.web.yaml'));
+    const definition = expectedBuildDefinition(config, {
+      _IMAGE_NAME: 'registry.example/web:exact-commit',
+      _ORQALY_API_URL: 'https://preview-api.example.com',
+      _CLERK_PUBLISHABLE_KEY_VERSION: '3',
+    });
+    const args = definition.steps[0].args.join('\n');
+    expect(args).toContain('VITE_CLERK_ENVIRONMENT=preview');
+    expect(args).toContain('VITE_ORQALY_API_ENVIRONMENT=preview');
+    expect(args).toContain('VITE_CLERK_PUBLISHABLE_KEY=$CLERK_PUBLISHABLE_KEY');
+    expect(args).toContain('https://preview-api.example.com');
+    expect(args).not.toContain('$_CLERK_ENVIRONMENT');
+    expect(definition.availableSecrets.secretManager[0].versionName).toBe(
+      'projects/axwise-v2-preview-001/secrets/orqaly-v2-preview-001-clerk-publishable-key/versions/3'
+    );
+    const overridden = expectedBuildDefinition(config, {
+      _CLERK_ENVIRONMENT: 'production', _ORQALY_API_ENVIRONMENT: 'production',
+      _CLERK_PUBLISHABLE_KEY_SECRET: 'explicit-production-key',
+    });
+    expect(overridden.steps[0].args.join('\n')).toContain('VITE_CLERK_ENVIRONMENT=production');
+    expect(overridden.availableSecrets.secretManager[0].versionName).toContain('/explicit-production-key/');
   });
 
   it('makes build provenance a required create-only output bound to Cloud Build IDs', () => {
@@ -77,6 +102,10 @@ describe('workflow v2 GCP structured attestations', () => {
     expect(verifier).toContain('REQUIRE_LATEST_TRAFFIC="${REQUIRE_LATEST_TRAFFIC:-true}"');
     expect(generator).toContain("execFileSync('bash', [resolve(orqalyRepository, verifierPath)]");
     expect(generator).toContain("REQUIRE_LATEST_TRAFFIC: 'true'");
+    expect(generator).toContain(
+      "typesafeApiKey: requiredEnvironment('TYPESAFE_API_KEY_SECRET_VERSION')"
+    );
+    expect(generator).toContain("'axwise-v2-preview-001-typesafe-api-key'");
     expect(deploy).toContain('workflow-v2-gcp-attestation.mjs" runtime');
     expect(deploy).toContain('REQUIRE_LATEST_TRAFFIC=false');
     expect(deploy).not.toContain('RUNTIME_ATTESTATION_OUTPUT= REQUIRE_LATEST_TRAFFIC=false');

@@ -15,8 +15,10 @@ Resources use the `orqaly-v2-preview` / `axwise-v2-preview` prefix:
   AxWise satisfy internal ingress;
 - a dedicated Artifact Registry repository and artifact bucket;
 - independent Secret Manager entries for database credentials, Clerk Development,
-  Gemini, and the AxWise authority seal. Only the AxWise worker identity can read
-  Gemini/the authority seal; the AxWise API can read only its database URL.
+  Gemini, TypeSafe JEV, and the AxWise authority seal. The Orqaly API and AxWise
+  worker can read the TypeSafe key, the Orqaly API and AxWise worker can read
+  Gemini, only the AxWise worker can read the authority seal, and the AxWise API
+  can read only its database URL.
 
 The Orqaly worker alone receives bucket-scoped objectCreator and objectViewer roles,
 never object delete or update authority. Final Markdown object names bind tenant, run,
@@ -25,11 +27,16 @@ overwrites; exact replays require matching metadata and matching downloaded byte
 
 `provision-preview.sh` is idempotent for the exact Preview 001 target. It generates
 release-specific database credentials and the AxWise authority seal directly into Secret
-Manager without printing them. A database URL version is reused only when its complete
+Manager without printing them. It never reads the externally managed TypeSafe key
+payload. A database URL version is reused only when its complete
 value already matches the dedicated instance, database and login. The script prints only
 non-secret numeric versions. Clerk Development and Gemini secrets are created without
 versions; deployment fails closed until those values are supplied through an authenticated
-operator session and their numeric versions are explicitly selected.
+operator session and their numeric versions are explicitly selected. The existing
+`axwise-v2-preview-001-typesafe-api-key` is likewise selected only through the required
+numeric `TYPESAFE_API_KEY_SECRET_VERSION` deploy input; it is mounted on
+`orqaly-v2-api-preview` and `axwise-v2-worker-preview` as `TYPESAFE_API_KEY` and is
+explicitly absent from the AxWise API.
 Cloud SQL connector enforcement is `REQUIRED`, and authorized networks are cleared and
 asserted empty; services and operator verification use only approved Cloud SQL connectors.
 Provisioning also requires the effective organization policies that skip default-network
@@ -42,8 +49,18 @@ references and requires every
 numeric Secret Manager version as an explicit input; it never resolves `latest`. It deploys
 five logical roles: web, Orqaly API, Orqaly worker,
 AxWise API, and the dedicated durable AxWise worker. Both workers run one always-CPU
-instance at concurrency one; only the AxWise worker receives Gemini and authority-seal
-secrets. The separate stateless `axwise-v2-search-preview` discovery service must already
+instance at concurrency one. The Orqaly API receives the pinned Goose OAuth client,
+Gemini and TypeSafe JEV configuration; only the AxWise worker receives the authority seal.
+Capability work is explicitly enabled on both the Orqaly API and worker. AxWise
+capability generators are explicitly disabled on the AxWise API and enabled on its
+durable worker. Candidate and final runtime verification require these exact flags,
+selected secret versions, and direct
+accessor policies. The baseline updates only the Orqaly keys it owns; it preserves
+independently managed evaluation, control-plane, coding, solution, and other extension
+overlays instead of replacing the services' entire environment or secret map. Exact
+verification still fails if an owned Goose, JEV, capability, database, Clerk, gateway, or
+AxWise binding is missing or changed. The separate stateless
+`axwise-v2-search-preview` discovery service must already
 exist and its live Cloud Run `status.url` must be supplied as the canonical HTTPS
 `AXWISE_SEARCH_URL`. Before mutation, deployment proves that URL belongs to the exact
 Preview project/region service and that only `axwise-v2-worker-preview` can invoke it.
@@ -57,9 +74,11 @@ backward-compatible Orqaly consumers, then the AxWise producer, and the browser 
 it then requires 100% traffic on the tested revisions.
 Before its first mutation it validates the build attestation against both clean repository
 HEADs, image digests, web origin and Clerk publishable-key version. It captures all five
-effective traffic maps and promotes exact candidate revision names. Any promotion, final
-verification, or runtime-attestation failure restores all five pre-cutover maps;
-tagged/ambiguous traffic configurations fail before mutation.
+effective traffic allocations and promotes exact candidate revision names. Existing
+zero-percent tagged URLs are preserved but excluded from rollback allocation arguments.
+Any promotion, final verification, or runtime-attestation failure restores all five
+pre-cutover allocations; malformed or ambiguous positive traffic configurations fail
+before mutation.
 `resolve-preview-origins.sh` computes the three deterministic Cloud Run URLs from the
 hard-pinned project number before any service exists. Build and deploy both require those
 exact URLs, so a fresh project needs no placeholder service or unaudited bootstrap image.

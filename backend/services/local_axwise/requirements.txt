@@ -1,0 +1,6 @@
+# Deliberately small subset of backend/workflow_v2_requirements.lock.
+annotated-types==0.8.0
+pydantic==2.13.4
+pydantic_core==2.46.4
+typing-inspection==0.4.4
+typing_extensions==4.16.0

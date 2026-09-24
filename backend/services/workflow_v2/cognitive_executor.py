@@ -28,6 +28,7 @@ from backend.domain.workflow_v2.contracts import (
     ArtifactRef,
     ArtifactSynthesizedResult,
     AssistantTurnInputV1,
+    AssistantTurnInputV2,
     AxWiseOperationEnvelope,
     CompileScopeInputV2,
     CompileScopeInputV3,
@@ -82,7 +83,7 @@ from backend.domain.workflow_v2.contracts import (
 from backend.services.llm.gemini_runtime import (
     RESEARCH_MODEL,
     exact_uniform_model_version_from_result,
-    get_shared_workflow_model,
+    get_shared_workflow_model as get_shared_workflow_model,
 )
 from backend.services.workflow_v2.assistant import (
     AssistantTurnService,
@@ -1681,6 +1682,9 @@ class GeminiCognitiveExecutor:
         scope_reviser: ScopeReviser | None = None,
         assistant_runner: ResearchRunner | None = None,
         assistant_chat_runner: ResearchRunner | None = None,
+        assistant_image_runner: Any | None = None,
+        assistant_widget_runner: Any | None = None,
+        assistant_quick_info_runner: Any | None = None,
         solution_preparer: PydanticAISolutionPreparer | None = None,
         solution_preparer_v2: PydanticAINativeSolutionPreparer | None = None,
         analysis_generator: AnalysisGenerator | None = None,
@@ -1698,6 +1702,9 @@ class GeminiCognitiveExecutor:
         self.scope_reviser = scope_reviser
         self.assistant_runner = assistant_runner
         self.assistant_chat_runner = assistant_chat_runner
+        self.assistant_image_runner = assistant_image_runner
+        self.assistant_widget_runner = assistant_widget_runner
+        self.assistant_quick_info_runner = assistant_quick_info_runner
         self.solution_preparer = solution_preparer
         self.solution_preparer_v2 = solution_preparer_v2
         self.analysis_handler = AnalysisOperationHandler(
@@ -1716,6 +1723,9 @@ class GeminiCognitiveExecutor:
             source_type_classifier=_classify_source_types,
             usage_reader=_usage_from_search,
             metrics_factory=_operation_metrics,
+            image_runner=assistant_image_runner,
+            widget_runner=assistant_widget_runner,
+            quick_info_runner=assistant_quick_info_runner,
         )
 
     async def close(self) -> None:
@@ -1724,6 +1734,9 @@ class GeminiCognitiveExecutor:
             self.research_runner,
             self.assistant_runner,
             self.assistant_chat_runner,
+            self.assistant_image_runner,
+            self.assistant_widget_runner,
+            self.assistant_quick_info_runner,
         ):
             if runner is None or id(runner) in closed:
                 continue
@@ -1828,6 +1841,12 @@ class GeminiCognitiveExecutor:
             )
         if envelope.operation_type == "AssistantTurnV1":
             if not isinstance(envelope.input, AssistantTurnInputV1):
+                raise CognitiveExecutionFailure(
+                    "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
+                )
+            return await self._assistant_turn(envelope.input)
+        if envelope.operation_type == "AssistantTurnV2":
+            if not isinstance(envelope.input, AssistantTurnInputV2):
                 raise CognitiveExecutionFailure(
                     "AXWISE_INPUT_TYPE_MISMATCH", retryable=False
                 )
@@ -2017,7 +2036,9 @@ class GeminiCognitiveExecutor:
             ),
         )
 
-    async def _assistant_turn(self, input_value: AssistantTurnInputV1):
+    async def _assistant_turn(
+        self, input_value: AssistantTurnInputV1 | AssistantTurnInputV2
+    ):
         return await self.assistant_turn_service.execute(input_value)
 
     async def _revise_scope(
@@ -3912,70 +3933,9 @@ class GeminiCognitiveExecutor:
 def build_cognitive_executor(
     artifact_resolver: ArtifactResolver,
 ) -> GeminiCognitiveExecutor:
-    from backend.services.generative.searxng_search_service import SearxngSearchService
-    from backend.services.workflow_v2.exact_span_extractor import (
-        PydanticAIExactSpanExtractor,
-    )
-    from backend.services.workflow_v2.resilient_research_runner import (
-        ResilientResearchRunner,
-    )
-    from backend.services.workflow_v2.assistant.answer_quality import (
-        assistant_answer_defects,
-        assistant_repair_query,
-    )
-    from backend.services.workflow_v2.assistant.publication import (
-        assistant_parsed_response_defects,
-        assistant_source_url_allowed,
+    """Compatibility entrypoint; production composition is separate from dispatch."""
+    from backend.services.workflow_v2.cognitive_factory import (
+        build_cognitive_executor as build,
     )
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    authority_key = os.getenv("AXWISE_AUTHORITY_SEAL_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is required")
-    if not authority_key:
-        raise RuntimeError("AXWISE_AUTHORITY_SEAL_KEY is required")
-    from backend.services.workflow_v2.capability_provider_config import (
-        capability_generator_options,
-    )
-
-    capability_generators = capability_generator_options(
-        os.getenv("AXWISE_CAPABILITY_GENERATORS_ENABLED"), api_key
-    )
-    model = get_shared_workflow_model(api_key)
-    research_runner = ResilientResearchRunner(
-        GeminiGroundedResearchRunner(api_key),
-        searxng=SearxngSearchService(),
-        extractor=PydanticAIExactSpanExtractor(model),
-        source_type_classifier=_classify_source_types,
-    )
-    # One-shot chat can give HIGH-reasoning grounded search a full attempt.
-    # Keep durable multi-requirement research's proven 510-second budget and
-    # circuit breaker independent; executor.close() owns both runner lifetimes.
-    assistant_runner = ResilientResearchRunner(
-        GeminiGroundedResearchRunner(
-            api_key,
-            search_operation_seconds=_ASSISTANT_PRIMARY_SEARCH_OPERATION_SECONDS,
-            search_attempt_seconds=_ASSISTANT_PRIMARY_SEARCH_ATTEMPT_SECONDS,
-            response_validator=assistant_answer_defects,
-            repair_query_builder=assistant_repair_query,
-            parsed_response_validator=assistant_parsed_response_defects,
-        ),
-        searxng=SearxngSearchService(),
-        extractor=PydanticAIExactSpanExtractor(model),
-        source_type_classifier=_classify_source_types,
-        discovery_seconds=20.0,
-        source_url_validator=assistant_source_url_allowed,
-    )
-    return GeminiCognitiveExecutor(
-        PydanticAIScopeDrafter(model),
-        authority_key.encode("utf-8"),
-        research_runner,
-        artifact_resolver,
-        PydanticAISynthesisWriter(model),
-        PydanticAIScopeReviser(model),
-        assistant_runner=assistant_runner,
-        assistant_chat_runner=PydanticAIConversationalAssistantRunner(model),
-        solution_preparer=PydanticAISolutionPreparer(model),
-        solution_preparer_v2=PydanticAINativeSolutionPreparer(model),
-        **capability_generators,
-    )
+    return build(artifact_resolver)

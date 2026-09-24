@@ -10,12 +10,13 @@ import '@fontsource/inter/800.css';
 import './index.css';
 import App from '@orqaly-app-entry';
 import { initSentry } from './lib/sentry';
+import { clerkBrowserOptionsFromEnvironment } from './components/Auth/clerk-config';
 
 initSentry();
 
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-// Preview branding is local to this client; the shared AxWise Clerk application
-// and its production instance keep their existing names and configuration.
+const clerkOptions = clerkBrowserOptionsFromEnvironment(import.meta.env);
+// Branding is local to this client; identity is selected explicitly by build
+// configuration, independent of the deployment hostname or display name.
 const previewLocalization = import.meta.env.MODE === 'gcp-launch' ? {
   signIn: { start: {
     title: 'Sign in to Orqanix',
@@ -30,9 +31,6 @@ const previewLocalization = import.meta.env.MODE === 'gcp-launch' ? {
     subtitleCombined: 'Sign in or create an account to continue.',
   } },
 } : undefined;
-if (!clerkPublishableKey) {
-  throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for the clean workflow v2 app');
-}
 
 // Handle failed dynamic imports (e.g. stale cache after deploy).
 // Do NOT auto-reload: repeated reloads can trap mobile browsers in loops.
@@ -60,7 +58,7 @@ if (
 }
 
 const clerkProps = {
-  publishableKey: clerkPublishableKey,
+  ...clerkOptions,
   localization: previewLocalization,
   signInFallbackRedirectUrl: '/home',
   signUpFallbackRedirectUrl: '/home',

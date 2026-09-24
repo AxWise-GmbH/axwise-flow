@@ -43,6 +43,7 @@ export function DesktopReleaseDetails({ id, showChecksum = false }) {
   const { t } = useT();
   return (
     <Typography id={id} sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.8 }}>
+      Orqanix {DESKTOP_RELEASE.version} ·{' '}
       {t('download.release', 'Apple Silicon · {size} MB · Preview (not notarized)', {
         size: Math.round(DESKTOP_RELEASE.bytes / 1_000_000),
       })}

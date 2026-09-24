@@ -8,6 +8,24 @@ for (const file of ['index.html', 'manifest.json', 'logo-line.svg', '.vite/manif
 if (existsSync(resolve(dist, 'sw.js')))
   throw new Error('GCP web build must not ship the legacy service worker');
 
+// The redesign is approved separately from its legal drafts. Keep this fail-closed
+// until a reviewed policy publication change explicitly updates the boundary.
+if (existsSync(resolve(dist, '.well-known/security.txt')))
+  throw new Error('GCP web build must not publish the draft security.txt');
+const manifest = JSON.parse(readFileSync(resolve(dist, '.vite/manifest.json'), 'utf8'));
+for (const [source, asset] of Object.entries(manifest)) {
+  if ([source, asset.src].some((value) => value?.replaceAll('\\', '/').includes('/pages/legal/')))
+    throw new Error(`GCP web build imported an unpublished legal draft: ${source}`);
+}
+for (const file of readdirSync(dist, { recursive: true })) {
+  if (file.endsWith('.draft') || /(?:^|\/)LegalCenter-[^/]+\.js$/u.test(file))
+    throw new Error(`GCP web build contains an unpublished legal draft: ${file}`);
+  if (!file.endsWith('.json')) continue;
+  const content = JSON.parse(readFileSync(resolve(dist, file), 'utf8'));
+  if (content?.meta && Object.hasOwn(content.meta, 'review'))
+    throw new Error(`GCP web build exposes internal document review notes: ${file}`);
+}
+
 const html = readFileSync(resolve(dist, 'index.html'), 'utf8');
 for (const marker of [
   'id="root"',

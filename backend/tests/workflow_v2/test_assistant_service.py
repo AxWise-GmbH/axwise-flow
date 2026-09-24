@@ -10,7 +10,9 @@ from pydantic_ai.messages import ModelResponse
 
 import backend.services.workflow_v2.assistant.conversation_runner as conversation_runner_module
 from backend.domain.workflow_v2.contracts import (
+    AssistantTurnCompletedResult,
     AssistantTurnInputV1,
+    AssistantTurnInputV2,
     OperationMetrics,
 )
 from backend.services.workflow_v2.assistant.conversation_runner import (
@@ -20,9 +22,44 @@ from backend.services.workflow_v2.assistant.conversation_runner import (
 from backend.services.workflow_v2.assistant.projection import project_assistant_result
 from backend.services.workflow_v2.assistant.prompts import assistant_turn_query
 from backend.services.workflow_v2.assistant.service import AssistantTurnService
+from backend.services.workflow_v2.assistant.image_runner import AssistantGeneratedImage
+from backend.services.workflow_v2.assistant.quick_info_runner import (
+    AssistantQuickInfoError,
+    AssistantQuickInfoResult,
+    QuickInfoFact,
+    QuickInfoSource,
+)
+from backend.services.workflow_v2.assistant.widget_runner import (
+    AssistantWidgetResult,
+    CurrencyCandidate,
+    WeatherCandidate,
+    WidgetSource,
+)
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
 
 pytestmark = pytest.mark.contract
+
+
+def assert_persisted_assistant_turn_round_trips(
+    result: AssistantTurnCompletedResult,
+) -> None:
+    """Match the worker's sparse JSON persistence boundary."""
+
+    payload = result.model_dump(mode="json", by_alias=True, exclude_unset=True)
+    assert payload["response"]["schemaVersion"] in {
+        "axwise.assistant-turn.v1",
+        "axwise.assistant-turn.v2",
+    }
+    presentation_versions = {
+        "generated_image": "axwise.presentation.generated-image.v1",
+        "weather": "axwise.presentation.weather.v1",
+        "currency": "axwise.presentation.currency.v1",
+    }
+    for presentation in payload["response"].get("presentations", []):
+        assert presentation["schemaVersion"] == presentation_versions[
+            presentation["kind"]
+        ]
+    assert AssistantTurnCompletedResult.model_validate(payload) == result
 
 
 def assistant_input(
@@ -37,6 +74,22 @@ def assistant_input(
             "responseMode": response_mode,
             "message": message,
             "conversation": conversation or [],
+        }
+    )
+
+
+def assistant_v2(
+    capability: dict,
+    *,
+    message: str,
+) -> AssistantTurnInputV2:
+    return AssistantTurnInputV2.model_validate(
+        {
+            "type": "AssistantTurnV2",
+            "responseMode": "one_shot",
+            "message": message,
+            "conversation": [],
+            "capability": capability,
         }
     )
 
@@ -84,7 +137,12 @@ class RecordingRunner:
 
 
 def service(
-    *, grounded: RecordingRunner | None, conversation: RecordingRunner | None
+    *,
+    grounded: RecordingRunner | None,
+    conversation: RecordingRunner | None,
+    image_runner=None,
+    widget_runner=None,
+    quick_info_runner=None,
 ) -> AssistantTurnService:
     return AssistantTurnService(
         grounded_runner=grounded,
@@ -92,7 +150,358 @@ def service(
         source_type_classifier=source_types,
         usage_reader=usage_reader,
         metrics_factory=metrics_factory,
+        image_runner=image_runner,
+        widget_runner=widget_runner,
+        quick_info_runner=quick_info_runner,
     )
+
+
+class RecordingImageRunner:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def generate(self, prompt: str, **options) -> AssistantGeneratedImage:
+        self.calls.append({"prompt": prompt, **options})
+        data = b"\x89PNG\r\n\x1a\ngenerated"
+        return AssistantGeneratedImage(
+            data=data,
+            mime_type="image/png",
+            sha256=hashlib.sha256(data).hexdigest(),
+            model="gemini-3.1-flash-image",
+            model_version="gemini-3.1-flash-image-001",
+            input_tokens=12,
+            output_tokens=34,
+        )
+
+
+class RecordingWidgetRunner:
+    def __init__(
+        self, *, cache_hit: bool = False, search_calls: int = 1
+    ) -> None:
+        self.calls: list[tuple] = []
+        self.cache_hit = cache_hit
+        self.search_calls = 0 if cache_hit else search_calls
+
+    async def weather(self, location: str, *, temperature_unit: str):
+        self.calls.append(("weather", location, temperature_unit))
+        return AssistantWidgetResult(
+            kind="weather",
+            payload=WeatherCandidate.model_validate(
+                {
+                    "location": "Berlin, Germany",
+                    "observedAt": "2026-09-22T12:30:00+02:00",
+                    "temperatureUnit": temperature_unit,
+                    "temperature": "17.25",
+                    "condition": "Partly cloudy",
+                    "high": "19.5",
+                    "low": "11.0",
+                    "forecast": [
+                        {
+                            "label": "Tomorrow",
+                            "condition": "Sunny",
+                            "high": "20.25",
+                            "low": "10",
+                        }
+                    ],
+                }
+            ),
+            source=WidgetSource(
+                title="Weather office", url="https://example.com/weather"
+            ),
+            model="gemini-3.8-flash",
+            model_version="gemini-3.8-flash-001",
+            input_tokens=20,
+            output_tokens=8,
+            search_calls=self.search_calls,
+            cache_hit=self.cache_hit,
+        )
+
+    async def currency(self, base: str, quote: str, amount: str):
+        self.calls.append(("currency", base, quote, amount))
+        return AssistantWidgetResult(
+            kind="currency",
+            payload=CurrencyCandidate.model_validate(
+                {
+                    "base": base,
+                    "quote": quote,
+                    "amount": amount,
+                    "convertedAmount": "117.25",
+                    "rate": "1.1725",
+                    "inverseRate": "0.8528784648",
+                    "asOf": "2026-09-22T08:30:00Z",
+                }
+            ),
+            source=WidgetSource(
+                title="Central bank", url="https://example.com/rates"
+            ),
+            model="gemini-3.8-flash",
+            model_version=None,
+            input_tokens=0 if self.cache_hit else None,
+            output_tokens=0 if self.cache_hit else None,
+            search_calls=self.search_calls,
+            cache_hit=self.cache_hit,
+        )
+
+
+class RecordingQuickInfoRunner:
+    def __init__(self, error: AssistantQuickInfoError | None = None) -> None:
+        self.calls: list[tuple] = []
+        self.error = error
+
+    async def quick_info(self, query, *, location, jev_enabled):
+        self.calls.append((query, location, jev_enabled))
+        if self.error is not None:
+            raise self.error
+        return AssistantQuickInfoResult(
+            markdown="IKEA Bremen closes at 8:00 PM today.",
+            sources=(
+                QuickInfoSource(
+                    title="IKEA Bremen",
+                    url="https://www.ikea.com/de/en/stores/bremen/",
+                ),
+            ),
+            facts=(
+                QuickInfoFact(
+                    statement="IKEA Bremen closes at 8:00 PM today.",
+                    source_urls=(
+                        "https://www.ikea.com/de/en/stores/bremen/",
+                    ),
+                ),
+            ),
+            model="gemini-3.8-flash",
+            model_version="gemini-3.8-flash-001",
+            input_tokens=12,
+            output_tokens=7,
+            search_calls=1,
+        )
+
+
+class RecordingTypedQuickInfoRunner(RecordingQuickInfoRunner):
+    def __init__(self) -> None:
+        super().__init__()
+        self.discovery_kinds = []
+
+    async def quick_info(self, query, *, location, jev_enabled, discovery_kind):
+        self.discovery_kinds.append(discovery_kind)
+        return await super().quick_info(
+            query, location=location, jev_enabled=jev_enabled
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("routing_mode", "jev_enabled"), [("jev", True), ("explicit", False)]
+)
+async def test_quick_info_returns_v1_grounded_answer_and_maps_routing_mode(
+    routing_mode, jev_enabled
+):
+    quick = RecordingQuickInfoRunner()
+    result = await service(
+        grounded=None, conversation=None, quick_info_runner=quick
+    ).execute(
+        assistant_v2(
+            {
+                "kind": "quick_info",
+                "location": "Bremen",
+                "routingMode": routing_mode,
+            },
+            message="When does IKEA Bremen close today?",
+        )
+    )
+
+    assert quick.calls == [
+        ("When does IKEA Bremen close today?", "Bremen", jev_enabled)
+    ]
+    assert result.response.schema_version == "axwise.assistant-turn.v1"
+    assert result.response.facts[0].source_urls == [
+        "https://www.ikea.com/de/en/stores/bremen/"
+    ]
+    assert result.metrics is not None
+    assert result.metrics.input_tokens == 12
+    assert result.metrics.output_tokens == 7
+    assert result.metrics.search_calls == 1
+    assert_persisted_assistant_turn_round_trips(result)
+
+
+@pytest.mark.asyncio
+async def test_quick_info_forwards_explicit_discovery_kind():
+    quick = RecordingTypedQuickInfoRunner()
+
+    await service(
+        grounded=None, conversation=None, quick_info_runner=quick
+    ).execute(
+        assistant_v2(
+            {
+                "kind": "quick_info",
+                "location": "Riga",
+                "discoveryKind": "news",
+                "routingMode": "explicit",
+            },
+            message="Jaunākās ziņas Rīgā",
+        )
+    )
+
+    assert quick.discovery_kinds == ["news"]
+
+
+@pytest.mark.asyncio
+async def test_quick_info_route_mismatch_stays_typed_and_non_retryable():
+    quick = RecordingQuickInfoRunner(
+        AssistantQuickInfoError(
+            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH", retryable=False
+        )
+    )
+    with pytest.raises(CognitiveExecutionFailure) as error:
+        await service(
+            grounded=None, conversation=None, quick_info_runner=quick
+        ).execute(
+            assistant_v2(
+                {"kind": "quick_info", "routingMode": "jev"},
+                message="Compare five phones",
+            )
+        )
+    assert error.value.error_class == "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_MISMATCH"
+    assert error.value.retryable is False
+
+
+@pytest.mark.asyncio
+async def test_quick_info_route_provider_outage_stays_typed_and_retryable():
+    quick = RecordingQuickInfoRunner(
+        AssistantQuickInfoError(
+            "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE", retryable=True
+        )
+    )
+    with pytest.raises(CognitiveExecutionFailure) as error:
+        await service(
+            grounded=None, conversation=None, quick_info_runner=quick
+        ).execute(
+            assistant_v2(
+                {"kind": "quick_info", "routingMode": "jev"},
+                message="Latest score?",
+            )
+        )
+    assert error.value.error_class == "AXWISE_ASSISTANT_QUICK_INFO_ROUTE_UNAVAILABLE"
+    assert error.value.retryable is True
+
+
+@pytest.mark.asyncio
+async def test_explicit_image_capability_uses_the_fast_image_runner() -> None:
+    image = RecordingImageRunner()
+
+    result = await service(
+        grounded=None, conversation=None, image_runner=image
+    ).execute(
+        assistant_v2(
+            {
+                "kind": "image_generate",
+                "aspectRatio": "16:9",
+                "imageSize": "1K",
+            },
+            message="A blue robot in a calm workshop",
+        )
+    )
+
+    assert image.calls == [
+        {
+            "prompt": "A blue robot in a calm workshop",
+            "aspect_ratio": "16:9",
+            "image_size": "1K",
+            "input_image": None,
+        }
+    ]
+    assert result.response.schema_version == "axwise.assistant-turn.v2"
+    assert result.response.markdown == "Image generated successfully."
+    presentation = result.response.presentations[0]
+    assert presentation.kind == "generated_image"
+    assert presentation.model == "gemini-3.1-flash-image"
+    assert presentation.sha256 == hashlib.sha256(
+        b"\x89PNG\r\n\x1a\ngenerated"
+    ).hexdigest()
+    assert result.metrics is not None
+    assert result.metrics.model == "gemini-3.1-flash-image"
+    assert result.metrics.total_tokens == 46
+    assert result.metrics.search_calls == 0
+    assert result.metrics.estimated_cost_micros is None
+    assert_persisted_assistant_turn_round_trips(result)
+
+
+@pytest.mark.asyncio
+async def test_weather_capability_returns_grounded_card_and_utc_fallback() -> None:
+    widgets = RecordingWidgetRunner(search_calls=3)
+
+    result = await service(
+        grounded=None, conversation=None, widget_runner=widgets
+    ).execute(
+        assistant_v2(
+            {"kind": "weather", "location": "Berlin", "tempUnit": "C"},
+            message="Current weather for Berlin.",
+        )
+    )
+
+    assert widgets.calls == [("weather", "Berlin", "C")]
+    presentation = result.response.presentations[0]
+    assert presentation.kind == "weather"
+    assert presentation.observed_at == "2026-09-22T10:30:00Z"
+    assert presentation.temperature == "17.25"
+    assert presentation.forecast[0].label == "Tomorrow"
+    assert result.response.facts[0].source_urls == ["https://example.com/weather"]
+    assert result.response.sources[0].source_types == ["grounded_web"]
+    assert "[Source](<https://example.com/weather>)" in result.response.markdown
+    assert result.metrics is not None
+    assert result.metrics.total_tokens == 28
+    assert result.metrics.search_calls == 3
+    assert_persisted_assistant_turn_round_trips(result)
+
+
+@pytest.mark.asyncio
+async def test_currency_capability_preserves_exact_decimal_strings() -> None:
+    widgets = RecordingWidgetRunner()
+
+    result = await service(
+        grounded=None, conversation=None, widget_runner=widgets
+    ).execute(
+        assistant_v2(
+            {"kind": "currency", "base": "EUR", "quote": "USD", "amount": "100.00"},
+            message="Convert 100.00 EUR to USD.",
+        )
+    )
+
+    presentation = result.response.presentations[0]
+    assert presentation.kind == "currency"
+    assert presentation.amount == "100.00"
+    assert presentation.converted_amount == "117.25"
+    assert presentation.rate == "1.1725"
+    assert result.metrics is not None
+    assert result.metrics.input_tokens is None
+    assert result.metrics.total_tokens is None
+    assert result.metrics.search_calls == 1
+    serialized_metrics = result.metrics.model_dump(by_alias=True, exclude_unset=True)
+    assert "modelVersion" not in serialized_metrics
+    assert "inputTokens" not in serialized_metrics
+    assert "outputTokens" not in serialized_metrics
+    assert "totalTokens" not in serialized_metrics
+    assert "estimatedCostMicros" not in serialized_metrics
+    assert_persisted_assistant_turn_round_trips(result)
+
+
+@pytest.mark.asyncio
+async def test_cached_widget_turn_reports_zero_usage_and_search_calls() -> None:
+    result = await service(
+        grounded=None,
+        conversation=None,
+        widget_runner=RecordingWidgetRunner(cache_hit=True),
+    ).execute(
+        assistant_v2(
+            {"kind": "currency", "base": "EUR", "quote": "USD", "amount": "100"},
+            message="Convert 100 EUR to USD.",
+        )
+    )
+
+    assert result.metrics is not None
+    assert result.metrics.input_tokens == 0
+    assert result.metrics.output_tokens == 0
+    assert result.metrics.total_tokens == 0
+    assert result.metrics.search_calls == 0
 
 
 def test_assistant_prompts_preserve_product_and_evidence_truth() -> None:

@@ -6,7 +6,7 @@ import { INSTANT_HOME, instantPagePath } from './pages/instantPages';
 import { SOLUTIONS_MENU, solutionPath } from './pages/solutions/solutionsMenu';
 import { NAV_PRODUCTS, productPath } from './pages/products/productsMenu';
 import { COMPANY } from './pages/info/company';
-import { FOOTER_LEGAL, FOOTER_LEGAL_MORE } from './pages/legal/legal.links';
+import { PUBLIC_LEGAL_LINKS } from './pages/publicLegalLinks';
 import LanguagePicker from './LanguagePicker';
 import { useT } from './i18n/useT';
 import DirArrow from './ui/DirArrow';
@@ -49,10 +49,8 @@ const COLUMNS = [
     links: [page('about', 'About'), page('news', 'News'), page('contact', 'Contact')],
   },
   {
-    // The Legal Center, the main documents in view, the rest under More.
     title: 'Legal',
-    links: FOOTER_LEGAL.map(legalLink),
-    more: FOOTER_LEGAL_MORE.map(legalLink),
+    links: PUBLIC_LEGAL_LINKS.map(legalLink),
   },
 ];
 

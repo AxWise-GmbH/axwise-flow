@@ -28,7 +28,6 @@ const InstantProductPage = lazy(
   () => import('./pages/Landing/instant/pages/products/InstantProductPage.jsx')
 );
 const NewsArticle = lazy(() => import('./pages/Landing/instant/pages/news/NewsArticle.jsx'));
-const LegalCenter = lazy(() => import('./pages/Landing/instant/pages/legal/LegalCenter.jsx'));
 const WorkflowV2 = lazy(() => import('./pages/WorkflowV2/WorkflowV2.jsx'));
 const GcpClerkSettings = lazy(() => import('./pages/Settings/GcpClerkSettings.jsx'));
 const HomePage = lazy(() => import('./pages/GcpWorkspace/HomePage.jsx'));
@@ -244,20 +243,9 @@ function ScopedPreviewPage() {
   );
 }
 
-// The old legal placeholders now open the Legal Center's documents.
-const LEGAL_REDIRECTS = {
-  '/privacy': '/instant/legal/privacy',
-  '/terms': '/instant/legal/terms',
-  '/cookies': '/instant/legal/cookies',
-};
-
 const publicRoutes = Object.entries(publicPages).map(([path, [eyebrow, title, body]]) => ({
   path,
-  element: LEGAL_REDIRECTS[path] ? (
-    <Navigate to={LEGAL_REDIRECTS[path]} replace />
-  ) : (
-    <GcpPublicPage eyebrow={eyebrow} title={title} body={body} />
-  ),
+  element: <GcpPublicPage eyebrow={eyebrow} title={title} body={body} />,
 }));
 
 export const gcpRoutePaths = [
@@ -329,15 +317,6 @@ export const gcpRouter = createBrowserRouter([
     element: (
       <LazyLandingPage>
         <InstantProductPage />
-      </LazyLandingPage>
-    ),
-  },
-  // The Legal Center: /instant/legal, /instant/legal/<us|eu>, /instant/legal/<us|eu>/<document>.
-  {
-    path: '/instant/legal/*',
-    element: (
-      <LazyLandingPage>
-        <LegalCenter />
       </LazyLandingPage>
     ),
   },

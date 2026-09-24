@@ -39,6 +39,7 @@ const requests = new Map();
 const wanted = new Set();
 
 let state = { lang: DEFAULT_LANG, words: {} };
+let selectionVersion = 0;
 
 function publish(next) {
   state = next;
@@ -68,10 +69,13 @@ function loadPart(code, area) {
 }
 
 // Every part of `code` asked for so far, in one list.
-function loadAll(code) {
-  return Promise.all([loadPart(code), ...[...wanted].map((area) => loadPart(code, area))]).then(
-    (parts) => Object.assign({}, ...parts)
-  );
+async function loadAll(code) {
+  const areas = [...wanted];
+  const parts = await Promise.all([loadPart(code), ...areas.map((area) => loadPart(code, area))]);
+  // The first render starts loading before its effect asks for the page's part. A page
+  // can also change during a language pick. Include those new parts before publishing.
+  if (wanted.size !== areas.length) return loadAll(code);
+  return Object.assign({}, ...parts);
 }
 
 /**
@@ -81,9 +85,11 @@ function loadAll(code) {
 export function setLang(code, { remember = false } = {}) {
   const language = findLanguage(code);
   if (!language) return Promise.resolve();
+  const selection = ++selectionVersion;
   if (remember) saveLang(language.code);
   return loadAll(language.code).then(
     (words) => {
+      if (selection !== selectionVersion) return;
       markDocument(language.code);
       publish({ lang: language.code, words });
     },
@@ -155,6 +161,7 @@ export function useLang() {
 
 /** For tests: back to English, nothing loaded, nothing started. */
 export function resetLangForTests() {
+  selectionVersion += 1;
   started = false;
   loaded.clear();
   requests.clear();

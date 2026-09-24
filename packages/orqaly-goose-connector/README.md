@@ -1,19 +1,60 @@
 # Orqaly Goose authentication connector
 
-## Conversation tools
+## Current desktop: Goose-controlled reset (2.3.11)
 
-The packaged desktop also starts `src/mcp.mjs` as a native Goose stdio extension,
+The packaged desktop mounts `src/utilities-mcp.mjs`, not the legacy Axwise
+conversation extension. It exposes `get_weather`, `convert_currency`, and
+`search_web`. Weather and currency retrieval use public data APIs directly;
+search uses the authenticated Gemini search relay, without an Axwise workflow,
+durable-work polling, or a required JEV classification first.
+
+These are ordinary Goose tools. Results return to Goose's model loop, which
+chooses the next step; there is no mandatory Axwise route or blanket ban on
+using another available retrieval tool. OMP remains separately optional. JEV's
+advisory decision/review capabilities do not take ownership of the Goose loop.
+Authentication and model transport still use the account-scoped gateway.
+
+A genuinely local Axwise specialist extension is a **planned separate step**,
+not something provided by the old cloud connector. See the
+[local extension boundary](../../apps/orqaly/docs/LOCAL_AXWISE_EXTENSION_PLAN_2026-09-23.md).
+
+## Legacy conversation tools (not mounted by the reset)
+
+The earlier desktop started `src/mcp.mjs` as a native Goose stdio extension,
 bound to one conversation and the verified account hash. It uses the same
 credential store internally; stdout contains only MCP protocol messages, never
 an access token. The gateway checks the expected account on every request.
+This process is a local **adapter to cloud Axwise**, not a local Axwise engine.
+The behavior below describes that legacy integration only, not the current
+desktop's routing policy. Legacy server routes are disabled in the reset release.
 
-Available tools: `read_goal_artifact`, `ask_axwise`, `axwise_work_status`, and
-`cancel_axwise_work`. AxWise work produces focused, source-backed web research through
-the existing durable Assistant operation. It does not create a Goal, fabricate
-scope approvals, execute local code, or deploy anything. Local skills/tools and
-their approvals remain with Goose. Questions and selected reference excerpts go
-to the Orqaly/AxWise preview and its configured model; results are saved in the
-conversation. Full project files are not automatically uploaded by this helper.
+Available tools: `read_goal_artifact`, `ask_axwise`, `generate_image`,
+`lookup_live_data`, `quick_info`, `axwise_work_status`, and `cancel_axwise_work`. AxWise uses
+the durable Assistant operation for focused multi-source research, explicit
+Gemini image creation, fast source-backed weather or currency cards, and narrow
+current-fact checks. These
+capabilities do not create a Goal, fabricate scope approvals, execute local code,
+or deploy anything. Local skills/tools and their approvals remain with Goose.
+Questions and selected reference excerpts go to the Orqaly/AxWise preview and
+its configured models; results are saved in the conversation. Full project files
+are not automatically uploaded by this helper.
+
+Use `lookup_live_data` for a simple current weather or currency answer and
+`quick_info` for one narrow current public fact such as local headlines, opening
+hours, a latest score or schedule, or service status. Use `ask_axwise` only when
+the request benefits from multi-source comparison, synthesis, investigation, or
+recommendations. Use `generate_image` only for explicit image creation. None of
+these capability tools invokes OMP; engineering work continues through the
+separately configured local engineering extension. When enabled in desktop
+settings, JEV classifies a `quick_info` request at the same time as Gemini performs
+the source-backed lookup. Disabling JEV keeps the bounded quick lookup available
+for direct benchmarking and does not enable an automatic fallback.
+`lookup_live_data` and `quick_info` each start and poll the
+same durable request within one bounded tool call. Weather defaults to Celsius,
+so only a missing location needs clarification unless the user asks for another
+unit. If either fast route fails or JEV selects another lane, report that result
+and ask before trying research, a web-search skill, fetch, shell, or OMP; none is
+an automatic fallback.
 
 Keep ordinary research questions self-contained. `runId` checks access to a
 project; it no longer implicitly appends its whole design. Read the project with
@@ -21,19 +62,19 @@ project; it no longer implicitly appends its whole design. Read the project with
 are relevant to the question. Local reasoning, coding and skills stay in Goose.
 
 An uncertain submission returns its request ID for status recovery instead of
-automatically submitting another operation. The 90-second HTTP deadline leaves
+automatically submitting duplicate work. The 90-second HTTP deadline leaves
 room for token refresh and a recoverable result within the desktop extension's
 180-second timeout. Supported stdio messages use the documented
 [MCP transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
 
 `axwise_work_status` waits up to 75 seconds, polling only the same durable
-request and respecting server retry delays. It returns completed research or
-the latest actual state, not a fabricated completion. If still running, check
+request and respecting server retry delays. It returns the completed capability
+result or the latest actual state, not a fabricated completion. If still running, check
 the same request later. Stopping a local status wait does not cancel cloud work;
 use the explicit cancellation tool for that.
 
 Launch arguments are `--config PUBLIC_CONFIG --conversation-id SESSION_ID
---account-hash SHA256_VERIFIED_USER_ID`. The packaged app supplies these values;
+--account-hash SHA256_VERIFIED_USER_ID --jev-enabled true|false`. The packaged app supplies these values;
 neither conversation IDs nor account hashes are credentials or authorization.
 
 ## Authentication
