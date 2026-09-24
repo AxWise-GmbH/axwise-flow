@@ -32,11 +32,20 @@ export const CASES = Object.freeze([
   { id: 'simulation', kind: 'specialist', prompt: `Create a SMALL SYNTHETIC interview simulation to test a building repair-request pilot: two participants, one dispatcher and one technician, answering two questions: "What makes your current process difficult?" and "What would stop you adopting a shared repair queue?" Use the selected evidence below as grounding. Clearly label every participant and response synthetic; do not claim these are real research findings. Keep the answer under 400 words.\n${evidenceText}` },
 ]);
 const SAFETY = 'This is a local benchmark using synthetic fixtures. Use available tools when useful. You may send these selected synthetic excerpts to the configured model and save specialist artifacts through the local Axwise extension if you choose it. You may read only the fixture workspace. Do not install software, edit repository files, access other accounts/files, run arbitrary code, commit, push, deploy, or launch background tasks. For current facts, use available public-information tools. Return an honest limitation if a capability fails.';
-const SPECIALIST = /^axwise[-_]?local__(?:create_prd|analyze_interviews|simulate_interviews)$/;
-const CALLBACKS = new Map([
+export const AXWISE_TOOL_CALLBACKS = new Map([
   ['AxwiseLocal.createPrd', 'axwise-local__create_prd'],
   ['AxwiseLocal.analyzeInterviews', 'axwise-local__analyze_interviews'],
   ['AxwiseLocal.simulateInterviews', 'axwise-local__simulate_interviews'],
+  ['AxwiseLocal.prepareDiscovery', 'axwise-local__prepare_discovery'],
+  ['AxwiseLocal.generatePersonas', 'axwise-local__generate_personas'],
+  ['AxwiseLocal.chatWithPersona', 'axwise-local__chat_with_persona'],
+  ['AxwiseLocal.researchMarket', 'axwise-local__research_market'],
+  ['AxwiseLocal.createDeliveryBrief', 'axwise-local__create_delivery_brief'],
+]);
+export const AXWISE_EXTENSION_DESCRIPTION = 'Optional local Axwise specialist for saved discovery briefs, synthetic personas and interviews, persona follow-ups, evidence-linked interview analysis, market evidence synthesis, PRDs and delivery briefs. Goose chooses whether useful for the requested deliverable; ordinary chat, weather, news, search and coding use their usual tools.';
+const SPECIALIST = /^axwise[-_]?local__(?:create_prd|analyze_interviews|simulate_interviews|prepare_discovery|generate_personas|chat_with_persona|research_market|create_delivery_brief)$/;
+const CALLBACKS = new Map([
+  ...AXWISE_TOOL_CALLBACKS,
   ['Developer.analyze', 'developer__analyze'],
   ['Analyze.analyze', 'developer__analyze'],
   ['Developer.tree', 'developer__tree'],
@@ -45,6 +54,13 @@ const RESPONSE_PROPERTIES = new Map([['developer__shell', new Set(['stdout'])]])
 const FIXTURE_SHELL_COMMANDS = new Set(['pwd', 'cat README.md', 'cat src/pricing.js',
   "cat README.md; echo '===SPLIT==='; cat src/pricing.js"]);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+
+export function expectedSpecialistInventory(inventory, enabled = true) {
+  const names = (inventory?.tools || []).filter((tool) => /axwise[-_]?local/i.test(tool.name))
+    .map((tool) => tool.name.replace(/^axwise[-_]?local__/i, 'axwise-local__')).sort();
+  const expected = enabled ? [...AXWISE_TOOL_CALLBACKS.values()].sort() : [];
+  return isDeepStrictEqual(names, expected);
+}
 function toolName(call) {
   return String(call?._meta?.toolName || call?.name || call?.title || '').split(' · ')[0]
     .toLowerCase().replaceAll(' ', '_').replace(':_', '__');
@@ -78,6 +94,9 @@ export function benchmarkPermission(call, workspace, parser) {
       responseProperties: RESPONSE_PROPERTIES,
       allowToolTryCatch: true,
       allowShorthandOutput: true,
+      allowStaticLiteralData: true,
+      allowLabelledConsoleOutput: true,
+      allowStaticParallelCalls: true,
       permissionAllowed: (nested, root) => benchmarkPermission(nested, root, parser),
     }).allowed;
   }
@@ -105,7 +124,7 @@ export function hasSpecialistInvocation(tool, parser) {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
       && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'AxwiseLocal'
       && ts.isIdentifier(node.expression.name)
-      && ['createPrd', 'analyzeInterviews', 'simulateInterviews'].includes(node.expression.name.text)) found = true;
+      && AXWISE_TOOL_CALLBACKS.has(`AxwiseLocal.${node.expression.name.text}`)) found = true;
     ts.forEachChild(node, visit);
   };
   visit(source);
@@ -180,7 +199,7 @@ function resultText(value, depth = 0) {
   return resultText(value.content, depth + 1);
 }
 
-function confirmedSpecialistExecution(tool) {
+export function confirmedSpecialistExecution(tool) {
   if (SPECIALIST.test(toolName(tool))) return ['completed', 'failed'].includes(tool.status);
   if (tool.status !== 'completed') return false;
   const blocks = resultText(tool.result ?? tool.rawOutput);
@@ -262,7 +281,7 @@ export function parseOptions(argv) {
   return options;
 }
 
-async function authenticate(options) {
+export async function authenticate(options) {
   const config = JSON.parse(await readFile(options.config, 'utf8'));
   const url = new URL(config.apiUrl);
   if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash || url.username || url.password) throw new Error('Expected public HTTPS API origin');
@@ -282,7 +301,7 @@ async function authenticate(options) {
   return { token, origin: url.origin, accountHash: hash(session.userId) };
 }
 
-async function preparePaths(root, label, options, auth) {
+export async function preparePaths(root, label, options, auth) {
   const directory = join(root, label);
   const profile = join(directory, 'profile'), workspace = join(directory, 'workspace'), temporary = join(directory, 'tmp');
   for (const path of [join(profile, 'config/custom_providers'), join(workspace, 'src'), temporary]) await mkdir(path, { recursive: true, mode: 0o700 });
@@ -355,7 +374,7 @@ export async function runBenchmark(options, { emit = (event) => console.log(JSON
           for (const server of mcpServers) await client.request('_goose/unstable/session/extensions/add', {
             sessionId, extension: { type: 'mcp', server, timeout: 240, bundled: true,
               description: server.name === 'axwise-local'
-                ? 'Optional local Axwise specialist for explicit PRDs, interview analysis and synthetic simulations. Goose chooses whether useful; not an ordinary chat, weather, search or coding router.'
+                ? AXWISE_EXTENSION_DESCRIPTION
                 : 'Public weather, currency and search tools.' },
           }, 30_000);
           const [extensions, tools] = await Promise.all([
@@ -363,8 +382,7 @@ export async function runBenchmark(options, { emit = (event) => console.log(JSON
             client.request('_goose/unstable/tools/list', { sessionId }, 15_000),
           ]);
           inventory = sessionInventory(extensions, tools);
-          const present = inventory.tools.filter((tool) => /axwise[-_]?local/i.test(tool.name));
-          if (present.length !== (arm === 'on' ? 3 : 0)) throw new Error('EXTENSION_INVENTORY_MISMATCH');
+          if (!expectedSpecialistInventory(inventory, arm === 'on')) throw new Error('EXTENSION_INVENTORY_MISMATCH');
           if (inventory.tools.filter((tool) => /desktop[-_]utilities/i.test(tool.name)).length !== 3) throw new Error('UTILITY_INVENTORY_MISMATCH');
           setupMs = Math.round(performance.now() - setupStart);
           recorder = new SpecialistRecorder(); client.recorder = recorder;

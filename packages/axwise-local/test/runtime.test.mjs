@@ -5,8 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough, Writable } from 'node:stream';
 import { EventEmitter } from 'node:events';
-import { createKernel, createProvider, createSpecialistTools, LocalAxwiseError, MAX_FRAME_BYTES, saveArtifact, validateTools, hash } from '../src/runtime.mjs';
+import { createKernel, createProvider, createSpecialistTools, LocalAxwiseError, MAX_FRAME_BYTES, saveArtifact, validateTools, hash, TOOL_NAMES } from '../src/runtime.mjs';
 import { parseArguments, resolveTestToken, serveMcp } from '../src/mcp.mjs';
+import { AXWISE_CONVERSATION_POLICY, AXWISE_TOOL_BOUNDARY } from '../src/conversation-policy.mjs';
 
 const accountHash = 'a'.repeat(64), conversationId = 'conversation-one';
 const signal = () => new AbortController().signal;
@@ -14,7 +15,7 @@ const prepared = { systemPrompt: 'Specialist instruction', userPrompt: 'Explicit
   responseSchema: { type: 'object', properties: { answer: { type: 'string' } }, required: ['answer'], additionalProperties: false },
   context: { kernelVersion: '0.1.0' }, maxOutputTokens: 4096 };
 const finalized = { artifact: { type: 'prd', title: 'Draft' }, markdown: '# Draft', validation: { valid: true }, provenance: { kernelVersion: '0.1.0' } };
-const description = { protocolVersion: 1, tools: ['create_prd', 'analyze_interviews', 'simulate_interviews'].map((name) => ({ name, description: 'A specialist tool', inputSchema: { type: 'object' } })) };
+const description = { protocolVersion: 1, tools: TOOL_NAMES.map((name) => ({ name, description: 'A specialist tool', inputSchema: { type: 'object' } })) };
 const providerReply = (content = '{"answer":"ok"}', overrides = {}) => Response.json({ choices: [{ message: { content }, finish_reason: 'stop' }], usage: { prompt_tokens: 42, completion_tokens: 12 }, ...overrides });
 const launch = ['--config', '/test/public.json', '--account-hash', accountHash, '--conversation-id', conversationId,
   '--state-dir', '/test/state', '--python', '/test/python3', '--kernel-root', '/test/kernel', '--connector-root', '/test/connector'];
@@ -48,10 +49,13 @@ test('synthetic credentials are allowed only with explicit loopback and test mod
   assert.equal(await resolveTestToken({ testToken: 'synthetic', testMode: 'true', apiUrlOverride: 'http://127.0.0.1:4444' })(), 'synthetic');
 });
 
-test('only the three specialist tools are advertised', () => {
+test('only the eight specialist tools are advertised', () => {
   const tools = validateTools(description);
-  assert.equal(tools.length, 3);
+  assert.equal(tools.length, 8);
+  assert.deepEqual(tools.map(tool => tool.name).sort(), ['create_prd', 'analyze_interviews', 'simulate_interviews',
+    'prepare_discovery', 'generate_personas', 'chat_with_persona', 'research_market', 'create_delivery_brief'].sort());
   assert.ok(tools.every((t) => t.description.includes('not ordinary chat')));
+  assert.ok(tools.every((t) => t.description.endsWith(AXWISE_TOOL_BOUNDARY)));
   assert.throws(() => validateTools({ ...description, tools: [...description.tools, { name: 'search_web' }] }));
   assert.throws(() => validateTools({ ...description, tools: [description.tools[0], description.tools[0], description.tools[2]] }));
 });
@@ -79,6 +83,21 @@ test('auth failures never send a request or leak credential errors', async () =>
     token: async () => { throw new Error('secret private text'); }, fetchImpl: async () => { fetched = true; } });
   await assert.rejects(() => provider(prepared, signal()), { code: 'LOGIN_REQUIRED' });
   assert.equal(fetched, false);
+});
+
+test('provider preserves reported cache usage, including zero, without inventing missing values', async () => {
+  for (const [reported, expected] of [
+    [{ prompt_tokens_details: { cached_tokens: 21 }, cache_creation_input_tokens: 4 }, { cacheReadTokens: 21, cacheWriteTokens: 4 }],
+    [{ prompt_tokens_details: { cached_tokens: 0 } }, { cacheReadTokens: 0 }],
+    [{ cache_read_input_tokens: 11 }, { cacheReadTokens: 11 }],
+    [{}, {}],
+    [{ prompt_tokens_details: { cached_tokens: -1 }, cache_creation_input_tokens: '8' }, {}],
+  ]) {
+    const provider = createProvider({ apiUrl: 'https://api.example', accountHash, token: async () => 'token',
+      fetchImpl: async () => providerReply('{}', { usage: { prompt_tokens: 42, completion_tokens: 12, ...reported } }) });
+    const result = await provider(prepared, signal());
+    assert.deepEqual(Object.fromEntries(Object.entries(result.usage).filter(([key]) => key.startsWith('cache'))), expected);
+  }
 });
 
 test('401/403, rate limits and incomplete output have safe errors and no retry', async () => {
@@ -208,7 +227,8 @@ test('MCP initialization and tool discovery do not call specialists or model', a
   await serving;
   const replies = output.trim().split('\n').map(JSON.parse);
   assert.equal(replies.length, 3);
-  assert.equal(replies[1].result.tools.length, 3);
+  assert.equal(replies[0].result.instructions, AXWISE_CONVERSATION_POLICY);
+  assert.equal(replies[1].result.tools.length, 8);
   assert.equal(called, false);
 });
 
@@ -279,7 +299,7 @@ test('Python worker bridge sends bounded protocol and kills the process on cance
 });
 
 test('worker input guidance uses only fixed safe codes, never arbitrary exception text', async () => {
-  async function check(code, expected) {
+  async function check(code, expected, expectedCode = 'INVALID_INPUT') {
     const child = new EventEmitter();
     child.stdin = new PassThrough(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
     child.kill = () => true;
@@ -290,7 +310,7 @@ test('worker input guidance uses only fixed safe codes, never arbitrary exceptio
     }));
     const kernel = createKernel({ python: '/python', kernelRoot: '/kernel', spawnImpl: () => child });
     await assert.rejects(kernel({ operation: 'prepare' }), (error) => {
-      assert.equal(error.code, 'INVALID_INPUT');
+      assert.equal(error.code, expectedCode);
       assert.match(error.message, expected);
       assert.equal(error.message.includes('PRIVATE_SELECTED_TEXT'), false);
       return true;
@@ -298,8 +318,25 @@ test('worker input guidance uses only fixed safe codes, never arbitrary exceptio
   }
   await check('AXWISE_LOCAL_MISSING_SYNTHETIC_QUESTION_ID', /original questionId.*do not invent/);
   await check('AXWISE_LOCAL_MISSING_SOURCE_ORIGIN', /requires its original origin/);
+  await check('DOCUMENT_CONTEXT_REQUIRED', /exact saved document.*operationId and sha256 to references.*documentReference/, 'DOCUMENT_CONTEXT_REQUIRED');
   await check('AXWISE_LOCAL_INVALID_INPUT', /Check the tool schema/);
   await check('__proto__', /Check the tool schema/);
+});
+
+test('missing persona document stops before any inference or artifact publication', async () => {
+  let providerCalls = 0;
+  const kernelCalls = [];
+  const f = await fixture({ kernel: async (request) => {
+    kernelCalls.push(request.operation);
+    throw new LocalAxwiseError('DOCUMENT_CONTEXT_REQUIRED', 'Select the exact saved document in references.');
+  }, provider: async () => { providerCalls++; throw new Error('must not run'); } });
+  const result = await f.call('chat_with_persona', { personaId: 'persona-1', message: 'What remains in this PRD?' }, signal());
+  assert.equal(result.isError, true);
+  assert.equal(result.structuredContent.error.code, 'DOCUMENT_CONTEXT_REQUIRED');
+  assert.match(result.content[0].text, /Select the exact saved document/);
+  assert.deepEqual(kernelCalls, ['prepare']);
+  assert.equal(providerCalls, 0);
+  assert.equal(f.saved.length, 0);
 });
 
 test('analysis contract diagnostics survive the bridge without arbitrary worker text', async () => {

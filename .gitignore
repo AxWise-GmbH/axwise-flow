@@ -106,6 +106,16 @@ temp/
 !/scripts/smoke-local-axwise.mjs
 !/scripts/benchmark-axwise-quality.mjs
 !/scripts/benchmark-axwise-quality.test.mjs
+!/scripts/benchmark-axwise-conversation.mjs
+!/scripts/benchmark-axwise-conversation.test.mjs
+!/scripts/benchmark-axwise-pipeline.mjs
+!/scripts/benchmark-axwise-pipeline.test.mjs
+!/scripts/benchmark-axwise-expanded.mjs
+!/scripts/benchmark-axwise-expanded.test.mjs
+!/scripts/benchmark-desktop-routing.mjs
+!/scripts/benchmark-desktop-routing.test.mjs
+!/scripts/profile-desktop-spans.mjs
+!/scripts/profile-desktop-spans.test.mjs
 !/scripts/fixtures/
 /scripts/fixtures/*
 !/scripts/fixtures/local-axwise-quality/

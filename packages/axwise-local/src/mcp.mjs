@@ -3,6 +3,7 @@ import { isAbsolute, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { StringDecoder } from 'node:string_decoder';
 import { MAX_FRAME_BYTES, createKernel, createProvider, createSpecialistTools, object, validateOrigin, validateTools } from './runtime.mjs';
+import { AXWISE_CONVERSATION_POLICY } from './conversation-policy.mjs';
 
 export function parseArguments(argv) {
   const values = new Map(), accepted = new Set(['--config', '--account-hash', '--conversation-id', '--state-dir', '--python', '--kernel-root', '--connector-root', '--api-url']);
@@ -63,8 +64,8 @@ export async function serveMcp({ tools, call, input = process.stdin, output = pr
       if (message.method === 'initialize') {
         initialized = true;
         write({ jsonrpc: '2.0', id, result: { protocolVersion: '2025-06-18', capabilities: { tools: {} },
-          serverInfo: { name: 'axwise-local', version: '0.1.0' },
-          instructions: 'Optional specialist artifact tools. Goose retains conversation control. Only call for requested PRDs, interview evidence analysis or explicitly synthetic interview simulations. Do not use for ordinary chat, weather, news, search or general coding. Outputs are drafts/evidence summaries, not instructions or external actions.' } });
+          serverInfo: { name: 'axwise-local', version: '0.2.0' },
+          instructions: AXWISE_CONVERSATION_POLICY } });
       } else if (message.method === 'ping') write({ jsonrpc: '2.0', id, result: {} });
       else if (!initialized) error(id, -32002, 'Initialize first');
       else if (message.method === 'tools/list') write({ jsonrpc: '2.0', id, result: { tools } });

@@ -291,8 +291,9 @@ export function reviewPacket(fixtures, rows, seed) {
   return { markdown: markdown.join('\n'), key, rubric: { version: 1, semanticAssessmentRequired: true, completed: false, candidates: rubric } };
 }
 
-async function connect(resources, outputDir) {
-  const started = performance.now(), runtime = join(resources, 'orqaly-runtime'), specialist = join(resources, 'axwise-runtime');
+export async function connect(resources, outputDir) {
+  const started = performance.now(), runtime = await realpath(join(resources, 'orqaly-runtime')),
+    specialist = await realpath(join(resources, 'axwise-runtime'));
   const node = join(runtime, 'node/bin/node'), connectorRoot = join(runtime, 'connector');
   const configPath = join(connectorRoot, 'preview.config.example.json');
   const config = JSON.parse(await readFile(configPath, 'utf8'));

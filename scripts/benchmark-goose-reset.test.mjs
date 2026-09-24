@@ -230,6 +230,41 @@ test('CodeMode validator fails closed without an available parser', () => {
   assert.throws(() => loadTypescriptParser('relative'));
 });
 
+test('opt-in parallel batches admit up to three separately approved static callbacks as output-only results', () => {
+  const parser = loadTypescriptParser();
+  const policy = { allowStaticParallelCalls: true, allowShorthandOutput: true };
+  const search = (query) => `DesktopUtilities.searchWeb({query:"${query}",location:"Bremen"})`;
+  const code = `async function run(){ const [res1,res2,res3]=await Promise.all([${search('first')},${search('second')},${search('third')}]); return {res1,res2,res3}; }`;
+  const checked = validateCodeModeScript(code, '/tmp/fixture', parser, policy);
+  assert.equal(checked.allowed, true);
+  assert.deepEqual(checked.calls.map((call) => call.args.query), ['first', 'second', 'third']);
+  assert.equal(validateCodeModeScript(code, '/tmp/fixture', parser).allowed, false, 'default grammar has no parallel expansion');
+  for (const body of [
+    `const [a,b,c,d]=await Promise.all([${search('a')},${search('b')},${search('c')},${search('d')}]); return {a,b,c,d};`,
+    `const [a,b]=await Promise.all([${search('a')}]); return {a,b};`,
+    `const [a,a]=await Promise.all([${search('a')},${search('b')}]); return {a};`,
+    `const [,a]=await Promise.all([${search('a')},${search('b')}]); return {a};`,
+    `const [...a]=await Promise.all([${search('a')}]); return {a};`,
+    `const [a=fetch("https://example.org")]=await Promise.all([${search('a')}]); return {a};`,
+    `const [{a}]=await Promise.all([${search('a')}]); return {a};`,
+    `let [a]=await Promise.all([${search('a')}]); return {a};`,
+    `const [Promise]=await Promise.all([${search('a')}]); return {Promise};`,
+    `const Promise="shadow"; const [a]=await Promise.all([${search('a')}]); return {a};`,
+    `const [a]=await Promise.race([${search('a')}]); return {a};`,
+    `const [a]=await Promise.all?.([${search('a')}]); return {a};`,
+    `const [a]=await Promise.all<any>([${search('a')}]); return {a};`,
+    `const [a]=await Promise.all([Promise.resolve(${search('a')})]); return {a};`,
+    `const [a]=await Promise.all([await ${search('a')}]); return {a};`,
+    'const [a]=await Promise.all([fetch("https://example.org")]); return {a};',
+    'const [a]=await Promise.all([Developer.shell({command:"git push"})]); return {a};',
+    `const [a]=await Promise.all([${search('a')}].map(x=>x)); return {a};`,
+    `const [a]=await Promise.all([${search('a')}]); await DesktopUtilities.searchWeb({query:a});`,
+    `const [a]=await Promise.all([${search('a')}]); a="changed"; return {a};`,
+    `const [a]=await Promise.all([${search('a')}]); return a.constructor;`,
+    `const [a]=await Promise.all([${search('a')}]); return eval(a);`,
+  ]) assert.equal(validateCodeModeScript(`async function run(){${body}}`, '/tmp/fixture', parser, policy).allowed, false, body);
+});
+
 test('session inventory records actual native defaults without serializing MCP credentials', () => {
   const native = { extensions: [{ extensionKey: 'developer', extension: { type: 'builtin', name: 'developer' } }, { extensionKey: 'skills', extension: { type: 'builtin', name: 'skills' } }] };
   const toolList = { tools: [{ name: 'load_skill', inputSchema: { type: 'object' }, permission: 'approve' }] };

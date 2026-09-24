@@ -13,6 +13,10 @@ from backend.services.local_axwise.quality import (
 )
 from backend.services.local_axwise.worker import dispatch
 from backend.tests.local_axwise.fixtures import candidate, inputs
+from backend.tests.local_axwise.test_pipeline_integration import (
+    scope_host, personas_host, market_host, prd_host, delivery_candidate,
+)
+from backend.tests.local_axwise.test_personas import chat_input, chat_candidate
 
 
 def review_candidate(tool, fail=None):
@@ -22,6 +26,29 @@ def review_candidate(tool, fail=None):
          else "The candidate echoes excerpts without extracting their shared implication."}
         for key in CRITERIA[tool]
     ]}
+
+
+def review_fixtures():
+    """Real finalized artifacts for every reviewed tool, without provider calls."""
+    for tool in ("analyze_interviews", "create_prd"):
+        value = inputs()[tool]
+        proposed = candidate(tool, value)
+        yield tool, value, proposed, finalize(tool, value, proposed)["artifact"], None
+    scope = scope_host()
+    yield "prepare_discovery", scope["selectedInput"], scope["candidate"], scope["artifact"], None
+    market = market_host()
+    yield "research_market", market["selectedInput"], market["candidate"], market["artifact"], None
+    cohort = personas_host(scope)
+    yield "generate_personas", cohort["selectedInput"], cohort["candidate"], cohort["artifact"], [scope]
+    value = chat_input(cohort)
+    proposed = chat_candidate(value)
+    artifact = finalize("chat_with_persona", value, proposed, host_evidence=[cohort])["artifact"]
+    yield "chat_with_persona", value, proposed, artifact, [cohort]
+    prd = prd_host()
+    value = {"references": [prd["reference"]]}
+    proposed = delivery_candidate(value, [prd])
+    artifact = finalize("create_delivery_brief", value, proposed, host_evidence=[prd])["artifact"]
+    yield "create_delivery_brief", value, proposed, artifact, [prd]
 
 
 def frozen_analysis(synthetic=False):
@@ -49,7 +76,42 @@ def frozen_analysis(synthetic=False):
     return prd_input, evidence, proposed_prd
 
 
+def frozen_analysis_with_uncertainty():
+    value, evidence, proposed = frozen_analysis(synthetic=True)
+    evidence["input"]["questions"].append("What adoption constraints remain unknown?")
+    evidence["candidate"]["findings"].append({
+        "key": "unknown-adoption", "category": "need",
+        "statement": "Mechanic adoption and email integration constraints remain untested.",
+        "basis": "simulation_hypothesis", "supportStatus": "insufficient",
+        "quoteKeys": [], "questionIds": ["q2"],
+        "participantRefs": copy.deepcopy(evidence["candidate"]["findings"][0]["participantRefs"]),
+    })
+    evidence["candidate"]["gaps"].append({
+        "code": "insufficient_evidence", "questionId": "q2", "participantRef": None,
+        "output": None, "message": "Test adoption and integration before committing scope.",
+    })
+    evidence["artifact"] = finalize("analyze_interviews", evidence["input"], evidence["candidate"])["artifact"]
+    finding = json.loads(prepare("create_prd", value, evidence)["userPrompt"])["analysisFindings"][0]
+    for section in proposed["sections"]:
+        for item in section["items"]:
+            item["findingIds"], item["sourceIds"] = [finding["findingId"]], finding["sourceIds"]
+    return value, evidence, proposed
+
+
 class QualityTests(unittest.TestCase):
+    def test_review_distinguishes_structural_links_from_semantic_support(self):
+        value = inputs()["create_prd"]
+        artifact = finalize("create_prd", value, candidate("create_prd", value))["artifact"]
+        prompt = prepare_review("create_prd", value, artifact)["systemPrompt"]
+        self.assertIn("circular, not independent corroboration", prompt)
+        self.assertIn("does not establish user pain", prompt)
+        self.assertIn("Unconfirmed implementation choices remain optional", prompt)
+        self.assertIn("a covered mapping must really test its exact constraint", prompt)
+        self.assertIn("Generated personas cannot stand in for real people", prompt)
+        self.assertIn("Scenario rehearsal can refine questions", prompt)
+        self.assertIn("flag a PRD's simulated-persona validation plan as needing correction", prompt)
+        self.assertIn("Separate simulated scenario rehearsal from empirical validation", prepare("create_prd", value)["systemPrompt"])
+
     def test_conflict_requires_its_own_matching_gap_not_an_unrelated_gap(self):
         tool = "analyze_interviews"
         value = inputs()[tool]
@@ -135,19 +197,42 @@ class QualityTests(unittest.TestCase):
         self.assertIn("Omit gaps", guidance[0])
 
     def test_review_requires_complete_rubric_and_bound_candidate(self):
-        for tool in CRITERIA:
-            value = inputs()[tool]
-            artifact = finalize(tool, value, candidate(tool, value))["artifact"]
-            prepared = prepare_review(tool, value, artifact)
-            checked = validate_review(tool, artifact, review_candidate(tool), prepared["context"])
-            self.assertTrue(checked["passed"])
-            self.assertFalse(checked["semanticTruthVerified"])
-            incomplete = review_candidate(tool)
-            incomplete["checks"].pop()
-            with self.assertRaises(ValueError):
-                validate_review(tool, artifact, incomplete, prepared["context"])
-            with self.assertRaises(ValueError):
-                validate_review(tool, {**artifact, "changed": True}, review_candidate(tool), prepared["context"])
+        covered = set()
+        for tool, value, _proposed, artifact, hosts in review_fixtures():
+            with self.subTest(tool=tool):
+                covered.add(tool)
+                prepared = prepare_review(tool, value, artifact, hosts)
+                payload = json.loads(prepared["userPrompt"])
+                self.assertEqual(payload["requiredCriteria"], list(CRITERIA[tool]))
+                self.assertEqual(payload["candidateArtifact"], artifact)
+                checked = validate_review(tool, artifact, review_candidate(tool), prepared["context"])
+                self.assertTrue(checked["passed"])
+                self.assertFalse(checked["semanticTruthVerified"])
+                incomplete = review_candidate(tool)
+                incomplete["checks"].pop()
+                with self.assertRaises(ValueError):
+                    validate_review(tool, artifact, incomplete, prepared["context"])
+                with self.assertRaises(ValueError):
+                    validate_review(tool, {**artifact, "changed": True}, review_candidate(tool), prepared["context"])
+        self.assertEqual(covered, set(CRITERIA), "Every reviewed tool needs a real finalized fixture")
+
+    def test_new_tool_failed_reviews_repair_same_bound_artifact_without_extra_search(self):
+        covered = set()
+        for tool, value, proposed, artifact, hosts in review_fixtures():
+            if tool in {"analyze_interviews", "create_prd"}:
+                continue
+            with self.subTest(tool=tool):
+                covered.add(tool)
+                prepared = prepare_review(tool, value, artifact, hosts)
+                review = validate_review(tool, artifact, review_candidate(tool, "actionability"), prepared["context"])
+                self.assertFalse(review["passed"])
+                repair = prepare_repair(tool, value, proposed, review, host_evidence=hosts)
+                self.assertEqual(repair["context"], prepare(tool, value, hosts)["context"])
+                payload = json.loads(repair["userPrompt"])
+                self.assertEqual(payload["repair"]["maximumAttempts"], 1)
+                self.assertEqual(payload["repair"]["candidate"], proposed)
+                self.assertEqual(payload["repair"]["qualityReview"]["artifactHash"], review["artifactHash"])
+        self.assertEqual(covered, set(CRITERIA) - {"analyze_interviews", "create_prd"})
 
     def test_failed_substantive_review_requires_repair_then_fresh_review(self):
         tool = "analyze_interviews"
@@ -267,6 +352,160 @@ class QualityTests(unittest.TestCase):
         requirements["items"][0]["findingIds"] = ["b" * 64]
         response = dispatch({"id": 1, "operation": "finalize", "tool": "create_prd", "input": value, "response": proposed, "hostEvidence": evidence})
         self.assertEqual(response["error"]["diagnostics"], ["UNKNOWN_FINDING_REFERENCE"])
+
+    def test_prd_reports_owner_and_requirement_defects_in_the_same_repair(self):
+        value, evidence, proposed = frozen_analysis(synthetic=True)
+        scope = next(section for section in proposed["sections"]
+                     if section["heading"] == "Product thesis, scope, and non-goals")
+        scope["items"] = [{"text": "PRIVATE supposed owner approval absent from the brief.",
+                           "basis": "owner_decision", "sourceIds": [], "findingIds": []}]
+        requirements = next(section for section in proposed["sections"]
+                            if section["heading"] == "Prioritized requirements")
+        unsupported = {"text": "P2: introduce a new optional integration; validate feasibility before prioritizing.",
+                       "basis": "proposal", "sourceIds": [], "findingIds": []}
+        requirements["items"].append(unsupported)
+        proposed["sections"].remove(scope)
+        proposed["sections"].insert(0, scope)
+        failure = dispatch({"id": 1, "operation": "finalize", "tool": "create_prd",
+                            "input": value, "response": proposed, "hostEvidence": evidence})
+        self.assertEqual(failure["error"]["diagnostics"],
+                         ["INVALID_OWNER_DECISION", "MISSING_REQUIREMENT_FINDING_LINK"])
+        self.assertNotIn("PRIVATE", json.dumps(failure))
+        repair = prepare_repair("create_prd", value, proposed,
+                                diagnostics=failure["error"]["diagnostics"], host_evidence=evidence)
+        guidance = json.loads(repair["userPrompt"])["repair"]["validationRepairGuidance"]
+        self.assertEqual(len(guidance), 2)
+        self.assertIn("exact substring", guidance[0])
+        self.assertIn("Never attach an arbitrary finding", guidance[1])
+        self.assertIn("Next steps", guidance[1])
+
+        # Correct both defects without granting scope or fabricating evidence.
+        scope["items"][0]["text"] = value["brief"]
+        requirements["items"].remove(unsupported)
+        next(section for section in proposed["sections"]
+             if section["heading"] == "Next steps")["items"].append(unsupported)
+        accepted = finalize("create_prd", value, proposed, host_evidence=evidence)
+        self.assertTrue(accepted["validation"]["valid"])
+        self.assertEqual(requirements["items"][0]["basis"], "simulation_hypothesis")
+        self.assertEqual(unsupported["findingIds"], [])
+
+    def test_analysis_backed_prd_schema_requires_admitted_requirement_finding_ids(self):
+        for artifact_type in ("product_prd", "software_prd"):
+            with self.subTest(artifact_type=artifact_type):
+                value, evidence, _ = frozen_analysis()
+                value["artifactType"] = artifact_type
+                prepared = prepare("create_prd", value, evidence)
+                schema = prepared["responseSchema"]
+                alternatives = schema["properties"]["sections"]["items"]["anyOf"]
+                requirement_section, other_section = alternatives
+                self.assertEqual(requirement_section["properties"]["heading"]["enum"],
+                                 ["Prioritized requirements"])
+                self.assertNotIn("Prioritized requirements", other_section["properties"]["heading"]["enum"])
+                self.assertEqual(requirement_section["properties"]["items"]["items"],
+                                 {"$ref": "#/$defs/GroundedPrdRequirement"})
+                requirement = schema["$defs"]["GroundedPrdRequirement"]
+                self.assertIn("findingIds", requirement["required"])
+                self.assertEqual(requirement["properties"]["findingIds"]["minItems"], 1)
+                self.assertEqual(requirement["properties"]["findingIds"]["items"]["enum"],
+                                 [row["findingId"] for row in evidence["artifact"]["findings"]])
+                self.assertNotIn("findingIds", schema["$defs"]["PrdItem"]["required"])
+                self.assertIn("unconfirmed optional proposals", prepared["systemPrompt"])
+                self.assertIn("Never attach an arbitrary finding", prepared["systemPrompt"])
+
+    def test_brief_only_prd_does_not_require_nonexistent_findings(self):
+        value = inputs()["create_prd"]
+        prepared = prepare("create_prd", value)
+        self.assertEqual(prepared["responseSchema"]["properties"]["sections"]["items"],
+                         {"$ref": "#/$defs/PrdSection"})
+        self.assertTrue(finalize("create_prd", value, candidate("create_prd", value))["validation"]["valid"])
+
+    def test_prd_aggregates_unknown_references_without_indexing_untrusted_ids(self):
+        value, evidence, proposed = frozen_analysis()
+        item = proposed["sections"][0]["items"][0]
+        item.update(sourceIds=["unadmitted-source"], findingIds=["b" * 64])
+        scope = next(section for section in proposed["sections"]
+                     if section["heading"] == "Product thesis, scope, and non-goals")
+        scope["items"] = [{"text": "Unconfirmed scope agreement.", "basis": "owner_decision",
+                           "sourceIds": [], "findingIds": []}]
+        failure = dispatch({"id": 1, "operation": "finalize", "tool": "create_prd",
+                            "input": value, "response": proposed, "hostEvidence": evidence})
+        self.assertEqual(failure["error"]["diagnostics"],
+                         ["UNKNOWN_SOURCE_REFERENCE", "UNKNOWN_FINDING_REFERENCE", "INVALID_OWNER_DECISION"])
+
+    def test_prd_separates_unsupported_uncertainties_without_losing_parent_lineage(self):
+        value, evidence, proposed = frozen_analysis_with_uncertainty()
+        original = copy.deepcopy(evidence)
+        prepared = prepare("create_prd", value, evidence)
+        payload = json.loads(prepared["userPrompt"])
+        self.assertEqual(len(payload["analysisFindings"]), 1)
+        uncertainty = payload["analysisUncertainties"][0]
+        original_finding = evidence["artifact"]["findings"][1]
+        for field in ("findingId", "statement", "basis", "supportStatus", "questionIds", "quoteIds"):
+            self.assertEqual(uncertainty[field], original_finding[field])
+        self.assertEqual(uncertainty["sourceIds"], [])
+        definitions = prepared["responseSchema"]["$defs"]
+        for name in ("PrdItem", "GroundedPrdRequirement"):
+            allowed = definitions[name]["properties"]["findingIds"]["items"]["enum"]
+            self.assertEqual(allowed, [payload["analysisFindings"][0]["findingId"]])
+            self.assertNotIn(uncertainty["findingId"], allowed)
+        self.assertIn("sourceIds=[], findingIds=[]", prepared["systemPrompt"])
+        artifact = finalize("create_prd", value, proposed, host_evidence=evidence)["artifact"]
+        self.assertEqual(artifact["analysisArtifact"], value["analysisArtifact"])
+        self.assertIn(uncertainty, artifact["analysisFindings"])
+        self.assertEqual(evidence, original)
+
+    def test_synthetic_quote_and_quote_free_gap_repair_keeps_strict_validation(self):
+        value, evidence, proposed = frozen_analysis_with_uncertainty()
+        payload = json.loads(prepare("create_prd", value, evidence)["userPrompt"])
+        uncertainty = payload["analysisUncertainties"][0]
+        source_item = proposed["sections"][0]["items"][0]
+        source_item["basis"] = "source_statement"
+        gap = {"text": uncertainty["statement"], "basis": "gap", "sourceIds": [],
+               "findingIds": [uncertainty["findingId"]]}
+        next(section for section in proposed["sections"]
+             if section["heading"] == "Evidence, assumptions, and gaps")["items"].append(gap)
+        failure = dispatch({"id": 1, "operation": "finalize", "tool": "create_prd",
+                            "input": value, "response": proposed, "hostEvidence": evidence})
+        self.assertEqual(failure["error"]["diagnostics"],
+                         ["SYNTHETIC_PROVENANCE_MISMATCH", "INVALID_SOURCE_QUOTE"])
+        repair = prepare_repair("create_prd", value, proposed,
+                                diagnostics=failure["error"]["diagnostics"], host_evidence=evidence)
+        guidance = json.loads(repair["userPrompt"])["repair"]["validationRepairGuidance"]
+        self.assertEqual(len(guidance), 2)
+        self.assertIn("Never manufacture evidence", guidance[0])
+        self.assertIn("finding summary or paraphrase is not an original quote", guidance[1])
+        # Simulate a complete guided replacement; neither preparation nor
+        # validation silently rewrites model output or adds supporting evidence.
+        self.assertEqual(gap["findingIds"], [uncertainty["findingId"]])
+        source_item["basis"] = "simulation_hypothesis"
+        still_failed = dispatch({"id": 1, "operation": "finalize", "tool": "create_prd",
+                                 "input": value, "response": proposed, "hostEvidence": evidence})
+        self.assertEqual(still_failed["error"]["diagnostics"], ["SYNTHETIC_PROVENANCE_MISMATCH"])
+        gap["findingIds"] = []
+        accepted = finalize("create_prd", value, proposed, host_evidence=evidence)
+        self.assertTrue(accepted["validation"]["valid"])
+        self.assertEqual(gap, {"text": uncertainty["statement"], "basis": "gap", "sourceIds": [], "findingIds": []})
+        self.assertIn(uncertainty, accepted["artifact"]["analysisFindings"])
+
+    def test_quote_free_analysis_cannot_prepare_an_impossible_evidence_backed_prd(self):
+        value, evidence, _ = frozen_analysis(synthetic=True)
+        finding = evidence["candidate"]["findings"][0]
+        finding.update(supportStatus="insufficient", quoteKeys=[],
+                       statement="No handoff problem is established by this material.")
+        evidence["candidate"]["quotes"] = []
+        evidence["candidate"]["gaps"] = [{
+            "code": "insufficient_evidence", "questionId": "q1",
+            "participantRef": finding["participantRefs"][0], "output": "jobs_pains",
+            "message": "Investigate the workflow before proposing requirements.",
+        }]
+        evidence["artifact"] = finalize("analyze_interviews", evidence["input"], evidence["candidate"])["artifact"]
+        original = copy.deepcopy(evidence)
+        failure = dispatch({"id": 1, "operation": "prepare", "tool": "create_prd",
+                            "input": value, "hostEvidence": evidence})
+        self.assertEqual(failure["error"]["diagnostics"], ["MISSING_REQUIREMENT_FINDING_LINK"])
+        self.assertNotIn("result", failure)  # No unusable schema reaches inference.
+        self.assertEqual(evidence, original)
+        self.assertEqual(evidence["artifact"]["findings"][0]["statement"], finding["statement"])
 
     def test_linked_finding_cannot_omit_original_source(self):
         value, evidence, proposed = frozen_analysis()
