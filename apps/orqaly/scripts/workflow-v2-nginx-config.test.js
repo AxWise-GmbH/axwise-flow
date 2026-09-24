@@ -26,6 +26,23 @@ describe('workflow v2 web security boundary', () => {
     expect(nginx).toContain('Cache-Control "public, max-age=31536000, immutable"');
   });
 
+  it('redirects only the historical preview website to the canonical production host', () => {
+    const nginx = readFileSync('deploy/workflow-v2/nginx.conf', 'utf8');
+    const servers = nginx.match(/^server \{[\s\S]*?^\}/gm);
+    expect(servers).toHaveLength(2);
+    expect(servers[0]).toContain('server_name _;');
+    expect(servers[0]).toContain('location = /healthz');
+    expect(servers[0]).toContain('try_files $uri $uri/ /index.html;');
+    expect(servers[0]).not.toContain('return 308');
+    expect(servers[1]).toContain('server_name preview.orqanix.com;');
+    // $request_uri preserves both the original escaped path and its query string.
+    // The destination host is a constant, never reflected from the request.
+    expect(servers[1]).toContain('return 308 https://orqanix.com$request_uri;');
+    expect(servers[1]).toContain('include /etc/nginx/security-headers.conf;');
+    expect(servers[1]).not.toContain('$host');
+    expect(servers[1]).not.toContain('try_files');
+  });
+
   it('allows the explicit Orqanix production Clerk hosts without a domain wildcard', () => {
     const headers = readFileSync('deploy/workflow-v2/security-headers.conf', 'utf8');
     const csp = headers.match(/Content-Security-Policy "([^"]+)"/)?.[1];

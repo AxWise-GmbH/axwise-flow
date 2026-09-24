@@ -16,6 +16,21 @@ const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url));
 const httpsConfig = { issuer: 'https://issuer.example', clientId: 'publicClient', apiUrl: 'https://api.example' };
 const shutdown = server => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); });
 
+test('production public configuration is exact and uses a separate credential identity', async () => {
+  const production = JSON.parse(await readFile(new URL('../production.config.example.json', import.meta.url), 'utf8'));
+  const preview = JSON.parse(await readFile(new URL('../preview.config.example.json', import.meta.url), 'utf8'));
+  assert.deepEqual(production, {
+    issuer: 'https://clerk.orqanix.com',
+    clientId: 'nhI2YnrzeTP2mk2X',
+    apiUrl: 'https://orqaly-v2-api-preview-161074549006.europe-west4.run.app',
+    scopes: ['offline_access', 'profile'],
+  });
+  assert.notEqual(validateConfig(production).identity, validateConfig(preview).identity);
+  const parsed = await parseArguments(['token', '--config', fileURLToPath(new URL('../production.config.example.json', import.meta.url))]);
+  assert.equal(parsed.config.identity, validateConfig(production).identity);
+  assert.equal(parsed.config.authFile, null);
+});
+
 function run(args) {
   const child = spawn(process.execPath, [cli, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '', stderr = '', firstLine;

@@ -1,0 +1,6 @@
+{
+  "issuer": "https://clerk.orqanix.com",
+  "clientId": "nhI2YnrzeTP2mk2X",
+  "apiUrl": "https://orqaly-v2-api-preview-161074549006.europe-west4.run.app",
+  "scopes": ["offline_access", "profile"]
+}
